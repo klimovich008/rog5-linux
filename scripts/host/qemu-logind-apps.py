@@ -18,14 +18,20 @@ LAUNCHER = BASE.load_sibling('apps_launcher_protocol', 'qemu-launcher-protocol.p
 class AppProtocols:
     LINE_LIMIT = BASE.PROTOCOL.EditorProtocol.LINE_LIMIT
 
-    def __init__(self, owner):
+    def __init__(self, owner, caret_protocol=None):
         self.owner = owner
         self.launcher = LAUNCHER.LauncherProtocol()
         self.editor = BASE.PROTOCOL.EditorProtocol()
         self.diagnostic_bytes = 0
+        self.caret = caret_protocol
 
     def feed(self, line):
         owner = self.owner
+        if self.caret is not None:
+            if line.startswith(b'EDITOR_WAYLAND '):
+                self.caret.feed(line)
+            if self.caret.error:
+                raise ValueError('bottom caret protocol: '+self.caret.error)
         if line.startswith(b'DENIAL_DIAGNOSTIC '):
             self.diagnostic_bytes += len(line)
             if self.diagnostic_bytes > 65536:
@@ -53,7 +59,8 @@ class AppProtocols:
 
     def result(self):
         return {'status': 'PASS' if self.launcher.result()['status'] == 'PASS'
-                and self.editor.result()['status'] == 'PASS' else 'FAIL'}
+                and self.editor.result()['status'] == 'PASS'
+                and (self.caret is None or self.caret.error is None) else 'FAIL'}
 
 
 class LiveApps(BASE.LiveEditor):
@@ -64,16 +71,28 @@ class LiveApps(BASE.LiveEditor):
     approved boundary; genuine compositor counters remain in the serial oracle.
     """
     def __init__(self, directory, name, token, reference, *,
-                 automatic_caret=False, client_factory=BASE.MOBILE.TextQMP, capture_backend=BASE.MOBILE.capture_vnc):
+                 automatic_caret=False, bottom_caret=False,
+                 client_factory=BASE.MOBILE.TextQMP, capture_backend=BASE.MOBILE.capture_vnc):
         if not re.fullmatch(r'ROG5_APPS_DONE_[0-9a-f]{32}', token):
             raise ValueError('invalid exact observation token')
+        if bottom_caret and not automatic_caret:
+            raise ValueError('bottom caret requires automatic caret mode')
         self.ready = self.teardown = self.ack_sent = self.peer_closed = False
-        self.parser = AppProtocols(self)
-        observer_class = (BASE.MOBILE.AutomaticCaretAppTextObserver if automatic_caret
-                          else BASE.MOBILE.AppTextObserver)
+        self.bottom_caret = bottom_caret
+        self.caret_protocol = None
+        observer_options = {}
+        if bottom_caret:
+            caret_module = BASE.load_sibling('apps_caret_protocol', 'qemu-caret-protocol.py')
+            self.caret_protocol = caret_module.CaretProtocol()
+            observer_class = BASE.MOBILE.BottomCaretAppTextObserver
+            observer_options['caret_protocol'] = self.caret_protocol
+        else:
+            observer_class = (BASE.MOBILE.AutomaticCaretAppTextObserver if automatic_caret
+                              else BASE.MOBILE.AppTextObserver)
+        self.parser = AppProtocols(self, self.caret_protocol)
         self.observer = observer_class(directory, name,
             protocol=self.parser.launcher, reference=reference,
-            client_factory=client_factory, capture_backend=capture_backend)
+            client_factory=client_factory, capture_backend=capture_backend, **observer_options)
         self.directory = self.observer.directory
         self.log_path = self.directory/'apps.log'
         self.stream = self.log_path.open('xb')
@@ -89,7 +108,13 @@ class LiveApps(BASE.LiveEditor):
 
     @property
     def complete(self):
-        return not self.error and self.ack_sent and self.observer.complete and self.parser.result()['status'] == 'PASS'
+        return (not self.error and self.ack_sent and self.observation_qualified()
+                and self.parser.result()['status'] == 'PASS')
+
+    def observation_qualified(self):
+        return (self.observer.complete and (not self.bottom_caret or
+                (self.observer.result.get('bottom_caret', {}).get('status') == 'PASS'
+                 and self.caret_protocol.error is None)))
 
     def update_focus(self, now):
         # Evaluate every event, including transient loss within one poll. Other
@@ -148,7 +173,7 @@ class LiveApps(BASE.LiveEditor):
             if self.peer_closed and not self.teardown:
                 raise ValueError('application transport closed before approved teardown')
             self.observer.tick(now, self.ready)
-            if (self.observer.complete and self.parser.result()['status'] == 'PASS'
+            if (self.observation_qualified() and self.parser.result()['status'] == 'PASS'
                     and not self.ack_sent and not self.pending):
                 try:
                     self.sent += self.transport.send(self.token[self.sent:])
@@ -186,6 +211,8 @@ class LiveApps(BASE.LiveEditor):
             'acknowledgement_sent': self.ack_sent, 'approved_teardown': self.teardown,
             'clean_client_exits': clean, 'stream_bytes': self.offset,
             'diagnostic_bytes': self.parser.diagnostic_bytes, 'phone': 'NOT RUN'}
+        if self.bottom_caret:
+            self.result['caret_protocol'] = self.caret_protocol.result()
         if not passed:
             self.result['error'] = str(error or self.error or 'incomplete application observation/cleanup')
         (self.directory/'apps-result.json').write_text(json.dumps(self.result, indent=2)+'\n')

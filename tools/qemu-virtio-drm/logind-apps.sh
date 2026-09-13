@@ -35,14 +35,21 @@ prepare_authenticated_apps() {
     local state=${1:-$HOME/launcher-apps} desktops=${2:-/usr/share/applications}
     local wrapper=${3:-/run/logind-apps.sh} text=${4:-/tmp/rog5-text-probe.txt}
     local writer=${5:-/run/evidence-writer} sink=${6:-/dev/vport0p1}
-    local token_file=${7:-/run/apps-observe-token} app prefix manager count=0 value
+    local token_file=${7:-/run/apps-observe-token} profile=${8:-normal}
+    local app prefix manager count=0 value line
     launcher_guest_guard || return $?
     [[ -z ${logind_apps_port:-} ]] || return 1
     [[ -x $writer && ( -c $sink || -p $sink ) && -f $token_file &&
        ! -L $token_file && ! -e $text && ! -L $text ]] || return 1
     read -r logind_apps_token < "$token_file" || return $?
     [[ $logind_apps_token =~ ^ROG5_APPS_DONE_[0-9a-f]{32}$ ]] || return 1
+    [[ $profile == normal || $profile == bottom-caret ]] || return 1
     launcher_apps_prepare "$state" "$desktops" "$wrapper" "$text" || return $?
+    if [[ $profile == bottom-caret ]]; then
+        # A long RAM-only document permits a real pointer-selected low caret.
+        # No CLI cursor positioning or host keyboard injection is used.
+        for ((line=1;line<=64;line++)); do printf 'line-%02d\n' "$line"; done > "$text"
+    fi
     logind_apps_state=$state; logind_apps_writer=$writer; logind_apps_sink=$sink
     # Share the current, tested lifecycle functions verbatim. Never source the
     # main session script: its top-level code starts services and log readers.

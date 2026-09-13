@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Exercise the real manual runner's process ownership without containers/VMs."""
 import os
+import ast
+from types import SimpleNamespace
+from unittest.mock import patch
 import re
 import hashlib
 import importlib.util
@@ -979,6 +982,88 @@ class AppsPreflight(unittest.TestCase):
         self.runner.session_observer(module, SimpleNamespace(observe_apps=False),
                                      'directory', 'owned', 'token')
         self.assertEqual(calls[-1], (('directory', 'owned'), {}))
+
+    def test_bottom_caret_cli_requires_both_optins_before_effects(self):
+        required = [value for name in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for value in ['--'+name, '/unused']]
+        combined = ['--session-archive', '/unused', '--session-receipt', '/unused', '--host-render-node', '/unused']
+        apps = ['--observe-apps', '--launcher-reference', '/unused', '--evidence-writer', '/unused']
+        for extra in ([], combined+['--observe-editor'], combined+apps):
+            with self.subTest(extra=extra), patch.object(sys, 'argv', [str(RUNNER), *required, *extra, '--bottom-caret']), \
+                    patch.object(self.runner, 'install_handlers') as effects, patch('sys.stderr', new_callable=io.StringIO) as stderr:
+                with self.assertRaises(SystemExit) as exit_status:
+                    self.runner.main()
+                self.assertEqual(exit_status.exception.code, 2)
+                self.assertIn('bottom-caret requires observe-apps and automatic-caret', stderr.getvalue())
+                effects.assert_not_called()
+        with patch.object(sys, 'argv', [str(RUNNER), *required, *combined, *apps, '--automatic-caret', '--bottom-caret']), \
+                patch.object(self.runner, 'install_handlers', side_effect=RuntimeError('accepted CLI fixture')):
+            with self.assertRaisesRegex(RuntimeError, 'accepted CLI fixture'):
+                self.runner.main()
+
+    def test_observer_factory_forwards_bottom_caret_only_when_selected(self):
+        calls = []
+        module = SimpleNamespace(LiveApps=lambda *a, **kw: calls.append((a, kw)))
+        for bottom in (False, True):
+            args = SimpleNamespace(observe_apps=True, launcher_reference='reference', automatic_caret=True, bottom_caret=bottom)
+            self.runner.session_observer(module, args, 'directory', 'owned', 'token')
+            expected = {'automatic_caret': True}
+            if bottom:
+                expected['bottom_caret'] = True
+            self.assertEqual(calls[-1], (('directory', 'owned', 'token', 'reference'), expected))
+
+    @staticmethod
+    def actual_apps_block(marker):
+        # Execute complete production branches, replacing expensive build/VM
+        # surroundings, not the policy or staged-file implementation.
+        tree = ast.parse(RUNNER.read_text())
+        candidates = [node for node in ast.walk(tree) if isinstance(node, ast.If)
+                      and ast.unparse(node.test) == 'args.observe_apps'
+                      and marker in ast.unparse(node)]
+        if len(candidates) != 1:
+            raise AssertionError('production apps branch is absent or ambiguous')
+        return compile(ast.Module(body=candidates, type_ignores=[]), str(RUNNER), 'exec')
+
+    def test_bottom_caret_input_lock_is_explicit_optin(self):
+        block = self.actual_apps_block('source_names_extra')
+        for observe, bottom in ((False, False), (True, False), (True, True)):
+            with self.subTest(observe=observe, bottom=bottom):
+                inputs = []
+                scope = dict(args=SimpleNamespace(observe_apps=observe, bottom_caret=bottom,
+                    launcher_reference=Path('/fixture/reference'), evidence_writer=Path('/fixture/writer')),
+                    input_files=inputs, SOURCES=self.runner.SOURCES, REPO=self.runner.REPO,
+                    regular=lambda path: path)
+                exec(block, scope)
+                caret = self.runner.REPO/'scripts/host/qemu-caret-protocol.py'
+                self.assertEqual(inputs.count(caret), int(observe and bottom))
+                if observe:
+                    self.assertIn(self.runner.REPO/'scripts/host/qemu-launcher-protocol.py', inputs)
+                else:
+                    self.assertEqual(inputs, [])
+
+    def test_bottom_caret_marker_is_staged_and_hashed_only_optin(self):
+        import uuid
+        block = self.actual_apps_block('bottom-caret-probe')
+        for bottom in (False, True):
+            with self.subTest(bottom=bottom), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                stage = root/'initramfs'
+                (stage/'stage').mkdir(parents=True)
+                writer = root/'writer'
+                writer.write_bytes(b'fixture executable')
+                result = {'outputs': {}}
+                scope = dict(args=SimpleNamespace(observe_apps=True, bottom_caret=bottom, evidence_writer=writer),
+                             scripts={}, stage=stage, uuid=uuid, shutil=shutil, result=result,
+                             identity=self.runner.identity)
+                exec(block, scope)
+                marker = stage/'stage/bottom-caret-probe'
+                self.assertEqual(marker.exists(), bottom)
+                self.assertEqual('stage/bottom-caret-probe' in result['outputs'], bottom)
+                if bottom:
+                    self.assertEqual(marker.read_bytes(), b'1\n')
+                    self.assertEqual(result['outputs']['stage/bottom-caret-probe'], self.runner.identity(marker))
+                self.assertEqual((stage/'stage/apps-probe').read_bytes(), b'1\n')
+                self.assertRegex((stage/'stage/apps-observe-token').read_text(), r'^ROG5_APPS_DONE_[0-9a-f]{32}\n$')
 
     def test_reference_semantics_and_guest_architecture_checked(self):
         spec = importlib.util.spec_from_file_location('editor_png_fixture', RUNNER.with_name('test-qemu-logind-editor.py'))

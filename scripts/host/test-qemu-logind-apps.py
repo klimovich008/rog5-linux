@@ -5,6 +5,7 @@ from pathlib import Path
 import socket
 import tempfile
 import unittest
+from unittest import mock
 
 
 def sibling(name, file):
@@ -34,9 +35,11 @@ class LiveAppsTests(unittest.TestCase):
         reference = root/'reference.png'
         reference.write_bytes(MOBILE_FIX.png_fixture())
         self.client = MOBILE_FIX.CaptureClient(root/'observe')
+        options = {'bottom_caret': True} if getattr(self, 'BOTTOM_CARET', False) else {}
         self.apps = APPS.LiveApps(root/'observe', 'fixture', TOKEN, reference,
             automatic_caret=self.AUTOMATIC_CARET, client_factory=lambda *_: self.client,
-            capture_backend=lambda socket, name, path: path.write_bytes(MOBILE_FIX.png_fixture()))
+            capture_backend=lambda socket, name, path: path.write_bytes(MOBILE_FIX.png_fixture()),
+            **options)
         self.addCleanup(self.apps.finish)
         self.apps.observer.sleep = lambda _: None
         (self.apps.directory/'qmp.sock').touch()
@@ -343,6 +346,140 @@ class AutomaticCaretLiveAppsTests(LiveAppsTests):
     def test_selected_production_observer_has_no_pan(self):
         self.assertIsInstance(self.apps.observer, APPS.BASE.MOBILE.AutomaticCaretAppTextObserver)
         self.assertIn('no manual viewport pan', self.apps.observer.result['action_policy'])
+
+
+class BottomCaretLiveAppsTests(unittest.TestCase):
+    """Same real socket harness, with protocol delivery at the two tap boundaries."""
+    AUTOMATIC_CARET = BOTTOM_CARET = True
+    setUp = LiveAppsTests.setUp
+    send = LiveAppsTests.send
+    no_ack = LiveAppsTests.no_ack
+    actions = LiveAppsTests.actions
+    approved_finish = LiveAppsTests.approved_finish
+
+    def advance(self, keys=True):
+        observer = self.apps.observer
+        operation, index = observer.STEPS[observer.stage]
+        if operation == 'editor':
+            action = observer.EDITOR_STEPS[index][0]
+            if action == 'await-baseline':
+                self.send(F.wire('mousepad',
+                    '-> xdg_surface#3.set_window_geometry(26, 23, 540, 1176)',
+                    '-> wl_surface#4.commit()',
+                    'zwp_text_input_v3#29.enter(wl_surface#4)',
+                    '-> zwp_text_input_v3#29.enable()',
+                    'wl_pointer#15.enter(1, wl_surface#4, 296, 1075)',
+                    'wl_pointer#15.button(2, 100, 272, 1)',
+                    'wl_pointer#15.button(3, 110, 272, 0)',
+                    '-> zwp_text_input_v3#29.set_cursor_rectangle(296, 1070, 0, 20)',
+                    '-> zwp_text_input_v3#29.commit()'))
+            elif action == 'await-mapping':
+                self.send(F.wire('mousepad',
+                    'wl_pointer#15.motion(200, 296, 1079.2)',
+                    'wl_pointer#15.button(4, 210, 272, 1)',
+                    'wl_pointer#15.button(5, 220, 272, 0)',
+                    '-> zwp_text_input_v3#29.set_cursor_rectangle(296, 1070, 0, 20)',
+                    '-> zwp_text_input_v3#29.commit()'))
+        LiveAppsTests.advance(self, keys)
+
+    def test_opt_in_real_socket_flow_qualifies_before_exact_ack(self):
+        self.assertIsInstance(self.apps.observer, APPS.BASE.MOBILE.BottomCaretAppTextObserver)
+        self.assertIs(self.apps.observer.caret_protocol, self.apps.parser.caret)
+        self.actions()
+        self.assertTrue(self.apps.complete)
+        self.assertEqual(self.peer.recv(256), (TOKEN+'\n').encode())
+        self.apps.tick(self.apps.observer.next_at)
+        self.no_ack()
+        result = self.approved_finish()
+        self.assertEqual(result['status'], 'PASS', result)
+        proof = result['observation']['bottom_caret']
+        self.assertEqual(proof['status'], 'PASS')
+        self.assertGreater(proof['translated']['caret']['rectangle_sequence'],
+                           proof['translated']['pointer']['sequence'])
+        self.assertEqual(result['caret_protocol']['evidence'], 'client-protocol-only')
+        self.assertIsNone(result['caret_protocol']['error'])
+        self.assertTrue(result['observation']['pointer_released'])
+        self.assertLess(len(self.client.records), 96)
+
+    def test_action_and_legacy_oracles_cannot_ack_missing_bottom_proof(self):
+        self.send(READY)
+        self.apps.tick(0)
+        while self.apps.observer.stage < len(self.apps.observer.STEPS)-1:
+            self.advance()
+        self.apps.observer.result['bottom_caret']['status'] = 'BASELINE_ONLY'
+        self.actions()
+        self.assertTrue(self.apps.observer.complete)
+        self.assertEqual(self.apps.parser.result()['status'], 'PASS')
+        self.assertFalse(self.apps.complete)
+        self.assertFalse(self.apps.ack_sent)
+        self.no_ack()
+        self.assertEqual(self.apps.finish()['status'], 'FAIL')
+
+    def test_protocol_error_after_mapping_is_sticky_and_blocks_ack(self):
+        self.send(READY)
+        self.apps.tick(0)
+        while self.apps.observer.result['bottom_caret']['status'] != 'PASS':
+            self.advance()
+        previous = list(self.client.records)
+        self.send(F.wire('mousepad', '-> zwp_text_input_v3#29.set_cursor_rectangle(0, 0, -1, 20)'))
+        with self.assertRaisesRegex(ValueError, 'bottom caret protocol'):
+            self.apps.tick(self.apps.observer.next_at)
+        with self.assertRaisesRegex(ValueError, 'bottom caret protocol'):
+            self.apps.tick(self.apps.observer.next_at+1)
+        self.assertEqual(self.client.records, previous)
+        self.no_ack()
+        result = self.apps.finish()
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertIsNotNone(result['caret_protocol']['error'])
+
+    def test_protocol_error_during_teardown_fails_final_result(self):
+        self.actions()
+        self.peer.recv(256)
+        self.send(TEARDOWN+F.wire('mousepad', '-> zwp_text_input_v3#29.set_cursor_rectangle(0, 0, -1, 20)').encode()+EXITS)
+        with self.assertRaisesRegex(ValueError, 'bottom caret protocol'):
+            self.apps.tick(self.apps.observer.next_at)
+        result = self.apps.finish()
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertTrue(result['acknowledgement_sent'])
+
+    def test_wrong_prefix_and_diagnostics_never_enter_caret_tracker(self):
+        self.send(F.owner('foot'))
+        self.send(F.wire('foot', 'zwp_text_input_v3#29.enter(wl_surface#4)'))
+        self.send(b'DENIAL_DIAGNOSTIC EDITOR_WAYLAND zwp_text_input_v3#29.enter(wl_surface#4)\n')
+        self.apps.tick(0)
+        self.assertEqual(self.apps.caret_protocol.sequence, 0)
+        self.assertIsNone(self.apps.caret_protocol.error)
+        self.no_ack()
+
+    def test_partial_caret_line_is_framed_before_feed(self):
+        self.send(F.owner('mousepad'))
+        record = F.wire('mousepad', 'zwp_text_input_v3#29.enter(wl_surface#4)').encode()
+        self.send(record[:-1])
+        self.apps.tick(0)
+        self.assertEqual(self.apps.caret_protocol.sequence, 0)
+        self.send(b'\n')
+        self.apps.tick(1)
+        self.assertEqual(self.apps.caret_protocol.sequence, 1)
+        self.assertIsNone(self.apps.caret_protocol.error)
+        self.no_ack()
+
+    def test_old_mode_does_not_import_tracker(self):
+        directory = self.apps.directory.parent/'legacy'
+        with mock.patch.object(APPS.BASE, 'load_sibling', side_effect=AssertionError('unexpected tracker import')):
+            legacy = APPS.LiveApps(directory, 'fixture', TOKEN,
+                self.apps.directory.parent/'reference.png', automatic_caret=True)
+        try:
+            self.assertIsNone(legacy.caret_protocol)
+            self.assertIs(type(legacy.observer), APPS.BASE.MOBILE.AutomaticCaretAppTextObserver)
+        finally:
+            legacy.finish()
+
+    def test_bottom_mode_requires_automatic_before_output_creation(self):
+        directory = self.apps.directory/'uncreated'
+        with self.assertRaisesRegex(ValueError, 'requires automatic'):
+            APPS.LiveApps(directory, 'fixture', TOKEN,
+                          self.apps.directory.parent/'reference.png', bottom_caret=True)
+        self.assertFalse(directory.exists())
 
 
 if __name__ == '__main__':

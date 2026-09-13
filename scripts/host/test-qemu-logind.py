@@ -234,8 +234,10 @@ def observation_channel(apps):
 
 def session_observer(module, args, directory, name, token):
     if args.observe_apps:
-        return module.LiveApps(directory, name, token, args.launcher_reference,
-                               automatic_caret=args.automatic_caret)
+        options = {'automatic_caret': args.automatic_caret}
+        if getattr(args, 'bottom_caret', False):
+            options['bottom_caret'] = True
+        return module.LiveApps(directory, name, token, args.launcher_reference, **options)
     return module.LiveEditor(directory, name)
 
 
@@ -253,6 +255,8 @@ def main():
                              help='launcher-driven app switching and OSK in authenticated VM')
     parser.add_argument('--automatic-caret', action='store_true',
                         help='observe-apps only: omit manual viewport pan and inverse; VM only')
+    parser.add_argument('--bottom-caret', action='store_true',
+                        help='automatic-caret only: long RAM document and strict low-caret pointer mapping probe')
     parser.add_argument('--launcher-reference', type=Path)
     parser.add_argument('--evidence-writer', type=Path)
     args = parser.parse_args()
@@ -266,6 +270,8 @@ def main():
         parser.error('apps observation requires exactly launcher-reference and evidence-writer')
     if args.automatic_caret and not args.observe_apps:
         parser.error('automatic-caret requires observe-apps')
+    if args.bottom_caret and not (args.observe_apps and args.automatic_caret):
+        parser.error('bottom-caret requires observe-apps and automatic-caret')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -329,6 +335,8 @@ def main():
             input_files += [regular(args.launcher_reference), regular(args.evidence_writer),
                             REPO/'scripts/host/qemu-logind-apps.py',
                             REPO/'scripts/host/qemu-launcher-protocol.py']
+            if args.bottom_caret:
+                input_files.append(REPO/'scripts/host/qemu-caret-protocol.py')
         if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
@@ -393,6 +401,9 @@ def main():
             (stage / 'stage/evidence-writer').chmod(0o755)
             for name in ['apps-probe', 'apps-observe-token', 'evidence-writer']:
                 result['outputs']['stage/'+name] = identity(stage / 'stage' / name)
+            if args.bottom_caret:
+                (stage / 'stage/bottom-caret-probe').write_text('1\n')
+                result['outputs']['stage/bottom-caret-probe'] = identity(stage / 'stage/bottom-caret-probe')
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)

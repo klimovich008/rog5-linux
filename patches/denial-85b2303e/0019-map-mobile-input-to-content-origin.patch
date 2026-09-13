@@ -1,0 +1,15 @@
+--- a/dart_shell/lib/src/state/shell_input_layout_coordinator.dart
++++ b/dart_shell/lib/src/state/shell_input_layout_coordinator.dart
+@@ -136,9 +136,10 @@
+     }
+ 
+     final rect = Rect.fromLTRB(0, visibleTop, viewSize.width, visibleBottom);
++    final content = window.contentCoordinateRect;
+     final sourceRect = Rect.fromLTWH(
+-      0,
+-      rect.top - contentTop,
++      content.left,
++      content.top + rect.top - contentTop,
+       viewSize.width,
+       rect.height,
+     );

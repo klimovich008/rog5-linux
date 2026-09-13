@@ -190,6 +190,7 @@ active_tests=(
 	scripts/host/test-logind-gtk-im-cache.py
 	scripts/host/test-qemu-logind-editor.py
 	scripts/host/test-qemu-logind-apps.py
+	scripts/host/test-qemu-caret-protocol.py
 	scripts/host/test-logind-apps.py
 	scripts/host/test-launcher-diagnostics.py
 	scripts/host/test-review-metadata-checkers.py

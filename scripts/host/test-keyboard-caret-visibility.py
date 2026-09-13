@@ -69,7 +69,8 @@ void main(List<String> args) {
    near(paint(),offset,'paint translation');
    layout.publish(state:c.state,viewSize:size,interactions:ShellInteractionSnapshot());
    final region=layout.windows.single;
-   near(48-region.rect.top+region.sourceRect.top,offset,'input translation agrees');
+   near(48-region.rect.top+region.sourceRect.top-window.contentCoordinateRect.top,
+     offset,'input translation agrees independently of surface origin');
    near(layout.keyboard.first.top,1224-367.2*c.state.edgePanelAnimationProgress,'keyboard boundary');
  }
  if(mode=='top'){

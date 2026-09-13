@@ -300,7 +300,15 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 require_fuse_device
 publish_cache_environment
-if [[ -f /run/apps-probe ]]; then prepare_authenticated_apps; fi
+if [[ -f /run/apps-probe ]]; then
+    if [[ -f /run/bottom-caret-probe ]]; then
+        prepare_authenticated_apps "$HOME/launcher-apps" /usr/share/applications \
+            /run/logind-apps.sh /tmp/rog5-text-probe.txt /run/evidence-writer \
+            /dev/vport0p1 /run/apps-observe-token bottom-caret
+    else
+        prepare_authenticated_apps
+    fi
+fi
 /usr/bin/denial-mobile-session --check
 /usr/bin/denial-mobile-session > "$HOME/denial.pipe" 2>&1 &
 launcher=$!

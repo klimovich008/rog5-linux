@@ -172,3 +172,19 @@ DeferredAppIcon queue. Pair it with copied flutter_svg2.3.0 and
 vector_graphics1.2.2 package diagnostics and explicit build overrides. The pure
 Dart helper test covers per-isolate caps and sanitized identifiers; it does not
 qualify release isolates or rendering. No phone image selects these diagnostics.
+
+Patch0019 restores the root surface's content origin in mobile input regions.
+The retained Mousepad window geometry is `(26,23,540,1176)`: painting removes
+the origin, so inverse input mapping must add it. The explicit-source runner
+`test-mobile-window-input-origin.py` executes the actual paint and input methods
+with matching Flutter BoxFit and Dart adapters. The prior source fails both
+nonzero-origin round trips; the correction passes all14 cases, including
+keyboard translation and zero-origin controls. Its arguments are available
+through `--help`. Non-1:1 native pointer scaling remains unresolved; this patch
+does not qualify native event delivery, physical touch or phone rendering.
+
+The VM runner's opt-in `--bottom-caret` requires `--observe-apps` and
+`--automatic-caret`. It prepares a64-line RAM document, selects a low caret by
+pointer, and verifies fresh client cursor rectangles and delivered surface
+coordinates before/after keyboard translation. A stale rectangle recommitted
+after a tap is insufficient. The default empty-document observation is unchanged.

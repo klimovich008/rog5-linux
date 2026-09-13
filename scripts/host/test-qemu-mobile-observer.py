@@ -1128,5 +1128,115 @@ class AppSwitchObservation(unittest.TestCase):
         self.assertEqual(client.buttons[-2:], [True, False])
 
 
+class BottomCaretEvidence(unittest.TestCase):
+    def setUp(self):
+        from types import SimpleNamespace
+        self.tracker = SimpleNamespace(sequence=1, presses=[], caret=None,
+            geometries={24:dict(x=26,y=23,width=540,height=1176,sequence=1)}, error=None)
+        self.observer = MOBILE.BottomCaretAppTextObserver.__new__(MOBILE.BottomCaretAppTextObserver)
+        self.observer.caret_protocol = self.tracker
+        self.observer.caret_arm = None
+        self.observer.caret_baseline = None
+        self.observer.now = 0
+        self.observer.advance_stage = True
+        self.observer.result = {'bottom_caret':{'status':'NOT RUN'}}
+
+    def press(self, x=296, y=1075, surface=24, caret_surface=24, caret_y=1073):
+        sequence = self.tracker.sequence + 1
+        self.tracker.presses.append(dict(x=x,y=y,surface=surface,sequence=sequence))
+        self.tracker.caret = dict(surface=caret_surface,x=30,y=caret_y,width=0,height=20,
+                                  rectangle_sequence=sequence+1,sequence=sequence+2)
+        self.tracker.sequence = sequence+2
+
+    def baseline(self):
+        self.observer.caret_step('arm-baseline')
+        self.press()
+        self.observer.caret_step('await-baseline')
+
+    def test_matching_origin_and_translated_pointer_qualify(self):
+        self.baseline()
+        self.assertEqual(self.observer.result['bottom_caret']['status'],'BASELINE_ONLY')
+        self.observer.caret_step('arm-mapping')
+        self.press(y=1082.2)
+        self.observer.caret_step('await-mapping')
+        result=self.observer.result['bottom_caret']
+        self.assertEqual(result['status'],'PASS')
+        self.assertAlmostEqual(result['translated']['expected_upward_offset'],269.2)
+
+    def test_historical_missing_origin_fails(self):
+        self.observer.caret_step('arm-baseline')
+        self.press(x=270,y=1052)
+        with self.assertRaisesRegex(ValueError,'painted surface mapping'):
+            self.observer.caret_step('await-baseline')
+
+    def test_commit_without_new_rectangle_cannot_qualify(self):
+        self.observer.caret_step('arm-baseline')
+        self.press()
+        self.tracker.caret['rectangle_sequence']=1
+        self.observer.caret_step('await-baseline')
+        self.assertFalse(self.observer.advance_stage)
+        self.observer.now=4
+        with self.assertRaisesRegex(ValueError,'fresh pointer'):
+            self.observer.caret_step('await-baseline')
+
+    def test_absent_events_timeout(self):
+        self.observer.caret_step('arm-baseline')
+        self.observer.now=4
+        with self.assertRaisesRegex(ValueError,'fresh pointer'):
+            self.observer.caret_step('await-baseline')
+
+    def test_other_surface_cannot_qualify(self):
+        self.observer.caret_step('arm-baseline')
+        self.press(caret_surface=25)
+        with self.assertRaisesRegex(ValueError,'different surfaces'):
+            self.observer.caret_step('await-baseline')
+
+    def test_missing_geometry_cannot_qualify(self):
+        self.observer.caret_step('arm-baseline')
+        self.press();self.tracker.geometries.clear()
+        with self.assertRaisesRegex(ValueError,'geometry absent'):
+            self.observer.caret_step('await-baseline')
+
+    def test_wrong_size_cannot_qualify(self):
+        self.observer.caret_step('arm-baseline')
+        self.press();self.tracker.geometries[24]['width']=600
+        with self.assertRaisesRegex(ValueError,'exact portrait'):
+            self.observer.caret_step('await-baseline')
+
+    def test_changed_geometry_cannot_qualify(self):
+        self.baseline();self.observer.caret_step('arm-mapping')
+        self.press(y=1082.2);self.tracker.geometries[24]['x']=27
+        with self.assertRaisesRegex(ValueError,'geometry changed'):
+            self.observer.caret_step('await-mapping')
+
+    def test_normal_geometry_commit_is_allowed(self):
+        self.baseline();self.observer.caret_step('arm-mapping')
+        self.press(y=1082.2);self.tracker.geometries[24]['sequence']=20
+        self.observer.caret_step('await-mapping')
+        self.assertEqual(self.observer.result['bottom_caret']['status'],'PASS')
+
+    def test_different_text_row_cannot_qualify(self):
+        self.baseline();self.observer.caret_step('arm-mapping')
+        self.press(y=1082.2,caret_y=1053)
+        with self.assertRaisesRegex(ValueError,'different text row'):
+            self.observer.caret_step('await-mapping')
+
+    def test_old_untranslated_second_tap_fails(self):
+        self.baseline();self.observer.caret_step('arm-mapping');self.press(y=813)
+        with self.assertRaisesRegex(ValueError,'painted surface mapping'):
+            self.observer.caret_step('await-mapping')
+
+    def test_sticky_parse_error_aborts_even_after_mapping(self):
+        self.baseline();self.observer.caret_step('arm-mapping');self.press(y=1082.2)
+        self.observer.caret_step('await-mapping');self.tracker.error='ambiguous identity'
+        with self.assertRaisesRegex(ValueError,'ambiguous identity'):
+            self.observer.step()
+
+    def test_parse_error_before_arm_is_preserved(self):
+        self.tracker.error='malformed record'
+        with self.assertRaisesRegex(ValueError,'malformed record'):
+            self.observer.caret_step('arm-baseline')
+
+
 if __name__ == '__main__':
     unittest.main()

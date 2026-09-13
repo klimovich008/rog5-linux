@@ -8295,7 +8295,8 @@
         "scripts/host/test-qemu-logind-editor.py",
         "scripts/host/test-qemu-launcher-protocol.py",
         "scripts/host/test-qemu-virtio-drm.py",
-        "scripts/host/test-qemu-mobile-observer.py"
+        "scripts/host/test-qemu-mobile-observer.py",
+        "scripts/host/qemu-caret-protocol.py"
       ],
       "optional_subchecks": []
     },
@@ -8352,6 +8353,30 @@
       "exact_source": false,
       "required_inputs": [
         "tools/qemu-virtio-drm/logind-apps.sh"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-caret-protocol.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 10,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/qemu-caret-protocol.py"
       ],
       "optional_subchecks": []
     }

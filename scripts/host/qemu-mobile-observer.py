@@ -592,3 +592,114 @@ class AutomaticCaretAppTextObserver(AppTextObserver):
                                                    + len(EditorObserver.TEXT_STEPS))],
              *AppTextObserver.KEYBOARD_CLOSE, *AppTextObserver.LAUNCHER_SUFFIX]
     ACTION_POLICY = 'automatic caret; no manual viewport pan; manual keyboard reveal'
+
+
+class BottomCaretAppTextObserver(AutomaticCaretAppTextObserver):
+    """Distinct fixed portrait probe: low caret and delivered surface coordinates.
+
+    Client protocol requests, pointer delivery and visual captures are separate.
+    No keyboard injection, manual viewport pan or success from missing events.
+    """
+    BASE_POINT = (270, 1100)
+    TAP_POINT = (270, 838)
+    EDITOR_STEPS = [
+        ('capture', '00-editor-long-document', .1),
+        ('arm-baseline', None, 0),
+        ('move', BASE_POINT, .1), ('button', True, .1), ('button', False, .3),
+        ('await-baseline', None, 0),
+        *EditorObserver.OPENING_STEPS[4:],
+        ('arm-mapping', None, 0),
+        ('move', TAP_POINT, .1), ('button', True, .1), ('button', False, .3),
+        ('await-mapping', None, 0),
+        ('capture', '01c-editor-bottom-retapped', .1),
+        *EditorObserver.TEXT_STEPS,
+    ]
+    STEPS = [*AppTextObserver.LAUNCHER_PREFIX,
+             *[('editor', index) for index in range(len(EDITOR_STEPS))],
+             *AppTextObserver.KEYBOARD_CLOSE, *AppTextObserver.LAUNCHER_SUFFIX]
+    ACTION_POLICY = 'bottom caret; explicit surface-coordinate check; no manual viewport pan; OSK pointer keys only'
+
+    def __init__(self, *args, caret_protocol, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.caret_protocol = caret_protocol
+        self.caret_arm = None
+        self.caret_baseline = None
+        self.result['bottom_caret'] = {'status': 'NOT RUN'}
+
+    @staticmethod
+    def expected_pointer(point, geometry, offset=0):
+        # This observer is bound to the retained540x1224 portrait scene and its
+        #48px app header. Refuse a resized/rotated client instead of guessing.
+        if (geometry['width'], geometry['height']) != (540, 1176):
+            raise ValueError('bottom caret requires exact portrait client geometry')
+        return (point[0]+geometry['x'], point[1]-48+geometry['y']+offset)
+
+    def caret_step(self, operation):
+        protocol = self.caret_protocol
+        if protocol.error:
+            raise ValueError(f'caret protocol failed: {protocol.error}')
+        if operation.startswith('arm-'):
+            self.caret_arm = (protocol.sequence, self.now+4)
+            return .1
+        if self.caret_arm is None:
+            raise ValueError('caret probe has no fresh action boundary')
+        sequence, deadline = self.caret_arm
+        presses = [x for x in protocol.presses if x['sequence'] > sequence]
+        caret = protocol.caret
+        if not presses or caret is None or caret['rectangle_sequence'] <= presses[-1]['sequence']:
+            if self.now >= deadline:
+                raise ValueError('fresh pointer and committed caret not observed')
+            self.advance_stage = False
+            return .1
+        press = presses[-1]
+        if press['surface'] != caret['surface']:
+            raise ValueError('pointer and caret belong to different surfaces')
+        geometry = protocol.geometries.get(caret['surface'])
+        if geometry is None:
+            raise ValueError('committed window geometry absent')
+        if operation == 'await-baseline':
+            if not (950 <= caret['y']-geometry['y'] <= 1120 and 0 < caret['height'] <= 64):
+                raise ValueError('pointer did not select a low editor caret')
+            expected = self.expected_pointer(self.BASE_POINT, geometry)
+            offset = 0
+        else:
+            baseline = self.caret_baseline
+            if baseline is None or geometry != baseline['geometry']:
+                # Geometry sequence changes on normal commits, so compare
+                # geometric values below rather than requiring event identity.
+                if baseline is None or any(geometry[k] != baseline['geometry'][k]
+                    for k in ('x','y','width','height')):
+                    raise ValueError('window geometry changed during caret probe')
+            before = baseline['caret']
+            if before['surface'] != caret['surface'] or abs(before['y']-caret['y']) > 1:
+                raise ValueError('translated tap selected a different text row')
+            offset = min(367.2, max(0, 48+before['y']-geometry['y']+before['height']+8-856.8))
+            if offset < 100:
+                raise ValueError('bottom caret did not require substantial displacement')
+            expected = self.expected_pointer(self.TAP_POINT, geometry, offset)
+        if any(abs(press[key]-value) > 2 for key,value in zip(('x','y'),expected)):
+            raise ValueError(f'pointer differs from painted surface mapping: actual=({press["x"]},{press["y"]}) expected={expected}')
+        proof = {'caret': dict(caret), 'geometry': dict(geometry), 'pointer': dict(press),
+                 'expected_pointer': list(expected), 'expected_upward_offset': offset}
+        if operation == 'await-baseline':
+            self.caret_baseline = proof
+            self.result['bottom_caret'] = {'status':'BASELINE_ONLY','baseline':proof}
+        else:
+            self.result['bottom_caret'].update(status='PASS', translated=proof,
+                scope='committed client caret and delivered surface coordinates; inspect captures for visibility; no phone touch')
+        self.caret_arm = None
+        return .1
+
+    def step(self):
+        if self.caret_protocol.error:
+            raise ValueError(f'caret protocol failed: {self.caret_protocol.error}')
+        operation, index = self.STEPS[self.stage]
+        if operation == 'editor':
+            action = self.EDITOR_STEPS[index][0]
+            if action in ('arm-baseline','await-baseline','arm-mapping','await-mapping'):
+                if not (self.protocol.ready('mousepad') and self.protocol.focused('mousepad')):
+                    raise ValueError('Mousepad focus lost during bottom caret probe')
+                delay = self.caret_step(action)
+                self.result['actions'].append({'operation':action,'value':None})
+                return delay
+        return super().step()

@@ -132,7 +132,7 @@ else:
         self.processes.append(child)
         return child
 
-    def controller(self, prepare_only=False, post_prepare=""):
+    def controller(self, prepare_only=False, post_prepare="", profile=None):
         code = self.prefix + r'''
 readers=(); launcher=''; logind_apps_evidence_owned=0
 cleanup_fixture(){
@@ -150,6 +150,9 @@ trap cleanup_fixture EXIT
 trap 'exit 130' INT
 prepare_authenticated_apps "$1" "$2" "$3" "$4" "$5" "$6" "$7"
 '''
+        if profile is not None:
+            code = code.replace('prepare_authenticated_apps "$1" "$2" "$3" "$4" "$5" "$6" "$7"',
+                                'prepare_authenticated_apps "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"')
         code += post_prepare + "\n"
         if not prepare_only:
             code += r'''
@@ -162,7 +165,7 @@ finish_authenticated_apps
 '''
         return self.spawn(['bash', '-c', code, 'fixture', str(self.state), str(self.desktops),
                            str(self.wrapper), str(self.text), str(self.writer), self.sink,
-                           str(self.root / 'token')])
+                           str(self.root / 'token'), *([] if profile is None else [profile])])
 
     def until(self, predicate, timeout=5):
         deadline = time.monotonic() + timeout
@@ -333,10 +336,69 @@ cleanup_authenticated_apps
         out, err = child.communicate(timeout=5)
         self.assertEqual(child.returncode, 0, err.decode())
         self.assertIn(b'apps NOT STARTED', out)
+        self.assertEqual(self.text.read_bytes(), b'')
         self.assertFalse((self.state / 'foot').exists())
         self.assertFalse((self.state / 'mousepad').exists())
         self.assertIn('Exec=retained', (self.state / 'data/applications/foot.desktop').read_text())
         self.assertEqual((self.state / 'lifecycle.sh').stat().st_mode & 0o777, 0o600)
+
+    def test_bottom_caret_prepares_exact_long_document_without_starting_apps(self):
+        child = self.controller(prepare_only=True, profile='bottom-caret')
+        out, err = child.communicate(timeout=5)
+        self.assertEqual(child.returncode, 0, out.decode()+err.decode())
+        self.assertEqual(self.text.read_bytes(), ''.join(f'line-{line:02d}\n' for line in range(1, 65)).encode())
+        self.assertFalse((self.state/'mousepad').exists())
+        self.assertFalse((self.state/'foot').exists())
+        self.assertIn(b'apps NOT STARTED', out)
+        self.assertEqual((self.state/'text-path').read_text(), str(self.text)+'\n')
+
+    def test_explicit_normal_profile_retains_empty_document(self):
+        child = self.controller(prepare_only=True, profile='normal')
+        out, err = child.communicate(timeout=5)
+        self.assertEqual(child.returncode, 0, out.decode()+err.decode())
+        self.assertEqual(self.text.read_bytes(), b'')
+
+    def test_invalid_document_profile_fails_before_file_or_bus_effects(self):
+        child = self.controller(prepare_only=True, profile='bottom-caret-wrong')
+        out, err = child.communicate(timeout=5)
+        self.assertNotEqual(child.returncode, 0, out.decode()+err.decode())
+        self.assertFalse(self.text.exists())
+        self.assertFalse(self.state.exists())
+        self.assertFalse(self.command_log.exists())
+        self.assertNotIn(b'PASS authenticated launcher overrides prepared', out)
+
+    def test_bottom_caret_never_overwrites_existing_text(self):
+        self.text.write_bytes(b'retained user data')
+        child = self.controller(prepare_only=True, profile='bottom-caret')
+        out, err = child.communicate(timeout=5)
+        self.assertNotEqual(child.returncode, 0, out.decode()+err.decode())
+        self.assertEqual(self.text.read_bytes(), b'retained user data')
+        self.assertFalse(self.state.exists())
+        self.assertFalse(self.command_log.exists())
+
+    def test_guest_dispatch_requires_apps_marker_and_forwards_exact_profile(self):
+        block = MAIN.split('publish_cache_environment\n', 1)[1].split('/usr/bin/denial-mobile-session --check', 1)[0]
+        for apps, bottom in ((False, False), (False, True), (True, False), (True, True)):
+            with self.subTest(apps=apps, bottom=bottom):
+                apps_marker, bottom_marker = self.root/'apps-probe', self.root/'bottom-caret-probe'
+                for marker, present in ((apps_marker, apps), (bottom_marker, bottom)):
+                    marker.unlink(missing_ok=True)
+                    if present:
+                        marker.touch()
+                code = 'set -euo pipefail\nprepare_authenticated_apps(){ printf "CALL %s\\n" "$#"; printf "ARG %s\\n" "$@"; }\n'
+                code += block.replace('/run/apps-probe', shlex.quote(str(apps_marker))).replace('/run/bottom-caret-probe', shlex.quote(str(bottom_marker)))
+                result = subprocess.run(['bash', '-c', code], env=self.env, capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if not apps:
+                    self.assertEqual(result.stdout, '')
+                elif not bottom:
+                    self.assertEqual(result.stdout, 'CALL 0\nARG \n')
+                else:
+                    self.assertEqual(result.stdout.splitlines(), ['CALL 8',
+                        'ARG '+str(self.home/'launcher-apps'), 'ARG /usr/share/applications',
+                        'ARG /run/logind-apps.sh', 'ARG /tmp/rog5-text-probe.txt',
+                        'ARG /run/evidence-writer', 'ARG /dev/vport0p1',
+                        'ARG /run/apps-observe-token', 'ARG bottom-caret'])
 
     def test_real_tile_commands_controlled_close_both_zero_and_remove_foot_fifo(self):
         controller, editor, foot = self.ready_apps()
