@@ -2619,3 +2619,15 @@ historical visual failures as passes. Manual panning is not caret tracking, and
 visible suffix changes are not proof of the complete expected word: the leading
 glyph remains unshown. Check logical-content versus backing-buffer dimensions
 before attributing that remaining edge failure to the SHM upload path.
+
+Keep presentation geometry in the same coordinate system as the surface tree.
+The tree already maps logical content, so sizing its parent from the larger
+backing buffer caused a second stretch and cover crop. Executing the production
+Dart sizing code and Flutter fit function reproduced x=4 becoming x=−9.2663;
+the corrected logical frame preserved x=4. A shell-only 43.515-second build and
+one 102.627-second VM run then showed complete test/tes/test. This avoided an
+unnecessary native/engine rebuild or GL instrumentation. Retain separate source,
+build and visual results; manual panning and one externally launched app do not
+qualify automatic caret tracking or the mobile launcher. Verified duplicate
+payload retirement recovered 240.7 MB before the build without touching unique
+evidence, caches or recovery inputs.

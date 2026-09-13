@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **OSK viewport pan restores VM editor; leading text glyph remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Native VM OSK text entry passes after logical-content sizing fix**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The pinned shell shifts the application upward367.2px when OSK opens. Its supported right-edge pan restores the header and visible est/es/est text suffix during the test/deletion/restoration sequence. Complete visible text remains FAIL because the leading t is not shown. R1:102.345 seconds,124 frames/page flips, exact12 key events and no reported rendering errors. Active tier:90 PASS. Next: test logical-content versus backing-buffer sizing and verify exact document content; automatic caret tracking remains absent. Prior white-output failures and VM RCU stalls stay recorded. Phone physical rows NOT RUN; S06/R01 FAIL. No phone/signing/candidate/claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-editor-pan.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Corrected shell AOT shows complete test, tes and restored test after supported viewport pan. One 102.627-second VM run:127 frames/page flips, exact12 key events, no reported rendering errors. Production-code sizing regression:6 original failures,13 corrected passes. Shell frontend/AOT builds PASS; active tier:90 PASS. Next: launch and switch two native Wayland apps through the mobile UI; automatic caret tracking remains absent. Earlier visual failures and RCU stalls stay preserved. All mobile physical rows NOT RUN; S06/R01 FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-content-sizing.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

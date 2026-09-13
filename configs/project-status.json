@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "OSK viewport pan restores VM editor; leading text glyph remains unresolved",
+  "phase": "Native VM OSK text entry passes after logical-content sizing fix",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The pinned shell shifts the application upward367.2px when OSK opens. Its supported right-edge pan restores the header and visible est/es/est text suffix during the test/deletion/restoration sequence. Complete visible text remains FAIL because the leading t is not shown. R1:102.345 seconds,124 frames/page flips, exact12 key events and no reported rendering errors. Active tier:90 PASS. Next: test logical-content versus backing-buffer sizing and verify exact document content; automatic caret tracking remains absent. Prior white-output failures and VM RCU stalls stay recorded. Phone physical rows NOT RUN; S06/R01 FAIL. No phone/signing/candidate/claim operation occurred.",
-  "evidence": "test-results/2026-09-13-mobile-vm-editor-pan.md"
+  "next": "Corrected shell AOT shows complete test, tes and restored test after supported viewport pan. One 102.627-second VM run:127 frames/page flips, exact12 key events, no reported rendering errors. Production-code sizing regression:6 original failures,13 corrected passes. Shell frontend/AOT builds PASS; active tier:90 PASS. Next: launch and switch two native Wayland apps through the mobile UI; automatic caret tracking remains absent. Earlier visual failures and RCU stalls stay preserved. All mobile physical rows NOT RUN; S06/R01 FAIL. No phone, signing, candidate or claim operation occurred.",
+  "evidence": "test-results/2026-09-13-mobile-content-sizing.md"
 }
