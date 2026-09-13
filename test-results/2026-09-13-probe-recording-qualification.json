@@ -1,0 +1,599 @@
+{
+  "schema": 1,
+  "status": "PASS_OFFLINE_RECORDING",
+  "scope": "Owned user-service cleanup with exact ARM64 XR24 probe and controlled graphics ABI; no DRM device or phone",
+  "starting": {
+    "starting_commit": "e3d59cf8189579304bedc48a996e94b48f5009fb",
+    "starting_tree": "f81bf87250c67956a4fcb7091f68f532a9affbb5",
+    "source": {
+      "commit": "f8c2568a5d314f9f8bce32c1b6fdd80187847fc6",
+      "tree": "f855960cec4bf128e5f60d37de04ecf40421f4cd"
+    },
+    "previous_turn": "progress",
+    "scope": "offline only"
+  },
+  "source": {
+    "commit": "f8c2568a5d314f9f8bce32c1b6fdd80187847fc6",
+    "tree": "f855960cec4bf128e5f60d37de04ecf40421f4cd"
+  },
+  "regression_before": {
+    "status": "EXPECTED FAIL",
+    "groups": 4,
+    "failed_subcases": 4,
+    "seconds": 0.079,
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-denial-runtime-linkage.py",
+      "BoundedCommand"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/before.log",
+      "sha256": "a68cf830d2846b4e4d7348e8d28bed822dbf66420eacc2bc2b97f09c7d3e41a9",
+      "size": 3310
+    },
+    "observation": "Interruption/OSError bypassed stop; nominal client success did not verify service state"
+  },
+  "review_regressions": {
+    "status": "EXPECTED FAIL before fix",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/review-before.log",
+      "sha256": "250f61383c4f2ffa1e70865ec5bd16e3320b68beda5ca93c64860228c3e6a879",
+      "size": 2390
+    },
+    "observation": "Wait interruption bypassed service stop; main dropped cleanup notes and did not serialize KeyboardInterrupt"
+  },
+  "regression_after": {
+    "status": "PASS",
+    "tests": 22,
+    "seconds": 0.9,
+    "command": [
+      "env",
+      "TMPDIR=/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/tmp",
+      "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "python3",
+      "-O",
+      "scripts/host/test-denial-runtime-linkage.py"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/focused-final.log",
+      "sha256": "4a58e26390795808070979a3807c5aaa76475aa24c72b672c8e9bab8426039cd",
+      "size": 189
+    }
+  },
+  "recording": {
+    "status": "PASS",
+    "source": {
+      "commit": "f8c2568a5d314f9f8bce32c1b6fdd80187847fc6",
+      "tree": "f855960cec4bf128e5f60d37de04ecf40421f4cd"
+    },
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531",
+        "size": 4662808
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/fixture.so",
+        "sha256": "83d087267adf13375489a216e67b8ab78c2a06150b7bc37685195f4e8df04e2b",
+        "size": 74880
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/objects/arch/arm64/boot/Image",
+        "sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+        "size": 30851584
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/composed-2.dtb",
+        "sha256": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57",
+        "size": 104996
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-cohort-r1/module-provenance.json",
+        "sha256": "bfa19931ebdad5975d581efa85ee41e0d84ce85e14f3b20d04fdea79203db973",
+        "size": 379961
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-build/twin-c/module/panel-asus-rog5-ams678.ko",
+        "sha256": "e7a5ac14d92ded53ca480272f0272d8fe236a38b671c5deabb17ff44ba2a6191",
+        "size": 23128
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+        "sha256": "0a191f48fccfebbe08902e25ba63127b2e86c2a60d727234b53a1e8f83c9b59f",
+        "size": 17448
+      }
+    ],
+    "production_release_context": "7.1.4-rog5-production",
+    "frozen_trial_modified": false,
+    "runs": [
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-42c52ef89603-success",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build",
+          "/tmp/fixture",
+          "--clearenv",
+          "--setenv",
+          "LD_PRELOAD",
+          "/tmp/fixture/fixture.so",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/fixture:/usr/lib",
+          "--setenv",
+          "ROG5_FAKE_GLES_FAIL",
+          "",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--software-fixture",
+          "--gbm-sync-fd=0"
+        ],
+        "unit": "rog5-linkage-42c52ef89603-success",
+        "exit_status": 0,
+        "seconds": 0.11725449498044327,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/recording/success.log",
+          "sha256": "29247419ae42ff3ab88e50b47a6b84daa97fe9b45540c5e81c514511df807f15",
+          "size": 2777
+        },
+        "service_state": "inactive",
+        "cleanup": "PASS",
+        "label": "success",
+        "status": "PASS_EXPECTED_OUTCOME",
+        "observed_unit_state": "inactive",
+        "unit_state_exit": 4,
+        "wall_seconds": 0.12439325600280426,
+        "scope": "real ARM64 probe/QEMU and systemd service; controlled EGL/GBM ABI, no DRM node"
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-42c52ef89603-layout-refused",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build",
+          "/tmp/fixture",
+          "--clearenv",
+          "--setenv",
+          "LD_PRELOAD",
+          "/tmp/fixture/fixture.so",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/fixture:/usr/lib",
+          "--setenv",
+          "ROG5_FAKE_GLES_FAIL",
+          "gbm_abgr",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--software-fixture",
+          "--gbm-sync-fd=0"
+        ],
+        "unit": "rog5-linkage-42c52ef89603-layout-refused",
+        "exit_status": 1,
+        "seconds": 0.11460619801073335,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/recording/layout-refused.log",
+          "sha256": "de01be9d79b62e4f8e4f624cd09252d94e5add45f4ccdf734f469f9a233a5b07",
+          "size": 719
+        },
+        "service_state": "inactive",
+        "cleanup": "PASS",
+        "label": "layout-refused",
+        "status": "PASS_EXPECTED_OUTCOME",
+        "observed_unit_state": "inactive",
+        "unit_state_exit": 4,
+        "wall_seconds": 0.12139859300805256,
+        "scope": "real ARM64 probe/QEMU and systemd service; controlled EGL/GBM ABI, no DRM node"
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build",
+          "/tmp/fixture",
+          "--clearenv",
+          "--setenv",
+          "LD_PRELOAD",
+          "/tmp/fixture/fixture.so",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/fixture:/usr/lib",
+          "--setenv",
+          "ROG5_FAKE_GLES_FAIL",
+          "stall",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--software-fixture",
+          "--gbm-sync-fd=0"
+        ],
+        "unit": "rog5-linkage-42c52ef89603-interrupted",
+        "exception": "KeyboardInterrupt",
+        "error": "fixture interruption after recorded readback stall",
+        "error_notes": [],
+        "log": {
+          "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/recording/interrupted.log",
+          "sha256": "0c3b68e15ece381ad029ecc4043baa743a0a75ae752434f233f3acd54ba7639d",
+          "size": 1640
+        },
+        "label": "interrupted",
+        "status": "PASS_EXPECTED_OUTCOME",
+        "observed_unit_state": "inactive",
+        "unit_state_exit": 4,
+        "wall_seconds": 0.10892544899252243,
+        "scope": "real ARM64 probe/QEMU and systemd service; controlled EGL/GBM ABI, no DRM node"
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-42c52ef89603-service-deadline",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=800ms",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build",
+          "/tmp/fixture",
+          "--clearenv",
+          "--setenv",
+          "LD_PRELOAD",
+          "/tmp/fixture/fixture.so",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/fixture:/usr/lib",
+          "--setenv",
+          "ROG5_FAKE_GLES_FAIL",
+          "stall",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--software-fixture",
+          "--gbm-sync-fd=0"
+        ],
+        "unit": "rog5-linkage-42c52ef89603-service-deadline",
+        "exit_status": 1,
+        "seconds": 0.9662841669924092,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/recording/service-deadline.log",
+          "sha256": "0c3b68e15ece381ad029ecc4043baa743a0a75ae752434f233f3acd54ba7639d",
+          "size": 1640
+        },
+        "service_state": "inactive",
+        "cleanup": "PASS",
+        "label": "service-deadline",
+        "status": "PASS_EXPECTED_OUTCOME",
+        "observed_unit_state": "inactive",
+        "unit_state_exit": 4,
+        "wall_seconds": 0.9731480040063616,
+        "scope": "real ARM64 probe/QEMU and systemd service; controlled EGL/GBM ABI, no DRM node"
+      }
+    ],
+    "seconds": 1.3289255560084712,
+    "physical": "NOT RUN",
+    "authority": "none"
+  },
+  "recording_script": {
+    "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/qualify.py",
+    "sha256": "a5d35f9a9923ecf4801737964f485aa5050aa89960c28060109359bc0c86b511",
+    "size": 4912
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-probe-cleanup-active-r2",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-final-report",
+        "TMPDIR=/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "e11f5a8a90bb2b3656ae1708d54b0de2801ae79c",
+      "source_tree": "65885b20acf1222568b7f578131cc45d5b7b5837",
+      "started": "2026-09-13T05:34:13.510343+00:00",
+      "exit_status": 0,
+      "duration_seconds": 153.42372879499453
+    },
+    "counts": {
+      "PASS": 93,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-final-report/summary.json",
+      "sha256": "2ee9a086edab74cf3e9ea63d5839566b8d115cd2f575b837731aa2ad0064a0b1",
+      "size": 111730
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-final-report/summary.xml",
+      "sha256": "1e83cacf0aa673cfea60b4e4c736c11676e2e93825f8774346639335fffbc6bc",
+      "size": 56043
+    }
+  },
+  "review": {
+    "kind": "independent read-only source review",
+    "initial_findings": [
+      "wait interruption could skip cleanup",
+      "main dropped cleanup notes",
+      "cleanup replaced deadline reason"
+    ],
+    "final_result": "No remaining concrete blocker found in source; reviewer did not rerun tests"
+  },
+  "limitations": [
+    "EGL/GBM/fence boundaries are ABI fixtures with memfd/eventfd; host systemd/QEMU/processes are real",
+    "Production Image/DT/module metadata and panel/touch byte identities are reference inputs, not the executing kernel",
+    "Observed terminal service state is host evidence, not recovery qualification for uninterruptible GPU/kernel work",
+    "SIGKILL cannot execute Python finally; independent service runtime limit remains required",
+    "No new ARM64 probe build, graphics VM or phone operation this turn"
+  ],
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "production_candidate": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false,
+  "initial_active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-probe-cleanup-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "f8c2568a5d314f9f8bce32c1b6fdd80187847fc6",
+      "source_tree": "f855960cec4bf128e5f60d37de04ecf40421f4cd",
+      "started": "2026-09-13T05:27:56.202181+00:00",
+      "exit_status": 0,
+      "duration_seconds": 134.37638328201137
+    },
+    "counts": {
+      "PASS": 93,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-report/summary.json",
+      "sha256": "40ecbfcbe1dd5711872ceecd27a7a5665f723e1b9d8a7d40af1e55c9f863596b",
+      "size": 111738
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/active-report/summary.xml",
+      "sha256": "12d115b61fc6143cce55ad332cbf09a3fe4b0d26f97ed2570c2573889a657dc9",
+      "size": 56051
+    }
+  },
+  "final_source": {
+    "commit": "e11f5a8a90bb2b3656ae1708d54b0de2801ae79c",
+    "tree": "65885b20acf1222568b7f578131cc45d5b7b5837"
+  },
+  "final_regression": {
+    "tests": 22,
+    "status": "PASS",
+    "seconds": 0.979,
+    "log": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/final-handler.log",
+      "sha256": "368c0be7a5168e24929bdd10c2d1087807ad7b213d88ade89c88332b12bd26cc",
+      "size": 189
+    }
+  },
+  "late_interruption": {
+    "status": "PASS_REGRESSION",
+    "scope": "Opcode injection immediately after tentative success update in actual main; all loaders mocked, no execution",
+    "rows": [
+      {
+        "label": "before",
+        "triggered_at_line": [
+          240
+        ],
+        "exit_status": 130,
+        "report_status": "PASS_LINKAGE_ONLY",
+        "error": "late observer interruption"
+      },
+      {
+        "label": "after",
+        "triggered_at_line": [
+          240
+        ],
+        "exit_status": 130,
+        "report_status": "FAIL",
+        "error": "late observer interruption"
+      }
+    ],
+    "script": {
+      "path": "/home/deck/.local/state/rog5-probe-cleanup-20260913-r1/late-interrupt-check.py",
+      "sha256": "14fc45672fb287941443ae7183ab3983af4a0c5d2d7f8c75e8802aa267bd5ba4",
+      "size": 2654
+    },
+    "initial_fixture_issue": "First preparer profile omitted driver_descriptors; fixed before either comparison reached the injected interruption"
+  }
+}

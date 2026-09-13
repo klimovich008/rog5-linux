@@ -1285,5 +1285,24 @@
     "current_candidate": null,
     "compatible_with_frozen_trial_modules": false,
     "note": "12 ARM64 loader checks passed; exact current userspace bytes retained. Corrected kernel/modules are a different cohort from the frozen phone trial. No Adreno initialization or phone execution."
+  },
+  "gpu_probe_recording": {
+    "status": "PASS_OFFLINE_RECORDING",
+    "set_id": "private:rog5-probe-cleanup-20260913-r1/recording",
+    "source_commit": "f8c2568a5d314f9f8bce32c1b6fdd80187847fc6",
+    "source_tree": "f855960cec4bf128e5f60d37de04ecf40421f4cd",
+    "probe_sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531",
+    "qualification": {
+      "path": "test-results/2026-09-13-probe-recording-qualification.json",
+      "sha256": "582a8698645811cc3c1873927c1a33c1831e36ea453eb21306ae33f82a7ab389",
+      "size": 21093
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; host ABI fixture",
+    "candidate": null,
+    "final_report_source": {
+      "commit": "e11f5a8a90bb2b3656ae1708d54b0de2801ae79c",
+      "tree": "65885b20acf1222568b7f578131cc45d5b7b5837"
+    }
   }
 }

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **GPU readback now matches Denial XR24; native phone qualification remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **XR24 probe recording and interrupted-service cleanup qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The GBM probe now requests and verifies XR24/explicit LINEAR with rendering usage. Old ABGR implementation fails the new regression;16 host groups,11 ARM64 ABI groups,matching ARM64 twins and real software readback PASS. This tests one EGL device, not cross-device PRIME, local SCANOUT, modifier negotiation or KMS. Next bind the corrected probe to an offline recording/cleanup fixture for the corrected production cohort; no substitution into the frozen older trial. A660 XR24/fence/readback is the next unresolved physical question and requires separate authorization. No candidate, signing, admission or phone operation; mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-xrgb-readback.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Fixed the runner so observation and client-cleanup interruption cannot bypass owned-service stop; original and cleanup errors are retained.22 focused tests and four real ARM64/user-service cases PASS, with terminal service states and retained logs. Graphics calls are controlled fixtures; production kernel files are reference identities only. The pending physical boundary remains A660 XR24/fence/readback and needs separate authorization; frozen trial unchanged. Next qualify a non-root Denial/native-app session using the retained runtime and binaries offline, addressing the normal mobile privilege model without treating VM results as phone proof. No candidate, signing, admission or phone operation; mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-probe-recording.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
