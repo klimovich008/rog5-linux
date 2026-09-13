@@ -3109,3 +3109,11 @@ before waiting, and reject late qualifying updates too. Host fixture success
 does not prove the runtime client eventually provides a qualifying rectangle.
 A host observer change requires no new AOT/kernel build; compare exact VM
 inputs and reuse unchanged artifacts. Retain every earlier VM failure.
+
+Render-handoff retention (2026-09-13): an icon-only early-log filter hid existing
+native authorization/presentation diagnostics while its recent tail showed idle
+counters. Inspect existing emitters before rebuilding for new instrumentation.
+Retain a bounded selection in a separate budget, mark clipped field values, and
+keep every line diagnostic-only. The native presented_outputs counter is
+incremented before broker mark_ready; it is not a KMS page-flip count. A
+post-paint aggregate or log timestamp alone does not identify the same frame.

@@ -1605,6 +1605,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "render_handoff": {
+      "status": "FAIL_VM_ICONS_SOURCE_STALE_SCENE_GAP_REPRODUCED",
+      "set_id": "private:rog5-render-handoff-20260913-r1",
+      "source_commit": "5d9b129dea9965a72f4a704440d4188118c48f1d",
+      "evidence": {
+        "path": "test-results/2026-09-13-render-handoff-qualification.json",
+        "sha256": "4d80e84ed0b668d7a47f712c5bca5fa663f483a56d2fadae9ada6198b6dd9e58",
+        "bytes": 43773
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
