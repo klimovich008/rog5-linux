@@ -150,6 +150,14 @@ logind_tty_unowned
 
 
 class Archive(unittest.TestCase):
+    def test_vm_panic_cannot_be_promoted_by_earlier_success(self):
+        spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        module.require_vm_poweroff('PASS session\nreboot: Power down\n')
+        for serial in ['PASS session', 'PASS session\nKernel panic\n', 'Kernel panic\nreboot: Power down']:
+            with self.subTest(serial=serial), self.assertRaises(RuntimeError):
+                module.require_vm_poweroff(serial)
+
     def test_actual_inventory_and_unsafe_member_boundaries(self):
         spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)

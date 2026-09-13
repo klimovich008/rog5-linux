@@ -159,6 +159,16 @@ DENIAL_OUTPUT_CONFIG=/home/mobile/.config/denial/outputs.conf
         self.refuse('mobile-owned mode 0600', metadata={
             '/home/mobile/.config/denial/outputs.conf':'1000 1000 644 regular file'})
 
+    def test_empty_output_configuration_uses_actual_stat_kind(self):
+        empty = self.root/'empty.conf'; empty.touch(); empty.chmod(0o600)
+        result = subprocess.run(['bash', '-c', 'source "$1"; mobile_metadata "$2"',
+                                 'fixture', str(ENTRY), str(empty)],
+                                text=True, capture_output=True, timeout=5, check=True)
+        kind = result.stdout.strip().split(' ', 3)[3]
+        self.assertEqual(kind, 'regular empty file')
+        result = self.invoke(metadata={'/home/mobile/.config/denial/outputs.conf': '1000 1000 600 '+kind})
+        self.assertEqual(result.returncode, 42, result.stderr)
+
     def test_actual_metadata_provider_rejects_symlinks(self):
         regular = self.root/'regular'; regular.write_text('fixture'); regular.chmod(0o600)
         link = self.root/'link'; link.symlink_to(regular)

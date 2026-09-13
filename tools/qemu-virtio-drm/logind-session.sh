@@ -73,4 +73,7 @@ for ((i=0;i<10;i++)); do
     sleep 1
 done
 logind_cleanup_state "$sid" || { echo 'FAIL local session/scope retained or query failed'; exit 1; }
+# Restore canonical executable paths before systemd begins unmounting aliases.
+# Otherwise /usr/bin symlinks would point into an already-unmounted /run tree.
+if [[ -f /run/session-sha256 ]]; then /run/original-bin/umount /usr/bin; fi
 echo 'PASS authenticated local logind session, mediated devices and removed scope'

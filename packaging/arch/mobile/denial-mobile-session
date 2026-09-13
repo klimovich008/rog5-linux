@@ -106,7 +106,9 @@ mobile_main() {
   mobile_output_access "${DENIAL_OUTPUT_CONFIG:-}" \
     || mobile_die 'machine configuration must select an existing writable user output configuration'
   metadata=$(mobile_metadata "$DENIAL_OUTPUT_CONFIG") || mobile_die 'output configuration metadata is unavailable'
-  [[ "$metadata" == '1000 1000 600 regular file' ]] \
+  # GNU stat labels an empty, valid regular configuration separately.
+  [[ "$metadata" == '1000 1000 600 regular file' \
+    || "$metadata" == '1000 1000 600 regular empty file' ]] \
     || mobile_die 'output configuration must be mobile-owned mode 0600'
   export DENIAL_DRM_DEVICE DENIAL_RENDER_DEVICE DENIAL_OUTPUT_CONFIG
   # Never use inherited XDG_SESSION_ID to borrow another session's seat.

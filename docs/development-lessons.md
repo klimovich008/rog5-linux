@@ -2839,3 +2839,13 @@ and exit code in failures; an unavailable query must never prove absence.
 Reuse retained command arrays with a fresh output path instead of manually
 transcribing long container identities; the full-hex guard caught one typo
 before building or starting a VM.
+
+The first combined PAM/Denial VM caught an actual mobile-entry refusal that
+metadata mocks missed: GNU stat reports `regular empty file` for the empty
+output configuration explicitly supported by upstream. Test the real provider's
+file-kind output, while retaining exact owner/mode and symlink refusal.
+A RAM /usr/bin symlink view also leaves dangling executable paths when its
+original-bin alias is unmounted during shutdown. Restore canonical /usr/bin
+before poweroff; keep any observed guest panic as FAIL even if earlier session
+markers passed. The first SIGBUS/init panic is retained; its exact kernel cause
+is not established merely by identifying this path-lifetime defect.

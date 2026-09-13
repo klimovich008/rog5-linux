@@ -138,6 +138,11 @@ def disk_guard(output):
         raise RuntimeError('host free disk fell below 3 GiB reserve')
 
 
+def require_vm_poweroff(serial):
+    if 'Kernel panic' in serial or 'reboot: Power down' not in serial:
+        raise RuntimeError('VM lacks normal poweroff or recorded a kernel panic')
+
+
 def validate_session_archive(archive, receipt):
     """Verify the retained composition and every regular member before guest extraction."""
     record = json.loads(receipt.read_text())
@@ -341,6 +346,7 @@ def main():
                                 '-e', 'XDG_CACHE_HOME=/tmp/rog5-qemu-cache']
         container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'])
         serial = (output / 'serial.log').read_text(errors='replace')
+        require_vm_poweroff(serial)
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
         if combined:
