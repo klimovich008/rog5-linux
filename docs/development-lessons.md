@@ -2776,3 +2776,14 @@ privilege; preserve that warning rather than granting broad capabilities.
 Use separate syntax-checked guest child scripts instead of nested shell strings:
 the first permission VM reached the account setup but failed in inner quoting
 that the outer script's bash -n could not inspect.
+
+Non-root rendering does not qualify password unlock. The sanitized runtime
+strips set-ID bits, and NoNewPrivs blocks the packaged PAM helper even when its
+original bits are restored. Test the actual compositor PAM backend with a
+synthetic guest account before selecting a production privilege profile; keep
+wrong-password and account-aging refusals. Restore packaged permissions only on
+a disposable guest RAM copy, never by chmod of the retained shared runtime.
+Use a deterministic guest clock for account-aging tests. Reusing retained Rust
+rlibs needs both target libraries and host proc-macro search paths, plus their
+thin-LTO configuration; a small extracted-backend build avoided another full
+compositor build while testing real PAM calls and conversation/result handling.

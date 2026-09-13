@@ -8111,6 +8111,31 @@
         "scripts/host/check-mobile-package-closure.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-denial-mobile-session.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3",
+        "bash"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "packaging/arch/mobile/denial-mobile-session"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

@@ -183,6 +183,7 @@ active_tests=(
 	scripts/host/test-denial-arm64-engine-args.py
 	scripts/host/test-mobile-runtime-materialization.py
 	scripts/host/test-qemu-runtime-view.py
+	scripts/host/test-denial-mobile-session.py
 	scripts/host/test-review-metadata-checkers.py
 	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py

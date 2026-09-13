@@ -22,5 +22,7 @@
   "unlocked_bootloader": "Physical possession permits replacement boot code; encryption alone does not establish verified boot or prevent credential capture",
   "updates": "Signed exact-artifact verification, rollback protection and signed rescue preserved; no mutable package upgrade promoted to accepted image",
   "lost_device": "Revoke Tailscale node and SSH credentials from another trusted host; remote wipe is not promised; offline exposure follows encryption and boot threat model",
-  "headless_policy": "unchanged"
+  "headless_policy": "unchanged",
+  "session_entry": "packaging/arch/mobile/denial-mobile-session; prepared, not installed; requires process-owned active local logind session and explicit machine-configured devices/output",
+  "pam_prerequisites": "Preserve authenticated PAM package helper permissions. Qualified PAM1.7.2-2 unix_chkpwd is root:root06755; NoNewPrivs=1 prevents its password check. Entry refuses known incompatible state, never changes privileges. Synthetic ARM64 backend tests do not qualify real login or lock-screen isolation."
 }

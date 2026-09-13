@@ -71,6 +71,41 @@ no-install-script and no-replacement guards apply to both profiles. This option
 does not create a mobile account, seat authorization or a non-root VM session;
 those need separate qualification, and the existing guest still runs root.
 
+The separate mobile entry `packaging/arch/mobile/denial-mobile-session` delegates
+to the pinned upstream `denial-session` only after checking a local active
+logind session belonging to the process itself, mobile UID/GID1000, its private
+runtime directory and explicit machine-configured KMS/render/output paths.
+It selects the mobile shell and logind backend. It neither creates a login nor
+installs/enables services, and is not selected by the accepted headless builder.
+Its fact-provider fixtures execute the actual shell decisions; they do not
+establish real logind TakeDevice access, authentication or phone hardware.
+Target composition must also supply upstream denialctl, denial-session.target,
+the matching engine/AOT/assets and authenticated package closure. Do not use
+automatic fastest-mode selection for the phone: its exact connector and60Hz
+output configuration still require matching artifact evidence.
+
+Do not carry the sanitized VM package permissions or NoNewPrivs policy into a
+password-authenticated session without qualification. The retained PAM1.7.2-2
+archive supplies root:root06755 unix_chkpwd. The actual pinned Denial PAM backend
+in an isolated ARM64 guest rejects the correct synthetic password with0755 or
+NoNewPrivs=1, and accepts it with06755/NoNewPrivs=0, even with an empty capability
+bounding set. Wrong passwords, expired accounts and locked accounts are refused.
+The mobile entry checks these known prerequisites; it does not change privilege
+state or grant capabilities. Mount nosuid, package identity, PAM policy, a real
+login and lock-screen input isolation remain separate prerequisites/qualification.
+Retain the existing VM isolation and headless policies.
+
+`scripts/host/build-denial-pam-probe.py --help` describes the explicit Git source,
+immutable toolchain image and retained Rust dependency inputs for the small
+ARM64 backend probe. It extracts the unmodified authentication backend and
+uses `tools/denial-modifier-tests/pam-guest-main.rs` only as a synthetic caller.
+The companion `tools/qemu-virtio-drm/pam-boundary.sh` runs with the retained
+generic init.c/9P VM fixture, a dedicated rog5.pam_fixture=1 command-line marker,
+read-only runtime and RAM-only account/PAM/helper overlays. Never run it on a
+target or the host. This exact-source compilation and VM check are manual and
+are not silently included in an ordinary active-tier PASS. The dated evidence
+retains the exact driver, commands, source/tool/package hashes, bounds and results.
+
 For the explicit mobile UI probe, add `--observe-mobile` to the full-shell
 VirGL command. QMP sends pointer events; the private UNIX VNC socket supplies
 raw full-frame captures because QEMU 8.2 QMP screendump rejects GL scanouts.
