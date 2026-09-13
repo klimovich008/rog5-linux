@@ -3057,3 +3057,17 @@ seconds later before its nominal65-second deadline. Guest137 alone does not
 identify the signal sender. Trace that boundary before widening grace; preserve
 all original errors and existing outer limits. A one-second helper build reused
 the full shell/kernel/engine rather than rebuilding them for log capture.
+
+Close-diagnostic review (2026-09-13): GNU timeout's verbose signal messages must
+not share a potentially full client pipe; logging can block before signal delivery.
+Keep timeout-only output in a bounded-use regular file and replay after close;
+exercise the actual launch against a full FIFO. Label a close-return clock honestly
+when an error may leave a child unreaped. Reserve diagnostic budget for all producers.
+The subsequent VM failed earlier at missing icons, so the guest close hypothesis
+remains untested. Do not repeat unchanged VMs or widen grace; instrument the actual
+home-tile icon load/decode/invalidation boundary, preserving the prior typing proof.
+
+Home-icon test scope: HomeAppTile uses AppIconImage directly, bypassing the
+DeferredAppIcon queue. Pinned flutter_svg2.3.0 substitutes synchronous compute in
+debug; a widget-test PASS cannot establish release isolate completion. Match the
+actual consumer and build mode before choosing a regression or diagnostic seam.

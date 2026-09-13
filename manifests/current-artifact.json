@@ -1545,6 +1545,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "close_diagnostics": {
+      "status": "HOST_DIAGNOSTICS_PASS; VM_FAIL_ICONS; GUEST_CLOSE_NOT_RUN",
+      "set_id": "private:rog5-close-diagnostic-20260913-r1",
+      "source_commit": "b05ddefa4fba68e65511e9221a9d629d892bb6a6",
+      "evidence": {
+        "path": "test-results/2026-09-13-close-diagnostics-qualification.json",
+        "sha256": "4cdf662304938b0c31db361b43f2c6fe9a7a4169db72ccf0f7249584f3303a50",
+        "bytes": 89064
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
