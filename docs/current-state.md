@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial PAM backend qualified in ARM64 VM; mobile session entry prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial session payload composed; packaged ARM64 CLI checks pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Eight actual PAM backend cases PASS in an isolated ARM64 VM: the correct synthetic password fails with stripped helper permissions or NoNewPrivs, succeeds with the packaged helper profile, and wrong/expired/locked accounts are refused. A separate mobile entry checks local logind self, user/runtime ownership, PAM prerequisites and explicit machine device/output configuration;18 host fixtures PASS. It is not installed and does not qualify real login, logind device access or the lock UI. Next assemble retained ARM64 Denial/engine/AOT/denialctl with upstream launcher/target and this entry, then qualify a real local logind session offline. Preserve the existing NoNewPrivs rendering fixture. A660 XR24/fence/readback needs separate physical authorization; no phone operation or candidate. Mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-pam-session.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Exact retained Denial/engine/AOT/denialctl plus upstream launcher/target and the mobile entry form a deterministic unsigned session-files archive. All archive members and ARM64 CLI checks pass; the frozen active tier passes96 suites. This is not installed and supplies no machine configuration or account/service activation. Next qualify a real local logind session and device access in an isolated VM using the authenticated runtime and original PAM profile. Prior non-root rendering and eight PAM cases remain separate proofs. A660 XR24/fence/readback requires new physical authorization; mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-session-payload.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

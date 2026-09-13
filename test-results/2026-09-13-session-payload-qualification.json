@@ -1,0 +1,1493 @@
+{
+  "schema": 1,
+  "status": "PASS_SESSION_PAYLOAD_COMPOSITION_AND_ARM64_CLI",
+  "scope": "unsigned session-files archive; no installation, login, graphics or phone execution",
+  "starting_commit": "1cf23432031c5772dbf5c1b2ca1252f08536233e",
+  "starting_tree": "9af3d242ff08bc84ab395a73b6ef8ab3c3b7ba76",
+  "source_commit": "f94182682ea43c65320a3fe97e10ed90d44651ce",
+  "source_tree": "dfb7f5b49b32453292263a4155b380d8051609de",
+  "previous_goal_turn": "progress: actual ARM64 PAM backend and mobile entry preparation",
+  "review_revalidation": {
+    "review_commit": "410b6935526a977ca727359f23ee43fc4ebe45b2",
+    "behavior_patch": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch",
+      "sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1",
+      "size": 3807
+    },
+    "unchanged_since": "1282476b19c61a3efdcc1c00f11b705223c81ad5",
+    "retained_regressions": "16 corrected PASS; original 10 expected FAIL; not rerun on unchanged inputs",
+    "evidence": "test-results/2026-09-12-denial-allocation-contract-qualification.json",
+    "later_vm_evidence": "test-results/2026-09-13-nonroot-session-qualification.json",
+    "note": "Prior VM 210 frames/page flips and native input remain VM-only; no new framebuffer diagnosis."
+  },
+  "composition": {
+    "command": [
+      "python3",
+      "scripts/host/compose-denial-session-payload.py",
+      "--qualification",
+      "test-results/2026-09-13-nonroot-session-qualification.json",
+      "--cli-receipt",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/native-artifacts/result.json",
+      "--denial-source",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source",
+      "--deniald",
+      "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+      "--denialctl",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/native-artifacts/denialctl",
+      "--flutter-bundle",
+      "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+      "--output",
+      "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1"
+    ],
+    "working_directory": "/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+    "result": {
+      "sha256": "ef3c36cb6761e4840a86113d225e3fe85e548f871a6f0d0cbcf781ea771cf7a4",
+      "size": 26671977,
+      "status": "PREPARED_NOT_INSTALLED",
+      "authority": "none",
+      "physical_status": "NOT RUN",
+      "duration_seconds": 5.301131483021891,
+      "metadata": {
+        "schema": 1,
+        "kind": "unsigned session files, not a rootfs or boot candidate",
+        "authority": "none",
+        "physical_status": "NOT RUN",
+        "denial_upstream_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "qualification_sha256": "9fd239e3ac4ddf1526e2a025100d4ec4914ebae9761fd16d9fc5e82f90a78534",
+        "cli_receipt_sha256": "39296851bff15b40c94c9b6c488219c2a8676139c246fb19822ecf070d5be937",
+        "files": [
+          {
+            "name": "usr/bin/deniald",
+            "size": 15990872,
+            "mode": 493,
+            "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/AssetManifest.bin",
+            "size": 2439,
+            "mode": 420,
+            "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/FontManifest.json",
+            "size": 307,
+            "mode": 420,
+            "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/NOTICES.Z",
+            "size": 14745,
+            "mode": 420,
+            "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+            "size": 3344,
+            "mode": 420,
+            "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+            "size": 1617,
+            "mode": 420,
+            "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+            "size": 1775,
+            "mode": 420,
+            "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+            "size": 860,
+            "mode": 420,
+            "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+            "size": 836,
+            "mode": 420,
+            "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+            "size": 535,
+            "mode": 420,
+            "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+            "size": 1162,
+            "mode": 420,
+            "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+            "size": 748,
+            "mode": 420,
+            "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+            "size": 1204,
+            "mode": 420,
+            "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+            "size": 1298,
+            "mode": 420,
+            "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+            "size": 968,
+            "mode": 420,
+            "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+            "size": 993,
+            "mode": 420,
+            "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+            "size": 1075,
+            "mode": 420,
+            "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+            "size": 858,
+            "mode": 420,
+            "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+            "size": 813,
+            "mode": 420,
+            "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+            "size": 1227,
+            "mode": 420,
+            "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+            "size": 818,
+            "mode": 420,
+            "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+            "size": 1495,
+            "mode": 420,
+            "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+            "size": 277828,
+            "mode": 420,
+            "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+            "size": 273860,
+            "mode": 420,
+            "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+            "size": 273900,
+            "mode": 420,
+            "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+            "size": 408,
+            "mode": 420,
+            "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+            "size": 3913008,
+            "mode": 420,
+            "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+            "size": 1645184,
+            "mode": 420,
+            "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+            "size": 21856,
+            "mode": 420,
+            "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+            "size": 17624,
+            "mode": 420,
+            "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/icudtl.dat",
+            "size": 10822192,
+            "mode": 420,
+            "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612"
+          },
+          {
+            "name": "usr/lib/denial/flutter/lib/libapp.so",
+            "size": 10814352,
+            "mode": 420,
+            "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/lib/libflutter_engine.so",
+            "size": 15999928,
+            "mode": 493,
+            "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418"
+          },
+          {
+            "name": "usr/bin/denialctl",
+            "size": 886872,
+            "mode": 493,
+            "sha256": "da22a0bd76e183cd25ce45ef532ae3ee533703dd5f6e00809ce2f3415b8566df"
+          },
+          {
+            "name": "usr/bin/denial-session",
+            "size": 10318,
+            "mode": 493,
+            "sha256": "d3807fd0d955b9f9922a1d068613a64085c5f37f7fadecb22b4b0e38854bb4df"
+          },
+          {
+            "name": "usr/lib/systemd/user/denial-session.target",
+            "size": 229,
+            "mode": 420,
+            "sha256": "f4672dd57973a65c6b91def4e97a2824da0a69f02132301c625d6177799f207b"
+          },
+          {
+            "name": "usr/bin/denial-mobile-session",
+            "size": 6112,
+            "mode": 493,
+            "sha256": "001a38cf4d0b47657e2a430b201748f59e0f55e11e2beeb4eaf075db00fbdfe1"
+          },
+          {
+            "name": "usr/share/wayland-sessions/denial-mobile.desktop",
+            "size": 185,
+            "mode": 420,
+            "sha256": "c94ab0d03ac7bf5fd5526d0db88efe57fac67430004e28a109260279f0c6bcea"
+          },
+          {
+            "name": "usr/share/doc/rog5-denial/session-policy.json",
+            "size": 2082,
+            "mode": 420,
+            "sha256": "a1ed9758461d11a258731f133d142fdd7b609ab7e4b7dd84a4f946e8dd2ae4d5"
+          }
+        ],
+        "requires": [
+          "authenticated ARM64 package closure and original PAM helper permissions",
+          "non-conflicting mobile UID/GID1000 and authenticated local logind session",
+          "reviewed explicit KMS/render nodes and qualified60Hz output configuration",
+          "default-off remote services and separate installation/admission authority"
+        ]
+      },
+      "composer_sha256": "94d14b88244b185647e87f385e7e50058419f9f8869c76ec0c9f5673dcd74378",
+      "source_commit": "f94182682ea43c65320a3fe97e10ed90d44651ce",
+      "source_tree": "dfb7f5b49b32453292263a4155b380d8051609de"
+    },
+    "archive": {
+      "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/session.tar.gz",
+      "sha256": "ef3c36cb6761e4840a86113d225e3fe85e548f871a6f0d0cbcf781ea771cf7a4",
+      "size": 26671977
+    },
+    "provenance": {
+      "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/provenance.json",
+      "sha256": "c730b6f335e4b596c9ffe24871d8907a112d8dcf1ab6a2270dfd366d92a50518",
+      "size": 10468
+    }
+  },
+  "validation": {
+    "scope": "archive bytes, ARM64 ELF and qemu-user CLI only; no DRM or session execution",
+    "archive_sha256": "ef3c36cb6761e4840a86113d225e3fe85e548f871a6f0d0cbcf781ea771cf7a4",
+    "command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-session-payload-cli-r1",
+      "--pull=never",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=64",
+      "--tmpfs",
+      "/work:rw,size=32m",
+      "-v",
+      "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1:/payload:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/bin/sh",
+      "-c",
+      "set -eu\ntar -xzf /payload/session.tar.gz -C /work usr/bin/deniald usr/bin/denialctl\nqemu-aarch64 -L /runtime /work/usr/bin/denialctl --help\nqemu-aarch64 -L /runtime /work/usr/bin/denialctl --version\nqemu-aarch64 -L /runtime /work/usr/bin/deniald --help"
+    ],
+    "cli_commands": [
+      [
+        "qemu-aarch64",
+        "-L",
+        "/runtime",
+        "/work/usr/bin/denialctl",
+        "--help"
+      ],
+      [
+        "qemu-aarch64",
+        "-L",
+        "/runtime",
+        "/work/usr/bin/denialctl",
+        "--version"
+      ],
+      [
+        "qemu-aarch64",
+        "-L",
+        "/runtime",
+        "/work/usr/bin/deniald",
+        "--help"
+      ]
+    ],
+    "source_compatibility": [
+      {
+        "path": "compositor/src/bin/denialctl.rs",
+        "sha256": "54104dc9fc6c9bed709d5b3b9dedcc3c6be8d7bad5449d88319d2f628501d907",
+        "unchanged": true
+      },
+      {
+        "path": "compositor/src/lib.rs",
+        "sha256": "93bba37763518b8201f0b02c39a559a4549faf5b68f00618309b7f9e7a316e8b",
+        "unchanged": true
+      },
+      {
+        "path": "compositor/Cargo.lock",
+        "sha256": "f82e8be777ba3f9d21308a3ac8f8cead7586c11aad06e8136d426b8403d2a481",
+        "unchanged": true
+      }
+    ],
+    "phone_operations": false,
+    "physical": "NOT RUN",
+    "exit_status": 0,
+    "container_removed": true,
+    "duration_seconds": 2.5875429610023275,
+    "status": "PASS"
+  },
+  "validation_driver": {
+    "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/validate-payload.py",
+    "sha256": "f7a5b2df26c958a5d95f7e0fef80807312aa4f71b95247283b6a237d237a0dea",
+    "size": 3405
+  },
+  "validation_driver_source": "from pathlib import Path\nimport hashlib,json,subprocess,tarfile,time\nE=Path(__file__).resolve().parent\nW=Path('/home/deck/.local/state/rog5-review-correctness-20260912-r1')\nU=Path('/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source')\nS=Path('/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/source')\nBASE='85b2303e2f09ae7b7b993641f90061a200f03d53'\nruntime='/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root'\nimage='0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d'\narchive=E/'payload-r1/session.tar.gz'\nreceipt=json.loads((E/'payload-r1/provenance.json').read_text())\nstarted=time.monotonic()\nwith archive.open('rb') as f: assert hashlib.file_digest(f,'sha256').hexdigest()==receipt['sha256']\nwith tarfile.open(archive,'r:gz') as tar:\n    manifest=json.load(tar.extractfile('usr/share/rog5-denial/payload.json'))\n    assert manifest==receipt['metadata']\n    for row in manifest['files']:\n        info=tar.getmember(row['name'])\n        assert info.isfile() and info.uid==info.gid==info.mtime==0\n        assert info.mode==row['mode'] and info.size==row['size']\n        with tar.extractfile(info) as f: assert hashlib.file_digest(f,'sha256').hexdigest()==row['sha256']\n    for name in ('usr/bin/deniald','usr/bin/denialctl'):\n        h=tar.extractfile(name).read(20)\n        assert h[:5]==b'\\x7fELF\\x02' and h[5]==1 and h[18:20]==b'\\xb7\\x00'\nchecks=[]\nfor path in ('compositor/src/bin/denialctl.rs','compositor/src/lib.rs','compositor/Cargo.lock'):\n    data=subprocess.check_output(['git','-C',str(U),'show',BASE+':'+path],timeout=10)\n    assert (S/path).read_bytes()==data,path\n    checks.append({'path':path,'sha256':hashlib.sha256(data).hexdigest(),'unchanged':True})\nname='rog5-session-payload-cli-r1'\ncommands=[['qemu-aarch64','-L','/runtime','/work/usr/bin/denialctl','--help'],\n          ['qemu-aarch64','-L','/runtime','/work/usr/bin/denialctl','--version'],\n          ['qemu-aarch64','-L','/runtime','/work/usr/bin/deniald','--help']]\nshell='set -eu\\ntar -xzf /payload/session.tar.gz -C /work usr/bin/deniald usr/bin/denialctl\\n'\nshell+='\\n'.join(' '.join(c) for c in commands)\ncmd=['podman','run','--name',name,'--pull=never','--rm','--network=none','--read-only','--memory=256m','--memory-swap=256m','--cpus=1','--pids-limit=64','--tmpfs','/work:rw,size=32m',\n     '-v',str(archive.parent)+':/payload:ro','-v',runtime+':/runtime:ro',image,'/bin/sh','-c',shell]\nresult={'scope':'archive bytes, ARM64 ELF and qemu-user CLI only; no DRM or session execution',\n        'archive_sha256':receipt['sha256'],'command':cmd,'cli_commands':commands,'source_compatibility':checks,\n        'phone_operations':False,'physical':'NOT RUN'}\ntry:\n    with (E/'cli.log').open('xb') as log:\n        r=subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,timeout=45)\n    result['exit_status']=r.returncode\nfinally:\n    subprocess.run(['podman','rm','--force',name],capture_output=True,timeout=15)\n    result['container_removed']=subprocess.run(['podman','container','exists',name],capture_output=True,timeout=10).returncode==1\n    result['duration_seconds']=time.monotonic()-started\n    result['status']='PASS' if result.get('exit_status')==0 and result['container_removed'] else 'FAIL'\n    (E/'validation-result.json').write_text(json.dumps(result,indent=2)+'\\n')\nprint(json.dumps(result,indent=2))\nassert result['status']=='PASS'\n",
+  "cli_log": {
+    "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/cli.log",
+    "sha256": "287c19ca5053852c98ffd378b13cb6a3612f28e8f7e74955ef75d1f4b5ae8551",
+    "size": 2519
+  },
+  "regression_before": {
+    "status": "EXPECTED_FAIL",
+    "case": "incomplete inventory without ICU accepted before required-members check",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/incomplete-before.log",
+      "sha256": "c608b3b9922915bbe577de44f5ffe6f972d901dd197159fae97def2f5f550714",
+      "size": 951
+    },
+    "duration_seconds": 0.003
+  },
+  "receipt_failure_review": "Direct final receipt write could expose truncated success metadata; stage/fsync/exclusive publication and three fault tests added before freeze.",
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-session-payload-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-session-payload-20260913-r1/active-qualified-report",
+        "TMPDIR=/home/deck/.local/state/rog5-session-payload-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "f94182682ea43c65320a3fe97e10ed90d44651ce",
+      "source_tree": "dfb7f5b49b32453292263a4155b380d8051609de",
+      "started": "2026-09-13T07:14:13.811570+00:00",
+      "exit_status": 0,
+      "duration_seconds": 136.02271052802098
+    },
+    "counts": {
+      "PASS": 96,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/active-qualified-report/summary.json",
+      "sha256": "0169eea5d6ae93162a91874973a546c52bdcabe4d1eab377aab462b8415405d5",
+      "size": 113509
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/active-qualified-report/summary.xml",
+      "sha256": "9af1d12ebac773a190b128152865d5a0a86955ad1985ca1647853aa6291c18c1",
+      "size": 56388
+    }
+  },
+  "staging_retention": {
+    "status": "RETIRED_VERIFIED_DUPLICATE_STAGING",
+    "scope": "terminal historical VM payload duplicates only; all FAIL logs/results retained",
+    "results": [
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/result.json",
+        "sha256": "740765a7d383da9ba024638b4b33a3cdf18d9d4770f8d03047de601587cf082a",
+        "status": "FAIL"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/result.json",
+        "sha256": "e0bc74784b6948f20bce76d4abbf1ce4e84f7e796e3afe9bbd137938ff7b582a",
+        "status": "FAIL"
+      }
+    ],
+    "files": [
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/deniald",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/deniald",
+        "sha256": "8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591",
+        "size": 15979872,
+        "mode": "0o755",
+        "blocks_bytes": 15986688,
+        "identity": [
+          66312,
+          7394785,
+          15979872,
+          1789033470742426800,
+          1789235965250587354
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394837,
+          2439,
+          1789227931853067976,
+          1789235965263549868
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/FontManifest.json",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394843,
+          307,
+          1789227931853224618,
+          1789235965264939549
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "mode": "0o644",
+        "blocks_bytes": 16384,
+        "identity": [
+          66312,
+          7394844,
+          14745,
+          1789227931853392650,
+          1789235965265031920
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394800,
+          3344,
+          1789227931840010494,
+          1789235965260217328
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394836,
+          1617,
+          1789227931836714268,
+          1789235965263370925
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394830,
+          1775,
+          1789227931836936281,
+          1789235965262843707
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394820,
+          860,
+          1789227931837119964,
+          1789235965261997395
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394822,
+          836,
+          1789227931837313346,
+          1789235965262163897
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394826,
+          535,
+          1789227931837490389,
+          1789235965262499112
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394812,
+          1162,
+          1789227931837666621,
+          1789235965261268214
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394818,
+          748,
+          1789227931837862974,
+          1789235965261784331
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394828,
+          1204,
+          1789227931838047236,
+          1789235965262661455
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394816,
+          1298,
+          1789227931838225959,
+          1789235965261612139
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394834,
+          968,
+          1789227931838406391,
+          1789235965263197973
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394810,
+          993,
+          1789227931838587944,
+          1789235965261097151
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394832,
+          1075,
+          1789227931838872048,
+          1789235965263026340
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394804,
+          858,
+          1789227931839060221,
+          1789235965260547643
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394814,
+          813,
+          1789227931839247443,
+          1789235965261430526
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394824,
+          1227,
+          1789227931839429636,
+          1789235965262335730
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394806,
+          818,
+          1789227931839611528,
+          1789235965260721885
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394808,
+          1495,
+          1789227931839795471,
+          1789235965260908798
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "mode": "0o644",
+        "blocks_bytes": 278528,
+        "identity": [
+          66312,
+          7394794,
+          277828,
+          1789227931849064590,
+          1789235965257122051
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "mode": "0o644",
+        "blocks_bytes": 274432,
+        "identity": [
+          66312,
+          7394795,
+          273860,
+          1789227931848440541,
+          1789235965257459657
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "mode": "0o644",
+        "blocks_bytes": 274432,
+        "identity": [
+          66312,
+          7394796,
+          273900,
+          1789227931847802322,
+          1789235965257747131
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7394792,
+          408,
+          1789227931840197816,
+          1789235965256876198
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "mode": "0o644",
+        "blocks_bytes": 3919872,
+        "identity": [
+          66312,
+          7394798,
+          3913008,
+          1789227931843144727,
+          1789235965259587479
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "mode": "0o644",
+        "blocks_bytes": 1650688,
+        "identity": [
+          66312,
+          7394842,
+          1645184,
+          1789227931850641572,
+          1789235965264012995
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "mode": "0o644",
+        "blocks_bytes": 24576,
+        "identity": [
+          66312,
+          7394840,
+          21856,
+          1789227931852675180,
+          1789235965263801222
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "mode": "0o644",
+        "blocks_bytes": 20480,
+        "identity": [
+          66312,
+          7394839,
+          17624,
+          1789227931852889963,
+          1789235965263701520
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/data/icudtl.dat",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "mode": "0o644",
+        "blocks_bytes": 10829824,
+        "identity": [
+          66312,
+          7394788,
+          10822192,
+          1789227931826837884,
+          1789235965255587424
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/lib/libapp.so",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libapp.so",
+        "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+        "size": 10814352,
+        "mode": "0o644",
+        "blocks_bytes": 10821632,
+        "identity": [
+          66312,
+          7394846,
+          10814352,
+          1789227931804837601,
+          1789235965269587618
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r1/payload/flutter/lib/libflutter_engine.so",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libflutter_engine.so",
+        "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+        "size": 15975760,
+        "mode": "0o644",
+        "blocks_bytes": 15982592,
+        "identity": [
+          66312,
+          7394847,
+          15975760,
+          1789227931780837292,
+          1789235965276587716
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/deniald",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/deniald",
+        "sha256": "8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591",
+        "size": 15979872,
+        "mode": "0o755",
+        "blocks_bytes": 15986688,
+        "identity": [
+          66312,
+          7395031,
+          15979872,
+          1789033470742426800,
+          1789236752445206092
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395083,
+          2439,
+          1789227931853067976,
+          1789236752458388422
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/FontManifest.json",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395089,
+          307,
+          1789227931853224618,
+          1789236752459799159
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "mode": "0o644",
+        "blocks_bytes": 16384,
+        "identity": [
+          66312,
+          7395090,
+          14745,
+          1789227931853392650,
+          1789236752459971431
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395046,
+          3344,
+          1789227931840010494,
+          1789236752455141273
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395082,
+          1617,
+          1789227931836714268,
+          1789236752458219310
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395076,
+          1775,
+          1789227931836936281,
+          1789236752457716154
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395066,
+          860,
+          1789227931837119964,
+          1789236752456848633
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395068,
+          836,
+          1789227931837313346,
+          1789236752457011715
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395072,
+          535,
+          1789227931837490389,
+          1789236752457348739
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395058,
+          1162,
+          1789227931837666621,
+          1789236752456153805
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395064,
+          748,
+          1789227931837862974,
+          1789236752456665191
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395074,
+          1204,
+          1789227931838047236,
+          1789236752457551402
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395062,
+          1298,
+          1789227931838225959,
+          1789236752456492479
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395080,
+          968,
+          1789227931838406391,
+          1789236752458056228
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395056,
+          993,
+          1789227931838587944,
+          1789236752455984443
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395078,
+          1075,
+          1789227931838872048,
+          1789236752457894676
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395050,
+          858,
+          1789227931839060221,
+          1789236752455445937
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395060,
+          813,
+          1789227931839247443,
+          1789236752456315937
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395070,
+          1227,
+          1789227931839429636,
+          1789236752457178767
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395052,
+          818,
+          1789227931839611528,
+          1789236752455621159
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395054,
+          1495,
+          1789227931839795471,
+          1789236752455785651
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "mode": "0o644",
+        "blocks_bytes": 278528,
+        "identity": [
+          66312,
+          7395040,
+          277828,
+          1789227931849064590,
+          1789236752452349649
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "mode": "0o644",
+        "blocks_bytes": 274432,
+        "identity": [
+          66312,
+          7395041,
+          273860,
+          1789227931848440541,
+          1789236752452591412
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "mode": "0o644",
+        "blocks_bytes": 274432,
+        "identity": [
+          66312,
+          7395042,
+          273900,
+          1789227931847802322,
+          1789236752452813785
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "mode": "0o644",
+        "blocks_bytes": 4096,
+        "identity": [
+          66312,
+          7395038,
+          408,
+          1789227931840197816,
+          1789236752452153567
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "mode": "0o644",
+        "blocks_bytes": 3919872,
+        "identity": [
+          66312,
+          7395044,
+          3913008,
+          1789227931843144727,
+          1789236752454206190
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "mode": "0o644",
+        "blocks_bytes": 1650688,
+        "identity": [
+          66312,
+          7395088,
+          1645184,
+          1789227931850641572,
+          1789236752458838787
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "mode": "0o644",
+        "blocks_bytes": 24576,
+        "identity": [
+          66312,
+          7395086,
+          21856,
+          1789227931852675180,
+          1789236752458660235
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "mode": "0o644",
+        "blocks_bytes": 20480,
+        "identity": [
+          66312,
+          7395085,
+          17624,
+          1789227931852889963,
+          1789236752458527014
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/data/icudtl.dat",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "mode": "0o644",
+        "blocks_bytes": 10829824,
+        "identity": [
+          66312,
+          7395034,
+          10822192,
+          1789227931826837884,
+          1789236752450206146
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/lib/libapp.so",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libapp.so",
+        "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+        "size": 10814352,
+        "mode": "0o644",
+        "blocks_bytes": 10821632,
+        "identity": [
+          66312,
+          7395092,
+          10814352,
+          1789227931804837601,
+          1789236752463206288
+        ]
+      },
+      {
+        "retired_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-trace-r1/payload/flutter/lib/libflutter_engine.so",
+        "durable_path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libflutter_engine.so",
+        "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+        "size": 15975760,
+        "mode": "0o644",
+        "blocks_bytes": 15982592,
+        "identity": [
+          66312,
+          7395093,
+          15975760,
+          1789227931780837292,
+          1789236752470206365
+        ]
+      }
+    ],
+    "reclaim_estimate": 120332288,
+    "free_bytes_after": 3368722432
+  },
+  "limitations": [
+    "Not an installable rootfs or package closure; no machine-specific output/device configuration or account/service activation.",
+    "Real local logind session and TakeDevice are NOT RUN; helper checks and PAM backend proof are separate.",
+    "CLI uses qemu-user with no render device; it does not execute a compositor or prove phone GPU support.",
+    "No new graphics VM, raw EGL query, GL error/FBO instrumentation, phone boot or installed-byte verification.",
+    "Archive reproducibility checks two complete streams in one invocation; no independent second invocation or cross-toolchain comparison.",
+    "An archive without a terminal matching receipt is not a published payload; no signing/admission authority."
+  ],
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "candidate_creation": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false
+}

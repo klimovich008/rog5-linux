@@ -1355,6 +1355,29 @@
       "physical_status": "NOT RUN",
       "authority": "none; synthetic VM fixture only",
       "vm_source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9"
+    },
+    "session_payload": {
+      "status": "PREPARED_NOT_INSTALLED",
+      "set_id": "private:rog5-session-payload-20260913-r1",
+      "source_commit": "f94182682ea43c65320a3fe97e10ed90d44651ce",
+      "source_tree": "dfb7f5b49b32453292263a4155b380d8051609de",
+      "archive": {
+        "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/session.tar.gz",
+        "sha256": "ef3c36cb6761e4840a86113d225e3fe85e548f871a6f0d0cbcf781ea771cf7a4",
+        "size": 26671977
+      },
+      "provenance": {
+        "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/provenance.json",
+        "sha256": "c730b6f335e4b596c9ffe24871d8907a112d8dcf1ab6a2270dfd366d92a50518",
+        "size": 10468
+      },
+      "evidence": {
+        "path": "test-results/2026-09-13-session-payload-qualification.json",
+        "sha256": "eebf59df72249231285b399009d46f0c2a746f27c919cb36bc0b8a15a2790cd5",
+        "size": 70938
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none"
     }
   },
   "denial_phone_linkage": {
