@@ -6,6 +6,33 @@ the active server. In particular, `power-usb-active.json` and its generated
 lock still describe the older NFS observer track; they are kept for its
 regression/publication contract, not current installed-selector identity.
 
+## Retaining historical builds
+
+Retire generated compiler caches when a build stops being an active input.
+The 2026-09-13 host audit removed 87.21 GiB of historical objects, temporary
+link products and ThinLTO cache files across 57 kernel build directories.
+Final artifacts and evidence were retained; 514,051 retained file identities
+and 172 final-artifact/configuration hashes passed the post-cleanup check.
+This reclaimed space without rebuilding or qualifying any phone artifact.
+
+Before cleanup, serialize with the build coordinator and check current artifact
+pointers, tracked files, mounts, open handles and owned jobs. Enumerate exact
+regular files with device/inode, size, modification time and hardlink coverage;
+revalidate before unlinking and keep a private deletion journal. Skip files
+whose other hardlinks are outside the approved set. Inaccessible process or
+mount namespaces are a recorded limitation, not proof that nothing uses a path.
+Keep source/worktrees, final Image/vmlinux/modules/DTs, configuration, ABI
+headers, Module.symvers, build commands, toolchain identity and evidence.
+Signed packages, claims, rescue backups and retained root filesystems require
+their own reference/retirement audit; an old directory date is insufficient.
+
+Use disk-backed scratch and streaming hashes. Keep active dependency caches
+that materially shorten the next build; clearing old objects means that any
+later rebuild of those historical trees must regenerate them. Record allocated
+inode bytes separately from the filesystem free-space delta, and do not count
+hardlinked copies repeatedly. Prefer one measured audit and targeted verification
+over repeated whole-home scans or another full build as a cleanup check.
+
 ## Offline qualification and reporting
 
 The public `test-repository-linux.sh` tier commands are preserved. Test execution
