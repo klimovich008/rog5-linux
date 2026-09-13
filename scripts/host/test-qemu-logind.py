@@ -25,6 +25,52 @@ INTERRUPTS = {signal.SIGINT, signal.SIGTERM}
 APPS_CLEANUP_GRACE = 30
 
 
+STARTUP_UNITS = ('systemd-hwdb-update.service', 'ldconfig.service',
+                 'systemd-journal-catalog-update.service', 'systemd-tmpfiles-setup.service',
+                 'systemd-tmpfiles-setup-dev-early.service', 'systemd-udevd.service',
+                 'systemd-udev-trigger.service', 'systemd-logind.service', 'sysinit.target')
+
+
+def startup_result(serial):
+    """Decode bounded diagnostic data without treating it as session proof."""
+    packet = re.findall(r'^DIAGNOSTIC_UNIT_TIMINGS status=read bytes=(\d+) hex=([0-9a-f]+)$', serial, re.M)
+    handoff = re.findall(r'^OBSERVE pid1-handoff boottime=([0-9]+\.[0-9]+)$', serial, re.M)
+    ready = 'PASS startup-only authenticated readiness; Denial NOT RUN'
+    if len(packet) != 1 or len(handoff) != 1 or serial.splitlines().count(ready) != 1:
+        raise ValueError('missing or duplicate startup timing/readiness records')
+    size, encoded = packet[0]
+    if not 0 < int(size) <= 16384 or len(encoded) != 2 * int(size):
+        raise ValueError('startup timing payload bound or size mismatch')
+    decoded = bytes.fromhex(encoded).decode('ascii')
+    units = {}
+    numeric = {'ActiveEnterTimestampMonotonic', 'InactiveExitTimestampMonotonic',
+               'ExecMainStartTimestampMonotonic', 'ExecMainExitTimestampMonotonic',
+               'ConditionTimestampMonotonic', 'ExecMainStatus'}
+    fields = numeric | {'Id', 'LoadState', 'ActiveState', 'ConditionResult', 'Result'}
+    for block in decoded.strip().split('\n\n'):
+        row = {}
+        for line in block.splitlines():
+            key, sep, value = line.partition('=')
+            if not sep or key not in fields or key in row:
+                raise ValueError('unknown or duplicate startup unit field')
+            if key in numeric:
+                if not value.isascii() or not value.isdecimal():
+                    raise ValueError('invalid startup timestamp/status')
+                value = int(value)
+            row[key] = value
+        unit = row.get('Id')
+        if (unit not in STARTUP_UNITS or unit in units or row.get('LoadState') != 'loaded'
+                or not {'ActiveState', 'ActiveEnterTimestampMonotonic', 'InactiveExitTimestampMonotonic'} <= row.keys()):
+            raise ValueError('missing, unloaded or unexpected startup unit')
+        units[unit] = row
+    if set(units) != set(STARTUP_UNITS):
+        raise ValueError('incomplete startup unit inventory')
+    return {'status': 'PASS', 'scope': 'complete pre-PAM sysinit timing inventory; unit success not inferred', 'units': units,
+            'unit_clock': 'systemd monotonic microseconds; zero means no recorded transition',
+            'pid1_handoff_boottime_seconds': float(handoff[0]),
+            'clock_limit': 'handoff uses /proc/uptime BOOTTIME; do not subtract across clock domains'}
+
+
 def install_handlers():
     def interrupted(number, _frame):
         # Finish owned-process/container cleanup even if cancellation is repeated.
@@ -281,6 +327,8 @@ def main():
     parser.add_argument('--session-archive', type=Path)
     parser.add_argument('--session-receipt', type=Path)
     parser.add_argument('--host-render-node', type=Path)
+    parser.add_argument('--startup-only', action='store_true',
+                        help='combined VM preparation and PAM readiness/cleanup only; no Denial execution')
     observation = parser.add_mutually_exclusive_group()
     observation.add_argument('--observe-editor', action='store_true',
                         help='pointer-only OSK editor test in authenticated session; VM only')
@@ -305,6 +353,8 @@ def main():
         parser.error('automatic-caret requires observe-apps')
     if args.bottom_caret and not (args.observe_apps and args.automatic_caret):
         parser.error('bottom-caret requires observe-apps and automatic-caret')
+    if args.startup_only and (not combined or args.observe_apps or args.observe_editor):
+        parser.error('startup-only requires combined inputs and excludes UI observation')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -343,7 +393,8 @@ def main():
             if args.host_render_node != Path('/dev/dri/renderD128') or not args.host_render_node.is_char_device():
                 raise ValueError('requires the explicitly retained host renderD128 fixture node')
             result['session_composition'] = session_record
-            result['scope'] += '; actual mobile launcher, VirGL rendering and native clients'
+            result['scope'] += ('; startup-only combined preparation and authenticated readiness; Denial NOT RUN'
+                                if args.startup_only else '; actual mobile launcher, VirGL rendering and native clients')
             node = args.host_render_node.stat()
             result['host_render_node'] = {'path': str(args.host_render_node), 'rdev': node.st_rdev, 'resolved': str(args.host_render_node.resolve())}
         if args.observe_apps:
@@ -422,6 +473,9 @@ def main():
                             'logind-gtk-im-cache.sh': 'logind-gtk-im-cache.sh'})
             (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
             os.link(args.session_archive, payload / 'session.tar.gz')
+        if args.startup_only:
+            (stage / 'stage/startup-only').write_text('1\n')
+            result['outputs']['stage/startup-only'] = identity(stage / 'stage/startup-only')
         if args.observe_editor:
             scripts['logind-editor.sh'] = 'logind-editor.sh'
             (stage / 'stage/editor-probe').write_text('1\n')
@@ -504,7 +558,10 @@ def main():
             raise RuntimeError('requested UI observation incomplete or failed')
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
-        if combined:
+        if args.startup_only:
+            result['startup'] = startup_result(serial)
+            result['rendering'] = {'status': 'NOT RUN', 'reason': 'explicit startup-only mode'}
+        elif combined:
             import importlib.util
             spec = importlib.util.spec_from_file_location('drm_check', REPO/'scripts/host/test-qemu-virtio-drm.py')
             module = importlib.util.module_from_spec(spec)

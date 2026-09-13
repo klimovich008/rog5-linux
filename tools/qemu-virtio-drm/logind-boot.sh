@@ -59,5 +59,9 @@ if [[ -f /run/session-sha256 ]]; then
     sed -i 's/TimeoutStartSec=65/TimeoutStartSec=170/' /etc/systemd/system/rog5-logind-fixture.service
 fi
 /usr/bin/bash /run/independent-observer.sh &
+if [[ -f /run/startup-only ]]; then
+    read -r uptime _ < /proc/uptime
+    printf 'OBSERVE pid1-handoff boottime=%s\n' "$uptime"
+fi
 echo 'OBSERVE prepared RAM etc/var; exec actual packaged systemd as PID1' 
 exec /usr/lib/systemd/systemd --unit=rog5-logind-fixture.target --log-target=console --log-level=info

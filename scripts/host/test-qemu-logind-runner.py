@@ -1261,5 +1261,107 @@ class Archive(unittest.TestCase):
                     with self.assertRaises(ValueError): module.validate_session_archive(archive, receipt)
 
 
+class StartupOnly(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('startup_runner_fixture', RUNNER)
+        self.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.runner)
+
+    def test_cli_requires_combined_inputs_and_excludes_ui_observers(self):
+        required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for v in ['--'+n, '/unused']]
+        combined = ['--session-archive', '/unused', '--session-receipt', '/unused', '--host-render-node', '/unused']
+        for extra in ([], combined+['--observe-editor'], combined+['--observe-apps']):
+            with self.subTest(extra=extra), patch.object(sys, 'argv', [str(RUNNER), *required, *extra, '--startup-only']), \
+                    patch.object(self.runner, 'install_handlers') as effects, patch('sys.stderr', new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as status: self.runner.main()
+                self.assertEqual(status.exception.code, 2); effects.assert_not_called()
+        with patch.object(sys, 'argv', [str(RUNNER), *required, *combined, '--startup-only']), \
+                patch.object(self.runner, 'install_handlers', side_effect=RuntimeError('accepted startup CLI')):
+            with self.assertRaisesRegex(RuntimeError, 'accepted startup CLI'): self.runner.main()
+
+    def serial(self):
+        units = self.runner.STARTUP_UNITS
+        records = ['Id='+unit+'\nLoadState=loaded\nActiveState=active\n'
+                   'ActiveEnterTimestampMonotonic=1000000\nInactiveExitTimestampMonotonic=800000\n'
+                   'ConditionResult=yes\nExecMainStartTimestampMonotonic=800000\n'
+                   'ExecMainExitTimestampMonotonic=950000' for unit in units]
+        data = '\n\n'.join(records).encode()
+        return ('OBSERVE pid1-handoff boottime=12.34\n'
+                'DIAGNOSTIC_UNIT_TIMINGS status=read bytes='+str(len(data))+' hex='+data.hex()+'\n'
+                'PASS startup-only authenticated readiness; Denial NOT RUN\n')
+
+    def test_actual_shell_collects_fixed_properties_and_encodes_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); tool = root/'systemctl'
+            data = 'Id=ldconfig.service\n' + self.runner.SUCCESS + '\n'
+            tool.write_text('#!/bin/bash\nprintf \'%s\\n\' "$@" > "$ARGUMENTS"\ncat "$DATA"\n')
+            tool.chmod(0o755); (root/'data').write_text(data)
+            env = {'PATH':str(root)+':/usr/bin:/bin', 'LANG':'C',
+                   'ARGUMENTS':str(root/'arguments'), 'DATA':str(root/'data')}
+            result = subprocess.run(['bash','-c', 'set -euo pipefail; source "$1"; logind_startup_timings',
+                                     'fixture', str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],
+                                    env=env, capture_output=True, text=True, timeout=12)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            packet = re.search(r'bytes=(\d+) hex=([0-9a-f]+)', result.stdout)
+            self.assertEqual(bytes.fromhex(packet[2]).decode(), data.rstrip('\n'))
+            self.assertNotIn(self.runner.SUCCESS, result.stdout)
+            arguments = (root/'arguments').read_text().splitlines()
+            self.assertEqual(arguments[:2], ['show','--no-pager'])
+            self.assertEqual(arguments[-9:], list(self.runner.STARTUP_UNITS))
+            self.assertIn('ExecMainExitTimestampMonotonic', arguments)
+            for code in (42, 124):
+                tool.write_text('#!/bin/bash\nexit '+str(code)+'\n')
+                failed = subprocess.run(['bash','-c', 'set -euo pipefail; source "$1"; logind_startup_timings',
+                                          'fixture', str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],
+                                         env=env, capture_output=True, text=True, timeout=12)
+                self.assertEqual(failed.returncode, code)
+                self.assertNotIn('status=read', failed.stdout)
+
+    def test_actual_user_dispatch_skips_denial_only_for_explicit_marker(self):
+        source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-user.sh').read_text()
+        branch = source[source.index('if [[ -f /run/startup-only ]]; then'):]
+        branch = branch.replace('/usr/bin/bash /run/logind-denial.sh', 'denial_fixture')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            branch = branch.replace('/run/startup-only', str(root/'startup-only'))
+            branch = branch.replace('/run/session-sha256', str(root/'session-sha256'))
+            code = 'set -euo pipefail; denial_fixture(){ echo DENIAL_CALLED; };\n'+branch
+            def run(): return subprocess.run(['bash','-c',code],capture_output=True,text=True,timeout=3)
+            (root/'session-sha256').touch()
+            self.assertEqual(run().stdout, 'DENIAL_CALLED\n')
+            (root/'startup-only').touch()
+            result = run(); self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn('Denial NOT RUN',result.stdout); self.assertNotIn('DENIAL_CALLED',result.stdout)
+            (root/'session-sha256').unlink()
+            self.assertNotEqual(run().returncode,0)
+
+    def test_actual_timing_parser_retains_all_unit_clocks(self):
+        result = self.runner.startup_result(self.serial())
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['pid1_handoff_boottime_seconds'], 12.34)
+        self.assertEqual(set(result['units']), set(self.runner.STARTUP_UNITS))
+        self.assertEqual(result['units']['ldconfig.service']['ExecMainExitTimestampMonotonic'], 950000)
+        self.assertIn('microseconds', result['unit_clock'])
+
+    def test_missing_or_duplicate_timing_proof_fails(self):
+        serial = self.serial()
+        for invalid in ('', serial.split('DIAGNOSTIC_UNIT_TIMINGS')[0], serial+serial,
+                        serial.replace('PASS startup-only', 'FAIL startup-only')):
+            with self.subTest(invalid=invalid[:40]), self.assertRaises(ValueError):
+                self.runner.startup_result(invalid)
+
+    def test_invalid_decoded_unit_state_or_time_fails(self):
+        serial = self.serial()
+        match = re.search(r'bytes=(\d+) hex=([0-9a-f]+)', serial)
+        data = bytes.fromhex(match[2]).decode()
+        for changed in (data.replace('LoadState=loaded', 'LoadState=not-found', 1),
+                        data.replace('Monotonic=1000000', 'Monotonic=bad', 1),
+                        data.replace('Id=ldconfig.service', 'Id=unexpected.service'),
+                        data.replace('LoadState=loaded', 'LoadState=loaded\nLoadState=loaded', 1)):
+            packet = 'bytes='+str(len(changed.encode()))+' hex='+changed.encode().hex()
+            with self.subTest(changed=changed[:40]), self.assertRaises(ValueError):
+                self.runner.startup_result(serial[:match.start()]+packet+serial[match.end():])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -17,4 +17,9 @@ systemctl --user show-environment >/dev/null
 LIBSEAT_BACKEND=logind /run/payload/logind-seat-probe
 echo 'PASS local active tty1 session, user manager and mediated devices'
 
-if [[ -f /run/session-sha256 ]]; then /usr/bin/bash /run/logind-denial.sh; fi
+if [[ -f /run/startup-only ]]; then
+    [[ -f /run/session-sha256 ]]
+    echo 'PASS startup-only authenticated readiness; Denial NOT RUN'
+elif [[ -f /run/session-sha256 ]]; then
+    /usr/bin/bash /run/logind-denial.sh
+fi

@@ -1,6 +1,29 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
+logind_startup_timings() {
+    local record status=0 encoded
+    record=$(timeout -k 1 8 systemctl show --no-pager \
+        -p Id -p LoadState -p ActiveState -p ActiveEnterTimestampMonotonic \
+        -p InactiveExitTimestampMonotonic -p ExecMainStartTimestampMonotonic \
+        -p ExecMainExitTimestampMonotonic -p ConditionTimestampMonotonic \
+        -p ConditionResult -p Result -p ExecMainStatus \
+        systemd-hwdb-update.service ldconfig.service \
+        systemd-journal-catalog-update.service systemd-tmpfiles-setup.service \
+        systemd-tmpfiles-setup-dev-early.service systemd-udevd.service \
+        systemd-udev-trigger.service systemd-logind.service sysinit.target) || status=$?
+    if ((status)); then
+        printf 'DIAGNOSTIC_UNIT_TIMINGS status=failed code=%s\n' "$status"
+        return "$status"
+    fi
+    if ((${#record} == 0 || ${#record} > 16384)); then
+        echo 'DIAGNOSTIC_UNIT_TIMINGS status=invalid-size'
+        return 1
+    fi
+    # Encode all fields: diagnostics must never inject serial success markers.
+    encoded=$(printf '%s' "$record" | LC_ALL=C od -An -v -tx1 | LC_ALL=C tr -d ' \n') || return $?
+    printf 'DIAGNOSTIC_UNIT_TIMINGS status=read bytes=%s hex=%s\n' "${#record}" "$encoded"
+}
 logind_query_sessions() {
     timeout -k 1 3 loginctl list-sessions --no-legend --no-pager "$@"
 }
@@ -72,6 +95,7 @@ systemctl is-active systemd-user-sessions.service
 [[ ! -e /run/nologin ]]
 echo 'OBSERVE packaged Permit User Sessions removed startup nologin'
 udevadm settle --timeout=8
+if [[ -f /run/startup-only ]]; then logind_startup_timings; fi
 if [[ -f /run/editor-probe || -f /run/apps-probe ]]; then
     [[ -c /dev/vport0p1 ]]
     expected_port=rog5.editor
