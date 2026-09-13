@@ -19,9 +19,11 @@ done
 [[ ${#sockets[@]} == 1 ]]
 export WAYLAND_DISPLAY="${sockets[0]##*/}"
 for label in initial final; do
-    for ((attempt=0; attempt<1100; attempt++)); do
+    # A request may wait up to one second; client5s + poll1s fits host8s.
+    # Avoid hundreds of short-lived sleep processes during cold GTK startup.
+    for ((attempt=0; attempt<110; attempt++)); do
         [[ ! -f /run/native-capture/$label.request ]] || break
-        sleep 0.1
+        sleep 1
     done
     read -r request < "/run/native-capture/$label.request"
     [[ $request == "$label" ]]
