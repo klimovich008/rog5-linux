@@ -1169,6 +1169,84 @@ class BottomCaretEvidence(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'painted surface mapping'):
             self.observer.caret_step('await-baseline')
 
+    def test_fresh_old_row_waits_for_later_low_rectangle_without_rearming(self):
+        self.observer.caret_step('arm-baseline')
+        armed = self.observer.caret_arm
+        self.press(caret_y=90)
+        self.observer.now = .8
+        self.assertEqual(self.observer.caret_step('await-baseline'), .1)
+        self.assertFalse(self.observer.advance_stage)
+        self.assertEqual(self.observer.caret_arm, armed)
+        self.assertIsNone(self.observer.caret_baseline)
+        self.assertEqual(self.observer.result['bottom_caret']['status'], 'NOT RUN')
+        # A later rectangle/commit for the same press, not another injected tap.
+        self.tracker.sequence += 2
+        self.tracker.caret.update(y=1073, rectangle_sequence=self.tracker.sequence-1,
+                                  sequence=self.tracker.sequence)
+        self.observer.now = 3.9
+        self.observer.advance_stage = True
+        self.observer.caret_step('await-baseline')
+        self.assertEqual(self.observer.result['bottom_caret']['status'], 'BASELINE_ONLY')
+        self.assertEqual(self.observer.caret_baseline['caret']['y'], 1073)
+        self.assertEqual(len(self.tracker.presses), 1)
+        self.assertIsNone(self.observer.caret_arm)
+
+    def test_old_row_forever_expires_at_original_deadline(self):
+        self.observer.caret_step('arm-baseline')
+        armed = self.observer.caret_arm
+        self.press(caret_y=90)
+        for now in (.8, 2.5, 3.9):
+            self.observer.now = now
+            self.observer.advance_stage = True
+            self.observer.caret_step('await-baseline')
+            self.assertFalse(self.observer.advance_stage)
+            self.assertEqual(self.observer.caret_arm, armed)
+        self.observer.now = 4
+        with self.assertRaisesRegex(ValueError, 'deadline'):
+            self.observer.caret_step('await-baseline')
+        self.assertIsNone(self.observer.caret_baseline)
+        self.assertEqual(self.observer.result['bottom_caret']['status'], 'NOT RUN')
+
+    def test_fresh_qualifying_rectangle_at_or_after_deadline_is_refused(self):
+        for phase in ('baseline', 'mapping'):
+            for now in (4, 4.1):
+                with self.subTest(phase=phase, now=now):
+                    self.setUp()
+                    if phase == 'mapping':
+                        self.baseline()
+                    self.observer.caret_step('arm-'+phase)
+                    self.press(y=1075 if phase == 'baseline' else 1082.2)
+                    self.observer.now = now
+                    with self.assertRaisesRegex(ValueError, 'deadline'):
+                        self.observer.caret_step('await-'+phase)
+                    self.assertEqual(self.observer.result['bottom_caret']['status'],
+                                     'NOT RUN' if phase == 'baseline' else 'BASELINE_ONLY')
+
+    def test_stale_rectangle_recommits_do_not_freshen_selection(self):
+        self.observer.caret_step('arm-baseline')
+        armed = self.observer.caret_arm
+        self.press()
+        self.tracker.caret['rectangle_sequence'] = armed[0]
+        for now in (.8, 3.9):
+            self.tracker.sequence += 1
+            self.tracker.caret['sequence'] = self.tracker.sequence
+            self.observer.now = now
+            self.observer.advance_stage = True
+            self.observer.caret_step('await-baseline')
+            self.assertFalse(self.observer.advance_stage)
+            self.assertEqual(self.observer.caret_arm, armed)
+        self.observer.now = 4
+        with self.assertRaisesRegex(ValueError, 'fresh pointer'):
+            self.observer.caret_step('await-baseline')
+        self.assertIsNone(self.observer.caret_baseline)
+
+    def test_wrong_mapping_is_refused_even_with_transient_old_row(self):
+        self.observer.caret_step('arm-baseline')
+        self.press(x=270, y=1052, caret_y=90)
+        with self.assertRaisesRegex(ValueError, 'painted surface mapping'):
+            self.observer.caret_step('await-baseline')
+        self.assertIsNone(self.observer.caret_baseline)
+
     def test_commit_without_new_rectangle_cannot_qualify(self):
         self.observer.caret_step('arm-baseline')
         self.press()

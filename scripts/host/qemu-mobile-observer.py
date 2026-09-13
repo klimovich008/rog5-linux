@@ -658,8 +658,6 @@ class BottomCaretAppTextObserver(AutomaticCaretAppTextObserver):
         if geometry is None:
             raise ValueError('committed window geometry absent')
         if operation == 'await-baseline':
-            if not (950 <= caret['y']-geometry['y'] <= 1120 and 0 < caret['height'] <= 64):
-                raise ValueError('pointer did not select a low editor caret')
             expected = self.expected_pointer(self.BASE_POINT, geometry)
             offset = 0
         else:
@@ -679,6 +677,14 @@ class BottomCaretAppTextObserver(AutomaticCaretAppTextObserver):
             expected = self.expected_pointer(self.TAP_POINT, geometry, offset)
         if any(abs(press[key]-value) > 2 for key,value in zip(('x','y'),expected)):
             raise ValueError(f'pointer differs from painted surface mapping: actual=({press["x"]},{press["y"]}) expected={expected}')
+        if self.now >= deadline:
+            raise ValueError('caret action deadline expired')
+        if operation == 'await-baseline' and not (
+                950 <= caret['y']-geometry['y'] <= 1120 and 0 < caret['height'] <= 64):
+            # A fresh committed rectangle can still describe the pre-click row.
+            # Await selection within the original arm window; never renew it.
+            self.advance_stage = False
+            return .1
         proof = {'caret': dict(caret), 'geometry': dict(geometry), 'pointer': dict(press),
                  'expected_pointer': list(expected), 'expected_upward_offset': offset}
         if operation == 'await-baseline':
