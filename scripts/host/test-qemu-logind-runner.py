@@ -76,5 +76,35 @@ m.execute([sys.executable,'-c',{inner!r}],Path({str(root/'child.log')!r}),{0.3 i
         self.scenario('completed')
 
 
+class Cleanup(unittest.TestCase):
+    def test_actual_cleanup_distinguishes_absence_presence_and_query_error(self):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
+        harness = '''
+source "$1"
+SESSION_ROWS=$2; SCOPE_ROWS=$3; SESSION_RC=$4; SCOPE_RC=$5
+timeout(){ shift 3; "$@"; }
+loginctl(){ [[ $1 == list-sessions ]] || return 99; printf '%s\n' "$SESSION_ROWS"; return "$SESSION_RC"; }
+systemctl(){ [[ $1 == list-units ]] || return 99; printf '%s\n' "$SCOPE_ROWS"; return "$SCOPE_RC"; }
+logind_cleanup_state "$6"
+'''
+        cases = [
+            ('', '', 0, 0, 'c1', 0),
+            ('c2 1000 mobile seat0 tty2', 'session-c2.scope loaded active running', 0, 0, 'c1', 0),
+            ('c1 1000 mobile seat0 tty1 closing', '', 0, 0, 'c1', 1),
+            ('', 'session-c1.scope loaded active running', 0, 0, 'c1', 1),
+            ('', 'session-c1.scope loaded inactive dead', 0, 0, 'c1', 1),
+            ('', '', 1, 0, 'c1', 2),
+            ('', '', 0, 1, 'c1', 2),
+            ('', '', 124, 0, 'c1', 2),
+            ('', '', 0, 124, 'c1', 2),
+            ('', '', 0, 0, '../scope', 2),
+        ]
+        for sessions, scopes, session_rc, scope_rc, sid, expected in cases:
+            with self.subTest(sessions=sessions, scopes=scopes, session_rc=session_rc, scope_rc=scope_rc, sid=sid):
+                result = subprocess.run(['bash', '-c', harness, 'fixture', str(script), sessions, scopes,
+                                         str(session_rc), str(scope_rc), sid], capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

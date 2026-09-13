@@ -8184,7 +8184,8 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [
-        "scripts/host/test-qemu-logind.py"
+        "scripts/host/test-qemu-logind.py",
+        "tools/qemu-virtio-drm/logind-session.sh"
       ],
       "optional_subchecks": []
     }
