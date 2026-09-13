@@ -2982,3 +2982,17 @@ separate first-run visual success. Next inspect the actual service critical path
 and per-unit readiness under the retained CPU quota; do not rerun an unchanged
 VM or increase the deadline without measured justification. Focused post-VM ANSI
 normalization tests qualify that source correction; it was not rerun in a VM.
+
+VM readiness allowance (2026-09-13): use the packaged lsclocks CLOCK_MONOTONIC
+with systemd monotonic unit timestamps instead of second-resolution journal
+ordering. Preserve command status before diagnostic failures, cap/drain snapshots
+and observe before cleanup. A pre-command clock plus the allowance is only a
+lower bound on timeout cutoff; samples inside the bracket remain ambiguous.
+The first complete authenticated OSK session returned in19.696s under20s; desktop
+readiness was only0.444s before the earliest cutoff. Review traced20s to the VM
+fixture, not a product/hardware requirement. Calibrating that stage to25s adds
+scheduling margin inside unchanged outer limits; the second complete run took
+18.937s and did not use the extra time. Do not call this a proven timeout-cause
+fix or startup reliability qualification. Both runs delivered exact keys, visible
+text changes,99frames/page flips and complete shutdown. Reuse that evidence and
+move to launcher-driven app switching rather than repeat direct-launch typing.

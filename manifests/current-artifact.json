@@ -1447,30 +1447,31 @@
       "authority": "none"
     },
     "authenticated_editor": {
-      "status": "FAIL_VM_ONLY",
-      "set_id": "private:rog5-font-cache-20260913-r1",
-      "source_commit": "c986307a6c88cbb09bf236ca7083b5b1dc9461fa",
-      "source_tree": "04e5dfc71ebe61f5d989bc9664c66ec638fe1211",
+      "status": "PASS_VM_ONLY",
+      "set_id": "private:rog5-service-timing-20260913-r1",
+      "source_commit": "1a9f039b9b1a1c8b9d978122437b3758757f6808",
+      "source_tree": "323dc33b787cc5387cdd7db05d83cb65e8b4f66a",
       "evidence": {
-        "path": "test-results/2026-09-13-font-cache-qualification.json",
-        "sha256": "87083738d2038f9723f3b974af3ef4bb6cb2a67c4a4e08b0275770aa224a4510",
-        "size": 188113
+        "path": "test-results/2026-09-13-service-timing-qualification.json",
+        "sha256": "0c86c581c52562ca485ad3c833886578a685cc90d974fbc87df765838906d803",
+        "size": 198920
       },
       "milestones": {
-        "font_default_configuration": "PASS actual retained ARM64 tools and final VM",
-        "mobile_uid_font_cache_consumption": "PASS_VM_ONLY final run",
-        "authenticated_OSK_protocol": "PASS_VM_ONLY first run, exact12keys",
-        "practical_text_visual_semantics": "PASS_VM_ONLY first run test/tes/test",
-        "whole_first_vm": "FAIL_VM_ONLY terminal counters missing from capped log",
-        "whole_final_vm": "FAIL_VM_ONLY service-start12420s before apps",
-        "final_vm_poweroff": "PASS_VM_ONLY",
-        "bounded_diagnostic_projection": "PASS_HOST semantic and overflow fixtures; ANSI correction not rerun in VM",
+        "exact_clock_readiness": "PASS_VM_ONLY both runs; recordedclock/snapshots",
+        "calibrated25s_allowance": "PASS_VM_ONLY finalrun;18.94s observed, extra allowance unused",
+        "authenticated_OSK_protocol": "PASS_VM_ONLY bothruns; exact12focusedkeys",
+        "practical_text_visual_semantics": "PASS_VM_ONLY bothruns test/tes/test",
+        "two_native_clients": "PASS_VM_ONLY Footnormal0/Mousepad0, directlaunch",
+        "terminal_rendering": "PASS_VM_ONLY99rasterframes/99pageflips each",
+        "PAM_logind_and_cleanup": "PASS_VM_ONLY bothruns",
+        "launcher_driven_authenticated_app_switching": "NOT RUN",
+        "startup_reliability": "NOT QUALIFIED by two different fixture allowance runs",
         "phone": "NOT RUN"
       },
       "previous_evidence": {
-        "path": "test-results/2026-09-13-authenticated-editor-qualification.json",
-        "sha256": "8ad3203f1d023a5b9bd1b0d9257758a2affb52929d1ca38fba09f10939aece5b",
-        "size": 131462
+        "path": "test-results/2026-09-13-font-cache-qualification.json",
+        "sha256": "87083738d2038f9723f3b974af3ef4bb6cb2a67c4a4e08b0275770aa224a4510",
+        "size": 188113
       },
       "physical_status": "NOT RUN",
       "authority": "none"
