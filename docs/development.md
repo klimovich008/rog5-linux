@@ -879,3 +879,13 @@ at200ms and an active10ms floor. The unchanged90-second shell/120-second harness
 bounds remain in force. The observer resets the manual viewport pan and drags
 the OSK's blank top padding down before the final switch. This tests the current
 manual workaround, not automatic caret visibility or physical multitouch.
+
+Keyboard animation changes must preserve a single position across the visible
+sheet, translated content and native input regions. The open/closed target is
+not a rendered-frame observation. Patch0013 publishes coalesced controller
+samples in the scheduler's transient phase, before build and native layout;
+post-frame provider writes can otherwise race the input publisher's fresh state
+read. Source tests use `test-keyboard-animation-geometry.py` with an explicit
+matching source and Dart tool. These adapter tests and a frontend compile do not
+qualify actual animation timing or phone touch. Keep exact AOT/runtime and the
+current VM proof distinct until a changed-runtime observation is executed.

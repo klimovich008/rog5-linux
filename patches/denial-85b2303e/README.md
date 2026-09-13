@@ -113,3 +113,19 @@ Run `test-engine-registration-ownership.py --source-before BEFORE_SOURCE
 --source-after AFTER_SOURCE --output FRESH_DIRECTORY`. The two supplied trees
 must differ by patch 0007; the runner checks that identity before extracting
 the actual startup and shutdown methods.
+
+Patch0013 uses one frame-sampled keyboard animation position for the sheet,
+content translation and native input regions. Target/drag state still controls
+the spring. It also aligns scroll-strip eligibility and starts interrupted drags
+at the displayed position. The prior0.001 sheet cutoff is applied centrally,
+so spring residue cannot leave an invisible native keyboard region. Apply after
+0012 to the matching shell source; this is not selected by a phone builder.
+
+Run `scripts/host/test-keyboard-animation-geometry.py --source PATCHED_SOURCE
+--dart PINNED_DART --output FRESH_DIRECTORY`. It executes actual Dart viewport,
+controller, scheduling and native-layout methods with geometry/widget/scheduler
+adapters. It does not execute Flutter rasterization, Riverpod or real native
+input delivery. The prior source can be supplied to reproduce the mismatch.
+Use a real matching shell frontend build separately to check complete types.
+This correction retains manual panning; caret rectangle transport and client
+resizing are separate work, not claims of this patch.

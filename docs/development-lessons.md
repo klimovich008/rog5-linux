@@ -2717,3 +2717,12 @@ at least12.9 seconds when100ms actions wait for a200ms loop. Honor the next
 action deadline within a bounded poll interval; retain slower idle polling.
 Keep the longer command budget specific to the fixed combined flow, preserve
 held-button cleanup, and require native key evidence in addition to screenshots.
+
+A keyboard-close capture can expose a routing defect even when text and app
+switching pass. The sheet's spring retained positive progress while target-based
+routing had already removed the keyboard region. Use one transient-frame sample
+for rendering and routing, with the target kept separate to avoid restarting the
+spring. The pinned SpringSimulation defaults snapToEnd=false; normalize its
+terminal residue at the shared boundary rather than hiding only the sheet.
+A fake spring test cannot establish exact framework endpoint semantics: inspect
+the pinned source and retain real Flutter/VM timing as a separate qualification.
