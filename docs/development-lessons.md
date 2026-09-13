@@ -3081,3 +3081,10 @@ ARM64 encoder/decoder and VM captures. A diagnostic run passed no-pan typing and
 clean close in290.357s, but non-reproduction is not a fix for earlier missing
 icons or137. Reuse its43.516-second shell build for the next distinct bottom-edge
 caret question; keep kernel/native/engine inputs and failure diagnostics intact.
+
+Pointer origin (2026-09-13): successful OSK typing alone does not prove tap
+alignment. Compare the inverse of actual painted geometry with delivered client
+surface coordinates, including nonzero XDG content origin and keyboard pan.
+Preserve explicit scaling limits. A post-tap text-input commit may reuse an old
+cursor rectangle; keep the rectangle request sequence separately and require
+fresh committed geometry evidence. Test these counterexamples before a VM run.

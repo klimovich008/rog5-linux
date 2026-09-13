@@ -1,0 +1,2640 @@
+{
+  "previous_goal_turn": "PROGRESS: reclaimed13.0GB while preserving active source and artifacts",
+  "started_from": "08a2811be7dd054eb4b8018b015bac692ee84ce2",
+  "source": {
+    "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+    "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4"
+  },
+  "review": {
+    "result": "no confirmed blocker",
+    "reviewer": "bottom_caret_protocol",
+    "scope": "read-only diff/parser/ACK/geometry/document review",
+    "remaining": [
+      "actual low caret selection",
+      "translated native pointer delivery",
+      "visual visibility",
+      "unchanged65s client deadline"
+    ]
+  },
+  "tests": {
+    "origin": [
+      {
+        "label": "origin-before",
+        "command": [
+          "python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-mobile-window-input-origin.py",
+          "--source",
+          "/home/deck/.local/state/rog5-icon-stage-20260913-r1/work/workspace",
+          "--flutter-box-fit",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter/lib/src/painting/box_fit.dart",
+          "--dart",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+          "--output",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/origin-before"
+        ],
+        "exit": 1,
+        "seconds": 0.7661881769890897,
+        "status": "FAIL",
+        "failures": [
+          "cropped_untranslated_paint_input_roundtrip",
+          "cropped_panned_paint_input_roundtrip"
+        ]
+      },
+      {
+        "label": "origin-after",
+        "command": [
+          "python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-mobile-window-input-origin.py",
+          "--source",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/work/workspace",
+          "--flutter-box-fit",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter/lib/src/painting/box_fit.dart",
+          "--dart",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+          "--output",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/origin-after"
+        ],
+        "exit": 0,
+        "seconds": 0.715879326016875,
+        "status": "PASS",
+        "failures": []
+      }
+    ],
+    "caret": {
+      "scope": "Execute exact Dart caret/state/controller and paint/input geometry methods.\n\nGeometry, widget and scheduler adapters are not Flutter rasterization, Wayland\nprotocol delivery, VM or phone proof. An uncorrected source runs the top-caret\ncounterexample against its actual MobileKeyboardViewport implementation.\n",
+      "source_hashes": {
+        "input/input_layout.dart": "cb6b2868e7481071be3bbecd9563f8a73508e08a287b9cabc354e47bf3f4b99d",
+        "state/shell_controller.dart": "e021dc700b6900fcd8abeb03726083a4685a73962e337b788f32e87d52ecc909",
+        "state/shell_input_layout_coordinator.dart": "e1fb1ab431c30894d79acc6d0fd147b1b3ec1ae497091cad082313646cee06bf",
+        "widgets/edge_panel_layer.dart": "e177f2a72b9040c041199420655bcdad8d1b9bdcb99df56c0584f652639a3e72",
+        "state/shell_state.dart": "fa8b218a85005711885a8bbd6fe90b9786be394ddddea2f422652c1332866885",
+        "models/denial_text_input_caret.dart": "a7d0b301c548385cea773fe176fd19055ded96c27246c086cf562dfdb2f209e0",
+        "input/keyboard_viewport.dart": "f3c01cb6b00ce8817ef89f32b8691cd6cdb65a9b927218eea3b97b83308dfd0e",
+        "platform/denial_bridge.dart": "f1a3fe40355d05aae6b503e51ac4e0bf7abaeb371a96fbc32a7c3be8047af125"
+      },
+      "unit_sha256": "b3c8d8a5f9f48e9e035ea7501cb4c74284720425d07a3f4bac07d9e9ea819b12",
+      "runs": [
+        {
+          "case": "top",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "top"
+          ],
+          "exit_status": 0,
+          "seconds": 0.646323344000848,
+          "status": "PASS"
+        },
+        {
+          "case": "bottom",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "bottom"
+          ],
+          "exit_status": 0,
+          "seconds": 0.6282783510105219,
+          "status": "PASS"
+        },
+        {
+          "case": "scaled",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "scaled"
+          ],
+          "exit_status": 0,
+          "seconds": 0.6321728900074959,
+          "status": "PASS"
+        },
+        {
+          "case": "zero_width",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "zero_width"
+          ],
+          "exit_status": 0,
+          "seconds": 0.637249385996256,
+          "status": "PASS"
+        },
+        {
+          "case": "owner",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "owner"
+          ],
+          "exit_status": 0,
+          "seconds": 0.6688415620010346,
+          "status": "PASS"
+        },
+        {
+          "case": "pending",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "pending"
+          ],
+          "exit_status": 0,
+          "seconds": 0.71259108002414,
+          "status": "PASS"
+        },
+        {
+          "case": "clear",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "clear"
+          ],
+          "exit_status": 0,
+          "seconds": 1.7034245829854626,
+          "status": "PASS"
+        },
+        {
+          "case": "activation",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "activation"
+          ],
+          "exit_status": 0,
+          "seconds": 1.336960607994115,
+          "status": "PASS"
+        },
+        {
+          "case": "manual",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "manual"
+          ],
+          "exit_status": 0,
+          "seconds": 1.4172640960023273,
+          "status": "PASS"
+        },
+        {
+          "case": "manual_missing",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "manual_missing"
+          ],
+          "exit_status": 0,
+          "seconds": 1.7681910419778433,
+          "status": "PASS"
+        },
+        {
+          "case": "closing",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "closing"
+          ],
+          "exit_status": 0,
+          "seconds": 1.1911880059924442,
+          "status": "PASS"
+        },
+        {
+          "case": "partial",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "partial"
+          ],
+          "exit_status": 0,
+          "seconds": 1.8461186499916948,
+          "status": "PASS"
+        },
+        {
+          "case": "invalid",
+          "command": [
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/dart",
+            "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/caret-after/test.dart",
+            "invalid"
+          ],
+          "exit_status": 0,
+          "seconds": 0.763605471001938,
+          "status": "PASS"
+        }
+      ],
+      "VM": "NOT RUN",
+      "phone": "NOT RUN",
+      "counts": {
+        "PASS": 13,
+        "FAIL": 0,
+        "BLOCKED": 0
+      }
+    },
+    "observer": {
+      "PASS": 66,
+      "seconds": 2.988,
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-qemu-mobile-observer.py"
+      ]
+    },
+    "protocol": {
+      "PASS": 32,
+      "seconds": 0.007,
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-qemu-caret-protocol.py"
+      ]
+    }
+  },
+  "scope": "offline software only; phone NOT RUN; S06/R01 FAIL retained",
+  "status": "SOURCE_FIX_PASS_VM_STARTUP_TIMEOUT",
+  "build": {
+    "status": "PASS",
+    "scope": "real shell frontend and ARM64 AOT only; VM/phone NOT RUN",
+    "verification": {
+      "source": {
+        "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+        "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4"
+      },
+      "base_verification": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/shell-source-verification.json",
+      "input_delta": {
+        "base_workspace": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/work/workspace",
+        "base_inventory_sha256": "7c3a4cd34afe2dceabc8c70e222eb0449d4d5e698bc62c952adead36c95fe920",
+        "changed": [
+          "dart_shell/lib/src/state/shell_input_layout_coordinator.dart"
+        ],
+        "workspace_files": 385,
+        "unchanged_package_files": 281,
+        "package_root": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/packages"
+      },
+      "patch_application": {
+        "status": "PASS",
+        "commands": [
+          [
+            "git",
+            "apply",
+            "--check",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/patches/denial-85b2303e/0019-map-mobile-input-to-content-origin.patch"
+          ],
+          [
+            "git",
+            "apply",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/patches/denial-85b2303e/0019-map-mobile-input-to-content-origin.patch"
+          ]
+        ],
+        "patch_sha256": "0fd2c0a8c90026d6158020770f6688187c88d25eb33be8f87c1638df763c7473",
+        "source_sha256": "e1fb1ab431c30894d79acc6d0fd147b1b3ec1ae497091cad082313646cee06bf"
+      },
+      "workspace_inventory": "workspace-files.json",
+      "package_inventory": "package-files.json",
+      "scope": "one shell input origin correction; no native/kernel/engine/package code change; ARM64 release and VM NOT RUN"
+    },
+    "frontend": {
+      "source": {
+        "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+        "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4"
+      },
+      "command": [
+        "podman",
+        "run",
+        "--name",
+        "rog5-bottom-caret-frontend-r1",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--network=none",
+        "--memory=2048m",
+        "--memory-swap=2048m",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--timeout=290",
+        "-v",
+        "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/sdk:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/work:/work:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/flutter:/flutter:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages:/flutter/packages:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine:/flutter/bin/cache/pkg/sky_engine:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk:/platform:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/frontend:/output:rw",
+        "-e",
+        "HOME=/output/home",
+        "-e",
+        "TMPDIR=/output/tmp",
+        "--workdir=/work/workspace/dart_shell",
+        "-v",
+        "/home/deck/.local/state/rog5-icon-stage-20260913-r1/packages/flutter_svg-2.3.0:/pub-cache/hosted/pub.dev/flutter_svg-2.3.0:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-icon-stage-20260913-r1/packages/vector_graphics-1.2.2:/pub-cache/hosted/pub.dev/vector_graphics-1.2.2:ro",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "/sdk/bin/dartaotruntime",
+        "/sdk/bin/snapshots/frontend_server_aot.dart.snapshot",
+        "--sdk-root",
+        "/platform/",
+        "--target=flutter",
+        "--no-print-incremental-dependencies",
+        "-Ddart.vm.profile=false",
+        "-Ddart.vm.product=true",
+        "--delete-tostring-package-uri=dart:ui",
+        "--delete-tostring-package-uri=package:flutter",
+        "--track-widget-creation",
+        "--aot",
+        "--tfa",
+        "--target-os",
+        "linux",
+        "--packages",
+        "/work/workspace/dart_shell/.dart_tool/package_config.json",
+        "--output-dill",
+        "/output/app.dill",
+        "--depfile",
+        "/output/app.d",
+        "--verbosity=error",
+        "lib/main.dart"
+      ],
+      "started": "2026-09-13T15:42:16.371108+00:00",
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 23.508822015020996,
+      "minimum_free_bytes": 109398986752,
+      "container_removed": true,
+      "log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/frontend/build.log",
+        "sha256": "d8b9bef41601cac77b16ab8f4e8a81008dc88a4a4ed89008fd67c933823ff000",
+        "size": 137
+      },
+      "outputs": [
+        {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/frontend/app.dill",
+          "sha256": "c12a972179ee059866a9a4bd4a9f13306bb8f4a25d7c02c19742e5c3eda39436",
+          "size": 45541008
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/frontend/app.d",
+          "sha256": "c70f521b4a6d9336bb43892053a0573118237102f2c696783f5583ac2ff0292e",
+          "size": 137027
+        }
+      ]
+    },
+    "aot": {
+      "source": {
+        "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+        "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4"
+      },
+      "command": [
+        "podman",
+        "run",
+        "--name",
+        "rog5-bottom-caret-aot-r1",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--network=none",
+        "--memory=2048m",
+        "--memory-swap=2048m",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--timeout=290",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/frontend/app.dill:/input/app.dill:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/aot:/output:rw",
+        "-e",
+        "TMPDIR=/output",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "/gen_snapshot",
+        "--deterministic",
+        "--snapshot_kind=app-aot-elf",
+        "--elf=/output/libapp.so",
+        "--strip",
+        "/input/app.dill"
+      ],
+      "started": "2026-09-13T15:42:39.944948+00:00",
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 21.507551243994385,
+      "minimum_free_bytes": 109388005376,
+      "container_removed": true,
+      "log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/aot/build.log",
+        "sha256": "45aec0a66413d46de0747d94f6eab9289d869855dbaf49de297d66df1b989399",
+        "size": 69
+      },
+      "outputs": [
+        {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/aot/libapp.so",
+          "sha256": "e1f8d492919cbdb38904398855d52815097443db89daf3ea5a9f442b15e67bf0",
+          "size": 10814352
+        }
+      ]
+    }
+  },
+  "session_archive": {
+    "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz",
+    "sha256": "bbf5bbb4e94d6334bb9c7f22cc45dccb51781a1c100a6dc215b354675089abad",
+    "bytes": 26695573
+  },
+  "vm": {
+    "status": "FAIL",
+    "authority": "none",
+    "physical_status": "NOT RUN",
+    "scope": "generic ARM64 systemd PID1, original PAM login profile, local logind and mediated virtual devices; actual mobile launcher, VirGL rendering and native clients",
+    "started_utc": "2026-09-13T15:43:41.122907+00:00",
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--automatic-caret",
+      "--bottom-caret"
+    ],
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-build-c1c8edf92447488a",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1:/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1:rw",
+          "--env",
+          "TMPDIR=/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "--crate-name=logind_seat_probe",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "-C",
+          "lto=thin",
+          "-C",
+          "codegen-units=1",
+          "-C",
+          "strip=debuginfo",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1=/logind-fixture",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/payload/logind-seat-probe",
+          "--extern",
+          "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--extern",
+          "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "-L",
+          "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+        ],
+        "started_utc": "2026-09-13T15:43:41.612333+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 6.486783204018138,
+        "ended_utc": "2026-09-13T15:43:48.099144+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-build-c1c8edf92447488a"
+        ],
+        "started_utc": "2026-09-13T15:43:48.099587+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03445936000207439,
+        "ended_utc": "2026-09-13T15:43:48.134064+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-build-c1c8edf92447488a"
+        ],
+        "started_utc": "2026-09-13T15:43:48.134432+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03414635601802729,
+        "ended_utc": "2026-09-13T15:43:48.168595+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-build-ea96a1ef582b4b2b",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1:/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1:rw",
+          "--env",
+          "TMPDIR=/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "--crate-name=pam_session",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "-C",
+          "lto=thin",
+          "-C",
+          "codegen-units=1",
+          "-C",
+          "strip=debuginfo",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1=/logind-fixture",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-pam-session.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/payload/pam-session",
+          "--extern",
+          "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--extern",
+          "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "--cfg",
+          "denial_session",
+          "-L",
+          "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+        ],
+        "started_utc": "2026-09-13T15:43:48.169782+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 6.384156974992948,
+        "ended_utc": "2026-09-13T15:43:54.553964+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-build-ea96a1ef582b4b2b"
+        ],
+        "started_utc": "2026-09-13T15:43:54.554379+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.034219516994198784,
+        "ended_utc": "2026-09-13T15:43:54.588616+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-build-ea96a1ef582b4b2b"
+        ],
+        "started_utc": "2026-09-13T15:43:54.589043+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.034015473996987566,
+        "ended_utc": "2026-09-13T15:43:54.623077+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-DROG5_SYSTEMD_PID1",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/init"
+        ],
+        "started_utc": "2026-09-13T15:43:54.624078+00:00",
+        "deadline_seconds": 30,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.16664609799045138,
+        "ended_utc": "2026-09-13T15:43:54.790752+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/init.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/guest.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.792802+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005866366991540417,
+        "ended_utc": "2026-09-13T15:43:54.798693+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/guest.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-probe.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.799279+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0057524349831510335,
+        "ended_utc": "2026-09-13T15:43:54.805050+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-probe.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-user.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.805667+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005781085987109691,
+        "ended_utc": "2026-09-13T15:43:54.811469+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-user.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/independent-observer.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.812077+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0058144060021732,
+        "ended_utc": "2026-09-13T15:43:54.817909+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/independent-observer.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-denial.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.818535+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005837856006110087,
+        "ended_utc": "2026-09-13T15:43:54.824392+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-denial.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-denial-prepare.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.824946+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005802016006782651,
+        "ended_utc": "2026-09-13T15:43:54.830767+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-denial-prepare.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-font-cache.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.831407+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005862347024958581,
+        "ended_utc": "2026-09-13T15:43:54.837290+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-font-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-gtk-im-cache.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.837968+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005763355002272874,
+        "ended_utc": "2026-09-13T15:43:54.843753+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-gtk-im-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-apps.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.844382+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005826745997183025,
+        "ended_utc": "2026-09-13T15:43:54.850229+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-apps.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/launcher-apps.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.850863+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005701794987544417,
+        "ended_utc": "2026-09-13T15:43:54.856585+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/launcher-apps.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/launcher-evidence.sh"
+        ],
+        "started_utc": "2026-09-13T15:43:54.857163+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005863416998181492,
+        "ended_utc": "2026-09-13T15:43:54.863046+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/launcher-evidence.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-13T15:43:54.864316+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs",
+        "stdin_sha256": "eedffaed9355c8fdbbd1ba4c16b1dab5bc873a52e948271a110173be48dc98b7",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005950477992882952,
+        "ended_utc": "2026-09-13T15:43:54.870291+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-13T15:43:54.870770+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03420639701653272,
+        "ended_utc": "2026-09-13T15:43:54.904996+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-vm-9b08dc071db548c9",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/payload:/payload:ro",
+          "--security-opt=no-new-privileges",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "-v",
+          "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/observe:/observe:rw",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-device",
+          "virtio-gpu-gl-device,xres=540,yres=1224",
+          "-device",
+          "virtio-keyboard-device",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload",
+          "-name",
+          "rog5-logind-vm-9b08dc071db548c9",
+          "-qmp",
+          "unix:/observe/qmp.sock,server=on,wait=off",
+          "-vnc",
+          "unix:/observe/vnc.sock",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-serial-device",
+          "-chardev",
+          "socket,id=apps,path=/observe/apps.sock,server=on,wait=off",
+          "-device",
+          "virtserialport,chardev=apps,name=rog5.apps,nr=1"
+        ],
+        "started_utc": "2026-09-13T15:43:54.940220+00:00",
+        "deadline_seconds": 300,
+        "status": "FAIL_TIMEOUT",
+        "exit_status": -9,
+        "duration_seconds": 300.01187519700034,
+        "ended_utc": "2026-09-13T15:48:54.952130+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+          "sha256": "2f3a0e15aee090de90a081de33c22e38858859ba69af243fcbd38f62fa6d6f28",
+          "bytes": 61925
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-vm-9b08dc071db548c9"
+        ],
+        "started_utc": "2026-09-13T15:48:54.953280+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.46735170600004494,
+        "ended_utc": "2026-09-13T15:48:55.420659+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.cleanup.log",
+          "sha256": "bc284ea3eb9f1c09f8f78fe0978a9e49435808485e9fde06cdb2c4d1faf12f57",
+          "bytes": 32
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-vm-9b08dc071db548c9"
+        ],
+        "started_utc": "2026-09-13T15:48:55.421314+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.06756015299470164,
+        "ended_utc": "2026-09-13T15:48:55.488910+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+        "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+        "bytes": 3268
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+        "sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+        "bytes": 10806
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+        "sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+        "bytes": 6735
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+        "sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+        "bytes": 2685
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+        "sha256": "9038a89821b57fc2e5111a00077c97ff033fdcc062b1c8c22515a46bb94a4f44",
+        "bytes": 5416
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+        "sha256": "8df059ae1c81cae190d9250e5527c71c64d643c6567cf657d9a6e0414ade7bca",
+        "bytes": 1124
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+        "sha256": "5887e814f322a66b65c3e2c8d0b0d4ad347f47bf29b7649cb0d769ff8f791345",
+        "bytes": 933
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+        "sha256": "67a3abf500095bf0109c62b51bb5cef505929409095d763309714af3ec323670",
+        "bytes": 16741
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+        "sha256": "f0de4d688dbbf1a62cec1bb9b073337f27ebaa38d78e64bda2ddb79fd918cc5e",
+        "bytes": 4126
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+        "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+        "bytes": 9112
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+        "sha256": "bb764e83060ef295a542b97e4be62cee47c22fc70cb99dcd0dc1607c5be73d14",
+        "bytes": 2424
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+        "bytes": 7049224
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+        "bytes": 5719226
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+        "bytes": 170538
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+        "bytes": 1102
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+        "sha256": "ea518f83d18ed2a212c69f00c6619e3f5c51ca28a0c571955ab7fa4e9bf7cd8b",
+        "bytes": 29393
+      },
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz",
+        "sha256": "bbf5bbb4e94d6334bb9c7f22cc45dccb51781a1c100a6dc215b354675089abad",
+        "bytes": 26695573
+      },
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/provenance.json": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/provenance.json",
+        "sha256": "f05b9c47db35d063d57a28d4cdf18678575cf0fe643d7e39aa7f916feb841eaf",
+        "bytes": 11283
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+        "bytes": 41526
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+        "sha256": "3757705d0dcef25490466e1390388bec65d8bc777fb227d09c1109dedc5c3ecd",
+        "bytes": 14526
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+        "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+        "bytes": 1596
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+        "sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+        "bytes": 8509
+      },
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": {
+        "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+        "bytes": 650222
+      },
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": {
+        "path": "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+        "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+        "bytes": 398104
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+        "sha256": "c0d93643d16d12e81389f76b9ec913458a81c129387be1d87255dbe29cfa2cc0",
+        "bytes": 10078
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+        "sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+        "bytes": 15214
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-caret-protocol.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-caret-protocol.py",
+        "sha256": "226641ea5729b876538497b3efdb4c833a3a057fcde46945fe1e06a88649e685",
+        "bytes": 14764
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+        "sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+        "bytes": 2258
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+        "sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+        "bytes": 6377
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+        "sha256": "d153812adda7ee819da16ece6f6bfcaaddace33761bd5339fd36ccc57be28772",
+        "bytes": 32658
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+        "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+        "bytes": 9258
+      }
+    },
+    "outputs": {
+      "logind-seat-probe": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/payload/logind-seat-probe",
+        "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+        "bytes": 552584
+      },
+      "pam-session": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/payload/pam-session",
+        "sha256": "b5135a36064662b916948864736f787ea25b48595a9491164ddb7cc6cd4555bb",
+        "bytes": 564224
+      },
+      "stage/apps-probe": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/apps-probe",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "bytes": 2
+      },
+      "stage/apps-observe-token": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/apps-observe-token",
+        "sha256": "4426e28a5ffc74d16e1833100430917ab9e2344591cc971f6ad7d0f4b4e5150e",
+        "bytes": 48
+      },
+      "stage/evidence-writer": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/evidence-writer",
+        "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+        "bytes": 398104
+      },
+      "stage/bottom-caret-probe": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/bottom-caret-probe",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "bytes": 2
+      },
+      "initramfs/init": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/init",
+        "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+        "bytes": 3120
+      },
+      "initramfs.gz": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs.gz",
+        "sha256": "b575444c22816898587df519695b1144b10789af89bd7d34934005973b85e48f",
+        "bytes": 187794
+      },
+      "initramfs/stage/guest.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/guest.sh",
+        "sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+        "bytes": 2685
+      },
+      "initramfs/stage/logind-probe.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-probe.sh",
+        "sha256": "9038a89821b57fc2e5111a00077c97ff033fdcc062b1c8c22515a46bb94a4f44",
+        "bytes": 5416
+      },
+      "initramfs/stage/logind-user.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-user.sh",
+        "sha256": "8df059ae1c81cae190d9250e5527c71c64d643c6567cf657d9a6e0414ade7bca",
+        "bytes": 1124
+      },
+      "initramfs/stage/independent-observer.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/independent-observer.sh",
+        "sha256": "5887e814f322a66b65c3e2c8d0b0d4ad347f47bf29b7649cb0d769ff8f791345",
+        "bytes": 933
+      },
+      "initramfs/stage/logind-denial.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-denial.sh",
+        "sha256": "67a3abf500095bf0109c62b51bb5cef505929409095d763309714af3ec323670",
+        "bytes": 16741
+      },
+      "initramfs/stage/logind-denial-prepare.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-denial-prepare.sh",
+        "sha256": "f0de4d688dbbf1a62cec1bb9b073337f27ebaa38d78e64bda2ddb79fd918cc5e",
+        "bytes": 4126
+      },
+      "initramfs/stage/logind-font-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-font-cache.sh",
+        "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+        "bytes": 9112
+      },
+      "initramfs/stage/logind-gtk-im-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-gtk-im-cache.sh",
+        "sha256": "bb764e83060ef295a542b97e4be62cee47c22fc70cb99dcd0dc1607c5be73d14",
+        "bytes": 2424
+      },
+      "initramfs/stage/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-apps.sh",
+        "sha256": "3757705d0dcef25490466e1390388bec65d8bc777fb227d09c1109dedc5c3ecd",
+        "bytes": 14526
+      },
+      "initramfs/stage/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "initramfs/stage/launcher-evidence.sh": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/launcher-evidence.sh",
+        "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+        "bytes": 1596
+      },
+      "serial.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+        "sha256": "2f3a0e15aee090de90a081de33c22e38858859ba69af243fcbd38f62fa6d6f28",
+        "bytes": 61925
+      },
+      "launcher-evidence.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/launcher-evidence.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "launcher-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/launcher-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "gzip.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/gzip.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-font-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-font-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-denial.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/pam-session.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "guest.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/guest.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial-prepare.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-denial-prepare.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "independent-observer.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/independent-observer.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-gtk-im-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-gtk-im-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-user.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-user.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-probe.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-probe.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/logind-seat-probe.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "init.build.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/init.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.absence.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.cleanup.log",
+        "sha256": "bc284ea3eb9f1c09f8f78fe0978a9e49435808485e9fde06cdb2c4d1faf12f57",
+        "bytes": 32
+      },
+      "cpio.log": {
+        "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/cpio.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "runtime_limit": "Runtime receipt identity is bound; complete runtime inventory/authentication is a prior external prerequisite, not rerun here.",
+    "session_composition": {
+      "sha256": "bbf5bbb4e94d6334bb9c7f22cc45dccb51781a1c100a6dc215b354675089abad",
+      "size": 26695573,
+      "status": "PREPARED_NOT_INSTALLED",
+      "authority": "none",
+      "physical_status": "NOT RUN",
+      "metadata": {
+        "schema": 1,
+        "kind": "unsigned development VM session fixture; not a phone candidate",
+        "authority": "none",
+        "physical_status": "NOT RUN",
+        "denial_upstream_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "cli_receipt_sha256": "39296851bff15b40c94c9b6c488219c2a8676139c246fb19822ecf070d5be937",
+        "files": [
+          {
+            "name": "usr/bin/deniald",
+            "size": 15990896,
+            "mode": 493,
+            "sha256": "b3bc17099f666ef920412183c59f179160fb28033a38d79f61f18e17e3f0dcf5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/AssetManifest.bin",
+            "size": 2439,
+            "mode": 420,
+            "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/FontManifest.json",
+            "size": 307,
+            "mode": 420,
+            "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/NOTICES.Z",
+            "size": 14745,
+            "mode": 420,
+            "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+            "size": 3344,
+            "mode": 420,
+            "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+            "size": 1617,
+            "mode": 420,
+            "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+            "size": 1775,
+            "mode": 420,
+            "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+            "size": 860,
+            "mode": 420,
+            "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+            "size": 836,
+            "mode": 420,
+            "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+            "size": 535,
+            "mode": 420,
+            "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+            "size": 1162,
+            "mode": 420,
+            "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+            "size": 748,
+            "mode": 420,
+            "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+            "size": 1204,
+            "mode": 420,
+            "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+            "size": 1298,
+            "mode": 420,
+            "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+            "size": 968,
+            "mode": 420,
+            "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+            "size": 993,
+            "mode": 420,
+            "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+            "size": 1075,
+            "mode": 420,
+            "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+            "size": 858,
+            "mode": 420,
+            "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+            "size": 813,
+            "mode": 420,
+            "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+            "size": 1227,
+            "mode": 420,
+            "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+            "size": 818,
+            "mode": 420,
+            "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+            "size": 1495,
+            "mode": 420,
+            "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+            "size": 277828,
+            "mode": 420,
+            "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+            "size": 273860,
+            "mode": 420,
+            "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+            "size": 273900,
+            "mode": 420,
+            "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+            "size": 408,
+            "mode": 420,
+            "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+            "size": 3913008,
+            "mode": 420,
+            "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+            "size": 1645184,
+            "mode": 420,
+            "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+            "size": 21856,
+            "mode": 420,
+            "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+            "size": 17624,
+            "mode": 420,
+            "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2"
+          },
+          {
+            "name": "usr/lib/denial/flutter/data/icudtl.dat",
+            "size": 10822192,
+            "mode": 420,
+            "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612"
+          },
+          {
+            "name": "usr/lib/denial/flutter/lib/libapp.so",
+            "size": 10814352,
+            "mode": 420,
+            "sha256": "e1f8d492919cbdb38904398855d52815097443db89daf3ea5a9f442b15e67bf0"
+          },
+          {
+            "name": "usr/lib/denial/flutter/lib/libflutter_engine.so",
+            "size": 15999928,
+            "mode": 493,
+            "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418"
+          },
+          {
+            "name": "usr/bin/denialctl",
+            "size": 886872,
+            "mode": 493,
+            "sha256": "da22a0bd76e183cd25ce45ef532ae3ee533703dd5f6e00809ce2f3415b8566df"
+          },
+          {
+            "name": "usr/bin/denial-session",
+            "size": 10318,
+            "mode": 493,
+            "sha256": "d3807fd0d955b9f9922a1d068613a64085c5f37f7fadecb22b4b0e38854bb4df"
+          },
+          {
+            "name": "usr/lib/systemd/user/denial-session.target",
+            "size": 229,
+            "mode": 420,
+            "sha256": "f4672dd57973a65c6b91def4e97a2824da0a69f02132301c625d6177799f207b"
+          },
+          {
+            "name": "usr/bin/denial-mobile-session",
+            "size": 6241,
+            "mode": 493,
+            "sha256": "28d1d2c3b3ed055500aeb7e6cac15d1769eaea4f4d6e3ef1f503b00991883e7a"
+          },
+          {
+            "name": "usr/share/wayland-sessions/denial-mobile.desktop",
+            "size": 185,
+            "mode": 420,
+            "sha256": "c94ab0d03ac7bf5fd5526d0db88efe57fac67430004e28a109260279f0c6bcea"
+          },
+          {
+            "name": "usr/share/doc/rog5-denial/session-policy.json",
+            "size": 2082,
+            "mode": 420,
+            "sha256": "a1ed9758461d11a258731f133d142fdd7b609ab7e4b7dd84a4f946e8dd2ae4d5"
+          }
+        ],
+        "requires": [
+          "authenticated ARM64 package closure and original PAM helper permissions",
+          "non-conflicting mobile UID/GID1000 and authenticated local logind session",
+          "reviewed explicit KMS/render nodes and qualified60Hz output configuration",
+          "default-off remote services and separate installation/admission authority"
+        ],
+        "baseline_qualification_sha256": "9fd239e3ac4ddf1526e2a025100d4ec4914ebae9761fd16d9fc5e82f90a78534",
+        "qualification_status": "NOT RUN for changed fixture",
+        "source_commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+        "native_build_receipt_sha256": "c3ac1fbef95c42c9543809c8ec81ca33f85323cfb52861f3a3a463743d5143b9",
+        "shell_build_receipt_sha256": "1661263ff2db4b22068cbc35d560436c818fa1e3b54fa91d7cd5ea62cd4c0053",
+        "changed_files": [
+          {
+            "name": "usr/bin/deniald",
+            "before": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+            "after": "b3bc17099f666ef920412183c59f179160fb28033a38d79f61f18e17e3f0dcf5"
+          },
+          {
+            "name": "usr/lib/denial/flutter/lib/libapp.so",
+            "before": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+            "after": "e1f8d492919cbdb38904398855d52815097443db89daf3ea5a9f442b15e67bf0"
+          }
+        ]
+      },
+      "duration_seconds": 5.245457173004979,
+      "preparation_script_sha256": "0d6052ef5dc40cff9db55375b36c2decb52626d56a12e9ec0ad7f16f71239c3e",
+      "composer_sha256": "94d14b88244b185647e87f385e7e50058419f9f8869c76ec0c9f5673dcd74378"
+    },
+    "host_render_node": {
+      "path": "/dev/dri/renderD128",
+      "rdev": 57984,
+      "resolved": "/dev/dri/renderD128"
+    },
+    "runtime_view": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+    "container_images": {
+      "qemu": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "toolchain": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d"
+    },
+    "source": {
+      "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+      "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4",
+      "worktree_status": "",
+      "dirty": false
+    },
+    "host_tools": {
+      "podman": {
+        "path": "/usr/bin/podman",
+        "sha256": "24b289615ccc7ef409861b4931fe9297318485b693d42b2e8ff55e069b314ca0",
+        "bytes": 46750280
+      },
+      "clang": {
+        "path": "/usr/bin/clang-20",
+        "sha256": "466441076b17c1106a17f31c2b782baf12271c2445e19950879b81c0f793c1ba",
+        "bytes": 145400
+      },
+      "bash": {
+        "path": "/usr/bin/bash",
+        "sha256": "66bb45cd80c82ea4c352c774c0f1577ad51707f55749e90dd6b787a9fb3022d1",
+        "bytes": 1162328
+      },
+      "cpio": {
+        "path": "/usr/bin/cpio",
+        "sha256": "7c800f6a2bd806629e3bafe54ef2321f17c88b0ec8049a265fba827f77808c5f",
+        "bytes": 145064
+      },
+      "gzip": {
+        "path": "/usr/bin/gzip",
+        "sha256": "3e0aa8ddb52c009c608d2f1669c195925b0d9208b699f48b45132dc86fd209dd",
+        "bytes": 97344
+      }
+    },
+    "apps_observation": {
+      "status": "FAIL",
+      "scope": "authenticated VM launcher-driven app switching and OSK; no phone proof",
+      "observation": {
+        "status": "FAIL",
+        "scope": "Local VM captures and synthetic pointer delivery only",
+        "visual_semantics": "NOT RUN: inspect screenshots separately",
+        "phone_touch": "NOT RUN",
+        "profile": "mobile",
+        "capture_backend": "UNIX VNC raw",
+        "screenshots": [],
+        "actions": [],
+        "probe": "UI launch and switch native Mousepad and Foot",
+        "launcher_reference": {
+          "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+          "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "size": 650222,
+          "width": 540,
+          "height": 1224
+        },
+        "launcher_tiles": {
+          "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+          "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+        },
+        "qmp_request_limit": 96,
+        "action_policy": "bottom caret; explicit surface-coordinate check; no manual viewport pan; OSK pointer keys only",
+        "bottom_caret": {
+          "status": "NOT RUN"
+        },
+        "error": "command exceeded 300s: podman",
+        "pointer_released": true
+      },
+      "launcher_protocol": {
+        "status": "FAIL",
+        "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+        "owners": {},
+        "mapped": {
+          "mousepad": false,
+          "foot": false
+        },
+        "ready": {
+          "mousepad": false,
+          "foot": false
+        },
+        "focus_history": [],
+        "focus_generation": 0,
+        "active_app": null,
+        "pending_focus": null,
+        "expected_sequence": [
+          "mousepad",
+          "foot",
+          "mousepad",
+          "foot"
+        ],
+        "client_state": {
+          "mousepad": {
+            "interval_seen": false,
+            "keyboard_focus": {},
+            "surfaces": {},
+            "toplevels": {}
+          },
+          "foot": {
+            "interval_seen": false,
+            "keyboard_focus": {},
+            "surfaces": {},
+            "toplevels": {}
+          }
+        },
+        "focus_visits": [],
+        "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+        "errors": [],
+        "post_terminal_exits": [],
+        "visual_semantics": "NOT RUN",
+        "phone": "NOT RUN"
+      },
+      "editor_protocol": {
+        "status": "FAIL",
+        "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+        "native_toplevel_observed": false,
+        "keys": [],
+        "expected_keys": [
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ],
+          [
+            18,
+            1
+          ],
+          [
+            18,
+            0
+          ],
+          [
+            31,
+            1
+          ],
+          [
+            31,
+            0
+          ],
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "unfocused_keys": false
+      },
+      "acknowledgement_sent": false,
+      "approved_teardown": false,
+      "clean_client_exits": false,
+      "stream_bytes": 0,
+      "diagnostic_bytes": 0,
+      "phone": "NOT RUN",
+      "caret_protocol": {
+        "error": null,
+        "sequence": 0,
+        "caret": null,
+        "presses": [],
+        "geometries": {},
+        "objects": 0,
+        "evidence": "client-protocol-only"
+      },
+      "error": "command exceeded 300s: podman"
+    },
+    "error": "RuntimeError: operation=command exceeded 300s: podman; cleanup=None",
+    "duration_seconds": 314.36680401698686,
+    "ended_utc": "2026-09-13T15:48:55.489787+00:00"
+  },
+  "vm_command": {
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--automatic-caret",
+      "--bottom-caret"
+    ],
+    "source_commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+    "kernel_receipt": "/home/deck/.local/state/rog5-session-services-20260913-r1/kernel-r3-result.json",
+    "scope": "offline generic VM, no phone",
+    "physical": "NOT RUN",
+    "exit_status": 1,
+    "duration_seconds": 314.4423397160135
+  },
+  "analysis": {
+    "status": "SOURCE_FIX_PASS_VM_STARTUP_TIMEOUT",
+    "phase": "Input origin corrected; VM startup timeout leaves bottom-caret untested",
+    "summary": "Input origin correction passes actual-method regressions and ARM64 shell compilation. The new VM run timed out at300s with no app-stream bytes or UI actions; bottom-caret runtime qualification remains NOT RUN.",
+    "detail": "The host command ended after314.442s including preparation and cleanup. Its300-second VM deadline expired, and the named container was removed and confirmed absent. No app events, captures, pointer actions or ACK occurred; there are no rendering counters or normal guest shutdown proof for this run. Early boot/session/user/observer inputs match the previously successful run. First independent snapshot was148.17s versus110.77s; PAM session journal was226s versus137s. Last snapshot245.49s showed PAM-open/user-manager/scope startup and a Bash child. User-session output is buffered in /run/pam-session.log until the child returns, so the current evidence does not locate the remaining delay. Cold-cache, host load and scheduler explanations are unproven. Source correctness is separate from this startup failure.",
+    "next": "Reuse the exact compiled shell/native/kernel inputs. Add a bounded encoded PAM-log and child-state snapshot to the independent startup observer, then perform one diagnostic VM run under the unchanged300s deadline before retrying the bottom-caret interaction.",
+    "bottom_caret": "NOT RUN",
+    "phone": "NOT RUN",
+    "normal_guest_shutdown": "NOT RUN: host timeout cleanup",
+    "container_cleanup": "PASS: named container absent",
+    "startup_comparison": {
+      "scope": "read-only comparison of retained ARM64 VM evidence; not phone qualification",
+      "physical": "NOT RUN",
+      "new_vm_or_build_executed": false,
+      "line_numbering": "LF-delimited physical file lines; terminal carriage-return redraws do not increment line numbers",
+      "runs": {
+        "bottom": {
+          "result": {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/result.json",
+            "sha256": "0868c027474932a7247f17e2a912d08a2b46f4c6167130992b9cdb476ae79241"
+          },
+          "source": {
+            "commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+            "tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4",
+            "worktree_status": "",
+            "dirty": false
+          },
+          "overall_status": "FAIL",
+          "overall_seconds": 314.36680401698686,
+          "vm_step": {
+            "started_utc": "2026-09-13T15:43:54.940220+00:00",
+            "deadline_seconds": 300,
+            "status": "FAIL_TIMEOUT",
+            "exit_status": -9,
+            "duration_seconds": 300.01187519700034,
+            "ended_utc": "2026-09-13T15:48:54.952130+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "sha256": "2f3a0e15aee090de90a081de33c22e38858859ba69af243fcbd38f62fa6d6f28",
+              "bytes": 61925
+            }
+          },
+          "apps_stream": {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/observe/apps.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "snapshots": [
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 266,
+              "text": "OBSERVE independent snapshot=0 uptime=148.17 107.21"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 269,
+              "text": "OBSERVE memory MemAvailable:     907964 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 351,
+              "text": "OBSERVE independent snapshot=1 uptime=177.71 115.87"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 354,
+              "text": "OBSERVE memory MemAvailable:     863432 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 464,
+              "text": "OBSERVE independent snapshot=2 uptime=210.82 123.39"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 467,
+              "text": "OBSERVE memory MemAvailable:     872496 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 600,
+              "text": "OBSERVE independent snapshot=3 uptime=245.49 145.04"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 603,
+              "text": "OBSERVE memory MemAvailable:     867872 kB"
+            }
+          ],
+          "pam_session": [
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 636,
+              "text": "Sep 13 00:03:47 rog5-logind-vm systemd-logind[353]: New session 'c1' of user 'mobile' with class 'user' and type 'tty'."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 637,
+              "text": "Sep 13 00:03:48 rog5-logind-vm systemd-logind[353]: New session 'c2' of user 'mobile' with class 'manager' and type 'unspecified'."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 674,
+              "text": "Sep 13 00:03:46 rog5-logind-vm pam-session[384]: pam_unix(login:session): session opened for user mobile(uid=1000) by (uid=0)"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 677,
+              "text": "Sep 13 00:03:47 rog5-logind-vm systemd-logind[353]: New session 'c1' of user 'mobile' with class 'user' and type 'tty'."
+            }
+          ],
+          "user_manager_started": [
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 616,
+              "text": "\u001bM\r[  OK  ] Started User Manager for UID 1000."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 617,
+              "text": "[  OK  ] Started Session c1 of User mobile."
+            }
+          ],
+          "font_stage_durations": [
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 142,
+              "text": "OBSERVE font-cache stage=config-restore phase=end status=0 elapsed_seconds=5"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 163,
+              "text": "OBSERVE font-cache stage=prepare phase=end status=0 elapsed_seconds=15"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 165,
+              "text": "OBSERVE font-cache stage=config-consume phase=end status=0 elapsed_seconds=3"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 241,
+              "text": "OBSERVE font-cache stage=consume phase=end status=0 elapsed_seconds=2"
+            }
+          ],
+          "dynamic_linker_completion": [
+            {
+              "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+              "line": 515,
+              "text": "\u001bM\r[  OK  ] Finished Rebuild Dynamic Linker Cache."
+            }
+          ],
+          "session_payload_sha256": "bbf5bbb4e94d6334bb9c7f22cc45dccb51781a1c100a6dc215b354675089abad",
+          "serial_hash_verified": true
+        },
+        "icon": {
+          "result": {
+            "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/result.json",
+            "sha256": "c9fb26d5bef1cab5b25dce3e319f2b045e82cfbe1dfade086768905adb091ae9"
+          },
+          "source": {
+            "commit": "e95c425bd94fcf7135d92af0caec906103474deb",
+            "tree": "57dd53275108269df61c304e91968f409d86c2e7",
+            "worktree_status": "",
+            "dirty": false
+          },
+          "overall_status": "PASS",
+          "overall_seconds": 290.2928094090021,
+          "vm_step": {
+            "started_utc": "2026-09-13T14:59:29.579452+00:00",
+            "deadline_seconds": 300,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 276.76132206700277,
+            "ended_utc": "2026-09-13T15:04:06.340801+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "sha256": "fcb7dc4faeb3e6c5f345bcf00d5c80f089dabba76e82c1a4eb5f285589eadeb4",
+              "bytes": 1186387
+            }
+          },
+          "apps_stream": {
+            "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/observe/apps.log",
+            "bytes": 151790,
+            "sha256": "4b94b35a50810fa0e1f251af07ba4de661081923c13071a32115682f8a2da19e"
+          },
+          "snapshots": [
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 333,
+              "text": "OBSERVE independent snapshot=0 uptime=110.77 68.75"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 336,
+              "text": "OBSERVE memory MemAvailable:     862928 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 464,
+              "text": "OBSERVE independent snapshot=1 uptime=145.34 78.62"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 467,
+              "text": "OBSERVE memory MemAvailable:     869436 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 614,
+              "text": "OBSERVE independent snapshot=2 uptime=175.44 95.99"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 617,
+              "text": "OBSERVE memory MemAvailable:     825968 kB"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 788,
+              "text": "OBSERVE independent snapshot=3 uptime=206.34 101.56"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 791,
+              "text": "OBSERVE memory MemAvailable:     724160 kB"
+            }
+          ],
+          "pam_session": [
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 498,
+              "text": "Sep 13 00:02:18 rog5-logind-vm systemd-logind[333]: New session 'c1' of user 'mobile' with class 'user' and type 'tty'."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 499,
+              "text": "Sep 13 00:02:19 rog5-logind-vm systemd-logind[333]: New session 'c2' of user 'mobile' with class 'manager' and type 'unspecified'."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 538,
+              "text": "Sep 13 00:02:17 rog5-logind-vm pam-session[364]: pam_unix(login:session): session opened for user mobile(uid=1000) by (uid=0)"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 541,
+              "text": "Sep 13 00:02:18 rog5-logind-vm systemd-logind[333]: New session 'c1' of user 'mobile' with class 'user' and type 'tty'."
+            }
+          ],
+          "user_manager_started": [
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 572,
+              "text": "\u001bM\r[  OK  ] Started User Manager for UID 1000."
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 573,
+              "text": "[  OK  ] Started Session c1 of User mobile."
+            }
+          ],
+          "font_stage_durations": [
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 142,
+              "text": "OBSERVE font-cache stage=config-restore phase=end status=0 elapsed_seconds=4"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 163,
+              "text": "OBSERVE font-cache stage=prepare phase=end status=0 elapsed_seconds=10"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 165,
+              "text": "OBSERVE font-cache stage=config-consume phase=end status=0 elapsed_seconds=2"
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 241,
+              "text": "OBSERVE font-cache stage=consume phase=end status=0 elapsed_seconds=1"
+            }
+          ],
+          "dynamic_linker_completion": [
+            {
+              "path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/serial.log",
+              "line": 406,
+              "text": "\u001bM\r[  OK  ] Finished Rebuild Dynamic Linker Cache."
+            }
+          ],
+          "session_payload_sha256": "3c10a80355ee445485f523b2f231dbbecb1b44907f6edc2cb0397fc86c2ac67e",
+          "serial_hash_verified": true
+        }
+      },
+      "unchanged_early_sources": [
+        {
+          "name": "logind-boot.sh",
+          "same_recorded_identity": true,
+          "verification": [
+            {
+              "run": "bottom",
+              "recorded_sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+              "staged_path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/guest.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            },
+            {
+              "run": "icon",
+              "recorded_sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+              "staged_path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/initramfs/stage/guest.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            }
+          ]
+        },
+        {
+          "name": "logind-session.sh",
+          "same_recorded_identity": true,
+          "verification": [
+            {
+              "run": "bottom",
+              "recorded_sha256": "9038a89821b57fc2e5111a00077c97ff033fdcc062b1c8c22515a46bb94a4f44",
+              "staged_path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-probe.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            },
+            {
+              "run": "icon",
+              "recorded_sha256": "9038a89821b57fc2e5111a00077c97ff033fdcc062b1c8c22515a46bb94a4f44",
+              "staged_path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/initramfs/stage/logind-probe.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            }
+          ]
+        },
+        {
+          "name": "logind-user.sh",
+          "same_recorded_identity": true,
+          "verification": [
+            {
+              "run": "bottom",
+              "recorded_sha256": "8df059ae1c81cae190d9250e5527c71c64d643c6567cf657d9a6e0414ade7bca",
+              "staged_path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/logind-user.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            },
+            {
+              "run": "icon",
+              "recorded_sha256": "8df059ae1c81cae190d9250e5527c71c64d643c6567cf657d9a6e0414ade7bca",
+              "staged_path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/initramfs/stage/logind-user.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            }
+          ]
+        },
+        {
+          "name": "logind-observer.sh",
+          "same_recorded_identity": true,
+          "verification": [
+            {
+              "run": "bottom",
+              "recorded_sha256": "5887e814f322a66b65c3e2c8d0b0d4ad347f47bf29b7649cb0d769ff8f791345",
+              "staged_path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/initramfs/stage/independent-observer.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            },
+            {
+              "run": "icon",
+              "recorded_sha256": "5887e814f322a66b65c3e2c8d0b0d4ad347f47bf29b7649cb0d769ff8f791345",
+              "staged_path": "/home/deck/.local/state/rog5-icon-stage-20260913-r1/combined-r1/initramfs/stage/independent-observer.sh",
+              "staged_matches": true,
+              "current_source_matches": true
+            }
+          ]
+        }
+      ],
+      "changed_common_inputs": [
+        {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+          "icon_sha256": "229da0cc50f5bc7ccec8f1c3b41e5df175207e92aa83e6376148411ad1f49b0e",
+          "bottom_sha256": "67a3abf500095bf0109c62b51bb5cef505929409095d763309714af3ec323670"
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "icon_sha256": "233bbbca24d225f24b56729b06a7fd9f507049b3b801039b3291f6a6d03fdc09",
+          "bottom_sha256": "ea518f83d18ed2a212c69f00c6619e3f5c51ca28a0c571955ab7fa4e9bf7cd8b"
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+          "icon_sha256": "e2bdd1872906f135756161b49166dc99cbe4f6cbea83732ce8e4acb09a96e294",
+          "bottom_sha256": "3757705d0dcef25490466e1390388bec65d8bc777fb227d09c1109dedc5c3ecd"
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+          "icon_sha256": "d3ca58b384c35d88689f953d9345d5039597c670ea6ec97da2c29d9e07658b9c",
+          "bottom_sha256": "c0d93643d16d12e81389f76b9ec913458a81c129387be1d87255dbe29cfa2cc0"
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+          "icon_sha256": "952c19eafb13d10d461fc1ac114d17246bc207ec0dcb8328a7a811c38309a808",
+          "bottom_sha256": "d153812adda7ee819da16ece6f6bfcaaddace33761bd5339fd36ccc57be28772"
+        }
+      ],
+      "last_reached_boundary": {
+        "confirmed": "PAM session-open journal event and systemd user manager/session c1 started; offline fixture still activating inside its bounded PAM/openvt command. Last independent process sample includes bash PID406. No first apps-stream byte or compositor/client qualification is available.",
+        "references": [
+          {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+            "line": 616,
+            "text": "\u001bM\r[  OK  ] Started User Manager for UID 1000."
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+            "line": 617,
+            "text": "[  OK  ] Started Session c1 of User mobile."
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+            "line": 663,
+            "text": "             \u2514\u2500383 timeout -k 1 145 setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+            "line": 674,
+            "text": "Sep 13 00:03:46 rog5-logind-vm pam-session[384]: pam_unix(login:session): session opened for user mobile(uid=1000) by (uid=0)"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/combined-r1/serial.log",
+            "line": 698,
+            "text": "OBSERVE process /proc/406 bash"
+          }
+        ],
+        "unknown": "The command/exact stage reached by PID406, PAM/user/Denial progress after the last snapshot, and cause of the additional startup time are not recorded."
+      },
+      "observability_gap": {
+        "explanation": "PAM output is redirected to a RAM log, printed only after the whole session exits (or its ERR trap runs). The independent observer takes four snapshots and omits that log and PAM child identity. The outer host timeout terminated before this delayed log could be exported. Zero apps bytes therefore does not identify a specific user-session substage.",
+        "references": [
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 61,
+            "text": "trap 'echo \"FAIL session supervisor line=$LINENO\"; cat /run/pam-session.log 2>/dev/null || :; journalctl -b --no-pager -u systemd-logind -u user@1000 -n 80 || :' ERR"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 91,
+            "text": "exec /run/payload/pam-session > /run/pam-session.log 2>&1"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 97,
+            "text": "# tty1 is already the foreground console; preserve its allocation. openvt -s -w"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 101,
+            "text": "pam_deadline=45"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 102,
+            "text": "[[ ! -f /run/session-sha256 ]] || pam_deadline=145"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 103,
+            "text": "timeout -k 1 \"$pam_deadline\" setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 106,
+            "text": "cat /run/pam-session.log"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "line": 107,
+            "text": "grep -Fx 'PASS local active tty1 session, user manager and mediated devices' /run/pam-session.log"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+            "line": 4,
+            "text": "for ((i=0;i<4;i++)); do"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+            "line": 5,
+            "text": "    sleep 25"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+            "line": 15,
+            "text": "        case $name in"
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+            "line": 16,
+            "text": "            systemd|systemd-logind|systemd-executor|dbus-broker|bash)"
+          }
+        ]
+      },
+      "measured_differences": {
+        "first_snapshot_uptime_seconds": {
+          "bottom": 148.17,
+          "icon": 110.77,
+          "difference": 37.4
+        },
+        "pam_session_open_guest_journal_clock": {
+          "bottom": "00:03:46",
+          "icon": "00:02:17",
+          "difference_seconds": 89
+        },
+        "font_stage_seconds": {
+          "bottom": [
+            5,
+            15,
+            3,
+            2
+          ],
+          "icon": [
+            4,
+            10,
+            2,
+            1
+          ]
+        },
+        "clock_caveat": "Snapshot samples follow the same schedule but bounded queries and boot progress affect their timestamps. Guest journal clock, guest uptime, VM host command duration and overall harness duration are reported separately."
+      },
+      "not_established": [
+        "Cold host cache or storage contention as the cause.",
+        "Guest memory exhaustion: last sampled MemAvailable is867872kB; this only characterizes that instant.",
+        "Changed Dart/native code or bottom-caret input policy as the stall cause; app entry is unobserved.",
+        "Full PAM/user-session failure: session opening succeeded, later buffered progress is unavailable."
+      ],
+      "next_smallest_diagnostic": {
+        "scope": "One separately authorized bounded VM only after preparing and testing diagnostic collection; no deadline increase.",
+        "change": "In the existing independent observer, export a small clearly attributed diagnostic tail of /run/pam-session.log and a bounded process tree/status for the owned PAM/user-session child. Add monotonic begin/end markers around logind-user session query, user-manager checks and seat probe if the tail still cannot separate the stages.",
+        "limits": "Retain300s host bound, existing RAM/log/process/device isolation, private raw diagnostics; no broad tracing or changed rendering/fence policy. Do not interpret prefixed diagnostic text as app protocol or completion evidence.",
+        "question": "Which exact user-session/startup command remains active after PAM/logind has opened c1, and how much time was spent before it?"
+      }
+    }
+  },
+  "input_preservation": {
+    "status": "PASS",
+    "files": 32,
+    "paths": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/session.tar.gz",
+      "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/payload-r1/provenance.json",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-caret-protocol.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib"
+    ],
+    "seconds": 0.040192854998167604
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-bottom-caret-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-bottom-caret-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-bottom-caret-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+      "source_tree": "b417571906ac9e0cdad2d24de71c8d280bdc96b4",
+      "exit_status": 0,
+      "duration_seconds": 173.64518134799437
+    },
+    "counts": {
+      "PASS": 104,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/active-report/summary.json",
+      "sha256": "7caa01b14ad4e7227e6cfb744837e411c0ce812c2bc830ab0a673f2641919be0",
+      "bytes": 118050
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-bottom-caret-20260913-r1/active-report/summary.xml",
+      "sha256": "8d82aaef8504a7cee394e9232efaef84d15e5f890df3d4424f8448d1ad30c06c",
+      "bytes": 57228
+    }
+  },
+  "changed_files": [
+    "configs/repository-tests.json",
+    "docs/development.md",
+    "patches/denial-85b2303e/0019-map-mobile-input-to-content-origin.patch",
+    "patches/denial-85b2303e/README.md",
+    "scripts/host/qemu-caret-protocol.py",
+    "scripts/host/qemu-logind-apps.py",
+    "scripts/host/qemu-mobile-observer.py",
+    "scripts/host/test-keyboard-caret-visibility.py",
+    "scripts/host/test-logind-apps.py",
+    "scripts/host/test-mobile-window-input-origin.py",
+    "scripts/host/test-qemu-caret-protocol.py",
+    "scripts/host/test-qemu-logind-apps.py",
+    "scripts/host/test-qemu-logind-runner.py",
+    "scripts/host/test-qemu-logind.py",
+    "scripts/host/test-qemu-mobile-observer.py",
+    "scripts/host/test-repository-linux.sh",
+    "tools/qemu-virtio-drm/logind-apps.sh",
+    "tools/qemu-virtio-drm/logind-denial.sh"
+  ]
+}

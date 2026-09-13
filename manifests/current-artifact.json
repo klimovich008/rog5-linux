@@ -1569,6 +1569,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "bottom_caret": {
+      "status": "SOURCE_FIX_PASS_VM_STARTUP_TIMEOUT",
+      "set_id": "private:rog5-bottom-caret-20260913-r1",
+      "source_commit": "b9d6a5ab84a2cb4af2fbc4ee66b3f5a971464ddf",
+      "evidence": {
+        "path": "test-results/2026-09-13-bottom-caret-qualification.json",
+        "sha256": "e2b91b1d0c5cfee18e1f27eac5fcb73dddc5b4e6333df5c2d9b96a64b94357c8",
+        "bytes": 119739
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **No-pan VM typing and clean session qualified; phone untested**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Input origin corrected; VM startup timeout leaves bottom-caret untested**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Diagnostic release VM passed290.357s: icons visible, test/tes/test with OSK open/no pan,12keys, Mousepad/Foot switching,188frames/pageflips, both clients0, authenticated scope cleanup and VM poweroff. SVG encode/decode and widget stages retained. Earlier missing icons and Mousepad137 did not reproduce; causes remain open.103active suites pass. Reuse exact payload for a distinct bottom-edge caret observation; keep diagnostics armed rather than repeat unchanged runs or weaken readiness/grace. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-icon-stage-diagnostics.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Input origin correction passes actual-method regressions and ARM64 shell compilation. The new VM run timed out at 300 s with no app-stream bytes or UI actions; bottom-caret runtime qualification remains NOT RUN. 104 active suites passed. Reuse the exact compiled shell/native/kernel inputs. Integrate the prepared, eight-case-tested encoded PAM-log/child-state diagnostic into the independent startup observer, then perform one diagnostic VM run under the unchanged 300 s deadline before retrying the bottom-caret interaction. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-bottom-caret-input-origin.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
