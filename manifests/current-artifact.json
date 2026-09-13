@@ -1399,23 +1399,20 @@
     },
     "authenticated_denial": {
       "status": "FAIL_VM_ONLY",
-      "set_id": "private:rog5-logind-denial-20260913-r1",
-      "source_commit": "b79045d74e5973ab85d73bd4b5fabfc0e67e5e0d",
-      "source_tree": "f2725cf1d1cfb740ef1e93a8caeec8015ef5aaa5",
+      "set_id": "private:rog5-session-cleanup-20260913-r1",
+      "source_commit": "44167bfa9d278c61798481b1dc1fe6218668f150",
+      "source_tree": "4aef55ef41c07c841e6f9de2d1adb265672e1ddd",
       "evidence": {
-        "path": "test-results/2026-09-13-logind-denial-qualification.json",
-        "sha256": "4956fb8fa90837a48d90d68bbc49e0b9b6265475218be9973c8bdb751e29bd84",
-        "size": 295284
+        "path": "test-results/2026-09-13-session-cleanup-qualification.json",
+        "sha256": "9074ba66316a58e89f83c0242e3050db0a5176a1ce58aa49f3b409295656821e",
+        "size": 284464
       },
       "partial_milestones": {
-        "authenticated_local_session": "observed",
-        "user_targets": "both active",
-        "native_clients": "two configured; no usability/input PASS",
-        "raster_frames": 24,
-        "output_page_flips": 24,
-        "delivered_vsyncs": 18,
+        "shutdown": "PASS normal systemd poweroff in staging-only treatment and final combined VM; no panic",
+        "client_teardown": "FAIL: foot124, editor124; launcher143 after requested termination",
+        "rendering": "22 raster_frames/page_flips,14 delivered_vsyncs in about69s; no responsiveness or input qualification",
         "complete_session": "FAIL",
-        "normal_vm_poweroff": "FAIL"
+        "physical": "NOT RUN"
       },
       "physical_status": "NOT RUN",
       "authority": "none"

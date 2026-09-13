@@ -2867,3 +2867,30 @@ configuration markers followed by missing processes do not distinguish deadlines
 from crashes. The65-second client limits versus about69 seconds of compositor
 progress justify investigating expiry, not asserting it. Preserve ancillary
 portal/accessibility service failures separately from rendering counters.
+
+For chrooted systemd VMs on a9P root, do not leave a bind alias of that same
+filesystem for late shutdown cleanup. The combined fixture's fatal trace found
+an instruction-page fault at libmount's swap-parser entry after mount teardown.
+The exact kernel cancels the shared9P session on forced unmount. Removing the
+VM-owned executable alias with a lazy-only detach after canonical /usr/bin
+restoration fixed both the staging-only control and combined shutdown. Ordinary
+alias unmount failed EBUSY because running executables still held it; that failed
+attempt was not evidence against successful removal. Preserve open references,
+never force the shared filesystem, and track completed cleanup stages separately.
+The actual shutdown flags were not traced; retain that causal qualification.
+
+Use exception-trace plus print-fatal-signals on the retained kernel to capture
+fault class/mapping before rebuilding or guessing from the last userspace log.
+The first staging-only reduction omitted a supervisor's source-only guard and
+failed in preflight in2.1s. Test both sourcing and direct execution contracts when
+reducing a dual-use script. Client wait statuses must survive failed kill calls:
+the repaired combined run established both clients returned124, replacing the
+previous timeout hypothesis. Keep timeout failure separate from rendering.
+
+Generated schema/MIME caches must reach activated services as well as direct
+clients. The combined VM passed cache paths to applications but not the existing
+user manager; AT-SPI/portals reported absent GSettings schemas. Import only the
+explicit needed variables into both activation environments and verify them.
+Document-portal separately reported missing /dev/fuse with CONFIG_FUSE_FS unset;
+a successful modprobe service did not prove that prerequisite. Do not disable
+services or stretch deadlines to hide those distinct missing requirements.

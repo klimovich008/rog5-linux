@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial renders through authenticated logind; combined cleanup remains FAIL**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM shutdown repaired; authenticated Denial clients hit deadlines**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The generic ARM64 VirGL VM runs the production Denial entry through actual PAM/logind: 24 frames/page flips and two native clients configured. Overall combined run remains FAIL: clients exited before intentional cleanup and VM init panicked during shutdown; portal/accessibility services also failed. The empty-output-config production guard is corrected. Stop combined retries; next isolate shutdown using retained logind-only controls and capture client exit statuses. Phone A660/display/touch needs fresh physical authorization. All mobile physical rows stay NOT RUN; S06/R01 stay FAIL. See [current repair evidence](../test-results/2026-09-13-logind-denial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The combined generic ARM64 VirGL VM now shuts down normally. Its executable alias caused a library instruction-page fault during shutdown; detaching only that VM-owned alias fixes the controlled and combined routes. Denial rendered22 frames/page flips and two clients configured, but both clients returned124, so the combined session remains FAIL. Next transfer RAM schema-cache variables to activated user services and prepare a separately qualified generic VM kernel with FUSE for the document portal. No timeout increase or service disabling is justified. Phone A660/display/touch needs fresh authorization; all physical rows remain NOT RUN and S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-session-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
