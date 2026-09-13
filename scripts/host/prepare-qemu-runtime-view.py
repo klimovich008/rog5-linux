@@ -80,8 +80,24 @@ def package_modes(packages, cache):
     return modes
 
 
+def metadata_digest(root, rows):
+    """Bind generated guest modes and symlink descriptions, not just inputs."""
+    result = hashlib.sha256()
+    result.update((root/ROOT_META).read_bytes())
+    for row in sorted(rows, key=lambda r: r['path']):
+        name = safe_name(row['path'])
+        path = root/name
+        entry = {'path': name, 'metadata': (path.parent/META/path.name).read_text()}
+        if row['type'] == 'symlink':
+            entry['symlink'] = path.read_text()
+        result.update(json.dumps(entry, sort_keys=True, separators=(',', ':')).encode()+b'\n')
+    return result.hexdigest()
+
+
 def prepare(runtime, tree_path, receipt_path, cache, output):
     started = time.monotonic()
+    if output.resolve().is_relative_to(runtime.resolve(strict=True)):
+        raise ValueError('output is inside retained runtime')
     receipt = json.loads(receipt_path.read_text())
     if (receipt.get('status') != 'PASS' or receipt.get('installation_scripts_executed') is not False
             or receipt.get('archive_audit', {}).get('status') != 'PASS'
@@ -164,9 +180,10 @@ def prepare(runtime, tree_path, receipt_path, cache, output):
               'permission_policy': 'package-read; guest ownership root:root; no privileged mode bits',
               'authentication': 'reused trusted materialization receipt; archive hashes rechecked, signatures not rerun',
               'source_tree_sha256': digest(tree_path), 'receipt_sha256': digest(receipt_path),
+              'guest_metadata_sha256': metadata_digest(root, rows),
               'preparer_sha256': digest(Path(__file__)), 'counts': counts,
               'runtime': str(runtime), 'root': str(root),
-              'source_inode_changes': 'hardlink count and ctime only; no chmod/chown/xattr/content writes',
+              'source_inode_changes': 'hardlinks change nlink/ctime; reads may change atime; no chmod/chown/xattr/content writes',
               'duration_seconds': time.monotonic()-started}
     (output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
     return result

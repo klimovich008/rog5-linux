@@ -24,6 +24,7 @@ nonroot_prepare() {
     mount --bind /run/mobile-accounts/passwd /etc/passwd || return 1
     mount --bind /run/mobile-accounts/group /etc/group || return 1
     export HOME=/run/mobile-home USER=mobile LOGNAME=mobile
+    export LANG=C.UTF-8
     export XDG_RUNTIME_DIR=/run/user/1000
     mkdir -p "$XDG_RUNTIME_DIR" || return 1
     chown 1000:1000 "$HOME" "$XDG_RUNTIME_DIR" || return 1

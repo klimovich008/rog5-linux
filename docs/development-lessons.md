@@ -2761,3 +2761,18 @@ packaged private modes rather than applying a recursive o+rx. Compare execution
 as a non-owner with empty capabilities, since a namespace UID alone can still
 own host bind-mounted files. Keep the1.6GB retained runtime and its mode/hash
 manifest unchanged; a second complete tree must respect the3GiB disk reserve.
+
+A separate9P mapped-file view avoids copying the1.6GB runtime just to change
+virtual ownership/modes. Validate its actual packaged-QEMU symlink and permission
+semantics before a full session; host metadata tests alone are insufficient.
+Reject output inside the retained source, including resolved symlink aliases,
+and bind generated metadata bytes as well as input hashes. Hardlinks require
+immutable source contents while used; they change nlink/ctime, not mode/owner.
+
+Generated GTK caches feed the session bus as well as applications. Give the
+normal session user access before starting either consumer, not just before
+launching the apps. A non-root test may legitimately lack realtime scheduling
+privilege; preserve that warning rather than granting broad capabilities.
+Use separate syntax-checked guest child scripts instead of nested shell strings:
+the first permission VM reached the account setup but failed in inner quoting
+that the outer script's bash -n could not inspect.

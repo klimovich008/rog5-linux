@@ -84,6 +84,8 @@ if [[ -x /run/payload/egl-thread-probe ]]; then
 elif [[ -d /run/payload/flutter ]]; then
     if [[ -f /run/mobile-editor || -f /run/mobile-launcher ]]; then
         prepare_editor_runtime
+        # The session bus consumes XDG_DATA_DIRS during startup too.
+        [[ $nonroot_session == 0 ]] || chown -R 1000:1000 /run/gtk-runtime
     fi
     # UntilLogout supports initially inactive CRTCs; the external timer owns
     # this guest's lifetime. Keep seatd alive while Denial handles SIGTERM.
@@ -173,7 +175,7 @@ elif [[ -d /run/payload/flutter ]]; then
         launcher_prepared=1
         if [[ $nonroot_session == 1 ]]; then
             launcher_apps_prepare /run/launcher-apps /usr/share/applications /run/nonroot-session.sh
-            chown -R 1000:1000 /run/launcher-apps /run/gtk-runtime
+            chown -R 1000:1000 /run/launcher-apps
             chown 1000:1000 /tmp/rog5-text-probe.txt
             # Root remains the sole evidence reader; mobile can traverse and
             # write the FIFO, but cannot replace it or read other writers.

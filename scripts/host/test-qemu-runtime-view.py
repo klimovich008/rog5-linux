@@ -67,6 +67,12 @@ class View(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'authentication'): self.run_view()
         self.assertFalse(self.output.exists())
 
+    def test_generated_metadata_digest_detects_mode_change(self):
+        result=self.run_view();root=self.output/'root'
+        (root/'usr/bin/.virtfs_metadata/app').write_text('virtfs.mode=0\n')
+        self.assertNotEqual(V.metadata_digest(root,json.loads(self.tree.read_text())),
+                            result['guest_metadata_sha256'])
+
     def test_tree_receipt_mismatch_refused(self):
         self.tree.write_text('[]')
         with self.assertRaisesRegex(ValueError, 'receipt'): self.run_view()
@@ -86,6 +92,17 @@ class View(unittest.TestCase):
         self.output.mkdir();p=self.output/'result.json';p.write_text('preserved')
         with self.assertRaisesRegex(ValueError, 'already exists'): self.run_view()
         self.assertEqual(p.read_text(),'preserved')
+
+    def test_output_cannot_be_inside_retained_runtime(self):
+        self.output=self.runtime/'new-view'
+        with self.assertRaisesRegex(ValueError,'inside retained runtime'): self.run_view()
+        self.assertFalse(self.output.exists())
+
+    def test_output_symlink_ancestor_cannot_enter_runtime(self):
+        alias=self.home/'alias';alias.symlink_to(self.runtime, target_is_directory=True)
+        self.output=alias/'new-view'
+        with self.assertRaisesRegex(ValueError,'inside retained runtime'): self.run_view()
+        self.assertFalse(self.output.exists())
 
     def test_reserved_and_unsafe_names(self):
         for value in ('../escape','/escape','.virtfs_metadata/a','a/.virtfs_metadata_root','.'):
