@@ -366,18 +366,22 @@ class LauncherObserver(MobileObserver):
 
 class EditorObserver(MobileObserver):
     """Fixed native-client text probe; only OSK pointer presses type text."""
-    STEPS = [
+    OPENING_STEPS = [
         ('capture', '00-editor-empty', .1),
         ('move', (270, 200), .1), ('button', True, .1), ('button', False, .3),
         ('move', (500, 1218), .1), ('button', True, .1),
         *[('move', (500, y), .1) for y in (1180, 1140, 1100, 1060)],
         ('button', False, 1.2), ('capture', '01-editor-keyboard', .1),
+    ]
+    VIEWPORT_PAN_STEPS = [
         # The pinned mobile shell translates the app upward by the OSK height.
         # Pan its stationary18px right-edge strip to reveal the editor's top
         # line; preserve the unpanned capture as a separate observation.
         ('move', (531, 240), .1), ('button', True, .1),
         *[('move', (531, y), .1) for y in (320, 400, 480, 560, 640)],
         ('button', False, 1.2), ('capture', '01b-editor-viewport-panned', .1),
+    ]
+    TEXT_STEPS = [
         *[step for point in ((243, 921), (137, 921), (111, 1005), (243, 921))
           for step in (('move', point, .1), ('button', True, .1), ('button', False, .3))],
         ('capture', '02-editor-test', .1),
@@ -386,6 +390,8 @@ class EditorObserver(MobileObserver):
         ('move', (243, 921), .1), ('button', True, .1), ('button', False, 1.2),
         ('capture', '04-editor-test-restored', 0),
     ]
+
+    STEPS = [*OPENING_STEPS, *VIEWPORT_PAN_STEPS, *TEXT_STEPS]
 
     def perform_editor_step(self, action):
         operation, value, delay = action
@@ -544,16 +550,24 @@ class TextQMP(QMP):
 
 class AppTextObserver(AppSwitchObserver):
     """Existing two-app flow plus the same OSK-only text probe after return."""
-    STEPS = [*AppSwitchObserver.STEPS[:11],
+    RESTORED_MOUSEPAD = AppSwitchObserver.STEPS.index(('client', ('mousepad', '04-mousepad-restored')))
+    LAUNCHER_PREFIX = AppSwitchObserver.STEPS[:RESTORED_MOUSEPAD+1]
+    LAUNCHER_SUFFIX = AppSwitchObserver.STEPS[RESTORED_MOUSEPAD+1:]
+    VIEWPORT_PAN_RESET = [
+        ('home_gesture', ((531, 640), (531, 560), (531, 480), (531, 400), (531, 320), (531, 240)))]
+    KEYBOARD_CLOSE = [
+        ('home_gesture', ((270, 868), (270, 898), (270, 958), (270, 1018), (270, 1078), (270, 1138), (270, 1198))),
+        ('capture', '04b-editor-keyboard-dismissed')]
+    EDITOR_STEPS = EditorObserver.STEPS
+    STEPS = [*LAUNCHER_PREFIX,
              *[('editor', index) for index in range(len(EditorObserver.STEPS))],
-             ('home_gesture', ((531, 640), (531, 560), (531, 480), (531, 400), (531, 320), (531, 240))),
-             ('home_gesture', ((270, 868), (270, 898), (270, 958), (270, 1018), (270, 1078), (270, 1138), (270, 1198))),
-             ('capture', '04b-editor-keyboard-dismissed'),
-             *AppSwitchObserver.STEPS[11:]]
+             *VIEWPORT_PAN_RESET, *KEYBOARD_CLOSE, *LAUNCHER_SUFFIX]
+    ACTION_POLICY = 'manual viewport pan and inverse; manual keyboard reveal'
 
     def __init__(self, *args, client_factory=TextQMP, **kwargs):
         super().__init__(*args, client_factory=client_factory, **kwargs)
         self.result['qmp_request_limit'] = TextQMP.REQUEST_LIMIT
+        self.result['action_policy'] = self.ACTION_POLICY
 
     def step(self):
         operation, value = self.STEPS[self.stage]
@@ -562,5 +576,19 @@ class AppTextObserver(AppSwitchObserver):
                 raise ValueError('native Mousepad focus lost during OSK text probe')
             self.result['waiting_for'] = {'operation': operation, 'value': value}
             self.result['probe'] = 'launcher app switching with native Mousepad OSK text entry'
-            return EditorObserver.perform_editor_step(self, EditorObserver.STEPS[value])
+            return EditorObserver.perform_editor_step(self, self.EDITOR_STEPS[value])
         return super().step()
+
+
+class AutomaticCaretAppTextObserver(AppTextObserver):
+    """Separate VM observation: shell caret positioning receives no scripted pan.
+
+    Preserve keyboard reveal, keys, focus admission, ACK and cleanup. This
+    action policy alone does not prove visual caret visibility.
+    """
+    EDITOR_STEPS = [*EditorObserver.OPENING_STEPS, *EditorObserver.TEXT_STEPS]
+    STEPS = [*AppTextObserver.LAUNCHER_PREFIX,
+             *[('editor', index) for index in range(len(EditorObserver.OPENING_STEPS)
+                                                   + len(EditorObserver.TEXT_STEPS))],
+             *AppTextObserver.KEYBOARD_CLOSE, *AppTextObserver.LAUNCHER_SUFFIX]
+    ACTION_POLICY = 'automatic caret; no manual viewport pan; manual keyboard reveal'

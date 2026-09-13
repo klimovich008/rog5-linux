@@ -232,6 +232,13 @@ def observation_channel(apps):
             '-device', 'virtserialport,chardev=editor,name=rog5.editor,nr=1']
 
 
+def session_observer(module, args, directory, name, token):
+    if args.observe_apps:
+        return module.LiveApps(directory, name, token, args.launcher_reference,
+                               automatic_caret=args.automatic_caret)
+    return module.LiveEditor(directory, name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('runtime-view', 'runtime-receipt', 'kernel', 'qemu-image', 'toolchain-image', 'libc', 'libloading', 'output'):
@@ -244,6 +251,8 @@ def main():
                         help='pointer-only OSK editor test in authenticated session; VM only')
     observation.add_argument('--observe-apps', action='store_true',
                              help='launcher-driven app switching and OSK in authenticated VM')
+    parser.add_argument('--automatic-caret', action='store_true',
+                        help='observe-apps only: omit manual viewport pan and inverse; VM only')
     parser.add_argument('--launcher-reference', type=Path)
     parser.add_argument('--evidence-writer', type=Path)
     args = parser.parse_args()
@@ -255,6 +264,8 @@ def main():
     if args.observe_apps != (args.launcher_reference is not None and args.evidence_writer is not None) or (
             not args.observe_apps and (args.launcher_reference is not None or args.evidence_writer is not None)):
         parser.error('apps observation requires exactly launcher-reference and evidence-writer')
+    if args.automatic_caret and not args.observe_apps:
+        parser.error('automatic-caret requires observe-apps')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -427,8 +438,7 @@ def main():
             filename = 'qemu-logind-apps.py' if args.observe_apps else 'qemu-logind-editor.py'
             spec = importlib.util.spec_from_file_location('logind_observer', REPO/'scripts/host'/filename)
             module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-            observer = (module.LiveApps(output/'observe', name, token, args.launcher_reference) if args.observe_apps
-                        else module.LiveEditor(output/'observe', name))
+            observer = session_observer(module, args, output/'observe', name, token)
             pos = command.index(args.qemu_image)
             command[pos:pos] = ['-v', f'{output / "observe"}:/observe:rw']
             command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off',

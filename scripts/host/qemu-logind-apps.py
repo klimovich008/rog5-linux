@@ -56,12 +56,14 @@ class LiveApps(BASE.LiveEditor):
     approved boundary; genuine compositor counters remain in the serial oracle.
     """
     def __init__(self, directory, name, token, reference, *,
-                 client_factory=BASE.MOBILE.TextQMP, capture_backend=BASE.MOBILE.capture_vnc):
+                 automatic_caret=False, client_factory=BASE.MOBILE.TextQMP, capture_backend=BASE.MOBILE.capture_vnc):
         if not re.fullmatch(r'ROG5_APPS_DONE_[0-9a-f]{32}', token):
             raise ValueError('invalid exact observation token')
         self.ready = self.teardown = self.ack_sent = self.peer_closed = False
         self.parser = AppProtocols(self)
-        self.observer = BASE.MOBILE.AppTextObserver(directory, name,
+        observer_class = (BASE.MOBILE.AutomaticCaretAppTextObserver if automatic_caret
+                          else BASE.MOBILE.AppTextObserver)
+        self.observer = observer_class(directory, name,
             protocol=self.parser.launcher, reference=reference,
             client_factory=client_factory, capture_backend=capture_backend)
         self.directory = self.observer.directory

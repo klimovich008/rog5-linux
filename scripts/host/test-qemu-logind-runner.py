@@ -955,6 +955,31 @@ class AppsPreflight(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertRegex(result.stderr, 'observation requires|not allowed with argument')
 
+    def test_automatic_caret_requires_apps_before_any_effects(self):
+        required = [value for name in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for value in ['--'+name, '/unused']]
+        for extra in [[], ['--observe-editor', '--session-archive', '/unused',
+                          '--session-receipt', '/unused', '--host-render-node', '/unused']]:
+            with self.subTest(extra=extra):
+                result = subprocess.run([sys.executable, str(RUNNER), *required, *extra,
+                                         '--automatic-caret'], capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('automatic-caret requires observe-apps', result.stderr)
+
+    def test_production_observer_factory_forwards_explicit_policy(self):
+        from types import SimpleNamespace
+        calls = []
+        module = SimpleNamespace(LiveApps=lambda *a, **kw: calls.append((a, kw)),
+                                 LiveEditor=lambda *a, **kw: calls.append((a, kw)))
+        for automatic in (False, True):
+            args = SimpleNamespace(observe_apps=True, launcher_reference='reference', automatic_caret=automatic)
+            self.runner.session_observer(module, args, 'directory', 'owned', 'token')
+            self.assertEqual(calls[-1], (('directory', 'owned', 'token', 'reference'),
+                                        {'automatic_caret': automatic}))
+        self.runner.session_observer(module, SimpleNamespace(observe_apps=False),
+                                     'directory', 'owned', 'token')
+        self.assertEqual(calls[-1], (('directory', 'owned'), {}))
+
     def test_reference_semantics_and_guest_architecture_checked(self):
         spec = importlib.util.spec_from_file_location('editor_png_fixture', RUNNER.with_name('test-qemu-logind-editor.py'))
         fixture = importlib.util.module_from_spec(spec); spec.loader.exec_module(fixture)

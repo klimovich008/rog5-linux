@@ -884,6 +884,136 @@ class AppSwitchObservation(unittest.TestCase):
         self.assertTrue(result['pointer_released'])
         self.assertIn('NOT RUN',result['visual_semantics'])
 
+    def test_qualified_default_action_sequence_is_unchanged(self):
+        expected_editor = [('capture', '00-editor-empty', 0.1),
+         ('move', (270, 200), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 0.3),
+         ('move', (500, 1218), 0.1),
+         ('button', True, 0.1),
+         ('move', (500, 1180), 0.1),
+         ('move', (500, 1140), 0.1),
+         ('move', (500, 1100), 0.1),
+         ('move', (500, 1060), 0.1),
+         ('button', False, 1.2),
+         ('capture', '01-editor-keyboard', 0.1),
+         ('move', (531, 240), 0.1),
+         ('button', True, 0.1),
+         ('move', (531, 320), 0.1),
+         ('move', (531, 400), 0.1),
+         ('move', (531, 480), 0.1),
+         ('move', (531, 560), 0.1),
+         ('move', (531, 640), 0.1),
+         ('button', False, 1.2),
+         ('capture', '01b-editor-viewport-panned', 0.1),
+         ('move', (243, 921), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 0.3),
+         ('move', (137, 921), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 0.3),
+         ('move', (111, 1005), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 0.3),
+         ('move', (243, 921), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 0.3),
+         ('capture', '02-editor-test', 0.1),
+         ('move', (501, 1089), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 1.2),
+         ('capture', '03-editor-tes', 0.1),
+         ('move', (243, 921), 0.1),
+         ('button', True, 0.1),
+         ('button', False, 1.2),
+         ('capture', '04-editor-test-restored', 0)]
+        expected_apps = [('home', '00-home-ready'),
+         ('click', (77, 752)),
+         ('client', ('mousepad', '01-mousepad-launched')),
+         ('home_gesture', ((270, 1194), (270, 1150), (270, 1060), (270, 970), (270, 880))),
+         ('capture', '02-overview-or-home'),
+         ('click', (25, 1080)),
+         ('home', '02-home-returned'),
+         ('click', (205, 592)),
+         ('client', ('foot', '03-foot-launched')),
+         ('gesture', ((270, 1194), (315, 1194), (365, 1194), (415, 1194))),
+         ('client', ('mousepad', '04-mousepad-restored')),
+         ('editor', 0),
+         ('editor', 1),
+         ('editor', 2),
+         ('editor', 3),
+         ('editor', 4),
+         ('editor', 5),
+         ('editor', 6),
+         ('editor', 7),
+         ('editor', 8),
+         ('editor', 9),
+         ('editor', 10),
+         ('editor', 11),
+         ('editor', 12),
+         ('editor', 13),
+         ('editor', 14),
+         ('editor', 15),
+         ('editor', 16),
+         ('editor', 17),
+         ('editor', 18),
+         ('editor', 19),
+         ('editor', 20),
+         ('editor', 21),
+         ('editor', 22),
+         ('editor', 23),
+         ('editor', 24),
+         ('editor', 25),
+         ('editor', 26),
+         ('editor', 27),
+         ('editor', 28),
+         ('editor', 29),
+         ('editor', 30),
+         ('editor', 31),
+         ('editor', 32),
+         ('editor', 33),
+         ('editor', 34),
+         ('editor', 35),
+         ('editor', 36),
+         ('editor', 37),
+         ('editor', 38),
+         ('editor', 39),
+         ('editor', 40),
+         ('editor', 41),
+         ('home_gesture', ((531, 640), (531, 560), (531, 480), (531, 400), (531, 320), (531, 240))),
+         ('home_gesture',
+          ((270, 868), (270, 898), (270, 958), (270, 1018), (270, 1078), (270, 1138), (270, 1198))),
+         ('capture', '04b-editor-keyboard-dismissed'),
+         ('gesture', ((270, 1194), (315, 1194), (365, 1194), (415, 1194))),
+         ('client', ('foot', '05-foot-restored'))]
+        self.assertEqual(MOBILE.EditorObserver.STEPS, expected_editor)
+        self.assertEqual(MOBILE.AppTextObserver.STEPS, expected_apps)
+
+    def test_automatic_caret_flow_omits_only_pan_and_inverse(self):
+        default, _, _, _ = self.observer(label='default', observer_class=MOBILE.AppTextObserver)
+        automatic, client, protocol, _ = self.observer(observer_class=MOBILE.AutomaticCaretAppTextObserver)
+        while not automatic.complete:
+            self.advance(automatic, protocol)
+        result = automatic.finish()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(protocol.focus_history, ['mousepad', 'foot', 'mousepad', 'foot'])
+        self.assertEqual(client.buttons, [True, False]*15)
+        self.assertEqual(result['action_policy'], 'automatic caret; no manual viewport pan; manual keyboard reveal')
+        self.assertEqual(automatic.EDITOR_STEPS, [
+            *MOBILE.EditorObserver.OPENING_STEPS, *MOBILE.EditorObserver.TEXT_STEPS])
+        self.assertEqual(default.EDITOR_STEPS, [
+            *MOBILE.EditorObserver.OPENING_STEPS, *MOBILE.EditorObserver.VIEWPORT_PAN_STEPS,
+            *MOBILE.EditorObserver.TEXT_STEPS])
+        self.assertFalse(any(row['operation'] == 'move' and row['value'][0] == 531
+                             for row in result['actions']))
+        names = [Path(row['path']).stem for row in result['screenshots']]
+        self.assertNotIn('01b-editor-viewport-panned', names)
+        for name in ('01-editor-keyboard', '02-editor-test', '03-editor-tes',
+                     '04-editor-test-restored', '04b-editor-keyboard-dismissed'):
+            self.assertIn(name, names)
+        self.assertTrue(result['pointer_released'])
+        self.assertIn('NOT RUN', result['visual_semantics'])
+
     def test_combined_editor_refuses_input_after_lost_native_focus(self):
         observer, client, protocol, _ = self.observer(observer_class=MOBILE.AppTextObserver)
         while observer.STEPS[observer.stage][0] != 'editor':

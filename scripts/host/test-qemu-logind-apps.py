@@ -26,6 +26,7 @@ KEYS = F.wire('mousepad', *(f'wl_keyboard#6.key(82, 100, {key}, {state})'
 
 
 class LiveAppsTests(unittest.TestCase):
+    AUTOMATIC_CARET = False
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='apps-test-')
         self.addCleanup(self.temp.cleanup)
@@ -34,7 +35,7 @@ class LiveAppsTests(unittest.TestCase):
         reference.write_bytes(MOBILE_FIX.png_fixture())
         self.client = MOBILE_FIX.CaptureClient(root/'observe')
         self.apps = APPS.LiveApps(root/'observe', 'fixture', TOKEN, reference,
-            client_factory=lambda *_: self.client,
+            automatic_caret=self.AUTOMATIC_CARET, client_factory=lambda *_: self.client,
             capture_backend=lambda socket, name, path: path.write_bytes(MOBILE_FIX.png_fixture()))
         self.addCleanup(self.apps.finish)
         self.apps.observer.sleep = lambda _: None
@@ -111,7 +112,7 @@ class LiveAppsTests(unittest.TestCase):
         self.assertEqual(len(result['editor_protocol']['keys']), 12)
         self.assertEqual(result['phone'], 'NOT RUN')
         self.assertIn('NOT RUN', result['observation']['visual_semantics'])
-        self.assertEqual(self.client.buttons, [True, False]*17)
+        self.assertEqual(self.client.buttons, [True, False]*(15 if self.AUTOMATIC_CARET else 17))
         self.assertLess(len(self.client.records), 96)
         self.assertTrue(self.client.closed)
         self.assertIs(self.apps.finish(), result)
@@ -318,6 +319,15 @@ class LiveAppsTests(unittest.TestCase):
                 APPS.LiveApps(self.apps.directory/'unused', 'fixture', token,
                               self.apps.directory.parent/'reference.png')
         self.assertFalse((self.apps.directory/'unused').exists())
+
+
+class AutomaticCaretLiveAppsTests(LiveAppsTests):
+    # Run the actual socket/focus/ACK/cleanup refusal matrix in both modes.
+    AUTOMATIC_CARET = True
+
+    def test_selected_production_observer_has_no_pan(self):
+        self.assertIsInstance(self.apps.observer, APPS.BASE.MOBILE.AutomaticCaretAppTextObserver)
+        self.assertIn('no manual viewport pan', self.apps.observer.result['action_policy'])
 
 
 if __name__ == '__main__':
