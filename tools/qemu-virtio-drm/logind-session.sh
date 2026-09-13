@@ -32,6 +32,9 @@ set -euo pipefail
 read -r cmdline < /proc/cmdline
 [[ $EUID == 0 && " $cmdline " == *' rog5.logind_fixture=1 '* && -d /sys/bus/virtio/devices ]]
 trap 'echo "FAIL session supervisor line=$LINENO"; cat /run/pam-session.log 2>/dev/null || :; journalctl -b --no-pager -u systemd-logind -u user@1000 -n 80 || :' ERR
+restore_needed=0
+[[ ! -f /run/session-sha256 ]] || restore_needed=1
+trap 'rc=$?; if ((restore_needed)); then /run/original-bin/umount /usr/bin || rc=1; fi; exit "$rc"' EXIT
 systemctl is-active systemd-logind.service dbus.service systemd-udevd.service
 if [[ -e /run/nologin ]]; then
     echo 'OBSERVE startup nologin present before Permit User Sessions'
@@ -75,5 +78,5 @@ done
 logind_cleanup_state "$sid" || { echo 'FAIL local session/scope retained or query failed'; exit 1; }
 # Restore canonical executable paths before systemd begins unmounting aliases.
 # Otherwise /usr/bin symlinks would point into an already-unmounted /run tree.
-if [[ -f /run/session-sha256 ]]; then /run/original-bin/umount /usr/bin; fi
+if ((restore_needed)); then /run/original-bin/umount /usr/bin; restore_needed=0; fi
 echo 'PASS authenticated local logind session, mediated devices and removed scope'

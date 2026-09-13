@@ -2849,3 +2849,11 @@ original-bin alias is unmounted during shutdown. Restore canonical /usr/bin
 before poweroff; keep any observed guest panic as FAIL even if earlier session
 markers passed. The first SIGBUS/init panic is retained; its exact kernel cause
 is not established merely by identifying this path-lifetime defect.
+
+Do not apply a log-file RLIMIT_FSIZE to a graphics client: it also constrains
+memfd/shared-memory storage. The combined VM observed Foot SIGXFSZ after target
+activation. Bound logs with draining readers instead, keeping graphics allocations
+under the existing VM/container memory limit. Emit bounded failure tails before
+VM teardown, and restore any temporary executable view on failure as well as
+success. Keep the exact failing run and distinguish inferred allocation cause
+from the observed SIGXFSZ.
