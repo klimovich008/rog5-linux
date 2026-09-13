@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Prior VM caret/OSK/app switching PASS; isolated authentication cleanup PASS; timing query unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM app mapping/focus PASS; Mousepad controlled close137 remains FAIL**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Startup-only VM completes PAM, virtual-device mediation, scope cleanup and poweroff in145.3s, but its eight-second nine-unit timing query returns124 with no captured bytes; overall timing mode remains FAIL and Denial is NOT RUN. Isolate one query with live/partial output to distinguish buffering from delay; separately prepare a short mapped-app close probe. Preserve prior scoped caret/OSK/app-switching PASS, all overall VM FAIL, S06/R01 FAIL and phone physical NOT RUN. No phone operation authorized. See [current repair evidence](../test-results/2026-09-13-vm-startup-timing.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Snapshot policy repair passes61 focused tests and105 integrated checks. Changed VM reaches Mousepad/Foot focus, exact ACK and approved teardown; Foot exits0, Mousepad137 keeps overall FAIL despite normal VM poweroff. Inspect the exact packaged Mousepad normal-quit API and shutdown behavior before another VM; preserve owner/ACK/exit0 guards and avoid speculative grace increases. Prior caret/OSK scoped PASS, startup-timing query failure and S06/R01 FAIL remain historical evidence. Phone physical tests remain NOT RUN; no phone operation authorized. See [current repair evidence](../test-results/2026-09-13-vm-snapshot-policy.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

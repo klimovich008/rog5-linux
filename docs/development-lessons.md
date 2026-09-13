@@ -3173,3 +3173,14 @@ success evidence. Systemd transition times are monotonic microseconds; a
 /proc/uptime handoff is BOOTTIME seconds. RemainAfterExit service wall time
 includes active lifetime and must not be presented as ExecMain runtime or summed
 as a startup critical path.
+
+Snapshot failure policy (2026-09-13): separate optional local diagnostic
+preparation from required evidence transport, with FIFO open inside its timeout.
+Stage bounded bytes privately; never publish partial optional preparation. An
+explicit NOT_RUN marker must itself reach the required transport. Preserve
+non-timeout, transport, interruption and cleanup failures. Test initial and
+periodic failures through actual controller/app closure. Narrow fault injection
+to the intended command arguments: the same head utility also replays required
+close diagnostics. Forwarded TERM can activate GNU timeout kill-after before its
+nominal command deadline; retain signal/close records and investigate the real
+application shutdown API rather than accepting137 or enlarging grace blindly.

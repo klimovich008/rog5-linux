@@ -1677,6 +1677,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "snapshot_policy": {
+      "status": "SNAPSHOT_POLICY_VM_FAIL",
+      "set_id": "private:rog5-vm-snapshot-policy-20260913-r1",
+      "source_commit": "b5e13cc97ff9d0e0e10e3f96a864d1a41cacc897",
+      "evidence": {
+        "path": "test-results/2026-09-13-vm-snapshot-policy-qualification.json",
+        "sha256": "6a36a66ee1c088cbdc357861a5ff6d4cd15809fb6fd071a6f9b9a6e7098c868a",
+        "bytes": 160644
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {
