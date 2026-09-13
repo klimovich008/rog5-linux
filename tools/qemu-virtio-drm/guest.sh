@@ -51,6 +51,15 @@ esac
 export RUST_BACKTRACE=1
 # Existing bounded INFO audit exposes allocation backpressure in release builds.
 export DENIA_RENDER_AUDIT=1
+# Explicit diagnostic opt-in; never inherit an ambient host/guest setting.
+unset DENIA_FOCUS_TRACE
+if [[ -f /run/focus-trace ]]; then
+    read -r focus_trace < /run/focus-trace
+    [[ $focus_trace == 1 ]] || { echo 'FAIL invalid focus trace marker' >&2; exit 1; }
+    export DENIA_FOCUS_TRACE=1
+    echo 'OBSERVE bounded focus trace enabled; no phone evidence'
+fi
+# End focus trace setup.
 if [[ -f /run/shell-profile ]]; then
     read -r profile < /run/shell-profile
     [[ $profile == mobile ]] || { echo 'FAIL unknown explicit shell profile' >&2; exit 1; }

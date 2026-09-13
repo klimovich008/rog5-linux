@@ -1,0 +1,178 @@
+diff --git a/dart_shell/lib/src/widgets/bottom_gesture_handle.dart b/dart_shell/lib/src/widgets/bottom_gesture_handle.dart
+--- a/dart_shell/lib/src/widgets/bottom_gesture_handle.dart
++++ b/dart_shell/lib/src/widgets/bottom_gesture_handle.dart
+@@ -5,6 +5,7 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../input/input_layout.dart';
++import '../platform/focus_trace.dart';
+ import '../state/shell_controller.dart';
+ import '../state/shell_state.dart';
+ import '../theme/motion.dart';
+@@ -56,6 +57,7 @@
+ 
+   @override
+   void dispose() {
++    traceFocus(FocusTraceStage.dispose, direction: _switchDirection);
+     _switchController.dispose();
+     super.dispose();
+   }
+@@ -93,6 +95,7 @@
+           child: GestureDetector(
+             behavior: HitTestBehavior.opaque,
+             onPanStart: (_) {
++              traceFocus(FocusTraceStage.interrupted, direction: _switchDirection);
+               _switchController.stop();
+               _switchAnimation = null;
+               _switchDirection = 0;
+@@ -244,6 +247,9 @@
+     required int direction,
+     required double velocityX,
+   }) {
++    traceFocus(FocusTraceStage.animateStart,
++        windowId: state.adjacentOpenAppWindow(direction)?.windowId,
++        direction: direction);
+     final width = MediaQuery.sizeOf(context).width;
+     if (width <= 0.0) {
+       controller.completeAdjacentWindowSwitch(direction);
+@@ -276,6 +282,8 @@
+   }
+ 
+   void _handleSwitchStatus(AnimationStatus status) {
++    traceFocus(FocusTraceStage.animationStatus,
++        direction: _switchDirection, status: status.name);
+     if (status != AnimationStatus.completed || _switchDirection == 0) {
+       return;
+     }
+diff --git a/dart_shell/lib/src/state/shell_controller.dart b/dart_shell/lib/src/state/shell_controller.dart
+--- a/dart_shell/lib/src/state/shell_controller.dart
++++ b/dart_shell/lib/src/state/shell_controller.dart
+@@ -10,6 +10,7 @@
+ import '../models/denial_window.dart';
+ import '../models/denial_window_snapshot.dart';
+ import '../platform/denial_bridge.dart';
++import '../platform/focus_trace.dart';
+ import '../services/lock_state_repository.dart';
+ import 'authentication.dart';
+ import 'notifier_lifecycle.dart';
+@@ -665,6 +666,7 @@
+   void completeAdjacentWindowSwitch(int direction) {
+     final target = state.adjacentOpenAppWindow(direction);
+     if (target == null) {
++      traceFocus(FocusTraceStage.noTarget, direction: direction);
+       resetGestureDrag();
+       return;
+     }
+@@ -684,6 +686,8 @@
+       edgePanelDragActive: false,
+       clearLaunchingObjectId: true,
+     );
++    traceFocus(FocusTraceStage.commit, windowId: target.windowId,
++        objectId: target.objectId, direction: direction);
+     _bridge.focusWindow(target);
+   }
+ 
+diff --git a/dart_shell/lib/src/platform/denial_bridge.dart b/dart_shell/lib/src/platform/denial_bridge.dart
+--- a/dart_shell/lib/src/platform/denial_bridge.dart
++++ b/dart_shell/lib/src/platform/denial_bridge.dart
+@@ -20,6 +20,7 @@
+ import '../models/denial_window_snapshot.dart';
+ import '../models/ui_development.dart';
+ import 'denial_wire.dart' as wire;
++import 'focus_trace.dart';
+ import 'ui_development_protocol.dart';
+ 
+ enum DenialShellAction {
+@@ -1360,6 +1361,7 @@
+ 
+   void focusWindow(DenialWindow window) {
+     if (window.windowId <= 0) {
++      traceFocus(FocusTraceStage.invalidTarget, windowId: window.windowId);
+       return;
+     }
+     _sendWire(
+@@ -1367,6 +1369,7 @@
+         wire.WindowRequestKind.FocusWindow,
+         windowId: window.windowId,
+       ),
++      focusWindowId: window.windowId,
+     );
+   }
+ 
+@@ -2333,10 +2336,32 @@
+     );
+   }
+ 
+-  void _sendWire(Uint8List bytes) {
+-    ServicesBinding.instance.defaultBinaryMessenger
+-        .send(wire.denialWireToNativeChannel, ByteData.sublistView(bytes))
+-        ?.catchError((Object _) => null);
++  void _sendWire(Uint8List bytes, {int? focusWindowId}) {
++    if (focusWindowId != null) {
++      traceFocus(FocusTraceStage.send, windowId: focusWindowId);
++    }
++    final response = ServicesBinding.instance.defaultBinaryMessenger
++        .send(wire.denialWireToNativeChannel, ByteData.sublistView(bytes));
++    if (focusWindowId == null) {
++      response?.catchError((Object _) => null);
++      return;
++    }
++    if (response == null) {
++      traceFocus(FocusTraceStage.noReply, windowId: focusWindowId);
++      return;
++    }
++    response.then((reply) {
++          if (focusWindowId != null) {
++            traceFocus(FocusTraceStage.reply, windowId: focusWindowId);
++          }
++          return reply;
++        }).catchError((Object error) {
++          if (focusWindowId != null) {
++            traceFocus(FocusTraceStage.error, windowId: focusWindowId,
++                status: error.runtimeType.toString());
++          }
++          return null;
++        });
+   }
+ 
+   bool _sendNotificationCommand(
+diff --git a/dart_shell/lib/src/platform/focus_trace.dart b/dart_shell/lib/src/platform/focus_trace.dart
+new file mode 100644
+--- /dev/null
++++ b/dart_shell/lib/src/platform/focus_trace.dart
+@@ -0,0 +1,35 @@
++import 'dart:convert';
++import 'dart:io';
++
++// Diagnostic only: bounded, default-off, and no titles or message payloads.
++final bool _focusTraceEnabled = Platform.environment['DENIA_FOCUS_TRACE'] == '1';
++int _focusTraceCount = 0;
++final Stopwatch _focusTraceClock = Stopwatch()..start();
++
++enum FocusTraceStage {
++  animateStart, animationStatus, interrupted, dispose,
++  commit, noTarget, send, reply, noReply, error, invalidTarget,
++}
++
++void traceFocus(
++  FocusTraceStage stage, {
++  int? windowId,
++  int? objectId,
++  int? direction,
++  String? status,
++}) {
++  if (!_focusTraceEnabled || _focusTraceCount >= 64) {
++    return;
++  }
++  final boundedStatus = status == null || status.length <= 48
++      ? status : status.substring(0, 48);
++  print('FOCUS_TRACE dart ${jsonEncode({
++    'sequence': ++_focusTraceCount,
++    'elapsed_us': _focusTraceClock.elapsedMicroseconds,
++    'stage': stage.name,
++    if (windowId != null) 'window_id': windowId,
++    if (objectId != null) 'object_id': objectId,
++    if (direction != null) 'direction': direction,
++    if (boundedStatus != null) 'status': boundedStatus,
++  })}');
++}

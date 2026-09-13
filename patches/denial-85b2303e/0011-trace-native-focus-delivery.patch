@@ -1,0 +1,148 @@
+diff --git a/compositor/src/bin/deniald.rs b/compositor/src/bin/deniald.rs
+index 8278e5a..aff4549 100644
+--- a/compositor/src/bin/deniald.rs
++++ b/compositor/src/bin/deniald.rs
+@@ -31,6 +31,9 @@ mod flutter_session;
+ #[cfg(feature = "flutter")]
+ #[path = "deniald/flutter_settings_sync.rs"]
+ mod flutter_settings_sync;
++#[cfg(feature = "flutter")]
++#[path = "deniald/focus_trace.rs"]
++mod focus_trace;
+ #[path = "deniald/frame_loop.rs"]
+ mod frame_loop;
+ #[cfg(feature = "flutter")]
+diff --git a/compositor/src/bin/deniald/flutter_settings_sync.rs b/compositor/src/bin/deniald/flutter_settings_sync.rs
+index fed976f..e6646f1 100644
+--- a/compositor/src/bin/deniald/flutter_settings_sync.rs
++++ b/compositor/src/bin/deniald/flutter_settings_sync.rs
+@@ -26,6 +26,12 @@ fn apply_flutter_window_commands(events: &mut RuntimeState, commands: Vec<wire::
+                 .as_ref()
+                 .is_some_and(|manager| manager.owns_window(window_id))
+         });
++        if let wire::WindowCommand::Focus { window_id } = &command {
++            crate::focus_trace::log(
++                if native_owned { "drain_plugin" } else { "drain_wayland" },
++                *window_id, None, None, None,
++            );
++        }
+         if native_owned {
+             if let Some(manager) = events.native_app_plugins.as_mut()
+                 && let Err(error) = manager.apply_window_command(&command)
+diff --git a/compositor/src/bin/deniald/focus_trace.rs b/compositor/src/bin/deniald/focus_trace.rs
+new file mode 100644
+index 0000000..ce135b2
+--- /dev/null
++++ b/compositor/src/bin/deniald/focus_trace.rs
+@@ -0,0 +1,52 @@
++//! Opt-in, process-bounded native focus diagnostics. IDs are protocol IDs only.
++use std::sync::{OnceLock, atomic::{AtomicUsize, Ordering}};
++
++const MAX_EVENTS: usize = 64;
++
++pub(super) struct FocusTrace {
++    enabled: bool,
++    emitted: AtomicUsize,
++}
++
++#[derive(Debug, PartialEq)]
++pub(super) struct Event {
++    pub sequence: usize,
++    pub stage: &'static str,
++    pub window_id: u64,
++    pub effective_window_id: Option<u64>,
++    pub grabbed: Option<bool>,
++    pub activated: Option<bool>,
++}
++
++impl FocusTrace {
++    fn new(value: Option<&str>) -> Self {
++        Self { enabled: value == Some("1"), emitted: AtomicUsize::new(0) }
++    }
++
++    fn emit_with(&self, stage: &'static str, window_id: u64,
++        effective_window_id: Option<u64>, grabbed: Option<bool>, activated: Option<bool>,
++        sink: impl FnOnce(Event)) {
++        if !self.enabled { return; }
++        let Ok(sequence) = self.emitted.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
++            |count| (count < MAX_EVENTS).then_some(count + 1)) else { return; };
++        sink(Event { sequence: sequence + 1, stage, window_id, effective_window_id, grabbed, activated });
++    }
++}
++
++fn process_trace() -> &'static FocusTrace {
++    static TRACE: OnceLock<FocusTrace> = OnceLock::new();
++    TRACE.get_or_init(|| FocusTrace::new(std::env::var("DENIA_FOCUS_TRACE").ok().as_deref()))
++}
++
++pub(super) fn enabled() -> bool { process_trace().enabled }
++
++// The dependency-free policy above is compiled verbatim by the host regression.
++pub(super) fn log(stage: &'static str, window_id: u64, effective_window_id: Option<u64>,
++    grabbed: Option<bool>, activated: Option<bool>) {
++    process_trace().emit_with(stage, window_id, effective_window_id, grabbed, activated, |event| {
++        tracing::info!(focus_trace = true, sequence = event.sequence, stage = event.stage,
++            window_id = event.window_id, effective_window_id = ?event.effective_window_id,
++            grabbed = ?event.grabbed, activated = ?event.activated,
++            "native focus delivery");
++    });
++}
+diff --git a/compositor/src/bin/deniald/wayland_frontend/window_management.rs b/compositor/src/bin/deniald/wayland_frontend/window_management.rs
+index 0a362f4..aa07321 100644
+--- a/compositor/src/bin/deniald/wayland_frontend/window_management.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/window_management.rs
+@@ -290,6 +290,29 @@ pub(super) fn activate_topmost_window(state: &mut RuntimeState) -> bool {
+     next.is_some_and(|window| activate_window(state, &window, SERIAL_COUNTER.next_serial()))
+ }
+ 
++// Read snapshots outside set_focus/grab callbacks so the keyboard lock is not held.
++#[cfg(feature = "flutter")]
++fn trace_keyboard_focus(
++    state: &RuntimeState,
++    stage: &'static str,
++    window_id: u64,
++    activated: Option<bool>,
++) {
++    if !crate::focus_trace::enabled() {
++        return;
++    }
++    let frontend = state.wayland.as_ref().expect("missing Wayland frontend");
++    let keyboard = frontend.seat.get_keyboard().expect("seat has no keyboard");
++    let effective_window_id = keyboard.current_focus().and_then(|focus| {
++        let surface = focus.wl_surface()?;
++        let root = frontend.owning_toplevel_surface(&surface)?;
++        frontend.surface_id(&root)
++    });
++    crate::focus_trace::log(
++        stage, window_id, effective_window_id, Some(keyboard.is_grabbed()), activated,
++    );
++}
++
+ #[cfg(feature = "flutter")]
+ pub(in super::super) fn apply_window_commands(
+     state: &mut RuntimeState,
+@@ -388,7 +411,9 @@ pub(in super::super) fn apply_window_commands(
+                 }
+             }
+             WindowCommand::Focus { .. } => {
+-                activate_window(state, &window, SERIAL_COUNTER.next_serial());
++                trace_keyboard_focus(state, "activation_before", window_id, None);
++                let activated = activate_window(state, &window, SERIAL_COUNTER.next_serial());
++                trace_keyboard_focus(state, "activation", window_id, Some(activated));
+             }
+             WindowCommand::Configure {
+                 geometry,
+diff --git a/compositor/src/bin/deniald/wire/decode.rs b/compositor/src/bin/deniald/wire/decode.rs
+index 740bb53..5ce30c1 100644
+--- a/compositor/src/bin/deniald/wire/decode.rs
++++ b/compositor/src/bin/deniald/wire/decode.rs
+@@ -234,6 +234,9 @@ impl WireBridge {
+                     _ => unreachable!(),
+                 };
+                 self.pending_window_commands.push_back(command);
++                if kind == fb::WindowRequestKind::FocusWindow {
++                    crate::focus_trace::log("wire_enqueue", window_id, None, None, None);
++                }
+                 Ok(None)
+             }
+             fb::WindowRequestKind::CreateLocalWindow => {

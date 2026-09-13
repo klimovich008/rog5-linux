@@ -379,6 +379,32 @@ class RuntimePrerequisites(unittest.TestCase):
                 root, True, mobile=True, editor=True), ['usr/bin/Xwayland', 'usr/bin/mousepad'])
             self.assertEqual(GUEST.missing_runtime_inputs(root, False), [])
 
+    def test_focus_trace_guest_opt_in_is_explicit_and_validated(self):
+        guest = (Path(__file__).resolve().parents[2]/'tools/qemu-virtio-drm/guest.sh').read_text()
+        setup = guest[guest.index('unset DENIA_FOCUS_TRACE'):guest.index('# End focus trace setup.')]
+        with tempfile.TemporaryDirectory() as td:
+            marker = Path(td)/'focus-trace'
+            program = setup.replace('/run/focus-trace', str(marker)) + '\nprintf "%s" "${DENIA_FOCUS_TRACE-unset}"'
+            for contents, expected, code in [(None, 'unset', 0), ('1\n', '1', 0), ('wrong\n', '', 1)]:
+                if contents is None:
+                    marker.unlink(missing_ok=True)
+                else:
+                    marker.write_text(contents)
+                run = subprocess.run(['bash', '-c', program], env=dict(os.environ, DENIA_FOCUS_TRACE='1'), capture_output=True, text=True, timeout=5)
+                self.assertEqual(run.returncode, code)
+                if code == 0:
+                    self.assertEqual(run.stdout.splitlines()[-1], expected)
+                else:
+                    self.assertIn('invalid focus trace marker', run.stderr)
+
+    def test_focus_trace_requires_app_observation_before_io(self):
+        run = subprocess.run(['python3', str(Path(__file__).with_name('test-qemu-virtio-drm.py')),
+            '--trace-focus', '--runtime', '/not-used', '--kernel', '/not-used',
+            '--deniald', '/not-used', '--image', 'not-used', '--output', '/not-used'],
+            capture_output=True, text=True, timeout=5)
+        self.assertEqual(run.returncode, 2)
+        self.assertIn('focus tracing requires --observe-mobile-apps', run.stderr)
+
     def test_launcher_requires_both_apps_desktops_and_cache_tools(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

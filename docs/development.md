@@ -829,3 +829,17 @@ first dispatch handles at most 64 queued commands before background yields;
 ordinary management and engine replacement retain their complete final drain.
 The lock boundary still precedes client effects. This repairs the two tested
 post-message yields, not every possible event-loop starvation path.
+
+
+For the unresolved VM focus boundary, `--trace-focus` requires
+`--observe-mobile-apps` and stages an explicit guest marker. The guest refuses
+an invalid marker and clears an ambient `DENIA_FOCUS_TRACE` setting. Patches
+0010/0011 read the exact opt-in value `1`: each emits at most 64 records per
+process. Dart records animation lifecycle, commit target, send attempt and
+reply/error type; native records accepted enqueue, routed drain and actual focus
+before/after activation with grab state. Send/reply is not focus acknowledgement.
+No titles, payloads, error contents or credentials are logged. The opt-in changes
+diagnostics only; physical qualification and full app-switch acceptance remain
+independent. Run `test-shell-focus-trace.py --help` and
+`test-native-focus-trace.py --help` for the manual exact-source checks before
+building these diagnostic binaries. The host tier alone does not execute them.

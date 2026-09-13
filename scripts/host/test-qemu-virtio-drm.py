@@ -288,6 +288,8 @@ def main():
     parser.add_argument('--observe-mobile-apps', action='store_true',
                         help='launch/switch native apps; requires inspected launcher reference')
     parser.add_argument('--launcher-reference', type=Path)
+    parser.add_argument('--trace-focus', action='store_true',
+                        help='opt-in bounded shell/native focus diagnostics; requires app observation')
     parser.add_argument('--native-screencopy', type=Path,
                         help='ARM64 native capture client; pair initial/final editor VNC captures')
     parser.add_argument('--observe-mobile', action='store_true',
@@ -298,6 +300,8 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
     args = parser.parse_args()
+    if args.trace_focus and not args.observe_mobile_apps:
+        parser.error('focus tracing requires --observe-mobile-apps')
     if args.egl_thread_probe and (args.flutter_bundle or not args.render_node):
         parser.error('EGL thread probe requires VirGL and excludes Flutter bundle')
     if args.observe_mobile and (not args.flutter_bundle or not args.render_node):
@@ -360,6 +364,8 @@ def main():
         shutil.copytree(bundle, payload/'flutter')
     shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
     (stage/'stage/graphics-mode').write_text('virgl\n' if render_node else 'software\n')
+    if args.trace_focus:
+        (stage/'stage/focus-trace').write_text('1\n')
     if args.observe_mobile:
         (stage/'stage/shell-profile').write_text('mobile\n')
     if args.observe_mobile_editor:
@@ -587,7 +593,7 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     stage/'stage/graphics-mode', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
+                     stage/'stage/graphics-mode', stage/'stage/focus-trace', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
                      stage/'stage/launcher-apps.sh', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)

@@ -2673,3 +2673,12 @@ an over-64 backlog and commands arriving in the last engine batch. A bounded
 not. Capturing an incoming app during its slide is not proof that the animation
 completed or that its focus request was sent. Keep those boundaries separate
 from native enqueue/dispatch and actual keyboard focus in runtime evidence.
+
+
+The early-dispatch correction passed source tests and a 212.575-second ARM64
+build, but its 102.908-second VM treatment still retained Foot focus under visible
+Mousepad. Stop treating that scheduling weakness as an established runtime cause.
+Instrument animation completion, send, accepted enqueue, dispatch and effective
+focus as separate stages before another policy change. Keep diagnostic helpers
+available to normal cargo test builds; a standalone adapter test should exclude
+only its external logging adapter rather than cfg-out a function used by callers.
