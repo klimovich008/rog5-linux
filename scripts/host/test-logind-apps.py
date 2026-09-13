@@ -476,6 +476,54 @@ while :; do sleep .1; done
         self.assertEqual(foot.wait(timeout=2), 0)
         self.assertIn(b'OBSERVE launcher-lifecycle app=mousepad phase=normal-close status=42 child_status=42\n', self.events)
 
+    def check_close_diagnostics(self, delay, expected):
+        self.command('mousepad', f'''trap 'echo CLOSE_TERM_BEGIN; sleep {delay}; echo CLOSE_TERM_FINISHED; exit 0' TERM
+echo 'fixture Mousepad protocol'
+while :; do sleep .1; done
+''')
+        controller, editor, foot = self.ready_apps()
+        os.write(self.master, (self.token + '\n').encode())
+        controller.communicate(timeout=9)
+        self.assertEqual(editor.wait(timeout=2), expected)
+        self.assertEqual(foot.wait(timeout=2), 0)
+        self.assertEqual(controller.returncode == 0, expected == 0)
+        events = bytes(self.events)
+        self.assertIn(b'DENIAL_DIAGNOSTIC timeout: sending signal TERM to command', events)
+        self.assertEqual(b'DENIAL_DIAGNOSTIC timeout: sending signal KILL to command' in events,
+                         expected == 137)
+        records = re.findall(rb'DENIAL_DIAGNOSTIC app-close app=mousepad phase=(begin|close-returned) '
+                             rb'pid=([0-9]+) clock=CLOCK_BOOTTIME seconds=([0-9]+\.[0-9]+)', events)
+        self.assertEqual([r[0] for r in records], [b'begin', b'close-returned'])
+        self.assertEqual(records[0][1], records[1][1])
+        self.assertGreaterEqual(float(records[1][2]), float(records[0][2]))
+        self.assertIn(f'phase=normal-close status={expected} child_status={expected}'.encode(), events)
+
+    def test_fast_close_reports_term_and_clock_without_kill(self):
+        self.check_close_diagnostics(.1, 0)
+
+    def test_slow_close_reports_timeout_escalation_and_preserves_failure(self):
+        self.check_close_diagnostics(2.5, 137)
+
+    def test_timeout_signal_is_not_blocked_by_full_client_pipe(self):
+        # Execute the production launch command with a full, unread client FIFO.
+        # A verbose timeout sharing that FIFO blocks before forwarding TERM.
+        launch = re.search(r'^        GDK_BACKEND=.*?^        editor=\$!',
+                           (TOOLS / 'logind-apps.sh').read_text(), re.M | re.S).group()
+        (self.state / 'mousepad').mkdir(parents=True)
+        self.command('mousepad', 'exec sleep 60\n')
+        fd = os.open(self.home / 'mousepad.pipe', os.O_RDWR | os.O_NONBLOCK)
+        self.addCleanup(os.close, fd)
+        while True:
+            try: os.write(fd, b'x' * 4096)
+            except BlockingIOError: break
+        code = ('set -eu\nstate=$1; app=mousepad; bindir=$TEST_BIN; text=$2\n'
+                + launch + '\nsleep .2\nkill -TERM "$editor"\n'
+                + 'status=0; wait "$editor" || status=$?\n[[ $status == 143 ]]\n')
+        child = self.spawn(['bash', '-c', code, 'fixture', str(self.state), str(self.text)])
+        out, err = child.communicate(timeout=3)
+        self.assertEqual(child.returncode, 0, out.decode() + err.decode())
+        self.assertIn('sending signal TERM', (self.state / 'mousepad/timeout.log').read_text())
+
 
 if __name__ == '__main__':
     unittest.main()

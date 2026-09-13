@@ -56,7 +56,7 @@ class DiagnosticSnapshot(unittest.TestCase):
     def test_large_input_and_long_lines_remain_bounded(self):
         self.log.write_text('short\n'*10000+'x'*5000+'\n')
         p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
-        self.assertGreater(len(data),0);self.assertLessEqual(len(data),32768)
+        self.assertGreater(len(data),0);self.assertLessEqual(len(data),30720)
         self.assertTrue(all(len(x)<=2019 for x in data.splitlines(keepends=True)))
     def test_writer_failure_propagates(self):
         self.writer.write_text('#!/bin/sh\nexit 42\n')

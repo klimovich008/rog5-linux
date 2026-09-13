@@ -15,7 +15,7 @@ logind_apps_snapshot() {
     timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
         set -o pipefail
         LC_ALL=C tail -c 24576 -- "$1" |
-        LC_ALL=C awk '\''BEGIN {remaining=32768}
+        LC_ALL=C awk '\''BEGIN {remaining=30720}
             {line=substr($0,1,2000); cost=length(line)+19
              if (cost<=remaining) {print line; remaining-=cost}}'\'' |
         "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
@@ -75,11 +75,19 @@ logind_apps_owner() {
     [[ $actual == "$start" ]] || return 1
     printf '%s\n' "$pid"
 }
+logind_apps_close_clock() {
+    local state=$1 app=$2 phase=$3 pid=$4 uptime idle
+    # /proc/uptime uses the boot clock (including suspend), at 10 ms precision.
+    # These samples bracket close/reap plus evidence transport, not signal time.
+    read -r uptime idle < /proc/uptime || return $?
+    [[ $uptime =~ ^[0-9]+\.[0-9]+$ ]] || return 1
+    logind_apps_record "$state" "DENIAL_DIAGNOSTIC app-close app=$app phase=$phase pid=$pid clock=CLOCK_BOOTTIME seconds=$uptime"
+}
 logind_apps_supervise() (
     set -euo pipefail
     local app=$1 state=${2:-$HOME/launcher-apps} bindir=${3:-/usr/bin}
     local owner=$BASHPID start text command_fd command='' chunk rc=0 controlled=0 child_name
-    local close_phase=running last_status=unknown
+    local close_phase=running last_status=unknown close_pid
     local foot='' editor='' foot_close_owned=0 foot_close_fifo=$HOME/foot-close.pipe
     launcher_guest_guard || exit 1
     [[ $app == mousepad || $app == foot ]] || exit 1
@@ -126,8 +134,13 @@ logind_apps_supervise() (
         launch_foot
     else
         child_name=editor
-        GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 \
-            "$bindir/mousepad" "$text" > "$HOME/mousepad.pipe" 2>&1 &
+        # timeout must never write its signal diagnostic into a blocked client
+        # FIFO before sending the signal. Only its fixed diagnostics use this
+        # regular file; the exec preserves the monitored client's PID.
+        GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout --verbose -k 2 65 \
+            /usr/bin/bash --noprofile --norc -c 'exec "$1" "$2" > "$3" 2>&1' \
+            mousepad "$bindir/mousepad" "$text" "$HOME/mousepad.pipe" \
+            > "$state/$app/timeout.log" 2>&1 &
         editor=$!
     fi
     while :; do
@@ -147,6 +160,8 @@ logind_apps_supervise() (
         ((rc>128)) || exit 1
     done
     close_phase=normal-close; rc=0; last_status=unknown
+    close_pid=${!child_name}
+    logind_apps_close_clock "$state" "$app" begin "$close_pid"
     if [[ $app == foot ]]; then
         close_foot_normally || rc=$?
     elif require_running editor; then
@@ -154,6 +169,20 @@ logind_apps_supervise() (
         [[ $last_status == 0 ]] || rc=$last_status
     else
         rc=1; [[ $last_status == 0 ]] || rc=$last_status
+    fi
+    logind_apps_close_clock "$state" "$app" close-returned "$close_pid" || {
+        ((rc!=0)) || rc=1;
+    }
+    if [[ $app == mousepad ]]; then
+        # At most 2 KiB before prefix framing, leaving room for close clocks
+        # inside the shared 64 KiB diagnostic limit. The client cannot write
+        # here after exec; timeout output never controls qualification.
+        timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
+            set -o pipefail
+            head -c 2048 -- "$1" | "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
+        ' timeout-diagnostic "$state/$app/timeout.log" "$state" "$logind_apps_writer" || {
+            ((rc!=0)) || rc=1;
+        }
     fi
     logind_apps_record "$state" "OBSERVE launcher-lifecycle app=$app phase=normal-close status=$rc child_status=$last_status" || {
         ((rc!=0)) || rc=1;
