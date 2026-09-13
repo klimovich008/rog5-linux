@@ -110,6 +110,25 @@ logind_cleanup_state "$6"
                     self.assertIn(f'query=systemctl status={scope_rc}', result.stderr)
 
 
+    def test_early_parser_check_uses_actual_cleanup_query_arguments(self):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
+        harness = r'''source "$1"
+timeout(){ shift 3; "$@"; }
+loginctl(){ printf '%s\n' "$*"; }
+systemctl(){ printf '%s\n' "$*"; }
+logind_query_sessions
+logind_query_sessions --help
+logind_query_scopes
+logind_query_scopes --help
+'''
+        result = subprocess.run(['bash', '-c', harness, 'fixture', str(script)],
+                                capture_output=True, text=True, timeout=3, check=True)
+        session, session_help, scope, scope_help = result.stdout.splitlines()
+        self.assertEqual(session_help, session+' --help')
+        self.assertEqual(scope_help, scope+' --help')
+        # Exact packaged ARM64 parser was exercised separately, not modeled here.
+        self.assertNotIn('--no-footer', session.split())
+
     def test_tty_ownership_requires_successful_enumeration(self):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
         harness = r'''source "$1"

@@ -5,6 +5,11 @@ read -r cmdline < /proc/cmdline
 [[ $$ == 1 && $EUID == 0 && " $cmdline " == *' rog5.logind_fixture=1 '* && -d /sys/bus/virtio/devices ]]
 trap 'echo "FAIL PID1 fixture setup line=$LINENO"; /usr/bin/poweroff -ff' ERR
 export PATH=/usr/bin LANG=C.UTF-8
+# Exercise the exact query argument lists before expensive first-boot setup.
+source /run/logind-probe.sh
+logind_query_sessions --help >/dev/null
+logind_query_scopes --help >/dev/null
+echo 'PASS packaged cleanup query parsers'
 cp -a /etc /run/fixture-etc
 mount --bind /run/fixture-etc /etc
 date -u -s '2026-09-13 00:00:00' >/dev/null

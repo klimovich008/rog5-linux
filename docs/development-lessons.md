@@ -2830,3 +2830,12 @@ max/OOM events and no swap. This supports increasing the harness budget, but
 no original cgroup event counters survived, so an OOM cause is not established.
 Guest RAM and kernel stay unchanged. Record host cgroup pressure when investigating
 TCG stalls; guest free memory alone does not describe QEMU's host allocations.
+
+Validate CLI options with the actual packaged parser before a long systemd boot.
+The original cleanup fixture passed mocks but used unsupported loginctl
+`--no-footer`; the exact ARM64 executable rejected it in0.3s. Share the real
+query argument lists with a `--help` preflight before startup. Keep query name
+and exit code in failures; an unavailable query must never prove absence.
+Reuse retained command arrays with a fresh output path instead of manually
+transcribing long container identities; the full-hex guard caught one typo
+before building or starting a VM.

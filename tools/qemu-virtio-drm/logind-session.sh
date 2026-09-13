@@ -1,12 +1,19 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
+# Extra arguments are used only for the early real-parser --help preflight.
+logind_query_sessions() {
+    timeout -k 1 3 loginctl list-sessions --no-legend --no-pager "$@"
+}
+logind_query_scopes() {
+    timeout -k 1 3 systemctl list-units --all --type=scope --no-legend --no-pager --plain "$@"
+}
 logind_cleanup_state() {
     local sid=$1 sessions scopes first rest rc
     [[ $sid =~ ^[A-Za-z0-9]+$ ]] || return 2
-    sessions=$(timeout -k 1 3 loginctl list-sessions --no-legend --no-pager --no-footer) || {
+    sessions=$(logind_query_sessions) || {
         rc=$?; printf 'FAIL cleanup query=loginctl status=%s\n' "$rc" >&2; return 2;
     }
-    scopes=$(timeout -k 1 3 systemctl list-units --all --type=scope --no-legend --no-pager --plain) || {
+    scopes=$(logind_query_scopes) || {
         rc=$?; printf 'FAIL cleanup query=systemctl status=%s\n' "$rc" >&2; return 2;
     }
     while read -r first rest; do [[ $first != "$sid" ]] || return 1; done <<< "$sessions"
