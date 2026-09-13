@@ -2701,3 +2701,11 @@ focus-generation advance or capture readiness meanwhile. Test the retained log
 offline before rerunning; distinguish partial replay from a complete session.
 Use the recorded command's --name for container checks: the report's container
 field identifies the image, not the running instance.
+
+
+A shared console is not a record transport: a complete client write can appear
+after another thread's partial Flutter prefix. Separate protocol from native
+stdout. A dedicated port still needs single-writer serialization, bounded
+records, explicit FIFO lifetime and the original teardown boundary. Verify
+actual write syscalls and concurrent writers, then reuse unchanged compositor
+and shell bytes for the VM; increasing timeouts cannot restore a lost prefix.

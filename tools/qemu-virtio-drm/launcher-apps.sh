@@ -46,11 +46,14 @@ launcher_app_run() (
     set -euo pipefail
     launcher_guest_guard || { echo 'FAIL launcher requires virtual guest marker' >&2; exit 1; }
     local app=$1 state=${2:-/run/launcher-apps} bindir=${3:-/usr/bin}
-    local sink=${4:-/dev/stdout}
+    local sink=${4:-/dev/stdout} writer=${5:-}
     # Denial intentionally launches desktop commands with null stdio. The
     # guarded CLI supplies the guest console; host fixtures supply a private
     # sink. Only this supervisor changes descriptors, never its caller.
     exec >> "$sink" 2>&1
+    launcher_record() {
+        if [[ -n $writer ]]; then "$writer" record "$1"; else printf '%s\n' "$1"; fi
+    }
     local prefix child='' logger='' status start owner=$BASHPID
     local -a args
     case $app in
@@ -84,14 +87,18 @@ launcher_app_run() (
     mkfifo -m 600 "$state/$app/stderr"
     # Drain after the cap rather than blocking or SIGPIPE-killing the client.
     # The host additionally bounds the aggregate serial log.
+    if [[ -n $writer ]]; then
+        "$writer" prefix "$prefix" < "$state/$app/stderr" &
+    else
     LC_ALL=C awk -v prefix="$prefix" 'BEGIN { remaining=1048576 }
         { if (remaining > 0) { line=prefix " " $0 "\n";
             piece=substr(line,1,remaining); printf "%s",piece; fflush();
             remaining-=length(piece);
             if (remaining == 0) { print "\nFAIL launcher client log limit"; fflush(); }
         } }' < "$state/$app/stderr" &
+    fi
     logger=$!
-    echo "OBSERVE launcher app=$app owner=$owner start=$start"
+    launcher_record "OBSERVE launcher app=$app owner=$owner start=$start"
     timeout --preserve-status --kill-after=2 95 env GDK_BACKEND=wayland \
         WAYLAND_DEBUG=client "$bindir/${args[0]}" "${args[@]:1}" \
         > "$state/$app/stderr" 2>&1 &
@@ -100,10 +107,12 @@ launcher_app_run() (
     status=0
     wait "$child" || status=$?
     child=''
-    wait "$logger" || true
+    local log_status=0
+    wait "$logger" || log_status=$?
+    [[ $status != 0 ]] || status=$log_status
     logger=''
     printf '%s\n' "$status" > "$state/$app/exit-status"
-    echo "OBSERVE launcher app=$app exit=$status"
+    launcher_record "OBSERVE launcher app=$app exit=$status"
     exit "$status"
 )
 launcher_apps_cleanup() {
@@ -130,6 +139,13 @@ launcher_apps_cleanup() {
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
     set -euo pipefail
     [[ $# == 2 && $1 == launch ]] || { echo 'usage: launcher-apps.sh launch mousepad|foot' >&2; exit 2; }
-    launcher_guest_guard && [[ -c /dev/console ]] || exit 1
-    launcher_app_run "$2" /run/launcher-apps /usr/bin /dev/console
+    launcher_guest_guard || exit 1
+    if [[ -p /run/launcher-evidence/events ]]; then
+        [[ -x /run/evidence-writer ]] || exit 1
+        launcher_app_run "$2" /run/launcher-apps /usr/bin /run/launcher-evidence/events /run/evidence-writer
+    else
+        [[ ! -f /run/mobile-launcher || $(cat /run/mobile-launcher) != apps ]] || exit 1
+        [[ -c /dev/console ]] || exit 1
+        launcher_app_run "$2" /run/launcher-apps /usr/bin /dev/console
+    fi
 fi

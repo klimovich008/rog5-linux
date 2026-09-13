@@ -84,8 +84,9 @@ the actual tiles before designing launch/switch gestures; capture success leaves
 app launching, switching and visual semantics NOT RUN. The VM prepares RAM-only
 Mousepad and Foot desktop overrides with fixed commands, owned process lifetimes
 and bounded protocol logs for subsequent interaction. Denial launches desktop
-commands with null stdio, so the guest wrappers explicitly use its console.
-The guest marker and console are mandatory; host tests inject an inert sink.
+commands with null stdio. Discovery retains the guest console; app interaction
+uses the dedicated bounded evidence channel described below. The virtual guest
+marker remains mandatory; host tests inject inert sinks.
 No package, compositor, engine or shell rebuild is needed for discovery.
 
 For launcher-based native app interaction, use `--observe-mobile-apps` with
@@ -843,3 +844,23 @@ diagnostics only; physical qualification and full app-switch acceptance remain
 independent. Run `test-shell-focus-trace.py --help` and
 `test-native-focus-trace.py --help` for the manual exact-source checks before
 building these diagnostic binaries. The host tier alone does not execute them.
+
+For `--observe-mobile-apps`, supply `--evidence-writer PATH` with the matching
+ARM64 build of `tools/qemu-virtio-drm/evidence-writer.rs`. Compile using the
+pinned native builder's rustc, `--edition=2024 -Dwarnings -O --target
+aarch64-unknown-linux-gnu -C linker=/usr/bin/aarch64-linux-gnu-gcc`; no Denial,
+engine or kernel rebuild is needed. Execute `test-qemu-evidence-writer.py
+--output FRESH_DIRECTORY` with the pinned host RUSTC, then
+`test-qemu-launcher-evidence.py --writer HOST_BINARY`.
+
+One guest FIFO collector owns virtual port1 (`rog5.launcher`). Each producer
+writes complete records at most4096 bytes in one syscall; clients are capped
+at1MiB each and drained after errors. Native output stays on the console; its
+forwarder sends the existing terminal boundary to the evidence FIFO before
+forwarding that native line. The host reads `protocol/events.log`, capped
+at3MiB, independently of serial counters. Truncated records, missing terminal
+boundary, writer failure and failed collector drain fail the observation.
+Optional global presentation intervals are not forwarded and remain NOT RUN;
+the terminal frame counts and inspected captures stay separate evidence.
+This isolates observed console-fragment interleaving without accepting arbitrary
+embedded client prefixes. It adds no physical device exposure or phone proof.

@@ -288,6 +288,7 @@ def main():
     parser.add_argument('--observe-mobile-apps', action='store_true',
                         help='launch/switch native apps; requires inspected launcher reference')
     parser.add_argument('--launcher-reference', type=Path)
+    parser.add_argument('--evidence-writer', type=Path, help='ARM64 bounded record writer; required for app observation')
     parser.add_argument('--trace-focus', action='store_true',
                         help='opt-in bounded shell/native focus diagnostics; requires app observation')
     parser.add_argument('--native-screencopy', type=Path,
@@ -315,6 +316,8 @@ def main():
         parser.error('app interaction requires mobile/reference and excludes editor/discovery')
     if args.launcher_reference and not args.observe_mobile_apps:
         parser.error('launcher reference is only used for app interaction')
+    if bool(args.evidence_writer) != bool(args.observe_mobile_apps):
+        parser.error('app interaction requires --evidence-writer; other modes exclude it')
     launcher = args.observe_mobile_launcher or args.observe_mobile_apps
     if args.native_screencopy and not args.observe_mobile_editor:
         parser.error('native screencopy requires editor observation')
@@ -333,6 +336,11 @@ def main():
         parser.error('expected an explicitly materialized guest runtime')
     if not kernel.is_file() or not executable.is_file():
         parser.error('kernel and executable must be regular files')
+    if args.evidence_writer:
+        with args.evidence_writer.open('rb') as source:
+            header = source.read(20)
+        if header[:6] != b'\x7fELF\x02\x01' or header[18:20] != b'\xb7\x00':
+            parser.error('evidence writer must be little-endian ARM64 ELF')
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
@@ -373,6 +381,13 @@ def main():
     if launcher:
         (stage/'stage/mobile-launcher').write_text('apps\n' if args.observe_mobile_apps else 'discover\n')
         shutil.copy2(repo/'tools/qemu-virtio-drm/launcher-apps.sh', stage/'stage/launcher-apps.sh')
+    protocol_path_output = None
+    if args.observe_mobile_apps:
+        shutil.copy2(args.evidence_writer, stage/'stage/evidence-writer')
+        shutil.copy2(repo/'tools/qemu-virtio-drm/launcher-evidence.sh', stage/'stage/launcher-evidence.sh')
+        (output/'protocol').mkdir(mode=0o700)
+        protocol_path_output = output/'protocol/events.log'
+        protocol_path_output.touch(mode=0o600, exist_ok=False)
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
                        '-Werror', '-Wall', '-Wextra',
@@ -484,6 +499,15 @@ def main():
                         '-vnc', 'unix:/observe/vnc.sock']
             index = command.index('virtio-gpu-gl-device,xres=640,yres=480')
             command[index] = 'virtio-gpu-gl-device,xres=540,yres=1224'
+        if protocol_path_output:
+            index = command.index(args.image)
+            command[index:index] = ['-v', str(output/'protocol')+':/protocol:rw']
+            command += ['-device', 'virtio-serial-device',
+                        '-chardev', 'file,id=protocol,path=/protocol/events.log',
+                        '-device', 'virtserialport,chardev=protocol,name=rog5.launcher,nr=1']
+            report['protocol_transport'] = {'scope': 'dedicated virtual serial; bounded atomic FIFO records',
+                'writer_sha256': digest(stage/'stage/evidence-writer'),
+                'setup_sha256': digest(stage/'stage/launcher-evidence.sh'), 'limit_bytes': 3*1024*1024}
         if native_capture:
             index = command.index(args.image)
             command[index:index] = ['-v', str(output/'native')+':/native:rw']
@@ -502,7 +526,9 @@ def main():
                         if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
                             raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
                         if launcher_protocol:
-                            launcher_protocol.read_available(logpath)
+                            if protocol_path_output.stat().st_size > 3*1024*1024:
+                                raise ValueError("launcher evidence exceeds 3 MiB bound")
+                            launcher_protocol.read_available(protocol_path_output)
                             if launcher_protocol.errors:
                                 raise ValueError("launcher protocol rejected: "+str(launcher_protocol.errors))
                         if observer and not observer.complete:
@@ -549,9 +575,15 @@ def main():
             report['launcher_discovery'] = launcher_discovery_result(log)
         if args.observe_mobile_apps:
             final_protocol = protocol_module.LauncherProtocol()
-            data = log.encode()
+            if protocol_path_output.stat().st_size > 3*1024*1024:
+                raise ValueError("launcher evidence exceeds 3 MiB bound")
+            data = protocol_path_output.read_bytes()
             for offset in range(0, len(data), 131072):
                 final_protocol.feed(data[offset:offset+131072])
+            if final_protocol.pending:
+                final_protocol.fail('truncated final protocol record')
+            if not final_protocol.terminal:
+                final_protocol.fail('missing dedicated terminal boundary')
             report['launcher_protocol'] = final_protocol.result()
             report['launcher_apps_cleanup'] = 'PASS' if log.splitlines().count('PASS launcher apps cleanup') == 1 else 'FAIL'
         if (process.returncode == 0 and
@@ -594,7 +626,7 @@ def main():
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
                      stage/'stage/graphics-mode', stage/'stage/focus-trace', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
-                     stage/'stage/launcher-apps.sh', output/'serial.log'):
+                     stage/'stage/launcher-apps.sh', stage/'stage/evidence-writer', stage/'stage/launcher-evidence.sh', output/'protocol/events.log', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
         (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')

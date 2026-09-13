@@ -91,7 +91,8 @@ elif [[ -d /run/payload/flutter ]]; then
     editor_log_pid=''
     native_pid=''
     launcher_prepared=0
-    trap 'guest_status=$?; if [[ $launcher_prepared == 1 ]]; then launcher_apps_cleanup || guest_status=1; fi; if [[ -n $native_pid ]]; then kill "$native_pid" 2>/dev/null || true; wait "$native_pid" || true; fi; if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi; exit "$guest_status"' EXIT
+    evidence_prepared=0
+    trap 'guest_status=$?; if [[ $launcher_prepared == 1 ]]; then launcher_apps_cleanup || guest_status=1; fi; if [[ $evidence_prepared == 1 ]]; then launcher_evidence_finish || guest_status=1; fi; if [[ -n $native_pid ]]; then kill "$native_pid" 2>/dev/null || true; wait "$native_pid" || true; fi; if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi; exit "$guest_status"' EXIT
     if [[ -f /run/shell-profile ]]; then
         # Fixed virtual devices need real udev input_id data for libinput.
         for event in /sys/class/input/event*; do
@@ -147,6 +148,12 @@ elif [[ -d /run/payload/flutter ]]; then
         read -r launcher_mode < /run/mobile-launcher
         [[ ( $launcher_mode == discover || $launcher_mode == apps ) && -f /run/shell-profile ]]
         source /run/launcher-apps.sh
+        if [[ $launcher_mode == apps ]]; then
+            [[ $(cat /sys/class/virtio-ports/vport0p1/name) == rog5.launcher ]]
+            source /run/launcher-evidence.sh
+            launcher_evidence_prepare
+            evidence_prepared=1
+        fi
         launcher_prepared=1
         launcher_apps_prepare
         unset DENIA_START_LOCKED
@@ -183,9 +190,16 @@ elif [[ -d /run/payload/flutter ]]; then
         ) &
         editor_pid=$!
     fi
+    run_denial() {
     timeout --preserve-status --kill-after=5 "$shell_seconds" /run/payload/deniald \
         --device /dev/dri/card0 --wayland \
         --flutter-bundle /run/payload/flutter "${shell_options[@]}"
+    }
+    if [[ $evidence_prepared == 1 ]]; then
+        run_denial 2>&1 | /run/evidence-writer forward 3>/run/launcher-evidence/events
+    else
+        run_denial
+    fi
     echo 'PASS actual deniald shell bounded exit'
 else
     # Denial's bounded KMS diagnostic requires an existing mode to restore.

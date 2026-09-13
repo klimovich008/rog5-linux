@@ -46,6 +46,16 @@ class RuntimePrerequisites(unittest.TestCase):
     def audit(count):
         return f'Denial/Volition output scheduler audit presentations={count}\n'
 
+    def test_app_channel_writer_required_and_excluded_elsewhere(self):
+        base=['python3',str(Path(__file__).with_name('test-qemu-virtio-drm.py')),
+              '--runtime','/missing','--kernel','/missing','--deniald','/missing',
+              '--image','0'*64,'--output','/missing-output']
+        for options in [ ['--observe-mobile','--observe-mobile-apps','--launcher-reference','/missing','--flutter-bundle','/missing','--render-node','/missing'],
+                         ['--evidence-writer','/missing'] ]:
+            run=subprocess.run(base+options,capture_output=True,text=True,timeout=3)
+            self.assertNotEqual(run.returncode,0)
+            self.assertIn('app interaction requires --evidence-writer',run.stderr)
+
     def test_editor_protocol_accepts_exact_native_key_lifecycles_and_ansi(self):
         log = self.editor_log()
         for text in (log, log.replace('#', '@'), log.replace('xdg_', '\x1b[32mxdg_').replace('(', '\x1b[0m(')):
