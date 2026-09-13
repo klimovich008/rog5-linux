@@ -28,7 +28,10 @@ def missing_runtime_inputs(runtime, shell, mobile=False, editor=False):
         paths += ['usr/bin/udevadm', 'usr/lib/systemd/systemd-udevd',
                   'usr/lib/udev/rules.d/60-input-id.rules']
     if editor:
-        paths += ['usr/bin/mousepad']
+        paths += ['usr/bin/'+name for name in ('mousepad', 'mkfifo', 'sed', 'cp',
+                    'sha256sum', 'glib-compile-schemas', 'update-mime-database')]
+        paths += ['usr/share/glib-2.0/schemas/org.xfce.mousepad.gschema.xml',
+                  'usr/share/mime/packages/freedesktop.org.xml']
     return [path for path in paths if not (runtime/path).is_file()]
 
 
@@ -73,20 +76,146 @@ def session_result(log):
     return result
 
 
+class EditorProtocol:
+    """Bounded, attributed client protocol state; never infer mapping from a title alone."""
+    PREFIX = 'EDITOR_WAYLAND '
+    LINE_LIMIT = 16384
+    LOG_LIMIT = 8 * 1024 * 1024
+
+    def __init__(self):
+        self.pending = b''
+        self.total = self.offset = 0
+        self.surfaces = {}
+        self.toplevels = {}
+        self.focus = {}
+        self.keys = []
+        self.bad_keys = False
+        self.mapped = False
+        self.ever_mapped = False
+        self.interval_seen = False
+        self.ready = False
+
+    def feed(self, data):
+        self.total += len(data)
+        if self.total > self.LOG_LIMIT:
+            raise ValueError('editor protocol exceeds serial log bound')
+        parts = (self.pending + data).split(b'\n')
+        self.pending = parts.pop()
+        if any(len(line) > self.LINE_LIMIT for line in [*parts, self.pending]):
+            raise ValueError('editor protocol line exceeds 16 KiB bound')
+        for line in parts:
+            self.line(re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', line.decode(errors='replace')))
+
+    def read_available(self, path):
+        if path.stat().st_size < self.offset:
+            raise ValueError('editor serial log truncated')
+        with path.open('rb') as source:
+            source.seek(self.offset)
+            block = source.read(131072)
+        self.offset += len(block)
+        self.feed(block)
+        return self.ready
+
+    def line(self, line):
+        if not line.startswith(self.PREFIX):
+            if self.mapped and 'Denial/Volition output scheduler audit' in line:
+                values = re.findall(r'\bpresentations=(\d+)\b', line)
+                if len(values) == 1:
+                    # These are interval counts, not cumulative counters. The
+                    # first audit can straddle commit; require a later interval.
+                    if self.interval_seen and int(values[0]) > 0:
+                        self.ready = True
+                    self.interval_seen = True
+            return
+        line = line[len(self.PREFIX):]
+        match = re.search(r'(-> )?([a-z_]+)[#@](\d+)\.([a-z_]+)\((.*)\)\s*$', line)
+        if not match:
+            return
+        outgoing, interface, object_id, method, args = match.groups()
+        if interface == 'xdg_wm_base' and method == 'get_xdg_surface' and outgoing:
+            linked = re.fullmatch(r'new id xdg_surface[#@](\d+), wl_surface[#@](\d+)', args)
+            if linked:
+                xdg, surface = linked.groups()
+                if len(self.surfaces) >= 64:
+                    raise ValueError('editor surface bound exceeded')
+                self.surfaces[xdg] = dict(surface=surface, title=False, configured=False,
+                                          serial=None, ack=False, attached=False, committed=False)
+        elif interface == 'xdg_surface' and object_id in self.surfaces:
+            state = self.surfaces[object_id]
+            if method == 'get_toplevel' and outgoing:
+                linked = re.fullmatch(r'new id xdg_toplevel[#@](\d+)', args)
+                if linked:
+                    self.toplevels[linked[1]] = object_id
+                    if len(self.toplevels) > 64:
+                        raise ValueError('editor toplevel bound exceeded')
+            elif method == 'configure' and not outgoing and args.isdecimal():
+                state.update(serial=args if state['configured'] else None, ack=False, attached=False)
+            elif method == 'ack_configure' and outgoing:
+                state['ack'] = state['configured'] and args == state['serial']
+            elif method == 'destroy' and outgoing:
+                state.update(title=False, committed=False)
+        elif interface == 'xdg_toplevel' and object_id in self.toplevels:
+            state = self.surfaces[self.toplevels[object_id]]
+            if method == 'set_title' and outgoing:
+                state['title'] = bool(re.fullmatch(r'"\*?rog5-text-probe\.txt(?: - Mousepad)?"', args))
+            elif method == 'configure' and not outgoing:
+                state['configured'] = bool(re.fullmatch(r'\d+, \d+, array\[\d+\]', args))
+            elif method == 'destroy' and outgoing:
+                state.update(title=False, committed=False)
+        elif interface == 'wl_surface' and outgoing:
+            for state in self.surfaces.values():
+                if state['surface'] != object_id:
+                    continue
+                if method == 'attach':
+                    state['attached'] = bool(state['ack'] and re.fullmatch(
+                        r'wl_buffer[#@]\d+, -?\d+, -?\d+', args))
+                elif method == 'commit':
+                    state['committed'] = state['title'] and state['attached']
+                elif method == 'destroy':
+                    state.update(title=False, committed=False)
+        elif interface == 'wl_keyboard' and not outgoing:
+            if method == 'enter':
+                focused = re.fullmatch(r'\d+, wl_surface[#@](\d+), array\[\d+\]', args)
+                if focused:
+                    self.focus[object_id] = focused[1]
+                    if len(self.focus) > 64:
+                        raise ValueError('editor keyboard bound exceeded')
+            elif method == 'leave':
+                self.focus.pop(object_id, None)
+            elif method == 'key':
+                key = re.fullmatch(r'\d+, \d+, (\d+), ([01])', args)
+                if key:
+                    focused = any(state['committed'] and state['title'] and
+                                  state['surface'] == self.focus.get(object_id)
+                                  for state in self.surfaces.values())
+                    self.bad_keys |= not focused
+                    if len(self.keys) >= 64:
+                        raise ValueError('editor key event bound exceeded')
+                    self.keys.append(tuple(map(int, key.groups())))
+        active = any(state['committed'] and state['title'] for state in self.surfaces.values())
+        if active != self.mapped:
+            self.ready = self.interval_seen = False
+        self.mapped = active
+        self.ever_mapped |= active
+
+    def result(self):
+        expected = [(key, state) for key in (20, 18, 31, 20, 14, 20) for state in (1, 0)]
+        native = self.ever_mapped
+        return {'status': 'PASS' if native and not self.bad_keys and self.keys == expected else 'FAIL',
+                'scope': 'native client Wayland protocol and OSK key lifecycle; visual text checked separately',
+                'native_toplevel_observed': native, 'keys': self.keys, 'expected_keys': expected,
+                'unfocused_keys': self.bad_keys}
+
+
 def editor_result(log):
-    """Native Wayland key delivery; text appearance needs separate inspection."""
-    text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log)
-    keys = [(int(key), int(state)) for key, state in re.findall(
-        r'wl_keyboard[#@]\d+\.key\(\d+,\s*\d+,\s*(\d+),\s*([01])\)', text)]
-    expected = [(key, state) for key in (20, 18, 31, 20, 14, 20) for state in (1, 0)]
-    native = all(re.search(pattern, text) for pattern in (
-        r'xdg_wm_base[#@]\d+\.get_xdg_surface\(',
-        r'xdg_surface[#@]\d+\.get_toplevel\(',
-        r'xdg_toplevel[#@]\d+\.set_title\([^\n]*rog5-text-probe\.txt',
-    ))
-    return {'status': 'PASS' if native and keys == expected else 'FAIL',
-            'scope': 'native client Wayland protocol and OSK key lifecycle; visual text checked separately',
-            'native_toplevel_observed': native, 'keys': keys, 'expected_keys': expected}
+    """Use the same attributed parser for readiness and final key evidence."""
+    parser = EditorProtocol()
+    data = log.encode()
+    for offset in range(0, len(data), 131072):
+        parser.feed(data[offset:offset+131072])
+    if parser.pending:
+        parser.feed(b'\n')
+    return parser.result()
 
 
 def render_node_identity(path):
@@ -214,6 +343,7 @@ def main():
     name = 'rog5-virtual-drm-' + uuid.uuid4().hex[:12]
     launched = False
     observer = None
+    editor_readiness = EditorProtocol() if args.observe_mobile_editor else None
     observer_finalized = False
     observation_error = None
     try:
@@ -284,9 +414,12 @@ def main():
                         if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
                             raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
                         if observer and not observer.complete:
-                            with logpath.open('rb') as source:
-                                source.seek(max(0, logpath.stat().st_size-131072))
-                                ready = mobile_ready(source.read(131072))
+                            if editor_readiness:
+                                ready = editor_readiness.read_available(logpath)
+                            else:
+                                with logpath.open('rb') as source:
+                                    source.seek(max(0, logpath.stat().st_size-131072))
+                                    ready = mobile_ready(source.read(131072))
                             observer.tick(time.monotonic(), ready)
                         time.sleep(0.2)
                 except BaseException as error:

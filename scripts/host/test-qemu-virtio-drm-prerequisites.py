@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import patch
 import os
 import stat
+import re
+import subprocess
 
 SPEC = importlib.util.spec_from_file_location(
     'guest', Path(__file__).with_name('test-qemu-virtio-drm.py'))
@@ -17,20 +19,36 @@ SPEC.loader.exec_module(GUEST)
 
 class RuntimePrerequisites(unittest.TestCase):
     @staticmethod
-    def editor_log():
-        return '\n'.join([
-            '[100.01] -> xdg_wm_base#2.get_xdg_surface(new id xdg_surface#3, wl_surface#4)',
-            '[100.02] -> xdg_surface#3.get_toplevel(new id xdg_toplevel#5)',
-            '[100.03] -> xdg_toplevel#5.set_title("rog5-text-probe.txt - Mousepad")',
-            *[f'[101.00] wl_keyboard#6.key({index}, 1000, {key}, {state})'
+    def editor_lines():
+        return [
+            '-> xdg_wm_base#2.get_xdg_surface(new id xdg_surface#3, wl_surface#4)',
+            '-> xdg_surface#3.get_toplevel(new id xdg_toplevel#5)',
+            '-> xdg_toplevel#5.set_title("rog5-text-probe.txt - Mousepad")',
+            'xdg_toplevel#5.configure(540, 1200, array[4])',
+            'xdg_surface#3.configure(71)',
+            '-> xdg_surface#3.ack_configure(71)',
+            '-> wl_surface#4.attach(wl_buffer#8, 0, 0)',
+            '-> wl_surface#4.commit()',
+        ]
+
+    @classmethod
+    def editor_log(cls):
+        lines = cls.editor_lines() + [
+            'wl_keyboard#6.enter(72, wl_surface#4, array[0])',
+            *[f'wl_keyboard#6.key({index}, 1000, {key}, {state})'
               for index, (key, state) in enumerate([
                   (20, 1), (20, 0), (18, 1), (18, 0), (31, 1), (31, 0),
                   (20, 1), (20, 0), (14, 1), (14, 0), (20, 1), (20, 0)])],
-        ])
+        ]
+        return ''.join('EDITOR_WAYLAND [100.01] {Default Queue} '+line+'\n' for line in lines)
+
+    @staticmethod
+    def audit(count):
+        return f'Denial/Volition output scheduler audit presentations={count}\n'
 
     def test_editor_protocol_accepts_exact_native_key_lifecycles_and_ansi(self):
         log = self.editor_log()
-        for text in (log, log.replace('#', '@'), '\x1b[32m' + log + '\x1b[0m'):
+        for text in (log, log.replace('#', '@'), log.replace('xdg_', '\x1b[32mxdg_').replace('(', '\x1b[0m(')):
             with self.subTest(text=text[:40]):
                 result = GUEST.editor_result(text)
                 self.assertEqual(result['status'], 'PASS')
@@ -40,27 +58,166 @@ class RuntimePrerequisites(unittest.TestCase):
                     (20, 1), (20, 0), (14, 1), (14, 0), (20, 1), (20, 0)])
                 self.assertIn('visual text checked separately', result['scope'])
 
-    def test_editor_protocol_requires_toplevel_and_exact_probe_title(self):
-        lines = self.editor_log().splitlines()
-        invalid = ['', '\n'.join(lines[3:]), '\n'.join(lines[:3]),
-                   self.editor_log().replace('rog5-text-probe.txt', 'unrelated.txt')]
-        invalid += ['\n'.join(lines[:index] + lines[index + 1:]) for index in range(3)]
+    def test_editor_protocol_requires_linked_toplevel_and_exact_probe_title(self):
+        log = self.editor_log()
+        invalid = ['', log.replace('rog5-text-probe.txt', 'unrelated.txt'),
+                   log.replace('rog5-text-probe.txt', 'fake-rog5-text-probe.txt'),
+                   log.replace('EDITOR_WAYLAND ', ''),
+                   log.replace('get_toplevel(new id xdg_toplevel#5)', 'get_toplevel(new id xdg_toplevel#9)'),
+                   log.replace('enter(72, wl_surface#4', 'enter(72, wl_surface#9')]
+        for index in range(9):
+            lines = log.splitlines(keepends=True)
+            invalid.append(''.join(lines[:index]+lines[index+1:]))
         for text in invalid:
             with self.subTest(text=text[:70]):
                 self.assertEqual(GUEST.editor_result(text)['status'], 'FAIL')
 
     def test_editor_protocol_rejects_extra_missing_wrong_and_unbalanced_keys(self):
-        lines = self.editor_log().splitlines()
-        invalid = [
-            '\n'.join(lines + [lines[-1]]),
-            '\n'.join(lines[:-1]),
-            '\n'.join(lines[:3] + lines[5:7] + lines[3:5] + lines[7:]),
-            self.editor_log().replace('1000, 18,', '1000, 19,'),
-            self.editor_log().replace('1000, 14, 0)', '1000, 14, 1)'),
-        ]
+        log = self.editor_log()
+        lines = log.splitlines(keepends=True)
+        invalid = [log+lines[-1], ''.join(lines[:-1]),
+                   log.replace('1000, 18,', '1000, 19,'),
+                   log.replace('1000, 14, 0)', '1000, 14, 1)'),
+                   log.replace('wl_keyboard#6.key', 'wl_keyboard#9.key')]
         for text in invalid:
             with self.subTest(text=text[-90:]):
                 self.assertEqual(GUEST.editor_result(text)['status'], 'FAIL')
+
+    def test_editor_readiness_requires_commit_and_later_complete_interval(self):
+        parser = GUEST.EditorProtocol()
+        parser.feed(self.audit(9).encode())
+        self.assertFalse(parser.ready)
+        for line in self.editor_lines():
+            parser.feed(('EDITOR_WAYLAND '+line+'\n').encode())
+            self.assertFalse(parser.ready)
+        parser.feed(self.audit(9).encode())  # May overlap the commit.
+        self.assertFalse(parser.ready)
+        parser.feed(self.audit(0).encode())
+        self.assertFalse(parser.ready)
+        parser.feed(self.audit(2).encode())  # Counts are per interval, not cumulative.
+        self.assertTrue(parser.ready)
+
+    def test_editor_readiness_rejects_wrong_order_ids_serial_and_null_attach(self):
+        lines = self.editor_lines()
+        variants = [lines[:i]+lines[i+1:] for i in range(len(lines))]
+        variants += [lines[:5]+[lines[5].replace('(71)', '(72)')]+lines[6:],
+                     lines[:6]+[lines[6].replace('wl_buffer#8', 'nil')]+lines[7:],
+                     lines[:6]+[lines[6].replace('wl_surface#4', 'wl_surface#9')]+lines[7:],
+                     lines[:5]+[lines[6], lines[5], lines[7]],
+                     lines[:3]+[lines[4], lines[3]]+lines[5:]]
+        for variant in variants:
+            with self.subTest(variant=variant):
+                parser = GUEST.EditorProtocol()
+                parser.feed((''.join('EDITOR_WAYLAND '+line+'\n' for line in variant)+self.audit(1)*2).encode())
+                self.assertFalse(parser.ready)
+
+    def test_editor_stream_latches_across_chunks_without_tail_loss(self):
+        parser = GUEST.EditorProtocol()
+        log = self.editor_log().encode()
+        for value in log:
+            parser.feed(bytes([value]))
+        for _ in range(150):
+            parser.feed(b'unrelated log ' + b'x'*1000+b'\n')
+        parser.feed((self.audit(1)*2).encode())
+        self.assertTrue(parser.ready)
+        self.assertEqual(parser.result()['status'], 'PASS')
+        self.assertEqual(parser.pending, b'')
+
+    def test_editor_cleanup_preserves_completed_evidence_but_revokes_readiness(self):
+        for event in ('-> xdg_toplevel#5.destroy()', '-> xdg_surface#3.destroy()',
+                      '-> wl_surface#4.destroy()',
+                      '-> wl_surface#4.attach(nil, 0, 0)\nEDITOR_WAYLAND -> wl_surface#4.commit()'):
+            with self.subTest(event=event):
+                parser = GUEST.EditorProtocol()
+                parser.feed((self.editor_log()+self.audit(1)*2).encode())
+                self.assertTrue(parser.ready)
+                parser.feed(('EDITOR_WAYLAND '+event+'\n'+self.audit(1)*2).encode())
+                self.assertFalse(parser.ready)
+                self.assertEqual(parser.result()['status'], 'PASS')
+                parser.feed(b'EDITOR_WAYLAND wl_keyboard#6.key(80, 1000, 20, 1)\n')
+                self.assertTrue(parser.bad_keys)
+                self.assertEqual(parser.result()['status'], 'FAIL')
+
+    def test_editor_destroyed_before_ready_never_arms(self):
+        parser = GUEST.EditorProtocol()
+        parser.feed((self.editor_log()+'EDITOR_WAYLAND -> xdg_toplevel#5.destroy()\n'+self.audit(1)*3).encode())
+        self.assertFalse(parser.ready)
+
+    def test_editor_stream_bounds_and_truncation_fail_closed(self):
+        parser = GUEST.EditorProtocol()
+        with self.assertRaises(ValueError):
+            parser.feed(b'x' * 16385)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'serial.log'
+            path.write_bytes(self.editor_log().encode())
+            parser = GUEST.EditorProtocol()
+            parser.read_available(path)
+            offset = parser.offset
+            parser.read_available(path)
+            self.assertEqual(parser.offset, offset)
+            self.assertEqual(parser.result()['status'], 'PASS')
+            path.write_bytes(b'')
+            with self.assertRaises(ValueError):
+                parser.read_available(path)
+
+    @staticmethod
+    def runtime_function():
+        script = Path(__file__).resolve().parents[2]/'tools/qemu-virtio-drm/guest.sh'
+        return re.search(r'^prepare_editor_runtime\(\) \{\n.*?^\}', script.read_text(), re.M | re.S)[0]
+
+    def prepare_cache_fixture(self, directory, failure=''):
+        root = Path(directory)
+        tools = root/'bin'
+        tools.mkdir()
+        schemas, mime, cache = (root/name for name in ('schemas', 'mime', 'cache'))
+        schemas.mkdir()
+        mime.mkdir()
+        (schemas/'fixture.gschema.xml').write_text('<schema/>')
+        (mime/'fixture.xml').write_text('<mime/>')
+        for name, script in {
+            'glib-compile-schemas': '[[ $1 == --strict && $2 == --targetdir=* ]]\nprintf schema > "${2#--targetdir=}/gschemas.compiled"',
+            'update-mime-database': 'test -s "$1/packages/fixture.xml"\nprintf mime > "$1/mime.cache"',
+        }.items():
+            if failure == name:
+                script = 'exit 42'
+            elif failure == name+'-empty':
+                script = ':'
+            tool = tools/name
+            tool.write_text('#!/bin/bash\nset -euo pipefail\n'+script+'\n')
+            tool.chmod(0o700)
+        command = ['bash', '-c', 'set -euo pipefail\n'+self.runtime_function()+
+                   '\nprepare_editor_runtime "$1" "$2" "$3"\n'
+                   'printf "ENV %s %s\\n" "$GSETTINGS_SCHEMA_DIR" "$XDG_DATA_DIRS"',
+                   'fixture', str(schemas), str(mime), str(cache)]
+        env = dict(os.environ, PATH=str(tools)+':'+os.environ['PATH'])
+        env.pop('GSETTINGS_SCHEMA_DIR', None)
+        return root, cache, command, env
+
+    def test_editor_derived_runtime_caches_and_exports_are_guest_local(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, cache, command, env = self.prepare_cache_fixture(directory)
+            result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('PASS guest RAM GSettings and MIME caches prepared', result.stdout)
+            self.assertIn(f'ENV {cache}/schemas {cache}:/usr/local/share:/usr/share', result.stdout)
+            self.assertEqual(stat.S_IMODE(cache.stat().st_mode), 0o700)
+            self.assertEqual((root/'schemas/fixture.gschema.xml').read_text(), '<schema/>')
+            self.assertEqual((root/'mime/fixture.xml').read_text(), '<mime/>')
+            self.assertFalse((root/'schemas/gschemas.compiled').exists())
+            self.assertFalse((root/'mime/mime.cache').exists())
+            repeat = subprocess.run(command, env=env, capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(repeat.returncode, 0)
+            self.assertNotIn('PASS', repeat.stdout)
+
+    def test_editor_derived_runtime_cache_failures_never_export_success(self):
+        for failure in ('glib-compile-schemas', 'update-mime-database',
+                        'glib-compile-schemas-empty', 'update-mime-database-empty'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                _, _, command, env = self.prepare_cache_fixture(directory, failure)
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=5)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('PASS', result.stdout)
+                self.assertNotIn('ENV', result.stdout)
 
     def test_egl_comparison_requires_all_modes_and_observations(self):
         lines = []
@@ -148,6 +305,15 @@ class RuntimePrerequisites(unittest.TestCase):
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
+            cache_inputs = [
+                'usr/bin/'+name for name in ('mkfifo', 'sed', 'cp', 'sha256sum',
+                                             'glib-compile-schemas', 'update-mime-database')]
+            cache_inputs += ['usr/share/glib-2.0/schemas/org.xfce.mousepad.gschema.xml',
+                             'usr/share/mime/packages/freedesktop.org.xml']
+            for relative in cache_inputs:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
             for mobile in (False, True):
                 with self.subTest(mobile=mobile):
                     self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=mobile), [])
@@ -163,6 +329,13 @@ class RuntimePrerequisites(unittest.TestCase):
             editor.touch()
             self.assertEqual(GUEST.missing_runtime_inputs(
                 root, True, mobile=True, editor=True), [])
+            for relative in cache_inputs:
+                path = root / relative
+                path.unlink()
+                self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True, editor=True), [relative])
+                self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True), [])
+                path.touch()
+
             (root / 'usr/bin/Xwayland').unlink()
             self.assertEqual(GUEST.missing_runtime_inputs(
                 root, True, mobile=True, editor=True), ['usr/bin/Xwayland'])

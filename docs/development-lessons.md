@@ -2580,3 +2580,16 @@ Account for the custom PID1's chroot when addressing guest udev; do not silently
 ignore its refusal. The corrected51.8-second run proved keyboard layer switching
 without rebuilding the native/engine pair. Text entry and physical touch remain
 separate checks. Keep visual verdicts separate from transport receipts.
+
+
+Native GTK VM preparation (2026-09-13): the unpacked authenticated runtime
+contains package data but no post-transaction caches. The first editor run
+rendered66 frames in66.972 seconds yet never created its window: missing
+GSettings schemas crashed activated services, and absent MIME data prevented
+GdkPixbuf from selecting its installed SVG decoder. Preparing schemas alone
+for an earlier CLI check did not prepare this separate VM composition. Generate
+both caches from the retained sources in guest RAM before starting D-Bus;
+preserve the read-only package tree and record derived hashes. Do not replace
+Glycin or disable its sandbox to treat an unrecognized MIME type. Gate synthetic
+input on the actual application window and subsequent presentation, and keep
+client protocol attribution separate from other D-Bus-activated clients.

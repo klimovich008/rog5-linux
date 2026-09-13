@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 # Offline QEMU guest only: the host harness must supply no physical devices.
 set -euo pipefail
+prepare_editor_runtime() {
+    # Package extraction does not execute post-transaction hooks. Derive only
+    # these session caches in guest RAM; the authenticated /usr stays read-only.
+    local schemas=${1:-/usr/share/glib-2.0/schemas}
+    local mime=${2:-/usr/share/mime/packages}
+    local cache=${3:-/run/gtk-runtime}
+    mkdir -m 700 "$cache"
+    mkdir -p "$cache/schemas" "$cache/mime/packages"
+    timeout --kill-after=1 10 glib-compile-schemas --strict --targetdir="$cache/schemas" "$schemas"
+    cp "$mime"/*.xml "$cache/mime/packages/"
+    XDG_DATA_DIRS="$cache:/usr/local/share:/usr/share" \
+        timeout --kill-after=1 10 update-mime-database "$cache/mime"
+    test -s "$cache/schemas/gschemas.compiled"
+    test -s "$cache/mime/mime.cache"
+    export GSETTINGS_SCHEMA_DIR="$cache/schemas"
+    export XDG_DATA_DIRS="$cache:/usr/local/share:/usr/share"
+    sha256sum "$cache/schemas/gschemas.compiled" "$cache/mime/mime.cache"
+    echo 'PASS guest RAM GSettings and MIME caches prepared'
+}
+
 case " $(cat /proc/cmdline) " in
     *' rog5.virtual_drm=1 '*) ;;
     *) echo 'FAIL virtual guest marker absent' >&2; exit 1 ;;
@@ -46,6 +66,9 @@ if [[ -x /run/payload/egl-thread-probe ]]; then
     done
     echo 'NOT RUN Denial: standalone EGL thread-transfer experiment'
 elif [[ -d /run/payload/flutter ]]; then
+    if [[ -f /run/mobile-editor ]]; then
+        prepare_editor_runtime
+    fi
     # UntilLogout supports initially inactive CRTCs; the external timer owns
     # this guest's lifetime. Keep seatd alive while Denial handles SIGTERM.
     export SEATD_SOCK=/run/seatd.sock
@@ -56,7 +79,8 @@ elif [[ -d /run/payload/flutter ]]; then
     bus_pid=$!
     udev_pid=''
     editor_pid=''
-    trap 'if [[ -n $editor_pid ]]; then kill "$editor_pid"; wait "$editor_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
+    editor_log_pid=''
+    trap 'if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
     if [[ -f /run/shell-profile ]]; then
         # Fixed virtual devices need real udev input_id data for libinput.
         for event in /sys/class/input/event*; do
@@ -111,6 +135,9 @@ elif [[ -d /run/payload/flutter ]]; then
         shell_options=()
         shell_seconds=60
         : > /tmp/rog5-text-probe.txt
+        mkfifo -m 600 /run/editor-stderr
+        sed -u 's/^/EDITOR_WAYLAND /' < /run/editor-stderr &
+        editor_log_pid=$!
         (
             for ((attempt=0; attempt<250; attempt++)); do
                 sockets=()
@@ -124,7 +151,7 @@ elif [[ -d /run/payload/flutter ]]; then
             echo 'OBSERVE native Mousepad launch; normal unlocked VM startup; RAM file only'
             exec timeout --preserve-status --kill-after=2 65 env \
                 GDK_BACKEND=wayland WAYLAND_DEBUG=client WAYLAND_DISPLAY="${sockets[0]##*/}" \
-                mousepad /tmp/rog5-text-probe.txt
+                mousepad /tmp/rog5-text-probe.txt 2>/run/editor-stderr
         ) &
         editor_pid=$!
     fi
