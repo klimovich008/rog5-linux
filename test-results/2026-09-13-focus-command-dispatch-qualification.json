@@ -1,0 +1,1656 @@
+{
+  "schema": 1,
+  "status": "source/build PASS; VM app switching FAIL",
+  "scope": "offline ARM64 compositor correction and VirGL VM treatment; no phone evidence",
+  "starting": {
+    "commit": "d751f7365fef949da0fb859490bf19fdc7184872",
+    "tree": "5bd53ef7cee16f51f3a2fcf65a22345e582d5eea",
+    "source_input": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration",
+    "previous_turn": "progress: VM isolated visual/native focus discrepancy"
+  },
+  "executed_source": {
+    "commit": "2ba6b1826d55f22aece5d202ec017448d050b37b",
+    "tree": "692bf47123d1635f097d535275bdaf92ff8868e8"
+  },
+  "patch_application": {
+    "status": "PASS",
+    "base": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "ordered_patches": [
+      {
+        "path": "patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch",
+        "sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1"
+      },
+      {
+        "path": "patches/denial-85b2303e/0002-distinguish-render-target-refusals.patch",
+        "sha256": "593e74d6d5fde9f41fdff210296d82c4d4617d206b6a2c368805a0d344fea269"
+      },
+      {
+        "path": "patches/denial-85b2303e/0003-trace-render-authorization-history.patch",
+        "sha256": "448b00598c86134a4bd56e496dda6a8daf8952297e1cb92fff084840bb267025"
+      },
+      {
+        "path": "patches/denial-85b2303e/0004-trace-egl-context-ownership.patch",
+        "sha256": "1c96d95fa271e1de55bd0627d94a19fe9e752e940385b6e44fca2142a67d68f2"
+      },
+      {
+        "path": "patches/denial-85b2303e/0005-clear-current-io-resource-context.patch",
+        "sha256": "f4d39aef4eac255f504a4900095935cb91fd1d5bde238e02b90b69e35ed0e0d2"
+      },
+      {
+        "path": "patches/denial-85b2303e/0006-bind-render-work-reservations.patch",
+        "sha256": "93e3cb6d4d37b4dbd94080b71fd3fc7f12637ef54861c861c2fe7a96eb938749"
+      },
+      {
+        "path": "patches/denial-85b2303e/0007-own-startup-callback-graph-before-registration.patch",
+        "sha256": "55e3d7c63cd00f0226423c35d25cc0ec2bcfdf41377f8c0b9e9965c13cf50aa6"
+      },
+      {
+        "path": "patches/denial-85b2303e/0008-use-logical-window-content-size.patch",
+        "sha256": "6b96371155c3e1bb3bba3581116a7901c08bdb19a9f782c2030bcefbf317bb52"
+      },
+      {
+        "path": "patches/denial-85b2303e/0009-service-window-commands-before-background-yield.patch",
+        "sha256": "28a6c2ab628d173ffce458cbb60887a924874ff674845cd0f517721fe08f8d46"
+      }
+    ],
+    "duration_seconds": 0.24700541998026893,
+    "source": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/source",
+    "archive_sha256": "7811a49a6ff39e9eaf77e02c9e363d00bd1fb3c27c3332acc41d3ce69ce08806"
+  },
+  "source_manifest": {
+    "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/source-files.json",
+    "sha256": "ebad76c272205f90ee2ddddcdcceafb28ed3adc5f0e121abf4e5ea04d1e550b6",
+    "size": 84051
+  },
+  "regression": {
+    "scope": "Execute the pinned event-loop dispatch segment with deterministic time adapters.\n\nActual queue methods and corrected native/plugin routing are extracted; engine,\nclock, background services and Wayland endpoints are fixtures. No VM/phone proof.\n",
+    "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "phone": "NOT RUN",
+    "vm": "NOT RUN",
+    "patch_sha256": "28a6c2ab628d173ffce458cbb60887a924874ff674845cd0f517721fe08f8d46",
+    "runs": [
+      {
+        "variant": "before",
+        "build_command": [
+          "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+          "--edition=2024",
+          "--test",
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/before.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/before",
+          "--cfg",
+          "before"
+        ],
+        "build_seconds": 0.6026343700068537,
+        "command": [
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/before",
+          "--test-threads=1"
+        ],
+        "duration_seconds": 0.0024368439917452633,
+        "exit_status": 101,
+        "expected_observed": true,
+        "unit_sha256": "4bf97fb818e1abc40de2a5f4ad234c3438310ca87c3227763dedace69657435f",
+        "source_hashes": {
+          "compositor/src/bin/deniald/flutter_event_loop.rs": "a9db3d023641860504fddee140b7866f5d1d2eec8912df9b66c2159002bc6d43",
+          "compositor/src/bin/deniald/flutter_settings_sync.rs": "0185ad64aed0c13087f20666a9835f7b471927f939fc4e4177aee532db1a918c",
+          "compositor/src/bin/deniald/flutter_runtime/service_bridge.rs": "50725ffbd507fcba37e2d38e6a4a07c9cf31ac00660853854a175a52f0b82120",
+          "compositor/src/bin/deniald/wire.rs": "dcc79affe446c409224eed512772a3a55782d2c8492258440c4ecace1bf8cadb",
+          "compositor/src/bin/deniald.rs": "9d654093790531865b458ea563efa846eb08274ac6259dbbb5fe66c810ab94ed"
+        }
+      },
+      {
+        "variant": "after",
+        "build_command": [
+          "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+          "--edition=2024",
+          "--test",
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/after.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/after"
+        ],
+        "build_seconds": 0.6037650260259397,
+        "command": [
+          "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final/after",
+          "--test-threads=1"
+        ],
+        "duration_seconds": 0.00240386399673298,
+        "exit_status": 0,
+        "expected_observed": true,
+        "unit_sha256": "ff0cec0d2e80681c33642cdb463beba981a5301bee4e3627a014d21ff961c83e",
+        "source_hashes": {
+          "compositor/src/bin/deniald/flutter_event_loop.rs": "115ce5e1c15619733d192d2bf38f049687d0cc3bdb96ab96d396d9c2f0978881",
+          "compositor/src/bin/deniald/flutter_settings_sync.rs": "e95da022d87e0afc71b84bebc09198874a9fb322ccfed4cc034789463351334a",
+          "compositor/src/bin/deniald/flutter_runtime/service_bridge.rs": "a64e35f72a31905b3283a234db0234b63959fd77f9cc00d4dfdead6181286e93",
+          "compositor/src/bin/deniald/wire.rs": "4980bdf294615b9c52b3f60239deb5bc9539d9369f4ae89b1e55621b61f63e90",
+          "compositor/src/bin/deniald.rs": "fd7a802267687033f672c56b04f2c222306e44df726874136f69c3784bb61200"
+        }
+      }
+    ],
+    "counterexamples_observed": true,
+    "status": "PASS"
+  },
+  "regression_command": [
+    "env",
+    "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+    "python3",
+    "-O",
+    "scripts/host/test-window-command-dispatch.py",
+    "--source",
+    "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source",
+    "--output",
+    "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/regression-final"
+  ],
+  "review": {
+    "scope": "bounded read-only independent source review; test counts are parent-executed, not reviewer-executed",
+    "reviewed_patch_sha256": "28a6c2ab628d173ffce458cbb60887a924874ff674845cd0f517721fe08f8d46",
+    "findings": [
+      {
+        "status": "fixed before build",
+        "finding": "Initial extraction removed the shared final command drain used by bundle reload and topology restart. Final patch retains the full drain and adds backlog/final-message regression."
+      },
+      {
+        "status": "unresolved runtime boundary",
+        "finding": "Horizontal slide paints the incoming app before AnimationStatus.completed calls completeAdjacentWindowSwitch and sends FocusWindow. A visible incoming app does not prove send occurred."
+      },
+      {
+        "status": "unresolved runtime boundary",
+        "finding": "Smithay set_focus delegates through keyboard grabs; Denial then publishes WindowActivated without verifying resulting current focus. Current VM has no popup/grab evidence."
+      },
+      {
+        "status": "disproved source mismatch",
+        "finding": "FocusWindow=3 and denial/wire/to_native agree across generated Dart/Rust, schema and channel constants."
+      }
+    ],
+    "limitations": [
+      "Early loop continuations remain outside the regression scope.",
+      "Nine patched regression cases prove extracted dispatch behavior with clock, engine, auth and endpoint adapters.",
+      "Retained VM focus failure cannot yet be attributed to scheduling."
+    ],
+    "next": "Correlate Dart animation completion/target ID/send result, native enqueue/drain, actual focus before/after and grab state."
+  },
+  "build": {
+    "source_commit": "2ba6b1826d55f22aece5d202ec017448d050b37b",
+    "source_tree": "692bf47123d1635f097d535275bdaf92ff8868e8",
+    "command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-focus-dispatch-native-r1",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=3g",
+      "--memory-swap=3g",
+      "--cpus=2",
+      "--pids-limit=512",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/build-context.cid",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/source:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2:/build:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/tmp:/tmp:rw",
+      "-e",
+      "CARGO_HOME=/build/cargo-home",
+      "-e",
+      "CARGO_TARGET_DIR=/build/target",
+      "-e",
+      "TMPDIR=/build/tmp",
+      "-e",
+      "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/aarch64-linux-gnu-gcc",
+      "-e",
+      "PKG_CONFIG_ALLOW_CROSS=1",
+      "-e",
+      "PKG_CONFIG_SYSROOT_DIR=/",
+      "-e",
+      "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig",
+      "-e",
+      "PKG_CONFIG_PATH=",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/opt/denial-rust/bin/cargo",
+      "build",
+      "--manifest-path",
+      "/source/compositor/Cargo.toml",
+      "--locked",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--offline",
+      "--release",
+      "--jobs",
+      "1",
+      "--features",
+      "flutter",
+      "--bin",
+      "deniald"
+    ],
+    "started": "2026-09-13T02:49:46.096968+00:00",
+    "free_before": 3509948416,
+    "status": "PASS",
+    "exit_status": 0,
+    "duration_seconds": 212.5752718570002,
+    "minimum_free_bytes": 3460390912,
+    "binary_sha256": "02212bcd6dbf4827e0a7226b94c1cdb929f0c16df5d51b6bd3413f93d3cbbf9c",
+    "container_removed": true
+  },
+  "binary": {
+    "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/deniald-context",
+    "sha256": "02212bcd6dbf4827e0a7226b94c1cdb929f0c16df5d51b6bd3413f93d3cbbf9c",
+    "size": 15987976
+  },
+  "vm_driver": {
+    "command": [
+      "python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "--runtime",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+      "--deniald",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/deniald-context",
+      "--flutter-bundle",
+      "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+      "--image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--render-node",
+      "/dev/dri/renderD128",
+      "--output",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1",
+      "--deadline",
+      "120",
+      "--observe-mobile",
+      "--observe-mobile-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+    ],
+    "exit_status": 1,
+    "duration_seconds": 103.01622018299531
+  },
+  "vm_result": {
+    "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+    "started": "2026-09-13T02:53:30.820766+00:00",
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "deniald_sha256": "02212bcd6dbf4827e0a7226b94c1cdb929f0c16df5d51b6bd3413f93d3cbbf9c",
+    "egl_thread_probe_sha256": null,
+    "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "runtime_inventory_verified_by_this_runner": false,
+    "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+    "graphics_mode": "virgl",
+    "host_render_node": {
+      "path": "/dev/dri/renderD128",
+      "major": 226,
+      "minor": 128,
+      "scope": "host rendering only; no phone device"
+    },
+    "harness_sha256": "550b248068fb6df6f532962dcfca7b3c6faa9ac22af12429192a480cfe456e3d",
+    "init_source_sha256": "cc351dc5a61acce969b7ac7d2d085f2cf5c6ebdd98d33696a18d46f79cef271c",
+    "compile_command": [
+      "clang",
+      "--target=aarch64-none-elf",
+      "-fuse-ld=lld",
+      "-nostdlib",
+      "-static",
+      "-fno-pic",
+      "-fno-stack-protector",
+      "-Werror",
+      "-Wall",
+      "-Wextra",
+      "-Wl,--build-id=none,--entry=_start",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "-o",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/initramfs/init"
+    ],
+    "status": "FAIL",
+    "launcher_protocol_sha256": "b3f11a5f42e1893775e08b8c677d6808dfb67c2b052860589a49022ef5d0dfac",
+    "app_binary_hashes": {
+      "foot": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+      "mousepad": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+    },
+    "mobile_editor": false,
+    "mobile_launcher": false,
+    "mobile_apps": true,
+    "launcher_apps_sha256": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+    "observer_sha256": "832471881e571df55ba158a6cd8a6691be4ad46b5ea51b94544873d3de029e78",
+    "shell_profile": "mobile",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-virtual-drm-fa401d5688d3",
+      "--network",
+      "none",
+      "--read-only",
+      "--memory",
+      "1536m",
+      "--memory-swap",
+      "1536m",
+      "--cpus",
+      "2",
+      "--pids-limit",
+      "64",
+      "--security-opt",
+      "no-new-privileges",
+      "-v",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/initramfs.cpio.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/payload:/payload:ro",
+      "--device",
+      "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+      "-e",
+      "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+      "-v",
+      "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe:/observe:rw",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "2",
+      "-m",
+      "1024M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "egl-headless,rendernode=/dev/dri/renderD128",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+      "-device",
+      "virtio-gpu-gl-device,xres=540,yres=1224",
+      "-device",
+      "virtio-keyboard-device",
+      "-device",
+      "virtio-tablet-device",
+      "-device",
+      "virtio-rng-device",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload",
+      "-name",
+      "rog5-virtual-drm-fa401d5688d3",
+      "-qmp",
+      "unix:/observe/qmp.sock,server=on,wait=off",
+      "-vnc",
+      "unix:/observe/vnc.sock"
+    ],
+    "mobile_observation": {
+      "status": "FAIL",
+      "scope": "Local VM captures and synthetic pointer delivery only",
+      "visual_semantics": "NOT RUN: inspect screenshots separately",
+      "phone_touch": "NOT RUN",
+      "profile": "mobile",
+      "capture_backend": "UNIX VNC raw",
+      "screenshots": [
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-1.png",
+          "sha256": "b0ac3881aef8886fc23af7d18af680234999232cb6a6efdd9592f454c2ca5c5d",
+          "size": 4896,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-2.png",
+          "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+          "size": 798785,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-3.png",
+          "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+          "size": 798785,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-4.png",
+          "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "size": 650222,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/01-mousepad-launched-waiting.png",
+          "sha256": "6e453b60313206ecb6cb63e2327baf9933c5e646c1a541824bdcf18044fb087f",
+          "size": 5120,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/01-mousepad-launched.png",
+          "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+          "size": 16846,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/02-overview-or-home.png",
+          "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+          "size": 222021,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/02-home-returned-probe-1.png",
+          "sha256": "fc06b48d5ee5519f70d2a266a138b9a0a1813a975ece9ac107ad439293a8be34",
+          "size": 650073,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/03-foot-launched.png",
+          "sha256": "bf2e811409dc592062e36e393f5593524a187d3eb428df1f066d3e0da340aa07",
+          "size": 10694,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/04-mousepad-restored-waiting.png",
+          "sha256": "49b97beb56c9ce43e311323e89da21dcc10be8799bbbc37223fd3986d3f09fa2",
+          "size": 16998,
+          "width": 540,
+          "height": 1224
+        }
+      ],
+      "actions": [
+        {
+          "operation": "home",
+          "value": "00-home-ready"
+        },
+        {
+          "operation": "click",
+          "value": [
+            77,
+            752
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "mousepad",
+            "01-mousepad-launched"
+          ]
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              270,
+              1150
+            ],
+            [
+              270,
+              1060
+            ],
+            [
+              270,
+              970
+            ],
+            [
+              270,
+              880
+            ]
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "02-overview-or-home"
+        },
+        {
+          "operation": "click",
+          "value": [
+            25,
+            1080
+          ]
+        },
+        {
+          "operation": "home",
+          "value": "02-home-returned"
+        },
+        {
+          "operation": "click",
+          "value": [
+            205,
+            592
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "foot",
+            "03-foot-launched"
+          ]
+        },
+        {
+          "operation": "gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              315,
+              1194
+            ],
+            [
+              365,
+              1194
+            ],
+            [
+              415,
+              1194
+            ]
+          ]
+        }
+      ],
+      "probe": "UI launch and switch native Mousepad and Foot",
+      "launcher_reference": {
+        "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+        "size": 650222,
+        "width": 540,
+        "height": 1224
+      },
+      "launcher_tiles": {
+        "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+        "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+      },
+      "waiting_for": {
+        "operation": "client",
+        "value": [
+          "mousepad",
+          "04-mousepad-restored"
+        ]
+      },
+      "tile_checks": [
+        {
+          "capture": "00-home-ready-probe-1",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-2",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-3",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-4",
+          "matched": true
+        },
+        {
+          "capture": "02-home-returned-probe-1",
+          "matched": true
+        }
+      ],
+      "qmp": [
+        {
+          "request": {
+            "execute": "qmp_capabilities",
+            "id": 1
+          },
+          "response": {
+            "return": {},
+            "id": 1
+          }
+        },
+        {
+          "request": {
+            "execute": "query-name",
+            "id": 2
+          },
+          "response": {
+            "return": {
+              "name": "rog5-virtual-drm-fa401d5688d3"
+            },
+            "id": 2
+          }
+        },
+        {
+          "request": {
+            "execute": "query-status",
+            "id": 3
+          },
+          "response": {
+            "return": {
+              "status": "running",
+              "singlestep": false,
+              "running": true
+            },
+            "id": 3
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 4,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 4681
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 20148
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 4
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 5,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 5
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 6,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 6
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 7,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 7
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 8,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 8
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 9,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30811
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 9
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 10,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28400
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 10
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 11,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 25989
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 11
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 12,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 23577
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 12
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 13,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 13
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 14,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 1520
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28936
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 14
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 15,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 15
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 16,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 16
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 17,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 12462
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 15861
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 17
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 18,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 18
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 19,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 19
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 20,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 20
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 21,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 21
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 22,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 19150
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 22
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 23,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 22189
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 23
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 24,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 25229
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 24
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 25,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 25
+          }
+        }
+      ],
+      "error": "guest ended before observation completed",
+      "pointer_released": true
+    },
+    "qemu_exit_status": 0,
+    "drm_discovery": "PASS",
+    "deniald_kms": "NOT RUN",
+    "deniald_cli": "NOT RUN",
+    "shell_exit": "PASS",
+    "shell_rendering": {
+      "status": "PASS",
+      "scope": "Denial terminal counters; not visual or phone proof",
+      "raster_frames": 85,
+      "output_page_flips": 85,
+      "render_errors": []
+    },
+    "launcher_protocol": {
+      "status": "FAIL",
+      "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+      "owners": {
+        "mousepad": {
+          "pid": "141",
+          "start": "3694"
+        },
+        "foot": {
+          "pid": "249",
+          "start": "6870"
+        }
+      },
+      "mapped": {
+        "mousepad": true,
+        "foot": true
+      },
+      "ready": {
+        "mousepad": true,
+        "foot": true
+      },
+      "focus_history": [
+        "mousepad",
+        "foot"
+      ],
+      "focus_generation": 2,
+      "active_app": "foot",
+      "expected_sequence": [
+        "mousepad",
+        "foot",
+        "mousepad",
+        "foot"
+      ],
+      "client_state": {
+        "mousepad": {
+          "interval_seen": true,
+          "keyboard_focus": {},
+          "surfaces": {
+            "25": {
+              "surface": "24",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "5",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "26": "25"
+          }
+        },
+        "foot": {
+          "interval_seen": true,
+          "keyboard_focus": {
+            "21": "3"
+          },
+          "surfaces": {
+            "30": {
+              "surface": "3",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "18",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "31": "30"
+          }
+        }
+      },
+      "focus_visits": [
+        {
+          "app": "mousepad",
+          "interval_seen": true,
+          "presented_interval": true,
+          "presentation_observation": {
+            "status": "PASS",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "foot",
+          "interval_seen": true,
+          "presented_interval": true,
+          "presentation_observation": {
+            "status": "PASS",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        }
+      ],
+      "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+      "errors": [],
+      "post_terminal_exits": [
+        "OBSERVE launcher app=mousepad exit=1",
+        "OBSERVE launcher app=foot exit=230"
+      ],
+      "visual_semantics": "NOT RUN",
+      "phone": "NOT RUN"
+    },
+    "launcher_apps_cleanup": "PASS",
+    "container_removed": true,
+    "duration_seconds": 102.90844991299673,
+    "hashes": {
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "96481cde93e42a825ff3b2fdcaf8a80769c3f1391f4e5a92dbb4bf4302fb6e28",
+      "initramfs.cpio.gz": "1adef959dd13b23e18fca61f6a0a9b78cad02a7e187b4b2f444a3b29ee97e2b0",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+      "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+      "initramfs/stage/launcher-apps.sh": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+      "serial.log": "1ec2f5908e59aceee9291fc68f020938e5e8dec0ff693e2e14e583ae7713e642"
+    }
+  },
+  "vm_result_identity": {
+    "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/result.json",
+    "sha256": "d7bb6da848289ff8510b38848c3908d756884396e6873d642669e3390323d8b3",
+    "size": 26516
+  },
+  "vm_inputs": {
+    "status": "PASS",
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "size": 6918152,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/deniald-context",
+        "sha256": "02212bcd6dbf4827e0a7226b94c1cdb929f0c16df5d51b6bd3413f93d3cbbf9c",
+        "size": 15987976,
+        "previous_path": "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+        "previous_sha256": "878ff4c6155279264782523837cf7672273f333a9a45318a7db9cc9fbf7ce19a",
+        "changed": true
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/lib/libapp.so",
+        "sha256": "85567c81c52a375d8fa424aaaa54a152440b2fd02d73632301b857da6b230b19",
+        "size": 10814352,
+        "changed": false
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "size": 15999928,
+        "changed": false
+      }
+    ],
+    "scope": "one native binary changed; other retained kernel/runtime inputs hash-identical",
+    "free_bytes": 3431161856
+  },
+  "visual": {
+    "scope": "direct parent inspection of three final VM captures; not phone qualification",
+    "status": "FAIL: native focus still Foot after visible Mousepad return",
+    "captures": [
+      {
+        "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/01-mousepad-launched.png",
+        "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+        "observed": "Mousepad titled document visible"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/03-foot-launched.png",
+        "sha256": "bf2e811409dc592062e36e393f5593524a187d3eb428df1f066d3e0da340aa07",
+        "observed": "Foot shell prompt visible"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/guest-apps-r1/observe/04-mousepad-restored-waiting.png",
+        "sha256": "49b97beb56c9ce43e311323e89da21dcc10be8799bbbc37223fd3986d3f09fa2",
+        "observed": "Mousepad document visible again"
+      }
+    ],
+    "native_focus_events": [
+      {
+        "line": 1935,
+        "text": "EDITOR_WAYLAND [00:01:01.961101] {Default Queue} wl_keyboard#22.enter(3, wl_surface#24, array[0])"
+      },
+      {
+        "line": 2932,
+        "text": "EDITOR_WAYLAND [00:01:10.286706] {Default Queue} wl_keyboard#22.leave(14, wl_surface#24)"
+      },
+      {
+        "line": 2965,
+        "text": "FOOT_WAYLAND [00:01:10.483020] {Default Queue} wl_keyboard#21.enter(14, wl_surface#3, array[0])"
+      }
+    ],
+    "hypothesis_result": "Early dispatch fix is not sufficient for this VM app-switch failure; runtime origin still unproven",
+    "second_return_to_foot": "NOT RUN",
+    "phone": "NOT RUN"
+  },
+  "active": {
+    "counts": {
+      "PASS": 92,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-focus-dispatch-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "2ba6b1826d55f22aece5d202ec017448d050b37b",
+      "source_tree": "692bf47123d1635f097d535275bdaf92ff8868e8",
+      "started": "2026-09-13T02:55:46.475578+00:00",
+      "exit_status": 0,
+      "duration_seconds": 137.532451209001
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/active-report/summary.json",
+      "sha256": "c11d46bf9b588ff1e69694e3799ab48a20a6f0335c71ff6fd7c6a818cd794a90",
+      "size": 111139
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-focus-dispatch-20260913-r1/active-report/summary.xml",
+      "sha256": "dc2c0f4432f9646dfd47469d32e7ce3781cbd458f5c3447e390770b780e0f0c0",
+      "size": 55940
+    }
+  },
+  "phone": "NOT RUN",
+  "signing_admission_claims": "NOT RUN",
+  "candidate_creation": false,
+  "protected_storage_mutation": false
+}

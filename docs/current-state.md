@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM launches both apps; visual switch leaves native keyboard focus behind**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Early command dispatch fixed; VM focus failure persists**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Final 102.435-second VM run visibly launched Mousepad and Foot, returned through Overview/home and restored Mousepad after a right swipe, but native keyboard focus stayed Foot. Full app-switch result FAIL; reverse switch NOT RUN. 79 frames/page flips and clean owned shutdown do not close the input failure. Earlier runs failed an event-driven-audit readiness gate and velocity-dependent home gesture; both are preserved and the harness corrected. 92 active suites PASS. Next: trace focus request ID, wire enqueue/drain and native activation; a source-level scheduling starvation path is demonstrated, but its role in this run is unproven. No binary rebuild or phone operation. All mobile physical rows NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-vm-app-switch.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Patch 0009 passes nine extracted Rust cases, the full nine-patch Denial series applies, and the ARM64 compositor builds in 212.575 seconds. One 102.908-second VM treatment with only native binary changed still shows Mousepad after switching while native focus remains Foot: app-switch FAIL, second return NOT RUN. 85 frames/page flips and clean cleanup do not resolve input. The early dispatch correction is insufficient; next trace Dart animation completion and focus send, native enqueue/drain and actual focus/grab state. 92 active suites PASS. No further unchanged VM runs. No phone operation; mobile physical rows NOT RUN and S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-focus-command-dispatch.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
