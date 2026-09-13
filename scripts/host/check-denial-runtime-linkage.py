@@ -239,6 +239,8 @@ def main():
         for key in list(runtime.verified): runtime.resolve('/'+key)
         report.update(status='PASS_LINKAGE_ONLY',runtime_files=list(runtime.verified.values()))
     except (OSError,ValueError,KeyError,subprocess.SubprocessError,KeyboardInterrupt) as error:
+        if report['status'] != 'BLOCKED':
+            report['status'] = 'FAIL'
         report['error'] = str(error)
         report['error_notes'] = list(getattr(error, '__notes__', []))
         interrupted = isinstance(error, KeyboardInterrupt)
