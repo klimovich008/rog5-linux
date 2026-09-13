@@ -272,6 +272,13 @@ def launcher_discovery_result(log):
             'unexpected_app_or_failure': unexpected, 'app_launch_and_switch': 'NOT RUN'}
 
 
+def observer_poll_delay(observer, now):
+    """Honor the scripted action clock without busy polling or extending bounds."""
+    if observer is None or observer.complete or observer.client is None:
+        return .2
+    return min(.2, max(.01, observer.next_at-now))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
@@ -287,6 +294,8 @@ def main():
                         help='unlocked launcher discovery captures; app interaction NOT RUN')
     parser.add_argument('--observe-mobile-apps', action='store_true',
                         help='launch/switch native apps; requires inspected launcher reference')
+    parser.add_argument('--observe-mobile-apps-text', action='store_true',
+                        help='OSK text probe during launcher-based two-app flow')
     parser.add_argument('--launcher-reference', type=Path)
     parser.add_argument('--evidence-writer', type=Path, help='ARM64 bounded record writer; required for app observation')
     parser.add_argument('--trace-focus', action='store_true',
@@ -301,6 +310,8 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
     args = parser.parse_args()
+    if args.observe_mobile_apps_text and not args.observe_mobile_apps:
+        parser.error('launcher text observation requires --observe-mobile-apps')
     if args.trace_focus and not args.observe_mobile_apps:
         parser.error('focus tracing requires --observe-mobile-apps')
     if args.egl_thread_probe and (args.flutter_bundle or not args.render_node):
@@ -431,7 +442,7 @@ def main():
                 protocol_module = importlib.util.module_from_spec(protocol_spec)
                 protocol_spec.loader.exec_module(protocol_module)
                 launcher_protocol = protocol_module.LauncherProtocol()
-                observer_class = module.AppSwitchObserver
+                observer_class = module.AppTextObserver if args.observe_mobile_apps_text else module.AppSwitchObserver
                 observer_options = dict(protocol=launcher_protocol, reference=args.launcher_reference)
                 report['launcher_protocol_sha256'] = digest(protocol_path)
                 report['app_binary_hashes'] = {app: digest(runtime/'usr/bin'/app) for app in ('foot', 'mousepad')}
@@ -449,6 +460,7 @@ def main():
             report['mobile_editor'] = args.observe_mobile_editor
             report['mobile_launcher'] = args.observe_mobile_launcher
             report['mobile_apps'] = args.observe_mobile_apps
+            report['mobile_apps_text'] = args.observe_mobile_apps_text
             if launcher:
                 report['launcher_apps_sha256'] = digest(stage/'stage/launcher-apps.sh')
             if args.observe_mobile_editor:
@@ -539,7 +551,7 @@ def main():
                                     source.seek(max(0, logpath.stat().st_size-131072))
                                     ready = mobile_ready(source.read(131072))
                             observer.tick(time.monotonic(), ready)
-                        time.sleep(0.2)
+                        time.sleep(observer_poll_delay(observer, time.monotonic()))
                 except BaseException as error:
                     observation_error = error
                     raise
@@ -585,6 +597,8 @@ def main():
             if not final_protocol.terminal:
                 final_protocol.fail('missing dedicated terminal boundary')
             report['launcher_protocol'] = final_protocol.result()
+            if args.observe_mobile_apps_text:
+                report['launcher_text_protocol'] = editor_result(data.decode(errors='replace'))
             report['launcher_apps_cleanup'] = 'PASS' if log.splitlines().count('PASS launcher apps cleanup') == 1 else 'FAIL'
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
@@ -608,6 +622,8 @@ def main():
         if args.observe_mobile_editor and report.get('editor_protocol', {}).get('status') != 'PASS':
             report['status'] = 'FAIL'
         if args.observe_mobile_launcher and report.get('launcher_discovery', {}).get('status') != 'PASS':
+            report['status'] = 'FAIL'
+        if args.observe_mobile_apps_text and report.get('launcher_text_protocol', {}).get('status') != 'PASS':
             report['status'] = 'FAIL'
         if args.observe_mobile_apps and (report.get('launcher_protocol', {}).get('status') != 'PASS'
                 or report.get('launcher_apps_cleanup') != 'PASS'):

@@ -864,3 +864,18 @@ Optional global presentation intervals are not forwarded and remain NOT RUN;
 the terminal frame counts and inspected captures stay separate evidence.
 This isolates observed console-fragment interleaving without accepting arbitrary
 embedded client prefixes. It adds no physical device exposure or phone proof.
+
+Add `--observe-mobile-apps-text` to the existing app-interaction command to
+exercise the same OSK text/backspace/restoration sequence after returning to
+Mousepad, then dismiss the keyboard and switch back to Foot. This requires
+`--observe-mobile-apps` and the dedicated evidence writer. The combined probe
+checks both the four native focus visits and the exact focused key lifecycle
+from the same owned protocol stream; inspected text remains a separate result.
+It uses a fixed96-command QMP budget, while other probes retain64. Only allowed
+pointer/capture queries are available; no QMP power command is added.
+
+The action clock now honors scheduled100ms steps while keeping idle polling
+at200ms and an active10ms floor. The unchanged90-second shell/120-second harness
+bounds remain in force. The observer resets the manual viewport pan and drags
+the OSK's blank top padding down before the final switch. This tests the current
+manual workaround, not automatic caret visibility or physical multitouch.

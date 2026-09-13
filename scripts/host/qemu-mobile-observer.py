@@ -10,6 +10,7 @@ import zlib
 
 
 class QMP:
+    REQUEST_LIMIT = 64
     ALLOWED = {'qmp_capabilities', 'query-name', 'query-status', 'screendump', 'input-send-event'}
 
     def __init__(self, path, name, timeout=2):
@@ -51,7 +52,7 @@ class QMP:
         return value
 
     def execute(self, command, arguments=None):
-        if command not in self.ALLOWED or self.sequence >= 64:
+        if command not in self.ALLOWED or self.sequence >= self.REQUEST_LIMIT:
             raise ValueError('QMP command outside bounded observation')
         self.sequence += 1
         request = {'execute': command, 'id': self.sequence}
@@ -386,8 +387,8 @@ class EditorObserver(MobileObserver):
         ('capture', '04-editor-test-restored', 0),
     ]
 
-    def step(self):
-        operation, value, delay = self.STEPS[self.stage]
+    def perform_editor_step(self, action):
+        operation, value, delay = action
         if operation == 'capture':
             self.capture(value)
         elif operation == 'move':
@@ -398,6 +399,10 @@ class EditorObserver(MobileObserver):
             raise ValueError('unknown fixed editor action')
         self.result['actions'].append({'operation': operation,
                                        'value': list(value) if isinstance(value, tuple) else value})
+        return delay
+
+    def step(self):
+        delay = self.perform_editor_step(self.STEPS[self.stage])
         self.result['probe'] = 'native Mousepad OSK text entry; normal unlocked VM startup'
         if self.stage == len(self.STEPS)-1:
             self.complete = True
@@ -530,3 +535,32 @@ class AppSwitchObserver(MobileObserver):
             self.result['status'] = 'PASS'
             self.result.pop('waiting_for', None)
         return .8
+
+
+class TextQMP(QMP):
+    # Fixed combined flow has more pointer actions; ordinary probes retain64.
+    REQUEST_LIMIT = 96
+
+
+class AppTextObserver(AppSwitchObserver):
+    """Existing two-app flow plus the same OSK-only text probe after return."""
+    STEPS = [*AppSwitchObserver.STEPS[:11],
+             *[('editor', index) for index in range(len(EditorObserver.STEPS))],
+             ('home_gesture', ((531, 640), (531, 560), (531, 480), (531, 400), (531, 320), (531, 240))),
+             ('home_gesture', ((270, 868), (270, 898), (270, 958), (270, 1018), (270, 1078), (270, 1138), (270, 1198))),
+             ('capture', '04b-editor-keyboard-dismissed'),
+             *AppSwitchObserver.STEPS[11:]]
+
+    def __init__(self, *args, client_factory=TextQMP, **kwargs):
+        super().__init__(*args, client_factory=client_factory, **kwargs)
+        self.result['qmp_request_limit'] = TextQMP.REQUEST_LIMIT
+
+    def step(self):
+        operation, value = self.STEPS[self.stage]
+        if operation == 'editor':
+            if not (self.protocol.ready('mousepad') and self.protocol.focused('mousepad')):
+                raise ValueError('native Mousepad focus lost during OSK text probe')
+            self.result['waiting_for'] = {'operation': operation, 'value': value}
+            self.result['probe'] = 'launcher app switching with native Mousepad OSK text entry'
+            return EditorObserver.perform_editor_step(self, EditorObserver.STEPS[value])
+        return super().step()

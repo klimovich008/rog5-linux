@@ -177,6 +177,19 @@ class QMPTransport(unittest.TestCase):
                 MOBILE.QMP(server.address, 'owned', timeout=.04)
         self.assertLess(time.monotonic() - started, 1)
 
+    def test_combined_qmp_limit_remains_bounded_and_excludes_power(self):
+        with FakeQMP() as server:
+            client=MOBILE.TextQMP(server.address,'owned',timeout=.15)
+            try:
+                with self.assertRaisesRegex(ValueError,'outside bounded'):
+                    client.execute('system_powerdown')
+                for _ in range(93):client.execute('query-status')
+                with self.assertRaisesRegex(ValueError,'outside bounded'):
+                    client.execute('query-status')
+                self.assertEqual(client.sequence,96)
+                self.assertEqual(MOBILE.QMP.REQUEST_LIMIT,64)
+            finally:client.close()
+
     def test_event_flood_and_command_budget_are_bounded(self):
         def flood(server, request):
             for _ in range(32):
@@ -832,9 +845,10 @@ class AppSwitchObservation(unittest.TestCase):
             def focused(self, app): return self.app == app
         protocol = Protocol()
         directory = self.root/label
+        observer_class = options.pop('observer_class', MOBILE.AppSwitchObserver)
         client = CaptureClient(directory, **options)
         sleeps = []
-        observer = MOBILE.AppSwitchObserver(directory, 'owned', protocol=protocol,
+        observer = observer_class(directory, 'owned', protocol=protocol,
             reference=self.reference, sleep=sleeps.append,
             client_factory=lambda path, name: client)
         (directory/'qmp.sock').touch()
@@ -853,6 +867,32 @@ class AppSwitchObservation(unittest.TestCase):
                 observer.tick(observer.next_at, True)
         else:
             observer.tick(observer.next_at, True)
+
+    def test_combined_flow_reuses_editor_actions_between_return_and_final_switch(self):
+        observer, client, protocol, sleeps = self.observer(observer_class=MOBILE.AppTextObserver)
+        while not observer.complete:
+            self.advance(observer, protocol)
+        result=observer.finish()
+        self.assertEqual(result['status'],'PASS')
+        self.assertEqual(protocol.focus_history,['mousepad','foot','mousepad','foot'])
+        self.assertEqual(client.buttons,[True,False]*17)
+        names=[Path(row['path']).stem for row in result['screenshots']]
+        self.assertLess(names.index('04-mousepad-restored'),names.index('02-editor-test'))
+        self.assertLess(names.index('04-editor-test-restored'),names.index('05-foot-restored'))
+        self.assertEqual(result['qmp_request_limit'],96)
+        self.assertLess(len(client.records),96)
+        self.assertTrue(result['pointer_released'])
+        self.assertIn('NOT RUN',result['visual_semantics'])
+
+    def test_combined_editor_refuses_input_after_lost_native_focus(self):
+        observer, client, protocol, _ = self.observer(observer_class=MOBILE.AppTextObserver)
+        while observer.STEPS[observer.stage][0] != 'editor':
+            self.advance(observer,protocol)
+        protocol.app='foot';previous=list(client.records)
+        with self.assertRaisesRegex(ValueError,'focus lost') as error:
+            observer.tick(observer.next_at,True)
+        self.assertEqual(client.records,previous)
+        self.assertEqual(observer.finish(error.exception)['status'],'FAIL')
 
     def test_only_matching_tiles_and_fresh_native_focus_advance(self):
         observer, client, protocol, sleeps = self.observer()

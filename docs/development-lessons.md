@@ -2709,3 +2709,11 @@ stdout. A dedicated port still needs single-writer serialization, bounded
 records, explicit FIFO lifetime and the original teardown boundary. Verify
 actual write syscalls and concurrent writers, then reuse unchanged compositor
 and shell bytes for the VM; increasing timeouts cannot restore a lost prefix.
+
+
+When composing proven UI probes, budget their actual polling cadence as well as
+nominal action delays. The42-step editor script takes9.5 seconds nominally but
+at least12.9 seconds when100ms actions wait for a200ms loop. Honor the next
+action deadline within a bounded poll interval; retain slower idle polling.
+Keep the longer command budget specific to the fixed combined flow, preserve
+held-button cleanup, and require native key evidence in addition to screenshots.

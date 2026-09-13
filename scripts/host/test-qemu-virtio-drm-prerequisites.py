@@ -46,6 +46,13 @@ class RuntimePrerequisites(unittest.TestCase):
     def audit(count):
         return f'Denial/Volition output scheduler audit presentations={count}\n'
 
+    def test_script_clock_has_floor_cap_and_completed_idle(self):
+        self.assertEqual(GUEST.observer_poll_delay(None,10),.2)
+        self.assertEqual(GUEST.observer_poll_delay(SimpleNamespace(complete=False,next_at=0,client=None),10),.2)
+        for next_at,expected in [(10.1,.1),(20,.2),(9,.01)]:
+            self.assertAlmostEqual(GUEST.observer_poll_delay(SimpleNamespace(complete=False,next_at=next_at,client=object()),10),expected)
+        self.assertEqual(GUEST.observer_poll_delay(SimpleNamespace(complete=True,next_at=0),10),.2)
+
     def test_app_channel_writer_required_and_excluded_elsewhere(self):
         base=['python3',str(Path(__file__).with_name('test-qemu-virtio-drm.py')),
               '--runtime','/missing','--kernel','/missing','--deniald','/missing',
