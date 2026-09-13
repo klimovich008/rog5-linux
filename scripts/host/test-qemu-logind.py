@@ -390,11 +390,11 @@ def main():
                 result['editor_observation'] = current.finish(error)
         container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'],
                   poll=observer.tick if observer else None, finalize=finish_observer)
-        if args.observe_editor:
-            if result['editor_observation']['status'] != 'PASS':
-                raise RuntimeError('requested editor observation incomplete or failed')
         serial = (output / 'serial.log').read_text(errors='replace')
+        # Preserve shutdown/panic evidence even when the requested UI probe failed.
         require_vm_poweroff(serial)
+        if args.observe_editor and result['editor_observation']['status'] != 'PASS':
+            raise RuntimeError('requested editor observation incomplete or failed')
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
         if combined:

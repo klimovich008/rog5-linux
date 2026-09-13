@@ -24,8 +24,11 @@ run_authenticated_editor() {
     done
     grep -q 'xdg_toplevel.*configure' "$HOME/foot.log" || return 1
     close_foot_normally || return $?
-    : > "$HOME/rog5-text-probe.txt"
-    GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 mousepad "$HOME/rog5-text-probe.txt" > "$HOME/mousepad.pipe" 2>&1 &
+    # Preserve the qualified editor oracle's exact file/title contract. Mousepad
+    # abbreviates a home-directory path as ~/..., a different title.
+    [[ ! -e /tmp/rog5-text-probe.txt && ! -L /tmp/rog5-text-probe.txt ]] || return 1
+    : > /tmp/rog5-text-probe.txt
+    GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 mousepad /tmp/rog5-text-probe.txt > "$HOME/mousepad.pipe" 2>&1 &
     editor=$!
     # Exact focused key ordering is checked by the host protocol parser. This
     # bound keeps the real editor alive until the pointer-only flow has run.
