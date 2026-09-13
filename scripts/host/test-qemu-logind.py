@@ -315,6 +315,8 @@ def observation_channel(apps):
 def session_observer(module, args, directory, name, token):
     if args.observe_apps:
         options = {'automatic_caret': args.automatic_caret}
+        if getattr(args, 'close_only', False):
+            options['close_only'] = True
         if getattr(args, 'bottom_caret', False):
             options['bottom_caret'] = True
         return module.LiveApps(directory, name, token, args.launcher_reference, **options)
@@ -335,6 +337,8 @@ def main():
                         help='pointer-only OSK editor test in authenticated session; VM only')
     observation.add_argument('--observe-apps', action='store_true',
                              help='launcher-driven app switching and OSK in authenticated VM')
+    parser.add_argument('--close-only', action='store_true',
+                        help='observe-apps only: map both clients and exercise existing close handshake; no text entry')
     parser.add_argument('--automatic-caret', action='store_true',
                         help='observe-apps only: omit manual viewport pan and inverse; VM only')
     parser.add_argument('--bottom-caret', action='store_true',
@@ -354,6 +358,8 @@ def main():
         parser.error('automatic-caret requires observe-apps')
     if args.bottom_caret and not (args.observe_apps and args.automatic_caret):
         parser.error('bottom-caret requires observe-apps and automatic-caret')
+    if args.close_only and (not args.observe_apps or args.automatic_caret or args.bottom_caret):
+        parser.error('close-only requires observe-apps and excludes caret/text observation')
     if args.startup_only and (not combined or args.observe_apps or args.observe_editor):
         parser.error('startup-only requires combined inputs and excludes UI observation')
     install_handlers()

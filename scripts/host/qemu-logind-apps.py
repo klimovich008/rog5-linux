@@ -57,24 +57,37 @@ class AppProtocols:
         if self.launcher.errors:
             raise ValueError('; '.join(self.launcher.errors))
 
+    def launcher_result(self):
+        sequence = (('mousepad', 'foot') if self.owner.close_only
+                    else LAUNCHER.LauncherProtocol.DEFAULT_SEQUENCE)
+        return self.launcher.result(sequence)
+
+    def editor_result(self):
+        return ({'status': 'NOT RUN', 'scope': 'explicit close-only probe; no text-entry claim'}
+                if self.owner.close_only else self.editor.result())
+
     def result(self):
-        return {'status': 'PASS' if self.launcher.result()['status'] == 'PASS'
-                and self.editor.result()['status'] == 'PASS'
+        return {'status': 'PASS' if self.launcher_result()['status'] == 'PASS'
+                and (self.owner.close_only or self.editor.result()['status'] == 'PASS')
                 and (self.caret is None or self.caret.error is None) else 'FAIL'}
 
 
 class LiveApps(BASE.LiveEditor):
     """Reuse the strict file reader; one socket and one file writer own events.
 
-    An exact DONE token is sent only after both production protocol oracles and
-    the fixed UI action/capture sequence pass. Guest cleanup has a distinct
+    An exact DONE token is sent only after the selected production protocol
+    checks and fixed UI action/capture sequence pass. Close-only mode explicitly
+    omits editor/text qualification; the normal flow requires both oracles. Guest cleanup has a distinct
     approved boundary; genuine compositor counters remain in the serial oracle.
     """
     def __init__(self, directory, name, token, reference, *,
-                 automatic_caret=False, bottom_caret=False,
+                 automatic_caret=False, bottom_caret=False, close_only=False,
                  client_factory=BASE.MOBILE.TextQMP, capture_backend=BASE.MOBILE.capture_vnc):
         if not re.fullmatch(r'ROG5_APPS_DONE_[0-9a-f]{32}', token):
             raise ValueError('invalid exact observation token')
+        if close_only and (automatic_caret or bottom_caret):
+            raise ValueError('close-only excludes caret/text observation')
+        self.close_only = close_only
         if bottom_caret and not automatic_caret:
             raise ValueError('bottom caret requires automatic caret mode')
         self.ready = self.teardown = self.ack_sent = self.peer_closed = False
@@ -86,6 +99,8 @@ class LiveApps(BASE.LiveEditor):
             self.caret_protocol = caret_module.CaretProtocol()
             observer_class = BASE.MOBILE.BottomCaretAppTextObserver
             observer_options['caret_protocol'] = self.caret_protocol
+        elif close_only:
+            observer_class = BASE.MOBILE.AppCloseObserver
         else:
             observer_class = (BASE.MOBILE.AutomaticCaretAppTextObserver if automatic_caret
                               else BASE.MOBILE.AppTextObserver)
@@ -200,13 +215,14 @@ class LiveApps(BASE.LiveEditor):
                 self.transport.close()
             self.stream.close()
         observation = self.observer.finish(error or self.error)
-        launcher, editor = self.parser.launcher.result(), self.parser.editor.result()
+        launcher, editor = self.parser.launcher_result(), self.parser.editor_result()
         exits = sorted(self.parser.launcher.teardown)
         clean = exits == ['OBSERVE launcher app=foot exit=0', 'OBSERVE launcher app=mousepad exit=0']
         passed = (not (error or self.error) and self.complete and self.teardown and clean
                   and observation['status'] == 'PASS')
         self.result = {'status': 'PASS' if passed else 'FAIL',
-            'scope': 'authenticated VM launcher-driven app switching and OSK; no phone proof',
+            'scope': ('authenticated VM close-only mapped clients and normal teardown; text entry NOT RUN; no phone proof'
+                      if self.close_only else 'authenticated VM launcher-driven app switching and OSK; no phone proof'),
             'observation': observation, 'launcher_protocol': launcher, 'editor_protocol': editor,
             'acknowledgement_sent': self.ack_sent, 'approved_teardown': self.teardown,
             'clean_client_exits': clean, 'stream_bytes': self.offset,

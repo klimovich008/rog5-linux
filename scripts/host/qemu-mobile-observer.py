@@ -543,6 +543,17 @@ class AppSwitchObserver(MobileObserver):
         return .8
 
 
+class AppCloseObserver(AppSwitchObserver):
+    """Launch both mapped clients through the same UI before requesting close."""
+    STEPS = AppSwitchObserver.STEPS[:AppSwitchObserver.STEPS.index(
+        ('client', ('foot', '03-foot-launched')))+1]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result.update(probe='close-only owned Mousepad/Foot mapping before normal teardown',
+                           text_entry='NOT RUN', app_switch_sequence='two initial focus visits only')
+
+
 class TextQMP(QMP):
     # Fixed combined flow has more pointer actions; ordinary probes retain64.
     REQUEST_LIMIT = 96

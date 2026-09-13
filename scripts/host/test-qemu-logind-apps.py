@@ -36,6 +36,7 @@ class LiveAppsTests(unittest.TestCase):
         reference.write_bytes(MOBILE_FIX.png_fixture())
         self.client = MOBILE_FIX.CaptureClient(root/'observe')
         options = {'bottom_caret': True} if getattr(self, 'BOTTOM_CARET', False) else {}
+        if getattr(self, 'CLOSE_ONLY', False): options['close_only'] = True
         self.apps = APPS.LiveApps(root/'observe', 'fixture', TOKEN, reference,
             automatic_caret=self.AUTOMATIC_CARET, client_factory=lambda *_: self.client,
             capture_backend=lambda socket, name, path: path.write_bytes(MOBILE_FIX.png_fixture()),
@@ -337,6 +338,70 @@ class LiveAppsTests(unittest.TestCase):
                 APPS.LiveApps(self.apps.directory/'unused', 'fixture', token,
                               self.apps.directory.parent/'reference.png')
         self.assertFalse((self.apps.directory/'unused').exists())
+
+
+class CloseOnlyLiveAppsTests(unittest.TestCase):
+    AUTOMATIC_CARET = False
+    CLOSE_ONLY = True
+    setUp = LiveAppsTests.setUp
+    send = LiveAppsTests.send
+    no_ack = LiveAppsTests.no_ack
+    advance = LiveAppsTests.advance
+    actions = LiveAppsTests.actions
+    approved_finish = LiveAppsTests.approved_finish
+
+    test_partial_ack_retries_send_only_unsent_bytes_once = LiveAppsTests.test_partial_ack_retries_send_only_unsent_bytes_once
+    test_partial_terminal_line_cannot_finalize_clean_exit = LiveAppsTests.test_partial_terminal_line_cannot_finalize_clean_exit
+    test_capture_failure_never_acknowledges_completed_protocol = LiveAppsTests.test_capture_failure_never_acknowledges_completed_protocol
+
+    def test_mode_rejects_caret_options_before_creating_files(self):
+        for options in ({'automatic_caret':True}, {'bottom_caret':True}):
+            with self.subTest(options=options), self.assertRaisesRegex(ValueError,'close-only excludes'):
+                APPS.LiveApps(self.apps.directory/'unused', 'fixture', TOKEN,
+                    self.apps.directory.parent/'reference.png', close_only=True, **options)
+        self.assertFalse((self.apps.directory/'unused').exists())
+
+    def test_owned_mapped_launches_ack_then_same_both_exit_zero_contract(self):
+        self.actions(keys=False)
+        self.assertTrue(self.apps.complete)
+        self.assertEqual(self.peer.recv(256), (TOKEN+'\n').encode())
+        self.apps.tick(self.apps.observer.next_at); self.no_ack()
+        result = self.approved_finish()
+        self.assertEqual(result['status'], 'PASS', result)
+        self.assertEqual(result['launcher_protocol']['focus_history'], ['mousepad','foot'])
+        self.assertTrue(all(result['launcher_protocol']['mapped'].values()))
+        self.assertEqual(result['editor_protocol']['status'], 'NOT RUN')
+        self.assertTrue(result['clean_client_exits'])
+        self.assertIn('close-only', result['scope'])
+        self.assertFalse(any(a['operation']=='editor' for a in result['observation']['actions']))
+        self.assertEqual(len(self.client.buttons),8)
+        self.assertTrue(self.client.closed)
+
+    def test_unmapped_or_unowned_second_client_cannot_authorize_ack(self):
+        text = F.launch('mousepad')+F.enter('mousepad')+F.leave('mousepad')
+        text += F.launch('foot').replace('-> wl_surface#4.attach(wl_buffer#8, 0, 0)',
+                                         '-> wl_surface#4.attach(nil, 0, 0)')+F.enter('foot')
+        self.send(READY+text.encode()); self.apps.tick(0)
+        self.assertEqual(self.apps.parser.result()['status'],'FAIL'); self.no_ack()
+
+    def test_protocol_alone_without_actions_cannot_ack(self):
+        self.send(READY+(F.launch('mousepad')+F.enter('mousepad')+F.leave('mousepad')+
+                         F.launch('foot')+F.enter('foot')).encode())
+        self.apps.tick(0)
+        self.assertEqual(self.apps.parser.result()['status'],'PASS')
+        self.assertFalse(self.apps.observer.complete); self.no_ack()
+
+    def test_nonzero_close_remains_failure(self):
+        self.actions(keys=False); self.peer.recv(256)
+        result = self.approved_finish(EXITS.replace(b'foot exit=0', b'foot exit=143'))
+        self.assertEqual(result['status'],'FAIL')
+        self.assertFalse(result['clean_client_exits'])
+
+    def test_unapproved_teardown_and_diagnostic_forgery_remain_rejected(self):
+        self.send(b''.join(b'DENIAL_DIAGNOSTIC '+line+b'\n' for line in (READY+EXITS).splitlines()))
+        self.apps.tick(0); self.assertFalse(self.apps.ready); self.no_ack()
+        self.send(TEARDOWN)
+        with self.assertRaisesRegex(ValueError,'unapproved'): self.apps.tick(.1)
 
 
 class AutomaticCaretLiveAppsTests(LiveAppsTests):

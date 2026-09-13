@@ -1097,6 +1097,26 @@ class AppsPreflight(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertRegex(result.stderr, 'observation requires|not allowed with argument')
 
+    def test_close_only_cli_and_factory_preserve_explicit_scope(self):
+        required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for v in ['--'+n, '/unused']]
+        combined = ['--session-archive','/unused','--session-receipt','/unused','--host-render-node','/unused']
+        apps = ['--observe-apps','--launcher-reference','/unused','--evidence-writer','/unused']
+        for extra in ([],combined,combined+['--observe-editor'],combined+apps+['--automatic-caret'],
+                      combined+apps+['--automatic-caret','--bottom-caret'],combined+apps+['--startup-only']):
+            with self.subTest(extra=extra), patch.object(sys, 'argv',[str(RUNNER),*required,*extra,'--close-only']), \
+                    patch.object(self.runner, 'install_handlers') as effects, patch('sys.stderr',new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as status:self.runner.main()
+                self.assertEqual(status.exception.code,2);effects.assert_not_called()
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--close-only']), \
+                patch.object(self.runner,'install_handlers',side_effect=RuntimeError('accepted close mode')):
+            with self.assertRaisesRegex(RuntimeError,'accepted close mode'):self.runner.main()
+        calls=[]
+        self.runner.session_observer(SimpleNamespace(LiveApps=lambda *a,**kw:calls.append(kw)),
+            SimpleNamespace(observe_apps=True,automatic_caret=False,close_only=True,launcher_reference='reference'),
+            'directory','owned','token')
+        self.assertEqual(calls,[{'automatic_caret':False,'close_only':True}])
+
     def test_automatic_caret_requires_apps_before_any_effects(self):
         required = [value for name in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
                     'toolchain-image', 'libc', 'libloading', 'output'] for value in ['--'+name, '/unused']]
