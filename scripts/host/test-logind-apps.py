@@ -28,6 +28,8 @@ class AuthenticatedApps(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='rog5-apps-test-')
         self.root = Path(self.temp.name)
         self.home = self.root / 'home'; self.home.mkdir()
+        self.runtime = self.root / 'runtime'; self.runtime.mkdir(mode=0o700)
+        self.command_log = self.root / 'external-commands.log'
         self.state = self.home / 'launcher-apps'
         self.bin = self.root / 'bin'; self.bin.mkdir()
         self.desktops = self.root / 'desktops'; self.desktops.mkdir()
@@ -38,6 +40,20 @@ class AuthenticatedApps(unittest.TestCase):
             (self.desktops / filename).write_text(
                 f'[Desktop Entry]\nName={app}\nExec={app}\n[Desktop Action other]\nExec=retained\n')
             os.mkfifo(self.home / (app + '.pipe'), 0o600)
+        # timeout execs programs; shell functions do not intercept these calls.
+        bus_guard = '''[[ $DBUS_SESSION_BUS_ADDRESS == "unix:path=$XDG_RUNTIME_DIR/unavailable-session-bus" ]]
+[[ $DBUS_SYSTEM_BUS_ADDRESS == "unix:path=$XDG_RUNTIME_DIR/unavailable-system-bus" ]]
+[[ -d $XDG_RUNTIME_DIR && ! -e $XDG_RUNTIME_DIR/unavailable-session-bus ]]
+'''
+        self.command('dbus-update-activation-environment', bus_guard + '''
+[[ $# == 2 && $1 == --systemd && $2 == XDG_DATA_HOME ]]
+printf 'dbus-update-activation-environment %s\\n' "$*" >> "$TEST_COMMAND_LOG"
+''')
+        self.command('systemctl', bus_guard + '''
+[[ $# == 2 && $1 == --user && $2 == show-environment ]]
+printf 'systemctl %s\\n' "$*" >> "$TEST_COMMAND_LOG"
+printf 'XDG_DATA_HOME=%s\\n' "$XDG_DATA_HOME"
+''')
         self.command('foot', 'exec "$@"\n')
         self.command('mousepad', '''[[ $GDK_BACKEND == wayland && $WAYLAND_DEBUG == client ]] || exit 42
 trap 'exit 0' TERM
@@ -65,8 +81,18 @@ else:
         self.master, self.slave = pty.openpty()
         tty.setraw(self.slave)
         self.sink = os.ttyname(self.slave)
-        self.env = {**os.environ, 'HOME': str(self.home), 'TEST_BIN': str(self.bin),
-                    'PATH': str(self.bin) + ':' + os.environ['PATH'], 'WAYLAND_DISPLAY': 'wayland-fixture'}
+        # Do not inherit the desktop bus, manager, shell startup or exported
+        # functions. A missed CLI fixture must fail against absent private buses.
+        self.env = {'HOME': str(self.home), 'TEST_BIN': str(self.bin),
+                    'TEST_COMMAND_LOG': str(self.command_log),
+                    'PATH': str(self.bin) + ':/usr/bin:/bin', 'LANG': 'C.UTF-8',
+                    'XDG_RUNTIME_DIR': str(self.runtime),
+                    'XDG_DATA_HOME': str(self.home / '.local/share'),
+                    'XDG_CONFIG_HOME': str(self.home / '.config'),
+                    'XDG_CACHE_HOME': str(self.home / '.cache'),
+                    'DBUS_SESSION_BUS_ADDRESS': 'unix:path=' + str(self.runtime / 'unavailable-session-bus'),
+                    'DBUS_SYSTEM_BUS_ADDRESS': 'unix:path=' + str(self.runtime / 'unavailable-system-bus'),
+                    'WAYLAND_DISPLAY': 'wayland-fixture'}
         self.processes = []
         self.events = bytearray()
         self.stop = threading.Event()
@@ -108,8 +134,6 @@ else:
     def controller(self, prepare_only=False, post_prepare=""):
         code = self.prefix + r'''
 readers=(); launcher=''; logind_apps_evidence_owned=0
-dbus-update-activation-environment(){ [[ $* == '--systemd XDG_DATA_HOME' ]]; }
-systemctl(){ [[ $* == '--user show-environment' ]]; printf 'XDG_DATA_HOME=%s\n' "$XDG_DATA_HOME"; }
 cleanup_fixture(){
  rc=$?; trap - EXIT
  cleanup_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }
@@ -275,9 +299,30 @@ cleanup_authenticated_apps
         out, err = child.communicate(timeout=3)
         self.assertEqual(child.returncode, 0, out.decode() + err.decode())
 
+    def test_timeout_executes_external_bus_fixtures_with_private_environment(self):
+        child = self.controller(prepare_only=True)
+        out, err = child.communicate(timeout=5)
+        self.assertEqual(child.returncode, 0, out.decode() + err.decode())
+        self.assertEqual(self.command_log.read_text().splitlines(), [
+            'dbus-update-activation-environment --systemd XDG_DATA_HOME',
+            'systemctl --user show-environment'])
+        self.assertEqual(self.runtime.stat().st_mode & 0o777, 0o700)
+        self.assertFalse((self.runtime / 'unavailable-session-bus').exists())
+        self.assertFalse((self.runtime / 'unavailable-system-bus').exists())
+        self.assertNotIn('BASH_ENV', self.env)
+        self.assertNotIn('DBUS_STARTER_ADDRESS', self.env)
+
+    def test_external_bus_fixture_rejects_nonprivate_environment(self):
+        self.env['DBUS_SESSION_BUS_ADDRESS'] = 'unix:path=/must-not-be-contacted'
+        child = self.controller(prepare_only=True)
+        out, err = child.communicate(timeout=5)
+        self.assertNotEqual(child.returncode, 0, out.decode() + err.decode())
+        self.assertFalse(self.command_log.exists())
+        self.assertNotIn(b'authenticated launcher overrides prepared', out)
+
     def test_source_defines_functions_only(self):
         result = subprocess.run(['bash', '-c', 'source "$1"', 'fixture', str(TOOLS / 'logind-apps.sh')],
-                                capture_output=True, timeout=2)
+                                env=self.env, capture_output=True, timeout=2)
         self.assertEqual(result.returncode, 0)
         self.assertFalse(self.state.exists())
         self.assertEqual(result.stdout + result.stderr, b'')
