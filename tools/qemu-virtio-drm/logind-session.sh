@@ -57,7 +57,9 @@ logind_tty_unowned || { echo 'FAIL tty1 ownership not proven free'; exit 1; }
 # attempts to deallocate that same active console at exit. Direct exec preserves
 # the PAM command status; setsid supplies the session leader expected by -e.
 [[ $(fgconsole) == 1 ]]
-timeout -k 1 45 setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh
+pam_deadline=45
+[[ ! -f /run/session-sha256 ]] || pam_deadline=145
+timeout -k 1 "$pam_deadline" setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh
 [[ $(fgconsole) == 1 ]]
 logind_tty_unowned || { echo 'FAIL tty1 cleanup not proven'; exit 1; }
 cat /run/pam-session.log

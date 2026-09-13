@@ -8185,7 +8185,9 @@
       "exact_source": false,
       "required_inputs": [
         "scripts/host/test-qemu-logind.py",
-        "tools/qemu-virtio-drm/logind-session.sh"
+        "tools/qemu-virtio-drm/logind-session.sh",
+        "tools/qemu-virtio-drm/logind-denial.sh",
+        "tools/qemu-virtio-drm/logind-denial-prepare.sh"
       ],
       "optional_subchecks": []
     }

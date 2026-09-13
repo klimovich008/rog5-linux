@@ -33,6 +33,7 @@ chmod 700 /run/mobile-home
 printf '47b22e3177df4db18d6ed283dff17712\n' > /etc/machine-id
 printf 'rog5-logind-vm\n' > /etc/hostname
 mkdir -p /etc/systemd/system
+if [[ -f /run/session-sha256 ]]; then source /run/logind-denial-prepare.sh; fi
 cat > /etc/systemd/system/rog5-logind-fixture.target <<'EOF'
 [Unit]
 Description=Offline logind fixture
@@ -54,6 +55,9 @@ TimeoutStartSec=65
 StandardOutput=journal+console
 StandardError=journal+console
 EOF
+if [[ -f /run/session-sha256 ]]; then
+    sed -i 's/TimeoutStartSec=65/TimeoutStartSec=170/' /etc/systemd/system/rog5-logind-fixture.service
+fi
 /usr/bin/bash /run/independent-observer.sh &
 echo 'OBSERVE prepared RAM etc/var; exec actual packaged systemd as PID1' 
 exec /usr/lib/systemd/systemd --unit=rog5-logind-fixture.target --log-target=console --log-level=info

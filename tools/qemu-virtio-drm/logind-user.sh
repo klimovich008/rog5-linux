@@ -16,3 +16,5 @@ echo "OBSERVE user manager state=$manager_state"
 systemctl --user show-environment >/dev/null
 LIBSEAT_BACKEND=logind /run/payload/logind-seat-probe
 echo 'PASS local active tty1 session, user manager and mediated devices'
+
+if [[ -f /run/session-sha256 ]]; then /usr/bin/bash /run/logind-denial.sh; fi

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Exercise the real manual runner's process ownership without containers/VMs."""
 import os
+import hashlib
+import importlib.util
+import io
+import json
+import tarfile
 from pathlib import Path
 import signal
 import subprocess
@@ -142,6 +147,38 @@ logind_tty_unowned
                 result = subprocess.run(['bash', '-c', harness, 'fixture', str(script), rows, str(rc)],
                                         capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+
+
+class Archive(unittest.TestCase):
+    def test_actual_inventory_and_unsafe_member_boundaries(self):
+        spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        names = ['usr/bin/deniald', 'usr/bin/denialctl', 'usr/bin/denial-session',
+                 'usr/bin/denial-mobile-session', 'usr/lib/systemd/user/denial-session.target',
+                 'usr/lib/denial/flutter/lib/libapp.so', 'usr/lib/denial/flutter/lib/libflutter_engine.so']
+        for mode in ['valid', 'wrong_hash', 'wrong_member', 'symlink', 'traversal', 'missing']:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); archive = root/'session.tar.gz'; receipt = root/'receipt.json'
+                rows = [{'name': name, 'size': 2, 'mode': 0o644, 'sha256': hashlib.sha256(b'ok').hexdigest()} for name in names]
+                with tarfile.open(archive, 'w:gz') as stream:
+                    directory_member = tarfile.TarInfo('usr'); directory_member.type = tarfile.DIRTYPE; directory_member.mode = 0o755
+                    stream.addfile(directory_member)
+                    for i, name in enumerate(names + ['usr/share/rog5-denial/payload.json']):
+                        if mode == 'missing' and i == 0: continue
+                        member = tarfile.TarInfo('../escape' if mode == 'traversal' and i == 0 else name)
+                        member.size = 2; member.mode = 0o644
+                        if mode == 'symlink' and i == 0:
+                            member.type = tarfile.SYMTYPE; member.linkname = '/etc/shadow'; member.size = 0
+                            stream.addfile(member)
+                        else:
+                            stream.addfile(member, io.BytesIO(b'no' if mode == 'wrong_member' and i == 0 else b'ok'))
+                digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+                receipt.write_text(json.dumps({'status': 'PREPARED_NOT_INSTALLED', 'authority': 'none',
+                    'sha256': '0'*64 if mode == 'wrong_hash' else digest, 'size': archive.stat().st_size,
+                    'metadata': {'files': rows}}))
+                if mode == 'valid': module.validate_session_archive(archive, receipt)
+                else:
+                    with self.assertRaises(ValueError): module.validate_session_archive(archive, receipt)
 
 
 if __name__ == '__main__':

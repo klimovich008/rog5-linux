@@ -1031,3 +1031,15 @@ existing foreground tty1 through `setsid --wait openvt -e`, verifies it is
 unowned before and after, and requires successful session/scope enumeration
 after PAM logout. The original PAM checks and packaged Permit User Sessions
 service remain in the path. A timeout is failure, never cleanup qualification.
+
+The same manual logind runner accepts the complete optional group
+`--session-archive`, `--session-receipt`, and `--host-render-node /dev/dri/renderD128`
+for a combined Denial VM. It verifies every archive file before RAM extraction,
+uses retained VirGL with1024MiB guest/2048MiB host and a300s deadline, and compiles
+only the small PAM fixture with coherent longer limits. No Denial/Flutter rebuild
+is required. The actual mobile entry runs on the original PAM session and user
+bus; both systemd targets, actual frame counters, native client configuration
+and logout cleanup must pass. Same-GPU rendering reuses the logind-acquired card0
+descriptor; no supplemental render group or device permission change is needed.
+The archive and original runtime remain read-only; all installation paths in
+this test exist solely in VM RAM. This is not a phone composition or admission.

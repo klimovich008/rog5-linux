@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import time
+import tarfile
 import uuid
 
 REPO = Path(__file__).resolve().parents[2]
@@ -137,11 +138,67 @@ def disk_guard(output):
         raise RuntimeError('host free disk fell below 3 GiB reserve')
 
 
+def validate_session_archive(archive, receipt):
+    """Verify the retained composition and every regular member before guest extraction."""
+    record = json.loads(receipt.read_text())
+    if record.get('status') != 'PREPARED_NOT_INSTALLED' or record.get('authority') != 'none':
+        raise ValueError('requires an unsigned session composition receipt')
+    if identity(archive)['sha256'] != record['sha256'] or archive.stat().st_size != record['size']:
+        raise ValueError('session archive identity differs from receipt')
+    entries = record['metadata']['files']
+    expected = {row['name']: row for row in entries}
+    if len(expected) != len(entries):
+        raise ValueError('duplicate session inventory path')
+    required = {'usr/bin/deniald', 'usr/bin/denialctl', 'usr/bin/denial-session',
+                'usr/bin/denial-mobile-session', 'usr/lib/systemd/user/denial-session.target',
+                'usr/lib/denial/flutter/lib/libapp.so', 'usr/lib/denial/flutter/lib/libflutter_engine.so'}
+    if not required <= expected.keys():
+        raise ValueError('incomplete session inventory')
+    allowed_dirs = {str(parent) for name in set(expected) | {'usr/share/rog5-denial/payload.json'}
+                    for parent in Path(name).parents if str(parent) != '.'}
+    seen = set()
+    seen_files = set()
+    total = 0
+    with tarfile.open(archive, 'r|gz') as stream:
+        for member in stream:
+            name = member.name
+            if (name.startswith('/') or Path(name).as_posix() != name or '..' in Path(name).parts
+                    or name in seen or member.uid != 0 or member.gid != 0):
+                raise ValueError('unsafe session archive member')
+            seen.add(name)
+            if member.isdir():
+                if name not in allowed_dirs or member.mode != 0o755 or member.size != 0:
+                    raise ValueError('unexpected session directory')
+                continue
+            if not member.isfile():
+                raise ValueError('unsafe session archive member')
+            seen_files.add(name)
+            total += member.size
+            if total > 128 * 1024**2:
+                raise ValueError('session archive exceeds RAM fixture bound')
+            with stream.extractfile(member) as data:
+                digest = hashlib.file_digest(data, 'sha256').hexdigest()
+            if name == 'usr/share/rog5-denial/payload.json':
+                continue
+            row = expected.get(name)
+            if row is None or (member.size, member.mode, digest) != (row['size'], row['mode'], row['sha256']):
+                raise ValueError('session member differs from inventory: '+name)
+    if seen_files != set(expected) | {'usr/share/rog5-denial/payload.json'}:
+        raise ValueError('session archive file set differs from inventory')
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('runtime-view', 'runtime-receipt', 'kernel', 'qemu-image', 'toolchain-image', 'libc', 'libloading', 'output'):
         parser.add_argument('--' + name, required=True)
+    parser.add_argument('--session-archive', type=Path)
+    parser.add_argument('--session-receipt', type=Path)
+    parser.add_argument('--host-render-node', type=Path)
     args = parser.parse_args()
+    combined = args.session_archive is not None
+    if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
+        parser.error('combined session requires archive, receipt and explicit host render node')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -173,6 +230,14 @@ def main():
                 or receipt_data.get('readonly_required') is not True
                 or Path(receipt_data.get('root', '')).resolve() != runtime):
             raise ValueError('runtime receipt does not identify this prepared read-only mapped-file view')
+        if combined:
+            session_record = validate_session_archive(regular(args.session_archive), regular(args.session_receipt))
+            if args.host_render_node != Path('/dev/dri/renderD128') or not args.host_render_node.is_char_device():
+                raise ValueError('requires the explicitly retained host renderD128 fixture node')
+            result['session_composition'] = session_record
+            result['scope'] += '; actual mobile launcher, VirGL rendering and native clients'
+            node = args.host_render_node.stat()
+            result['host_render_node'] = {'path': str(args.host_render_node), 'rdev': node.st_rdev, 'resolved': str(args.host_render_node.resolve())}
         result['runtime_view'] = str(runtime)
         result['container_images'] = {'qemu': args.qemu_image, 'toolchain': args.toolchain_image}
         for key, command in [('commit', ['rev-parse', 'HEAD']), ('tree', ['rev-parse', 'HEAD^{tree}']),
@@ -182,7 +247,11 @@ def main():
         kernel, libc, libloading = map(regular, (args.kernel, args.libc, args.libloading))
         source_names = ['init.c', 'logind-seat-probe.rs', 'logind-pam-session.rs',
                         'logind-boot.sh', 'logind-session.sh', 'logind-user.sh', 'logind-observer.sh']
+        if combined:
+            source_names += ['logind-denial.sh', 'logind-denial-prepare.sh']
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
+        if combined:
+            input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
         # libloading's retained Linux dependency is cfg-if. Freeze matching cached
         # candidates too; the compiler chooses the compatible crate metadata.
         dependency_dirs = sorted({libc.parent, libloading.parent})
@@ -210,6 +279,8 @@ def main():
                     '-C', 'opt-level=2', '-C', 'lto=thin', '-C', 'codegen-units=1', '-C', 'strip=debuginfo',
                     '--remap-path-prefix', str(output) + '=/logind-fixture', str(source), '-o', str(payload / binary_name),
                     '--extern', 'libc=' + str(libc), '--extern', 'libloading=' + str(libloading)]
+            if combined and binary_name == 'pam-session':
+                rust += ['--cfg', 'denial_session']
             command = ['podman', 'run', '--rm', '--name', name, '--pull=never', '--network=none', '--read-only',
                        '--memory=512m', '--memory-swap=512m', '--cpus=1', '--pids-limit=128']
             for directory in dependency_dirs:
@@ -224,6 +295,10 @@ def main():
                 output / 'init.build.log', 30, result['steps'])
         scripts = {'logind-boot.sh': 'guest.sh', 'logind-session.sh': 'logind-probe.sh',
                    'logind-user.sh': 'logind-user.sh', 'logind-observer.sh': 'independent-observer.sh'}
+        if combined:
+            scripts.update({'logind-denial.sh': 'logind-denial.sh', 'logind-denial-prepare.sh': 'logind-denial-prepare.sh'})
+            (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
+            os.link(args.session_archive, payload / 'session.tar.gz')
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)
@@ -254,10 +329,28 @@ def main():
                    '-device', 'virtio-9p-device,fsdev=rootfs,mount_tag=rootfs',
                    '-fsdev', 'local,id=payload,path=/payload,security_model=none,readonly=on',
                    '-device', 'virtio-9p-device,fsdev=payload,mount_tag=payload']
-        container(command, name, output / 'serial.log', 180, result['steps'])
+        if combined:
+            command[command.index('--memory=1024m')] = '--memory=2048m'
+            command[command.index('--memory-swap=1024m')] = '--memory-swap=2048m'
+            command[command.index('-m')+1] = '1024M'
+            command[command.index('-smp')+1] = '2'
+            command[command.index('-display')+1] = 'egl-headless,rendernode=/dev/dri/renderD128'
+            command[command.index('virtio-gpu-device')] = 'virtio-gpu-gl-device,xres=540,yres=1224'
+            pos = command.index(args.qemu_image)
+            command[pos:pos] = ['--security-opt=no-new-privileges', '--device', str(args.host_render_node)+':/dev/dri/renderD128:rw',
+                                '-e', 'XDG_CACHE_HOME=/tmp/rog5-qemu-cache']
+        container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'])
         serial = (output / 'serial.log').read_text(errors='replace')
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
+        if combined:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('drm_check', REPO/'scripts/host/test-qemu-virtio-drm.py')
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            result['rendering'] = module.session_result(serial)
+            if result['rendering']['status'] != 'PASS' or 'PASS authenticated Denial launcher and native clients stopped' not in serial:
+                raise RuntimeError('combined session lacks rendering/client/cleanup proof')
         for path, before in result['inputs'].items():
             if identity(Path(path)) != before:
                 raise RuntimeError(f'input changed during run: {path}')

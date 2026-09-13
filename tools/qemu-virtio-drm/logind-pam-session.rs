@@ -57,7 +57,7 @@ fn run()->Result<(),Box<dyn std::error::Error>> {
     // is failure, not PAM cleanup proof. The VM coordinator verifies scope removal.
     unsafe {
         if libc::signal(libc::SIGALRM,libc::SIG_DFL)==libc::SIG_ERR {return Err("cannot arm fixture deadline".into());}
-        libc::alarm(40);
+        libc::alarm(if cfg!(denial_session) { 140 } else { 40 });
     }
     // SAFETY: fixed authenticated guest library, signatures from pam_appl.h.
     // Library and conversation stay live until pam_end has released the handle.
@@ -83,7 +83,7 @@ fn run()->Result<(),Box<dyn std::error::Error>> {
             checked(cred(handle,2),"establish credentials")?;credential=true;
             opened=true;checked(open(handle,0),"open session")?;
             let mut child=Command::new("/usr/bin/timeout");
-            child.args(["-k","1","20","/usr/bin/setpriv","--reuid=1000","--regid=1000","--clear-groups","--bounding-set=-all","--inh-caps=-all","--ambient-caps=-all","/usr/bin/bash","/run/logind-user.sh"])
+            child.args(["-k","1",if cfg!(denial_session) {"120"} else {"20"},"/usr/bin/setpriv","--reuid=1000","--regid=1000","--clear-groups","--bounding-set=-all","--inh-caps=-all","--ambient-caps=-all","/usr/bin/bash","/run/logind-user.sh"])
                  .env_clear().env("PATH","/usr/bin").env("HOME","/run/mobile-home")
                  .env("USER","mobile").env("LOGNAME","mobile").env("LANG","C.UTF-8");
             for key in [c"XDG_SESSION_ID",c"XDG_RUNTIME_DIR",c"XDG_SESSION_TYPE",c"XDG_SEAT",c"XDG_VTNR",c"DBUS_SESSION_BUS_ADDRESS"] {
