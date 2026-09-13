@@ -384,6 +384,17 @@ whose recorded dependencies include a changed engine header, then require real
 VM raster/page-flip progress without errors. Host fixtures cannot qualify that
 runtime boundary or the phone.
 
+The engine suite also checks delayed UI submission after an old-scene retained
+retry. Patch0005 requests a coalesced retained frame for a genuinely newer
+pending scene, without another Dart build or accepting expired work. The
+20-case suite executes the real Shell/Engine/Animator notification route,
+including duplicate, already-drawn, topology and weak-lifetime guards. For the
+negative control, add `--without-pending-scene-fix --case
+queued-ui-stale-scene-progress` and use a separate output directory: it applies
+only patches0001–0004 and must fail the explicit progress obligation after
+successful fixture compilation. Native grants and GPU presentation are still
+adapters; a passing suite does not establish the observed VM failure cause.
+
 The startup lifetime regression runs separately with
 `RUSTC="$BOUNDED_RUSTC" python3 -O scripts/host/test-engine-registration-ownership.py
 --source-before "$BEFORE_SOURCE" --source-after "$AFTER_SOURCE"

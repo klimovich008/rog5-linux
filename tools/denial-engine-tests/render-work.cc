@@ -1,5 +1,5 @@
 // Adapter-only fixture. Markers are replaced with exact pinned engine source.
-// This characterizes queue ordering; it does not implement a reservation fix.
+// Native authorization/time and GPU presentation remain explicit adapters.
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -73,9 +73,17 @@ class Semaphore {
  private:
   int count_;
 };
+template <class T> struct WeakPtr {
+  T* pointer = nullptr;
+  std::weak_ptr<int> lifetime;
+  explicit operator bool() const { return pointer && !lifetime.expired(); }
+  T* operator->() const { assert(static_cast<bool>(*this)); return pointer; }
+};
 template <class T> struct WeakFactory {
   T* pointer;
-  T* GetWeakPtr() const { return pointer; }
+  std::shared_ptr<int> lifetime = std::make_shared<int>(0);
+  WeakPtr<T> GetWeakPtr() const { return {pointer, lifetime}; }
+  void Invalidate() { lifetime.reset(); }
 };
 template <class T> auto MakeCopyable(T closure) {
   auto owned = std::make_shared<T>(std::move(closure));
@@ -166,7 +174,14 @@ struct LayerTreeTask {
 // @FRAME_ITEM@
 
 enum class DrawSurfaceStatus { kSuccess, kRetry, kFailed, kDiscarded, kDeferred };
-struct DenialRenderOutput {};
+// Value-only graphics adapters. Production output equality/target tests execute.
+struct GraphicsValue { int value = 0; bool operator==(const GraphicsValue&) const = default; };
+using DlRect = GraphicsValue;
+using DlISize = GraphicsValue;
+using DlMatrix = GraphicsValue;
+constexpr int64_t kFlutterImplicitViewId = 0;
+// @OUTPUT@
+
 struct Surface { void* GetContext() const { return nullptr; } };
 struct CompositorContext {
   struct Timer { void SetLapTime(int) {} };
@@ -182,7 +197,11 @@ const char* kVsyncTraceName = "vsync-process";
 struct VsyncWaiter {
   using Callback = std::function<void(std::unique_ptr<FrameTimingsRecorder>)>;
   explicit VsyncWaiter(TaskRunners runners) : task_runners_(runners) {}
-  void AsyncWaitForVsync(Callback callback) { callback_ = std::move(callback); }
+  void AsyncWaitForVsync(Callback callback) {
+    ++wait_requests;
+    callback_ = std::move(callback);
+  }
+  unsigned wait_requests = 0;
   void FireCallback(fml::TimePoint, fml::TimePoint, bool = true, fml::closure = nullptr);
   void PauseDartEventLoopTasks() {}
   static void ResumeDartEventLoopTasks(int) {}
@@ -206,6 +225,9 @@ struct RasterDelegate {
   TaskRunners runners;
   const TaskRunners& GetTaskRunners() const { return runners; }
   bool ShouldDiscardLayerTree(int64_t, const LayerTree&) const { return false; }
+  std::function<void()> pending_scene = [] {};
+  unsigned notifications = 0;
+  void OnDenialPendingScene() { ++notifications; pending_scene(); }
 };
 struct Rasterizer {
   struct DoDrawResult {
@@ -214,7 +236,7 @@ struct Rasterizer {
   };
   Rasterizer(TaskRunners runners, std::vector<std::string>& events)
       : delegate_{runners}, events_(events), weak_factory_{this} {}
-  Rasterizer* GetWeakPtr() { return this; }
+  auto GetWeakPtr() { return weak_factory_.GetWeakPtr(); }
   DrawStatus Draw(const std::shared_ptr<FramePipeline>& pipeline);
   bool ShouldResubmitFrame(const DoDrawResult& result);
   DrawStatus ToDrawStatus(DoDrawStatus) { return DrawStatus::kDone; }
@@ -253,10 +275,10 @@ struct Rasterizer {
   void DrawDenialRenderOutputs(std::vector<int64_t>, std::vector<int64_t>,
       std::unique_ptr<FrameTimingsRecorder>, std::shared_ptr<DenialRenderWork> = nullptr);
   bool UsesDenialRenderWork() const { return strict; }
-  const DenialRenderOutput* FindDenialRenderOutput(int64_t view) const {
-    static DenialRenderOutput output;
-    return view < 0 ? &output : nullptr;
-  }
+  const DenialRenderOutput* FindDenialRenderOutput(int64_t view) const;
+  void SetDenialRenderOutputs(std::vector<DenialRenderOutput>);
+  // Production CollectView also drops GPU caches, outside this fixture.
+  void CollectView(int64_t view) { view_records_.erase(view); }
   struct ViewRecord {
     DrawSurfaceStatus last_draw_status = DrawSurfaceStatus::kDiscarded;
     std::unique_ptr<LayerTreeTask> last_successful_task;
@@ -272,6 +294,11 @@ struct Rasterizer {
   bool fail_allocation = false;
   bool strict = true;
   uint64_t denial_render_output_generation_ = 1;
+  std::vector<DenialRenderOutput> denial_render_outputs_{{-1, 1, {}, {}, 120, {}}};
+  bool is_torn_down_ = false;
+  std::unordered_map<int64_t, uint64_t> denial_notified_pending_scenes_;
+  std::unordered_set<int64_t> denial_selected_render_view_ids_;
+  bool denial_render_selection_pending_ = false;
   std::shared_ptr<DenialRenderWork> active_denial_render_work_;
   std::unordered_map<int64_t, ViewRecord> view_records_;
   std::unordered_map<int64_t, std::unique_ptr<LayerTreeTask>> denial_pending_output_tasks_;
@@ -287,6 +314,8 @@ struct Rasterizer {
 // @DRAW@
 // @RESUBMIT@
 // @STORE_PENDING@
+// @SET_OUTPUTS@
+// @FIND_OUTPUT@
 // @RESUBMIT_WORK@
 // @DRAW_RETAINED@
 // @DRAW_SURFACES@
@@ -303,10 +332,20 @@ struct Rasterizer {
 }
 
 
+struct Animator;
+struct Engine {
+  explicit Engine(Animator* animator) : animator_(animator), weak_factory_{this} {}
+  void ScheduleFrame(bool);
+  Animator* animator_;
+  fml::WeakFactory<Engine> weak_factory_;
+};
+
 struct Shell {
   Shell(TaskRunners runners, Rasterizer* rasterizer)
       : task_runners_(runners), rasterizer_(rasterizer) {}
   void OnAnimatorDraw(std::shared_ptr<FramePipeline> pipeline);
+  void OnDenialPendingScene();
+  fml::WeakPtr<Engine> weak_engine_;
   void OnAnimatorDrawLastLayerTrees(std::unique_ptr<FrameTimingsRecorder>) {
     throw std::runtime_error("legacy reuse outside fixture scope");
   }
@@ -328,6 +367,7 @@ struct Shell {
 };
 // @SHELL_DRAW@
 // @SHELL_DRAW_WORK@
+// @SHELL_PENDING@
 
 struct Animator {
   Animator(Shell& shell, TaskRunners runners)
@@ -339,13 +379,10 @@ struct Animator {
   void OnAllViewsRendered();
   void AwaitVSync();
   void DrawLastLayerTrees(std::unique_ptr<FrameTimingsRecorder>);
-  bool reuse_last = false;
-  bool CanReuseLastLayerTrees() const { return reuse_last; }
+  bool CanReuseLastLayerTrees();
   std::shared_ptr<DenialRenderWork> denial_render_work_;
   uint64_t denial_scene_sequence_ = 0;
-  // Observe the source's retry decision without adapting another vsync cycle.
-  void RequestFrame() { ++retry_requests; }
-  unsigned retry_requests = 0;
+  void RequestFrame(bool regenerate_layer_trees = true);
   Shell& delegate_;
   TaskRunners task_runners_;
   fml::WeakFactory<Animator> weak_factory_;
@@ -357,9 +394,9 @@ struct Animator {
   std::deque<uint64_t> trace_flow_ids_;
   uint64_t frame_request_number_ = 0;
   bool frame_scheduled_ = false;
-  bool regenerate_layer_trees_ = true;
+  bool regenerate_layer_trees_ = false;
   bool has_rendered_ = false;
-  fml::Semaphore pending_frame_semaphore_{0};
+  fml::Semaphore pending_frame_semaphore_{1};
   fml::TimeDelta dart_frame_deadline_;
 };
 // @BEGIN_FRAME@
@@ -368,6 +405,9 @@ struct Animator {
 // @ALL_VIEWS@
 // @AWAIT_VSYNC@
 // @DRAW_LAST@
+// @REQUEST_FRAME@
+// @CAN_REUSE@
+// @ENGINE_SCHEDULE@
 }  // namespace flutter
 
 struct Fixture {
@@ -377,6 +417,19 @@ struct Fixture {
   flutter::Rasterizer rasterizer{runners, events};
   flutter::Shell shell{runners, &rasterizer};
   flutter::Animator animator{shell, runners};
+  flutter::Engine engine{&animator};
+  Fixture() {
+    shell.weak_engine_ = engine.weak_factory_.GetWeakPtr();
+    rasterizer.delegate_.pending_scene = [this] { shell.OnDenialPendingScene(); };
+  }
+  static std::unique_ptr<flutter::LayerTreeTask> Scene(uint64_t sequence,
+      uint64_t generation = 1, int64_t view = -1) {
+    auto task = std::make_unique<flutter::LayerTreeTask>(view,
+        std::make_unique<flutter::LayerTree>(), 1);
+    task->denial_scene_sequence = sequence;
+    task->render_output_configuration_generation = generation;
+    return task;
+  }
   uint64_t newest_work = 0;
   int32_t admission_override = 1;
   static int32_t Begin(void* data, int64_t view, uint64_t work, uint32_t width, uint32_t height) {
@@ -398,13 +451,18 @@ struct Fixture {
         flutter::DenialRenderWork::Callbacks{Begin, End, Done, this});
   }
   void Frame(std::shared_ptr<flutter::DenialRenderWork> work, bool render = true,
-             bool early_end = false) {
+             bool early_end = false, bool reuse = false) {
     shell.framework_callback = [this, render, early_end] {
       if (render) animator.Render(-1, std::make_unique<flutter::LayerTree>(), 1.0f);
       if (early_end) animator.OnAllViewsRendered();
     };
+    // Legacy ownership cases inject separately granted batons, including two
+    // already queued callbacks. New progress cases also exercise RequestFrame.
+    animator.regenerate_layer_trees_ = !reuse;
+    animator.pending_frame_semaphore_.TryWait();
     animator.AwaitVSync();
-    animator.waiter_->FireCallback({}, {}, true, [this, work = std::move(work)] {
+    animator.waiter_->FireCallback({}, {}, true, [this, reuse, work = std::move(work)] {
+      animator.regenerate_layer_trees_ = !reuse;
       animator.denial_render_work_ = work;
     });
   }
@@ -464,7 +522,7 @@ int main(int argc, char** argv) {
   } else if (mode == "pipeline-full") {
     f.Frame(f.Work(1)); f.ui.Drain(); f.Frame(f.Work(2)); f.ui.Drain();
     f.Frame(f.Work(3)); f.ui.Drain();
-    f.Require(f.animator.retry_requests == 1 && f.shell.framework_callbacks == 2 && f.Count("done:3") == 1, "pipeline-full work did not close");
+    f.Require(f.animator.frame_scheduled_ && f.animator.waiter_->wait_requests == 4 && f.shell.framework_callbacks == 2 && f.Count("done:3") == 1, "pipeline-full work did not close");
     f.raster.Drain();
   } else if (mode == "retained-retry" || mode == "retained-reuse") {
     f.Frame(nullptr); f.ui.Drain(); f.raster.Drain();
@@ -474,8 +532,7 @@ int main(int argc, char** argv) {
       f.shell.OnAnimatorDrawDenialRenderWork(
           std::make_unique<flutter::FrameTimingsRecorder>(), std::move(work));
     } else {
-      f.animator.reuse_last = true;
-      f.Frame(std::move(work)); f.ui.Drain();
+      f.Frame(std::move(work), true, false, true); f.ui.Drain();
       f.Require(f.shell.framework_callbacks == 1, "retained reuse unexpectedly called Dart");
     }
     f.raster.One();
@@ -492,6 +549,138 @@ int main(int argc, char** argv) {
     f.rasterizer.fail_allocation = true;
     f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
     f.Require(f.Count("end:1") == 1 && f.Count("done:1") == 1 && f.rasterizer.denial_pending_output_tasks_.empty(), "failure did not release admitted scope");
+  } else if (mode == "queued-ui-stale-scene-progress") {
+    f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
+    const auto old_scene = f.rasterizer.view_records_.at(-1)
+                               .last_successful_task->denial_scene_sequence;
+    const auto seed_allocations = f.rasterizer.allocations;
+    f.Frame(f.Work(2));  // W1: actual primary callback remains queued on UI.
+    f.Require(!f.ui.ready.empty() && f.raster.ready.empty(), "W1 not UI queued");
+    // Native expiry/regrant is explicit: W2 goes directly to the raster queue.
+    f.shell.OnAnimatorDrawDenialRenderWork(
+        std::make_unique<flutter::FrameTimingsRecorder>(), f.Work(3));
+    f.raster.Drain();
+    f.Require(f.rasterizer.allocations == seed_allocations + 1 &&
+        f.rasterizer.view_records_.at(-1).last_successful_task->denial_scene_sequence == old_scene &&
+        f.Count("begin:2") == 0, "retained W2 did not precede queued UI W1");
+    f.ui.Drain(); f.raster.Drain();
+    auto& pending = f.rasterizer.denial_pending_output_tasks_;
+    f.Require(pending.count(-1) == 1 && pending.at(-1)->denial_scene_sequence > old_scene,
+              "late W1 did not retain its newer scene");
+    const auto new_scene = pending.at(-1)->denial_scene_sequence;
+    f.Require(f.Count("begin:2") == 1 && f.Count("end:2") == 0 && f.Count("done:2") == 1 &&
+        f.rasterizer.allocations == seed_allocations + 1, "expired W1 bypassed admission");
+    if (f.ui.ready.empty()) {
+      std::cerr << "FAIL progress obligation: newer deferred scene has no runnable engine continuation\n";
+      return 1;
+    }
+    const auto builds = f.shell.framework_callbacks;
+    const auto waits = f.animator.waiter_->wait_requests;
+    f.ui.Drain();  // Actual Shell -> Engine -> RequestFrame -> AwaitVSync.
+    f.Require(f.animator.waiter_->wait_requests == waits + 1 &&
+        f.animator.waiter_->callback_ && !f.animator.regenerate_layer_trees_,
+        "notification did not request one retained-scene vsync");
+    // Supply a native grant only after the production waiter requested it.
+    auto fresh = f.Work(4);
+    f.animator.waiter_->FireCallback({}, {}, true, [&f, fresh = std::move(fresh)] {
+      f.animator.denial_render_work_ = fresh;
+    });
+    f.ui.Drain(); f.raster.Drain();
+    f.Require(f.shell.framework_callbacks == builds &&
+        f.rasterizer.view_records_.at(-1).last_successful_task->denial_scene_sequence == new_scene &&
+        pending.empty(), "fresh grant failed to draw pending N without another Dart build");
+    f.Require(f.rasterizer.delegate_.notifications == 1 && f.ui.ready.empty() &&
+        f.raster.ready.empty() && !f.animator.waiter_->callback_ && f.Count("done:4") == 1,
+        "successful progress left a notification loop or retained work owner");
+  } else if (mode == "pending-scene-suppression") {
+    f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(1));
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(0));
+    f.Require(f.rasterizer.delegate_.notifications == 0, "drawn/equal scene notified");
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2));
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2));
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(1));
+    f.Require(f.rasterizer.delegate_.notifications == 1 &&
+        f.rasterizer.denial_pending_output_tasks_.at(-1)->denial_scene_sequence == 2,
+        "duplicate/older pending scene notified or replaced newer content");
+    f.shell.OnAnimatorDrawDenialRenderWork(
+        std::make_unique<flutter::FrameTimingsRecorder>(), f.Work(2));
+    auto replacement = f.Work(3);  // Make the retained attempt stale before draw.
+    f.raster.Drain();
+    f.Require(f.rasterizer.delegate_.notifications == 1 &&
+        f.rasterizer.denial_pending_output_tasks_.at(-1)->denial_scene_sequence == 2 &&
+        f.rasterizer.allocations == 1 && f.Count("end:2") == 0,
+        "taking/re-storing the same stale pending scene notified again");
+    replacement.reset();
+  } else if (mode == "retained-old-scene-suppression") {
+    f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
+    f.shell.OnAnimatorDrawDenialRenderWork(
+        std::make_unique<flutter::FrameTimingsRecorder>(), f.Work(2));
+    auto replacement = f.Work(3);
+    f.raster.Drain();
+    auto& pending = f.rasterizer.denial_pending_output_tasks_.at(-1);
+    f.Require(pending->is_reused_layer_tree && pending->denial_scene_sequence == 1 &&
+        !f.rasterizer.view_records_.at(-1).last_successful_task,
+        "stale retained draw did not move the prior successful task");
+    f.Require(f.rasterizer.delegate_.notifications == 0 && f.ui.ready.empty() &&
+        f.rasterizer.allocations == 1 && f.Count("end:2") == 0,
+        "already-drawn old scene was mistaken for a genuinely newer scene");
+    replacement.reset();
+  } else if (mode == "pending-scene-coalescing") {
+    f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
+    const auto waits = f.animator.waiter_->wait_requests;
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2));
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(3));
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(3));
+    f.Require(f.rasterizer.delegate_.notifications == 2, "new-scene notification count incorrect");
+    f.ui.Drain();
+    f.Require(f.animator.waiter_->wait_requests == waits + 1 && f.ui.ready.empty() &&
+        f.animator.waiter_->callback_ && !f.animator.regenerate_layer_trees_,
+        "real RequestFrame semaphore failed to coalesce notifications");
+  } else if (mode == "pending-scene-topology") {
+    f.Frame(f.Work(1)); f.ui.Drain(); f.raster.Drain();
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2));
+    auto outputs = f.rasterizer.denial_render_outputs_;
+    outputs.front().source_to_target_transform.value = 1;
+    f.rasterizer.SetDenialRenderOutputs(outputs);
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2));
+    f.Require(f.rasterizer.delegate_.notifications == 1 &&
+        f.rasterizer.denial_notified_pending_scenes_.at(-1) == 2,
+        "presentation-only change reset the notification watermark");
+    outputs.front().configuration_generation = 2;
+    f.rasterizer.SetDenialRenderOutputs(outputs);
+    f.Require(f.rasterizer.denial_pending_output_tasks_.empty() &&
+        f.rasterizer.denial_notified_pending_scenes_.empty(), "topology retained old scene state");
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(3, 1));
+    f.Require(f.rasterizer.denial_pending_output_tasks_.empty() &&
+        f.rasterizer.delegate_.notifications == 1, "wrong-generation task notified");
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2, 2));
+    f.Require(f.rasterizer.delegate_.notifications == 2, "new topology did not reset watermark");
+  } else if (mode == "pending-scene-scope") {
+    f.rasterizer.strict = false;
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(1));
+    f.Require(f.rasterizer.delegate_.notifications == 0, "legacy mode scheduled render work");
+    f.rasterizer.strict = true;
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(2, 1, -2));
+    f.Require(f.rasterizer.delegate_.notifications == 0, "unconfigured output notified");
+    f.rasterizer.is_torn_down_ = true;
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(3));
+    f.Require(f.rasterizer.delegate_.notifications == 0 &&
+        f.rasterizer.denial_pending_output_tasks_.at(-1)->denial_scene_sequence == 1,
+        "torn-down rasterizer accepted new pending content");
+  } else if (mode == "pending-scene-weak-engine" || mode == "pending-scene-weak-animator") {
+    f.rasterizer.StoreDenialPendingTask(Fixture::Scene(1));
+    f.Require(f.ui.ready.size() == 1, "notification did not post to UI");
+    if (mode == "pending-scene-weak-engine") {
+      f.engine.weak_factory_.Invalidate();
+    } else {
+      f.ui.One();  // Actual Shell callback requests a frame and queues AwaitVSync.
+      f.Require(f.ui.ready.size() == 1, "RequestFrame did not queue AwaitVSync");
+      f.animator.weak_factory_.Invalidate();
+    }
+    f.ui.Drain();
+    f.Require(f.animator.waiter_->wait_requests == 0 && f.raster.ready.empty(),
+        "weak teardown executed a dead continuation");
   } else { return 2; }
   f.Print();
   std::cout << "PASS " << mode << '\n';
