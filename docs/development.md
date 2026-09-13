@@ -57,12 +57,16 @@ overflow fails qualification while the reader continues draining; verbose
 frame diagnostics cannot silently discard the final counter or known rendering
 errors. Native-client protocol logs keep their existing independent limits.
 The readiness probe samples the packaged `lsclocks --time CLOCK_MONOTONIC`
-before/after the unchanged20-second start command, then takes one3-second,
+before/after the25-second VM-only start command, then takes one3-second,
 64KiB-bounded lifecycle snapshot of the four services and permission store before
 cleanup. Snapshot failure never replaces the original start failure. Compare
-systemd monotonic microseconds with these same-clock samples; start sample+20s
+systemd monotonic microseconds with these same-clock samples; start sample+25s
 is a lower bound on timeout cutoff, not the exact instant timeout was armed.
 Observer/process launch overhead prevents precise causal claims inside that gap.
+The former20-second fixture limit had only0.30s margin at a measured successful
+command return. The25-second allowance adds scheduling headroom inside unchanged
+outer deadlines; it changes no phone or packaged-service policy. It is not a
+root-cause fix for historical timeout124 results, which remain recorded.
 
 
 For the separate offline Denial DRM probe, build the pinned upstream kernel with

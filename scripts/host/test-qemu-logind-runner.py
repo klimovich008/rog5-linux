@@ -404,7 +404,7 @@ require_fuse_device "$1" "$2"
                 result = self.qualify(mode)
                 self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
                 names = 'at-spi-dbus-bus.service xdg-document-portal.service xdg-desktop-portal-gtk.service xdg-desktop-portal.service'
-                self.assertIn('BOUNDED -k 1 20 systemctl --user start '+names, result.stderr)
+                self.assertIn('BOUNDED -k 1 25 systemctl --user start '+names, result.stderr)
                 self.assertIn('BOUNDED -k 1 3 systemctl --user is-active '+names, result.stderr)
                 self.assertIn('MOUNT --kernel --noheadings --raw --mountpoint /run/user/1000/doc --output TARGET,FSTYPE,OPTIONS', result.stderr)
                 self.assertIn('OBSERVE document portal mount=/run/user/1000/doc fuse', result.stdout)

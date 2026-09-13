@@ -62,12 +62,15 @@ qualify_activated_services() {
     local -a services=(at-spi-dbus-bus.service xdg-document-portal.service
         xdg-desktop-portal-gtk.service xdg-desktop-portal.service)
     service_clock before-start || return $?
+    # Exact-clock VM evidence placed successful completion at19.70s and
+    # readiness only0.44s before the former20s lower cutoff. Allow5s fixture
+    # scheduling headroom; all user/PAM/service/VM outer limits stay unchanged.
     started=$SECONDS; rc=0
-    echo 'OBSERVE stage=service-start phase=begin deadline_seconds=20' >&2
-    timeout -k 1 20 systemctl --user start "${services[@]}" || rc=$?
+    echo 'OBSERVE stage=service-start phase=begin deadline_seconds=25' >&2
+    timeout -k 1 25 systemctl --user start "${services[@]}" || rc=$?
     printf 'OBSERVE stage=service-start phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
     # These samples bracket the external timeout invocation. The first sample
-    # plus20s is a lower bound on the actual timeout cutoff, not its exact arm
+    # plus25s is a lower bound on the actual timeout cutoff, not its exact arm
     # timestamp; include process/observer latency in any near-boundary inference.
     clock_rc=0; service_clock after-start || clock_rc=$?
     service_snapshot "${services[@]}"
