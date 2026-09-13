@@ -2682,3 +2682,12 @@ Instrument animation completion, send, accepted enqueue, dispatch and effective
 focus as separate stages before another policy change. Keep diagnostic helpers
 available to normal cargo test builds; a standalone adapter test should exclude
 only its external logging adapter rather than cfg-out a function used by callers.
+
+
+Core focus and delivered client focus are separate evidence. The bounded trace
+showed Dart committing Mousepad and native activation succeeding, while idle
+clients received no focus events. Flush shell-command output without depending
+on client input or presentation feedback; retry on empty passes because the
+pinned Wayland backend retains WouldBlock bytes while returning Ok. A socket
+fixture proves dispatch attempts and retry; only a client protocol trace proves
+actual Wayland delivery. Keep the diagnostic run's failure intact.
