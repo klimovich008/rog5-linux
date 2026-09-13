@@ -817,3 +817,15 @@ runner documented in `patches/flutter-engine-d728e61e/README.md`. Normal startup
 suppresses FML INFO; test the actual Shell threshold and use targeted IMPORTANT
 audit messages. Keep call IDs distinct from native reservation IDs and preserve
 failed origin collection as failure even when the guest renders frames.
+
+
+For the exact-source window-command dispatch regression, run
+`RUSTC=rustc python3 scripts/host/test-window-command-dispatch.py --source DENIAL_GIT --output NEW_DIRECTORY`.
+It extracts the pinned event-loop segment, queue methods and command routing,
+then compiles deterministic Rust tests before and after patch 0009. Missing
+source/compiler fails the command. This manual source-dependent test is separate
+from the active host tier; its PASS does not imply a VM or physical run. The
+first dispatch handles at most 64 queued commands before background yields;
+ordinary management and engine replacement retain their complete final drain.
+The lock boundary still precedes client effects. This repairs the two tested
+post-message yields, not every possible event-loop starvation path.

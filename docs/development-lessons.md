@@ -2662,3 +2662,14 @@ launcher failure. Use the supported deliberate Overview pull and exposed-scrim
 tap instead: closeOverview clears foreground without closing the native app.
 Keep the observed overview frame and require the home tile check before launch.
 Do not tune compositor gesture thresholds to accommodate host injection timing.
+
+
+A focus-command change must preserve engine-replacement drains as well as the
+interactive loop. Review of the first early-dispatch draft found that extracting
+commands out of the shared management function would lose final queued commands
+on bundle reload and topology restart. Keep the full final drain and test both
+an over-64 backlog and commands arriving in the last engine batch. A bounded
+`VecDeque::drain(..count)` preserves the remainder; `drain(..).take(count)` does
+not. Capturing an incoming app during its slide is not proof that the animation
+completed or that its focus request was sent. Keep those boundaries separate
+from native enqueue/dispatch and actual keyboard focus in runtime evidence.
