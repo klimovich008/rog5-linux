@@ -105,7 +105,8 @@ static void expired(int signal_number)
     (void)signal_number;
     if (partial_output) unlink(partial_output);
     static const char message[] = "screencopy: five-second deadline exceeded\n";
-    (void)write(STDERR_FILENO, message, sizeof(message) - 1);
+    ssize_t diagnostic_result = write(STDERR_FILENO, message, sizeof(message) - 1);
+    (void)diagnostic_result; /* Best effort; the deadline exit must not block. */
     _exit(124);
 }
 
