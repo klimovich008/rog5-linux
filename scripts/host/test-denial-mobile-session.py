@@ -72,12 +72,13 @@ DENIAL_OUTPUT_CONFIG=/home/mobile/.config/denial/outputs.conf
         self.assertFalse(self.record.exists())
 
     def test_delegates_exact_check_and_environment_and_preserves_exit(self):
-        result = self.invoke(args=('--check',), env={'LIBSEAT_BACKEND':'seatd', 'DENIA_SHELL_PROFILE':'desktop'})
+        result = self.invoke(args=('--check',), env={'LIBSEAT_BACKEND':'seatd', 'DENIA_SHELL_PROFILE':'desktop', 'DENIAL_PAM_SERVICE':'other'})
         self.assertEqual(result.returncode, 42, result.stderr)
         record = json.loads(self.record.read_text())
         self.assertEqual(record['argv'], ['--check'])
         self.assertEqual(record['env']['LIBSEAT_BACKEND'], 'logind')
         self.assertEqual(record['env']['DENIA_SHELL_PROFILE'], 'mobile')
+        self.assertEqual(record['env']['DENIAL_PAM_SERVICE'], 'login')
         self.assertEqual(record['env']['DENIAL_DRM_DEVICE'], '/dev/dri/by-path/fixture-card')
         self.assertEqual(record['env']['DENIAL_RENDER_DEVICE'], '/dev/dri/by-path/fixture-render')
         self.assertNotIn('XDG_SESSION_ID', record['env'])
@@ -142,6 +143,7 @@ DENIAL_OUTPUT_CONFIG=/home/mobile/.config/denial/outputs.conf
     def test_config_cannot_switch_back_to_fixture_seat(self):
         self.refuse('preserve logind', config='LIBSEAT_BACKEND=seatd')
         self.refuse('preserve logind', config='DENIA_SHELL_PROFILE=desktop')
+        self.refuse('login PAM service', config='DENIAL_PAM_SERVICE=other')
 
     def test_inherited_devices_do_not_substitute_missing_configuration(self):
         self.refuse('explicit DRM', config=':', env={

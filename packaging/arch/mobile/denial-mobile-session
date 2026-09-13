@@ -94,10 +94,11 @@ mobile_main() {
   mobile_root_controlled /etc/denial directory
   mobile_root_controlled /etc/denial/session.conf 'regular file'
   unset DENIAL_DRM_DEVICE DENIAL_RENDER_DEVICE DENIAL_OUTPUT_CONFIG
-  export LIBSEAT_BACKEND=logind DENIA_SHELL_PROFILE=mobile
+  export LIBSEAT_BACKEND=logind DENIA_SHELL_PROFILE=mobile DENIAL_PAM_SERVICE=login
   mobile_load_config || mobile_die 'cannot load machine session configuration'
-  [[ "${LIBSEAT_BACKEND:-}" == logind && "${DENIA_SHELL_PROFILE:-}" == mobile ]] \
-    || mobile_die 'machine configuration must preserve logind and the mobile shell'
+  [[ "${LIBSEAT_BACKEND:-}" == logind && "${DENIA_SHELL_PROFILE:-}" == mobile \
+    && "${DENIAL_PAM_SERVICE:-}" == login ]] \
+    || mobile_die 'machine configuration must preserve logind, mobile shell and login PAM service'
   mobile_character_device "${DENIAL_DRM_DEVICE:-}" \
     || mobile_die 'machine configuration must select an explicit DRM character device'
   mobile_character_device "${DENIAL_RENDER_DEVICE:-}" \
