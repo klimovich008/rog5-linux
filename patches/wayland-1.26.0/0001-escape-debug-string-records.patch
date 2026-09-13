@@ -1,0 +1,43 @@
+--- a/src/connection.c
++++ b/src/connection.c
+@@ -1535,6 +1535,31 @@
+ 	return false;
+ }
+ 
++/* Keep document strings within one diagnostic record. This does not change
++ * the protocol payload; consumers must not unescape diagnostics into records. */
++static void
++print_quoted_string(FILE *f, const char *string)
++{
++	const unsigned char *p = (const unsigned char *) string;
++
++	fputc('"', f);
++	for (; *p; p++) {
++		switch (*p) {
++		case '\\': fputs("\\\\", f); break;
++		case '"': fputs("\\\"", f); break;
++		case '\n': fputs("\\n", f); break;
++		case '\r': fputs("\\r", f); break;
++		case '\t': fputs("\\t", f); break;
++		default:
++			if (*p < 0x20 || *p == 0x7f)
++				fprintf(f, "\\x%02x", (unsigned int) *p);
++			else
++				fputc(*p, f);
++		}
++	}
++	fputc('"', f);
++}
++
+ void
+ wl_closure_print(struct wl_closure *closure, struct wl_object *target,
+ 		 int send, int discarded, uint32_t (*n_parse)(union wl_argument *arg),
+@@ -1622,7 +1647,7 @@
+ 			break;
+ 		case WL_ARG_STRING:
+ 			if (closure->args[i].s)
+-				fprintf(f, "\"%s\"", closure->args[i].s);
++				print_quoted_string(f, closure->args[i].s);
+ 			else
+ 				fprintf(f, "nil");
+ 			break;
