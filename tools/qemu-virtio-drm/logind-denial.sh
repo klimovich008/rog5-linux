@@ -26,15 +26,53 @@ require_fuse_device() {
         echo 'FAIL FUSE mount helper must be root:root mode 4755' >&2; return 1;
     }
 }
+service_clock() {
+    local phase=$1 value status=0
+    value=$(LC_ALL=C timeout -k 1 2 lsclocks --time CLOCK_MONOTONIC --no-discover-dynamic) || status=$?
+    if ((status != 0)); then
+        printf 'OBSERVE service-clock phase=%s status=%s\n' "$phase" "$status" >&2
+        return "$status"
+    fi
+    [[ $value =~ ^[0-9]+\.[0-9]{9}$ ]] || {
+        echo 'FAIL invalid monotonic clock observation' >&2; return 1;
+    }
+    printf 'OBSERVE service-clock phase=%s clock=CLOCK_MONOTONIC seconds=%s\n' "$phase" "$value" >&2
+}
+service_snapshot() {
+    local status=0
+    echo 'OBSERVE service-snapshot phase=begin deadline_seconds=3' >&2
+    # Query only lifecycle properties of the requested units and their known
+    # permission-store dependency. Preserve the start command status regardless
+    # of diagnostic failure. No environment, command lines or secrets are read.
+    (set -o pipefail
+        timeout -k 1 3 systemctl --user show "$@" xdg-permission-store.service \
+            --property=Id --property=ActiveState --property=SubState --property=Result \
+            --property=BusName --property=MainPID --property=Job \
+            --property=ExecMainStartTimestampMonotonic --property=ActiveEnterTimestampMonotonic \
+            --property=StateChangeTimestampMonotonic --property=CPUUsageNSec 2>&1 |
+        LC_ALL=C awk 'BEGIN {remaining=65536}
+            {line=$0 "\n"; if (length(line)>remaining) {overflow=1; next}
+             if (!overflow) {printf "%s",line; remaining-=length(line)}}
+            END {if (overflow) exit 42}'
+    ) >&2 || status=$?
+    printf 'OBSERVE service-snapshot phase=end status=%s\n' "$status" >&2
+}
 qualify_activated_services() {
-    local states mount_record target fstype options extra started rc
+    local states mount_record target fstype options extra started rc clock_rc
     local -a services=(at-spi-dbus-bus.service xdg-document-portal.service
         xdg-desktop-portal-gtk.service xdg-desktop-portal.service)
+    service_clock before-start || return $?
     started=$SECONDS; rc=0
     echo 'OBSERVE stage=service-start phase=begin deadline_seconds=20' >&2
     timeout -k 1 20 systemctl --user start "${services[@]}" || rc=$?
     printf 'OBSERVE stage=service-start phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
+    # These samples bracket the external timeout invocation. The first sample
+    # plus20s is a lower bound on the actual timeout cutoff, not its exact arm
+    # timestamp; include process/observer latency in any near-boundary inference.
+    clock_rc=0; service_clock after-start || clock_rc=$?
+    service_snapshot "${services[@]}"
     ((rc == 0)) || return "$rc"
+    ((clock_rc == 0)) || return "$clock_rc"
     started=$SECONDS; rc=0
     echo 'OBSERVE stage=service-state phase=begin deadline_seconds=3' >&2
     states=$(timeout -k 1 3 systemctl --user is-active "${services[@]}") || rc=$?

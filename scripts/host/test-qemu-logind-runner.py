@@ -316,11 +316,25 @@ class ActivatedServices(unittest.TestCase):
         boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^if \[\[ -f /run/editor-probe \]\]", source, re.M | re.S).group(1)
         code = 'set -euo pipefail\n' + functions + r'''
 export XDG_RUNTIME_DIR=/run/user/1000
-MODE=$1
+MODE=$1; CLOCK_COUNT=$2
+lsclocks(){
+    [[ $* == '--time CLOCK_MONOTONIC --no-discover-dynamic' ]] || return 98
+    if [[ $MODE == *post_clock ]]; then
+        [[ ! -f $CLOCK_COUNT ]] || return 43
+        : > "$CLOCK_COUNT"
+    fi
+    case $MODE in clock_fail) return 43;; clock_bad) echo not-a-clock;; *) echo 100.123456789;; esac
+}
 timeout(){ printf 'BOUNDED %s\n' "$*" >&2; shift 3; "$@"; }
 systemctl(){
     printf 'SERVICE %s\n' "$*" >&2
-    if [[ $2 == start ]]; then [[ $MODE != start_fail ]] || return 124; return 0; fi
+    if [[ $2 == start ]]; then [[ $MODE != start_fail* ]] || return 124; return 0; fi
+    if [[ $2 == show ]]; then
+        [[ $MODE != start_fail_snapshot ]] || return 42
+        [[ $MODE != start_fail_overflow ]] || { head -c 70000 /dev/zero | tr '\0' x; echo; return; }
+        printf 'Id=xdg-desktop-portal-gtk.service\nActiveState=active\nActiveEnterTimestampMonotonic=99123456\n'
+        return 0
+    fi
     [[ $MODE != query_fail ]] || return 42
     [[ $MODE != query_deadline ]] || return 124
     case $MODE in
@@ -344,8 +358,9 @@ findmnt(){
     esac
 }
 ''' + boundary + "echo CLIENTS-MAY-START\n"
-        return subprocess.run(['bash', '-c', code, 'fixture', mode],
-                              capture_output=True, text=True, timeout=3)
+        with tempfile.TemporaryDirectory() as directory:
+            return subprocess.run(['bash', '-c', code, 'fixture', mode, str(Path(directory)/'clock')],
+                                  capture_output=True, text=True, timeout=3)
 
     def fuse_guard(self, device, helper, uid='0', gid='0'):
         source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
@@ -411,6 +426,36 @@ require_fuse_device "$1" "$2"
                 self.assertNotIn('OBSERVE stage=', result.stdout)
                 for later in stages[stages.index(stage)+1:]:
                     self.assertNotIn(f'OBSERVE stage={later}', result.stderr)
+
+    def test_monotonic_clock_and_snapshot_precede_failure_return(self):
+        for mode in ['success', 'start_fail', 'start_fail_snapshot', 'start_fail_overflow']:
+            with self.subTest(mode=mode):
+                r = self.qualify(mode)
+                self.assertEqual(r.returncode, 0 if mode == 'success' else 124, r.stderr)
+                self.assertIn('clock=CLOCK_MONOTONIC seconds=100.123456789', r.stderr)
+                self.assertIn('OBSERVE service-snapshot phase=begin', r.stderr)
+                status = 42 if mode in ['start_fail_snapshot', 'start_fail_overflow'] else 0
+                self.assertIn(f'OBSERVE service-snapshot phase=end status={status}', r.stderr)
+                self.assertIn('--property=ActiveEnterTimestampMonotonic', r.stderr)
+                self.assertLess(len(r.stderr), 68000)
+                if mode != 'success': self.assertNotIn('CLIENTS-MAY-START', r.stdout)
+
+    def test_post_clock_failure_keeps_primary_start_failure(self):
+        for mode, status in [('success_post_clock',43), ('start_fail_post_clock',124)]:
+            with self.subTest(mode=mode):
+                r=self.qualify(mode)
+                self.assertEqual(r.returncode,status,r.stderr)
+                self.assertIn('OBSERVE service-clock phase=after-start status=43',r.stderr)
+                self.assertIn('OBSERVE service-snapshot phase=end status=0',r.stderr)
+                self.assertNotIn('CLIENTS-MAY-START',r.stdout)
+
+    def test_bad_clock_refuses_before_service_start(self):
+        for mode, status in [('clock_fail',43), ('clock_bad',1)]:
+            with self.subTest(mode=mode):
+                r=self.qualify(mode)
+                self.assertEqual(r.returncode,status,r.stderr)
+                self.assertNotIn('SERVICE --user start',r.stderr)
+                self.assertNotIn('CLIENTS-MAY-START',r.stdout)
 
     def test_service_and_mount_failures_never_admit_clients(self):
         for mode in ['start_fail', 'query_fail', 'empty_states', 'partial_states', 'inactive',

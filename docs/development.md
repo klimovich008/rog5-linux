@@ -56,6 +56,13 @@ The combined-session Denial log retains a 1 MiB ordinary prefix and a separate
 overflow fails qualification while the reader continues draining; verbose
 frame diagnostics cannot silently discard the final counter or known rendering
 errors. Native-client protocol logs keep their existing independent limits.
+The readiness probe samples the packaged `lsclocks --time CLOCK_MONOTONIC`
+before/after the unchanged20-second start command, then takes one3-second,
+64KiB-bounded lifecycle snapshot of the four services and permission store before
+cleanup. Snapshot failure never replaces the original start failure. Compare
+systemd monotonic microseconds with these same-clock samples; start sample+20s
+is a lower bound on timeout cutoff, not the exact instant timeout was armed.
+Observer/process launch overhead prevents precise causal claims inside that gap.
 
 
 For the separate offline Denial DRM probe, build the pinned upstream kernel with
