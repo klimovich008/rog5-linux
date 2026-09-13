@@ -129,3 +129,22 @@ input delivery. The prior source can be supplied to reproduce the mismatch.
 Use a real matching shell frontend build separately to check complete types.
 This correction retains manual panning; caret rectangle transport and client
 resizing are separate work, not claims of this patch.
+
+Patch0014 publishes optional committed Wayland caret geometry and activation
+identity through the existing bridge. Coordinates are relative to the owning
+window's logical content origin, independent of viewport movement. Zero width
+is valid. Same-editor touches retain unchanged committed geometry; focus,
+enable/disable, destruction and lock transitions prevent stale publication.
+Caret publication can precede the corresponding window snapshot, so consumers
+must retain pending ownership and use it only after matching window data arrives.
+Generated Rust/Dart bindings use the pinned FlatBuffers25.9.23 tool; regenerate
+with `FLATC=/path/to/flatc tools/generate-denial-wire`.
+
+`test-denial-caret-state.py --source PATCHED_SOURCE --output FRESH_DIRECTORY`
+executes the actual state machine and publication-cache equality with host Rust.
+`test-denial-caret-wire.py --source PATCHED_SOURCE --source-before PRIOR_SOURCE
+--flatbuffers-rlib MATCHING_ARM64_RLIB --output FRESH_DIRECTORY` compiles actual
+encoders and generated old/new readers. Set `RUSTC` to the matching compiler and
+`ROG5_ARM64_RUNNER` to a bounded ARM64 userspace runner. It uses thin LTO to match
+the retained bitcode-only dependency. These explicit-source tests do not run
+implicitly in repository tiers or qualify the full compositor, shell or phone.

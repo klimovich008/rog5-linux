@@ -1,0 +1,882 @@
+diff --git a/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs b/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs
+--- a/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs
+@@ -278,15 +278,17 @@
+         content_hint: u32,
+         content_purpose: u32,
+         activation_serial: u64,
+-    ) -> Result<(), Box<dyn Error>> {
+-        let state = (
++        caret: Option<super::super::wayland_frontend::TextInputCaret>,
++    ) -> Result<(), Box<dyn Error>> {
++        let state = super::super::wayland_frontend::SoftwareKeyboardState {
+             active,
+             input_panel_visible,
+             legacy,
+             content_hint,
+             content_purpose,
+             activation_serial,
+-        );
++            caret,
++        };
+         if self.published_text_input_state == Some(state) {
+             return Ok(());
+         }
+@@ -301,6 +303,8 @@
+             legacy,
+             content_hint,
+             content_purpose,
++            activation_serial,
++            caret,
+         )?;
+         engine.send_platform_message(wire::TO_FLUTTER_CHANNEL, update)?;
+         self.published_text_input_state = Some(state);
+diff --git a/compositor/src/bin/deniald/flutter_runtime.rs b/compositor/src/bin/deniald/flutter_runtime.rs
+--- a/compositor/src/bin/deniald/flutter_runtime.rs
++++ b/compositor/src/bin/deniald/flutter_runtime.rs
+@@ -484,7 +484,7 @@
+     frame_interval: Duration,
+     kms_frame_clock_enabled: bool,
+     outputs_visible: Option<bool>,
+-    published_text_input_state: Option<(bool, bool, bool, u32, u32, u64)>,
++    published_text_input_state: Option<super::wayland_frontend::SoftwareKeyboardState>,
+     frame_ready_observed: bool,
+     last_pointer_timestamp_micros: usize,
+ }
+diff --git a/compositor/src/bin/deniald/flutter_service_sync.rs b/compositor/src/bin/deniald/flutter_service_sync.rs
+--- a/compositor/src/bin/deniald/flutter_service_sync.rs
++++ b/compositor/src/bin/deniald/flutter_service_sync.rs
+@@ -410,5 +410,6 @@
+         keyboard.content_hint,
+         keyboard.content_purpose,
+         keyboard.activation_serial,
++        keyboard.caret,
+     )
+ }
+diff --git a/compositor/src/bin/deniald/wayland_frontend/input_method.rs b/compositor/src/bin/deniald/wayland_frontend/input_method.rs
+--- a/compositor/src/bin/deniald/wayland_frontend/input_method.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/input_method.rs
+@@ -336,6 +336,11 @@
+             virtual_keyboards: Vec::new(),
+             flutter_transactions: VecDeque::new(),
+         }
++    }
++
++    #[cfg(feature = "flutter")]
++    pub(super) fn is_blocked(&self) -> bool {
++        self.blocked
+     }
+ 
+     pub(super) fn set_blocked(&mut self, blocked: bool) -> bool {
+diff --git a/compositor/src/bin/deniald/wayland_frontend/text_input.rs b/compositor/src/bin/deniald/wayland_frontend/text_input.rs
+--- a/compositor/src/bin/deniald/wayland_frontend/text_input.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/text_input.rs
+@@ -96,6 +96,8 @@
+     current: EditorState,
+     input_panel_visible_hint: Option<bool>,
+     touch_dismissed: bool,
++    caret_fresh: bool,
++    committed_caret_fresh: bool,
+     touch_authorization_deadline: Option<Instant>,
+ }
+ 
+@@ -168,6 +170,8 @@
+             current: EditorState::default(),
+             input_panel_visible_hint: None,
+             touch_dismissed: true,
++            caret_fresh: false,
++            committed_caret_fresh: false,
+             touch_authorization_deadline: None,
+         });
+         entered
+@@ -196,6 +200,7 @@
+             instance.entered = false;
+             instance.pending = PendingState::default();
+             instance.current = EditorState::default();
++            instance.caret_fresh = false;
+             instance.input_panel_visible_hint = None;
+             instance.touch_dismissed = true;
+             instance.touch_authorization_deadline = None;
+@@ -318,6 +323,9 @@
+         {
+             has_protocol_endpoint = true;
+             instance.touch_authorization_deadline = Some(deadline);
++            // Touch authorizes keyboard visibility, not a new protocol editor.
++            // Keep committed geometry until enable/disable, focus or lock
++            // changes the endpoint; unchanged carets need not be resent.
+             if active.as_ref() == Some(&instance.id) {
+                 instance.touch_dismissed = true;
+             }
+@@ -358,6 +366,7 @@
+                 }
+                 self.active = Some(id.clone());
+                 self.instances[index].current = EditorState::default();
++                self.instances[index].caret_fresh = false;
+                 Self::apply_pending(&mut self.instances[index], pending);
+                 self.instances[index].touch_dismissed = !touch_authorized;
+                 CommitEffect::Activated
+@@ -366,6 +375,7 @@
+                 if self.active.as_ref() == Some(id) {
+                     self.active = None;
+                     self.instances[index].current = EditorState::default();
++                    self.instances[index].caret_fresh = false;
+                     self.instances[index].input_panel_visible_hint = None;
+                     self.instances[index].touch_dismissed = true;
+                     CommitEffect::Deactivated
+@@ -397,8 +407,10 @@
+         if let Some(rectangle) = pending.cursor_rectangle {
+             if instance.version >= 2 {
+                 instance.current.committed_cursor_rectangle = Some(rectangle);
++                instance.committed_caret_fresh = true;
+             } else {
+                 instance.current.cursor_rectangle = Some(rectangle);
++                instance.caret_fresh = true;
+             }
+         }
+         if let Some(actions) = pending.available_actions {
+@@ -423,7 +435,29 @@
+         };
+         if let Some(rectangle) = instance.current.committed_cursor_rectangle.take() {
+             instance.current.cursor_rectangle = Some(rectangle);
+-        }
++            instance.caret_fresh = instance.committed_caret_fresh;
++            instance.committed_caret_fresh = false;
++        }
++    }
++
++    fn invalidate_caret(&mut self) {
++        for instance in &mut self.instances {
++            instance.caret_fresh = false;
++            instance.committed_caret_fresh = false;
++        }
++    }
++
++    fn active_cursor_rectangle(&self, blocked: bool) -> Option<CursorRectangle> {
++        if blocked {
++            return None;
++        }
++        let active = self.active.as_ref()?;
++        let instance = self.instances.iter().find(|instance| {
++            &instance.id == active && instance.entered && instance.caret_fresh
++        })?;
++        instance.current.cursor_rectangle.filter(|rectangle| {
++            rectangle.width >= 0 && rectangle.height >= 0
++        })
+     }
+ 
+     fn active_serial(&self) -> Option<(I, u32)> {
+@@ -549,6 +583,18 @@
+     }
+ }
+ 
++/// Focused Wayland caret in owning window content logical coordinates.
++/// Absence is distinct from a valid zero-width caret.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub(crate) struct TextInputCaret {
++    pub window_id: u64,
++    pub surface_id: u64,
++    pub x: i32,
++    pub y: i32,
++    pub width: i32,
++    pub height: i32,
++}
++
+ #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+ pub(crate) struct SoftwareKeyboardState {
+     pub active: bool,
+@@ -557,6 +603,7 @@
+     pub content_hint: u32,
+     pub content_purpose: u32,
+     pub activation_serial: u64,
++    pub caret: Option<TextInputCaret>,
+ }
+ 
+ #[derive(Debug)]
+@@ -718,6 +765,7 @@
+             content_hint,
+             content_purpose,
+             activation_serial: self.broker.activation_serial,
++            caret: None,
+         }
+     }
+ 
+@@ -745,6 +793,7 @@
+             content_hint: editor.content_hint,
+             content_purpose: editor.content_purpose,
+             activation_serial: self.broker.activation_serial,
++            caret: None,
+         }
+     }
+ 
+@@ -1061,12 +1110,41 @@
+     }
+ 
+     pub(crate) fn set_input_method_blocked(&mut self, blocked: bool) -> bool {
++        if blocked {
++            self.text_input.sessions.invalidate_caret();
++        }
+         self.input_method.set_blocked(blocked)
+     }
+ 
+     #[cfg(feature = "flutter")]
+     pub(crate) fn software_keyboard_state(&self) -> SoftwareKeyboardState {
+-        self.text_input.software_keyboard_state()
++        let mut state = self.text_input.software_keyboard_state();
++        if state.active && !state.legacy && !self.input_method.is_blocked()
++            && !self.text_input.broker.shell_capture
++            && self.text_input.broker.seat_focus == SeatFocusKind::Wayland
++        {
++            state.caret = self.focused_caret_in_window();
++        }
++        state
++    }
++
++    #[cfg(feature = "flutter")]
++    fn focused_caret_in_window(&self) -> Option<TextInputCaret> {
++        let rectangle = self.text_input.sessions.active_cursor_rectangle(self.input_method.is_blocked())?;
++        let surface = self.text_input.focus_surface.as_ref()?;
++        let root = self.owning_toplevel_surface(surface)?;
++        let window = self.window_for_root_surface(&root)?;
++        let offset = self.surface_tree_offset(&root, surface)?;
++        let geometry = window.geometry();
++        Some(TextInputCaret {
++            window_id: self.surface_id(&root)?,
++            surface_id: self.surface_id(surface)?,
++            // This mapping is independent of Flutter's current viewport pan.
++            x: rectangle.x.saturating_add(offset.x).saturating_sub(geometry.loc.x),
++            y: rectangle.y.saturating_add(offset.y).saturating_sub(geometry.loc.y),
++            width: rectangle.width,
++            height: rectangle.height,
++        })
+     }
+ 
+     #[cfg(feature = "flutter")]
+diff --git a/compositor/src/bin/deniald/wayland_frontend.rs b/compositor/src/bin/deniald/wayland_frontend.rs
+--- a/compositor/src/bin/deniald/wayland_frontend.rs
++++ b/compositor/src/bin/deniald/wayland_frontend.rs
+@@ -203,6 +203,8 @@
+ #[cfg(feature = "flutter")]
+ use surface_snapshot::{rgba_payload_len, shm_cache_budget_for_atlas, snapshot_shm_buffer};
+ use text_input::{SeatFocusKind, TextInputManager};
++#[cfg(feature = "flutter")]
++pub(crate) use text_input::{SoftwareKeyboardState, TextInputCaret};
+ pub(super) use topology::saturating_point_add;
+ use topology::{
+     choose_popup_output, clamp_window_geometry, configure_output, output_logical_bounds,
+diff --git a/compositor/src/bin/deniald/wire/encode.rs b/compositor/src/bin/deniald/wire/encode.rs
+--- a/compositor/src/bin/deniald/wire/encode.rs
++++ b/compositor/src/bin/deniald/wire/encode.rs
+@@ -201,8 +201,12 @@
+         legacy: bool,
+         content_hint: u32,
+         content_purpose: u32,
++        activation_serial: u64,
++        caret: Option<crate::wayland_frontend::TextInputCaret>,
+     ) -> Result<&[u8], WireError> {
+-        if input_panel_visible && !active {
++        if (input_panel_visible && !active)
++            || caret.is_some_and(|caret| !active || legacy || caret.width < 0 || caret.height < 0)
++        {
+             return Err(WireError::Payload);
+         }
+         let sequence = self.take_sequence();
+@@ -215,6 +219,8 @@
+             legacy,
+             content_hint,
+             content_purpose,
++            activation_serial,
++            caret,
+         )?;
+         Ok(self.outbound_builder.finished_data())
+     }
+@@ -862,7 +868,17 @@
+     legacy: bool,
+     content_hint: u32,
+     content_purpose: u32,
++    activation_serial: u64,
++    caret: Option<crate::wayland_frontend::TextInputCaret>,
+ ) -> Result<(), WireError> {
++    let caret = caret.map(|caret| fb::TextInputCaret::create(builder, &fb::TextInputCaretArgs {
++        window_id: caret.window_id,
++        surface_id: caret.surface_id,
++        x: caret.x,
++        y: caret.y,
++        width: caret.width,
++        height: caret.height,
++    }));
+     let state = fb::TextInputState::create(
+         builder,
+         &fb::TextInputStateArgs {
+@@ -871,6 +887,8 @@
+             legacy,
+             content_hint,
+             content_purpose,
++            activation_serial,
++            caret,
+         },
+     );
+     let envelope = fb::Envelope::create(
+@@ -1447,3 +1465,33 @@
+     fb::finish_envelope_buffer(builder, envelope);
+     validate_finished_message(builder)
+ }
++
++#[cfg(test)]
++mod caret_wire_tests {
++    use super::*;
++
++    #[test]
++    fn zero_width_caret_and_ownership_round_trip() {
++        let mut builder = FlatBufferBuilder::new();
++        encode_text_input_state(&mut builder, 1, true, true, false, 0, 0, 77,
++            Some(crate::wayland_frontend::TextInputCaret {
++                window_id: 11, surface_id: 12, x: -5, y: 900, width: 0, height: 20,
++            })).unwrap();
++        let envelope = fb::root_as_envelope(builder.finished_data()).unwrap();
++        let state = envelope.payload_as_text_input_state().unwrap();
++        assert_eq!(state.activation_serial(), 77);
++        let caret = state.caret().unwrap();
++        assert_eq!((caret.window_id(), caret.surface_id()), (11, 12));
++        assert_eq!((caret.x(), caret.y(), caret.width(), caret.height()), (-5, 900, 0, 20));
++    }
++
++    #[test]
++    fn no_caret_remains_absent_on_wire() {
++        let mut builder = FlatBufferBuilder::new();
++        encode_text_input_state(&mut builder, 1, true, true, false, 0, 0, 78, None).unwrap();
++        let envelope = fb::root_as_envelope(builder.finished_data()).unwrap();
++        let state = envelope.payload_as_text_input_state().unwrap();
++        assert_eq!(state.activation_serial(), 78);
++        assert!(state.caret().is_none());
++    }
++}
+diff --git a/protocol/denial.fbs b/protocol/denial.fbs
+--- a/protocol/denial.fbs
++++ b/protocol/denial.fbs
+@@ -463,6 +463,18 @@
+ // input_panel_visible additionally respects explicit client show/hide hints.
+ // Content metadata lets future keyboard layouts select text, number, URL,
+ // email, and password arrangements without inferring from application names.
++// Optional committed caret. Coordinates are logical and relative to the owning
++// window content origin, independent of shell viewport transforms. Zero width
++// is valid; an absent table means there is no current admissible rectangle.
++table TextInputCaret {
++  window_id:ulong;
++  surface_id:ulong;
++  x:int;
++  y:int;
++  width:int;
++  height:int;
++}
++
+ table TextInputState {
+   active:bool;
+   input_panel_visible:bool;
+@@ -471,6 +483,8 @@
+   legacy:bool;
+   content_hint:uint;
+   content_purpose:uint;
++  activation_serial:ulong;
++  caret:TextInputCaret;
+ }
+ 
+ // KeyboardCommand.flags: bit 0 means Ctrl is held; bit 1 is key press; bit 2
+diff --git a/protocol/generated/dart/lib/denial_denial.wire_generated.dart b/protocol/generated/dart/lib/denial_denial.wire_generated.dart
+--- a/protocol/generated/dart/lib/denial_denial.wire_generated.dart
++++ b/protocol/generated/dart/lib/denial_denial.wire_generated.dart
+@@ -3245,6 +3245,122 @@
+     return fbBuilder.buffer;
+   }
+ }
++class TextInputCaret {
++  TextInputCaret._(this._bc, this._bcOffset);
++  factory TextInputCaret(List<int> bytes) {
++    final rootRef = fb.BufferContext.fromBytes(bytes);
++    return reader.read(rootRef, 0);
++  }
++
++  static const fb.Reader<TextInputCaret> reader = _TextInputCaretReader();
++
++  final fb.BufferContext _bc;
++  final int _bcOffset;
++
++  int get windowId => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
++  int get surfaceId => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 6, 0);
++  int get x => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 8, 0);
++  int get y => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 10, 0);
++  int get width => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 12, 0);
++  int get height => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 14, 0);
++
++  @override
++  String toString() {
++    return 'TextInputCaret{windowId: ${windowId}, surfaceId: ${surfaceId}, x: ${x}, y: ${y}, width: ${width}, height: ${height}}';
++  }
++}
++
++class _TextInputCaretReader extends fb.TableReader<TextInputCaret> {
++  const _TextInputCaretReader();
++
++  @override
++  TextInputCaret createObject(fb.BufferContext bc, int offset) => 
++    TextInputCaret._(bc, offset);
++}
++
++class TextInputCaretBuilder {
++  TextInputCaretBuilder(this.fbBuilder);
++
++  final fb.Builder fbBuilder;
++
++  void begin() {
++    fbBuilder.startTable(6);
++  }
++
++  int addWindowId(int? windowId) {
++    fbBuilder.addUint64(0, windowId);
++    return fbBuilder.offset;
++  }
++  int addSurfaceId(int? surfaceId) {
++    fbBuilder.addUint64(1, surfaceId);
++    return fbBuilder.offset;
++  }
++  int addX(int? x) {
++    fbBuilder.addInt32(2, x);
++    return fbBuilder.offset;
++  }
++  int addY(int? y) {
++    fbBuilder.addInt32(3, y);
++    return fbBuilder.offset;
++  }
++  int addWidth(int? width) {
++    fbBuilder.addInt32(4, width);
++    return fbBuilder.offset;
++  }
++  int addHeight(int? height) {
++    fbBuilder.addInt32(5, height);
++    return fbBuilder.offset;
++  }
++
++  int finish() {
++    return fbBuilder.endTable();
++  }
++}
++
++class TextInputCaretObjectBuilder extends fb.ObjectBuilder {
++  final int? _windowId;
++  final int? _surfaceId;
++  final int? _x;
++  final int? _y;
++  final int? _width;
++  final int? _height;
++
++  TextInputCaretObjectBuilder({
++    int? windowId,
++    int? surfaceId,
++    int? x,
++    int? y,
++    int? width,
++    int? height,
++  })
++      : _windowId = windowId,
++        _surfaceId = surfaceId,
++        _x = x,
++        _y = y,
++        _width = width,
++        _height = height;
++
++  /// Finish building, and store into the [fbBuilder].
++  @override
++  int finish(fb.Builder fbBuilder) {
++    fbBuilder.startTable(6);
++    fbBuilder.addUint64(0, _windowId);
++    fbBuilder.addUint64(1, _surfaceId);
++    fbBuilder.addInt32(2, _x);
++    fbBuilder.addInt32(3, _y);
++    fbBuilder.addInt32(4, _width);
++    fbBuilder.addInt32(5, _height);
++    return fbBuilder.endTable();
++  }
++
++  /// Convenience method to serialize to byte list.
++  @override
++  Uint8List toBytes([String? fileIdentifier]) {
++    final fbBuilder = fb.Builder(deduplicateTables: false);
++    fbBuilder.finish(finish(fbBuilder), fileIdentifier);
++    return fbBuilder.buffer;
++  }
++}
+ class TextInputState {
+   TextInputState._(this._bc, this._bcOffset);
+   factory TextInputState(List<int> bytes) {
+@@ -3262,10 +3378,12 @@
+   bool get legacy => const fb.BoolReader().vTableGet(_bc, _bcOffset, 8, false);
+   int get contentHint => const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 10, 0);
+   int get contentPurpose => const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 12, 0);
++  int get activationSerial => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 14, 0);
++  TextInputCaret? get caret => TextInputCaret.reader.vTableGetNullable(_bc, _bcOffset, 16);
+ 
+   @override
+   String toString() {
+-    return 'TextInputState{active: ${active}, inputPanelVisible: ${inputPanelVisible}, legacy: ${legacy}, contentHint: ${contentHint}, contentPurpose: ${contentPurpose}}';
++    return 'TextInputState{active: ${active}, inputPanelVisible: ${inputPanelVisible}, legacy: ${legacy}, contentHint: ${contentHint}, contentPurpose: ${contentPurpose}, activationSerial: ${activationSerial}, caret: ${caret}}';
+   }
+ }
+ 
+@@ -3283,7 +3401,7 @@
+   final fb.Builder fbBuilder;
+ 
+   void begin() {
+-    fbBuilder.startTable(5);
++    fbBuilder.startTable(7);
+   }
+ 
+   int addActive(bool? active) {
+@@ -3304,6 +3422,14 @@
+   }
+   int addContentPurpose(int? contentPurpose) {
+     fbBuilder.addUint32(4, contentPurpose);
++    return fbBuilder.offset;
++  }
++  int addActivationSerial(int? activationSerial) {
++    fbBuilder.addUint64(5, activationSerial);
++    return fbBuilder.offset;
++  }
++  int addCaretOffset(int? offset) {
++    fbBuilder.addOffset(6, offset);
+     return fbBuilder.offset;
+   }
+ 
+@@ -3318,6 +3444,8 @@
+   final bool? _legacy;
+   final int? _contentHint;
+   final int? _contentPurpose;
++  final int? _activationSerial;
++  final TextInputCaretObjectBuilder? _caret;
+ 
+   TextInputStateObjectBuilder({
+     bool? active,
+@@ -3325,22 +3453,29 @@
+     bool? legacy,
+     int? contentHint,
+     int? contentPurpose,
++    int? activationSerial,
++    TextInputCaretObjectBuilder? caret,
+   })
+       : _active = active,
+         _inputPanelVisible = inputPanelVisible,
+         _legacy = legacy,
+         _contentHint = contentHint,
+-        _contentPurpose = contentPurpose;
++        _contentPurpose = contentPurpose,
++        _activationSerial = activationSerial,
++        _caret = caret;
+ 
+   /// Finish building, and store into the [fbBuilder].
+   @override
+   int finish(fb.Builder fbBuilder) {
+-    fbBuilder.startTable(5);
++    final int? caretOffset = _caret?.getOrCreateOffset(fbBuilder);
++    fbBuilder.startTable(7);
+     fbBuilder.addBool(0, _active);
+     fbBuilder.addBool(1, _inputPanelVisible);
+     fbBuilder.addBool(2, _legacy);
+     fbBuilder.addUint32(3, _contentHint);
+     fbBuilder.addUint32(4, _contentPurpose);
++    fbBuilder.addUint64(5, _activationSerial);
++    fbBuilder.addOffset(6, caretOffset);
+     return fbBuilder.endTable();
+   }
+ 
+diff --git a/protocol/generated/rust/denial_generated.rs b/protocol/generated/rust/denial_generated.rs
+--- a/protocol/generated/rust/denial_generated.rs
++++ b/protocol/generated/rust/denial_generated.rs
+@@ -6209,6 +6209,188 @@
+       ds.finish()
+   }
+ }
++pub enum TextInputCaretOffset {}
++#[derive(Copy, Clone, PartialEq)]
++
++pub struct TextInputCaret<'a> {
++  pub _tab: flatbuffers::Table<'a>,
++}
++
++impl<'a> flatbuffers::Follow<'a> for TextInputCaret<'a> {
++  type Inner = TextInputCaret<'a>;
++  #[inline]
++  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
++    Self { _tab: unsafe { flatbuffers::Table::new(buf, loc) } }
++  }
++}
++
++impl<'a> TextInputCaret<'a> {
++  pub const VT_WINDOW_ID: flatbuffers::VOffsetT = 4;
++  pub const VT_SURFACE_ID: flatbuffers::VOffsetT = 6;
++  pub const VT_X: flatbuffers::VOffsetT = 8;
++  pub const VT_Y: flatbuffers::VOffsetT = 10;
++  pub const VT_WIDTH: flatbuffers::VOffsetT = 12;
++  pub const VT_HEIGHT: flatbuffers::VOffsetT = 14;
++
++  #[inline]
++  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
++    TextInputCaret { _tab: table }
++  }
++  #[allow(unused_mut)]
++  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
++    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
++    args: &'args TextInputCaretArgs
++  ) -> flatbuffers::WIPOffset<TextInputCaret<'bldr>> {
++    let mut builder = TextInputCaretBuilder::new(_fbb);
++    builder.add_surface_id(args.surface_id);
++    builder.add_window_id(args.window_id);
++    builder.add_height(args.height);
++    builder.add_width(args.width);
++    builder.add_y(args.y);
++    builder.add_x(args.x);
++    builder.finish()
++  }
++
++
++  #[inline]
++  pub fn window_id(&self) -> u64 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<u64>(TextInputCaret::VT_WINDOW_ID, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn surface_id(&self) -> u64 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<u64>(TextInputCaret::VT_SURFACE_ID, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn x(&self) -> i32 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<i32>(TextInputCaret::VT_X, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn y(&self) -> i32 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<i32>(TextInputCaret::VT_Y, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn width(&self) -> i32 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<i32>(TextInputCaret::VT_WIDTH, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn height(&self) -> i32 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<i32>(TextInputCaret::VT_HEIGHT, Some(0)).unwrap()}
++  }
++}
++
++impl flatbuffers::Verifiable for TextInputCaret<'_> {
++  #[inline]
++  fn run_verifier(
++    v: &mut flatbuffers::Verifier, pos: usize
++  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
++    use self::flatbuffers::Verifiable;
++    v.visit_table(pos)?
++     .visit_field::<u64>("window_id", Self::VT_WINDOW_ID, false)?
++     .visit_field::<u64>("surface_id", Self::VT_SURFACE_ID, false)?
++     .visit_field::<i32>("x", Self::VT_X, false)?
++     .visit_field::<i32>("y", Self::VT_Y, false)?
++     .visit_field::<i32>("width", Self::VT_WIDTH, false)?
++     .visit_field::<i32>("height", Self::VT_HEIGHT, false)?
++     .finish();
++    Ok(())
++  }
++}
++pub struct TextInputCaretArgs {
++    pub window_id: u64,
++    pub surface_id: u64,
++    pub x: i32,
++    pub y: i32,
++    pub width: i32,
++    pub height: i32,
++}
++impl<'a> Default for TextInputCaretArgs {
++  #[inline]
++  fn default() -> Self {
++    TextInputCaretArgs {
++      window_id: 0,
++      surface_id: 0,
++      x: 0,
++      y: 0,
++      width: 0,
++      height: 0,
++    }
++  }
++}
++
++pub struct TextInputCaretBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
++  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
++  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
++}
++impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> TextInputCaretBuilder<'a, 'b, A> {
++  #[inline]
++  pub fn add_window_id(&mut self, window_id: u64) {
++    self.fbb_.push_slot::<u64>(TextInputCaret::VT_WINDOW_ID, window_id, 0);
++  }
++  #[inline]
++  pub fn add_surface_id(&mut self, surface_id: u64) {
++    self.fbb_.push_slot::<u64>(TextInputCaret::VT_SURFACE_ID, surface_id, 0);
++  }
++  #[inline]
++  pub fn add_x(&mut self, x: i32) {
++    self.fbb_.push_slot::<i32>(TextInputCaret::VT_X, x, 0);
++  }
++  #[inline]
++  pub fn add_y(&mut self, y: i32) {
++    self.fbb_.push_slot::<i32>(TextInputCaret::VT_Y, y, 0);
++  }
++  #[inline]
++  pub fn add_width(&mut self, width: i32) {
++    self.fbb_.push_slot::<i32>(TextInputCaret::VT_WIDTH, width, 0);
++  }
++  #[inline]
++  pub fn add_height(&mut self, height: i32) {
++    self.fbb_.push_slot::<i32>(TextInputCaret::VT_HEIGHT, height, 0);
++  }
++  #[inline]
++  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> TextInputCaretBuilder<'a, 'b, A> {
++    let start = _fbb.start_table();
++    TextInputCaretBuilder {
++      fbb_: _fbb,
++      start_: start,
++    }
++  }
++  #[inline]
++  pub fn finish(self) -> flatbuffers::WIPOffset<TextInputCaret<'a>> {
++    let o = self.fbb_.end_table(self.start_);
++    flatbuffers::WIPOffset::new(o.value())
++  }
++}
++
++impl core::fmt::Debug for TextInputCaret<'_> {
++  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
++    let mut ds = f.debug_struct("TextInputCaret");
++      ds.field("window_id", &self.window_id());
++      ds.field("surface_id", &self.surface_id());
++      ds.field("x", &self.x());
++      ds.field("y", &self.y());
++      ds.field("width", &self.width());
++      ds.field("height", &self.height());
++      ds.finish()
++  }
++}
+ pub enum TextInputStateOffset {}
+ #[derive(Copy, Clone, PartialEq)]
+ 
+@@ -6230,6 +6412,8 @@
+   pub const VT_LEGACY: flatbuffers::VOffsetT = 8;
+   pub const VT_CONTENT_HINT: flatbuffers::VOffsetT = 10;
+   pub const VT_CONTENT_PURPOSE: flatbuffers::VOffsetT = 12;
++  pub const VT_ACTIVATION_SERIAL: flatbuffers::VOffsetT = 14;
++  pub const VT_CARET: flatbuffers::VOffsetT = 16;
+ 
+   #[inline]
+   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+@@ -6238,9 +6422,11 @@
+   #[allow(unused_mut)]
+   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
+-    args: &'args TextInputStateArgs
++    args: &'args TextInputStateArgs<'args>
+   ) -> flatbuffers::WIPOffset<TextInputState<'bldr>> {
+     let mut builder = TextInputStateBuilder::new(_fbb);
++    builder.add_activation_serial(args.activation_serial);
++    if let Some(x) = args.caret { builder.add_caret(x); }
+     builder.add_content_purpose(args.content_purpose);
+     builder.add_content_hint(args.content_hint);
+     builder.add_legacy(args.legacy);
+@@ -6284,6 +6470,20 @@
+     // Created from valid Table for this object
+     // which contains a valid value in this slot
+     unsafe { self._tab.get::<u32>(TextInputState::VT_CONTENT_PURPOSE, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn activation_serial(&self) -> u64 {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<u64>(TextInputState::VT_ACTIVATION_SERIAL, Some(0)).unwrap()}
++  }
++  #[inline]
++  pub fn caret(&self) -> Option<TextInputCaret<'a>> {
++    // Safety:
++    // Created from valid Table for this object
++    // which contains a valid value in this slot
++    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<TextInputCaret>>(TextInputState::VT_CARET, None)}
+   }
+ }
+ 
+@@ -6299,18 +6499,22 @@
+      .visit_field::<bool>("legacy", Self::VT_LEGACY, false)?
+      .visit_field::<u32>("content_hint", Self::VT_CONTENT_HINT, false)?
+      .visit_field::<u32>("content_purpose", Self::VT_CONTENT_PURPOSE, false)?
++     .visit_field::<u64>("activation_serial", Self::VT_ACTIVATION_SERIAL, false)?
++     .visit_field::<flatbuffers::ForwardsUOffset<TextInputCaret>>("caret", Self::VT_CARET, false)?
+      .finish();
+     Ok(())
+   }
+ }
+-pub struct TextInputStateArgs {
++pub struct TextInputStateArgs<'a> {
+     pub active: bool,
+     pub input_panel_visible: bool,
+     pub legacy: bool,
+     pub content_hint: u32,
+     pub content_purpose: u32,
+-}
+-impl<'a> Default for TextInputStateArgs {
++    pub activation_serial: u64,
++    pub caret: Option<flatbuffers::WIPOffset<TextInputCaret<'a>>>,
++}
++impl<'a> Default for TextInputStateArgs<'a> {
+   #[inline]
+   fn default() -> Self {
+     TextInputStateArgs {
+@@ -6319,6 +6523,8 @@
+       legacy: false,
+       content_hint: 0,
+       content_purpose: 0,
++      activation_serial: 0,
++      caret: None,
+     }
+   }
+ }
+@@ -6347,6 +6553,14 @@
+   #[inline]
+   pub fn add_content_purpose(&mut self, content_purpose: u32) {
+     self.fbb_.push_slot::<u32>(TextInputState::VT_CONTENT_PURPOSE, content_purpose, 0);
++  }
++  #[inline]
++  pub fn add_activation_serial(&mut self, activation_serial: u64) {
++    self.fbb_.push_slot::<u64>(TextInputState::VT_ACTIVATION_SERIAL, activation_serial, 0);
++  }
++  #[inline]
++  pub fn add_caret(&mut self, caret: flatbuffers::WIPOffset<TextInputCaret<'b >>) {
++    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<TextInputCaret>>(TextInputState::VT_CARET, caret);
+   }
+   #[inline]
+   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> TextInputStateBuilder<'a, 'b, A> {
+@@ -6371,6 +6585,8 @@
+       ds.field("legacy", &self.legacy());
+       ds.field("content_hint", &self.content_hint());
+       ds.field("content_purpose", &self.content_purpose());
++      ds.field("activation_serial", &self.activation_serial());
++      ds.field("caret", &self.caret());
+       ds.finish()
+   }
+ }
