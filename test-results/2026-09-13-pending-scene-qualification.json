@@ -1,0 +1,2382 @@
+{
+  "status": "FAIL",
+  "authority": "none; offline host/VM fixture",
+  "physical_status": "NOT RUN",
+  "starting_commit": "ccb939efc66fce97d51d847387384dacac15c2fe",
+  "source": {
+    "commit": "0d055f4c942bfba624d83e7fd505b67c52352020",
+    "tree": "bfebe2afe05e0229a07ff2b91ffe63a01e0fe11c",
+    "created": "2026-09-13T17:43:35.172011+00:00",
+    "physical": "NOT RUN",
+    "authority": "none; offline source/VM"
+  },
+  "previous_turn": "PROGRESS: user-requested storage cleanup preserved active build inputs",
+  "negative_control": {
+    "status": "FAIL",
+    "base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "patches": {
+      "0001-release-impeller-surface-context.patch": "130db9685a703caac5ae6aca1bce68bb82d5dc32726ba47ce41f85d80a8efe66",
+      "0002-release-impeller-io-context.patch": "a7d70c263929fdbfb8ad1fec5c6fc1818a72f0181ac960b47b126d074e628c89",
+      "0003-trace-raster-call-origin.patch": "c9035d5fff42338ba05c17619f9088fdb1b0dcaa078c93e6828de6ffb4463d96",
+      "0004-bind-render-work-reservations.patch": "ca253c38e81156b817f5173d499206e9855c251e2415abea42ca05c76c7cf2ff"
+    },
+    "sections": {
+      "OUTPUT": "064af795d449898002ac3ea7ef9376c7dd1ac721906bc5e0df7073dcbfa7f799",
+      "SET_OUTPUTS": "896d0d25637f18a5f749de047fca27e546f215e038ce4b98d9f3539d0fb6a5a0",
+      "FIND_OUTPUT": "49cf767b4b5f4275184e11cbb89cbc23a4540bc91c0da2b08967d861a953fe95",
+      "REQUEST_FRAME": "b36627ba19eee5d0d296c8bede86d731778b7ef38e4fb550f48c2c50766da557",
+      "CAN_REUSE": "ccda2c654bc311cd5285584af74712ef093efa2477b7f6b2b754e84890faff5d",
+      "WORK": "b92c0ce851a62e18b1364ea11e3cf2ab49f1d29727376ad42502b00d3c0c7919",
+      "PIPELINE": "598904a85b51a79c8995e1b88f33d03e23bc40604d4049c68cb401872994926d",
+      "FRAME_ITEM": "bde31d6f2a60d1428b7314980951d5bbde636b5fe56f1184716616e1d04d228e",
+      "BEGIN_FRAME": "29be3a4b937aaa394daaabdebc43724f04574fca8cc0ab615f5e63c29fc39084",
+      "END_FRAME": "29923283052876c4f908305e37eadb0bb7bac6b887a7041f5c0869f1059cb267",
+      "RENDER": "3075565ccfbd7613c6c1bf13aecba06efee20b5ee7245ef1aa829545f785d4f2",
+      "ALL_VIEWS": "f9ef83345dc8f467ab63cf6975fdb4ba62e7e66f256f0c836b3d55e3453e448a",
+      "DRAW": "4995f2204a9abb416705eb5e413f341c85ec4f077df16c802ae86916a3e5ddb5",
+      "AWAIT_VSYNC": "b5243f7bb40b23cd3c87ada90d044e197f03175c9c2ebc7cd58e09377a03e9ea",
+      "DRAW_LAST": "aadb47ef5e28437764c8394ed78acc772fdbd5a2b8a07994777390de9e7293cb",
+      "FIRE_CALLBACK": "936c7bad3ac3e89fe294780f5552169478b1f6ee69feecdcd26c3789cdbefec0",
+      "STORE_PENDING": "d351637e16f5129ca6eb6ae6629e55e6b4ef01cf27d8d5d1dfccd6c88262fa35",
+      "RESUBMIT_WORK": "ec1dd162c9ca37c0668b28c6c50451476fc9a0d37c9094bd42cd7833e23f6483",
+      "DRAW_SURFACES": "1400f12376a6f8f8bb7aad9309316f547dab99d8bcef805027a5f00ab0f0ec8a",
+      "DRAW_SURFACE_PREFIX": "4b22dc05379cd01af990540065b50aa14796be304d08bebfdd6f6ffde4217dd6",
+      "SHELL_DRAW_WORK": "45fdf299ab80e15a4398aeef9f0178771db178b372d5c1b53d4ff14a65e092f3",
+      "DRAW_RETAINED": "941fdfe0e98d71e43ab5390921620d9f882eb49a288b5244db8ca99d8bd7dfc9",
+      "SHELL_DRAW": "fd30fcb0028f201dfa1dac11a093677713a4a73bca9bb5829f192d11837e1b90",
+      "ENGINE_SCHEDULE": "a1490d303390c2bcea49aefcc07ba539527ee5df6fcf63e3f0271b30efdc9e24",
+      "SHELL_PENDING": "9d9ca105f27cb98b4a32be2f1b0a5f58e8a21e7d65c719fbd777a1e8cc4445c6",
+      "RESUBMIT": "19150f25f3d8dd8e9eedb770254ad52116b615c6fc51446ce64c73440cccd79b"
+    },
+    "runner_sha256": "6b52663826daa06fb556b6e7a7eeb6ab201a187aa755c4798074b5abc4e96482",
+    "fixture_sha256": "324da1976b457aff3c10d31016f8a4920ddcba727e96b914fba9dea101a8b6c3",
+    "translation_unit_sha256": "f4e05206bc2344af320ccd9565acf23e62716ba46f26da075b316516a17892fd",
+    "build": {
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-before-r1/fixture.cc",
+        "-o",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-before-r1/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 3.4032833139935974
+    },
+    "runs": [
+      {
+        "case": "queued-ui-stale-scene-progress",
+        "status": "FAIL",
+        "reason": "exit 1",
+        "duration_seconds": 0.08458303200313821
+      }
+    ],
+    "boundaries": [
+      "Patched production Work/Admission/Scope, Pipeline/FrameItem, Animator BeginFrame/Render/EndFrame/AwaitVSync/DrawLastLayerTrees/RequestFrame/CanReuseLastLayerTrees, VsyncWaiter FireCallback, Engine ScheduleFrame, Shell OnDenialPendingScene/OnAnimatorDraw/OnAnimatorDrawDenialRenderWork and Rasterizer Draw/DrawDenialRenderOutputs/DrawToSurfacesUnsafe/ShouldResubmitFrame/StoreDenialPendingTask/ResubmitDenialRenderWork/SetDenialRenderOutputs/FindDenialRenderOutput and output equality execute unchanged, except the explicitly recorded pre-0005 inert notification adapter in the negative control.",
+      "DrawToSurfaceUnsafe executes its exact admission prefix; subsequent GPU allocation/presentation is an explicit counted success/failure/retry adapter.",
+      "Dart dispatch is a synchronous callback adapter. Queued W1 uses actual FireCallback/Animator submission, not manual pipeline insertion. Native authorization expiry/regrant, task runners, time, tracing, invalidatable weak lifetimes and semaphore are deterministic single-thread adapters.",
+      "Actual public embedder.h is compiled with exact function-pointer ABI assertions for both new exports.",
+      "Projection boundary supplies already-projected synthetic-view LayerTreeTasks; graphics layer transforms are not executed. CollectView drops adapter view records only; real GPU cache teardown is outside scope. The delegate bridge calls the extracted Shell method.",
+      "Actual resubmission handling and FrameItem creation execute; retry decision comes from GPU adapter.",
+      "Actual RequestFrame semaphore coalescing and retained-vsync route execute. Native grants arrive manually only after a waiter request. Legacy ownership cases can inject independent already-queued primary callbacks. Delayed idle callbacks remain queued; real native scheduler and GPU presentation do not execute."
+    ],
+    "duration_seconds": 3.5959567450045142
+  },
+  "fixed": {
+    "status": "PASS",
+    "base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "patches": {
+      "0001-release-impeller-surface-context.patch": "130db9685a703caac5ae6aca1bce68bb82d5dc32726ba47ce41f85d80a8efe66",
+      "0002-release-impeller-io-context.patch": "a7d70c263929fdbfb8ad1fec5c6fc1818a72f0181ac960b47b126d074e628c89",
+      "0003-trace-raster-call-origin.patch": "c9035d5fff42338ba05c17619f9088fdb1b0dcaa078c93e6828de6ffb4463d96",
+      "0004-bind-render-work-reservations.patch": "ca253c38e81156b817f5173d499206e9855c251e2415abea42ca05c76c7cf2ff",
+      "0005-request-work-for-newer-pending-scenes.patch": "0816e712b052ba420bc654ccea1ed4c0ba96c7f3c2191d0367b39fa26488ddb9"
+    },
+    "sections": {
+      "OUTPUT": "064af795d449898002ac3ea7ef9376c7dd1ac721906bc5e0df7073dcbfa7f799",
+      "SET_OUTPUTS": "72286183285cd15536edf6a2336673ebdc941fc11e4e848ef5a4b3d8daeb7d2c",
+      "FIND_OUTPUT": "49cf767b4b5f4275184e11cbb89cbc23a4540bc91c0da2b08967d861a953fe95",
+      "REQUEST_FRAME": "b36627ba19eee5d0d296c8bede86d731778b7ef38e4fb550f48c2c50766da557",
+      "CAN_REUSE": "ccda2c654bc311cd5285584af74712ef093efa2477b7f6b2b754e84890faff5d",
+      "WORK": "b92c0ce851a62e18b1364ea11e3cf2ab49f1d29727376ad42502b00d3c0c7919",
+      "PIPELINE": "598904a85b51a79c8995e1b88f33d03e23bc40604d4049c68cb401872994926d",
+      "FRAME_ITEM": "bde31d6f2a60d1428b7314980951d5bbde636b5fe56f1184716616e1d04d228e",
+      "BEGIN_FRAME": "29be3a4b937aaa394daaabdebc43724f04574fca8cc0ab615f5e63c29fc39084",
+      "END_FRAME": "29923283052876c4f908305e37eadb0bb7bac6b887a7041f5c0869f1059cb267",
+      "RENDER": "3075565ccfbd7613c6c1bf13aecba06efee20b5ee7245ef1aa829545f785d4f2",
+      "ALL_VIEWS": "f9ef83345dc8f467ab63cf6975fdb4ba62e7e66f256f0c836b3d55e3453e448a",
+      "DRAW": "4995f2204a9abb416705eb5e413f341c85ec4f077df16c802ae86916a3e5ddb5",
+      "AWAIT_VSYNC": "b5243f7bb40b23cd3c87ada90d044e197f03175c9c2ebc7cd58e09377a03e9ea",
+      "DRAW_LAST": "aadb47ef5e28437764c8394ed78acc772fdbd5a2b8a07994777390de9e7293cb",
+      "FIRE_CALLBACK": "936c7bad3ac3e89fe294780f5552169478b1f6ee69feecdcd26c3789cdbefec0",
+      "STORE_PENDING": "f1c840435aa45bef3f9192ac7a4b7c98aa2879a12ab3cacbc594a2b1316de893",
+      "RESUBMIT_WORK": "ec1dd162c9ca37c0668b28c6c50451476fc9a0d37c9094bd42cd7833e23f6483",
+      "DRAW_SURFACES": "1400f12376a6f8f8bb7aad9309316f547dab99d8bcef805027a5f00ab0f0ec8a",
+      "DRAW_SURFACE_PREFIX": "4b22dc05379cd01af990540065b50aa14796be304d08bebfdd6f6ffde4217dd6",
+      "SHELL_DRAW_WORK": "45fdf299ab80e15a4398aeef9f0178771db178b372d5c1b53d4ff14a65e092f3",
+      "DRAW_RETAINED": "941fdfe0e98d71e43ab5390921620d9f882eb49a288b5244db8ca99d8bd7dfc9",
+      "SHELL_DRAW": "fd30fcb0028f201dfa1dac11a093677713a4a73bca9bb5829f192d11837e1b90",
+      "ENGINE_SCHEDULE": "a1490d303390c2bcea49aefcc07ba539527ee5df6fcf63e3f0271b30efdc9e24",
+      "SHELL_PENDING": "f1991f436ae3c01c5c0e8feb297e1d19460a5810b40dd71694083b846d84ddca",
+      "RESUBMIT": "19150f25f3d8dd8e9eedb770254ad52116b615c6fc51446ce64c73440cccd79b"
+    },
+    "runner_sha256": "6b52663826daa06fb556b6e7a7eeb6ab201a187aa755c4798074b5abc4e96482",
+    "fixture_sha256": "324da1976b457aff3c10d31016f8a4920ddcba727e96b914fba9dea101a8b6c3",
+    "translation_unit_sha256": "bddebaa035d3209901c3b1369d1d449775f9296c31e9d3f2b1ccbfba6727bb6b",
+    "build": {
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-r1/fixture.cc",
+        "-o",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-r1/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 3.4649996520020068
+    },
+    "runs": [
+      {
+        "case": "zero-item",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08438785999896936
+      },
+      {
+        "case": "interleaved",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08453852200182155
+      },
+      {
+        "case": "stale-pending",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08482012400054373
+      },
+      {
+        "case": "untagged",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08416326800943352
+      },
+      {
+        "case": "resubmission",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08414738602004945
+      },
+      {
+        "case": "early-end",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08504465699661523
+      },
+      {
+        "case": "pipeline-full",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08381188299972564
+      },
+      {
+        "case": "real-error",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08428711799206212
+      },
+      {
+        "case": "allocation-failure",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08401791600044817
+      },
+      {
+        "case": "retained-retry",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0841877079801634
+      },
+      {
+        "case": "retained-reuse",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08399463599198498
+      },
+      {
+        "case": "stale-topology",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0838265839847736
+      },
+      {
+        "case": "queued-ui-stale-scene-progress",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08399263600585982
+      },
+      {
+        "case": "pending-scene-suppression",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.09102930600056425
+      },
+      {
+        "case": "retained-old-scene-suppression",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08633647300302982
+      },
+      {
+        "case": "pending-scene-coalescing",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08394594499259256
+      },
+      {
+        "case": "pending-scene-topology",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08398564599337988
+      },
+      {
+        "case": "pending-scene-scope",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08415832801256329
+      },
+      {
+        "case": "pending-scene-weak-engine",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.084650132979732
+      },
+      {
+        "case": "pending-scene-weak-animator",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0841771989944391
+      }
+    ],
+    "boundaries": [
+      "Patched production Work/Admission/Scope, Pipeline/FrameItem, Animator BeginFrame/Render/EndFrame/AwaitVSync/DrawLastLayerTrees/RequestFrame/CanReuseLastLayerTrees, VsyncWaiter FireCallback, Engine ScheduleFrame, Shell OnDenialPendingScene/OnAnimatorDraw/OnAnimatorDrawDenialRenderWork and Rasterizer Draw/DrawDenialRenderOutputs/DrawToSurfacesUnsafe/ShouldResubmitFrame/StoreDenialPendingTask/ResubmitDenialRenderWork/SetDenialRenderOutputs/FindDenialRenderOutput and output equality execute unchanged, except the explicitly recorded pre-0005 inert notification adapter in the negative control.",
+      "DrawToSurfaceUnsafe executes its exact admission prefix; subsequent GPU allocation/presentation is an explicit counted success/failure/retry adapter.",
+      "Dart dispatch is a synchronous callback adapter. Queued W1 uses actual FireCallback/Animator submission, not manual pipeline insertion. Native authorization expiry/regrant, task runners, time, tracing, invalidatable weak lifetimes and semaphore are deterministic single-thread adapters.",
+      "Actual public embedder.h is compiled with exact function-pointer ABI assertions for both new exports.",
+      "Projection boundary supplies already-projected synthetic-view LayerTreeTasks; graphics layer transforms are not executed. CollectView drops adapter view records only; real GPU cache teardown is outside scope. The delegate bridge calls the extracted Shell method.",
+      "Actual resubmission handling and FrameItem creation execute; retry decision comes from GPU adapter.",
+      "Actual RequestFrame semaphore coalescing and retained-vsync route execute. Native grants arrive manually only after a waiter request. Legacy ownership cases can inject independent already-queued primary callbacks. Delayed idle callbacks remain queued; real native scheduler and GPU presentation do not execute."
+    ],
+    "duration_seconds": 5.289781594008673
+  },
+  "optimized": {
+    "status": "PASS",
+    "base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "patches": {
+      "0001-release-impeller-surface-context.patch": "130db9685a703caac5ae6aca1bce68bb82d5dc32726ba47ce41f85d80a8efe66",
+      "0002-release-impeller-io-context.patch": "a7d70c263929fdbfb8ad1fec5c6fc1818a72f0181ac960b47b126d074e628c89",
+      "0003-trace-raster-call-origin.patch": "c9035d5fff42338ba05c17619f9088fdb1b0dcaa078c93e6828de6ffb4463d96",
+      "0004-bind-render-work-reservations.patch": "ca253c38e81156b817f5173d499206e9855c251e2415abea42ca05c76c7cf2ff",
+      "0005-request-work-for-newer-pending-scenes.patch": "0816e712b052ba420bc654ccea1ed4c0ba96c7f3c2191d0367b39fa26488ddb9"
+    },
+    "sections": {
+      "OUTPUT": "064af795d449898002ac3ea7ef9376c7dd1ac721906bc5e0df7073dcbfa7f799",
+      "SET_OUTPUTS": "72286183285cd15536edf6a2336673ebdc941fc11e4e848ef5a4b3d8daeb7d2c",
+      "FIND_OUTPUT": "49cf767b4b5f4275184e11cbb89cbc23a4540bc91c0da2b08967d861a953fe95",
+      "REQUEST_FRAME": "b36627ba19eee5d0d296c8bede86d731778b7ef38e4fb550f48c2c50766da557",
+      "CAN_REUSE": "ccda2c654bc311cd5285584af74712ef093efa2477b7f6b2b754e84890faff5d",
+      "WORK": "b92c0ce851a62e18b1364ea11e3cf2ab49f1d29727376ad42502b00d3c0c7919",
+      "PIPELINE": "598904a85b51a79c8995e1b88f33d03e23bc40604d4049c68cb401872994926d",
+      "FRAME_ITEM": "bde31d6f2a60d1428b7314980951d5bbde636b5fe56f1184716616e1d04d228e",
+      "BEGIN_FRAME": "29be3a4b937aaa394daaabdebc43724f04574fca8cc0ab615f5e63c29fc39084",
+      "END_FRAME": "29923283052876c4f908305e37eadb0bb7bac6b887a7041f5c0869f1059cb267",
+      "RENDER": "3075565ccfbd7613c6c1bf13aecba06efee20b5ee7245ef1aa829545f785d4f2",
+      "ALL_VIEWS": "f9ef83345dc8f467ab63cf6975fdb4ba62e7e66f256f0c836b3d55e3453e448a",
+      "DRAW": "4995f2204a9abb416705eb5e413f341c85ec4f077df16c802ae86916a3e5ddb5",
+      "AWAIT_VSYNC": "b5243f7bb40b23cd3c87ada90d044e197f03175c9c2ebc7cd58e09377a03e9ea",
+      "DRAW_LAST": "aadb47ef5e28437764c8394ed78acc772fdbd5a2b8a07994777390de9e7293cb",
+      "FIRE_CALLBACK": "936c7bad3ac3e89fe294780f5552169478b1f6ee69feecdcd26c3789cdbefec0",
+      "STORE_PENDING": "f1c840435aa45bef3f9192ac7a4b7c98aa2879a12ab3cacbc594a2b1316de893",
+      "RESUBMIT_WORK": "ec1dd162c9ca37c0668b28c6c50451476fc9a0d37c9094bd42cd7833e23f6483",
+      "DRAW_SURFACES": "1400f12376a6f8f8bb7aad9309316f547dab99d8bcef805027a5f00ab0f0ec8a",
+      "DRAW_SURFACE_PREFIX": "4b22dc05379cd01af990540065b50aa14796be304d08bebfdd6f6ffde4217dd6",
+      "SHELL_DRAW_WORK": "45fdf299ab80e15a4398aeef9f0178771db178b372d5c1b53d4ff14a65e092f3",
+      "DRAW_RETAINED": "941fdfe0e98d71e43ab5390921620d9f882eb49a288b5244db8ca99d8bd7dfc9",
+      "SHELL_DRAW": "fd30fcb0028f201dfa1dac11a093677713a4a73bca9bb5829f192d11837e1b90",
+      "ENGINE_SCHEDULE": "a1490d303390c2bcea49aefcc07ba539527ee5df6fcf63e3f0271b30efdc9e24",
+      "SHELL_PENDING": "f1991f436ae3c01c5c0e8feb297e1d19460a5810b40dd71694083b846d84ddca",
+      "RESUBMIT": "19150f25f3d8dd8e9eedb770254ad52116b615c6fc51446ce64c73440cccd79b"
+    },
+    "runner_sha256": "6b52663826daa06fb556b6e7a7eeb6ab201a187aa755c4798074b5abc4e96482",
+    "fixture_sha256": "324da1976b457aff3c10d31016f8a4920ddcba727e96b914fba9dea101a8b6c3",
+    "translation_unit_sha256": "bddebaa035d3209901c3b1369d1d449775f9296c31e9d3f2b1ccbfba6727bb6b",
+    "build": {
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-optimized-r1/fixture.cc",
+        "-o",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-test-optimized-r1/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 3.2624893879983574
+    },
+    "runs": [
+      {
+        "case": "zero-item",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08442230700165965
+      },
+      {
+        "case": "interleaved",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08424023402039893
+      },
+      {
+        "case": "stale-pending",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08466297999257222
+      },
+      {
+        "case": "untagged",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08418570400681347
+      },
+      {
+        "case": "resubmission",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08422751500620507
+      },
+      {
+        "case": "early-end",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0850427650148049
+      },
+      {
+        "case": "pipeline-full",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08412349398713559
+      },
+      {
+        "case": "real-error",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08474427097826265
+      },
+      {
+        "case": "allocation-failure",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08412140401196666
+      },
+      {
+        "case": "retained-retry",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08428867597831413
+      },
+      {
+        "case": "retained-reuse",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08470682098413818
+      },
+      {
+        "case": "stale-topology",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08406903300783597
+      },
+      {
+        "case": "queued-ui-stale-scene-progress",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08442247798666358
+      },
+      {
+        "case": "pending-scene-suppression",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0841280439926777
+      },
+      {
+        "case": "retained-old-scene-suppression",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08445614800439216
+      },
+      {
+        "case": "pending-scene-coalescing",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.0842073240200989
+      },
+      {
+        "case": "pending-scene-topology",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08404940398759209
+      },
+      {
+        "case": "pending-scene-scope",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08395235298667103
+      },
+      {
+        "case": "pending-scene-weak-engine",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08437929800129496
+      },
+      {
+        "case": "pending-scene-weak-animator",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08389759200508706
+      }
+    ],
+    "boundaries": [
+      "Patched production Work/Admission/Scope, Pipeline/FrameItem, Animator BeginFrame/Render/EndFrame/AwaitVSync/DrawLastLayerTrees/RequestFrame/CanReuseLastLayerTrees, VsyncWaiter FireCallback, Engine ScheduleFrame, Shell OnDenialPendingScene/OnAnimatorDraw/OnAnimatorDrawDenialRenderWork and Rasterizer Draw/DrawDenialRenderOutputs/DrawToSurfacesUnsafe/ShouldResubmitFrame/StoreDenialPendingTask/ResubmitDenialRenderWork/SetDenialRenderOutputs/FindDenialRenderOutput and output equality execute unchanged, except the explicitly recorded pre-0005 inert notification adapter in the negative control.",
+      "DrawToSurfaceUnsafe executes its exact admission prefix; subsequent GPU allocation/presentation is an explicit counted success/failure/retry adapter.",
+      "Dart dispatch is a synchronous callback adapter. Queued W1 uses actual FireCallback/Animator submission, not manual pipeline insertion. Native authorization expiry/regrant, task runners, time, tracing, invalidatable weak lifetimes and semaphore are deterministic single-thread adapters.",
+      "Actual public embedder.h is compiled with exact function-pointer ABI assertions for both new exports.",
+      "Projection boundary supplies already-projected synthetic-view LayerTreeTasks; graphics layer transforms are not executed. CollectView drops adapter view records only; real GPU cache teardown is outside scope. The delegate bridge calls the extracted Shell method.",
+      "Actual resubmission handling and FrameItem creation execute; retry decision comes from GPU adapter.",
+      "Actual RequestFrame semaphore coalescing and retained-vsync route execute. Native grants arrive manually only after a waiter request. Legacy ownership cases can inject independent already-queued primary callbacks. Delayed idle callbacks remain queued; real native scheduler and GPU presentation do not execute."
+    ],
+    "duration_seconds": 5.0806155529862735
+  },
+  "source_review": {
+    "status": "NO_CONFIRMED_BLOCKER",
+    "kind": "independent read-only source review",
+    "source": {
+      "commit": "0d055f4c942bfba624d83e7fd505b67c52352020",
+      "tree": "bfebe2afe05e0229a07ff2b91ffe63a01e0fe11c",
+      "created": "2026-09-13T17:43:35.172011+00:00",
+      "physical": "NOT RUN",
+      "authority": "none; offline source/VM"
+    },
+    "findings": [
+      "Weak engine UI callback uses existing retained-frame coalescing and does not bypass native admission.",
+      "Notification watermark survives pending take/re-store, resets for structural output changes; already-drawn reused tasks suppressed.",
+      "Queued-W1/new-N fixture executes relevant production control path; native grant timing, GPU presentation and real concurrency remain explicit adapter boundaries."
+    ],
+    "reviewer_executed_tests": false,
+    "phone_operations": 0
+  },
+  "replay_binding": {
+    "status": "PASS",
+    "checks": [
+      {
+        "path": "engine/src/flutter/shell/gpu/gpu_surface_gl_impeller.cc",
+        "sha256": "bedaa9a3db177527f95a1293ff8177d111f71a84d57486ace6dc6af75d7dfa20"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_surface.h",
+        "sha256": "2b0ff2ad22a37b140745c1ed74aad2feb3f48418d58d6ccea78e8d7d4fd078b6"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/platform_view_embedder.h",
+        "sha256": "cd2e8947e5e7a2eed08f2c24fbaa0457b07a4d3ba42c65ba2ac1837c40835a50"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/platform_view_embedder.cc",
+        "sha256": "dbf83480d53e4cdedb48b8bec84fdcd98390b178607dd7da6e36ee5408287ee0"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_surface_gl_impeller.h",
+        "sha256": "d568d5884700e7fa94432bbc1705ce7c5e99fc3c476e82137fbf3ce7891a3450"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_surface_gl_impeller.cc",
+        "sha256": "0e48e0f07769a830885eb75a5efc0ff3cbbf7352c484db68fcb9c313ef583aba"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/rasterizer.cc",
+        "sha256": "ea4186fa5be4545cfb180061d637dd00a5f22a493990a134963f63cfb2e26d66"
+      },
+      {
+        "path": "engine/src/flutter/flow/layers/layer_tree.h",
+        "sha256": "11f2825a9ff981e9edd14da78ba660e07342e0cdaefd1020e749a419c9a371f4"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/animator.cc",
+        "sha256": "6cc059ba55e39976b9ed54ce5d24d6c0958fdf270a7c961c2c3f22f1d856dcb6"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/animator.h",
+        "sha256": "d9db22586994ae81bf4daf468698192f63a8b90880f4f7ca62d5338bf458494c"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/engine.h",
+        "sha256": "34a9c9f355be135f640a81e13e7a854df4708d0720562f3ea4e92b92c00444be"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/rasterizer.h",
+        "sha256": "02a1d10d71c35017513e5590f7d199ff966e8653d01c5f7a48c85549650c8b31"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/shell.cc",
+        "sha256": "24c651de18c1d527808ecb7f75812faeaa0a3bc6d7adc280ab618062386a5076"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/shell.h",
+        "sha256": "ad9fd9213cd1431d3c1a538bf9f4fd34c5690b59a3208debc2212785d21314fc"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/vsync_waiter.cc",
+        "sha256": "d971729cc0ac1117c0feb9b6f55f1f0a2539298c6e0d903ae743849d68a62324"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/vsync_waiter.h",
+        "sha256": "b4896f1859610b023c8c953b34db9ac496a9066ccad84e7ecddeacc27c5e90dc"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder.cc",
+        "sha256": "037af7411270a1564d16f6bfafeec33ac6368d2eb1484c0dbf1cbe07eb973f3e"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder.h",
+        "sha256": "2547c26aa082ddc4ae32321e6da228d9f2f8f4c27a1f021d08b4594a1e38c481"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_engine.cc",
+        "sha256": "96b596315356b2a88d7b4eeac54e1b9ac657ad7c076e8ac1f16ca6396158b995"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_engine.h",
+        "sha256": "1833009c5080c817071cd42ffbb472c09f1cd8bcc5fa7016ee20fe2e9a544815"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/vsync_waiter_embedder.cc",
+        "sha256": "936a27c5ce77520b307314d18af090cade66d3d4cc069428748ce984c3cbbb4a"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/vsync_waiter_embedder.h",
+        "sha256": "4320d4a53ff1e505c5a79063cc80f9b6e4046ec6d05349abeb7f3d95c3e3348d"
+      }
+    ]
+  },
+  "compile": {
+    "status": "PASS",
+    "seconds": 58.16409507498611,
+    "command": [
+      "python3",
+      "/home/deck/.local/state/rog5-pending-scene-20260913-r1/compile-engine-closure.py",
+      "--execute",
+      "--closure-sha256",
+      "ef3e6c3a18c3277fddd03f0c329808abc156536f1b1f725210b26f978a395ac7"
+    ],
+    "result": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-compile-result.json",
+      "sha256": "d892a8f8df47b940b938e6c31fa3b77fc6ac0d05175877546c43d39174a1ccdc",
+      "bytes": 139713
+    },
+    "closure": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/engine-compile-closure.json",
+      "sha256": "ef3e6c3a18c3277fddd03f0c329808abc156536f1b1f725210b26f978a395ac7",
+      "bytes": 953778
+    },
+    "outputs": [
+      {
+        "target": "obj/flutter/shell/common/common.animator.o",
+        "sha256": "d5fc52f306b46e942b48fcf4c8a7336a3e10a46ea0de16b4e96cff57ab81a634",
+        "size": 76184,
+        "duration_seconds": 4.504691435984569
+      },
+      {
+        "target": "obj/flutter/shell/common/common.engine.o",
+        "sha256": "de82820513e9915faf6330eebd49e06195bcb700ba2448571a82a1ad77f96974",
+        "size": 149584,
+        "duration_seconds": 5.0050989399896935
+      },
+      {
+        "target": "obj/flutter/shell/common/common.platform_view.o",
+        "sha256": "f51aeaf6dde5d4b2956538be7faf1e1f13b661404a7a69ea535e4a18f592ec4a",
+        "size": 38604,
+        "duration_seconds": 4.003663990995847
+      },
+      {
+        "target": "obj/flutter/shell/common/common.pointer_data_dispatcher.o",
+        "sha256": "2629551dc41d7f20eee4946b84ebf3749c9c66daa4b196e9ea9cf7cad5a69790",
+        "size": 16424,
+        "duration_seconds": 4.003629767976236
+      },
+      {
+        "target": "obj/flutter/shell/common/common.rasterizer.o",
+        "sha256": "52caeb9430f5dd07facecb329d9f1c96b8288aa0ece145005c11d097d2a30918",
+        "size": 287656,
+        "duration_seconds": 6.005085918994155
+      },
+      {
+        "target": "obj/flutter/shell/common/common.shell.o",
+        "sha256": "8901c1f865d9249bcbbe68200363d7a35cf0d7ec0b51096ca6236034e179084b",
+        "size": 744336,
+        "duration_seconds": 9.007507378992159
+      },
+      {
+        "target": "obj/flutter/shell/platform/embedder/embedder.embedder.o",
+        "sha256": "444a9e5a13cf2d8b93bab0760caaf99eba2ba939d00827a02a83f4751fefa388",
+        "size": 502964,
+        "duration_seconds": 10.258525821001967
+      },
+      {
+        "target": "obj/flutter/shell/platform/embedder/embedder.embedder_engine.o",
+        "sha256": "fce040c1efea92fe8f4251ccc4ea95eb1248157df45d3a4220b0aab8a3cce7b9",
+        "size": 68912,
+        "duration_seconds": 4.7540988260007
+      },
+      {
+        "target": "obj/flutter/shell/platform/embedder/embedder.pixel_formats.o",
+        "sha256": "e66097b0c341f69768b9992e6ac156859a26581f56d1f7a57973f2612a64dc04",
+        "size": 10264,
+        "duration_seconds": 3.5042762189987116
+      },
+      {
+        "target": "obj/flutter/shell/platform/embedder/embedder.platform_view_embedder.o",
+        "sha256": "5c73c814890aec3b811b4ae80a2abc039b7a92dc0ffdefc418d87448665a028c",
+        "size": 45148,
+        "duration_seconds": 6.755667757999618
+      }
+    ]
+  },
+  "link": {
+    "status": "PASS",
+    "command": [
+      "python3",
+      "/home/deck/.local/state/rog5-pending-scene-20260913-r1/link.py"
+    ],
+    "seconds": 222.1062794610043,
+    "result": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/link-result.json",
+      "sha256": "92e19ea03da4f60b257acd7aae8c62229f8de32f5f7e0587b419fcbd0791159e",
+      "bytes": 5035
+    },
+    "input_inventory": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/link-inputs.json",
+      "sha256": "403b13be16ae7966980ee153a765138af773f15ee8615550bb4786f5435ccb9e",
+      "bytes": 2120572
+    },
+    "engine": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/libflutter_engine.so",
+      "sha256": "e4a182f7a4cd0cb3f3a1361678f9f1268d195f3772800d906758ef6c81bc8cf0",
+      "bytes": 16003096
+    },
+    "control_preserved": true
+  },
+  "toolchain": {
+    "status": "PASS",
+    "tools": [
+      {
+        "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/clang++",
+        "resolved": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/llvm",
+        "sha256": "a50ded9e62bb90048748f46106e31bf57f3e5262c5ab93134db9d8f082e89c4b",
+        "version": "Fuchsia clang version 23.0.0git (https://llvm.googlesource.com/llvm-project 80743bd43fd5b38fedc503308e7a652e23d3ec93)\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/ld.lld",
+        "resolved": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/llvm",
+        "sha256": "a50ded9e62bb90048748f46106e31bf57f3e5262c5ab93134db9d8f082e89c4b",
+        "version": "Fuchsia LLD 23.0.0 (https://llvm.googlesource.com/a/llvm-project 80743bd43fd5b38fedc503308e7a652e23d3ec93) (compatible with GNU linkers)\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/llvm-objcopy",
+        "resolved": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site/bin/llvm",
+        "sha256": "a50ded9e62bb90048748f46106e31bf57f3e5262c5ab93134db9d8f082e89c4b",
+        "version": "llvm-objcopy, compatible with GNU objcopy\nFuchsia LLVM version 23.0.0git\n  Optimized build.\n"
+      }
+    ]
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-pending-scene-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-pending-scene-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-pending-scene-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "0d055f4c942bfba624d83e7fd505b67c52352020",
+      "source_tree": "bfebe2afe05e0229a07ff2b91ffe63a01e0fe11c",
+      "exit_status": 0,
+      "duration_seconds": 174.93151605900493
+    },
+    "counts": {
+      "PASS": 105,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/active-report/summary.json",
+      "sha256": "d130b9610b6b657790d3934f3c17b8448689aa6b93a4064171c9d8de9c176a86",
+      "bytes": 118737
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/active-report/summary.xml",
+      "sha256": "b0d00a52b3dadf75b9f2dde6b739d74dce7b6c18730a7ba047ca9dc26b758421",
+      "bytes": 57343
+    }
+  },
+  "payload": {
+    "archive": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/payload-r1/session.tar.gz",
+      "sha256": "6e1968e98c5892a686b696467375506589f9492858cb40a8006b96599cc9aac0",
+      "bytes": 26699314
+    },
+    "receipt": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/payload-r1/provenance.json",
+      "sha256": "1dc498527bfb059172e4bd2876905fd0f08d8c341b6fa6ec6ac023de8a853e43",
+      "bytes": 11961
+    },
+    "control_delta": {
+      "changed_files": [
+        "usr/lib/denial/flutter/lib/libflutter_engine.so"
+      ],
+      "control_payload_sha256": "0900a68e2c3dbedcf6c5a61600651dd3f99981fb8f628fe8bd550863b817fc6f",
+      "control_receipt_sha256": "1bc9e41d279ef110a673e2ef2b063885a74ef31a93e7d0ef348d651d18b13e7a"
+    }
+  },
+  "vm": {
+    "status": "FAIL",
+    "command": {
+      "command": [
+        "/usr/bin/python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+        "--runtime-view",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "--runtime-receipt",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "--qemu-image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--toolchain-image",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "--libc",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--libloading",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "--output",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1",
+        "--session-archive",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/payload-r1/session.tar.gz",
+        "--session-receipt",
+        "/home/deck/.local/state/rog5-pending-scene-20260913-r1/payload-r1/provenance.json",
+        "--host-render-node",
+        "/dev/dri/renderD128",
+        "--observe-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "--evidence-writer",
+        "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+        "--automatic-caret",
+        "--bottom-caret"
+      ],
+      "source_commit": "0d055f4c942bfba624d83e7fd505b67c52352020",
+      "kernel_receipt": "/home/deck/.local/state/rog5-session-services-20260913-r1/kernel-r3-result.json",
+      "scope": "offline generic VM, no phone",
+      "physical": "NOT RUN",
+      "exit_status": 1,
+      "duration_seconds": 308.48117532700417
+    },
+    "result": {
+      "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/result.json",
+      "sha256": "23cfff1c5bacf3fe66b1d27081c06725fc02cba8da551f32211d78b450f9bc39",
+      "bytes": 89568
+    },
+    "error": "RuntimeError: operation=caret action deadline expired; cleanup=None",
+    "observation": {
+      "status": "FAIL",
+      "scope": "authenticated VM launcher-driven app switching and OSK; no phone proof",
+      "observation": {
+        "status": "FAIL",
+        "scope": "Local VM captures and synthetic pointer delivery only",
+        "visual_semantics": "NOT RUN: inspect screenshots separately",
+        "phone_touch": "NOT RUN",
+        "profile": "mobile",
+        "capture_backend": "UNIX VNC raw",
+        "screenshots": [
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/00-home-ready-probe-1.png",
+            "sha256": "1ef3a9a0c55ca00cb6261a0a53d4f8efea0da97ade4beba16c8d73e7f79b7683",
+            "size": 650332,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/01-mousepad-launched-waiting.png",
+            "sha256": "3fb090dcb49b88348bcded8a4d0092ee1ccbb325e0dfbaf1d248ab0c82113fea",
+            "size": 5015,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/01-mousepad-launched.png",
+            "sha256": "4becdd6070193d9dec800c3a9b09a2c9d2dcce0598465ecc37f859a1c416be73",
+            "size": 24480,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/02-overview-or-home.png",
+            "sha256": "bfbd4b9ded1bfe7a04a7f498c55f280c5b66050f2ac4231bd74041b84bdd9471",
+            "size": 231472,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/02-home-returned-probe-1.png",
+            "sha256": "cbc633d13c6b4bd242c3ecb7596ff1e4f8ebd41d1a8e2d8499da134fbebace00",
+            "size": 650575,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/03-foot-launched.png",
+            "sha256": "590f7f3aa27fed3a09de0c1809b87cad2690dbdd119f2742d1ab28bdac73480a",
+            "size": 9329,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/04-mousepad-restored.png",
+            "sha256": "3858e6e34b7eda19f7e191c6ed60d1b90abb5e39799d1c558512c0c700a0f8d1",
+            "size": 24554,
+            "width": 540,
+            "height": 1224
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/observe/00-editor-long-document.png",
+            "sha256": "0ebd012787fe8e1327343ce0d05399277e4301f47a5e5969089ce28abf44a98d",
+            "size": 24594,
+            "width": 540,
+            "height": 1224
+          }
+        ],
+        "actions": [
+          {
+            "operation": "home",
+            "value": "00-home-ready"
+          },
+          {
+            "operation": "click",
+            "value": [
+              77,
+              752
+            ]
+          },
+          {
+            "operation": "client",
+            "value": [
+              "mousepad",
+              "01-mousepad-launched"
+            ]
+          },
+          {
+            "operation": "home_gesture",
+            "value": [
+              [
+                270,
+                1194
+              ],
+              [
+                270,
+                1150
+              ],
+              [
+                270,
+                1060
+              ],
+              [
+                270,
+                970
+              ],
+              [
+                270,
+                880
+              ]
+            ]
+          },
+          {
+            "operation": "capture",
+            "value": "02-overview-or-home"
+          },
+          {
+            "operation": "click",
+            "value": [
+              25,
+              1080
+            ]
+          },
+          {
+            "operation": "home",
+            "value": "02-home-returned"
+          },
+          {
+            "operation": "click",
+            "value": [
+              205,
+              592
+            ]
+          },
+          {
+            "operation": "client",
+            "value": [
+              "foot",
+              "03-foot-launched"
+            ]
+          },
+          {
+            "operation": "gesture",
+            "value": [
+              [
+                270,
+                1194
+              ],
+              [
+                315,
+                1194
+              ],
+              [
+                365,
+                1194
+              ],
+              [
+                415,
+                1194
+              ]
+            ]
+          },
+          {
+            "operation": "client",
+            "value": [
+              "mousepad",
+              "04-mousepad-restored"
+            ]
+          },
+          {
+            "operation": "capture",
+            "value": "00-editor-long-document"
+          },
+          {
+            "operation": "arm-baseline",
+            "value": null
+          },
+          {
+            "operation": "move",
+            "value": [
+              270,
+              1100
+            ]
+          },
+          {
+            "operation": "button",
+            "value": true
+          },
+          {
+            "operation": "button",
+            "value": false
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          },
+          {
+            "operation": "await-baseline",
+            "value": null
+          }
+        ],
+        "probe": "launcher app switching with native Mousepad OSK text entry",
+        "launcher_reference": {
+          "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+          "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "size": 650222,
+          "width": 540,
+          "height": 1224
+        },
+        "launcher_tiles": {
+          "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+          "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+        },
+        "qmp_request_limit": 96,
+        "action_policy": "bottom caret; explicit surface-coordinate check; no manual viewport pan; OSK pointer keys only",
+        "bottom_caret": {
+          "status": "NOT RUN"
+        },
+        "waiting_for": {
+          "operation": "editor",
+          "value": 4
+        },
+        "tile_checks": [
+          {
+            "capture": "00-home-ready-probe-1",
+            "matched": true
+          },
+          {
+            "capture": "02-home-returned-probe-1",
+            "matched": true
+          }
+        ],
+        "qmp": [
+          {
+            "request": {
+              "execute": "qmp_capabilities",
+              "id": 1
+            },
+            "response": {
+              "return": {},
+              "id": 1
+            }
+          },
+          {
+            "request": {
+              "execute": "query-name",
+              "id": 2
+            },
+            "response": {
+              "return": {
+                "name": "rog5-logind-vm-1d9ec2f338684dd2"
+              },
+              "id": 2
+            }
+          },
+          {
+            "request": {
+              "execute": "query-status",
+              "id": 3
+            },
+            "response": {
+              "return": {
+                "status": "running",
+                "singlestep": false,
+                "running": true
+              },
+              "id": 3
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 4,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 4681
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 20148
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 4
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 5,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 5
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 6,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 6
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 7,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 31990
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 7
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 8,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 8
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 9,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 30811
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 9
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 10,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 28400
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 10
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 11,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 25989
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 11
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 12,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 23577
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 12
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 13,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 13
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 14,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 1520
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 28936
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 14
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 15,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 15
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 16,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 16
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 17,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 12462
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 15861
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 17
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 18,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 18
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 19,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 19
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 20,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 31990
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 20
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 21,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 21
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 22,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 19150
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 31990
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 22
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 23,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 22189
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 31990
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 23
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 24,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 25229
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 31990
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 24
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 25,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 25
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 26,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "x",
+                      "value": 16414
+                    }
+                  },
+                  {
+                    "type": "abs",
+                    "data": {
+                      "axis": "y",
+                      "value": 29472
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 26
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 27,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": true
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 27
+            }
+          },
+          {
+            "request": {
+              "execute": "input-send-event",
+              "id": 28,
+              "arguments": {
+                "events": [
+                  {
+                    "type": "btn",
+                    "data": {
+                      "button": "left",
+                      "down": false
+                    }
+                  }
+                ]
+              }
+            },
+            "response": {
+              "return": {},
+              "id": 28
+            }
+          }
+        ],
+        "error": "caret action deadline expired",
+        "pointer_released": true
+      },
+      "launcher_protocol": {
+        "status": "FAIL",
+        "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+        "owners": {
+          "mousepad": {
+            "pid": "936",
+            "start": "24803"
+          },
+          "foot": {
+            "pid": "1165",
+            "start": "27980"
+          }
+        },
+        "mapped": {
+          "mousepad": true,
+          "foot": true
+        },
+        "ready": {
+          "mousepad": true,
+          "foot": true
+        },
+        "focus_history": [
+          "mousepad",
+          "foot",
+          "mousepad"
+        ],
+        "focus_generation": 3,
+        "active_app": "mousepad",
+        "pending_focus": null,
+        "expected_sequence": [
+          "mousepad",
+          "foot",
+          "mousepad",
+          "foot"
+        ],
+        "client_state": {
+          "mousepad": {
+            "interval_seen": false,
+            "keyboard_focus": {
+              "22": "25"
+            },
+            "surfaces": {
+              "26": {
+                "surface": "25",
+                "title": true,
+                "app_id": true,
+                "configured": true,
+                "serial": "5",
+                "ack": true,
+                "pending_attach": null,
+                "committed": true,
+                "dead": false
+              }
+            },
+            "toplevels": {
+              "27": "26"
+            }
+          },
+          "foot": {
+            "interval_seen": false,
+            "keyboard_focus": {},
+            "surfaces": {
+              "30": {
+                "surface": "3",
+                "title": true,
+                "app_id": true,
+                "configured": true,
+                "serial": "25",
+                "ack": true,
+                "pending_attach": null,
+                "committed": true,
+                "dead": false
+              }
+            },
+            "toplevels": {
+              "31": "30"
+            }
+          }
+        },
+        "focus_visits": [
+          {
+            "app": "mousepad",
+            "interval_seen": false,
+            "presented_interval": false,
+            "presentation_observation": {
+              "status": "NOT RUN",
+              "scope": "later global output audit interval only; not attributed to this client",
+              "client_presentation": "NOT RUN"
+            }
+          },
+          {
+            "app": "foot",
+            "interval_seen": false,
+            "presented_interval": false,
+            "presentation_observation": {
+              "status": "NOT RUN",
+              "scope": "later global output audit interval only; not attributed to this client",
+              "client_presentation": "NOT RUN"
+            }
+          },
+          {
+            "app": "mousepad",
+            "interval_seen": false,
+            "presented_interval": false,
+            "presentation_observation": {
+              "status": "NOT RUN",
+              "scope": "later global output audit interval only; not attributed to this client",
+              "client_presentation": "NOT RUN"
+            }
+          }
+        ],
+        "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+        "errors": [],
+        "post_terminal_exits": [],
+        "visual_semantics": "NOT RUN",
+        "phone": "NOT RUN"
+      },
+      "editor_protocol": {
+        "status": "FAIL",
+        "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+        "native_toplevel_observed": true,
+        "keys": [],
+        "expected_keys": [
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ],
+          [
+            18,
+            1
+          ],
+          [
+            18,
+            0
+          ],
+          [
+            31,
+            1
+          ],
+          [
+            31,
+            0
+          ],
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            20,
+            1
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "unfocused_keys": false
+      },
+      "acknowledgement_sent": false,
+      "approved_teardown": false,
+      "clean_client_exits": false,
+      "stream_bytes": 177453,
+      "diagnostic_bytes": 50290,
+      "phone": "NOT RUN",
+      "caret_protocol": {
+        "error": null,
+        "sequence": 158,
+        "caret": {
+          "surface": 25,
+          "x": 29,
+          "y": 90,
+          "width": 0,
+          "height": 20,
+          "sequence": 92,
+          "rectangle_sequence": 91
+        },
+        "presses": [
+          {
+            "surface": 25,
+            "x": 296.4921875,
+            "y": 1075.8828125,
+            "sequence": 86,
+            "button": 272
+          }
+        ],
+        "geometries": {
+          "25": {
+            "x": 26,
+            "y": 23,
+            "width": 540,
+            "height": 1176,
+            "sequence": 158
+          }
+        },
+        "objects": 3,
+        "evidence": "client-protocol-only"
+      },
+      "error": "caret action deadline expired"
+    },
+    "cleanup_steps": [
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-vm-1d9ec2f338684dd2"
+        ],
+        "started_utc": "2026-09-13T17:54:11.070874+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.42002591100754216,
+        "ended_utc": "2026-09-13T17:54:11.490929+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/serial.cleanup.log",
+          "sha256": "cb08056e7567300b66a8b3bf86007e738fe4efd592533cbb759695380b1730c9",
+          "bytes": 32
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-vm-1d9ec2f338684dd2"
+        ],
+        "started_utc": "2026-09-13T17:54:11.491346+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03424605802865699,
+        "ended_utc": "2026-09-13T17:54:11.525608+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "outputs": {
+      "logind-seat-probe": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/payload/logind-seat-probe",
+        "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+        "bytes": 552584
+      },
+      "pam-session": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/payload/pam-session",
+        "sha256": "b5135a36064662b916948864736f787ea25b48595a9491164ddb7cc6cd4555bb",
+        "bytes": 564224
+      },
+      "stage/apps-probe": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/apps-probe",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "bytes": 2
+      },
+      "stage/apps-observe-token": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/apps-observe-token",
+        "sha256": "34f6731dae5b20a2125b7462f9acef55bd752dd9abb6bd7e2821b73673347f7d",
+        "bytes": 48
+      },
+      "stage/evidence-writer": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/evidence-writer",
+        "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+        "bytes": 398104
+      },
+      "stage/bottom-caret-probe": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/bottom-caret-probe",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "bytes": 2
+      },
+      "initramfs/init": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/init",
+        "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+        "bytes": 3120
+      },
+      "initramfs.gz": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs.gz",
+        "sha256": "1058e4651670e07ff44f3133dd51969eecdfe177932bd04366e428e2e8753520",
+        "bytes": 189041
+      },
+      "initramfs/stage/guest.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/guest.sh",
+        "sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+        "bytes": 2685
+      },
+      "initramfs/stage/logind-probe.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-probe.sh",
+        "sha256": "9038a89821b57fc2e5111a00077c97ff033fdcc062b1c8c22515a46bb94a4f44",
+        "bytes": 5416
+      },
+      "initramfs/stage/logind-user.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-user.sh",
+        "sha256": "8df059ae1c81cae190d9250e5527c71c64d643c6567cf657d9a6e0414ade7bca",
+        "bytes": 1124
+      },
+      "initramfs/stage/independent-observer.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/independent-observer.sh",
+        "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+        "bytes": 3020
+      },
+      "initramfs/stage/logind-denial.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-denial.sh",
+        "sha256": "67a3abf500095bf0109c62b51bb5cef505929409095d763309714af3ec323670",
+        "bytes": 16741
+      },
+      "initramfs/stage/logind-denial-prepare.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-denial-prepare.sh",
+        "sha256": "f0de4d688dbbf1a62cec1bb9b073337f27ebaa38d78e64bda2ddb79fd918cc5e",
+        "bytes": 4126
+      },
+      "initramfs/stage/logind-font-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-font-cache.sh",
+        "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+        "bytes": 9112
+      },
+      "initramfs/stage/logind-gtk-im-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-gtk-im-cache.sh",
+        "sha256": "bb764e83060ef295a542b97e4be62cee47c22fc70cb99dcd0dc1607c5be73d14",
+        "bytes": 2424
+      },
+      "initramfs/stage/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/logind-apps.sh",
+        "sha256": "547bea18809762038214e02ca87de68a300cf1de312b1cebb324ddcc227c8386",
+        "bytes": 16571
+      },
+      "initramfs/stage/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "initramfs/stage/launcher-evidence.sh": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/initramfs/stage/launcher-evidence.sh",
+        "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+        "bytes": 1596
+      },
+      "serial.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/serial.log",
+        "sha256": "2b4f7c3c131f44a2630fb01114a181ac0ee33b94e8bda72468cba1ac17a5a023",
+        "bytes": 145120
+      },
+      "launcher-evidence.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/launcher-evidence.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "launcher-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/launcher-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/pam-session.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "gzip.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/gzip.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/pam-session.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-font-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-font-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-denial.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-seat-probe.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-seat-probe.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/pam-session.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "guest.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/guest.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial-prepare.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-denial-prepare.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "independent-observer.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/independent-observer.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-gtk-im-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-gtk-im-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-user.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-user.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-probe.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-probe.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/logind-seat-probe.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "init.build.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/init.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.absence.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/serial.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/serial.cleanup.log",
+        "sha256": "cb08056e7567300b66a8b3bf86007e738fe4efd592533cbb759695380b1730c9",
+        "bytes": 32
+      },
+      "cpio.log": {
+        "path": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/cpio.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  },
+  "input_comparison": {
+    "status": "PASS",
+    "control": "/home/deck/.local/state/rog5-render-handoff-20260913-r1/combined-r1/result.json",
+    "treatment": "/home/deck/.local/state/rog5-pending-scene-20260913-r1/combined-r1/result.json",
+    "unchanged_input_count": 30,
+    "unchanged_inputs": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-caret-protocol.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib"
+    ],
+    "unchanged_context": [
+      "host_tools",
+      "container_images",
+      "runtime_view"
+    ],
+    "payload_delta": {
+      "changed_files": [
+        "usr/lib/denial/flutter/lib/libflutter_engine.so"
+      ],
+      "control_payload_sha256": "0900a68e2c3dbedcf6c5a61600651dd3f99981fb8f628fe8bd550863b817fc6f",
+      "control_receipt_sha256": "1bc9e41d279ef110a673e2ef2b063885a74ef31a93e7d0ef348d651d18b13e7a"
+    },
+    "interpretation": "One engine-only treatment comparison; prior icon readiness has also been intermittent, so one successful capture does not prove reliability or exclusive historical causality."
+  },
+  "assessment": {
+    "status": "FAIL",
+    "phase": "Deferred-scene fix built; VM icons and two-app switching observed; caret baseline fails",
+    "next": "Engine fix passes20 source cases, optimized repeat and105 active suites; ten ARM64 objects rebuilt. Engine-only VM shows icons and Mousepad\u2192Foot\u2192Mousepad, then fails lower-caret baseline. Client receives the low pointer press and damages a low caret region, while text-input still publishes the old top-row rectangle. Trace the exact GTK/IM spot-location publication before changing coordinate mapping or deadlines. Preserve expired-work guards, S06/R01 FAIL and physical NOT RUN; no phone operations."
+  },
+  "phone_operations": 0,
+  "signing_operations": 0,
+  "claims_consumed": 0,
+  "protected_storage_mutations": 0
+}

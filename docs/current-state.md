@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Delayed-scene progress gap reproduced offline; VM icons still fail**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Deferred-scene fix built; VM icons and two-app switching observed; caret baseline fails**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Collector repair passes 14 focused cases and 105 active suites. VM repeats missing icons despite picture paint and full-damage presentation aggregates; no pointer actions, physical NOT RUN. Separate actual engine and native scheduler extracts demonstrate an allowed ordering where an old-scene retry clears dirtiness before a newer deferred scene arrives without another request. Implement and test a bounded pending-newer-scene notification using existing frame scheduling/coalescing; preserve expired-work refusal, scene generations and teardown. Do not treat this as the observed VM cause until a corrected exact build is compared. No phone operations; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-render-handoff.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Engine fix passes20 source cases, optimized repeat and105 active suites; ten ARM64 objects rebuilt. Engine-only VM shows icons and Mousepad→Foot→Mousepad, then fails lower-caret baseline. Client receives the low pointer press and damages a low caret region, while text-input still publishes the old top-row rectangle. Trace the exact GTK/IM spot-location publication before changing coordinate mapping or deadlines. Preserve expired-work guards, S06/R01 FAIL and physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-pending-scene.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

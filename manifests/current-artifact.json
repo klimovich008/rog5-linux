@@ -1617,6 +1617,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "pending_scene": {
+      "status": "FAIL",
+      "set_id": "private:rog5-pending-scene-20260913-r1",
+      "source_commit": "0d055f4c942bfba624d83e7fd505b67c52352020",
+      "evidence": {
+        "path": "test-results/2026-09-13-pending-scene-qualification.json",
+        "sha256": "76175cc93c9e688014c4a77e589c40a34aedfd053f8c3a9ae8d29bdc6ff9dd56",
+        "bytes": 89834
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {

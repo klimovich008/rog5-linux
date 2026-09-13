@@ -3117,3 +3117,14 @@ Retain a bounded selection in a separate budget, mark clipped field values, and
 keep every line diagnostic-only. The native presented_outputs counter is
 incremented before broker mark_ready; it is not a KMS page-flip count. A
 post-paint aggregate or log timestamp alone does not identify the same frame.
+
+Pending-scene progress (2026-09-13): retain the ordering counterexample as a
+negative control and execute the real scheduling continuation. Notification
+counts alone do not prove progress: require the newer scene to become the last
+successful draw without another Dart build. A moved last-successful task leaves
+an empty owner; preserve its reused-scene marker when suppressing redundant
+requests. Keep the notification watermark across pending retries and reset it
+only on structural output changes. Reuse the previous verified link inputs and
+recompile the complete affected-header closure; this fix needed10 objects, not
+another complete engine build. VM results remain separate from source proof
+and from phone hardware qualification.
