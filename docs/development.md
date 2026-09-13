@@ -906,3 +906,12 @@ loader closure, not optional later dlopen, driver initialization, hardware
 acceleration, firmware availability or phone compatibility. Preserve the real
 phone's kernel/module/trial binding separately; a matching userspace closure
 cannot authorize substituting a new module cohort into a frozen boot trial.
+
+The confined runtime checker always stops and verifies its owned user service,
+even when observation is interrupted. Its client takes no stdin. A nonterminal
+service state prevents success; interruption retains its original exception and
+any cleanup-error notes in its failure report; interrupted CLI runs exit130.
+Client-wait interruption still reaches the independent service stop. Raw output
+remains in the newly created log. SIGKILL
+cannot execute Python cleanup, so the independent service deadline is still
+required. This host machinery does not grant phone execution authority.

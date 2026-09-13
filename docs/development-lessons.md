@@ -2744,3 +2744,11 @@ The prior GBM readback used ABGR8888 while Denial output pools use XRGB8888.
 Keep same-device pixel/fence proof separate from cross-device PRIME admission,
 local SCANOUT usage and negotiated modifiers; XR24 readback alpha is opaque,
 not evidence of stored alpha preservation.
+
+A systemd-run client is not the service it starts. Stopping the client process
+group after an observation error or KeyboardInterrupt left the independently
+managed probe alive. Always stop and verify the owned unit in cleanup, including
+client wait failures, and retain the primary exception plus cleanup diagnostics.
+Test interruption during cleanup too, and preserve cleanup notes when the
+outer CLI serializes an error. Keep a hard service deadline for process
+termination that cannot execute finally.

@@ -93,28 +93,58 @@ def bounded(command, output, label):
     unit = "rog5-linkage-"+hashlib.sha256(str(output).encode()).hexdigest()[:12]+"-"+label
     command = [*command[:1], "--unit="+unit, *command[1:]]
     path = output/(label+'.log'); started = time.monotonic(); failure = None
+    process = None; original_error = None; cleanup_errors = []; service_state = None
+    def cleanup_error(stage, error):
+        nonlocal original_error
+        cleanup_errors.append(stage+': '+str(error))
+        if original_error is None and not isinstance(error, (OSError, subprocess.SubprocessError)):
+            original_error = error
     with path.open('xb') as log:
-        process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         try:
+            process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             while process.poll() is None:
                 if path.stat().st_size > LIMIT or time.monotonic()-started > 45:
                     failure = 'log limit or deadline'; break
                 time.sleep(.02)
+        except BaseException as error:
+            original_error = error
         finally:
+            # systemd-run is only a client. Always stop the independently owned
+            # service, including observation errors and operator interruption.
+            # A client wait/kill error must not bypass service cleanup either.
+            if process is not None:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                except BaseException as error:
+                    cleanup_error('client kill', error)
+                try:
+                    process.wait(timeout=10)
+                except BaseException as error:
+                    cleanup_error('client wait', error)
             try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait(timeout=10)
-    if failure or process.returncode:
-        stopped = subprocess.run(['systemctl','--user','stop',unit], capture_output=True, timeout=10)
-        state = subprocess.run(['systemctl','--user','is-active',unit], capture_output=True, text=True, timeout=10)
-        if state.stdout.strip() not in ('inactive','failed','unknown'):
-            failure = 'failed loader and unit stop could not be confirmed'
+                subprocess.run(['systemctl','--user','stop',unit], capture_output=True, timeout=10)
+            except BaseException as error:
+                cleanup_error('service stop', error)
+            try:
+                state = subprocess.run(['systemctl','--user','is-active',unit], capture_output=True, text=True, timeout=10)
+                service_state = state.stdout.strip()
+                if state.returncode not in (3, 4) or service_state not in ('inactive','failed','unknown'):
+                    cleanup_errors.append('service shutdown could not be confirmed')
+            except BaseException as error:
+                cleanup_error('service state', error)
+    if original_error is not None:
+        if cleanup_errors:
+            original_error.add_note('Probe cleanup: '+'; '.join(cleanup_errors))
+        raise original_error
+    if cleanup_errors:
+        failure = '; '.join(([failure] if failure else [])+cleanup_errors)
     if path.stat().st_size > LIMIT:
-        failure = 'log limit exceeded'
+        failure = 'log limit exceeded' + ('; '+failure if failure else '')
     result = {'command': command, 'unit': unit, 'exit_status': process.returncode,
-              'seconds': time.monotonic()-started, 'log': identity(path)}
+              'seconds': time.monotonic()-started, 'log': identity(path),
+              'service_state': service_state, 'cleanup': 'FAIL' if cleanup_errors else 'PASS'}
     if failure:
         result['failure'] = failure
     return result
@@ -128,6 +158,7 @@ def main():
     a = p.parse_args(); a.output.mkdir(parents=True, exist_ok=False)
     report = {'status': 'FAIL', 'scope': __doc__, 'authority': 'none', 'phone': 'NOT RUN',
               'graphics_initialization': 'NOT RUN', 'runs': []}
+    interrupted = False
     try:
         for name in ('bwrap','qemu-aarch64-static','systemd-run'):
             if shutil.which(name) is None:
@@ -207,10 +238,14 @@ def main():
         for name in local: verify(name)
         for key in list(runtime.verified): runtime.resolve('/'+key)
         report.update(status='PASS_LINKAGE_ONLY',runtime_files=list(runtime.verified.values()))
-    except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error:
+    except (OSError,ValueError,KeyError,subprocess.SubprocessError,KeyboardInterrupt) as error:
         report['error'] = str(error)
+        report['error_notes'] = list(getattr(error, '__notes__', []))
+        interrupted = isinstance(error, KeyboardInterrupt)
     (a.output/'result.json').write_text(json.dumps(report,indent=2)+'\n')
     print(report['status'], report.get('error',''))
+    if interrupted:
+        return 130
     return 0 if report['status']=='PASS_LINKAGE_ONLY' else 2 if report['status']=='BLOCKED' else 1
 
 
