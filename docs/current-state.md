@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **GTK caret publication fixed offline; ARM64 module load passes; VM treatment pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM lower-caret, OSK text entry and app switching pass; full session cleanup unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-GTK source regression reproduces missing cursor publication; patch passes15 cases and ARM64 build/discovery. Stage an explicit hash-checked read-only VM module override before GTK cache generation, then repeat the real lower-caret/OSK sequence with unchanged engine/native/shell. Preserve earlier VM FAIL, S06/R01 FAIL and phone physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-gtk-caret.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Exact ARM64 Wayland debug framing and GTK caret changes reached the real VM: lower-caret coordinates, OSK key sequence and Mousepad/Foot switching pass. Overall run remains FAIL at the300s host deadline during graceful app cleanup. Audit stage timing and complete cleanup with the same binaries before broader qualification. Preserve earlier VM FAIL, S06/R01 FAIL and physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-wayland-debug.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

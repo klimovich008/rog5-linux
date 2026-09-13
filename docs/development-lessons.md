@@ -3139,3 +3139,14 @@ A standalone GTK IM module built in under one second against the original Arch
 materialization; the mapped VM view is not a compiler sysroot because it encodes
 symlinks. Verify real ARM64 module discovery separately from interactive caret
 behavior, and keep immutable runtime replacement opt-in and VM-only.
+
+Wayland debug framing and VM teardown (2026-09-13): escape application strings
+at the diagnostic producer before a record boundary is lost; unescaped quotes
+and newlines cannot be repaired reliably by relaxing the host evidence parser.
+Exercise the production formatter with multiline, control and forged-record
+payloads, retaining byte/line caps and the unchanged protocol oracle. A real
+ARM64 libwayland-client rebuild took4.961s and reused41 existing payload files;
+neither kernel nor Flutter rebuild was needed. Before controller cleanup sends
+TERM, retain its original failure and current phase in the owned bounded
+evidence stream. A downstream client143 can be caused by diagnostic failure;
+it does not identify the initiating fault or qualify application behavior.

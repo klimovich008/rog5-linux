@@ -1641,6 +1641,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline module fixture"
+    },
+    "wayland_debug": {
+      "status": "SOURCE_BUILD_PASS_VM_FAIL",
+      "set_id": "private:rog5-wayland-debug-20260913-r1",
+      "source_commit": "1c5b85828357be363369270a3ef14dfe4968a4e3",
+      "evidence": {
+        "path": "test-results/2026-09-13-wayland-debug-qualification.json",
+        "sha256": "01d87826527abd9c1f4c4b46ab40f3eeceba7486a6060a0bf6cb378a3da2628e",
+        "bytes": 99402
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline VM fixture"
     }
   },
   "denial_phone_linkage": {

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "GTK caret publication fixed offline; ARM64 module load passes; VM treatment pending",
+  "phase": "VM lower-caret, OSK text entry and app switching pass; full session cleanup unqualified",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "GTK source regression reproduces missing cursor publication; patch passes15 cases and ARM64 build/discovery. Stage an explicit hash-checked read-only VM module override before GTK cache generation, then repeat the real lower-caret/OSK sequence with unchanged engine/native/shell. Preserve earlier VM FAIL, S06/R01 FAIL and phone physical NOT RUN; no phone operations.",
-  "evidence": "test-results/2026-09-13-gtk-caret.md"
+  "next": "Exact ARM64 Wayland debug framing and GTK caret changes reached the real VM: lower-caret coordinates, OSK key sequence and Mousepad/Foot switching pass. Overall run remains FAIL at the300s host deadline during graceful app cleanup. Audit stage timing and complete cleanup with the same binaries before broader qualification. Preserve earlier VM FAIL, S06/R01 FAIL and physical NOT RUN; no phone operations.",
+  "evidence": "test-results/2026-09-13-wayland-debug.md"
 }
