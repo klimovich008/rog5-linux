@@ -143,15 +143,19 @@ class GtkInputCache(unittest.TestCase):
 
 class GtkModuleOverride(unittest.TestCase):
     """Real guard/hash/rollback code; mount syscalls are filesystem adapters."""
+    RELATIVE = 'lib/gtk-3.0/3.0.0/immodules/im-wayland.so'
+    CONTRACT = 'gtk-im-override.sha256'
+    ENTRYPOINT = 'stage_gtk_im_override'
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='rog5-gtk-override-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.session = self.root/'session'; self.system = self.root/'system'
         self.bin = self.root/'bin'; self.bin.mkdir()
-        rel = 'lib/gtk-3.0/3.0.0/immodules/im-wayland.so'
+        rel = self.RELATIVE
         self.source = self.session/'usr'/rel; self.target = self.system/rel
-        self.contract = self.session/'usr/share/rog5-denial/gtk-im-override.sha256'
+        self.contract = self.session/'usr/share/rog5-denial'/self.CONTRACT
         for p in (self.source, self.target, self.contract): p.parent.mkdir(parents=True, exist_ok=True)
         self.source.write_bytes(b'patched module'); self.target.write_bytes(b'original module')
         self.old = hashlib.sha256(self.target.read_bytes()).hexdigest()
@@ -174,7 +178,7 @@ else
     if [[ $MODE == interrupt ]]; then kill -TERM "$PPID"; exit 0; fi
 fi
 """)
-        self.cmd = ['bash', '-c', 'source "$1"; stage_gtk_im_override "$2" "$3"',
+        self.cmd = ['bash', '-c', 'source "$1"; '+self.ENTRYPOINT+' "$2" "$3"',
                     'override-test', str(HELPER), str(self.session), str(self.system)]
 
     def command(self, name, body):
@@ -252,6 +256,12 @@ fi
         (self.root/'mounted').touch(); r = self.run_helper()
         self.assertNotEqual(r.returncode, 0); self.assertTrue((self.root/'mounted').exists())
         self.assertFalse((self.root/'calls').exists())
+
+
+class WaylandDebugOverride(GtkModuleOverride):
+    RELATIVE = 'lib/libwayland-client.so.0.26.0'
+    CONTRACT = 'wayland-debug-override.sha256'
+    ENTRYPOINT = 'stage_wayland_debug_override'
 
 
 if __name__ == '__main__':

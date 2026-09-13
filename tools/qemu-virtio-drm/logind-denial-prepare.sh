@@ -72,6 +72,7 @@ XDG_DATA_DIRS=/run/gtk-runtime:/usr/local/share:/usr/share timeout -k 1 10 updat
 [[ -s /run/gtk-runtime/schemas/gschemas.compiled && -s /run/gtk-runtime/mime/mime.cache ]]
 source /run/logind-gtk-im-cache.sh
 stage_gtk_im_override
+stage_wayland_debug_override
 prepare_gtk_im_cache
 # The extracted package closure has not executed Fontconfig's cache hook.
 # Prepare once in guest RAM, then prove the unprivileged consumer uses it.

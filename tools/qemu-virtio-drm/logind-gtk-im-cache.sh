@@ -54,10 +54,23 @@ prepare_gtk_im_cache() (
 
 # Optional, inventoried VM payload override; caller is the isolated guest PID1.
 # Neither an absent contract nor a successful cache query authorizes an override.
-stage_gtk_im_override() (
-    local session=${1:-/run/session} system=${2:-/usr}
-    local relative=lib/gtk-3.0/3.0.0/immodules/im-wayland.so
-    local contract=$session/usr/share/rog5-denial/gtk-im-override.sha256
+stage_gtk_im_override() {
+    stage_vm_library_override GTK "${1:-/run/session}" "${2:-/usr}"
+}
+stage_wayland_debug_override() {
+    stage_vm_library_override Wayland "${1:-/run/session}" "${2:-/usr}"
+}
+stage_vm_library_override() (
+    local kind=$1 session=$2 system=$3 relative contract_name
+    # A closed set of exact paths, never an arbitrary payload-selected library.
+    case $kind in
+        GTK) relative=lib/gtk-3.0/3.0.0/immodules/im-wayland.so
+             contract_name=gtk-im-override.sha256 ;;
+        Wayland) relative=lib/libwayland-client.so.0.26.0
+                 contract_name=wayland-debug-override.sha256 ;;
+        *) return 1 ;;
+    esac
+    local contract=$session/usr/share/rog5-denial/$contract_name
     local source=$session/usr/$relative target=$system/$relative
     local pair old new actual options probe_status attempted=0 complete=0
     if [[ ! -e $contract && ! -L $contract && ! -e $source && ! -L $source ]]; then
@@ -70,7 +83,7 @@ stage_gtk_im_override() (
     # Only the newly extracted contract/replacement must have one link.
     for actual in "$contract" "$source"; do
         [[ -f $actual && ! -L $actual && $(stat -c %h -- "$actual") == 1 ]] || {
-            echo 'FAIL GTK override input is not a single-link regular file' >&2; return 1;
+            echo "FAIL $kind override input is not a single-link regular file" >&2; return 1;
         }
     done
     [[ $(stat -c %s -- "$contract") -le 130 ]] || return 1
@@ -78,9 +91,9 @@ stage_gtk_im_override() (
     [[ $pair =~ ^[0-9a-f]{64}\ [0-9a-f]{64}$ ]] || return 1
     read -r old new <<< "$pair"
     actual=$(sha256sum -- "$target") || return $?
-    [[ ${actual%% *} == "$old" ]] || { echo 'FAIL GTK baseline module identity' >&2; return 1; }
+    [[ ${actual%% *} == "$old" ]] || { echo "FAIL $kind baseline module identity" >&2; return 1; }
     actual=$(sha256sum -- "$source") || return $?
-    [[ ${actual%% *} == "$new" ]] || { echo 'FAIL GTK override module identity' >&2; return 1; }
+    [[ ${actual%% *} == "$new" ]] || { echo "FAIL $kind override module identity" >&2; return 1; }
     # Refuse an existing file mount; an interrupted attempt may only undo ours.
     if mountpoint -q -- "$target"; then
         return 1
@@ -90,7 +103,7 @@ stage_gtk_im_override() (
     fi
     cleanup_gtk_override() {
         if ((attempted && !complete)) && mountpoint -q -- "$target"; then
-            umount -- "$target" || echo 'FAIL GTK override cleanup; guest must abort' >&2
+            umount -- "$target" || echo "FAIL $kind override cleanup; guest must abort" >&2
         fi
     }
     trap cleanup_gtk_override EXIT
@@ -100,9 +113,9 @@ stage_gtk_im_override() (
     mount --bind "$source" "$target" || return $?
     mount -o remount,bind,ro "$target" || return $?
     options=$(findmnt -n -o OPTIONS --target "$target") || return $?
-    [[ ,$options, == *,ro,* ]] || { echo 'FAIL GTK override is not read-only' >&2; return 1; }
+    [[ ,$options, == *,ro,* ]] || { echo "FAIL $kind override is not read-only" >&2; return 1; }
     actual=$(sha256sum -- "$target") || return $?
     [[ ${actual%% *} == "$new" ]] || return 1
     complete=1
-    printf 'PASS VM-only GTK override original=%s replacement=%s read-only\n' "$old" "$new"
+    printf 'PASS VM-only %s override original=%s replacement=%s read-only\n' "$kind" "$old" "$new"
 )
