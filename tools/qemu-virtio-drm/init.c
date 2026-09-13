@@ -55,8 +55,11 @@ void _start(void)
 	static char *const argv[] = { "/usr/bin/bash", "/run/guest.sh", 0 };
 	static char *const env[] = { "PATH=/usr/bin", "HOME=/tmp",
 		"LANG=C", "TERM=linux", 0 };
-	long pid, fd;
+	long fd;
+#ifndef ROG5_SYSTEMD_PID1
+	long pid;
 	int status = -1;
+#endif
 
 	fd = call(56, AT_FDCWD, (long)"/dev/console", 2, 0, 0);
 	check(fd, "console");
@@ -82,6 +85,15 @@ void _start(void)
 		"mkdir dev/pts");
 	mountfs("devpts", "/sysroot/dev/pts", "devpts", 0,
 		"newinstance,ptmxmode=0666,mode=0620");
+#ifdef ROG5_SYSTEMD_PID1
+	/* The separate logind fixture must exec systemd as actual PID 1.
+	 * All filesystem setup above still requires the virtual 9P mounts.
+	 */
+	check(call(51, (long)"/sysroot", 0, 0, 0, 0), "chroot");
+	check(call(49, (long)"/", 0, 0, 0, 0), "chdir");
+	check(call(221, (long)argv[0], (long)argv, (long)env, 0, 0),
+		"exec PID1 script");
+#else
 	pid = call(220, 17, 0, 0, 0, 0); /* clone(SIGCHLD) */
 	check(pid, "clone");
 	if (!pid) {
@@ -93,5 +105,6 @@ void _start(void)
 	check(call(260, pid, (long)&status, 0, 0, 0), "wait guest");
 	say(status == 0 ? "PASS guest-script exited cleanly\n" :
 		"FAIL guest-script exit status\n");
+#endif
 	poweroff();
 }

@@ -2796,3 +2796,19 @@ synced temporary file and an exclusive final link; directly writing the final
 receipt can expose partial JSON or stale success after an I/O failure. Retire old
 VM staging only after all files match a durable copy, retaining failed-run logs
 and a complete mapping; removing hardlinks usually reclaims no data blocks.
+
+A PAM session test needs real systemd PID1: pam_systemd may return success without
+registration under a bash init, and the packaged login stack makes that module
+optional. Verify logind identity/scope and mediated device access, not just PAM's
+return value. A virtual terminal can be allocated by vconsole without an attached
+login process; check for a real owner before taking over an explicitly isolated
+fixture VT. Keep the actual service/PAM policies in these tests.
+
+Place startup diagnostics outside the dependency they diagnose. A service ordered
+after a stalled startup cannot explain that stall. The full-PID1 run timed out with the256MiB
+PAM-only guest budget, while512MiB/768MiB guest/container completed startup
+in91.4s. That resource comparison does not establish the stall's
+root cause; retain telemetry and do not label it a proven memory-exhaustion event.
+Boot-time ldconfig/hwdb generation dominates these fresh fixtures. Future caching
+must bind generated data to the exact runtime, rather than skipping required
+setup or repeatedly rebuilding unrelated kernels/compositor assets.

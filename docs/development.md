@@ -106,6 +106,25 @@ Ordinary host fixtures test the archive and failure paths. Actual retained-byte
 composition, ARM64 CLI execution and logind/graphics VM qualification are separate
 manual checks; a host fixture PASS does not imply any of them ran.
 
+The manual `scripts/host/test-qemu-logind.py` runner uses the retained generic
+ARM64 kernel and authenticated mapped runtime to test packaged systemd as actual
+PID1, the original login PAM profile on an unused virtual tty1, and libseat's
+forced logind backend. It requires explicit immutable container IDs, runtime
+receipt, kernel and retained Rust dependency paths. Its guests have no network
+or host render device; virtual DRM/keyboard devices and RAM-only account changes
+are test fixtures. The fixed credential is public synthetic data. No login
+manager, Denial lock UI or phone session is qualified by this probe.
+
+The default small init continues to fork and reap its test child. Only the
+separate compile option `ROG5_SYSTEMD_PID1` replaces PID1 with the guest setup
+script and then packaged systemd. A successful PAM open alone is insufficient:
+pam_systemd is optional in the packaged login profile. Require the child's own
+active local tty1/seat0 session, UID1000 private runtime, responding user manager,
+actual libseat device identities and release, followed by logind scope removal.
+Missing kernel sandbox features remain explicit limitations even if those
+functional checks pass. A timeout or shutdown without the terminal evidence
+is failure. Retain failed attempts and do not infer phone or security proof.
+
 Do not carry the sanitized VM package permissions or NoNewPrivs policy into a
 password-authenticated session without qualification. The retained PAM1.7.2-2
 archive supplies root:root06755 unix_chkpwd. The actual pinned Denial PAM backend
