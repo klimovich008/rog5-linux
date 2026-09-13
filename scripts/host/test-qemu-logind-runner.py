@@ -104,6 +104,10 @@ logind_cleanup_state "$6"
                 result = subprocess.run(['bash', '-c', harness, 'fixture', str(script), sessions, scopes,
                                          str(session_rc), str(scope_rc), sid], capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+                if session_rc:
+                    self.assertIn(f'query=loginctl status={session_rc}', result.stderr)
+                elif scope_rc:
+                    self.assertIn(f'query=systemctl status={scope_rc}', result.stderr)
 
 
     def test_tty_ownership_requires_successful_enumeration(self):
