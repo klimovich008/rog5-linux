@@ -513,9 +513,9 @@ class ClientExit(unittest.TestCase):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
         source = script.read_text()
         functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
-        # Execute the production terminal-stop block, including the old defective
-        # block before the correction. The children and Bash waits are real.
-        stop = source.split("sleep 3\n", 1)[1].split('# Require successful enumeration', 1)[0]
+        # Exercise generic production signal cleanup with real children/waits.
+        # FootClose executes the normal production launch and stop blocks.
+        stop = 'stop_all_owned stop\n'
         if phase == 'readiness':
             stop = 'require_running foot\n'
         elif phase == 'cleanup':
@@ -579,6 +579,113 @@ if [[ $3 == early ]]; then wait "$foot" || :; fi
         self.assertEqual(result.returncode, 143, result.stdout+result.stderr)
         for name in ['foot', 'editor', 'launcher']:
             self.assertRegex(result.stdout, rf'process={name} phase=cleanup .*status=143 ')
+
+
+class FootClose(unittest.TestCase):
+    def run_close(self, mode='success'):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        launch = source.split('editor=$!\n', 1)[1].split('for ((i=0;i<160;i++)); do', 1)[0]
+        stop = source.split('sleep 3\n', 1)[1].split('# Require successful enumeration', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); commands = root/'bin'; commands.mkdir()
+            # Thin external-program seam: execute the actual supplied child
+            # command, without a compositor. Do not model its FIFO protocol.
+            wrapper = {
+                'dead_reader': 'exec sleep 30',
+                'early0': 'exit 0', 'early124': 'exit 124', 'early230': 'exit 230',
+                'nonzero': '"$@"; exit 42',
+                'exit_timeout': '"$@"; exec sleep 30',
+            }.get(mode, 'exec "$@"')
+            (commands/'foot').write_text('#!/usr/bin/bash\n(($#)) || exit 230\n'+wrapper+'\n')
+            (commands/'foot').chmod(0o755)
+            (root/'foot.pipe').touch()
+            for name in ['denial', 'foot', 'mousepad']:
+                (root/f'{name}.log').touch()
+            code = 'set -euo pipefail\n' + functions + r'''
+HOME=$1; MODE=$2; export HOME; export PATH=$HOME/bin:$PATH
+readers=(); launcher=''; foot=''; editor=''; foot_close_owned=0
+foot_close_fifo=$HOME/foot-close.pipe
+trap finish EXIT
+trap 'exit 143' TERM
+sleep 30 & editor=$!
+sleep 30 & launcher=$!
+''' + launch + r'''
+printf '%s\n' "$foot" "$editor" "$launcher" > "$HOME/pids"
+if [[ $MODE == early* ]]; then wait "$foot" || :; fi
+'''
+            if mode == 'wrong_token':
+                stop = r'''
+timeout -k 1 3 /usr/bin/bash -c 'printf "WRONG\n" > "$1"' fixture "$foot_close_fifo"
+wait "$foot"
+'''
+            elif mode == 'interrupt':
+                stop = 'kill -TERM $$\n'
+            code += stop
+            result = subprocess.run(['bash', '-c', code, 'fixture', directory, mode],
+                                    capture_output=True, text=True, timeout=12)
+            for pid in map(int, (root/'pids').read_text().split()):
+                self.assertFalse(live(pid), f'owned process {pid} left running')
+            self.assertFalse((root/'foot-close.pipe').exists())
+            return result, (root/'foot.pipe').read_text()
+
+    def test_actual_launch_and_stop_use_normal_child_exit_without_term(self):
+        result, child_output = self.run_close()
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertRegex(result.stdout, r'process=foot phase=normal-close .*status=0 term_sent=no')
+        self.assertNotRegex(result.stdout, r'process=foot .*term_sent=yes')
+        self.assertIn('PASS controlled terminal child exit requested', child_output)
+        self.assertIn('process=editor phase=stop', result.stdout)
+        self.assertIn('process=launcher phase=stop', result.stdout)
+
+
+    def test_wrong_token_is_rejected_by_actual_child_and_all_processes_cleaned(self):
+        result, child_output = self.run_close('wrong_token')
+        self.assertEqual(result.returncode, 1, result.stdout+result.stderr)
+        self.assertNotIn('PASS controlled terminal child exit requested', child_output)
+        self.assertIn('process=editor phase=cleanup', result.stdout)
+        self.assertIn('process=launcher phase=cleanup', result.stdout)
+
+    def test_dead_reader_and_nonterminating_terminal_have_real_bounded_timeouts(self):
+        for mode in ['dead_reader', 'exit_timeout']:
+            with self.subTest(mode=mode):
+                result, _ = self.run_close(mode)
+                self.assertEqual(result.returncode, 124, result.stdout+result.stderr)
+                self.assertIn('process=editor phase=cleanup', result.stdout)
+                self.assertIn('process=launcher phase=cleanup', result.stdout)
+
+    def test_early_exit_and_nonzero_normal_close_remain_failures(self):
+        for mode, expected in [('early0', 1), ('early124', 1), ('early230', 1), ('nonzero', 42)]:
+            with self.subTest(mode=mode):
+                result, _ = self.run_close(mode)
+                self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+                self.assertIn('process=editor phase=cleanup', result.stdout)
+                self.assertIn('process=launcher phase=cleanup', result.stdout)
+                self.assertNotIn('PASS Foot exited normally', result.stdout)
+
+    def test_interruption_cleans_processes_and_owned_fifo(self):
+        result, _ = self.run_close('interrupt')
+        self.assertEqual(result.returncode, 143, result.stdout+result.stderr)
+        self.assertIn('process=editor phase=cleanup', result.stdout)
+        self.assertIn('process=launcher phase=cleanup', result.stdout)
+
+    def test_fresh_fifo_mode_and_preexisting_path_refusal(self):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        for existing in [False, True]:
+            with self.subTest(existing=existing), tempfile.TemporaryDirectory() as directory:
+                fifo = Path(directory)/'close'
+                if existing: os.mkfifo(fifo, 0o600)
+                code = functions + r'''
+foot_close_fifo=$1; foot_close_owned=0
+prepare_foot_close || exit $?
+[[ -p $foot_close_fifo && $(stat -c %a "$foot_close_fifo") == 600 ]] || exit 2
+remove_foot_close
+'''
+                result = subprocess.run(['bash', '-c', code, 'fixture', str(fifo)],
+                                        capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, 1 if existing else 0, result.stdout+result.stderr)
+                self.assertEqual(fifo.exists(), existing)
 
 
 class Archive(unittest.TestCase):

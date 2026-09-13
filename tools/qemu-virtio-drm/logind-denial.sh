@@ -9,6 +9,8 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 [[ -S /run/user/1000/bus ]]
 cd "$HOME"
 launcher='' foot='' editor=''
+foot_close_owned=0
+foot_close_fifo=$HOME/foot-close.pipe
 readers=()
 require_fuse_device() {
     local device=${1:-/dev/fuse} helper=${2:-/usr/bin/fusermount3} metadata
@@ -86,6 +88,48 @@ start_log() {
 start_log denial
 start_log foot
 start_log mousepad
+prepare_foot_close() {
+    [[ ! -e $foot_close_fifo && ! -L $foot_close_fifo ]] || return 1
+    mkfifo -m 600 -- "$foot_close_fifo" || return $?
+    foot_close_owned=1
+    [[ -p $foot_close_fifo && -O $foot_close_fifo && $(stat -c %a -- "$foot_close_fifo") == 600 ]]
+}
+remove_foot_close() {
+    if ((${foot_close_owned:-0})); then
+        [[ -p $foot_close_fifo && ! -L $foot_close_fifo && -O $foot_close_fifo ]] || return 1
+        rm -- "$foot_close_fifo" || return $?
+        foot_close_owned=0
+    fi
+}
+launch_foot() {
+    WAYLAND_DEBUG=client timeout -k 2 65 foot /usr/bin/bash --noprofile --norc -c '
+        printf "ROG5 controlled terminal: waiting for normal close\n"
+        IFS= read -r token < "$1" || exit 1
+        [[ $token == ROG5_FOOT_EXIT_0 ]] || exit 1
+        printf "PASS controlled terminal child exit requested\n"
+        exit 0
+    ' rog5-terminal-child "$foot_close_fifo" > "$HOME/foot.pipe" 2>&1 &
+    foot=$!
+}
+close_foot_normally() {
+    local deadline
+    require_running foot || return 1
+    [[ ${foot_close_owned:-0} == 1 && -p $foot_close_fifo && ! -L $foot_close_fifo ]] || return 1
+    # Opening a FIFO with no reader blocks too: bound the writer independently.
+    timeout -k 1 3 /usr/bin/bash --noprofile --norc -c 'printf "%s\n" ROG5_FOOT_EXIT_0 > "$1"' \
+        rog5-terminal-close "$foot_close_fifo" || return $?
+    deadline=$((SECONDS + 5))
+    while kill -0 "$foot" 2>/dev/null; do
+        ((SECONDS < deadline)) || {
+            echo 'FAIL controlled Foot exit deadline' >&2; return 124;
+        }
+        sleep 0.1
+    done
+    reap_owned foot normal-close no
+    [[ $last_status == 0 ]] || return "$last_status"
+    remove_foot_close || return $?
+    echo 'PASS Foot exited normally and owned close FIFO removed'
+}
 reap_owned() {
     local name=$1 phase=$2 sent=$3 pid status=0
     local -n owned=$name
@@ -140,6 +184,7 @@ finish() {
     local rc=$?
     trap - EXIT TERM INT
     stop_all_owned cleanup || { [[ $rc != 0 ]] || rc=1; }
+    remove_foot_close || { [[ $rc != 0 ]] || rc=1; }
     for pid in "${readers[@]}"; do kill -TERM "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
     if [[ $rc != 0 ]]; then
         echo "FAIL combined user session status=$rc"
@@ -173,8 +218,8 @@ qualify_activated_services
 : > "$HOME/text.txt"
 GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 mousepad "$HOME/text.txt" > "$HOME/mousepad.pipe" 2>&1 &
 editor=$!
-WAYLAND_DEBUG=client timeout -k 2 65 foot > "$HOME/foot.pipe" 2>&1 &
-foot=$!
+prepare_foot_close
+launch_foot
 for ((i=0;i<160;i++)); do
     for name in launcher editor foot; do require_running "$name" || exit 1; done
     if grep -q 'xdg_toplevel.*configure' "$HOME/mousepad.log" && grep -q 'xdg_toplevel.*configure' "$HOME/foot.log"; then break; fi
@@ -184,6 +229,7 @@ grep -q 'xdg_toplevel.*configure' "$HOME/mousepad.log"
 grep -q 'xdg_toplevel.*configure' "$HOME/foot.log"
 echo 'PASS two native Wayland clients configured through authenticated session'
 sleep 3
+close_foot_normally
 stop_all_owned stop
 # Require successful enumeration, not a nonzero is-active result that could be an error.
 units=$(systemctl --user list-units --all --no-legend --no-pager --plain)
