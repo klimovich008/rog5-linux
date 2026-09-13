@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -62,6 +63,79 @@ class Materialization(unittest.TestCase):
         M.materialize([package], self.home, root, M.inventory([package], self.home))
         self.assertEqual((root / 'usr/lib/helper').read_bytes(), b'payload')
         self.assertTrue(M.tree_manifest(root))
+
+    def materialize_policy(self, package, policy):
+        root = self.home / ('root-' + policy)
+        old_umask = os.umask(0o077)
+        try:
+            M.materialize([package], self.home, root, M.inventory([package], self.home),
+                          permission_policy=policy)
+        finally:
+            os.umask(old_umask)
+        self.assertEqual(os.umask(old_umask), old_umask)
+        return root
+
+    def test_package_read_preserves_public_access_under_private_caller_umask(self):
+        p = self.package('app', {'usr/bin/app': b'payload'}, mode=0o755,
+                         links=[('usr/bin/link', 'app')],
+                         hardlinks=[('usr/bin/hard', 'usr/bin/app')])
+        root = self.materialize_policy(p, 'package-read')
+        for path in (root, root/'usr', root/'usr/bin', root/'usr/bin/app'):
+            self.assertEqual(path.stat().st_mode & 0o7777, 0o755, str(path))
+        self.assertEqual((root/'usr/bin/link').readlink(), Path('app'))
+        self.assertEqual((root/'usr/bin/app').stat().st_ino, (root/'usr/bin/hard').stat().st_ino)
+
+    def test_package_read_keeps_private_files_and_strips_privileges_and_writes(self):
+        for mode, expected in ((0o600, 0o600), (0o640, 0o640), (0o644, 0o644),
+                               (0o7777, 0o755), (0o666, 0o644), (0o111, 0o511)):
+            with self.subTest(mode=oct(mode)):
+                p = self.package('permissions', {'payload': b'data'}, mode=mode)
+                root = self.home / ('mode-' + str(mode))
+                M.materialize([p], self.home, root, M.inventory([p], self.home),
+                              permission_policy='package-read')
+                self.assertEqual((root/'payload').stat().st_mode & 0o7777, expected)
+
+    def test_package_read_does_not_open_packaged_private_directory(self):
+        p = self.package('private', {'private/file': b'data'}, mode=0o600)
+        path = self.home / p['archive']
+        with tarfile.open(path, 'w:xz') as archive:
+            directory = tarfile.TarInfo('private')
+            directory.type, directory.mode = tarfile.DIRTYPE, 0o700
+            archive.addfile(directory)
+        p['sha256'] = M.digest(path)
+        root = self.materialize_policy(p, 'package-read')
+        self.assertEqual((root/'private').stat().st_mode & 0o7777, 0o700)
+
+    def test_owner_only_profile_retains_existing_modes(self):
+        p = self.package('public', {'usr/bin/app': b'payload'}, mode=0o7777)
+        root = self.materialize_policy(p, 'owner-only')
+        for path in (root, root/'usr', root/'usr/bin', root/'usr/bin/app'):
+            self.assertEqual(path.stat().st_mode & 0o7777, 0o700)
+
+    def test_unknown_permission_profile_refuses_before_creation(self):
+        with self.assertRaisesRegex(ValueError, 'unknown permission'):
+            M.materialize([], self.home, self.home/'absent', [], permission_policy='wrong')
+        self.assertFalse((self.home/'absent').exists())
+
+    def test_package_read_does_not_rewrite_retained_owner_only_tree(self):
+        p = self.package('public', {'usr/bin/app': b'payload'}, mode=0o755)
+        old = self.materialize_policy(p, 'owner-only')
+        before = M.tree_manifest(old)
+        M.materialize([p], self.home, self.home/'new', M.inventory([p], self.home),
+                      permission_policy='package-read')
+        self.assertEqual(M.tree_manifest(old), before)
+
+    def test_umask_restored_after_extraction_failure(self):
+        p = self.package('one', {'file': b'payload'})
+        original = os.umask(0o077)
+        try:
+            with mock.patch.object(M, 'extract_archive', side_effect=ValueError('extract failed')):
+                with self.assertRaisesRegex(ValueError, 'extract failed'):
+                    M.materialize([p], self.home, self.home/'root', M.inventory([p], self.home),
+                                  permission_policy='package-read')
+            self.assertEqual(os.umask(0o077), 0o077)
+        finally:
+            os.umask(original)
 
     def test_conflicting_files_refused_before_extraction(self):
         a = self.package('a', {'usr/bin/app': b'a'})
@@ -143,6 +217,17 @@ class Materialization(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(json.loads((output / 'result.json').read_text())['status'], 'FAIL')
         self.assertFalse((output / 'root').exists())
+        self.assertEqual(output.stat().st_mode & 0o7777, 0o700)
+
+    def test_requested_permission_policy_recorded_on_authentication_failure(self):
+        output = self.home/'failed-package-read'
+        result = subprocess.run(self.command(output) + ['--permission-policy', 'package-read'],
+                                capture_output=True, timeout=15)
+        self.assertNotEqual(result.returncode, 0)
+        receipt = json.loads((output/'result.json').read_text())
+        self.assertEqual(receipt['status'], 'FAIL')
+        self.assertEqual(receipt['permission_profile'], 'package-read')
+        self.assertFalse((output/'root').exists())
 
     def test_existing_output_receipt_is_untouched(self):
         output = self.home / 'output'

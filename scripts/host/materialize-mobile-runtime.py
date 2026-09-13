@@ -17,6 +17,11 @@ CLOSURE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CLOSURE)
 RESERVE = 3 * 1024**3
 METADATA = {'.PKGINFO', '.BUILDINFO', '.MTREE', '.INSTALL', '.CHANGELOG'}
+PERMISSION_POLICIES = {
+    'owner-only': 'owner-readable files; owner-traversable directories; no privileged mode bits',
+    'package-read': 'package group/other read and execute bits; owner-readable files; '
+                    'owner-traversable directories; no group/other write or privileged mode bits',
+}
 
 
 def digest(path):
@@ -73,13 +78,21 @@ def extract_archive(path, root):
     return command
 
 
-def materialize(packages, cache, root, inventory_rows):
+def materialize(packages, cache, root, inventory_rows, *, permission_policy='owner-only'):
+    if permission_policy not in PERMISSION_POLICIES:
+        raise ValueError('unknown permission policy')
     required = sum(row['bytes'] + 8192 * row['entries'] for row in inventory_rows)
     if shutil.disk_usage(root.parent).free < RESERVE + required:
         raise ValueError('insufficient disk for payloads plus 3 GiB reserve')
     root.mkdir()  # Caller-owned new directory only; no replacement or merging.
+    if permission_policy == 'package-read':
+        # This synthetic mount root has no package entry. The caller's output
+        # directory still controls host access; guest users need to traverse it.
+        root.chmod(0o755)
     commands = []
-    old_umask = os.umask(0o077)
+    # --no-same-permissions intersects package modes with this mask. Do not
+    # chmod o+rx afterwards: that would also expose packaged private files.
+    old_umask = os.umask(0o022 if permission_policy == 'package-read' else 0o077)
     try:
         for package, row in zip(packages, inventory_rows, strict=True):
             if shutil.disk_usage(root).free < RESERVE + row['bytes'] + row['entries'] * 8192:
@@ -130,12 +143,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('graph', 'cache', 'keyring', 'trusted', 'revoked', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--permission-policy', choices=PERMISSION_POLICIES, default='owner-only',
+                        help='package-read allows unprivileged guest access where package modes permit it')
     args = parser.parse_args()
     output = args.output.absolute()
-    output.mkdir()  # Failure here must never change an existing output's receipt.
+    output.mkdir(mode=0o700)  # Keep host access private, even with package-read payload modes.
     record = {'status': 'IN_PROGRESS', 'scope': 'host-test package payload tree; not an installable image',
               'installation_scripts_executed': False,
-              'permission_policy': 'owner-readable files; owner-traversable directories; no privileged mode bits', 'physical_status': 'NOT RUN', 'authority': 'none'}
+              'permission_profile': args.permission_policy,
+              'permission_policy': PERMISSION_POLICIES[args.permission_policy],
+              'physical_status': 'NOT RUN', 'authority': 'none'}
     started = time.monotonic()
     try:
         graph_path = (REPO / args.graph).resolve()
@@ -149,7 +166,8 @@ def main():
             raise ValueError('package authentication failed; no payload tree created')
         rows = inventory(graph['packages'], args.cache.resolve())
         record['inventory'] = rows
-        record['commands'] = materialize(graph['packages'], args.cache.resolve(), output / 'root', rows)
+        record['commands'] = materialize(graph['packages'], args.cache.resolve(), output / 'root', rows,
+                                        permission_policy=args.permission_policy)
         tree = output / 'tree.json'
         tree.write_text(json.dumps(tree_manifest(output / 'root'), indent=2) + '\n')
         record['tree_manifest_sha256'] = digest(tree)

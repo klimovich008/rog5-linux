@@ -59,6 +59,18 @@ and qualify an explicit successor with authenticated additional packages.
 The runner records the supplied runtime path but does not repeat its package
 inventory authentication; bind the run to that separate retained evidence.
 
+The materializer defaults to `--permission-policy owner-only`, which retains
+the historical root-fixture permission policy. For a separately authenticated
+non-root fixture, explicitly request `--permission-policy package-read` into a
+fresh output. It preserves package-provided group/other read and execute bits,
+keeps private files private, removes group/other write and privileged mode bits,
+and retains owner access for inventory hashing. The enclosing output stays0700
+on the host. Do not recursively chmod the retained tree or reuse its old mode
+manifest for a new profile. Authentication, extraction confinement, disk reserve,
+no-install-script and no-replacement guards apply to both profiles. This option
+does not create a mobile account, seat authorization or a non-root VM session;
+those need separate qualification, and the existing guest still runs root.
+
 For the explicit mobile UI probe, add `--observe-mobile` to the full-shell
 VirGL command. QMP sends pointer events; the private UNIX VNC socket supplies
 raw full-frame captures because QEMU 8.2 QMP screendump rejects GL scanouts.

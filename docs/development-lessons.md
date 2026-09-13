@@ -2752,3 +2752,12 @@ client wait failures, and retain the primary exception plus cleanup diagnostics.
 Test interruption during cleanup too, and preserve cleanup notes when the
 outer CLI serializes an error. Keep a hard service deadline for process
 termination that cannot execute finally.
+
+Check package-tree permissions before attempting a non-root session. The retained
+extractor's077 umask deliberately reduced public executables/directories to0700;
+successful root VM sessions could not expose that prerequisite. Select an
+explicit fresh package-read profile during authenticated extraction, preserving
+packaged private modes rather than applying a recursive o+rx. Compare execution
+as a non-owner with empty capabilities, since a namespace UID alone can still
+own host bind-mounted files. Keep the1.6GB retained runtime and its mode/hash
+manifest unchanged; a second complete tree must respect the3GiB disk reserve.
