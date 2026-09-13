@@ -39,6 +39,14 @@ The exact audit, verified archives and restore instructions are private under
 `rog5-project-cleanup-20260913-r6`. Keep archive estimates separate from measured
 net savings, and do not count earlier cleanup passes again.
 
+Payload scratch also needs a consumer audit: the seventh pass found a profile
+generator reading member sizes from `composition-a/nested-new`, so that tree
+was retained. Check metadata reads such as `stat()`, not only byte-hash inputs.
+Other large unpacked members were losslessly archived and restore-verified
+without removing their parent directories, small metadata or final archives.
+Failed kernel `.o` files can be LLVM bitcode as well as ELF; verify the actual
+format and terminal failure record before classifying them as compiler scratch.
+
 Use disk-backed scratch and streaming hashes. Keep active dependency caches
 that materially shorten the next build; clearing old objects means that any
 later rebuild of those historical trees must regenerate them. Record allocated
