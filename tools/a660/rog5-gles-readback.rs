@@ -139,13 +139,15 @@ impl Gbm {
     fn allocate(&mut self) -> Result<(OwnedFd, c_int, c_int, c_int)> {
         let a = &self.api;
         let linear = [0u64];
-        // ABGR8888, 4x4, explicit LINEAR, GBM_BO_USE_RENDERING. No fallback
-        // allocation or scanout request. Keep BO alive through EGL teardown.
+        // XRGB8888, matching Denial output pools; 4x4 explicit LINEAR and
+        // GBM_BO_USE_RENDERING. This covers a PRIME render-source request,
+        // not local SCANOUT usage or KMS admission. No allocation fallback.
+        // Keep BO alive through EGL teardown.
         unsafe {
-            self.bo = (a.gbm_bo_create_with_modifiers2)(self.device, 4, 4, 0x34324241, linear.as_ptr(), 1, 4);
+            self.bo = (a.gbm_bo_create_with_modifiers2)(self.device, 4, 4, 0x34325258, linear.as_ptr(), 1, 4);
             if self.bo.is_null() { return Err("GBM explicit linear allocation failed".into()); }
             let format = (a.gbm_bo_get_format)(self.bo);
-            if format != 0x34324241 || (a.gbm_bo_get_plane_count)(self.bo) != 1 || (a.gbm_bo_get_modifier)(self.bo) != 0 {
+            if format != 0x34325258 || (a.gbm_bo_get_plane_count)(self.bo) != 1 || (a.gbm_bo_get_modifier)(self.bo) != 0 {
                 return Err("GBM allocation layout mismatch".into());
             }
             let stride = (a.gbm_bo_get_stride_for_plane)(self.bo, 0);

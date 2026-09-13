@@ -283,7 +283,7 @@ H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *at
   return fault("source_image")?NULL:(H)21;
  }
  if (target!=0x3270 || context || buffer) abort();
- intptr_t expected[]={0x3057,4,0x3056,4,0x3271,0x34324241,0x3272,dma_fd,0x3273,0,0x3274,16,0x3443,0,0x3444,0,0x3038};
+ intptr_t expected[]={0x3057,4,0x3056,4,0x3271,gbm_enabled?0x34325258:0x34324241,0x3272,dma_fd,0x3273,0,0x3274,16,0x3443,0,0x3444,0,0x3038};
  if (memcmp(attributes,expected,sizeof(expected))) abort();
  if (fault(current_context==(H)14?"consumer_dma_import":"dma_import")) return NULL;
  if (gbm_enabled) {
@@ -330,14 +330,14 @@ void gbm_device_destroy(H device) {
  fprintf(stderr,"GBM_FD_ALIVE\n");fault("gbm_destroy");
 }
 H gbm_bo_create_with_modifiers2(H device,uint32_t width,uint32_t height,uint32_t format,const uint64_t *modifiers,unsigned count,uint32_t flags) {
- if (device!=(H)50 || width!=4 || height!=4 || format!=0x34324241 || count!=1 || modifiers[0]!=0 || flags!=4) abort();
+ if (device!=(H)50 || width!=4 || height!=4 || format!=0x34325258 || count!=1 || modifiers[0]!=0 || flags!=4) abort();
  if (fault("gbm_allocate")) return NULL;
  gbm_storage=memfd_create("gbm-ABI-fixture",MFD_CLOEXEC);
  if (gbm_storage<0 || ftruncate(gbm_storage,64)) abort();
  return (H)51;
 }
-uint32_t gbm_bo_get_format(H bo) { (void)bo;return fault("gbm_format")?0:0x34324241; }
-uint64_t gbm_bo_get_modifier(H bo) { (void)bo;return fault("gbm_modifier")?1:0; }
+uint32_t gbm_bo_get_format(H bo) { (void)bo;return fault("gbm_format")?0:fault("gbm_abgr")?0x34324241:0x34325258; }
+uint64_t gbm_bo_get_modifier(H bo) { (void)bo;return fault("gbm_modifier")?1:fault("gbm_implicit")?UINT64_MAX:0; }
 int gbm_bo_get_plane_count(H bo) { (void)bo;return fault("gbm_planes")?2:1; }
 uint32_t gbm_bo_get_stride_for_plane(H bo,int plane) { (void)bo;if (plane) abort();return fault("gbm_stride")?UINT32_MAX:16; }
 uint32_t gbm_bo_get_offset(H bo,int plane) { (void)bo;if (plane) abort();return fault("gbm_offset")?UINT32_MAX:0; }

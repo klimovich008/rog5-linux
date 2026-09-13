@@ -2738,3 +2738,9 @@ Register a new mandatory test in both selector and declarative manifest before
 freezing the integrated run. The linkage suite passed alone but its missing
 registration required another134-second active run. Check selected paths first;
 focused success alone does not establish CI coverage.
+
+Match graphics probes to the compositor's format as well as its GLES version.
+The prior GBM readback used ABGR8888 while Denial output pools use XRGB8888.
+Keep same-device pixel/fence proof separate from cross-device PRIME admission,
+local SCANOUT usage and negotiated modifiers; XR24 readback alpha is opaque,
+not evidence of stored alpha preservation.

@@ -284,6 +284,22 @@ class ReadbackTest(unittest.TestCase):
                 if fault not in ('gbm_device', 'gbm_context_extension', 'gbm_allocate'):
                     self.assertIn('CALL gbm_bo_destroy', result.stderr)
 
+    def test_gbm_uses_denial_xrgb_layout(self):
+        for synchronized in (False, True):
+            with self.subTest(synchronized=synchronized):
+                result = self.invoke(gbm=not synchronized, gbm_sync=synchronized)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('dma_fourcc=0x34325258', result.stdout)
+                self.assertIn('dma_modifier=0x0', result.stdout)
+                self.assertIn('scanout=NOT RUN', result.stdout)
+                for fault in ('gbm_abgr', 'gbm_implicit'):
+                    result = self.invoke(gbm=not synchronized, gbm_sync=synchronized, fault=fault)
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertEqual(result.stdout, '')
+                    self.assertIn('GBM allocation layout mismatch', result.stderr)
+                    self.assertIn('CALL gbm_bo_destroy', result.stderr)
+                    self.assertNotIn('CALL dma_import', result.stderr)
+
     def test_gbm_shared_pixels_after_native_fence_wait(self):
         result = self.invoke(gbm_sync=True)
         self.assertEqual(result.returncode, 0, result.stderr)

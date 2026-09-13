@@ -156,7 +156,9 @@ FD and renderer string alone are not device admission.
 This mode loads `libgbm.so.1`, creates a GBM device and selects the EGL GBM
 platform with an EGL 1.5/GLES 3 context and `EGL_KHR_surfaceless_context`. It uses
 no pbuffer or KMS surface. `gbm_bo_create_with_modifiers2` requests a 4×4
-ABGR8888 buffer, explicit LINEAR and rendering usage. There is no implicit
+XRGB8888 buffer, explicit LINEAR and rendering usage. This matches Denial's
+render-source allocation request; it does not request local SCANOUT usage
+or qualify actual cross-device PRIME import. There is no implicit
 allocation fallback. Returned format/plane count/modifier must match; stride
 and offset must fit signed EGL attributes. It exports a plane FD and imports
 the buffer into EGL twice: first for shader rendering, then for pixel readback.
@@ -213,3 +215,18 @@ context-owned textures/FBOs and tests consumer import/read/cleanup failures,
 restoration failure and fence failures. This controls the driver boundaries;
 it is not a real GPU scheduling or native-fence result. Physical acceptance,
 KMS and sustained real-phone Denial remain NOT RUN.
+
+The current GBM probe uses XRGB8888 (XR24), matching Denial output pools;
+historical ABGR8888 probe binaries and results remain separate immutable fixtures.
+The GLES texture-export mode still checks its documented ARGB/ABGR layouts.
+Both GBM modes reject an unexpected ABGR or implicit return before EGL import;
+requested LINEAR is not permission to relabel a different returned descriptor.
+The pixel oracle checks logical RGBA readback, including opaque alpha for XRGB;
+it does not measure stored alpha preservation or blending.
+
+An XR24/LINEAR attempt here is a bounded layout test, not the compositor's full
+plane/renderer modifier negotiation. A failure does not establish that every
+usable modifier is unavailable. A success does not qualify the local-SCANOUT
+allocation path, an output plane, KMS framebuffer registration or display.
+The external coordinator must establish whether Denial uses a shared DRM device
+or a separate PRIME render source; kernel support alone does not prove topology.
