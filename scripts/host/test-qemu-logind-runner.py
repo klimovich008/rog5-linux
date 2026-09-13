@@ -29,6 +29,145 @@ def live(pid):
         return False
 
 
+class CleanupGrace(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('cleanup_runner', RUNNER)
+        self.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.runner)
+        self.temp = tempfile.TemporaryDirectory(prefix='rog5-cleanup-grace-')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.runner.APPS_CLEANUP_GRACE = .4
+        self.steps = []
+
+    def test_approved_teardown_can_finish_after_progress_deadline(self):
+        self.runner.execute([sys.executable, '-c', 'import time;time.sleep(.45)'],
+                            self.root/'child.log', .3, self.steps,
+                            poll=lambda: None, cleanup_ready=lambda: True)
+        self.assertEqual(self.steps[0]['status'], 'PASS')
+        self.assertEqual(self.steps[0]['effective_deadline_seconds'], .7)
+        self.assertLess(self.steps[0]['cleanup_eligible_seconds'], .3)
+
+    def virtual_failure(self, mode):
+        clock = SimpleNamespace(value=0.)
+        def sleep(seconds): clock.value += seconds
+        clock.monotonic = lambda: clock.value
+        clock.sleep = sleep
+        self.runner.time = clock
+        self.runner.APPS_CLEANUP_GRACE = .2
+        def poll():
+            if mode == 'late-tick': clock.value += .4
+            if mode == 'error-during-grace' and clock.value >= .3:
+                raise ValueError('late protocol error')
+        def ready():
+            if mode == 'late-predicate': clock.value += .4
+            if mode == 'predicate-error': raise ValueError('eligibility unavailable')
+            return mode != 'unapproved'
+        with self.assertRaises((RuntimeError, ValueError)):
+            self.runner.execute([sys.executable, '-c', 'import time;time.sleep(30)'],
+                                self.root/'child.log', .3, self.steps, poll=poll, cleanup_ready=ready)
+        row = self.steps[0]
+        self.assertNotEqual(row['exit_status'], 0)
+        if mode in ('unapproved', 'late-tick', 'late-predicate', 'predicate-error'):
+            self.assertNotIn('effective_deadline_seconds', row)
+        else:
+            self.assertEqual(row['effective_deadline_seconds'], .5)
+            self.assertLess(row['duration_seconds'], .53)
+        return row
+
+    def test_unapproved_cleanup_keeps_original_deadline(self):
+        self.assertEqual(self.virtual_failure('unapproved')['status'], 'FAIL_TIMEOUT')
+
+    def test_tick_crossing_deadline_cannot_enable_grace(self):
+        self.virtual_failure('late-tick')
+
+    def test_predicate_crossing_deadline_cannot_enable_grace(self):
+        self.virtual_failure('late-predicate')
+
+    def test_repeated_eligibility_cannot_reset_hard_deadline(self):
+        self.assertEqual(self.virtual_failure('repeated')['status'], 'FAIL_TIMEOUT')
+
+    def test_protocol_error_during_grace_still_fails(self):
+        self.assertEqual(self.virtual_failure('error-during-grace')['status'], 'FAIL')
+
+    def test_predicate_exception_fails_with_cleanup(self):
+        self.virtual_failure('predicate-error')
+
+    def test_allowance_requires_live_observer_before_starting_process(self):
+        with self.assertRaisesRegex(ValueError, 'requires live observation'):
+            self.runner.execute(['must-not-execute'], self.root/'no.log', .3, self.steps,
+                                cleanup_ready=lambda: True)
+        self.assertEqual(self.steps, [])
+        self.assertFalse((self.root/'no.log').exists())
+
+    def test_actual_apps_predicate_requires_all_handshake_conditions(self):
+        self.assertFalse(self.runner.apps_cleanup_ready(None))
+        valid = dict(complete=True, ack_sent=True, teardown=True, error=None)
+        self.assertTrue(self.runner.apps_cleanup_ready(SimpleNamespace(**valid)))
+        for field in valid:
+            changed = dict(valid); changed[field] = 'failure' if field == 'error' else False
+            self.assertFalse(self.runner.apps_cleanup_ready(SimpleNamespace(**changed)), field)
+
+    def terminal_cutoff(self, grace, final_only=False):
+        clock = SimpleNamespace(value=0.)
+        clock.monotonic = lambda: clock.value
+        def sleep(seconds): clock.value += seconds
+        clock.sleep = sleep; self.runner.time = clock
+        self.runner.APPS_CLEANUP_GRACE = .2
+        class Child:
+            pid = 123456789  # killpg is intercepted below; never signal this PID.
+            returncode = None
+            calls = 0
+            def poll(self):
+                self.calls += 1
+                if final_only or self.calls > (2 if grace else 1): self.returncode = 0
+                return self.returncode
+            def wait(self, timeout): return self.returncode
+        child = Child()
+        ticks = 0
+        def tick():
+            nonlocal ticks
+            ticks += 1
+            clock.value = .1 if grace and ticks == 1 else .6 if grace else .4
+        with patch.object(self.runner.subprocess, 'Popen', return_value=child), \
+             patch.object(self.runner.os, 'killpg'):
+            with self.assertRaisesRegex(RuntimeError, 'command exceeded'):
+                self.runner.execute(['inert-child'], self.root/'terminal.log', .3, self.steps,
+                                    poll=tick, cleanup_ready=lambda: grace)
+        self.assertEqual(self.steps[0]['status'], 'FAIL_TIMEOUT')
+
+    def test_terminal_child_cannot_bypass_original_cutoff(self):
+        self.terminal_cutoff(False)
+
+    def test_terminal_child_cannot_bypass_hard_grace_cutoff(self):
+        self.terminal_cutoff(True)
+
+    def test_final_observer_call_cannot_bypass_cutoff(self):
+        self.terminal_cutoff(False, final_only=True)
+
+    def test_real_vm_call_attaches_allowance_only_for_apps(self):
+        tree = ast.parse(RUNNER.read_text())
+        calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == 'container'
+                 and len(node.args) > 2 and 'serial.log' in ast.unparse(node.args[2])]
+        self.assertEqual(len(calls), 1)
+        for apps in (False, True):
+            kwargs = {}
+            observer = SimpleNamespace(tick=lambda: None, complete=True, ack_sent=True,
+                                       teardown=True, error=None)
+            def capture(*args, **options): kwargs.update(options)
+            namespace = dict(container=capture, command=['inert'], name='owned',
+                             output=self.root, combined=True, result={'steps':[]}, observer=observer,
+                             finish_observer=lambda error: None, args=SimpleNamespace(observe_apps=apps),
+                             apps_cleanup_ready=self.runner.apps_cleanup_ready)
+            exec(compile(ast.Expression(calls[0]), str(RUNNER), 'eval'), namespace)
+            if apps:
+                self.assertTrue(kwargs['cleanup_ready']())
+                observer.teardown=False
+                self.assertFalse(kwargs['cleanup_ready']())
+            else:
+                self.assertIsNone(kwargs['cleanup_ready'])
+
+
 class Ownership(unittest.TestCase):
     def scenario(self, mode):
         with tempfile.TemporaryDirectory() as directory:

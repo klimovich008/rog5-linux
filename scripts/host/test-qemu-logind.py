@@ -22,6 +22,7 @@ RESERVE = 3 * 1024**3
 LOG_LIMIT = 8 * 1024**2
 SUCCESS = 'PASS authenticated local logind session, mediated devices and removed scope'
 INTERRUPTS = {signal.SIGINT, signal.SIGTERM}
+APPS_CLEANUP_GRACE = 30
 
 
 def install_handlers():
@@ -64,10 +65,17 @@ def limits():
     resource.setrlimit(resource.RLIMIT_FSIZE, (LOG_LIMIT, LOG_LIMIT))
 
 
-def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, accepted=(0,), poll=None):
+def apps_cleanup_ready(observer):
+    return bool(observer and observer.complete and observer.ack_sent and observer.teardown and not observer.error)
+
+
+def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, accepted=(0,), poll=None,
+            cleanup_ready=None):
     """Own a process group and bound output, wall time, and descendant lifetime."""
     if poll is not None and data is not None:
         raise ValueError('live observation excludes command stdin')
+    if cleanup_ready is not None and poll is None:
+        raise ValueError('cleanup allowance requires live observation')
     row = {'command': list(map(str, command)), 'started_utc': now(), 'deadline_seconds': deadline}
     if cwd is not None:
         row['cwd'] = str(cwd)
@@ -93,15 +101,40 @@ def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, 
                     child.communicate(input=data, timeout=deadline)
                 else:
                     end = time.monotonic() + deadline
-                    while child.poll() is None:
+                    original_end = end
+                    eligible = granted = False
+                    def check_deadline():
+                        nonlocal end, granted
                         if time.monotonic() >= end:
-                            raise subprocess.TimeoutExpired(command, deadline)
+                            if eligible and not granted:
+                                # A single reserve for already approved teardown;
+                                # messages cannot reset it or extend startup.
+                                end = original_end + APPS_CLEANUP_GRACE
+                                granted = True
+                                row['cleanup_grace_seconds'] = APPS_CLEANUP_GRACE
+                                row['cleanup_granted_seconds'] = time.monotonic() - started
+                                row['effective_deadline_seconds'] = deadline + APPS_CLEANUP_GRACE
+                            if time.monotonic() >= end:
+                                raise subprocess.TimeoutExpired(command, row.get('effective_deadline_seconds', deadline))
+                    while True:
+                        check_deadline()
+                        if child.poll() is not None:
+                            poll()
+                            check_deadline()
+                            break
                         poll()
+                        # A tick that crosses the original cutoff cannot grant
+                        # extra time using evidence received after that cutoff.
+                        if cleanup_ready is not None and time.monotonic() < original_end:
+                            candidate = cleanup_ready() is True
+                            sampled = time.monotonic()
+                            eligible = candidate and sampled < original_end
+                            if eligible and 'cleanup_eligible_seconds' not in row:
+                                row['cleanup_eligible_seconds'] = sampled - started
                         time.sleep(.02)
-                    poll()
             except subprocess.TimeoutExpired:
                 row['status'] = 'FAIL_TIMEOUT'
-                raise RuntimeError(f'command exceeded {deadline}s: {command[0]}')
+                raise RuntimeError(f'command exceeded {row.get("effective_deadline_seconds", deadline)}s: {command[0]}')
             row['exit_status'] = child.returncode
             if child.returncode not in accepted:
                 raise RuntimeError(f'command failed ({child.returncode}): {command[0]}')
@@ -124,11 +157,11 @@ def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, 
             row['log'] = identity(log)
 
 
-def container(command, name, log, deadline, steps, *, poll=None, finalize=None):
+def container(command, name, log, deadline, steps, *, poll=None, finalize=None, cleanup_ready=None):
     """Only the uniquely named container created by this invocation is cleaned."""
     original = None
     try:
-        execute(command, log, deadline, steps, poll=poll)
+        execute(command, log, deadline, steps, poll=poll, cleanup_ready=cleanup_ready)
     except BaseException as error:
         original = error
     finally:
@@ -462,7 +495,8 @@ def main():
                 current, observer = observer, None
                 result[observation_key] = current.finish(error)
         container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'],
-                  poll=observer.tick if observer else None, finalize=finish_observer)
+                  poll=observer.tick if observer else None, finalize=finish_observer,
+                  cleanup_ready=(lambda: apps_cleanup_ready(observer)) if args.observe_apps else None)
         serial = (output / 'serial.log').read_text(errors='replace')
         # Preserve shutdown/panic evidence even when the requested UI probe failed.
         require_vm_poweroff(serial)
