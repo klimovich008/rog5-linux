@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real manual runner's process ownership without containers/VMs."""
 import os
+import re
 import hashlib
 import importlib.util
 import io
@@ -147,6 +148,25 @@ logind_tty_unowned
                 result = subprocess.run(['bash', '-c', harness, 'fixture', str(script), rows, str(rc)],
                                         capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+
+
+class ClientLog(unittest.TestCase):
+    def test_actual_drainer_bounds_storage_without_killing_writer(self):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
+        function = re.search(r'^start_log\(\) \{.*?^\}', script.read_text(), re.M | re.S).group()
+        with tempfile.TemporaryDirectory() as directory:
+            code = function + r'''
+HOME=$1; readers=()
+start_log client
+python3 -c 'import sys;sys.stdout.write(("fixture"*100+"\n")*5000)' > "$HOME/client.pipe"
+producer=$?
+wait "${readers[0]}"
+exit "$producer"
+'''
+            result = subprocess.run(['bash', '-c', code, 'fixture', directory],
+                                    capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((Path(directory)/'client.log').stat().st_size, 1048576)
 
 
 class Archive(unittest.TestCase):
