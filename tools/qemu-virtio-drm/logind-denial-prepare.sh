@@ -1,11 +1,18 @@
 #!/usr/bin/bash
 # Sourced only by the isolated VM PID1 fixture; changes guest RAM only.
 stage_fuse_helper() {
-    local source=$1 target=$2
+    local source=$1 target=$2 resolved_source resolved_target
     [[ -f $source && -s $source && -r $source && -x $source && ! -L $source ]] || {
         echo 'FAIL regular executable FUSE helper source unavailable' >&2; return 1;
     }
-    [[ -L $target && $(readlink -- "$target") == "$source" ]] || {
+    [[ -L $target ]] || {
+        echo 'FAIL unexpected FUSE helper staging target' >&2; return 1;
+    }
+    # cp -as preserves /./ in symlink text. Require the same canonical source
+    # path, not identical spelling or merely equal bytes/a shared inode.
+    resolved_source=$(readlink -e -- "$source") || return $?
+    resolved_target=$(readlink -e -- "$target") || return $?
+    [[ $resolved_target == "$resolved_source" ]] || {
         echo 'FAIL unexpected FUSE helper staging target' >&2; return 1;
     }
     rm -- "$target" || return $?

@@ -393,6 +393,43 @@ chown(){ [[ $1 == 0:0 ]] || return 99; return "$3"; }
             self.assertEqual(source.stat().st_mode & 0o7777, 0o755)
             self.assertNotEqual(source.stat().st_ino, target.stat().st_ino)
 
+    def test_actual_symlink_farm_construction_preserves_semantic_source_identity(self):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial-prepare.sh'
+        # Exercise the exact construction that failed in the VM. cp -as retains
+        # the source /./ spelling in its links; a hand-created link missed this.
+        construction = next(line for line in script.read_text().splitlines() if line.startswith('cp -as '))
+        construction = construction.replace('/run/original-bin/.', '"$1/."').replace('/run/session-bin/', '"$2/"')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); original = root/'original'; staged = root/'staged'
+            original.mkdir(); staged.mkdir()
+            source = original/'fusermount3'; source.write_bytes(b'helper'); source.chmod(0o755)
+            subprocess.run(['bash', '-c', construction, 'fixture', str(original), str(staged)],
+                           capture_output=True, text=True, check=True, timeout=3)
+            target = staged/'fusermount3'
+            self.assertEqual(target.resolve(), source)
+            self.assertIn('/./', os.readlink(target))
+            result = self.run_stage(source, target)
+            self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+            self.assertFalse(target.is_symlink())
+            self.assertEqual(target.read_bytes(), b'helper')
+            self.assertEqual(target.stat().st_mode & 0o7777, 0o4755)
+            self.assertEqual(source.stat().st_mode & 0o7777, 0o755)
+
+    def test_wrong_destination_is_refused_even_with_same_bytes_or_inode(self):
+        for hardlink in [False, True]:
+            with self.subTest(hardlink=hardlink), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); source = root/'source'; target = root/'target'; other = root/'other'
+                source.write_bytes(b'helper'); source.chmod(0o755)
+                if hardlink: os.link(source, other)
+                else: other.write_bytes(b'helper'); other.chmod(0o755)
+                target.symlink_to(other)
+                result = self.run_stage(source, target)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertTrue(target.is_symlink())
+                self.assertEqual(target.resolve(), other)
+                self.assertEqual(source.stat().st_mode & 0o7777, 0o755)
+                self.assertEqual(other.stat().st_mode & 0o7777, 0o755)
+
     def test_repeated_staging_refuses_to_overwrite_existing_regular_helper(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); source = root/'source'; target = root/'target'
