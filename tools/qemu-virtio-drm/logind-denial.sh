@@ -11,9 +11,16 @@ cd "$HOME"
 launcher='' foot='' editor=''
 readers=()
 require_fuse_device() {
-    local device=${1:-/dev/fuse}
+    local device=${1:-/dev/fuse} helper=${2:-/usr/bin/fusermount3} metadata
     [[ -c $device && -r $device && -w $device ]] || {
         echo 'FAIL accessible FUSE character device required for document portal' >&2; return 1;
+    }
+    [[ -f $helper && ! -L $helper && -r $helper && -x $helper ]] || {
+        echo 'FAIL regular executable FUSE mount helper required' >&2; return 1;
+    }
+    metadata=$(stat -c '%u %g %a %F' -- "$helper") || return $?
+    [[ $metadata == '0 0 4755 regular file' ]] || {
+        echo 'FAIL FUSE mount helper must be root:root mode 4755' >&2; return 1;
     }
 }
 qualify_activated_services() {

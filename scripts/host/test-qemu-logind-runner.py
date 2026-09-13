@@ -309,17 +309,41 @@ findmnt(){
         return subprocess.run(['bash', '-c', code, 'fixture', mode],
                               capture_output=True, text=True, timeout=3)
 
-    def test_actual_fuse_guard_rejects_missing_and_regular_files(self):
+    def fuse_guard(self, device, helper, uid='0', gid='0'):
         source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
         function = re.search(r'^require_fuse_device\(\) \{.*?^\}', source, re.M | re.S).group()
+        code = function + r'''
+# Preserve real stat's mode/type, replacing only ownership facts unavailable to
+# an unprivileged host fixture. No mount helper or device operation is executed.
+stat(){ local owner group rest; read -r owner group rest <<< "$(command stat "$@")"; printf '%s %s %s\n' "$UID_FACT" "$GID_FACT" "$rest"; }
+UID_FACT=$3; GID_FACT=$4
+require_fuse_device "$1" "$2"
+'''
+        return subprocess.run(['bash', '-c', code, 'fixture', str(device), str(helper), uid, gid],
+                              capture_output=True, text=True, timeout=3)
+
+    def test_actual_fuse_guard_rejects_missing_and_regular_devices(self):
         with tempfile.TemporaryDirectory() as directory:
-            regular = Path(directory)/'regular'; regular.write_bytes(b'not a device')
+            root = Path(directory); regular = root/'regular'; regular.write_bytes(b'not a device')
+            helper = root/'helper'; helper.write_bytes(b'helper'); helper.chmod(0o4755)
             for path, expected in [(regular, 1), (regular.with_name('missing'), 1), (Path('/dev/null'), 0)]:
                 with self.subTest(path=str(path)):
-                    result = subprocess.run(['bash', '-c', function+'\nrequire_fuse_device "$1"', 'fixture', str(path)],
-                                            capture_output=True, text=True, timeout=3)
+                    result = self.fuse_guard(path, helper)
                     self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
             # /dev/null exercises only the predicate, not actual FUSE support.
+
+    def test_actual_fuse_guard_rejects_wrong_helper_metadata_and_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); helper = root/'helper'; helper.write_bytes(b'helper')
+            link = root/'link'; link.symlink_to(helper)
+            for path, mode, uid, gid, expected in [
+                    (helper, 0o4755, '0', '0', 0), (helper, 0o755, '0', '0', 1),
+                    (helper, 0o4755, '1000', '0', 1), (helper, 0o4755, '0', '1000', 1),
+                    (link, 0o4755, '0', '0', 1), (helper, 0o6755, '0', '0', 1)]:
+                with self.subTest(path=str(path), mode=oct(mode), uid=uid, gid=gid):
+                    helper.chmod(mode)
+                    result = self.fuse_guard('/dev/null', path, uid, gid)
+                    self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
 
     def test_actual_boundary_starts_all_services_and_requires_exact_fuse_mount(self):
         for mode in ['success', 'fuse_plain']:
@@ -340,6 +364,64 @@ findmnt(){
                 result = self.qualify(mode)
                 self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
                 self.assertNotIn('CLIENTS-MAY-START', result.stdout)
+
+
+class FuseHelperStaging(unittest.TestCase):
+    def run_stage(self, source_path, target, *, repeat=False, ownership_status=0):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial-prepare.sh').read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        block = source.split('chmod 6755 /run/session-bin/unix_chkpwd\n', 1)[1]
+        block = block.split('mount --bind /run/session-bin /usr/bin', 1)[0]
+        block = block.replace('/run/original-bin/fusermount3', '"$1"').replace('/run/session-bin/fusermount3', '"$2"')
+        code = 'set -euo pipefail\n' + functions + r'''
+# Ownership alone is a host fact fixture; copying, link checks and chmod are real.
+chown(){ [[ $1 == 0:0 ]] || return 99; return "$3"; }
+'''.replace('return "$3"', f'return {ownership_status}') + block
+        if repeat: code += block
+        return subprocess.run(['bash', '-c', code, 'fixture', str(source_path), str(target)],
+                              capture_output=True, text=True, timeout=3)
+
+    def test_staging_replaces_link_with_exact_4755_copy_without_changing_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'source'; target = root/'target'
+            source.write_bytes(b'authenticated helper fixture'); source.chmod(0o755); target.symlink_to(source)
+            result = self.run_stage(source, target)
+            self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+            self.assertFalse(target.is_symlink())
+            self.assertEqual(target.stat().st_mode & 0o7777, 0o4755)
+            self.assertEqual(target.read_bytes(), source.read_bytes())
+            self.assertEqual(source.stat().st_mode & 0o7777, 0o755)
+            self.assertNotEqual(source.stat().st_ino, target.stat().st_ino)
+
+    def test_repeated_staging_refuses_to_overwrite_existing_regular_helper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'source'; target = root/'target'
+            source.write_bytes(b'helper'); source.chmod(0o755); target.symlink_to(source)
+            result = self.run_stage(source, target, repeat=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+            self.assertFalse(target.is_symlink())
+            self.assertEqual(target.read_bytes(), b'helper')
+            self.assertEqual(target.stat().st_mode & 0o7777, 0o4755)
+
+    def test_invalid_source_leaves_original_link_untouched(self):
+        for mode in ['missing', 'directory', 'symlink', 'empty']:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); source = root/'source'; target = root/'target'
+                if mode == 'directory': source.mkdir()
+                elif mode == 'symlink': source.symlink_to('/bin/true')
+                elif mode == 'empty': source.touch(); source.chmod(0o755)
+                target.symlink_to(source)
+                result = self.run_stage(source, target)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertTrue(target.is_symlink())
+
+    def test_ownership_failure_does_not_apply_setuid_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'source'; target = root/'target'
+            source.write_bytes(b'helper'); source.chmod(0o755); target.symlink_to(source)
+            result = self.run_stage(source, target, ownership_status=42)
+            self.assertEqual(result.returncode, 42, result.stdout+result.stderr)
+            self.assertFalse(target.stat().st_mode & 0o4000)
 
 
 class ClientLog(unittest.TestCase):

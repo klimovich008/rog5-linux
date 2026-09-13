@@ -1,5 +1,19 @@
 #!/usr/bin/bash
 # Sourced only by the isolated VM PID1 fixture; changes guest RAM only.
+stage_fuse_helper() {
+    local source=$1 target=$2
+    [[ -f $source && -s $source && -r $source && -x $source && ! -L $source ]] || {
+        echo 'FAIL regular executable FUSE helper source unavailable' >&2; return 1;
+    }
+    [[ -L $target && $(readlink -- "$target") == "$source" ]] || {
+        echo 'FAIL unexpected FUSE helper staging target' >&2; return 1;
+    }
+    rm -- "$target" || return $?
+    cp -- "$source" "$target" || return $?
+    chown 0:0 "$target" || return $?
+    chmod 4755 "$target" || return $?
+    cmp -s -- "$source" "$target" || return $?
+}
 [[ $$ == 1 && $EUID == 0 && -d /sys/bus/virtio/devices ]]
 read -r expected < /run/session-sha256
 [[ $expected =~ ^[0-9a-f]{64}$ ]]
@@ -18,6 +32,9 @@ rm /run/session-bin/unix_chkpwd
 cp /usr/bin/unix_chkpwd /run/session-bin/unix_chkpwd
 chown 0:0 /run/session-bin/unix_chkpwd
 chmod 6755 /run/session-bin/unix_chkpwd
+# Preserve the authenticated fuse3 package's root:root 04755 helper metadata.
+# The read-only mapped runtime keeps a non-setuid copy; only this RAM copy changes.
+stage_fuse_helper /run/original-bin/fusermount3 /run/session-bin/fusermount3
 mount --bind /run/session-bin /usr/bin
 mkdir -p /etc/denial /etc/systemd/user
 cp /run/session/usr/lib/systemd/user/denial-session.target /etc/systemd/user/
