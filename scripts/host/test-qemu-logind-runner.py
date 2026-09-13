@@ -561,6 +561,62 @@ exit "$producer"
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual((Path(directory)/'client.log').stat().st_size, 1048576)
 
+    def drain_denial(self, payload):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', script.read_text(), re.M | re.S))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root/'input').write_bytes(payload)
+            code = functions + r"""
+HOME=$1; readers=()
+start_log denial
+cat "$HOME/input" > "$HOME/denial.pipe"
+producer=$?
+wait "${readers[0]}"; reader=$?
+[[ $producer == 0 ]] || exit 99
+exit "$reader"
+"""
+            result = subprocess.run(['bash', '-c', code, 'fixture', directory],
+                                    capture_output=True, timeout=5)
+            return result.returncode, (root/'denial.log').read_text()
+
+    @staticmethod
+    def session_parser():
+        spec = importlib.util.spec_from_file_location('drm_log_fixture', RUNNER.with_name('test-qemu-virtio-drm.py'))
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module.session_result
+
+    def test_terminal_counters_survive_verbose_head_cap(self):
+        payload = b'diagnostic trace\n'*70000
+        payload += b'independently clocked Flutter KMS session complete raster_frames=80 output_page_flips=79\n'
+        rc, log = self.drain_denial(payload)
+        self.assertEqual(rc, 0)
+        self.assertLessEqual(len(log.encode()), 1048576 + 65536 + 256)
+        self.assertEqual(self.session_parser()(log)['status'], 'PASS')
+
+    def test_every_parser_render_error_survives_head_cap(self):
+        parser = self.session_parser()
+        errors = next(c for c in parser.__code__.co_consts if isinstance(c, tuple)
+                      and 'required Flutter native fence export failed' in c)
+        for error in errors:
+            with self.subTest(error=error):
+                rc, log = self.drain_denial(b'diagnostic trace\n'*70000 + error.encode() + b'\n'
+                    + b'independently clocked Flutter KMS session complete raster_frames=80 output_page_flips=79\n')
+                self.assertEqual(rc, 0)
+                self.assertIn(error, parser(log)['render_errors'])
+                self.assertEqual(parser(log)['status'], 'FAIL')
+
+    def test_diagnostic_overflow_fails_after_draining_writer(self):
+        rc, log = self.drain_denial(b'diagnostic trace\n'*70000 + b'ERROR repeated failure\n'*10000)
+        self.assertEqual(rc, 42)
+        self.assertLessEqual(len(log.encode()), 1048576 + 65536 + 256)
+        self.assertIn('FAIL Denial diagnostic log overflow', log)
+
+    def test_duplicate_terminal_counters_remain_a_failure(self):
+        line = b'independently clocked Flutter KMS session complete raster_frames=80 output_page_flips=79\n'
+        rc, log = self.drain_denial(line + b'diagnostic trace\n'*70000 + line)
+        self.assertEqual(rc, 0)
+        self.assertEqual(self.session_parser()(log)['status'], 'FAIL')
+
 
 class ClientExit(unittest.TestCase):
     def run_stop(self, first_exit, phase="stop"):

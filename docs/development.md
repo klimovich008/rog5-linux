@@ -44,10 +44,18 @@ launch. Cache transfer, service readiness, client lifetime and phone behavior
 remain separate checks. The combined VM also runs the packaged ARM64
 `fc-cache -s -v` in guest RAM before PAM startup, then checks a mobile-UID
 `fc-match` consumer with diagnostic cache records, unchanged cache inventory and
-no user fallback. The extracted package closure did not execute the normal
-Fontconfig package hook. Keep font sources, timestamps and the fixture clock
+no user fallback. Before warming, restore the shipped default configuration links in RAM using
+the packaged `40-fontconfig-config` hook. Preserve existing valid configurations,
+reject dangling conflicts, and verify that mobile-UID `fc-conflist` actually
+processes each default. The extracted package closure did not execute either
+Fontconfig post-transaction hook. Keep font sources, timestamps and the fixture clock
 unchanged; retain future-mtime warnings rather than treating them as cache
 invalidation. No host-generated cache is transplanted into the VM.
+The combined-session Denial log retains a 1 MiB ordinary prefix and a separate
+64 KiB reserve for terminal/error records across the full stream. Reserve
+overflow fails qualification while the reader continues draining; verbose
+frame diagnostics cannot silently discard the final counter or known rendering
+errors. Native-client protocol logs keep their existing independent limits.
 
 
 For the separate offline Denial DRM probe, build the pinned upstream kernel with

@@ -15,6 +15,68 @@ font_cache_stage() {
         "$stage" "$status" "$((SECONDS-started))" >&2
     return "$status"
 }
+font_config_identity() {
+    sha256sum -- "$1" || return $?
+    stat -c '%i %y %z %n' -- "$1" || return $?
+    if [[ -L $1 ]]; then readlink -- "$1" || return $?; fi
+}
+prepare_font_config() {
+    local defaults=$1 config=$2 hook=$3 source target input='' identity count=0
+    local -A retained=() expected=()
+    [[ $defaults == /* && $config == /* && $hook == /* && -d $defaults &&
+       -d $config && ! -L $config && -f $hook && -r $hook && ! -L $hook ]] || return 1
+    for source in "$defaults"/*.conf; do
+        [[ -f $source && -r $source && -s $source && $source != *$'\n'* ]] || {
+            echo 'FAIL packaged font default unavailable' >&2; return 1;
+        }
+        ((count+=1)); ((count<=128)) || return 1
+        target=$config/${source##*/}
+        if [[ -e $target ]]; then
+            [[ -f $target && -r $target && -s $target ]] || return 1
+            retained[$target]=$(font_config_identity "$target") || return $?
+        elif [[ -L $target ]]; then
+            echo 'FAIL dangling font configuration conflict' >&2; return 1
+        else
+            expected[$target]=$source
+        fi
+        # The packaged hook consumes paths relative to / and prepends / when
+        # creating links. It leaves existing readable configuration untouched.
+        input+=${source#/}$'\n'
+    done
+    ((count>0)) || return 1
+    # bash -e prevents a later successful ln from hiding an earlier failure in
+    # the packaged loop. Only the RAM destination is writable in the guest.
+    (cd / && font_cache_stage config-restore timeout -k 1 10 bash -e -- "$hook" "$config" \
+        <<< "${input%$'\n'}") || return $?
+    for target in "${!expected[@]}"; do
+        [[ -L $target && -f $target && -r $target ]] || return 1
+        identity=$(readlink -- "$target") || return $?
+        [[ $identity == "${expected[$target]}" ]] || {
+            echo 'FAIL unexpected restored font configuration link' >&2; return 1;
+        }
+    done
+    for target in "${!retained[@]}"; do
+        identity=$(font_config_identity "$target") || return $?
+        [[ $identity == "${retained[$target]}" ]] || {
+            echo 'FAIL preexisting font configuration changed' >&2; return 1;
+        }
+    done
+}
+font_config_processed() {
+    local defaults=$1 config=$2 output=$3 source line path
+    local -A processed=()
+    while IFS= read -r line; do
+        if [[ $line == "+ $config/"* ]]; then
+            path=${line#'+ '}; path=${path%%: *}; processed[$path]=1
+        fi
+    done <<< "$output"
+    for source in "$defaults"/*.conf; do
+        path=$config/${source##*/}
+        [[ ${processed[$path]:-0} == 1 ]] || {
+            echo 'FAIL packaged font default not processed' >&2; return 1;
+        }
+    done
+}
 font_cache_inventory() {
     local cache=$1 file target digest count=0 entries=0
     for file in "$cache"/*-le64.cache-*; do
@@ -72,12 +134,26 @@ font_cache_loaded() {
 prepare_font_cache() {
     local cache=${1:-/var/cache/fontconfig} home=${2:-/run/mobile-home}
     local fonts=${3:-/usr/share/fonts} before after consumer line font='' matches=0
+    local defaults=${4:-/usr/share/fontconfig/conf.default} config=${5:-/etc/fonts/conf.d}
+    local hook=${6:-/usr/share/libalpm/scripts/40-fontconfig-config} configuration status
     [[ $cache == /* && $home == /* && $fonts == /* && ! -L $cache && -d $home && -d $fonts ]] || return 1
     font_cache_no_fallback "$home" || return $?
+    prepare_font_config "$defaults" "$config" "$hook" || return $?
     mkdir -p -- "$cache" || return $?
     chmod 755 -- "$cache" || return $?
     font_cache_stage prepare timeout -k 1 20 fc-cache -s -v || return $?
     before=$(font_cache_inventory "$cache") || return $?
+    # FcConfigGetCurrent in fc-conflist may initialize fonts. Validate only
+    # after warming the system cache, then include it in no-fallback/no-write
+    # checks along with the actual font-match consumer below.
+    if configuration=$(font_cache_stage config-consume timeout -k 1 10 setpriv --reuid=1000 --regid=1000 \
+        --clear-groups --no-new-privs env HOME="$home" XDG_CACHE_HOME="$home/.cache" \
+        LANG=C.UTF-8 fc-conflist); then
+        printf '%s\n' "$configuration"
+    else
+        status=$?; printf '%s\n' "$configuration"; return "$status"
+    fi
+    font_config_processed "$defaults" "$config" "$configuration" || return $?
     if consumer=$(font_cache_stage consume timeout -k 1 10 setpriv --reuid=1000 --regid=1000 \
         --clear-groups --no-new-privs env HOME="$home" XDG_CACHE_HOME="$home/.cache" \
         LANG=C.UTF-8 FC_DEBUG=16 fc-match -f 'FONT_FILE=%{file}\n' sans); then

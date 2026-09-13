@@ -95,6 +95,30 @@ start_log() {
         readers+=("$!")
         return 0
     fi
+    if [[ $name == denial ]]; then
+        # Keep the bounded ordinary prefix, but continue collecting terminal
+        # counters and errors across the entire stream. Verbose frame tracing
+        # must not hide the qualification result. A separate 64 KiB diagnostic
+        # reserve is fail-closed on overflow; keep draining to release writers.
+        LC_ALL=C awk 'BEGIN {head=1048576; reserve=65536}
+            {
+                line=$0 "\n"
+                if (head >= length(line)) {
+                    printf "%s",line; head-=length(line); fflush(); next
+                }
+                if (!capped) {print "OBSERVE Denial ordinary log capped; retaining terminal/error records"; capped=1}
+                head=0
+                lower=tolower($0)
+                if (lower ~ /independently clocked flutter kms session complete|error|fail|exception|could not/) {
+                    if (reserve >= length(line)) {printf "%s",line; reserve-=length(line); fflush()}
+                    else overflow=1
+                }
+            }
+            END {if (overflow) {print "FAIL Denial diagnostic log overflow"; exit 42}}
+        ' < "$HOME/$name.pipe" > "$HOME/$name.log" &
+        readers+=("$!")
+        return 0
+    fi
     # Drain after the cap. RLIMIT_FSIZE would also cap the client's memfd/shm
     # buffers, which is unrelated to log storage and broke the real Foot run.
     LC_ALL=C awk 'BEGIN {remaining=1048576}

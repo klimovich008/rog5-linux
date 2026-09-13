@@ -18,10 +18,26 @@ class FontCacheTests(unittest.TestCase):
         self.home = self.root / 'home'; self.home.mkdir()
         self.cache = self.root / 'cache'
         self.fonts = self.root / 'fonts'; self.fonts.mkdir()
+        self.defaults = self.root / 'defaults'; self.defaults.mkdir()
+        self.conf = self.root / 'conf.d'; self.conf.mkdir()
+        (self.defaults / '10-default.conf').write_text('<fontconfig/>\n')
+        self.hook = self.root / 'config-hook'
+        # Same install/remove loop as the packaged hook; CLI fixture only.
+        self.hook.write_text('''#!/bin/bash
+while read -r f; do
+ link="${1:?}/${f##*/}"
+ if [[ -e $f && ! -e $link ]]; then
+  ln -sT "/$f" "$link"
+ elif [[ ! -e $f && -L $link ]]; then
+  rm -f "$link"
+ fi
+done
+''')
         (self.fonts / 'fixture.ttf').write_bytes(b'fixture font, not parsed by fake CLI')
         self.env = {**os.environ, 'PATH': str(self.bin) + ':' + os.environ['PATH'],
                     'TEST_CACHE': str(self.cache), 'TEST_FONTS': str(self.fonts),
-                    'TEST_RECORD': str(self.root / 'calls'), 'TEST_MODE': 'success'}
+                    'TEST_RECORD': str(self.root / 'calls'), 'TEST_MODE': 'success',
+                    'TEST_CONF': str(self.conf)}
         self.command('timeout', '''printf 'timeout %s\\n' "$*" >> "$TEST_RECORD"
 [[ $1 == -k && $2 == 1 && ( $3 == 20 || $3 == 10 ) ]] || exit 98
 shift 3
@@ -31,6 +47,11 @@ exec "$@"
 [[ $1 == --reuid=1000 && $2 == --regid=1000 && $3 == --clear-groups && $4 == --no-new-privs ]] || exit 98
 shift 4
 exec "$@"
+''')
+        self.command('fc-conflist', '''case $TEST_MODE in
+ config42) exit 42;; config124) exit 124;; ignoredconfig) echo "- $TEST_CONF/10-default.conf: ignored"; exit 0;;
+ missingconfig) exit 0;; esac
+for f in "$TEST_CONF"/*.conf; do printf '+ %s: fixture processed\\n' "$f"; done
 ''')
         self.command('fc-cache', '''[[ $* == '-s -v' ]] || exit 98
 case $TEST_MODE in prepare42) exit 42;; prepare124) exit 124;; missing) exit 0;; esac
@@ -72,9 +93,79 @@ esac
         path.chmod(0o755)
 
     def run_helper(self, mode='success'):
-        return subprocess.run(['bash', '-euc', 'source "$1"; prepare_font_cache "$2" "$3" "$4"',
-                               'fixture', str(HELPER), str(self.cache), str(self.home), str(self.fonts)],
+        return subprocess.run(['bash', '-euc', 'source "$1"; prepare_font_cache "$2" "$3" "$4" "$5" "$6" "$7"',
+                               'fixture', str(HELPER), str(self.cache), str(self.home), str(self.fonts),
+                               str(self.defaults), str(self.conf), str(self.hook)],
                               env={**self.env, 'TEST_MODE': mode}, capture_output=True, text=True, timeout=4)
+
+    def test_default_config_restored_as_exact_absolute_hook_link(self):
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.conf / '10-default.conf').is_symlink())
+        self.assertEqual(os.readlink(self.conf / '10-default.conf'), str(self.defaults / '10-default.conf'))
+        self.assertIn(f'+ {self.conf}/10-default.conf:', result.stdout)
+
+    def test_existing_config_and_unrelated_files_preserved(self):
+        existing = self.conf / '10-default.conf'; existing.write_text('<fontconfig>override</fontconfig>')
+        readme = self.conf / 'README'; readme.write_text('retain')
+        before = (existing.read_bytes(), existing.stat().st_ino, existing.stat().st_mtime_ns)
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((existing.read_bytes(), existing.stat().st_ino, existing.stat().st_mtime_ns), before)
+        self.assertEqual(readme.read_text(), 'retain')
+
+    def test_existing_valid_override_symlink_preserved(self):
+        override = self.root / 'override.conf'; override.write_text('<fontconfig/>\n')
+        target = self.conf / '10-default.conf'; target.symlink_to(override)
+        before = (target.lstat().st_ino, os.readlink(target), override.read_bytes())
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((target.lstat().st_ino, os.readlink(target), override.read_bytes()), before)
+
+    def test_dangling_config_conflict_refused_before_hook(self):
+        target = self.conf / '10-default.conf'; target.symlink_to('missing')
+        result = self.run_helper()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(os.readlink(target), 'missing')
+
+    def test_defaults_must_exist_and_resolve(self):
+        (self.defaults / '10-default.conf').unlink()
+        result = self.run_helper()
+        self.assertNotEqual(result.returncode, 0)
+        (self.defaults / '10-default.conf').symlink_to('missing')
+        result = self.run_helper()
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_unprocessed_default_and_config_status_fail(self):
+        for mode in ('ignoredconfig', 'missingconfig', 'config42', 'config124'):
+            with self.subTest(mode=mode):
+                self.cache = self.root / mode; self.env['TEST_CACHE'] = str(self.cache)
+                result = self.run_helper(mode)
+                expected = 42 if mode == 'config42' else 124 if mode == 'config124' else 1
+                self.assertEqual(result.returncode, expected, result.stderr)
+
+    def test_hook_failure_and_wrong_link_refused(self):
+        self.hook.write_text('exit 42\n')
+        self.assertEqual(self.run_helper().returncode, 42)
+        self.hook.write_text('ln -s /wrong "$1/10-default.conf"\n')
+        self.assertNotEqual(self.run_helper().returncode, 0)
+
+    def test_hook_first_link_failure_cannot_be_hidden_by_later_success(self):
+        (self.defaults / '20-second.conf').write_text('<fontconfig/>\n')
+        self.command('ln', '''if [[ $* == *10-default.conf* ]]; then exit 42; fi
+exec /usr/bin/ln "$@"
+''')
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 42, result.stderr)
+        self.assertFalse((self.conf / '20-second.conf').exists())
+        self.assertFalse(self.cache.exists())
+
+    def test_configuration_mutation_is_refused(self):
+        target = self.conf / '10-default.conf'; target.write_text('<fontconfig>retain</fontconfig>')
+        self.hook.write_text('printf changed > "$1/10-default.conf"\n')
+        result = self.run_helper()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('preexisting font configuration changed', result.stderr)
 
     def test_source_has_no_execution_or_writes(self):
         result = subprocess.run(['bash', '-euc', 'source "$1"', 'fixture', str(HELPER)],
@@ -96,6 +187,8 @@ esac
         self.assertIn('timeout -k 1 20 fc-cache -s -v', calls)
         self.assertIn('timeout -k 1 10 setpriv', calls)
         self.assertIn('--reuid=1000 --regid=1000 --clear-groups --no-new-privs', calls)
+        self.assertLess(calls.index('fc-cache -s -v'), calls.index('fc-conflist'))
+        self.assertLess(calls.index('fc-conflist'), calls.index('fc-match -f'))
         self.assertEqual((self.cache / 'abc-le64.cache-12').read_bytes(), b'cache')
         self.assertEqual((self.fonts / 'fixture.ttf').stat().st_mtime_ns, before)
 
