@@ -2631,3 +2631,11 @@ build and visual results; manual panning and one externally launched app do not
 qualify automatic caret tracking or the mobile launcher. Verified duplicate
 payload retirement recovered 240.7 MB before the build without touching unique
 evidence, caches or recovery inputs.
+
+Trace the real desktop launcher before relying on inherited diagnostic streams.
+Denial deliberately redirects application stdout/stderr to /dev/null; the first
+VM wrapper would therefore have hidden all protocol evidence. A real helper
+regression with null stdio reproduced the empty sink, and an explicit guest
+console sink fixed it without changing the caller's descriptors. Prepare owned
+cleanup for UI-launched process groups before interaction, and discover launcher
+tiles from captured output before selecting gesture coordinates.

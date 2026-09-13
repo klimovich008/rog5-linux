@@ -66,7 +66,7 @@ if [[ -x /run/payload/egl-thread-probe ]]; then
     done
     echo 'NOT RUN Denial: standalone EGL thread-transfer experiment'
 elif [[ -d /run/payload/flutter ]]; then
-    if [[ -f /run/mobile-editor ]]; then
+    if [[ -f /run/mobile-editor || -f /run/mobile-launcher ]]; then
         prepare_editor_runtime
     fi
     # UntilLogout supports initially inactive CRTCs; the external timer owns
@@ -81,7 +81,8 @@ elif [[ -d /run/payload/flutter ]]; then
     editor_pid=''
     editor_log_pid=''
     native_pid=''
-    trap 'if [[ -n $native_pid ]]; then kill "$native_pid" 2>/dev/null || true; wait "$native_pid" || true; fi; if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
+    launcher_prepared=0
+    trap 'guest_status=$?; if [[ $launcher_prepared == 1 ]]; then launcher_apps_cleanup || guest_status=1; fi; if [[ -n $native_pid ]]; then kill "$native_pid" 2>/dev/null || true; wait "$native_pid" || true; fi; if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi; exit "$guest_status"' EXIT
     if [[ -f /run/shell-profile ]]; then
         # Fixed virtual devices need real udev input_id data for libinput.
         for event in /sys/class/input/event*; do
@@ -133,6 +134,17 @@ elif [[ -d /run/payload/flutter ]]; then
     fi
     shell_seconds=45
     shell_options=(--start-locked)
+    if [[ -f /run/mobile-launcher ]]; then
+        read -r launcher_mode < /run/mobile-launcher
+        [[ $launcher_mode == discover && -f /run/shell-profile ]]
+        source /run/launcher-apps.sh
+        launcher_prepared=1
+        launcher_apps_prepare
+        unset DENIA_START_LOCKED
+        shell_options=()
+        shell_seconds=90
+        echo 'OBSERVE unlocked launcher discovery; no automatic app launch'
+    fi
     if [[ -f /run/mobile-editor ]]; then
         read -r editor < /run/mobile-editor
         [[ $editor == mousepad && -f /run/shell-profile ]]

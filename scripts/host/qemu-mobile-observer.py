@@ -346,6 +346,21 @@ class MobileObserver:
         return self.result
 
 
+class LauncherObserver(MobileObserver):
+    """Discover the unlocked launcher without guessing tile coordinates."""
+
+    def step(self):
+        self.result['probe'] = 'unlocked launcher discovery; no app input'
+        self.result['app_launch_and_switch'] = 'NOT RUN'
+        if self.stage == 0:
+            self.capture('00-launcher-initial')
+            return 5.0
+        self.capture('01-launcher-settled')
+        self.complete = True
+        self.result['status'] = 'PASS'
+        return 0
+
+
 class EditorObserver(MobileObserver):
     """Fixed native-client text probe; only OSK pointer presses type text."""
     STEPS = [

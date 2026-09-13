@@ -77,6 +77,17 @@ keyboard/mouse ID_INPUT properties before Denial; kernel event nodes alone do
 not prove libinput discovery. The daemon joins the owned guest cleanup.
 The existing default landscape, EGL-comparison and CLI probes remain separate.
 
+For unlocked launcher discovery, use `--observe-mobile-launcher` alongside
+`--observe-mobile`, excluding editor autolaunch and native screencopy. It takes
+two captures after presentation readiness and sends no pointer input. Inspect
+the actual tiles before designing launch/switch gestures; capture success leaves
+app launching, switching and visual semantics NOT RUN. The VM prepares RAM-only
+Mousepad and Foot desktop overrides with fixed commands, owned process lifetimes
+and bounded protocol logs for subsequent interaction. Denial launches desktop
+commands with null stdio, so the guest wrappers explicitly use its console.
+The guest marker and console are mandatory; host tests inject an inert sink.
+No package, compositor, engine or shell rebuild is needed for discovery.
+
 For native-client text delivery, add `--observe-mobile-editor` alongside
 `--observe-mobile`. This explicit mode uses normal unlocked startup, launches
 the retained Mousepad with `GDK_BACKEND=wayland` on the sole discovered guest

@@ -379,6 +379,42 @@ class RuntimePrerequisites(unittest.TestCase):
                 root, True, mobile=True, editor=True), ['usr/bin/Xwayland', 'usr/bin/mousepad'])
             self.assertEqual(GUEST.missing_runtime_inputs(root, False), [])
 
+    def test_launcher_requires_both_apps_desktops_and_cache_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            baseline = GUEST.missing_runtime_inputs(root, True, mobile=True, editor=True)
+            additional = ['usr/bin/foot', 'usr/bin/awk', 'usr/bin/env',
+                          'usr/share/applications/foot.desktop',
+                          'usr/share/applications/org.xfce.mousepad.desktop']
+            self.assertCountEqual(GUEST.missing_runtime_inputs(
+                root, True, mobile=True, launcher=True), baseline+additional)
+            for relative in baseline+additional:
+                path = root/relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True, launcher=True), [])
+            for relative in baseline+additional:
+                path = root/relative
+                path.unlink()
+                self.assertEqual(GUEST.missing_runtime_inputs(
+                    root, True, mobile=True, launcher=True), [relative])
+                if relative in additional:
+                    self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True, editor=True), [])
+                path.touch()
+
+    def test_launcher_discovery_requires_unique_cleanup_and_no_app_launch(self):
+        prepare = 'PASS launcher desktop overrides prepared; apps NOT STARTED\n'
+        cleanup = 'PASS launcher apps cleanup\n'
+        good = prepare+cleanup
+        result = GUEST.launcher_discovery_result(good)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['app_launch_and_switch'], 'NOT RUN')
+        for bad in ('', prepare, cleanup, good+cleanup, prepare+good,
+                    good+'OBSERVE launcher app=foot owner=12 start=34\n',
+                    good+'FAIL launcher client log limit\n',
+                    good.replace(cleanup, 'FOOT_WAYLAND '+cleanup)):
+            self.assertEqual(GUEST.launcher_discovery_result(bad)['status'], 'FAIL', bad)
+
     def test_native_capture_requires_move_and_client_library(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

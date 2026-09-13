@@ -20,18 +20,22 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=False):
+def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=False, launcher=False):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
     commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
     paths = ['usr/bin/'+name for name in commands]
     if mobile:
         paths += ['usr/bin/udevadm', 'usr/lib/systemd/systemd-udevd',
                   'usr/lib/udev/rules.d/60-input-id.rules']
-    if editor:
+    if editor or launcher:
         paths += ['usr/bin/'+name for name in ('mousepad', 'mkfifo', 'sed', 'cp',
                     'sha256sum', 'glib-compile-schemas', 'update-mime-database')]
         paths += ['usr/share/glib-2.0/schemas/org.xfce.mousepad.gschema.xml',
                   'usr/share/mime/packages/freedesktop.org.xml']
+    if launcher:
+        paths += ['usr/bin/'+name for name in ('foot', 'awk', 'env')]
+        paths += ['usr/share/applications/foot.desktop',
+                  'usr/share/applications/org.xfce.mousepad.desktop']
     if native:
         paths += ['usr/bin/mv', 'usr/lib/libwayland-client.so.0']
     return [path for path in paths if not (runtime/path).is_file()]
@@ -258,6 +262,16 @@ def egl_thread_result(log):
     return dict(result, status='PASS')
 
 
+def launcher_discovery_result(log):
+    lines = log.splitlines()
+    prepared = lines.count('PASS launcher desktop overrides prepared; apps NOT STARTED') == 1
+    cleaned = lines.count('PASS launcher apps cleanup') == 1
+    unexpected = any('OBSERVE launcher app=' in line or 'FAIL launcher' in line for line in lines)
+    return {'status': 'PASS' if prepared and cleaned and not unexpected else 'FAIL',
+            'prepared': prepared, 'cleanup': cleaned,
+            'unexpected_app_or_failure': unexpected, 'app_launch_and_switch': 'NOT RUN'}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
@@ -269,6 +283,8 @@ def main():
     parser.add_argument('--flutter-bundle', type=Path)
     parser.add_argument('--observe-mobile-editor', action='store_true',
                         help='native Wayland Mousepad text probe; requires mobile observation')
+    parser.add_argument('--observe-mobile-launcher', action='store_true',
+                        help='unlocked launcher discovery captures; app interaction NOT RUN')
     parser.add_argument('--native-screencopy', type=Path,
                         help='ARM64 native capture client; pair initial/final editor VNC captures')
     parser.add_argument('--observe-mobile', action='store_true',
@@ -285,6 +301,8 @@ def main():
         parser.error('mobile observation requires Flutter and an explicit VirGL render node')
     if args.observe_mobile_editor and not args.observe_mobile:
         parser.error('native editor probe requires --observe-mobile')
+    if args.observe_mobile_launcher and (not args.observe_mobile or args.observe_mobile_editor):
+        parser.error('launcher discovery requires mobile and excludes editor autolaunch')
     if args.native_screencopy and not args.observe_mobile_editor:
         parser.error('native screencopy requires editor observation')
     render_node = render_node_identity(args.render_node) if args.render_node else None
@@ -306,7 +324,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
     missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile,
-                                     args.observe_mobile_editor, bool(args.native_screencopy))
+                                     args.observe_mobile_editor, bool(args.native_screencopy), args.observe_mobile_launcher)
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,
@@ -337,6 +355,9 @@ def main():
         (stage/'stage/shell-profile').write_text('mobile\n')
     if args.observe_mobile_editor:
         (stage/'stage/mobile-editor').write_text('mousepad\n')
+    if args.observe_mobile_launcher:
+        (stage/'stage/mobile-launcher').write_text('discover\n')
+        shutil.copy2(repo/'tools/qemu-virtio-drm/launcher-apps.sh', stage/'stage/launcher-apps.sh')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
                        '-Werror', '-Wall', '-Wextra',
@@ -370,6 +391,8 @@ def main():
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             observer_class = module.EditorObserver if args.observe_mobile_editor else module.MobileObserver
+            if args.observe_mobile_launcher:
+                observer_class = module.LauncherObserver
             backend = module.capture_vnc
             if args.native_screencopy:
                 native_path = Path(__file__).with_name('qemu-native-capture.py')
@@ -382,6 +405,9 @@ def main():
                     'host_sha256': digest(native_path), 'worker_sha256': digest(stage/'stage/native-capture.sh')}
             observer = observer_class(output/'observe', name, capture_backend=backend)
             report['mobile_editor'] = args.observe_mobile_editor
+            report['mobile_launcher'] = args.observe_mobile_launcher
+            if args.observe_mobile_launcher:
+                report['launcher_apps_sha256'] = digest(stage/'stage/launcher-apps.sh')
             if args.observe_mobile_editor:
                 report['editor_binary_sha256'] = digest(runtime/'usr/bin/mousepad')
             report['observer_sha256'] = digest(observer_path)
@@ -487,6 +513,8 @@ def main():
             report['shell_rendering'] = session_result(log)
         if args.observe_mobile_editor:
             report['editor_protocol'] = editor_result(log)
+        if args.observe_mobile_launcher:
+            report['launcher_discovery'] = launcher_discovery_result(log)
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
                 ((report.get('shell_exit') == 'PASS' and
@@ -506,6 +534,8 @@ def main():
             report['status'] = 'FAIL'
         if args.observe_mobile_editor and report.get('editor_protocol', {}).get('status') != 'PASS':
             report['status'] = 'FAIL'
+        if args.observe_mobile_launcher and report.get('launcher_discovery', {}).get('status') != 'PASS':
+            report['status'] = 'FAIL'
         if native_capture:
             report['native_capture'] = {'records': native_capture.records,
                 'status': 'PASS' if len(native_capture.records) == 2 else 'FAIL',
@@ -519,7 +549,8 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     stage/'stage/graphics-mode', stage/'stage/shell-profile', stage/'stage/mobile-editor', output/'serial.log'):
+                     stage/'stage/graphics-mode', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
+                     stage/'stage/launcher-apps.sh', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
         (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')

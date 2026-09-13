@@ -374,6 +374,49 @@ class MobileObservation(unittest.TestCase):
         self.observer.finish('test complete')
 
 
+class LauncherObservation(unittest.TestCase):
+    def test_discovery_waits_then_captures_without_input_or_launch_claim(self):
+        with tempfile.TemporaryDirectory(prefix='qmp-launcher-') as temp:
+            directory = Path(temp) / 'observe'
+            client = CaptureClient(directory)
+            observer = MOBILE.LauncherObserver(directory, 'owned',
+                client_factory=lambda path, name: client)
+            (directory / 'qmp.sock').touch()
+            observer.tick(0, False)
+            self.assertEqual(client.records, [])
+            observer.tick(0, True)
+            observer.tick(4.9, True)
+            self.assertFalse(observer.complete)
+            observer.tick(5, True)
+            result = observer.finish()
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['app_launch_and_switch'], 'NOT RUN')
+            self.assertIn('NOT RUN', result['visual_semantics'])
+            self.assertEqual([Path(x['path']).name for x in result['screenshots']],
+                ['00-launcher-initial.png', '01-launcher-settled.png'])
+            self.assertTrue(all(x['command'] == 'screendump' for x in client.records))
+            self.assertTrue(client.closed)
+
+    def test_incomplete_or_failed_discovery_cannot_pass(self):
+        for failed in (None, 1, 2):
+            with tempfile.TemporaryDirectory(prefix='qmp-launcher-') as temp:
+                directory = Path(temp) / 'observe'
+                client = CaptureClient(directory, fail_capture=failed)
+                observer = MOBILE.LauncherObserver(directory, 'owned',
+                    client_factory=lambda path, name: client)
+                (directory / 'qmp.sock').touch()
+                error = None
+                try:
+                    observer.tick(0, True)
+                    if failed:
+                        observer.tick(5, True)
+                except RuntimeError as caught:
+                    error = caught
+                self.assertEqual(observer.finish(error)['status'], 'FAIL')
+                self.assertEqual(client.buttons, [])
+                self.assertTrue(client.closed)
+
+
 class EditorObservation(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='qmp-editor-')
