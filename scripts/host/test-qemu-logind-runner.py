@@ -9,6 +9,7 @@ import json
 import tarfile
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -367,7 +368,7 @@ require_fuse_device "$1" "$2"
 
 
 class FuseHelperStaging(unittest.TestCase):
-    def run_stage(self, source_path, target, *, repeat=False, ownership_status=0):
+    def run_stage(self, source_path, target, *, repeat=False, ownership_status=0, hash_fault=None):
         source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial-prepare.sh').read_text()
         functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
         block = source.split('chmod 6755 /run/session-bin/unix_chkpwd\n', 1)[1]
@@ -377,9 +378,26 @@ class FuseHelperStaging(unittest.TestCase):
 # Ownership alone is a host fact fixture; copying, link checks and chmod are real.
 chown(){ [[ $1 == 0:0 ]] || return 99; return "$3"; }
 '''.replace('return "$3"', f'return {ownership_status}') + block
+        if hash_fault:
+            fault = {
+                'source': 'sha256sum(){ [[ $2 != "$SOURCE_PATH" ]] || return 42; command sha256sum "$@"; }\n',
+                'copy': 'sha256sum(){ [[ $2 != "$TARGET_PATH" ]] || return 43; command sha256sum "$@"; }\n',
+                'corrupt': 'cp(){ command cp "$@" || return $?; printf corrupted >> "${@: -1}"; }\n',
+            }[hash_fault]
+            code = code[:-len(block)] + 'SOURCE_PATH=$1; TARGET_PATH=$2\n' + fault + block
         if repeat: code += block
-        return subprocess.run(['bash', '-c', code, 'fixture', str(source_path), str(target)],
-                              capture_output=True, text=True, timeout=3)
+        # Constrain every staging test to real utilities already supplied by the
+        # retained runtime. In particular, cmp/diffutils must not leak from host.
+        with tempfile.TemporaryDirectory() as directory:
+            commands = Path(directory)
+            for name in ['bash', 'readlink', 'rm', 'cp', 'chmod', 'sha256sum']:
+                executable = shutil.which(name)
+                self.assertIsNotNone(executable, f'required host utility missing: {name}')
+                (commands/name).symlink_to(executable)
+            self.assertIsNone(shutil.which('cmp', path=str(commands)))
+            return subprocess.run([str(commands/'bash'), '-c', code, 'fixture', str(source_path), str(target)],
+                                  env={**os.environ, 'PATH': str(commands)},
+                                  capture_output=True, text=True, timeout=3)
 
     def test_staging_replaces_link_with_exact_4755_copy_without_changing_source(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -451,6 +469,16 @@ chown(){ [[ $1 == 0:0 ]] || return 99; return "$3"; }
                 result = self.run_stage(source, target)
                 self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
                 self.assertTrue(target.is_symlink())
+
+    def test_streamed_identity_rejects_hash_failures_and_corrupt_copy(self):
+        for fault, expected in [('source', 42), ('copy', 43), ('corrupt', 1)]:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); source = root/'source'; target = root/'target'
+                source.write_bytes(b'helper'); source.chmod(0o755); target.symlink_to(source)
+                result = self.run_stage(source, target, hash_fault=fault)
+                self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+                self.assertEqual(source.read_bytes(), b'helper')
+                self.assertEqual(source.stat().st_mode & 0o7777, 0o755)
 
     def test_ownership_failure_does_not_apply_setuid_mode(self):
         with tempfile.TemporaryDirectory() as directory:

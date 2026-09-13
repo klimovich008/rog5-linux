@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # Sourced only by the isolated VM PID1 fixture; changes guest RAM only.
 stage_fuse_helper() {
-    local source=$1 target=$2 resolved_source resolved_target
+    local source=$1 target=$2 resolved_source resolved_target source_hash target_hash
     [[ -f $source && -s $source && -r $source && -x $source && ! -L $source ]] || {
         echo 'FAIL regular executable FUSE helper source unavailable' >&2; return 1;
     }
@@ -19,7 +19,13 @@ stage_fuse_helper() {
     cp -- "$source" "$target" || return $?
     chown 0:0 "$target" || return $?
     chmod 4755 "$target" || return $?
-    cmp -s -- "$source" "$target" || return $?
+    # sha256sum is already mandatory in this runtime; diffutils/cmp is absent.
+    # Capture failures explicitly while streaming each file through the tool.
+    source_hash=$(sha256sum -- "$source") || return $?
+    target_hash=$(sha256sum -- "$target") || return $?
+    [[ ${source_hash%% *} == "${target_hash%% *}" ]] || {
+        echo 'FAIL staged FUSE helper identity differs from source' >&2; return 1;
+    }
 }
 [[ $$ == 1 && $EUID == 0 && -d /sys/bus/virtio/devices ]]
 read -r expected < /run/session-sha256
