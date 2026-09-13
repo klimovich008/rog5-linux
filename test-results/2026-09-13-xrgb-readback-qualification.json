@@ -1,0 +1,1444 @@
+{
+  "schema": 1,
+  "status": "PASS_OFFLINE_PROBE",
+  "scope": "XR24 GBM allocation/import and synchronization ABI fixtures; software readback separately; no physical proof",
+  "starting": {
+    "commit": "8a09b7fa466d058c6d8bdc048fe84ba68353e914",
+    "tree": "75f698ab3a7a48d423e0b6a812a038ce7f39281b",
+    "previous_turn": "progress",
+    "scope": "offline only"
+  },
+  "source": {
+    "commit": "c889faeace59b40172fec3ab129092e3b162e7b7",
+    "tree": "461923ef3a302212b4c3fb1479f1a5bdf378b4a8"
+  },
+  "regression_before": {
+    "status": "EXPECTED FAIL",
+    "test": "ReadbackTest.test_gbm_uses_denial_xrgb_layout",
+    "cases": 1,
+    "failed_subcases": 2,
+    "seconds": 3.29,
+    "command": [
+      "env",
+      "TMPDIR=/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/tmp",
+      "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "python3",
+      "-O",
+      "scripts/device/test-gles-readback.py",
+      "ReadbackTest.test_gbm_uses_denial_xrgb_layout"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/before.log",
+      "sha256": "b3b93be5d3aa25aeec7cc5532d570bd35101c645a49ab861dfe7b96d06a75cbd",
+      "size": 2681
+    },
+    "observation": "Both GBM modes abort in the fixture because the old production code requested ABGR instead of required XR24"
+  },
+  "regression_after": {
+    "status": "PASS",
+    "cases": 16,
+    "seconds": 12.343,
+    "command": [
+      "env",
+      "TMPDIR=/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/tmp",
+      "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "python3",
+      "-O",
+      "scripts/device/test-gles-readback.py"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/after.log",
+      "sha256": "9eb449cd3cdc64748a877f52c9c4a3d22936b9b2ad66ca1da83392eabbb186ec",
+      "size": 2365
+    }
+  },
+  "build": {
+    "status": "PASS_ARM64_BUILD",
+    "source_commit": "c889faeace59b40172fec3ab129092e3b162e7b7",
+    "source_tree": "461923ef3a302212b4c3fb1479f1a5bdf378b4a8",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+      "size": 43081,
+      "sha256": "73470dec096fa4034c61585185faf1ab13db238fb7e09cfbdc9830b0b6314973"
+    },
+    "fixture_source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/test-fake-gles.c",
+      "size": 19371,
+      "sha256": "30ffbb87b5402907f2c54586014b934c8e07944c5a3f730a098444b9b3996b63"
+    },
+    "builder_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "commands": [
+      {
+        "name": "arm64-a",
+        "command": [
+          "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a"
+        ],
+        "seconds": 1.4683475320052821,
+        "exit_status": 0
+      },
+      {
+        "name": "arm64-b",
+        "command": [
+          "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-b"
+        ],
+        "seconds": 1.4174136990041006,
+        "exit_status": 0
+      },
+      {
+        "name": "fixture",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "--volume",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660:/source:ro",
+          "--volume",
+          "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build:/build:rw",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-shared",
+          "-fPIC",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "/source/test-fake-gles.c",
+          "-o",
+          "/build/fixture.so"
+        ],
+        "seconds": 0.7657312880037352,
+        "exit_status": 0
+      }
+    ],
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "size": 4662808,
+        "sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-b",
+        "size": 4662808,
+        "sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/fixture.so",
+        "size": 74880,
+        "sha256": "83d087267adf13375489a216e67b8ab78c2a06150b7bc37685195f4e8df04e2b"
+      }
+    ],
+    "phone": "NOT RUN",
+    "candidate": null
+  },
+  "arm64_abi": {
+    "status": "PASS",
+    "seconds": 9.6281736419769,
+    "tests": [
+      "test_gbm_uses_denial_xrgb_layout",
+      "test_gbm_shared_pixels_after_native_fence_wait",
+      "test_gbm_allocation_import_and_cleanup",
+      "test_dma_buf_roundtrip_and_faults",
+      "test_native_fence_import_consumer_and_cleanup",
+      "test_native_fence_export_wait_and_faults",
+      "test_denial_gles_versions_and_refusal_before_drawing",
+      "test_actual_executable_faults_never_publish_pass",
+      "test_requires_explicit_mode_before_library_loading",
+      "test_strict_renderer_scope_and_cleanup",
+      "test_stalled_readback_is_killed_without_success"
+    ],
+    "probe": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+    "scope": "retained ARM64 binary on retained Arch libc via QEMU user; EGL/GLES ABI fixtures only",
+    "phone_operations": false
+  },
+  "arm64_runner": {
+    "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/test-arm64.py",
+    "sha256": "9ff90ab8aca6c993ae2311f953ac87d9596809c5fe795baa5f81bad2bc82a0ac",
+    "size": 2850
+  },
+  "arm64_mesa": [
+    {
+      "name": "loader",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--quiet",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-xrgb-mesa-loader",
+        "-p",
+        "MemoryMax=512M",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=128",
+        "-p",
+        "CPUQuota=100%",
+        "-p",
+        "RuntimeMaxSec=30",
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "/tmp/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/tmp/qemu",
+        "/usr/lib/ld-linux-aarch64.so.1",
+        "--list",
+        "/tmp/probe"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "seconds": 0.06445958800031804,
+      "status": "PASS"
+    },
+    {
+      "name": "software",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--quiet",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-xrgb-mesa-software",
+        "-p",
+        "MemoryMax=512M",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=128",
+        "-p",
+        "CPUQuota=100%",
+        "-p",
+        "RuntimeMaxSec=30",
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "/tmp/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/tmp/qemu",
+        "/tmp/probe",
+        "--software-fixture"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "seconds": 1.016627011995297,
+      "status": "PASS"
+    },
+    {
+      "name": "hardware-refusal",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--quiet",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-xrgb-mesa-hardware-refusal",
+        "-p",
+        "MemoryMax=512M",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=128",
+        "-p",
+        "CPUQuota=100%",
+        "-p",
+        "RuntimeMaxSec=30",
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "/tmp/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/tmp/qemu",
+        "/tmp/probe",
+        "--require-a660"
+      ],
+      "exit_status": 1,
+      "expected_exit_status": 1,
+      "seconds": 0.7657768549979664,
+      "status": "PASS"
+    }
+  ],
+  "runtime_binding": {
+    "status": "PASS_MATCHING_RETAINED_BYTES",
+    "scope": "Prior loader inventory package files and symlink chains reverified; not a complete root audit or trace of every library loaded by current software run",
+    "tree_sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/ld-linux-aarch64.so.1",
+        "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d",
+        "size": 201832
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "sha256": "cd3881df4227c13ca7f9cfe6c78820f21d5f7a00a41b299214f6f827e63be369",
+        "size": 105
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/vulkan/icd.d/freedreno_icd.json",
+        "sha256": "169a5497ae2d8ca597d6e4120a7d85d6656703092b6e43146dd87ebdfcecd7e9",
+        "size": 141
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgbm.so.1.0.0",
+        "sha256": "e28a74e111cf6f9e2c0f5e1aa3edb0c431dfe088a24cd37da4a0f974eaa42dd1",
+        "size": 67616
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libseat.so.1",
+        "sha256": "068be394b87b65bf7a5dea79d39380c06faa6427386765cd9b85c79aa6cd35ce",
+        "size": 67608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libudev.so.1.7.14",
+        "sha256": "e039f972740ed58243c13e29be0675a7f51f457a5a91d6b726eb7044f22be3e7",
+        "size": 1906072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libinput.so.10.13.0",
+        "sha256": "9b94a6364a10e92f27bc82b7bfe9cae7cf8daa346c8fcc4bfe8c2b4ca11d388c",
+        "size": 528304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxkbcommon.so.0.13.2",
+        "sha256": "f9637f999ea874ddab721f7e9bd37e321b0888739b9b325b2962955cd6ab5dd1",
+        "size": 395432
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgcc_s.so.1",
+        "sha256": "ac598673a4bf67c0295b6609e46b1fafd0d4adf3f80a513d61ac49ecff772e48",
+        "size": 133352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libm.so.6",
+        "sha256": "71ed8de709c40acd4fd0177258fc71251a5acdb1d075122409ad42529d6c7a4e",
+        "size": 788960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libc.so.6",
+        "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+        "size": 1853736
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm.so.2.134.0",
+        "sha256": "cd771d2c85a933b66874255b66edbf845b00519262b12d5994930ade3a56b48d",
+        "size": 133216
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libexpat.so.1.12.4",
+        "sha256": "58e5e6ebdcc2ae387debfeae2556748fac678ecc4a59deaf71ab695ab29ace94",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsystemd.so.0.44.0",
+        "sha256": "72d678a063f9388b8b839fb0a71942e9582ab37a6b7ba5cd1045e64871696483",
+        "size": 2498712
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmtdev.so.1.0.0",
+        "sha256": "986bdd80e455efac1ea418bbd3417951c263557d2889c940cfcd79adbc35cd22",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libevdev.so.2.3.0",
+        "sha256": "586e0b48c63e0c3c267fd19e49d9c6a3967f816f06822b9d6e55e07bd26d5620",
+        "size": 133216
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwacom.so.9.0.0",
+        "sha256": "2b2f0f3091697212c93c3a0b3678c036fef5e7bbdf7cd996829e6e33c0c07c66",
+        "size": 133272
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/liblua5.4.so.5.4.9",
+        "sha256": "6956ce4cfe711a916e12f2058e5ce1435dde7ed1ff952283e545e4a7494408aa",
+        "size": 329712
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgudev-1.0.so.0.3.0",
+        "sha256": "508f61dbbc432010500e7a4ca49ffa4b834a72e74c92f0d26229944629ba1cd3",
+        "size": 67544
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgobject-2.0.so.0.8800.3",
+        "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+        "size": 462680
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglib-2.0.so.0.8800.3",
+        "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+        "size": 1576520
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libffi.so.8.5.0",
+        "sha256": "8be7610cc71df6b52d7ae8ad50ffd32fedbe47a64184efdb321c6789f84d1605",
+        "size": 67720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpcre2-8.so.0.16.0",
+        "sha256": "9743c89f9b3b7b4aa28049880086ebe85936d7259f87cf82fe52d60dd0f56650",
+        "size": 657720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/foot",
+        "sha256": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+        "size": 593760
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpixman-1.so.0.46.4",
+        "sha256": "5a10532bc2d6ab50fd022f0d09f9b53f2d1e7587aaeea7afd2696874dc4f404a",
+        "size": 657376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-client.so.0.26.0",
+        "sha256": "ccae8b4a09ec07ce893cf276697bab766d7e406efe4c42e0149680c755b96437",
+        "size": 133952
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-cursor.so.0.26.0",
+        "sha256": "d172c3875c6c385870a110703934ea080bdd472e8959117c44a33c2e53ed50e1",
+        "size": 80368
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfontconfig.so.1.17.0",
+        "sha256": "8a749c8c9d3dce3a83752bc304d257ac1895c0d2637c6f1ae54afb70906ab34b",
+        "size": 526328
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libutf8proc.so.3.2.3",
+        "sha256": "4f5857b51c129ba640d0207ccab97e691b6bef128b5d7984f8f35e1b5b744141",
+        "size": 395056
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfcft.so.4.3.3",
+        "sha256": "084e62898fa3aabef877dc56750716003efe2a55d26805bd820660927f47185a",
+        "size": 135304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfreetype.so.6.20.6",
+        "sha256": "d66b8ccd73e4852f4c084fb35dd95d7374de2b06fba837f51b3efed6d34c0a72",
+        "size": 854248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libharfbuzz.so.0.61440.0",
+        "sha256": "c7d1059ae2c670f798d276428968670d1ce872189dc75fd1027ed43ba78ceb78",
+        "size": 1445984
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libz.so.1.3.2",
+        "sha256": "f8d5729601ca8fb86a8d9d048eff241a0e349342da7a5cea11389d0e33ed0a43",
+        "size": 133128
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbz2.so.1.0.8",
+        "sha256": "973f0f527699d7eda3dc15cbc8b236d0c1d877492c4e471b94b15cb51190684a",
+        "size": 70504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpng16.so.16.58.0",
+        "sha256": "5625ab5cb931571d68b18efd452c0a9c9adb97412becdd9eabe6f45be59b82b8",
+        "size": 264256
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbrotlidec.so.1.2.0",
+        "sha256": "393cd16c4a9b5fc17961c8ac1f4bc5c7b0f3fe5b587bbbddd81f78a14b50462d",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgraphite2.so.3.3.1",
+        "sha256": "91a4f216f03d906d6417a1166c0e4d1bf8557848f7880d284e9f3eea84d920ff",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbrotlicommon.so.1.2.0",
+        "sha256": "93d374c121f516fe27c7f52f1ac75443bfc221979999cf931ac4145f51d03424",
+        "size": 198528
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/mousepad",
+        "sha256": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab",
+        "size": 67656
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmousepad.so.0.0.0",
+        "sha256": "c662f1ab71b8318a07ed975d469c945fb75bd900158772dc3e7409b13c4dce3e",
+        "size": 527488
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgio-2.0.so.0.8800.3",
+        "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+        "size": 2428456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgmodule-2.0.so.0.8800.3",
+        "sha256": "f6ec1950608783871653ba2476796b3de46433e1f7bb14c72fcd7eaa238f6140",
+        "size": 67536
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgtk-3.so.0.2420.32",
+        "sha256": "0baabc9210f3cbc007715fdd3bd69c26eac383ab16427182c094d7337db6d418",
+        "size": 8466632
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgdk-3.so.0.2420.32",
+        "sha256": "8aab3455ab4a7cc2c1dbe287be35aaf780943ac98805c85fd777be79563702de",
+        "size": 1186072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpango-1.0.so.0.5800.2",
+        "sha256": "a50a3c4e0eae528da8e0584bad64f4e4941d9d511eac801ea42b4a32cd5e0e29",
+        "size": 527960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgtksourceview-4.so.0.0.0",
+        "sha256": "c13cc2add6782febb0fd7ac61c4f678c095114dd9963f8bd61b41af611d456bf",
+        "size": 723056
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmount.so.1.1.0",
+        "sha256": "cbb3219202f5ccc81ab892bc24b0bffc6c3d052e48e0d595d88fd4c1df7763b6",
+        "size": 526976
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpangocairo-1.0.so.0.5800.2",
+        "sha256": "96302baa4edc4972f8b0452ebe479a6a265901aafc8f06642c76ff54f728d8f8",
+        "size": 67608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcairo.so.2.11804.4",
+        "sha256": "e177503dd5ce3d1c514bb64b6cc906c529f2344f6b07b5dd37dc0f1ae7e0a15e",
+        "size": 1317392
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpangoft2-1.0.so.0.5800.2",
+        "sha256": "7ebb5140f4afd32d852867b019caefb5ea03d58b1f1e554ac090cdce1006b335",
+        "size": 133040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfribidi.so.0.4.0",
+        "sha256": "55b23cbaad2fc61e03de59e6a9da06aec30ca24b8c6a2e51c7968cec7bbd869a",
+        "size": 133072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcairo-gobject.so.2.11804.4",
+        "sha256": "c177034db0a79f0096aba5e9d8bd4e90030425024c307d5d7c7d0b6c8e665198",
+        "size": 67304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgdk_pixbuf-2.0.so.0.4400.6",
+        "sha256": "0720a84038d25e38c5eea6e7f261cd465f3c188a3a13ad2b44e4df293a75d072",
+        "size": 265264
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatk-1.0.so.0.26015.1",
+        "sha256": "d2ec588d350853666d8dafab949e4ff346bea0d731e6d39bee06f166c480c956",
+        "size": 198720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libepoxy.so.0.0.0",
+        "sha256": "3e96fcda5f5843be7fcca2ba5aeac6fa09d73429a23baabf02d45af7b2d21ebc",
+        "size": 1406504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXi.so.6.1.0",
+        "sha256": "709397ff25e8c0385395e0d6df4f093ce32353862441db9fde9ab3192283c28e",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libX11.so.6.4.0",
+        "sha256": "47bbfc7dc44b2f7408250ad51fecf0fe9a65480d6aa3716d7b5bf6e910253212",
+        "size": 1389856
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatk-bridge-2.0.so.0.0.0",
+        "sha256": "cf2ef64beb4826f31d52ec984736bf9edc1022fb8f522c83ebb06eb54366259f",
+        "size": 268496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcloudproviders.so.0.4.1",
+        "sha256": "5dae7d09701f1c6d1e39ade7a9d1bde81b216dc737cb3d1e2f87662028d57d39",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libtinysparql-3.0.so.0.1101.0",
+        "sha256": "e09eea649e3868c96f133bd65f3d83cd1454cf5a6525897073af92b53e632946",
+        "size": 986480
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXfixes.so.3.1.0",
+        "sha256": "9df0e400823971f414abef56897aff6444926a88bb30222029c2c4fec9ee6afa",
+        "size": 67384
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-egl.so.1.26.0",
+        "sha256": "40f8c72ba7675193d014946dcee8da6f33b904667c22e1fefe8ca3cfc0d3dc4f",
+        "size": 67424
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXext.so.6.4.0",
+        "sha256": "5cf185138a80b6f1dcec100ee0b777b469beec699d10b284a53b9febcdd2bbb6",
+        "size": 134160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXcursor.so.1.0.2",
+        "sha256": "1ce887ea4c05c75818e7cc24968c867b2191624223c8f3358b5bfa2ce48d72a6",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXdamage.so.1.1.0",
+        "sha256": "e6371addb3562bc128c6c62ea73bbb95b59b2e6ae988b8e5827c409eeba8fc4b",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXcomposite.so.1.0.0",
+        "sha256": "8276b444c0cdc352d9c5fe1b7f6bb5e07a42b66878a32386a7fa2384345181bb",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXrandr.so.2.2.0",
+        "sha256": "354311ad6b3a93fc755a9a34c58c9bf7aa7dc02ee1ab8e7178cc5f4929a3a6d5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXinerama.so.1.0.0",
+        "sha256": "b757d3f3e823a9e476d54309e66fc889d0b93604db7edb5f0b35294a496ac2a5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libthai.so.0.3.2",
+        "sha256": "356740303788d2e814db8b8191d5f8a570904b8d650b737d37fce39e92db2ffa",
+        "size": 68552
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxml2.so.16.1.4",
+        "sha256": "4b35c8763ef09eb47d84eebe1eb1096388851ab75b1c5ad79f1ddf8e49a4aa47",
+        "size": 1379200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libblkid.so.1.1.0",
+        "sha256": "07ec798050e65a5da9eae02ad6f3d86d1e938a17c20b012616ef259adeef4858",
+        "size": 461728
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXrender.so.1.3.0",
+        "sha256": "893463f7e5a4d0dc6e69218d9f8084740c894789da47b15c14967a1105907308",
+        "size": 67624
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb.so.1.1.0",
+        "sha256": "6bc5e4009e1bbc706479d1a4ebba7763c42f0d9c1655e237ca0f16e1a83aac39",
+        "size": 169888
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-render.so.0.0.0",
+        "sha256": "7b2308fe50c862ff8852bc9c5e33354923fad49e9e30064bcc08b5bfa6d3ce24",
+        "size": 55160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-shm.so.0.0.0",
+        "sha256": "b5c9cf94623c26e216963515ca0c6781a5fd34f0a73dda22c84a0e2456d2c325",
+        "size": 14200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglycin-2.so.0",
+        "sha256": "70889a485831446777424c82f48dc3f9a35fda09f501f744b9223f6271d8e609",
+        "size": 3892072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatspi.so.0.0.1",
+        "sha256": "31a9472ea490ee86c37a034a21aa3e6017e8c9f588800ba17ab8e732788cd5e3",
+        "size": 330112
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdbus-1.so.3.38.3",
+        "sha256": "06e6dd59186871e3c493fbcecb008996b5eb01b6085d449e1849ea369506ca87",
+        "size": 460896
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libjson-glib-1.0.so.0.1000.8",
+        "sha256": "13a692c2c562e6ff3c28701511caadd68d4a71e6c36cab372db44889ff53e5fa",
+        "size": 198608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsqlite3.so.3.53.4",
+        "sha256": "2db449a85914b1fefa35388d205fa3a8dc946ee3e8ab289cb8a0bfbdc17f575f",
+        "size": 1657608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdatrie.so.1.4.1",
+        "sha256": "11840392563ae6d57f3f14859c76823abdb5538e293669b0f9925be7d9ae0df6",
+        "size": 67456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libicuuc.so.78.3",
+        "sha256": "76217efb5cf1c42284a1572e6b8f1b13147523b0072d3cc819458be5f657fe40",
+        "size": 2427016
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXau.so.6.0.0",
+        "sha256": "a92fa15e6ec8830a02c36ce6b398dbd736da3c59441addc03c210a55fee00001",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXdmcp.so.6.0.0",
+        "sha256": "d16300a2508f4af718dfe2fa9a1d89c743b7befd8eb59f376a814f37c6e41e28",
+        "size": 67496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/liblcms2.so.2.0.19",
+        "sha256": "95ac8cee9257d197e6a231c7f8886c819c2c85380b002adccf8add7ad429e399",
+        "size": 472040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libseccomp.so.2.6.0",
+        "sha256": "bb30f1c00ccfa041ada09a6276eb7d76e937ce58b27a9c7a02684b50a840f8a8",
+        "size": 198584
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libicudata.so.78.3",
+        "sha256": "2f624d6c2d92113a45906f245e0d50f4d28572cfe973ede09b25e8422460ba09",
+        "size": 33162960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libstdc++.so.6.0.35",
+        "sha256": "abdf011833740a6f0ca1654876f18d9a5911a9ad08806a38d015e60e3e516ab8",
+        "size": 3017768
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdl.so.2",
+        "sha256": "c368bb964d02a4cf1252f2e812e91f4206924ed4fccd9b68eaad676aafd0ce1f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpthread.so.0",
+        "sha256": "27844a766189d65aa53c273fb6d807073fd5fe74021dc7f5dc13657760b5931f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libEGL.so.1.1.0",
+        "sha256": "d2b76272182bccaf0b36d1e89e64998f1b5c7ab175e6dfe7b9910804c84970a0",
+        "size": 133024
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libGLdispatch.so.0.0.0",
+        "sha256": "4341cba6efd6f63fd079d444daa753691cb900b96e405a227e7cff1e90312d99",
+        "size": 1574936
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libEGL_mesa.so.0.0.0",
+        "sha256": "3dd8788d56eb97e5a07cece9d94003258673134ed2a0aae1699a675802e57500",
+        "size": 396360
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libLLVM.so.22.1",
+        "sha256": "b58132b38f1652282811f6ba505d57f4c6d1a3e79874de02a67c2e9ad9e2d032",
+        "size": 168704440
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libSPIRV-Tools.so",
+        "sha256": "cb516ba0183d76fe3c3b5844a9894d6f96249df4c669e86d8f38aed26cbfa2db",
+        "size": 2099960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libX11-xcb.so.1.0.0",
+        "sha256": "c100d271ba9a49922b65d6d91be9376f3f5722341b52fd443036f516fe1d1403",
+        "size": 67144
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm_amdgpu.so.1.134.0",
+        "sha256": "dfc8b428ab28a55dd467960fc3f7e4794228dd1bf2c11fb2c93086a455202e8f",
+        "size": 67496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm_intel.so.1.134.0",
+        "sha256": "4b36e1c0e49de408791f9110494afff0086b0aa969219a809ffe9b91033369f7",
+        "size": 200248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libedit.so.0.0.78",
+        "sha256": "c49dac5cafc3958fb1e52b4be54fcdd660f78c32ab8b4b1cc126705cdd888ca4",
+        "size": 264360
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libelf-0.196.so",
+        "sha256": "e9afbe1e85f038a5fac5733b9e5ab253af3f5f3f0e2416c9232f8b1a09ab0578",
+        "size": 133256
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgallium-26.2.2-arch1.1.so",
+        "sha256": "b552cd6c748afc4eda241b7506c6d102968775f6323d005b8ef6485ed8a70d1f",
+        "size": 53602840
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libncursesw.so.6.6",
+        "sha256": "893eea93d2c1011c1f9edee6393cd46475f115d9f2a788e3b55f34591020316b",
+        "size": 527568
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpciaccess.so.0.11.1",
+        "sha256": "fcc51df5475c0fcfbee0ac51c8dc97738fb55f923cc8beeb41739bf353dd07af",
+        "size": 67576
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsensors.so.5.0.0",
+        "sha256": "66f3ef8beae7a03ddb0d9d3732edb481552b929c19067ce32e67716a27bdfd01",
+        "size": 67504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-dri3.so.0.1.0",
+        "sha256": "76fbf9d4e65cd07f42dbda1e354a31f56b6ce216aa5f257a6b757b68d4623c01",
+        "size": 18296
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-present.so.0.0.0",
+        "sha256": "edfb8b41ba9044ed1f771734a359d4aec994265127c5b5a07d0533b760f85c78",
+        "size": 14200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-randr.so.0.1.0",
+        "sha256": "6ba3894ebbcaef9fd94720d75c34eb15a9ede62d29759621bd08cfa73fa930bf",
+        "size": 67448
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-sync.so.1.0.0",
+        "sha256": "6ae2354d68e507adc9bdaa9fd5e785b82c16e6ce73e7d7dbd7b07681cc237e71",
+        "size": 26488
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-xfixes.so.0.0.0",
+        "sha256": "b9b96393f66544f003c51e8c467793f64847fe5cfcef17b82e96c45944a70dd4",
+        "size": 34680
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxshmfence.so.1.0.0",
+        "sha256": "8d8678ee3b1d6a235c2d45bf5ac83f87f551fc6928c8cc22f2dd91703a3560c9",
+        "size": 67384
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libzstd.so.1.5.7",
+        "sha256": "14d907be630eb1670d14fc104a0982cca01feac5bc75f1846e54f6278c5ee2e2",
+        "size": 854104
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libGLESv2.so.2.1.0",
+        "sha256": "983e6c9e65341ff407020c71d25796bbac6144b112b7139c1704fe1d3f0c52b5",
+        "size": 198600
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/gbm/dri_gbm.so",
+        "sha256": "8c2f53f9b83f7b6ef7600cd62a06c5e242d76ba7f070071f809451227345742a",
+        "size": 133296
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/dri/libdril_dri.so",
+        "sha256": "c30aadeb71f1f780f2b636eef5bc15f1c18d7482692b63965a9b604d5e34f208",
+        "size": 133248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libvulkan_freedreno.so",
+        "sha256": "814cf9767ee00171235039382dd2cdcef45325d3f40c0d1ee289f4577aef473c",
+        "size": 15086168
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdisplay-info.so.0.3.0",
+        "sha256": "c0c314ecf1e018e0f7feb3647934ffe2d266cd9a99e4978ecb75b452d7326c48",
+        "size": 263984
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-keysyms.so.1.0.0",
+        "sha256": "7ad13facf0aa5f58e092d4684afa6bc8fb0445219159d5c4f49afdf388cdf698",
+        "size": 67304
+      }
+    ],
+    "seconds": 0.8620094649959356,
+    "probe": {
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+      "size": 4662808,
+      "sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531"
+    },
+    "runtime_root": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "physical": "NOT RUN"
+  },
+  "kernel_contract": {
+    "scope": "Read-only exact corrected kernel and retained Denial source; not runtime capability proof",
+    "status": "SOURCE_SUPPORT_PRESENT",
+    "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "production_series_sha256": "6ecab1592d1293be2dbb2d48792f4de889a5db5d2418738b56e8f3c394af62ee",
+    "config": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/objects/.config",
+      "size": 241876,
+      "sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c"
+    },
+    "kernel_source_files": [
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/drivers/gpu/drm/msm/msm_drv.c",
+        "size": 28259,
+        "sha256": "7f928abf51301516c63c834946e3b264b53416c016f4800729c2a9b1025f9c1e"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/drivers/gpu/drm/msm/msm_gem_submit.c",
+        "size": 21341,
+        "sha256": "665c74e0c3d703e80daf4b70fc93af5cc74d2a093fbfca1ca4a7fe89c5900dc9"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/drivers/gpu/drm/msm/disp/mdp_format.c",
+        "size": 26663,
+        "sha256": "8088ff919b9deba8e9bc95fb85d7abcbb812d3c2d759deef730d88c8902e0102"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c",
+        "size": 57425,
+        "sha256": "0bba4a5aba6e3040744d8888b95737378484ed70bbfb401e9eca9e9f39fa0832"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/drivers/gpu/drm/msm/msm_fb.c",
+        "size": 7692,
+        "sha256": "5af8ed1626f895eb115713d1ab4d84d50cc73e5a0a0e5ad8687dc7849571bcaa"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/include/uapi/drm/drm.h",
+        "size": 48319,
+        "sha256": "c6227b9338cc4b5f4d68e166b4620d7534bf040d401a3a343a90cf5d6b162e36"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/include/uapi/drm/drm_fourcc.h",
+        "size": 78200,
+        "sha256": "28d81e1f66af81fdb4a6f0d8819c17271dc73a80de6684ffb441efc00a7ac2ed"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/include/uapi/linux/sync_file.h",
+        "size": 3464,
+        "sha256": "1efa644060a2f3f504bcb1e7559d7728ee989fb3412d7b18e437f3c2b7ed6f50"
+      }
+    ],
+    "denial_sources": [
+      {
+        "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/source/compositor/src/bin/deniald/kms_state.rs",
+        "size": 73204,
+        "sha256": "2db8a55738e6772ae082940a49982694b295ad9b51b3679ad3dca90c0c6e1956"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/source/compositor/src/bin/deniald/startup.rs",
+        "size": 30978,
+        "sha256": "2093bc8e7e9f8381ed74310af1a0e3cd9251bd797a0953383d99c60f75317e43"
+      }
+    ],
+    "observations": [
+      "MSM compiled as module with GPU and KMS support; DMA_SHARED_BUFFER and SYNC_FILE enabled",
+      "MSM GPU driver features include render nodes, sync objects and timeline sync objects",
+      "MSM submit supports sync_file input and output fences",
+      "DPU format source includes XRGB8888 and admits LINEAR for supported plane formats; actual fb/atomic checks remain",
+      "Denial requests Xrgb8888 output buffers; RENDERING-only applies when render/display devices differ; otherwise adds SCANOUT",
+      "Readback uses one EGL device and an inherited descriptor, not actual cross-device PRIME or KMS discovery"
+    ],
+    "uapi_host_output": "UAPI 64 16 24 56 32 40 48 16 3225445376 3224911364 875713112",
+    "uapi_command": [
+      "cc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-D__EXPORTED_HEADERS__",
+      "-D__user=",
+      "-I",
+      "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/source/include/uapi",
+      "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/uapi.c",
+      "-o",
+      "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/uapi"
+    ],
+    "uapi_scope": "Compile header sizes/offsets/ioctl/fourcc constants on x86_64; raw source headers require userspace annotation removal; not an ARM64 ABI execution or GPU ioctl",
+    "physical": "NOT RUN"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-xrgb-probe-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "c889faeace59b40172fec3ab129092e3b162e7b7",
+      "source_tree": "461923ef3a302212b4c3fb1479f1a5bdf378b4a8",
+      "started": "2026-09-13T05:11:59.486816+00:00",
+      "exit_status": 0,
+      "duration_seconds": 138.581190574012
+    },
+    "counts": {
+      "PASS": 93,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/active-report/summary.json",
+      "sha256": "b5cc5de1c6cf617d49c4182716d5adae359597c1413e6f8754adfe2078827817",
+      "size": 111742
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/active-report/summary.xml",
+      "sha256": "e82e0808dfc98a26731c9e47c2fc085524c4535fde48cc87cb1e0e729aa2940c",
+      "size": 56055
+    }
+  },
+  "retention": {
+    "status": "REMOVED_VERIFIED_DUPLICATE_COPIES",
+    "files": [
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/deniald",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "size": 15990872,
+        "mode": 493
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/FontManifest.json",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/data/icudtl.dat",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/lib/libapp.so",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libapp.so",
+        "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "size": 10814352,
+        "mode": 420
+      },
+      {
+        "removed_copy": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1/payload/flutter/lib/libflutter_engine.so",
+        "durable_source": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "size": 15999928,
+        "mode": 493
+      }
+    ],
+    "prior_guest_terminal": true,
+    "open_handles": "none observed by fuser; podman has no running containers",
+    "scope": "Only duplicate staging payload of terminal historical VM; logs/results/canonical runtime and native bytes retained",
+    "free_before": 3253878784,
+    "free_after": 3314192384
+  },
+  "preparation_failures": [
+    {
+      "stage": "initial builder",
+      "error": "Output directory outside the bounded wrapper writable TMPDIR mount",
+      "correction": "Set TMPDIR to the private build output directory",
+      "evidence": [
+        {
+          "name": "arm64-a",
+          "command": [
+            "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+            "--edition=2021",
+            "-Dwarnings",
+            "--remap-path-prefix",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+            "-O",
+            "--target",
+            "aarch64-unknown-linux-gnu",
+            "-C",
+            "linker=aarch64-linux-gnu-gcc",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+            "-o",
+            "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a"
+          ],
+          "seconds": 0.615431804995751,
+          "exit_status": 1
+        }
+      ]
+    },
+    {
+      "stage": "initial ARM64 fixture",
+      "error": "Read-only full runtime root cannot create /qemu mount target",
+      "correction": "Use /tmp/qemu, /tmp/probe and /tmp/fixture under private tmpfs",
+      "evidence": {
+        "status": "FAIL",
+        "seconds": 0.006027682014973834,
+        "tests": [
+          "test_gbm_uses_denial_xrgb_layout",
+          "test_gbm_shared_pixels_after_native_fence_wait",
+          "test_gbm_allocation_import_and_cleanup",
+          "test_dma_buf_roundtrip_and_faults",
+          "test_native_fence_import_consumer_and_cleanup",
+          "test_native_fence_export_wait_and_faults",
+          "test_denial_gles_versions_and_refusal_before_drawing",
+          "test_actual_executable_faults_never_publish_pass",
+          "test_requires_explicit_mode_before_library_loading",
+          "test_strict_renderer_scope_and_cleanup",
+          "test_stalled_readback_is_killed_without_success"
+        ],
+        "probe": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
+        "scope": "retained ARM64 binary on retained Arch libc via QEMU user; EGL/GLES ABI fixtures only",
+        "phone_operations": false
+      }
+    },
+    {
+      "stage": "raw UAPI header compile",
+      "error": "Raw drm.h retains __user annotations",
+      "correction": "Explicitly remove userspace annotations in the isolated C header-layout check; kernel source unchanged"
+    }
+  ],
+  "review": {
+    "kind": "independent read-only source review",
+    "result": "No blocker found; scope tightened to same EGL device",
+    "limitations": [
+      "No actual cross-device PRIME import",
+      "No local SCANOUT usage",
+      "No plane/renderer modifier negotiation",
+      "No KMS presentation",
+      "Logical opaque alpha is not stored alpha preservation"
+    ]
+  },
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "production_candidate": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false
+}

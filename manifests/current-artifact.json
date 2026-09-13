@@ -130,33 +130,37 @@
     "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
   },
   "gpu_readback_probe": {
-    "status": "fixture: GBM pixels across unshared contexts with native fences; not admitted",
-    "set_id": "private:rog5-gbm-sync-evidence-20260912-r1/build",
-    "source_commit": "7b3a05ce4cb6919a4990be24f312117c9868d9cf",
+    "status": "fixture: XR24 GBM pixels/native fences; not admitted",
+    "set_id": "private:rog5-xrgb-probe-20260913-r1/build",
+    "source_commit": "c889faeace59b40172fec3ab129092e3b162e7b7",
     "arm64": {
-      "path": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/build/arm64-a",
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/build/arm64-a",
       "size": 4662808,
-      "sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa"
+      "sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gbm-sync-qualification.json",
-      "sha256": "6f8230e505d0ecb366aef556cabcf435ce286722b375a944fd297263a6cc06bf"
+      "path": "test-results/2026-09-13-xrgb-readback-qualification.json",
+      "sha256": "c10f73c6654cb1ab54acce1d5abe65a376819a3f841d755f13fb5fed3f136a9a",
+      "size": 68544
     },
     "physical_status": "NOT RUN",
-    "candidate": null
+    "candidate": null,
+    "previous_probe_sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa"
   },
   "gpu_readback_runtime": {
-    "set_id": "private:rog5-gbm-sync-evidence-20260912-r1/build",
-    "status": "fixture: new probe with preserved Arch software libraries; not installed",
-    "probe_sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa",
+    "set_id": "private:rog5-xrgb-probe-20260913-r1/build",
+    "status": "fixture: current authenticated Arch runtime; ARM64 ABI and software checks only",
+    "probe_sha256": "bfb8edc07d91cf487da7abace8175edd5f41a734abacc66c852dec44b4fd2531",
     "mesa": "1:26.2.2-1",
     "runtime_binding": {
-      "path": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/runtime-binding.json",
-      "sha256": "3b4dc5769f2d1e0398c387db09b05f476d21add7fd6710e943ae7dd99ce16383"
+      "path": "/home/deck/.local/state/rog5-xrgb-probe-20260913-r1/runtime-binding.json",
+      "sha256": "1f97266f3248eb7728983b79f0ad787b833ab2e17f198ead45afdfc3290eba03",
+      "size": 29636
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gbm-sync-qualification.json",
-      "sha256": "6f8230e505d0ecb366aef556cabcf435ce286722b375a944fd297263a6cc06bf"
+      "path": "test-results/2026-09-13-xrgb-readback-qualification.json",
+      "sha256": "c10f73c6654cb1ab54acce1d5abe65a376819a3f841d755f13fb5fed3f136a9a",
+      "size": 68544
     },
     "physical_status": "NOT RUN",
     "candidate": null

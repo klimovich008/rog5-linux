@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial/Adreno userspace linkage checked; phone kernel/trial identities remain separate**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **GPU readback now matches Denial XR24; native phone qualification remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Twelve confined ARM64 loader checks PASS in3.398s;117 package files match the authenticated runtime. Corrected panel/touch/MSM modules and Image/DT identities verified offline; three GPU firmware members match the retained old trial payload. This is not Adreno initialization. Corrected modules target7.1.4-rog5-production; the frozen trial targets7.1.4-g136f75ae869a and cannot accept those substitutions. Touch remains disabled. Next qualify the existing GPU-query capability contract against the corrected production cohort offline, then prepare a separately reviewed exact-input trial only under fresh hardware authorization. No candidate, signing, admission, claims or phone operation; physical rows NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-denial-phone-linkage.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The GBM probe now requests and verifies XR24/explicit LINEAR with rendering usage. Old ABGR implementation fails the new regression;16 host groups,11 ARM64 ABI groups,matching ARM64 twins and real software readback PASS. This tests one EGL device, not cross-device PRIME, local SCANOUT, modifier negotiation or KMS. Next bind the corrected probe to an offline recording/cleanup fixture for the corrected production cohort; no substitution into the frozen older trial. A660 XR24/fence/readback is the next unresolved physical question and requires separate authorization. No candidate, signing, admission or phone operation; mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-xrgb-readback.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
