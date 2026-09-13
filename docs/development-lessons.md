@@ -3162,3 +3162,14 @@ so an external launcher interruption does not erase the command exit status.
 Do not retry unchanged full UI flows to investigate cleanup when earlier startup
 variance consumes the budget; localize that variance or prepare a focused closure
 experiment while retaining the separate interaction proof.
+
+Startup measurement (2026-09-13): use an explicit startup-only VM mode to
+separate sysinit/PAM from application interaction. Preserve partial diagnostic
+stdout and its original failure status when a bounded multi-unit query times
+out; continue independent authentication/cleanup, but never qualify an
+incomplete timing inventory. Test real systemd console prefixes as well as raw
+records. Keep diagnostics hex-encoded so their content cannot become serial
+success evidence. Systemd transition times are monotonic microseconds; a
+/proc/uptime handoff is BOOTTIME seconds. RemainAfterExit service wall time
+includes active lifetime and must not be presented as ExecMain runtime or summed
+as a startup critical path.

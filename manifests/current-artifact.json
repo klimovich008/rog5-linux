@@ -1665,6 +1665,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "startup_timing": {
+      "status": "STARTUP_TIMING_INVESTIGATION_FAIL",
+      "set_id": "private:rog5-vm-startup-timing-20260913-r1",
+      "source_commit": "23f4a5a9cf976a9963e3b533f5d6042fd3d4d2cf",
+      "evidence": {
+        "path": "test-results/2026-09-13-vm-startup-timing-qualification.json",
+        "sha256": "763b0d15d798cd9b967bacb55d92c303ca45fa164dfbc07155dab68f6c1464cb",
+        "bytes": 39930
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {
