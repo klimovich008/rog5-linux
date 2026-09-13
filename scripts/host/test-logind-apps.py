@@ -222,6 +222,59 @@ finish_authenticated_apps
         self.assertNotEqual(child.returncode, 0)
         self.assertFalse((self.root / 'evidence').exists())
 
+    def test_completion_published_between_wait_and_owner_check(self):
+        for result in (0, 42):
+            with self.subTest(result=result):
+                state = self.root / ('race-' + str(result))
+                code = self.prefix + r'''
+state=$1; completed=$2
+mkdir -p "$state/foot" "$state/mousepad"
+start=$(launcher_identity "$$")
+for app in foot mousepad; do
+ printf '%s %s\n' "$$" "$start" > "$state/$app/owner"
+ mkfifo "$state/$app/command"
+done
+exec {foot_fd}<> "$state/foot/command"
+exec {editor_fd}<> "$state/mousepad/command"
+eval "$(declare -f logind_apps_owner | sed '1s/logind_apps_owner/original_apps_owner/')"
+printf '0\n' > "$state/calls"
+logind_apps_owner() {
+ local calls
+ read -r calls < "$1/calls"
+ ((calls+=1)); printf '%s\n' "$calls" > "$1/calls"
+ # Initial calls are command dispatch. Publish only after the wait loop has
+ # observed !finished, immediately before the real owner's !finished check.
+ if ((calls>=3)); then printf '%s\n' "$completed" > "$1/$2/finished"; fi
+ original_apps_owner "$@"
+}
+rc=0; logind_apps_close "$state" || rc=$?
+[[ ($completed == 0 && $rc == 0) || ($completed != 0 && $rc != 0) ]]
+IFS= read -r -t 1 -u "$foot_fd" token; [[ $token == ROG5_APP_CLOSE_0 ]]
+IFS= read -r -t 1 -u "$editor_fd" token; [[ $token == ROG5_APP_CLOSE_0 ]]
+exec {foot_fd}>&-; exec {editor_fd}>&-
+'''
+                child = self.spawn(['bash', '-c', code, 'fixture', str(state), str(result)])
+                out, err = child.communicate(timeout=3)
+                self.assertEqual(child.returncode, 0, out.decode() + err.decode())
+
+    def test_cleanup_completion_race_does_not_signal_finished_owner(self):
+        code = self.prefix + r'''
+logind_apps_state=$1
+mkdir -p "$1/mousepad"
+start=$(launcher_identity "$$")
+printf '%s %s\n' "$$" "$start" > "$1/mousepad/owner"
+trap 'exit 91' TERM
+eval "$(declare -f logind_apps_owner | sed '1s/logind_apps_owner/original_apps_owner/')"
+logind_apps_owner() {
+ printf '0\n' > "$1/$2/finished"
+ original_apps_owner "$@"
+}
+cleanup_authenticated_apps
+'''
+        child = self.spawn(['bash', '-c', code, 'fixture', str(self.state)])
+        out, err = child.communicate(timeout=3)
+        self.assertEqual(child.returncode, 0, out.decode() + err.decode())
+
     def test_source_defines_functions_only(self):
         result = subprocess.run(['bash', '-c', 'source "$1"', 'fixture', str(TOOLS / 'logind-apps.sh')],
                                 capture_output=True, timeout=2)
@@ -256,6 +309,8 @@ finish_authenticated_apps
         self.assertIn(b'OBSERVE authenticated launcher teardown\n', self.events)
         self.assertIn(b'OBSERVE launcher app=foot exit=0\n', self.events)
         self.assertIn(b'OBSERVE launcher app=mousepad exit=0\n', self.events)
+        for app in ('foot', 'mousepad'):
+            self.assertIn(f'OBSERVE launcher-lifecycle app={app} phase=normal-close status=0 child_status=0\n'.encode(), self.events)
 
     def test_wrong_ack_refused_and_cleanup_reaps_both_supervisors(self):
         controller, editor, foot = self.ready_apps()
@@ -265,6 +320,7 @@ finish_authenticated_apps
         self.assertNotIn(b'OBSERVE authenticated launcher teardown', self.events)
         self.assertNotEqual(editor.wait(timeout=2), 0)
         self.assertNotEqual(foot.wait(timeout=2), 0)
+        self.assertIn(b'phase=signal-TERM status=143', self.events)
         self.assertFalse((self.home / 'foot-close.pipe').exists())
 
     def test_fragmented_host_ack_is_accumulated_without_accepting_prefix(self):
@@ -372,6 +428,7 @@ while :; do sleep .1; done
         self.assertEqual(editor.wait(timeout=2), 42)
         self.assertEqual((self.state / 'mousepad/exit-status').read_text(), '42\n')
         self.assertEqual(foot.wait(timeout=2), 0)
+        self.assertIn(b'OBSERVE launcher-lifecycle app=mousepad phase=normal-close status=42 child_status=42\n', self.events)
 
 
 if __name__ == '__main__':

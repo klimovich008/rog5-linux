@@ -64,6 +64,7 @@ logind_apps_supervise() (
     set -euo pipefail
     local app=$1 state=${2:-$HOME/launcher-apps} bindir=${3:-/usr/bin}
     local owner=$BASHPID start text command_fd command='' chunk rc=0 controlled=0 child_name
+    local close_phase=running last_status=unknown
     local foot='' editor='' foot_close_owned=0 foot_close_fifo=$HOME/foot-close.pipe
     launcher_guest_guard || exit 1
     [[ $app == mousepad || $app == foot ]] || exit 1
@@ -83,6 +84,11 @@ logind_apps_supervise() (
     logind_app_finish() {
         local original=$?
         trap - EXIT TERM INT
+        if [[ $close_phase != normal-close-recorded ]]; then
+            logind_apps_record "$state" "OBSERVE launcher-lifecycle app=$app phase=$close_phase status=$original child_status=$last_status" || {
+                [[ $original != 0 ]] || original=1;
+            }
+        fi
         stop_owned_group cleanup foot editor || { [[ $original != 0 ]] || original=1; }
         remove_foot_close || { [[ $original != 0 ]] || original=1; }
         exec {command_fd}>&-
@@ -91,12 +97,13 @@ logind_apps_supervise() (
         logind_apps_record "$state" "OBSERVE launcher app=$app exit=$original" || {
             [[ $original != 0 ]] || original=1;
         }
-        printf '%s\n' "$original" > "$state/$app/finished"
+        printf '%s\n' "$original" > "$state/$app/finished.tmp"
+        mv -- "$state/$app/finished.tmp" "$state/$app/finished"
         exit "$original"
     }
     trap logind_app_finish EXIT
-    trap 'exit 143' TERM
-    trap 'exit 130' INT
+    trap 'close_phase=signal-TERM; exit 143' TERM
+    trap 'close_phase=signal-INT; exit 130' INT
     logind_apps_record "$state" "OBSERVE launcher app=$app owner=$owner start=$start"
     if [[ $app == foot ]]; then
         child_name=foot
@@ -124,14 +131,20 @@ logind_apps_supervise() (
         fi
         ((rc>128)) || exit 1
     done
+    close_phase=normal-close; rc=0; last_status=unknown
     if [[ $app == foot ]]; then
-        close_foot_normally
+        close_foot_normally || rc=$?
+    elif require_running editor; then
+        stop_owned_group normal-close editor || rc=$?
+        [[ $last_status == 0 ]] || rc=$last_status
     else
-        require_running editor
-        rc=0; stop_owned_group normal-close editor || rc=$?
-        [[ $last_status == 0 ]] || exit "$last_status"
-        ((rc==0)) || exit "$rc"
+        rc=1; [[ $last_status == 0 ]] || rc=$last_status
     fi
+    logind_apps_record "$state" "OBSERVE launcher-lifecycle app=$app phase=normal-close status=$rc child_status=$last_status" || {
+        ((rc!=0)) || rc=1;
+    }
+    close_phase=normal-close-recorded
+    ((rc==0)) || exit "$rc"
     [[ $controlled == 1 ]]
 )
 logind_apps_close() {
@@ -146,7 +159,12 @@ logind_apps_close() {
     deadline=$((SECONDS+10))
     for app in foot mousepad; do
         while [[ ! -f $state/$app/finished ]]; do
-            logind_apps_owner "$state" "$app" >/dev/null || return 1
+            logind_apps_owner "$state" "$app" >/dev/null || {
+                # Completion may be published between the loop's file check and
+                # owner's !finished check. Read its real status below.
+                [[ -f $state/$app/finished ]] && break
+                return 1
+            }
             ((SECONDS<deadline)) || return 124
             sleep .1
         done
@@ -187,8 +205,11 @@ cleanup_authenticated_apps() {
     [[ -n $state ]] || return 0
     for app in mousepad foot; do
         [[ ! -f $state/$app/owner || -f $state/$app/finished ]] && continue
-        pid=$(logind_apps_owner "$state" "$app") || { failed=1; continue; }
-        kill -TERM "$pid" || failed=1
+        pid=$(logind_apps_owner "$state" "$app") || {
+            [[ -f $state/$app/finished ]] || failed=1
+            continue
+        }
+        kill -TERM "$pid" || { [[ -f $state/$app/finished ]] || failed=1; }
     done
     deadline=$((SECONDS+10))
     for app in mousepad foot; do
