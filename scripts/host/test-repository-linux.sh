@@ -194,6 +194,7 @@ active_tests=(
 	scripts/host/test-logind-startup-diagnostic.py
 	scripts/host/test-logind-apps.py
 	scripts/host/test-launcher-diagnostics.py
+	scripts/host/test-settings-sync-diagnostic.py
 	scripts/host/test-review-metadata-checkers.py
 	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py

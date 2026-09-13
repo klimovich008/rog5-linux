@@ -8314,7 +8314,8 @@
       "deadline_seconds": 45,
       "prerequisites": [
         "python3",
-        "bash"
+        "bash",
+        "cc"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",
@@ -8413,6 +8414,31 @@
         "tools/qemu-virtio-drm/logind-observer.sh",
         "scripts/host/test-qemu-logind.py",
         "scripts/host/test-qemu-virtio-drm.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-settings-sync-diagnostic.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 15,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/settings-sync-diagnostic.c"
       ],
       "optional_subchecks": []
     }

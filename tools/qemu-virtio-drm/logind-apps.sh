@@ -163,6 +163,7 @@ logind_apps_supervise() (
     local app=$1 state=${2:-$HOME/launcher-apps} bindir=${3:-/usr/bin}
     local owner=$BASHPID start text command_fd command='' chunk rc=0 controlled=0 child_name
     local close_phase=running last_status=unknown close_pid
+    local sync_library=${4:-/run/settings-sync-diagnostic.so} sync_log=
     local foot='' editor='' foot_close_owned=0 foot_close_fifo=$HOME/foot-close.pipe
     launcher_guest_guard || exit 1
     [[ $app == mousepad || $app == foot ]] || exit 1
@@ -209,12 +210,27 @@ logind_apps_supervise() (
         launch_foot
     else
         child_name=editor
+        # Only an explicitly staged VM probe enables this path. Keep preload out
+        # of timeout and the controller, and keep writes off the Wayland FIFO.
+        if [[ -e $sync_library || -L $sync_library ]]; then
+            [[ -f $sync_library && ! -L $sync_library && -r $sync_library &&
+               $(stat -c '%a %h' -- "$sync_library") == '644 1' &&
+               -z ${LD_PRELOAD:-} && -z ${ROG5_SETTINGS_SYNC_LOG:-} ]] || exit 125
+            sync_log=$state/$app/settings-sync.log
+            (umask 077; set -o noclobber; : > "$sync_log") || exit 125
+        else
+            sync_library=
+        fi
         # timeout must never write its signal diagnostic into a blocked client
         # FIFO before sending the signal. Only its fixed diagnostics use this
         # regular file; the exec preserves the monitored client's PID.
         GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout --verbose -k 2 65 \
-            /usr/bin/bash --noprofile --norc -c 'exec "$1" "$2" > "$3" 2>&1' \
-            mousepad "$bindir/mousepad" "$text" "$HOME/mousepad.pipe" \
+            /usr/bin/bash --noprofile --norc -c '
+                if [[ -n $4 ]]; then
+                    export LD_PRELOAD="$4" ROG5_SETTINGS_SYNC_LOG="$5"
+                fi
+                exec "$1" "$2" > "$3" 2>&1
+            ' mousepad "$bindir/mousepad" "$text" "$HOME/mousepad.pipe" "$sync_library" "$sync_log" \
             > "$state/$app/timeout.log" 2>&1 &
         editor=$!
     fi
@@ -250,14 +266,32 @@ logind_apps_supervise() (
     }
     if [[ $app == mousepad ]]; then
         # At most 2 KiB before prefix framing, leaving room for close clocks
-        # inside the shared 64 KiB diagnostic limit. The client cannot write
-        # here after exec; timeout output never controls qualification.
+        # inside the shared 64 KiB diagnostic limit. Timeout keeps its own
+        # file; the optional settings probe writes a separate regular file.
+        # Neither stream is client protocol or proof of clean shutdown.
         timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
             set -o pipefail
-            head -c 2048 -- "$1" | "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
-        ' timeout-diagnostic "$state/$app/timeout.log" "$state" "$logind_apps_writer" || {
+            {
+                if [[ -n $4 ]]; then
+                    head -c 512 -- "$1" || exit $?
+                    head -c 1536 -- "$4" || exit $?
+                else
+                    head -c 2048 -- "$1"
+                fi
+            } | "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
+        ' timeout-diagnostic "$state/$app/timeout.log" "$state" "$logind_apps_writer" "$sync_log" || {
             ((rc!=0)) || rc=1;
         }
+    fi
+    if [[ -n $sync_log ]]; then
+        # A loader that ignored LD_PRELOAD is not a successful observation.
+        # Never turn the child's original nonzero exit into a diagnostic code.
+        if [[ ! -f $sync_log || -L $sync_log ]] ||
+           [[ $(stat -c '%u %a %h' -- "$sync_log") != "$EUID 600 1" ]] ||
+           [[ $(stat -c %s -- "$sync_log") -gt 1536 ]] ||
+           ! grep -q '^ROG5_SETTINGS_SYNC phase=loaded resolved=true ' "$sync_log"; then
+            ((rc!=0)) || rc=125
+        fi
     fi
     logind_apps_record "$state" "OBSERVE launcher-lifecycle app=$app phase=normal-close status=$rc child_status=$last_status" || {
         ((rc!=0)) || rc=1;

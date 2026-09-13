@@ -1077,6 +1077,28 @@ class AppsPreflight(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('apps_runner_fixture', RUNNER)
         cls.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.runner)
 
+    def test_settings_probe_staging_checks_architecture_and_preserves_exact_bytes(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work); source = root/'probe.so'; stage = root/'stage'; stage.mkdir()
+            header = bytearray(64); header[:7] = b'\x7fELF\x02\x01\x01'
+            header[16:20] = b'\x03\x00\xb7\x00'
+            source.write_bytes(header + b'fixture shared object')
+            target = self.runner.stage_settings_sync_diagnostic(source, stage)
+            self.assertEqual(target.read_bytes(), source.read_bytes())
+            self.assertEqual(target.stat().st_mode & 0o777, 0o644)
+            with self.assertRaises(FileExistsError):
+                self.runner.stage_settings_sync_diagnostic(source, stage)
+            target.unlink()
+            for invalid in [b'not ELF', bytes(header[:16])+b'\x02\x00'+bytes(header[18:]),
+                            bytes(header[:18])+b'\x3e\x00'+bytes(header[20:])]:
+                source.write_bytes(invalid)
+                with self.assertRaisesRegex(ValueError, 'ARM64 shared ELF'):
+                    self.runner.stage_settings_sync_diagnostic(source, stage)
+                self.assertFalse(target.exists())
+            alias = root/'alias.so'; alias.symlink_to(source)
+            with self.assertRaises(ValueError):
+                self.runner.stage_settings_sync_diagnostic(alias, stage)
+
     def test_channel_is_duplex_with_single_log_writer_and_fixed_port(self):
         channel = self.runner.observation_channel(True)
         self.assertEqual(channel, ['-chardev', 'socket,id=apps,path=/observe/apps.sock,server=on,wait=off',
@@ -1090,12 +1112,13 @@ class AppsPreflight(unittest.TestCase):
         for extra in [['--observe-apps'], combined+['--observe-apps'],
                       combined+['--observe-apps', '--launcher-reference', '/unused'],
                       combined+['--observe-editor', '--observe-apps'],
-                      ['--launcher-reference', '/unused'], ['--evidence-writer', '/unused']]:
+                      ['--launcher-reference', '/unused'], ['--evidence-writer', '/unused'],
+                      ['--settings-sync-diagnostic', '/unused']]:
             with self.subTest(extra=extra):
                 result = subprocess.run([sys.executable, str(RUNNER), *required, *extra],
                                         capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, 2)
-                self.assertRegex(result.stderr, 'observation requires|not allowed with argument')
+                self.assertRegex(result.stderr, 'observation requires|not allowed with argument|settings-sync-diagnostic requires observe-apps')
 
     def test_close_only_cli_and_factory_preserve_explicit_scope(self):
         required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',

@@ -302,6 +302,28 @@ def validate_apps_inputs(reference, writer):
         raise ValueError('evidence writer must be a little-endian ARM64 ELF executable')
 
 
+def validate_settings_sync_diagnostic(source):
+    source = Path(source)
+    if source.is_symlink() or not source.is_file() or source.stat().st_size > 1024**2:
+        raise ValueError('settings diagnostic requires a regular bounded ARM64 shared ELF')
+    with source.open('rb') as stream:
+        header = stream.read(64)
+    if (len(header) != 64 or header[:7] != b'\x7fELF\x02\x01\x01'
+            or header[16:20] != b'\x03\x00\xb7\x00'):
+        raise ValueError('settings diagnostic requires an ARM64 shared ELF')
+    return source
+
+
+def stage_settings_sync_diagnostic(source, stage):
+    """Stage an explicit, bounded VM-only ARM64 DSO without replacing an output."""
+    source = validate_settings_sync_diagnostic(source)
+    target = stage/'settings-sync-diagnostic.so'
+    with source.open('rb') as stream, target.open('xb') as output:
+        shutil.copyfileobj(stream, output, 1024*1024)
+    target.chmod(0o644)
+    return target
+
+
 def observation_channel(apps):
     if apps:
         # Host is the sole event-log writer. Duplex channel returns the exact
@@ -345,6 +367,8 @@ def main():
                         help='automatic-caret only: long RAM document and strict low-caret pointer mapping probe')
     parser.add_argument('--launcher-reference', type=Path)
     parser.add_argument('--evidence-writer', type=Path)
+    parser.add_argument('--settings-sync-diagnostic', type=Path,
+                        help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
     args = parser.parse_args()
     combined = args.session_archive is not None
     if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
@@ -362,6 +386,8 @@ def main():
         parser.error('close-only requires observe-apps and excludes caret/text observation')
     if args.startup_only and (not combined or args.observe_apps or args.observe_editor):
         parser.error('startup-only requires combined inputs and excludes UI observation')
+    if args.settings_sync_diagnostic is not None and not args.observe_apps:
+        parser.error('settings-sync-diagnostic requires observe-apps')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -406,6 +432,8 @@ def main():
             result['host_render_node'] = {'path': str(args.host_render_node), 'rdev': node.st_rdev, 'resolved': str(args.host_render_node.resolve())}
         if args.observe_apps:
             validate_apps_inputs(regular(args.launcher_reference), regular(args.evidence_writer))
+        if args.settings_sync_diagnostic is not None:
+            validate_settings_sync_diagnostic(args.settings_sync_diagnostic)
         result['runtime_view'] = str(runtime)
         result['container_images'] = {'qemu': args.qemu_image, 'toolchain': args.toolchain_image}
         for key, command in [('commit', ['rev-parse', 'HEAD']), ('tree', ['rev-parse', 'HEAD^{tree}']),
@@ -428,6 +456,8 @@ def main():
                             REPO/'scripts/host/qemu-launcher-protocol.py']
             if args.bottom_caret:
                 input_files.append(REPO/'scripts/host/qemu-caret-protocol.py')
+        if args.settings_sync_diagnostic is not None:
+            input_files += [regular(args.settings_sync_diagnostic), SOURCES/'settings-sync-diagnostic.c']
         if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
@@ -498,6 +528,9 @@ def main():
             if args.bottom_caret:
                 (stage / 'stage/bottom-caret-probe').write_text('1\n')
                 result['outputs']['stage/bottom-caret-probe'] = identity(stage / 'stage/bottom-caret-probe')
+        if args.settings_sync_diagnostic is not None:
+            target = stage_settings_sync_diagnostic(args.settings_sync_diagnostic, stage/'stage')
+            result['outputs']['stage/settings-sync-diagnostic.so'] = identity(target)
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)

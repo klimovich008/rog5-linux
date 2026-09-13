@@ -77,7 +77,7 @@ else:
                        + '\n' + LIFECYCLE + '\nlauncher_guest_guard() { :; }\n')
         self.wrapper = self.root / 'tile-wrapper'
         self.wrapper.write_text('#!/bin/bash\n' + self.prefix
-            + '[[ $1 == launch ]]; logind_apps_supervise "$2" "$HOME/launcher-apps" "$TEST_BIN"\n')
+            + '[[ $1 == launch ]]; logind_apps_supervise "$2" "$HOME/launcher-apps" "$TEST_BIN" "${TEST_SYNC_LIBRARY:-}"\n')
         self.wrapper.chmod(0o700)
         self.master, self.slave = pty.openpty()
         tty.setraw(self.slave)
@@ -189,6 +189,58 @@ finish_authenticated_apps
         self.until(lambda: b'EDITOR_WAYLAND fixture Mousepad protocol' in self.events
                    and b'FOOT_WAYLAND ROG5 controlled terminal:' in self.events)
         return controller, editor, foot
+
+    def settings_sync_fixture(self, loaded=True):
+        # An inert DSO tests the real supervisor's environment/staging seam.
+        # The actual interposer/callee behavior has its own real-library suite.
+        library = self.root / 'inert.so'
+        subprocess.run(['cc', '-x', 'c', '-shared', '-fPIC', '-o', str(library), '-'],
+                       input=b'void fixture(void) {}\n', check=True, timeout=15,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        library.chmod(0o644)
+        self.env['TEST_SYNC_LIBRARY'] = str(library)
+        self.command('timeout', '''[[ -z ${LD_PRELOAD:-} && -z ${ROG5_SETTINGS_SYNC_LOG:-} ]]
+exec /usr/bin/timeout "$@"
+''')
+        marker = 'ROG5_SETTINGS_SYNC phase=loaded resolved=true clock=CLOCK_MONOTONIC pid=1 time_ns=1' if loaded else ''
+        self.command('mousepad', '''[[ $LD_PRELOAD == "$TEST_SYNC_LIBRARY" ]]
+[[ $ROG5_SETTINGS_SYNC_LOG == "$HOME/launcher-apps/mousepad/settings-sync.log" ]]
+[[ -f $ROG5_SETTINGS_SYNC_LOG && ! -L $ROG5_SETTINGS_SYNC_LOG && ! -s $ROG5_SETTINGS_SYNC_LOG ]]
+[[ $(stat -c '%u %a %h' "$ROG5_SETTINGS_SYNC_LOG") == "$EUID 600 1" ]]
+''' + (f"printf '%s\\n' '{marker}' > \"$ROG5_SETTINGS_SYNC_LOG\"\n" if loaded else '') + '''
+trap 'exit 0' TERM
+echo 'fixture Mousepad protocol'
+while :; do sleep .1; done
+''')
+
+    def test_settings_sync_diagnostic_is_private_and_only_preloads_mousepad(self):
+        self.settings_sync_fixture()
+        controller, editor, foot = self.ready_apps()
+        os.write(self.master, (self.token + '\n').encode())
+        out, err = controller.communicate(timeout=8)
+        self.assertEqual(controller.returncode, 0, out.decode() + err.decode())
+        self.assertEqual(editor.wait(timeout=2), 0)
+        self.assertEqual(foot.wait(timeout=2), 0)
+        self.assertIn(b'DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=loaded resolved=true', self.events)
+
+    def test_settings_probe_replay_does_not_mask_first_reader_failure(self):
+        self.settings_sync_fixture()
+        self.command('head', '''if [[ $1 == -c && $2 == 512 && $3 == -- && $4 == */timeout.log ]]; then exit 42; fi
+exec /usr/bin/head "$@"
+''')
+        controller, editor, foot = self.ready_apps()
+        os.write(self.master, (self.token + '\n').encode())
+        out, err = controller.communicate(timeout=8)
+        self.assertNotEqual(controller.returncode, 0, out.decode() + err.decode())
+        self.assertNotEqual(editor.wait(timeout=2), 0)
+
+    def test_missing_settings_sync_loaded_marker_is_not_diagnostic_success(self):
+        self.settings_sync_fixture(loaded=False)
+        controller, editor, foot = self.ready_apps()
+        os.write(self.master, (self.token + '\n').encode())
+        out, err = controller.communicate(timeout=8)
+        self.assertNotEqual(controller.returncode, 0, out.decode() + err.decode())
+        self.assertEqual(editor.wait(timeout=2), 125)
 
     def test_inherited_evidence_descriptor_does_not_reopen_removed_sink(self):
         alias = self.root / 'sink'
@@ -679,7 +731,7 @@ while :; do sleep .1; done
         while True:
             try: os.write(fd, b'x' * 4096)
             except BlockingIOError: break
-        code = ('set -eu\nstate=$1; app=mousepad; bindir=$TEST_BIN; text=$2\n'
+        code = ('set -eu\nstate=$1; app=mousepad; bindir=$TEST_BIN; text=$2; sync_library=; sync_log=\n'
                 + launch + '\nsleep .2\nkill -TERM "$editor"\n'
                 + 'status=0; wait "$editor" || status=$?\n[[ $status == 143 ]]\n')
         child = self.spawn(['bash', '-c', code, 'fixture', str(self.state), str(self.text)])
