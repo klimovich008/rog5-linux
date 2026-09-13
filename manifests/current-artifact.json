@@ -1593,6 +1593,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "picture_paint_caret": {
+      "status": "FAIL_VM_LAUNCHER_ICONS_AFTER_PICTURE_PAINT",
+      "set_id": "private:rog5-picture-paint-20260913-r1",
+      "source_commit": "aab7db8b4dfd007502184f78280f2ed1a7b61f70",
+      "evidence": {
+        "path": "test-results/2026-09-13-picture-paint-qualification.json",
+        "sha256": "0153d25b5ab9a91d7cb217a4af187d064e88106a289f589b2383494d4a916283",
+        "bytes": 135669
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "VM reaches Denial; recurring missing launcher icons block input qualification",
+  "phase": "Picture paint executes in VM; missing launcher icons still block input qualification",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Bounded startup diagnostics and105active suites pass. One VM reached Denial but eight captures lacked app/fallback icons; readiness correctly refused clicks. Three SVG decodes and seven build-picture records narrow the unresolved boundary to picture paint/render/presentation, without proving a scheduling cause. Instrument that actual path before another bounded comparison; preserve timing/readiness guards, the pointer-origin fix and existing binaries as control. Prior startup timeout remains FAIL; bottom-caret remains NOT RUN. No phone operations; physical NOT RUN; S06/R01 FAIL.",
-  "evidence": "test-results/2026-09-13-logind-startup-diagnostic.md"
+  "next": "Host caret settling repair and 105 active suites pass. The unchanged diagnostic shell reproduced missing icons in eight captures despite seven complete Dart picture paint/draw sequences. No pointer action occurred, so runtime caret settling remains NOT RUN. Correlate the recorded picture frame with Flutter raster/output callback, output damage, native submission and presentation before another VM; do not guess a scheduler fix or loosen readiness. Retain the prior successful-icon run and its old-row caret failure. No phone operations; physical NOT RUN; S06/R01 FAIL.",
+  "evidence": "test-results/2026-09-13-picture-paint-caret.md"
 }

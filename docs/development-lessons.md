@@ -3098,3 +3098,14 @@ Read full stage names before concluding a stage is absent, distinguish widget
 build from paint, and inspect the selected picture rendering strategy before
 instrumenting a raster-only path. Preserve each failure; do not loosen readiness
 or repeat an unchanged large build to investigate it.
+
+Picture paint and selection boundaries (2026-09-13): instrument the actual
+selected picture paint path; widget build and decode do not prove drawing.
+Compare production canvas operations and exception behavior against the
+baseline before using diagnostics. A fresh post-press text-input rectangle
+can still describe the pre-selection row; it is not an action acknowledgement.
+Wait only within the original deadline, validate surface/geometry/mapping
+before waiting, and reject late qualifying updates too. Host fixture success
+does not prove the runtime client eventually provides a qualifying rectangle.
+A host observer change requires no new AOT/kernel build; compare exact VM
+inputs and reuse unchanged artifacts. Retain every earlier VM failure.

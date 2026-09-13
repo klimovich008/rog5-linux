@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM reaches Denial; recurring missing launcher icons block input qualification**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Picture paint executes in VM; missing launcher icons still block input qualification**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Bounded startup diagnostics and105active suites pass. One VM reached Denial but eight captures lacked app/fallback icons; readiness correctly refused clicks. Three SVG decodes and seven build-picture records narrow the unresolved boundary to picture paint/render/presentation, without proving a scheduling cause. Instrument that actual path before another bounded comparison; preserve timing/readiness guards, the pointer-origin fix and existing binaries as control. Prior startup timeout remains FAIL; bottom-caret remains NOT RUN. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-logind-startup-diagnostic.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Host caret settling repair and 105 active suites pass. The unchanged diagnostic shell reproduced missing icons in eight captures despite seven complete Dart picture paint/draw sequences. No pointer action occurred, so runtime caret settling remains NOT RUN. Correlate the recorded picture frame with Flutter raster/output callback, output damage, native submission and presentation before another VM; do not guess a scheduler fix or loosen readiness. Retain the prior successful-icon run and its old-row caret failure. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-picture-paint-caret.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
