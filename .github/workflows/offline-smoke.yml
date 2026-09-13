@@ -59,6 +59,7 @@ jobs:
             bubblewrap \
             rustc \
             libegl1 \
+            libwayland-dev libwayland-bin \
             libgles2 \
             libgl1-mesa-dri \
             clang \
@@ -133,6 +134,7 @@ jobs:
             bubblewrap \
             rustc \
             libegl1 \
+            libwayland-dev libwayland-bin \
             libgles2 \
             libgl1-mesa-dri \
             clang \

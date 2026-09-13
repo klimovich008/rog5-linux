@@ -7945,6 +7945,60 @@
         "scripts/host/qemu-mobile-observer.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-native-capture.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/qemu-native-capture.py",
+        "scripts/host/qemu-mobile-observer.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-screencopy.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3",
+        "gcc",
+        "pkg-config",
+        "wayland-scanner"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/screencopy.c",
+        "scripts/host/build-qemu-screencopy.py",
+        "tools/qemu-virtio-drm/wlr-screencopy-unstable-v1.xml"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

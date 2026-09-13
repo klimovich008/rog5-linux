@@ -72,6 +72,12 @@ void _start(void)
 	mountfs("/stage", "/sysroot/run", "", 4096, "");
 	mountfs("payload", "/sysroot/run/payload", "9p", 1,
 		"trans=virtio,version=9p2000.L,msize=262144");
+	fd = call(56, AT_FDCWD, (long)"/stage/native-capture-enabled", 0, 0, 0);
+	if (fd >= 0) {
+		call(57, fd, 0, 0, 0, 0);
+		mountfs("capture", "/sysroot/run/native-capture", "9p", 0,
+			"trans=virtio,version=9p2000.L,msize=262144");
+	}
 	check(call(34, AT_FDCWD, (long)"/sysroot/dev/pts", 0755, 0, 0),
 		"mkdir dev/pts");
 	mountfs("devpts", "/sysroot/dev/pts", "devpts", 0,

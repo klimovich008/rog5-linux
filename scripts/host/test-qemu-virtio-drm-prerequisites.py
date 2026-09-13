@@ -379,6 +379,22 @@ class RuntimePrerequisites(unittest.TestCase):
                 root, True, mobile=True, editor=True), ['usr/bin/Xwayland', 'usr/bin/mousepad'])
             self.assertEqual(GUEST.missing_runtime_inputs(root, False), [])
 
+    def test_native_capture_requires_move_and_client_library(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ('bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest'):
+                path = root/'usr/bin'/name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            self.assertEqual(GUEST.missing_runtime_inputs(root, False), [])
+            required = ['usr/bin/mv', 'usr/lib/libwayland-client.so.0']
+            self.assertEqual(GUEST.missing_runtime_inputs(root, False, native=True), required)
+            for relative in required:
+                path = root/relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            self.assertEqual(GUEST.missing_runtime_inputs(root, False, native=True), [])
+
     def test_actual_zero_frame_summary_is_failure(self):
         line = ('independently clocked Flutter KMS session complete '
                 '\x1b[3mraster_frames\x1b[0m\x1b[2m=\x1b[0m0 '

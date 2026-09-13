@@ -20,7 +20,7 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def missing_runtime_inputs(runtime, shell, mobile=False, editor=False):
+def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=False):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
     commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
     paths = ['usr/bin/'+name for name in commands]
@@ -32,6 +32,8 @@ def missing_runtime_inputs(runtime, shell, mobile=False, editor=False):
                     'sha256sum', 'glib-compile-schemas', 'update-mime-database')]
         paths += ['usr/share/glib-2.0/schemas/org.xfce.mousepad.gschema.xml',
                   'usr/share/mime/packages/freedesktop.org.xml']
+    if native:
+        paths += ['usr/bin/mv', 'usr/lib/libwayland-client.so.0']
     return [path for path in paths if not (runtime/path).is_file()]
 
 
@@ -267,6 +269,8 @@ def main():
     parser.add_argument('--flutter-bundle', type=Path)
     parser.add_argument('--observe-mobile-editor', action='store_true',
                         help='native Wayland Mousepad text probe; requires mobile observation')
+    parser.add_argument('--native-screencopy', type=Path,
+                        help='ARM64 native capture client; pair initial/final editor VNC captures')
     parser.add_argument('--observe-mobile', action='store_true',
                         help='portrait mobile profile, bounded QMP screenshots and OSK pointer gestures')
     parser.add_argument('--render-node', type=Path,
@@ -281,6 +285,8 @@ def main():
         parser.error('mobile observation requires Flutter and an explicit VirGL render node')
     if args.observe_mobile_editor and not args.observe_mobile:
         parser.error('native editor probe requires --observe-mobile')
+    if args.native_screencopy and not args.observe_mobile_editor:
+        parser.error('native screencopy requires editor observation')
     render_node = render_node_identity(args.render_node) if args.render_node else None
     if not 30 <= args.deadline <= 300:
         parser.error('deadline must be between 30 and 300 seconds')
@@ -299,7 +305,8 @@ def main():
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
-    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile, args.observe_mobile_editor)
+    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile,
+                                     args.observe_mobile_editor, bool(args.native_screencopy))
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,
@@ -313,6 +320,11 @@ def main():
     payload = output/'payload'
     payload.mkdir()
     shutil.copy2(executable, payload/('egl-thread-probe' if args.egl_thread_probe else 'deniald'))
+    if args.native_screencopy:
+        shutil.copy2(args.native_screencopy.resolve(strict=True), payload/'screencopy')
+        (stage/'stage/native-capture').mkdir()
+        (stage/'stage/native-capture-enabled').write_text('1\n')
+        shutil.copy2(repo/'tools/qemu-virtio-drm/native-capture.sh', stage/'stage/native-capture.sh')
     if args.flutter_bundle:
         bundle = args.flutter_bundle.resolve(strict=True)
         for required in ('lib/libflutter_engine.so', 'lib/libapp.so', 'data/icudtl.dat'):
@@ -347,6 +359,7 @@ def main():
     name = 'rog5-virtual-drm-' + uuid.uuid4().hex[:12]
     launched = False
     observer = None
+    native_capture = None
     editor_readiness = EditorProtocol() if args.observe_mobile_editor else None
     observer_finalized = False
     observation_error = None
@@ -357,7 +370,17 @@ def main():
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             observer_class = module.EditorObserver if args.observe_mobile_editor else module.MobileObserver
-            observer = observer_class(output/'observe', name, capture_backend=module.capture_vnc)
+            backend = module.capture_vnc
+            if args.native_screencopy:
+                native_path = Path(__file__).with_name('qemu-native-capture.py')
+                native_spec = importlib.util.spec_from_file_location('qemu_native_capture', native_path)
+                native_module = importlib.util.module_from_spec(native_spec)
+                native_spec.loader.exec_module(native_module)
+                native_capture = native_module.NativeCapture(output/'native', backend, module.png_identity)
+                backend = native_capture
+                report['native_capture_inputs'] = {'client_sha256': digest(payload/'screencopy'),
+                    'host_sha256': digest(native_path), 'worker_sha256': digest(stage/'stage/native-capture.sh')}
+            observer = observer_class(output/'observe', name, capture_backend=backend)
             report['mobile_editor'] = args.observe_mobile_editor
             if args.observe_mobile_editor:
                 report['editor_binary_sha256'] = digest(runtime/'usr/bin/mousepad')
@@ -407,6 +430,11 @@ def main():
                         '-vnc', 'unix:/observe/vnc.sock']
             index = command.index('virtio-gpu-gl-device,xres=640,yres=480')
             command[index] = 'virtio-gpu-gl-device,xres=540,yres=1224'
+        if native_capture:
+            index = command.index(args.image)
+            command[index:index] = ['-v', str(output/'native')+':/native:rw']
+            command += ['-fsdev', 'local,id=capture,path=/native,security_model=none',
+                        '-device', 'virtio-9p-device,fsdev=capture,mount_tag=capture']
         report['command'] = command
         logpath = output/'serial.log'
         with logpath.open('xb') as log:
@@ -415,6 +443,8 @@ def main():
                 try:
                     end = time.monotonic() + args.deadline
                     while process.poll() is None:
+                        if native_capture:
+                            native_capture.check_bound()
                         if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
                             raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
                         if observer and not observer.complete:
@@ -476,6 +506,12 @@ def main():
             report['status'] = 'FAIL'
         if args.observe_mobile_editor and report.get('editor_protocol', {}).get('status') != 'PASS':
             report['status'] = 'FAIL'
+        if native_capture:
+            report['native_capture'] = {'records': native_capture.records,
+                'status': 'PASS' if len(native_capture.records) == 2 else 'FAIL',
+                'scope': 'capture transport only; inspect visual content independently'}
+            if len(native_capture.records) != 2:
+                report['status'] = 'FAIL'
         if launched:
             check = subprocess.run(['podman', 'container', 'exists', name], timeout=10)
             report['container_removed'] = check.returncode == 1

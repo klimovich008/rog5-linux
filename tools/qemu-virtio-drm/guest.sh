@@ -80,7 +80,8 @@ elif [[ -d /run/payload/flutter ]]; then
     udev_pid=''
     editor_pid=''
     editor_log_pid=''
-    trap 'if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
+    native_pid=''
+    trap 'if [[ -n $native_pid ]]; then kill "$native_pid" 2>/dev/null || true; wait "$native_pid" || true; fi; if [[ -n $editor_pid ]]; then kill "$editor_pid" 2>/dev/null || true; wait "$editor_pid" || true; fi; if [[ -n $editor_log_pid ]]; then kill "$editor_log_pid" 2>/dev/null || true; wait "$editor_log_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
     if [[ -f /run/shell-profile ]]; then
         # Fixed virtual devices need real udev input_id data for libinput.
         for event in /sys/class/input/event*; do
@@ -126,6 +127,10 @@ elif [[ -d /run/payload/flutter ]]; then
     done
     test -S "$SEATD_SOCK"
     test -S "$XDG_RUNTIME_DIR/bus"
+    if [[ -f /run/native-capture-enabled ]]; then
+        bash /run/native-capture.sh &
+        native_pid=$!
+    fi
     shell_seconds=45
     shell_options=(--start-locked)
     if [[ -f /run/mobile-editor ]]; then

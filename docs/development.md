@@ -95,6 +95,15 @@ read-only. Mousepad alone writes to an owned, prefixed protocol stream; input
 waits for its configured, buffer-backed toplevel and later presentation, not
 merely compositor startup. Cache-generation failure stops the probe.
 
+To distinguish native composition from VNC capture, add `--native-screencopy`
+with the ARM64 client built by `scripts/host/build-qemu-screencopy.py`. This pairs
+initial/final VNC captures with the compositor's `zwlr_screencopy` output. Only
+the new private `output/native` directory is writable through the guest's extra
+9p mount; the aggregate is limited to8MiB. The client has a5-second deadline,
+the host handoff8 seconds. Raw RGB PPM and losslessly encoded PNG identities are
+retained. The pairs are sequential observations, not a claim of identical frame
+timestamps. Transport PASS still requires separate inspection of visible content.
+
 The authenticated successor graph is
 `mobile-package-snapshot-20260912-xwayland.json` (326 packages). The historical
 315-package graph remains unchanged. A full-shell run now requires a guest
