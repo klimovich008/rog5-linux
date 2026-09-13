@@ -40,6 +40,13 @@ directory or sibling Images. Do not hardlink duplicate live artifacts: recovery
 readers can require a single link and bind device/inode identity. Persist each
 deletion intent before unlinking so interruption leaves a durable audit trail.
 
+The next audit found another 10.88 GB of objects in seven completed August
+outputs named `kernel-a`, `kernel-b`, `output`, or directly as the state root.
+Discover compiler files under the measured historical roots first, then locate
+their nearest build configuration; a directory-name shortlist misses these.
+A revoked boot policy does not mean an artifact is retired for storage, and
+a retired inventory row does not override a remaining recovery consumer.
+
 For unpublished failed filesystem-build scratch, a verified lossless sparse
 archive can retain the failure data without keeping its original allocation.
 Restore the archive into a fresh disk-backed directory and compare equal logical
