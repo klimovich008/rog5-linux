@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Authenticated OSK probe prepared; GTK portal startup blocks VM qualification",
+  "phase": "Authenticated OSK text observed; service readiness remains unstable",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The authenticated editor observer and focused host regressions are implemented; the corrected real OSK run remains unqualified. First VM rejected Mousepad home-path title, then timed out and panicked during incomplete shutdown. The established /tmp filename fixes that exact parser counterexample. The next VM failed earlier at service-start124 (21s against20s); no apps/input ran and normal poweroff passed. Retained Fontconfig system caches are empty; the RAM /var overlay and679 font files make cold cache work a concrete hypothesis, not an established cause. Next measure and prepare exact guest font caches with bounded tools, then rerun the corrected interaction without weakening service/cleanup guards. Existing authenticated-session PASS remains separate. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL.",
-  "evidence": "test-results/2026-09-13-authenticated-editor.md"
+  "next": "The cache-only VM delivered exact OSK keys and visible test/tes/test with normal poweroff, but terminal counter evidence was lost at its ordinary log cap. Source now restores packaged Fontconfig defaults, verifies mobile-UID config/cache consumption and preserves bounded terminal/error records. The successor still timed out at service-start12420s before apps despite prepared fonts; no sufficient timeout cause is established. The retained journal shows all four Type=dbus services acquiring names near the deadline, but second-resolution timestamps cannot order readiness against the cutoff. Capture per-unit monotonic activation and job-completion timing before another VM. Final ANSI filter normalization passed host regressions and was not rerun in a VM. Existing authenticated-session PASS and failed historical runs remain separate. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL.",
+  "evidence": "test-results/2026-09-13-font-cache.md"
 }
