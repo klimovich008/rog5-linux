@@ -26,16 +26,28 @@ require_fuse_device() {
     }
 }
 qualify_activated_services() {
-    local states mount_record target fstype options extra
+    local states mount_record target fstype options extra started rc
     local -a services=(at-spi-dbus-bus.service xdg-document-portal.service
         xdg-desktop-portal-gtk.service xdg-desktop-portal.service)
-    timeout -k 1 20 systemctl --user start "${services[@]}" || return $?
-    states=$(timeout -k 1 3 systemctl --user is-active "${services[@]}") || return $?
+    started=$SECONDS; rc=0
+    echo 'OBSERVE stage=service-start phase=begin deadline_seconds=20' >&2
+    timeout -k 1 20 systemctl --user start "${services[@]}" || rc=$?
+    printf 'OBSERVE stage=service-start phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
+    ((rc == 0)) || return "$rc"
+    started=$SECONDS; rc=0
+    echo 'OBSERVE stage=service-state phase=begin deadline_seconds=3' >&2
+    states=$(timeout -k 1 3 systemctl --user is-active "${services[@]}") || rc=$?
+    printf 'OBSERVE stage=service-state phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
+    ((rc == 0)) || return "$rc"
     [[ $states == $'active\nactive\nactive\nactive' ]] || {
         echo 'FAIL activated accessibility/portal services not all active' >&2; return 1;
     }
+    started=$SECONDS; rc=0
+    echo 'OBSERVE stage=document-mount phase=begin deadline_seconds=3' >&2
     mount_record=$(timeout -k 1 3 findmnt --kernel --noheadings --raw \
-        --mountpoint "$XDG_RUNTIME_DIR/doc" --output TARGET,FSTYPE,OPTIONS) || return $?
+        --mountpoint "$XDG_RUNTIME_DIR/doc" --output TARGET,FSTYPE,OPTIONS) || rc=$?
+    printf 'OBSERVE stage=document-mount phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
+    ((rc == 0)) || return "$rc"
     [[ -n $mount_record && $mount_record != *$'\n'* ]] || return 1
     read -r target fstype options extra <<< "$mount_record"
     [[ $target == "$XDG_RUNTIME_DIR/doc" && -n $options && -z $extra &&

@@ -287,6 +287,7 @@ systemctl(){
     printf 'SERVICE %s\n' "$*" >&2
     if [[ $2 == start ]]; then [[ $MODE != start_fail ]] || return 124; return 0; fi
     [[ $MODE != query_fail ]] || return 42
+    [[ $MODE != query_deadline ]] || return 124
     case $MODE in
         empty_states) return 0;;
         partial_states) printf 'active\nactive\nactive\n';;
@@ -298,6 +299,7 @@ findmnt(){
     printf 'MOUNT %s\n' "$*" >&2
     case $MODE in
         mount_fail) return 1;;
+        mount_deadline) return 124;;
         empty_mount) return 0;;
         ancestor) printf '/run/user/1000 tmpfs rw\n';;
         wrong_type) printf '/run/user/1000/doc tmpfs rw\n';;
@@ -357,6 +359,23 @@ require_fuse_device "$1" "$2"
                 self.assertIn('MOUNT --kernel --noheadings --raw --mountpoint /run/user/1000/doc --output TARGET,FSTYPE,OPTIONS', result.stderr)
                 self.assertIn('OBSERVE document portal mount=/run/user/1000/doc fuse', result.stdout)
                 self.assertIn('CLIENTS-MAY-START', result.stdout)
+
+    def test_each_boundary_reports_its_exact_status_on_stderr(self):
+        stages = ['service-start', 'service-state', 'document-mount']
+        for mode, stage, status in [('success', 'document-mount', 0),
+                                   ('start_fail', 'service-start', 124),
+                                   ('query_fail', 'service-state', 42),
+                                   ('query_deadline', 'service-state', 124),
+                                   ('mount_fail', 'document-mount', 1),
+                                   ('mount_deadline', 'document-mount', 124)]:
+            with self.subTest(mode=mode):
+                result = self.qualify(mode)
+                self.assertEqual(result.returncode, status, result.stdout+result.stderr)
+                self.assertRegex(result.stderr, rf'OBSERVE stage={stage} phase=begin deadline_seconds=\d+')
+                self.assertRegex(result.stderr, rf'OBSERVE stage={stage} phase=end status={status} elapsed_seconds=\d+')
+                self.assertNotIn('OBSERVE stage=', result.stdout)
+                for later in stages[stages.index(stage)+1:]:
+                    self.assertNotIn(f'OBSERVE stage={later}', result.stderr)
 
     def test_service_and_mount_failures_never_admit_clients(self):
         for mode in ['start_fail', 'query_fail', 'empty_states', 'partial_states', 'inactive',
