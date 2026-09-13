@@ -136,14 +136,14 @@ elif [[ -d /run/payload/flutter ]]; then
     shell_options=(--start-locked)
     if [[ -f /run/mobile-launcher ]]; then
         read -r launcher_mode < /run/mobile-launcher
-        [[ $launcher_mode == discover && -f /run/shell-profile ]]
+        [[ ( $launcher_mode == discover || $launcher_mode == apps ) && -f /run/shell-profile ]]
         source /run/launcher-apps.sh
         launcher_prepared=1
         launcher_apps_prepare
         unset DENIA_START_LOCKED
         shell_options=()
         shell_seconds=90
-        echo 'OBSERVE unlocked launcher discovery; no automatic app launch'
+        echo "OBSERVE unlocked launcher mode=$launcher_mode; no automatic app launch"
     fi
     if [[ -f /run/mobile-editor ]]; then
         read -r editor < /run/mobile-editor

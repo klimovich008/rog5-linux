@@ -2639,3 +2639,11 @@ regression with null stdio reproduced the empty sink, and an explicit guest
 console sink fixed it without changing the caller's descriptors. Prepare owned
 cleanup for UI-launched process groups before interaction, and discover launcher
 tiles from captured output before selecting gesture coordinates.
+
+Match gesture direction to the current window snapshot, not creation order.
+The pinned native snapshot exports Smithay elements back-to-front; activating an
+app raises it to the end, and Dart preserves that order. Both return switches
+therefore use a right drag to the preceding window after activation settles.
+Inspect the launcher loading frame before using presentation as app readiness:
+matching the previously inspected icon regions excludes the Loading screen.
+Keep later native focus/presentation evidence separate from pointer delivery.

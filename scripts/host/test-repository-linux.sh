@@ -175,6 +175,7 @@ native_wifi_probe_tests=(
 active_tests=(
 	scripts/host/test-qemu-mobile-observer.py
 	scripts/host/test-qemu-launcher-apps.py
+	scripts/host/test-qemu-launcher-protocol.py
 	scripts/host/test-qemu-native-capture.py
 	scripts/host/test-qemu-screencopy.py
 	scripts/host/test-qemu-virtio-drm-prerequisites.py

@@ -815,5 +815,124 @@ class VNCCapture(unittest.TestCase):
                     observer.finish('fixture complete')
 
 
+class AppSwitchObservation(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='qmp-apps-')
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.reference = self.root/'reference.png'
+        self.reference.write_bytes(png_fixture())
+
+    def observer(self, label='observe', **options):
+        class Protocol:
+            focus_history = []
+            app = None
+            mapped = False
+            def ready(self, app): return self.mapped and self.app == app
+            def focused(self, app): return self.app == app
+        protocol = Protocol()
+        directory = self.root/label
+        client = CaptureClient(directory, **options)
+        sleeps = []
+        observer = MOBILE.AppSwitchObserver(directory, 'owned', protocol=protocol,
+            reference=self.reference, sleep=sleeps.append,
+            client_factory=lambda path, name: client)
+        (directory/'qmp.sock').touch()
+        return observer, client, protocol, sleeps
+
+    @staticmethod
+    def focus(protocol, app):
+        protocol.focus_history = [*protocol.focus_history, app]
+        protocol.app, protocol.mapped = app, True
+
+    def advance(self, observer, protocol):
+        if observer.STEPS[observer.stage][0] == 'client':
+            self.focus(protocol, observer.STEPS[observer.stage][1][0])
+        observer.tick(observer.next_at, True)
+
+    def test_only_matching_tiles_and_fresh_native_focus_advance(self):
+        observer, client, protocol, sleeps = self.observer()
+        observer.tick(0, False)
+        self.assertEqual(client.records, [])
+        observer.tick(0, True)
+        observer.tick(observer.next_at, True)  # Mousepad tile click
+        self.assertEqual(observer.stage, 2)
+        observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 2)
+        self.focus(protocol, 'foot')
+        observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 2)
+        self.focus(protocol, 'mousepad')
+        observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 3)
+        while not observer.complete:
+            self.advance(observer, protocol)
+        result = observer.finish()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(client.buttons, [True, False]*5)
+        self.assertTrue(client.closed)
+        self.assertLess(len(client.records), 64)
+        self.assertEqual(sleeps.count(.08), 2)
+        self.assertEqual(sleeps.count(.025), 13)
+        gestures = [row['value'] for row in result['actions'] if row['operation'] == 'gesture']
+        self.assertEqual(gestures[1:], [((270,1194),(315,1194),(365,1194),(415,1194))]*2)
+        self.assertEqual(len(result['screenshots']), 6)
+        self.assertIn('NOT RUN', result['visual_semantics'])
+        self.assertEqual(result['phone_touch'], 'NOT RUN')
+
+    def test_missing_tiles_expires_without_input(self):
+        # Change a pixel inside the inspected Foot icon, not the clock/status.
+        data = bytearray(1224*(540*3+1))
+        data[580*(540*3+1)+1+180*3] = 255
+        header = struct.pack('>IIBBBBB', 540, 1224, 8, 2, 0, 0, 0)
+        self.reference.write_bytes(b'\x89PNG\r\n\x1a\n'+png_chunk(b'IHDR',header)
+            +png_chunk(b'IDAT',zlib.compress(data))+png_chunk(b'IEND',b''))
+        observer, client, protocol, _ = self.observer()
+        for _ in range(8):
+            observer.tick(observer.next_at, True)
+            self.assertEqual(observer.stage, 0)
+        with self.assertRaisesRegex(TimeoutError, 'tile readiness') as caught:
+            observer.tick(observer.next_at, True)
+        self.assertEqual(observer.finish(caught.exception)['status'], 'FAIL')
+        self.assertEqual(client.buttons, [])
+
+    def test_stale_focus_does_not_prove_switch(self):
+        observer, client, protocol, _ = self.observer()
+        while observer.stage < 8:
+            self.advance(observer, protocol)
+        protocol.app = 'mousepad'  # No new focus enter since last capture.
+        observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 8)
+        self.focus(protocol, 'mousepad')
+        observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 9)
+        self.assertEqual(observer.finish('interrupted')['status'], 'FAIL')
+
+    def test_interruption_at_each_stage_is_failure_and_cleans_up(self):
+        for stop in range(12):
+            with self.subTest(stop=stop):
+                observer, client, protocol, _ = self.observer('stage-'+str(stop))
+                for _ in range(stop):
+                    self.advance(observer, protocol)
+                result = observer.finish('interrupted')
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertTrue(result['pointer_released'])
+                if client.records:
+                    self.assertTrue(client.closed)
+
+    def test_lost_gesture_ack_releases_pointer_on_abort(self):
+        observer, client, protocol, _ = self.observer()
+        while observer.stage < 3:
+            self.advance(observer, protocol)
+        client.fail_down = True
+        with self.assertRaises(RuntimeError) as caught:
+            observer.tick(observer.next_at, True)
+        self.assertTrue(observer.pressed)
+        result = observer.finish(caught.exception)
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertTrue(result['pointer_released'])
+        self.assertEqual(client.buttons[-2:], [True, False])
+
+
 if __name__ == '__main__':
     unittest.main()

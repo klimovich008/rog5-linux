@@ -88,6 +88,18 @@ commands with null stdio, so the guest wrappers explicitly use its console.
 The guest marker and console are mandatory; host tests inject an inert sink.
 No package, compositor, engine or shell rebuild is needed for discovery.
 
+For launcher-based native app interaction, use `--observe-mobile-apps` with
+`--observe-mobile --launcher-reference PATH`, selecting the previously inspected
+540×1224 discovery PNG. This excludes discovery/editor autolaunch modes. Exact
+Foot and Mousepad icon regions must match before tile clicks; clock and battery
+pixels do not participate. Missing tiles stop input after eight bounded captures.
+The owned client parser requires app identity, configure/ack, committed buffer,
+keyboard focus and a later positive presentation interval for every visit.
+Pointer gestures launch Mousepad, return home, launch Foot and switch twice;
+inspect all captures separately. Protocol-only success is not visual usability,
+authentication, phone multitouch or GPU qualification. Client diagnostics and
+cleanup retain their existing limits. No new binary is required for this probe.
+
 For native-client text delivery, add `--observe-mobile-editor` alongside
 `--observe-mobile`. This explicit mode uses normal unlocked startup, launches
 the retained Mousepad with `GDK_BACKEND=wayland` on the sole discovered guest

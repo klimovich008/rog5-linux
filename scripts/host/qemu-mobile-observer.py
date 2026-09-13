@@ -283,8 +283,9 @@ class MobileObserver:
                 return
             self.client = self.client_factory(self.directory/'qmp.sock', self.name)
             self.result['status'] = 'RUNNING'
+        self.advance_stage = True
         delay = self.step()
-        self.stage += 1
+        self.stage += int(self.advance_stage)
         self.next_at = now+delay
 
     def step(self):
@@ -401,3 +402,110 @@ class EditorObserver(MobileObserver):
             self.complete = True
             self.result['status'] = 'PASS'
         return delay
+
+
+def launcher_tile_signatures(path):
+    """Match inspected fixed tile regions in our own unfiltered RGB captures.
+
+    This only recognizes the retained layout; it does not infer arbitrary app
+    names or claim broader visual semantics from image equality.
+    """
+    png_identity(path)  # Validate CRC, dimensions, size and decompression bound.
+    data = path.read_bytes()
+    if data[25] != 2:
+        raise ValueError('launcher reference must be capture-backend RGB')
+    chunks = []
+    offset = 8
+    while offset < len(data):
+        size = struct.unpack('>I', data[offset:offset+4])[0]
+        if data[offset+4:offset+8] == b'IDAT':
+            chunks.append(data[offset+8:offset+8+size])
+        offset += 12+size
+    raw = zlib.decompress(b''.join(chunks))
+    stride = 540*3+1
+    if any(raw[y*stride] != 0 for y in range(1224)):
+        raise ValueError('launcher reference must use our unfiltered capture encoding')
+    result = {}
+    for app, rect in {'foot': (174, 562, 237, 622),
+                      'mousepad': (45, 722, 107, 782)}.items():
+        x0, y0, x1, y1 = rect
+        tile = b''.join(raw[y*stride+1+x0*3:y*stride+1+x1*3] for y in range(y0, y1))
+        result[app] = hashlib.sha256(tile).hexdigest()
+    return result
+
+
+class AppSwitchObserver(MobileObserver):
+    """One owned native launch/switch sequence using inspected launcher tiles."""
+    STEPS = [
+        ('home', '00-home-ready'),
+        ('click', (77, 752)),
+        ('client', ('mousepad', '01-mousepad-launched')),
+        ('gesture', ((270, 1194), (270, 1150), (270, 1060), (270, 970), (270, 880))),
+        ('home', '02-home-returned'),
+        ('click', (205, 592)),
+        ('client', ('foot', '03-foot-launched')),
+        ('gesture', ((270, 1194), (315, 1194), (365, 1194), (415, 1194))),
+        ('client', ('mousepad', '04-mousepad-restored')),
+        # Activation raises each app to the end of the snapshot's stacking
+        # order. Both switches go to the preceding window with a right drag.
+        ('gesture', ((270, 1194), (315, 1194), (365, 1194), (415, 1194))),
+        ('client', ('foot', '05-foot-restored')),
+    ]
+
+    def __init__(self, *args, protocol, reference, sleep=time.sleep, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.protocol = protocol
+        self.reference = launcher_tile_signatures(reference)
+        self.sleep = sleep
+        self.probes = {}
+        self.focus_count = 0
+        self.result.update(probe='UI launch and switch native Mousepad and Foot',
+                           launcher_reference=png_identity(reference),
+                           launcher_tiles=self.reference)
+
+    def step(self):
+        operation, value = self.STEPS[self.stage]
+        self.result['waiting_for'] = {'operation': operation, 'value': value}
+        if operation == 'home':
+            attempt = self.probes.get(self.stage, 0)+1
+            if attempt > 8:
+                raise TimeoutError('launcher tile readiness not observed')
+            self.probes[self.stage] = attempt
+            label = value+'-probe-'+str(attempt)
+            self.capture(label)
+            match = launcher_tile_signatures(self.directory/(label+'.png')) == self.reference
+            self.result.setdefault('tile_checks', []).append({'capture': label, 'matched': match})
+            if not match:
+                self.advance_stage = False
+                return 1.0
+        elif operation == 'client':
+            app, label = value
+            if not (self.protocol.ready(app) and self.protocol.focused(app)
+                    and len(self.protocol.focus_history) > self.focus_count):
+                self.advance_stage = False
+                return .2
+            self.focus_count = len(self.protocol.focus_history)
+            self.capture(label)
+        elif operation == 'click':
+            self.move(*value)
+            self.button(True)
+            self.sleep(.08)
+            self.button(False)
+        elif operation == 'gesture':
+            self.move(*value[0])
+            self.button(True)
+            # Keep consecutive gesture samples inside the Flutter velocity
+            # tracker's history. Ordinary 200ms host polling is too sparse.
+            for point in value[1:]:
+                self.sleep(.025)
+                self.move(*point)
+            self.sleep(.025)
+            self.button(False)
+        else:
+            raise ValueError('unknown fixed application action')
+        self.result['actions'].append({'operation': operation, 'value': value})
+        if self.stage == len(self.STEPS)-1:
+            self.complete = True
+            self.result['status'] = 'PASS'
+            self.result.pop('waiting_for', None)
+        return .8

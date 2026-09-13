@@ -285,6 +285,9 @@ def main():
                         help='native Wayland Mousepad text probe; requires mobile observation')
     parser.add_argument('--observe-mobile-launcher', action='store_true',
                         help='unlocked launcher discovery captures; app interaction NOT RUN')
+    parser.add_argument('--observe-mobile-apps', action='store_true',
+                        help='launch/switch native apps; requires inspected launcher reference')
+    parser.add_argument('--launcher-reference', type=Path)
     parser.add_argument('--native-screencopy', type=Path,
                         help='ARM64 native capture client; pair initial/final editor VNC captures')
     parser.add_argument('--observe-mobile', action='store_true',
@@ -303,6 +306,12 @@ def main():
         parser.error('native editor probe requires --observe-mobile')
     if args.observe_mobile_launcher and (not args.observe_mobile or args.observe_mobile_editor):
         parser.error('launcher discovery requires mobile and excludes editor autolaunch')
+    if args.observe_mobile_apps and (not args.observe_mobile or args.observe_mobile_editor
+                                    or args.observe_mobile_launcher or not args.launcher_reference):
+        parser.error('app interaction requires mobile/reference and excludes editor/discovery')
+    if args.launcher_reference and not args.observe_mobile_apps:
+        parser.error('launcher reference is only used for app interaction')
+    launcher = args.observe_mobile_launcher or args.observe_mobile_apps
     if args.native_screencopy and not args.observe_mobile_editor:
         parser.error('native screencopy requires editor observation')
     render_node = render_node_identity(args.render_node) if args.render_node else None
@@ -324,7 +333,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
     missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile,
-                                     args.observe_mobile_editor, bool(args.native_screencopy), args.observe_mobile_launcher)
+                                     args.observe_mobile_editor, bool(args.native_screencopy), launcher)
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,
@@ -355,8 +364,8 @@ def main():
         (stage/'stage/shell-profile').write_text('mobile\n')
     if args.observe_mobile_editor:
         (stage/'stage/mobile-editor').write_text('mousepad\n')
-    if args.observe_mobile_launcher:
-        (stage/'stage/mobile-launcher').write_text('discover\n')
+    if launcher:
+        (stage/'stage/mobile-launcher').write_text('apps\n' if args.observe_mobile_apps else 'discover\n')
         shutil.copy2(repo/'tools/qemu-virtio-drm/launcher-apps.sh', stage/'stage/launcher-apps.sh')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
@@ -382,6 +391,7 @@ def main():
     observer = None
     native_capture = None
     editor_readiness = EditorProtocol() if args.observe_mobile_editor else None
+    launcher_protocol = None
     observer_finalized = False
     observation_error = None
     try:
@@ -393,6 +403,17 @@ def main():
             observer_class = module.EditorObserver if args.observe_mobile_editor else module.MobileObserver
             if args.observe_mobile_launcher:
                 observer_class = module.LauncherObserver
+            observer_options = {}
+            if args.observe_mobile_apps:
+                protocol_path = Path(__file__).with_name('qemu-launcher-protocol.py')
+                protocol_spec = importlib.util.spec_from_file_location('qemu_launcher_protocol', protocol_path)
+                protocol_module = importlib.util.module_from_spec(protocol_spec)
+                protocol_spec.loader.exec_module(protocol_module)
+                launcher_protocol = protocol_module.LauncherProtocol()
+                observer_class = module.AppSwitchObserver
+                observer_options = dict(protocol=launcher_protocol, reference=args.launcher_reference)
+                report['launcher_protocol_sha256'] = digest(protocol_path)
+                report['app_binary_hashes'] = {app: digest(runtime/'usr/bin'/app) for app in ('foot', 'mousepad')}
             backend = module.capture_vnc
             if args.native_screencopy:
                 native_path = Path(__file__).with_name('qemu-native-capture.py')
@@ -403,10 +424,11 @@ def main():
                 backend = native_capture
                 report['native_capture_inputs'] = {'client_sha256': digest(payload/'screencopy'),
                     'host_sha256': digest(native_path), 'worker_sha256': digest(stage/'stage/native-capture.sh')}
-            observer = observer_class(output/'observe', name, capture_backend=backend)
+            observer = observer_class(output/'observe', name, capture_backend=backend, **observer_options)
             report['mobile_editor'] = args.observe_mobile_editor
             report['mobile_launcher'] = args.observe_mobile_launcher
-            if args.observe_mobile_launcher:
+            report['mobile_apps'] = args.observe_mobile_apps
+            if launcher:
                 report['launcher_apps_sha256'] = digest(stage/'stage/launcher-apps.sh')
             if args.observe_mobile_editor:
                 report['editor_binary_sha256'] = digest(runtime/'usr/bin/mousepad')
@@ -473,6 +495,10 @@ def main():
                             native_capture.check_bound()
                         if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
                             raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
+                        if launcher_protocol:
+                            launcher_protocol.read_available(logpath)
+                            if launcher_protocol.errors:
+                                raise ValueError("launcher protocol rejected: "+str(launcher_protocol.errors))
                         if observer and not observer.complete:
                             if editor_readiness:
                                 ready = editor_readiness.read_available(logpath)
@@ -515,6 +541,13 @@ def main():
             report['editor_protocol'] = editor_result(log)
         if args.observe_mobile_launcher:
             report['launcher_discovery'] = launcher_discovery_result(log)
+        if args.observe_mobile_apps:
+            final_protocol = protocol_module.LauncherProtocol()
+            data = log.encode()
+            for offset in range(0, len(data), 131072):
+                final_protocol.feed(data[offset:offset+131072])
+            report['launcher_protocol'] = final_protocol.result()
+            report['launcher_apps_cleanup'] = 'PASS' if log.splitlines().count('PASS launcher apps cleanup') == 1 else 'FAIL'
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
                 ((report.get('shell_exit') == 'PASS' and
@@ -528,6 +561,8 @@ def main():
         if isinstance(error, subprocess.CalledProcessError) and error.stderr:
             report['stderr'] = error.stderr.decode(errors='replace')[-4000:]
     finally:
+        if launcher_protocol and 'launcher_protocol' not in report:
+            report['launcher_protocol'] = launcher_protocol.result()
         if observer and not observer_finalized:
             report['mobile_observation'] = observer.finish(observation_error)
         if report.get('mobile_observation', {}).get('status', 'PASS') != 'PASS':
@@ -535,6 +570,9 @@ def main():
         if args.observe_mobile_editor and report.get('editor_protocol', {}).get('status') != 'PASS':
             report['status'] = 'FAIL'
         if args.observe_mobile_launcher and report.get('launcher_discovery', {}).get('status') != 'PASS':
+            report['status'] = 'FAIL'
+        if args.observe_mobile_apps and (report.get('launcher_protocol', {}).get('status') != 'PASS'
+                or report.get('launcher_apps_cleanup') != 'PASS'):
             report['status'] = 'FAIL'
         if native_capture:
             report['native_capture'] = {'records': native_capture.records,
