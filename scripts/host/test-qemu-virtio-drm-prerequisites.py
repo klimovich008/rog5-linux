@@ -58,6 +58,21 @@ class RuntimePrerequisites(unittest.TestCase):
                     (20, 1), (20, 0), (14, 1), (14, 0), (20, 1), (20, 0)])
                 self.assertIn('visual text checked separately', result['scope'])
 
+    def test_editor_protocol_accepts_observed_exact_tmp_title_only(self):
+        for title in ('/tmp/rog5-text-probe.txt - Mousepad',
+                      '*/tmp/rog5-text-probe.txt - Mousepad',
+                      '*rog5-text-probe.txt - Mousepad'):
+            with self.subTest(title=title):
+                log = self.editor_log().replace('rog5-text-probe.txt - Mousepad', title)
+                self.assertEqual(GUEST.editor_result(log)['status'], 'PASS')
+        for title in ('/other/rog5-text-probe.txt - Mousepad',
+                      '/tmp/fake-rog5-text-probe.txt - Mousepad',
+                      'rog5-text-probe.txt.backup - Mousepad',
+                      '/tmp/rog5-text-probe.txt - Other'):
+            with self.subTest(title=title):
+                log = self.editor_log().replace('rog5-text-probe.txt - Mousepad', title)
+                self.assertEqual(GUEST.editor_result(log)['status'], 'FAIL')
+
     def test_editor_protocol_requires_linked_toplevel_and_exact_probe_title(self):
         log = self.editor_log()
         invalid = ['', log.replace('rog5-text-probe.txt', 'unrelated.txt'),
@@ -142,6 +157,26 @@ class RuntimePrerequisites(unittest.TestCase):
         parser = GUEST.EditorProtocol()
         parser.feed((self.editor_log()+'EDITOR_WAYLAND -> xdg_toplevel#5.destroy()\n'+self.audit(1)*3).encode())
         self.assertFalse(parser.ready)
+
+    def test_editor_commit_without_attach_retains_current_buffer(self):
+        parser = GUEST.EditorProtocol()
+        parser.feed((self.editor_log()+self.audit(1)*2).encode())
+        self.assertTrue(parser.ready)
+        for line in ('xdg_toplevel#5.configure(540, 1200, array[4])',
+                     'xdg_surface#3.configure(73)',
+                     '-> xdg_surface#3.ack_configure(73)',
+                     '-> wl_surface#4.commit()',
+                     '-> wl_surface#4.commit()'):
+            parser.feed(('EDITOR_WAYLAND '+line+'\n').encode())
+            self.assertTrue(parser.mapped)
+            self.assertTrue(parser.ready)
+        parser.feed(b'EDITOR_WAYLAND -> wl_surface#4.attach(nil, 0, 0)\n')
+        self.assertTrue(parser.mapped)  # Pending NULL does not alter current content.
+        parser.feed(b'EDITOR_WAYLAND -> wl_surface#4.commit()\n')
+        self.assertFalse(parser.mapped)
+        self.assertFalse(parser.ready)
+        parser.feed(b'EDITOR_WAYLAND -> wl_surface#4.commit()\n')
+        self.assertFalse(parser.mapped)
 
     def test_editor_stream_bounds_and_truncation_fail_closed(self):
         parser = GUEST.EditorProtocol()

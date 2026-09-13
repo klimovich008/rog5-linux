@@ -85,8 +85,9 @@ activation. Five captures cover the empty editor, OSK, `test`, deletion to `tes`
 and restoration to `test`. Only pointer events press the OSK; direct keyboard
 injection is excluded. The client protocol must show a native toplevel and the
 exact key press/release sequence; actual rendered text needs separate image
-inspection. This mode allows60 seconds of compositor execution within the same
-120-second host bound. Mousepad has its own65-second bound and joins cleanup.
+inspection. This mode allows90 seconds of compositor execution within the same
+120-second host bound: the retained cold GTK runtime first mapped near guest
+t=61 seconds. Mousepad has its own95-second bound and joins cleanup.
 The ordinary locked probe retains its45-second guest bound. Before D-Bus starts,
 the editor probe generates strict GSettings and MIME databases from the retained
 package data in guest RAM, recording both cache hashes. The package root stays

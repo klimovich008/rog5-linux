@@ -133,7 +133,9 @@ elif [[ -d /run/payload/flutter ]]; then
         [[ $editor == mousepad && -f /run/shell-profile ]]
         unset DENIA_START_LOCKED
         shell_options=()
-        shell_seconds=60
+        # The retained cold GTK runtime mapped at guest t=61s in qualification.
+        # Reserve time for the fixed input sequence within the 120s host cap.
+        shell_seconds=90
         : > /tmp/rog5-text-probe.txt
         mkfifo -m 600 /run/editor-stderr
         sed -u 's/^/EDITOR_WAYLAND /' < /run/editor-stderr &
@@ -149,7 +151,7 @@ elif [[ -d /run/payload/flutter ]]; then
             done
             [[ ${#sockets[@]} == 1 ]] || { echo 'FAIL ambiguous/missing guest Wayland socket'; exit 1; }
             echo 'OBSERVE native Mousepad launch; normal unlocked VM startup; RAM file only'
-            exec timeout --preserve-status --kill-after=2 65 env \
+            exec timeout --preserve-status --kill-after=2 95 env \
                 GDK_BACKEND=wayland WAYLAND_DEBUG=client WAYLAND_DISPLAY="${sockets[0]##*/}" \
                 mousepad /tmp/rog5-text-probe.txt 2>/run/editor-stderr
         ) &

@@ -139,7 +139,7 @@ class EditorProtocol:
                 if len(self.surfaces) >= 64:
                     raise ValueError('editor surface bound exceeded')
                 self.surfaces[xdg] = dict(surface=surface, title=False, configured=False,
-                                          serial=None, ack=False, attached=False, committed=False)
+                                          serial=None, ack=False, pending_attach=None, committed=False)
         elif interface == 'xdg_surface' and object_id in self.surfaces:
             state = self.surfaces[object_id]
             if method == 'get_toplevel' and outgoing:
@@ -149,7 +149,7 @@ class EditorProtocol:
                     if len(self.toplevels) > 64:
                         raise ValueError('editor toplevel bound exceeded')
             elif method == 'configure' and not outgoing and args.isdecimal():
-                state.update(serial=args if state['configured'] else None, ack=False, attached=False)
+                state.update(serial=args if state['configured'] else None, ack=False)
             elif method == 'ack_configure' and outgoing:
                 state['ack'] = state['configured'] and args == state['serial']
             elif method == 'destroy' and outgoing:
@@ -157,7 +157,7 @@ class EditorProtocol:
         elif interface == 'xdg_toplevel' and object_id in self.toplevels:
             state = self.surfaces[self.toplevels[object_id]]
             if method == 'set_title' and outgoing:
-                state['title'] = bool(re.fullmatch(r'"\*?rog5-text-probe\.txt(?: - Mousepad)?"', args))
+                state['title'] = bool(re.fullmatch(r'"\*?(?:/tmp/)?rog5-text-probe\.txt(?: - Mousepad)?"', args))
             elif method == 'configure' and not outgoing:
                 state['configured'] = bool(re.fullmatch(r'\d+, \d+, array\[\d+\]', args))
             elif method == 'destroy' and outgoing:
@@ -167,10 +167,14 @@ class EditorProtocol:
                 if state['surface'] != object_id:
                     continue
                 if method == 'attach':
-                    state['attached'] = bool(state['ack'] and re.fullmatch(
+                    state['pending_attach'] = bool(state['ack'] and re.fullmatch(
                         r'wl_buffer[#@]\d+, -?\d+, -?\d+', args))
                 elif method == 'commit':
-                    state['committed'] = state['title'] and state['attached']
+                    # No attach retains current contents. An explicit NULL
+                    # attach changes contents only when that state is committed.
+                    if state['pending_attach'] is not None:
+                        state['committed'] = state['title'] and state['pending_attach']
+                        state['pending_attach'] = None
                 elif method == 'destroy':
                     state.update(title=False, committed=False)
         elif interface == 'wl_keyboard' and not outgoing:
