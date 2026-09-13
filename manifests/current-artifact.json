@@ -1653,6 +1653,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline VM fixture"
+    },
+    "vm_cleanup_grace": {
+      "status": "HOST_DEADLINE_FIX_PASS_VM_FAIL_BEFORE_CLEANUP",
+      "set_id": "private:rog5-vm-cleanup-grace-20260913-r1",
+      "source_commit": "d3490fa3455d8ad7e5aac82a125d4e0d251a69a8",
+      "evidence": {
+        "path": "test-results/2026-09-13-vm-cleanup-grace-qualification.json",
+        "sha256": "65fb01e80a0c3fa48d729df0617bcf8f0c8a4e142b506dd5a883c9f21bb39768",
+        "bytes": 26439
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {

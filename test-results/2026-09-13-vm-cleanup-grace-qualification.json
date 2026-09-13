@@ -1,0 +1,687 @@
+{
+  "status": "HOST_DEADLINE_FIX_PASS_VM_FAIL_BEFORE_CLEANUP",
+  "authority": "none; offline fixtures",
+  "source": {
+    "commit": "d3490fa3455d8ad7e5aac82a125d4e0d251a69a8",
+    "tree": "3a2f521da44c50e2122c7eef72ce8b604a47c726",
+    "starting_commit": "a890792b2b96c24dbdfa989fa17b7a7c4d471a6b",
+    "phone_operations": 0,
+    "source_change": "host supervisor only; no payload or guest script change"
+  },
+  "previous_turn": "PROGRESS: prior VM proved lower-caret/OSK/app switching; cleanup remained incomplete",
+  "controls": {
+    "original_cutoff": {
+      "status": "EXPECTED_FAIL",
+      "error": "command exceeded 0.2s: /usr/bin/python3",
+      "source_commit": "a890792b2b96c24dbdfa989fa17b7a7c4d471a6b",
+      "scope": "real child with completed interaction fixture, .2s progress cutoff before .35s cleanup; no VM",
+      "steps": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "-c",
+            "import time;time.sleep(.35)"
+          ],
+          "started_utc": "2026-09-13T19:52:35.499958+00:00",
+          "deadline_seconds": 0.2,
+          "status": "FAIL_TIMEOUT",
+          "exit_status": -9,
+          "duration_seconds": 0.20456266100518405,
+          "ended_utc": "2026-09-13T19:52:35.704547+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/control.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      ],
+      "seconds": 0.20526846300344914
+    },
+    "terminal_bypass": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/terminal-before.log",
+      "sha256": "4e4dbb842d45a63f6286a885c46797ecc445552a79bc96eccb169937f9e67504",
+      "bytes": 1835
+    }
+  },
+  "focused": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-qemu-logind-runner.py",
+      "CleanupGrace"
+    ],
+    "cases": 13,
+    "status": "PASS",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/focused-final.log",
+      "sha256": "21f2ead4cc7b0d8da96521b0b112e8a1841e3d33ffe6cc6e4d2b6114d6616229",
+      "bytes": 112
+    }
+  },
+  "earlier_runner_suite": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-qemu-logind-runner.py"
+    ],
+    "cases": 72,
+    "status": "PASS",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/runner-optimized.log",
+      "sha256": "86d46ab204e88924d1ec33bfdb2850135c50a031071b070cfb65e7c4c96e88e2",
+      "bytes": 172
+    },
+    "scope": "before final two test-only additions; complete final suite belongs to active tier"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "d3490fa3455d8ad7e5aac82a125d4e0d251a69a8",
+      "source_tree": "3a2f521da44c50e2122c7eef72ce8b604a47c726",
+      "authority": "host tests only; no phone",
+      "exit_status": 0,
+      "duration_seconds": 164.03906348301098
+    },
+    "launch_command": [
+      "systemd-run",
+      "--user",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "--unit=rog5-cleanup-grace-active-r1",
+      "-p",
+      "MemoryMax=1G",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=256",
+      "-p",
+      "RuntimeMaxSec=600",
+      "-p",
+      "CPUQuota=200%",
+      "-p",
+      "Delegate=yes",
+      "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "env",
+      "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+      "ROG5_TEST_WORKERS=2",
+      "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-report",
+      "TMPDIR=/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/tmp",
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-worker.py"
+    ],
+    "worker": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-worker.py",
+      "sha256": "9bc9be62924e018638c347c4765313661024b1797171b0f32b90fd75fce7c945",
+      "bytes": 1004
+    },
+    "counts": {
+      "PASS": 105,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-report/summary.json",
+      "sha256": "86df18bbe98eb4fe4738341f55fcfcfc8a0f20b27afd2fe50ae1dd3d424568a1",
+      "bytes": 118749
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-report/summary.xml",
+      "sha256": "f16ef5125de34d02b6e150c7ee074f111c52d84b638b409969e8985e0c987f4f",
+      "bytes": 57355
+    }
+  },
+  "vm": {
+    "status": "FAIL",
+    "error": "RuntimeError: operation=command exceeded 300s: podman; cleanup=None",
+    "execution": {
+      "command": [
+        "/usr/bin/python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+        "--runtime-view",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "--runtime-receipt",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "--qemu-image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--toolchain-image",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "--libc",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--libloading",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "--output",
+        "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1",
+        "--session-archive",
+        "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+        "--session-receipt",
+        "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+        "--host-render-node",
+        "/dev/dri/renderD128",
+        "--observe-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "--evidence-writer",
+        "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+        "--automatic-caret",
+        "--bottom-caret"
+      ],
+      "source_commit": "d3490fa3455d8ad7e5aac82a125d4e0d251a69a8",
+      "kernel_receipt": "/home/deck/.local/state/rog5-session-services-20260913-r1/kernel-r3-result.json",
+      "scope": "offline generic VM, no phone",
+      "physical": "NOT RUN",
+      "exit_status": 1,
+      "duration_seconds": 314.00377340699197
+    },
+    "result": {
+      "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/result.json",
+      "sha256": "4c7b9475c9eb9807d285e1c978baf46f328da49531dcc624d0b8813e0a095652",
+      "bytes": 80157
+    },
+    "command_step": {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-logind-vm-7ea19ca79e9a44c4",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=2048m",
+        "--memory-swap=2048m",
+        "--cpus=2",
+        "--pids-limit=64",
+        "-v",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/initramfs.gz:/initramfs.gz:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/payload:/payload:ro",
+        "--security-opt=no-new-privileges",
+        "--device",
+        "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+        "-e",
+        "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+        "-v",
+        "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/observe:/observe:rw",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "qemu-system-aarch64",
+        "-M",
+        "virt",
+        "-cpu",
+        "max",
+        "-smp",
+        "2",
+        "-m",
+        "1024M",
+        "-accel",
+        "tcg,thread=multi",
+        "-global",
+        "virtio-mmio.force-legacy=false",
+        "-display",
+        "egl-headless,rendernode=/dev/dri/renderD128",
+        "-device",
+        "virtio-gpu-gl-device,xres=540,yres=1224",
+        "-device",
+        "virtio-keyboard-device",
+        "-monitor",
+        "none",
+        "-nic",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-kernel",
+        "/Image",
+        "-initrd",
+        "/initramfs.gz",
+        "-append",
+        "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1",
+        "-fsdev",
+        "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+        "-fsdev",
+        "local,id=payload,path=/payload,security_model=none,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=payload,mount_tag=payload",
+        "-name",
+        "rog5-logind-vm-7ea19ca79e9a44c4",
+        "-qmp",
+        "unix:/observe/qmp.sock,server=on,wait=off",
+        "-vnc",
+        "unix:/observe/vnc.sock",
+        "-device",
+        "virtio-tablet-device",
+        "-device",
+        "virtio-serial-device",
+        "-chardev",
+        "socket,id=apps,path=/observe/apps.sock,server=on,wait=off",
+        "-device",
+        "virtserialport,chardev=apps,name=rog5.apps,nr=1"
+      ],
+      "started_utc": "2026-09-13T19:58:01.184268+00:00",
+      "deadline_seconds": 300,
+      "status": "FAIL_TIMEOUT",
+      "exit_status": -9,
+      "duration_seconds": 300.01782015000936,
+      "ended_utc": "2026-09-13T20:03:01.202121+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/serial.log",
+        "sha256": "152f3c426edbc9c872c21ea9dc8da1cede6a6de37535325b1d57cc5b8d3c8180",
+        "bytes": 106123
+      }
+    },
+    "apps": {
+      "result": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/observe/apps-result.json",
+        "sha256": "a0679c4b78e41e2e31bdd968d393673d569cfb5d93e8e01af32d36ffe15fdd0a",
+        "bytes": 16381
+      },
+      "status": "FAIL",
+      "focus_history": [
+        "mousepad"
+      ],
+      "bottom_caret": {
+        "status": "NOT RUN"
+      },
+      "acknowledgement_sent": false,
+      "approved_teardown": false,
+      "clean_client_exits": false
+    },
+    "cleanup": [
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-vm-7ea19ca79e9a44c4"
+        ],
+        "started_utc": "2026-09-13T20:03:01.205981+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.41703386200242676,
+        "ended_utc": "2026-09-13T20:03:01.623041+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/serial.cleanup.log",
+          "sha256": "2273848a60c1f26dba8193fedc976c86d51edf3c1cde7b5170a53af99cfd67ea",
+          "bytes": 32
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-vm-7ea19ca79e9a44c4"
+        ],
+        "started_utc": "2026-09-13T20:03:01.623454+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033916248998139054,
+        "ended_utc": "2026-09-13T20:03:01.657386+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "guest_byte_comparison": {
+      "logind-seat-probe": true,
+      "pam-session": true,
+      "stage/evidence-writer": true,
+      "initramfs/init": true,
+      "initramfs/stage/guest.sh": true,
+      "initramfs/stage/logind-probe.sh": true,
+      "initramfs/stage/logind-user.sh": true,
+      "initramfs/stage/independent-observer.sh": true,
+      "initramfs/stage/logind-denial.sh": true,
+      "initramfs/stage/logind-denial-prepare.sh": true,
+      "initramfs/stage/logind-font-cache.sh": true,
+      "initramfs/stage/logind-gtk-im-cache.sh": true,
+      "initramfs/stage/logind-apps.sh": true,
+      "initramfs/stage/launcher-apps.sh": true,
+      "initramfs/stage/launcher-evidence.sh": true
+    }
+  },
+  "prior_vm": {
+    "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/combined-r2/result.json",
+    "sha256": "87f233c7ef299548f0ba0b3979b32093f95fb2b9e736ce43779fc85c839889ed",
+    "bytes": 121687
+  },
+  "reused_payload": {
+    "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+    "sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+    "bytes": 26746087
+  },
+  "timing": {
+    "schema": 1,
+    "scope": "Read-only retained ARM64 VM timing comparison; no phone evidence",
+    "prior": {
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/combined-r2/serial.log",
+        "sha256": "9082b5aba7f9e39d98bba3347bcc285c30d265c228f48cbd0dd341dc2a71f426",
+        "bytes": 160751
+      },
+      "apps": {
+        "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/combined-r2/observe/apps.log",
+        "sha256": "3b890973dd4e1ab3c06d3dfc9dc8dcf33e524f7c27550de2677b494f13628a21",
+        "bytes": 222607
+      },
+      "service_clocks": [
+        {
+          "serial_line": 1310,
+          "encoding": "hex-encoded PAM log snapshot",
+          "phase": "before-start",
+          "clock": "CLOCK_MONOTONIC",
+          "seconds": "209.950470800",
+          "decoded_record": "OBSERVE service-clock phase=before-start clock=CLOCK_MONOTONIC seconds=209.950470800"
+        },
+        {
+          "serial_line": 1310,
+          "encoding": "hex-encoded PAM log snapshot",
+          "phase": "after-start",
+          "clock": "CLOCK_MONOTONIC",
+          "seconds": "229.104322896",
+          "decoded_record": "OBSERVE service-clock phase=after-start clock=CLOCK_MONOTONIC seconds=229.104322896"
+        }
+      ],
+      "font_stages": [
+        {
+          "serial_line": 144,
+          "stage": "config-restore",
+          "status": 0,
+          "elapsed_seconds": 4,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 165,
+          "stage": "prepare",
+          "status": 0,
+          "elapsed_seconds": 11,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 167,
+          "stage": "config-consume",
+          "status": 0,
+          "elapsed_seconds": 2,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 243,
+          "stage": "consume",
+          "status": 0,
+          "elapsed_seconds": 2,
+          "clock": "Bash SECONDS integer elapsed interval"
+        }
+      ],
+      "independent_snapshots": [
+        {
+          "serial_line": 419,
+          "index": 0,
+          "uptime_seconds": "126.35",
+          "idle_seconds": "78.53",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 673,
+          "index": 1,
+          "uptime_seconds": "162.58",
+          "idle_seconds": "89.44",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 958,
+          "index": 2,
+          "uptime_seconds": "195.78",
+          "idle_seconds": "107.47",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 1300,
+          "index": 3,
+          "uptime_seconds": "231.65",
+          "idle_seconds": "112.37",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        }
+      ],
+      "journal_events": [
+        {
+          "serial_line": 733,
+          "clock": "synthetic guest realtime set during PID1 fixture preparation",
+          "record": "Sep 13 00:02:30 rog5-logind-vm systemd-logind[383]: New seat seat0."
+        },
+        {
+          "serial_line": 780,
+          "clock": "synthetic guest realtime set during PID1 fixture preparation",
+          "record": "Sep 13 00:02:36 rog5-logind-vm pam-session[414]: pam_unix(login:session): session opened for user mobile(uid=1000) by (uid=0)"
+        }
+      ],
+      "owners": [
+        {
+          "apps_line": 124,
+          "app": "mousepad",
+          "pid": 961,
+          "start_ticks": 23795,
+          "clock": "/proc/PID/stat field22 starttime clock ticks since boot"
+        },
+        {
+          "apps_line": 679,
+          "app": "foot",
+          "pid": 1194,
+          "start_ticks": 27063,
+          "clock": "/proc/PID/stat field22 starttime clock ticks since boot"
+        }
+      ]
+    },
+    "latest": {
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/serial.log",
+        "sha256": "152f3c426edbc9c872c21ea9dc8da1cede6a6de37535325b1d57cc5b8d3c8180",
+        "bytes": 106123
+      },
+      "apps": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/combined-r1/observe/apps.log",
+        "sha256": "5ac8eb74e9ca660eaa28c7e4a8184d6313f183100c7a7c098be5538b21874844",
+        "bytes": 86759
+      },
+      "service_clocks": [
+        {
+          "serial_line": 1078,
+          "encoding": "hex-encoded PAM log snapshot",
+          "phase": "before-start",
+          "clock": "CLOCK_MONOTONIC",
+          "seconds": "239.153914688",
+          "decoded_record": "OBSERVE service-clock phase=before-start clock=CLOCK_MONOTONIC seconds=239.153914688"
+        }
+      ],
+      "font_stages": [
+        {
+          "serial_line": 144,
+          "stage": "config-restore",
+          "status": 0,
+          "elapsed_seconds": 3,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 165,
+          "stage": "prepare",
+          "status": 0,
+          "elapsed_seconds": 11,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 167,
+          "stage": "config-consume",
+          "status": 0,
+          "elapsed_seconds": 1,
+          "clock": "Bash SECONDS integer elapsed interval"
+        },
+        {
+          "serial_line": 243,
+          "stage": "consume",
+          "status": 0,
+          "elapsed_seconds": 2,
+          "clock": "Bash SECONDS integer elapsed interval"
+        }
+      ],
+      "independent_snapshots": [
+        {
+          "serial_line": 274,
+          "index": 0,
+          "uptime_seconds": "137.93",
+          "idle_seconds": "92.42",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 477,
+          "index": 1,
+          "uptime_seconds": "167.78",
+          "idle_seconds": "97.97",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 733,
+          "index": 2,
+          "uptime_seconds": "205.73",
+          "idle_seconds": "117.39",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        },
+        {
+          "serial_line": 1059,
+          "index": 3,
+          "uptime_seconds": "242.05",
+          "idle_seconds": "127.37",
+          "clock": "/proc/uptime; includes scheduling before sample"
+        }
+      ],
+      "journal_events": [
+        {
+          "serial_line": 803,
+          "clock": "synthetic guest realtime set during PID1 fixture preparation",
+          "record": "Sep 13 00:03:04 rog5-logind-vm systemd-logind[419]: New seat seat0."
+        },
+        {
+          "serial_line": 848,
+          "clock": "synthetic guest realtime set during PID1 fixture preparation",
+          "record": "Sep 13 00:03:10 rog5-logind-vm pam-session[450]: pam_unix(login:session): session opened for user mobile(uid=1000) by (uid=0)"
+        }
+      ],
+      "owners": [
+        {
+          "apps_line": 124,
+          "app": "mousepad",
+          "pid": 882,
+          "start_ticks": 26811,
+          "clock": "/proc/PID/stat field22 starttime clock ticks since boot"
+        }
+      ]
+    },
+    "comparisons": {
+      "service_before_start_delta_seconds": "29.203443888",
+      "domain": "CLOCK_MONOTONIC in each isolated guest; both samples precede portal service startup",
+      "font_stage_total_prior_seconds": 19,
+      "font_stage_total_latest_seconds": 17,
+      "mousepad_owner_start_delta_ticks": 3016,
+      "independent_first_sample_delta_seconds": "11.58",
+      "journal_logind_and_pam_realtime_delta_seconds": 34,
+      "clock_limit": "Do not subtract synthetic realtime from monotonic or treat snapshot scheduling delay as one build/startup stage."
+    },
+    "findings": [
+      "At least29.203443888s of the difference is already visible at the portal service-start boundary. The exact earlier substage is unresolved.",
+      "The four recorded font intervals total17s in the latest run versus19s previously; these intervals do not explain the later service boundary.",
+      "Both retained serial logs show hardware-database, dynamic-linker-cache and journal-catalog update jobs before system initialization. Their individual durations were not recorded.",
+      "The latest run had no completed handshake or approved teardown before300s, so it correctly received no cleanup allowance. This run does not exercise a runtime grant of the allowance."
+    ],
+    "candidate_first_boot_work": {
+      "status": "UNPROVEN cause of added delay",
+      "fixture_source": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+        "sha256": "7298111796d14b92988df6991a480ad48d3690bb58d8ab8cfbb832fbbe40d643",
+        "bytes": 2685
+      },
+      "packaged_units": [
+        {
+          "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/systemd-hwdb-update.service",
+          "sha256": "6cf7fde4df7681b9a581e1c4440cded4bc390128256dc04a1a66916ab6f3d7f7",
+          "bytes": 834
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/ldconfig.service",
+          "sha256": "8f84fde0c695fa061222114f56c651dcba7e2976dc9278f3660d13f90f1f12c4",
+          "bytes": 946
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/systemd-journal-catalog-update.service",
+          "sha256": "9d06e11680ff85b40579106281faf56442dfac86bddff0151d8524464439ae9e",
+          "bytes": 750
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/systemd-update-done.service",
+          "sha256": "5196e3618c02428ed18585ea31fe44574d421b5663bf12ce4e987697d117df62",
+          "bytes": 682
+        }
+      ],
+      "basis": "The fixture copies /etc into RAM and mounts fresh /var; packaged update jobs use ConditionNeedsUpdate on /etc or /var. Logs show these jobs starting, but do not establish which consumed the extra time.",
+      "next_discriminating_observation": "Startup-only VM to authenticated readiness with PID1 handoff and monotonic unit start/exit timestamps; separately prepare a short mapped-app close probe instead of replaying the full UI sequence solely for teardown."
+    },
+    "active_verification": {
+      "execution": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-result.json",
+        "sha256": "564d415eee6c5d063103ec1d8a647a88c0c0805a31d73c3c993503fe95e59416",
+        "bytes": 371
+      },
+      "summary": {
+        "path": "/home/deck/.local/state/rog5-vm-cleanup-grace-20260913-r1/active-report/summary.json",
+        "sha256": "86df18bbe98eb4fe4738341f55fcfcfc8a0f20b27afd2fe50ae1dd3d424568a1",
+        "bytes": 118749
+      },
+      "exit_status": 0,
+      "duration_seconds": 164.03906348301098,
+      "counts": {
+        "PASS": 105,
+        "FAIL": 0,
+        "BLOCKED": 0,
+        "SKIPPED": 0,
+        "NOT_SELECTED": 255
+      },
+      "subcheck_counts": {
+        "SKIPPED": 3
+      }
+    },
+    "physical_status": "NOT RUN",
+    "phone_operations": 0
+  },
+  "limitations": [
+    "No runtime grant of the cleanup allowance occurred in this attempt",
+    "The slow startup cause is not established by the stage clock delta",
+    "Exact clock edge cases use controlled clocks/child adapters; real subprocess cleanup is separately exercised",
+    "Prior interaction PASS does not convert either overall VM FAIL to PASS",
+    "No phone OLED, Adreno or touch proof"
+  ],
+  "physical_status": "NOT RUN",
+  "phone_operations": 0,
+  "signing_operations": 0,
+  "claims_consumed": 0,
+  "protected_storage_mutations": 0
+}

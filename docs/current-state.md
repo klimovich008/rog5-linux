@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM lower-caret, OSK text entry and app switching pass; full session cleanup unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Prior VM caret/OSK/app switching PASS; cleanup deadline guard fixed; teardown still unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Exact ARM64 Wayland debug framing and GTK caret changes reached the real VM: lower-caret coordinates, OSK key sequence and Mousepad/Foot switching pass. Overall run remains FAIL at the300s host deadline during graceful app cleanup. Audit stage timing and complete cleanup with the same binaries before broader qualification. Preserve earlier VM FAIL, S06/R01 FAIL and physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-wayland-debug.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The new host supervisor preserves the300s interaction cutoff and allows one30s reserve only for already approved teardown. Latest VM reached only Mousepad before300s, so no reserve was granted;15 guest artifacts match the previous run. Service-start boundary arrived29.2s later. Isolate startup/teardown timing before another full interaction retry. Preserve prior scoped interaction PASS, all VM FAIL, S06/R01 FAIL and phone physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-vm-cleanup-grace.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

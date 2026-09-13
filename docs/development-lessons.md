@@ -3150,3 +3150,15 @@ neither kernel nor Flutter rebuild was needed. Before controller cleanup sends
 TERM, retain its original failure and current phase in the owned bounded
 evidence stream. A downstream client143 can be caused by diagnostic failure;
 it does not identify the initiating fault or qualify application behavior.
+
+VM cleanup budget (2026-09-13): a successful interaction sequence can finish
+near a whole-VM deadline after variable startup work. Keep the original progress
+cutoff and allow only a fixed reserve for teardown already approved before it.
+Check time before accepting a terminal child and after the final observer call;
+a child exiting during a blocking tick must not bypass the cutoff. Test late
+callbacks and nonrenewable grace with controlled clocks, and process cleanup
+with real children. Capture the integrated test result inside its owning service
+so an external launcher interruption does not erase the command exit status.
+Do not retry unchanged full UI flows to investigate cleanup when earlier startup
+variance consumes the budget; localize that variance or prepare a focused closure
+experiment while retaining the separate interaction proof.
