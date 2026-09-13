@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run GTK RAM-cache preparation with real files/processes and a query CLI seam."""
 import os
+import hashlib
 from pathlib import Path
 import signal
 import subprocess
@@ -41,7 +42,7 @@ class GtkInputCache(unittest.TestCase):
     def refuse(self):
         r = self.run_helper()
         self.assertNotEqual(r.returncode, 0)
-        self.assertNotIn('PASS packaged', r.stdout)
+        self.assertNotIn('PASS GTK input-method cache', r.stdout)
         self.assertFalse((self.cache / 'immodules.cache').exists())
         self.assertEqual(list(self.cache.iterdir()), [])
         return r
@@ -107,7 +108,7 @@ class GtkInputCache(unittest.TestCase):
         self.assertTrue(destination.is_dir())
         self.assertEqual(list(destination.iterdir()), [], r.stdout+r.stderr)
         self.assertNotEqual(r.returncode, 0, r.stdout+r.stderr)
-        self.assertNotIn('PASS packaged', r.stdout)
+        self.assertNotIn('PASS GTK input-method cache', r.stdout)
         self.assertEqual(list(self.cache.iterdir()), [destination])
 
     def test_raced_destination_symlink_cannot_write_external_directory(self):
@@ -121,7 +122,7 @@ class GtkInputCache(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [marker], r.stdout+r.stderr)
         self.assertEqual(marker.read_text(), 'retained')
         self.assertNotEqual(r.returncode, 0, r.stdout+r.stderr)
-        self.assertNotIn('PASS packaged', r.stdout)
+        self.assertNotIn('PASS GTK input-method cache', r.stdout)
         self.assertEqual(list(self.cache.iterdir()), [destination])
 
     def test_interruption_removes_unpublished_cache(self):
@@ -138,6 +139,119 @@ class GtkInputCache(unittest.TestCase):
             self.assertEqual(list(self.cache.iterdir()), [])
         finally:
             if p.poll() is None: os.killpg(p.pid, signal.SIGKILL); p.wait()
+
+
+class GtkModuleOverride(unittest.TestCase):
+    """Real guard/hash/rollback code; mount syscalls are filesystem adapters."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='rog5-gtk-override-')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.session = self.root/'session'; self.system = self.root/'system'
+        self.bin = self.root/'bin'; self.bin.mkdir()
+        rel = 'lib/gtk-3.0/3.0.0/immodules/im-wayland.so'
+        self.source = self.session/'usr'/rel; self.target = self.system/rel
+        self.contract = self.session/'usr/share/rog5-denial/gtk-im-override.sha256'
+        for p in (self.source, self.target, self.contract): p.parent.mkdir(parents=True, exist_ok=True)
+        self.source.write_bytes(b'patched module'); self.target.write_bytes(b'original module')
+        self.old = hashlib.sha256(self.target.read_bytes()).hexdigest()
+        self.new = hashlib.sha256(self.source.read_bytes()).hexdigest()
+        self.contract.write_text(self.old+' '+self.new+'\n')
+        self.env = dict(PATH=str(self.bin)+':/usr/bin:/bin', HOME=str(self.root), LC_ALL='C',
+                        STATE=str(self.root/'mounted'), SAVED=str(self.root/'saved'),
+                        MODE='success', CALLS=str(self.root/'calls'))
+        self.command('mountpoint', '[[ $MODE != mountpoint-error ]] || exit 2\n[[ -f $STATE ]] && exit 0 || exit 32\n')
+        self.command('findmnt', '[[ $MODE != writable ]] && echo ro,relatime || echo rw,relatime\n')
+        self.command('umount', 'echo umount >> "$CALLS"; rm "$2"; mv "$SAVED" "$2"; rm "$STATE"\n')
+        self.command('mount', r"""
+echo mount >> "$CALLS"
+if [[ $1 == --bind ]]; then
+    [[ $MODE != bind-fail ]] || exit 41
+    mv "$3" "$SAVED"; cp "$2" "$3"; touch "$STATE"
+    [[ $MODE != corrupt ]] || printf corrupt > "$3"
+else
+    [[ $MODE != remount-fail ]] || exit 42
+    if [[ $MODE == interrupt ]]; then kill -TERM "$PPID"; exit 0; fi
+fi
+""")
+        self.cmd = ['bash', '-c', 'source "$1"; stage_gtk_im_override "$2" "$3"',
+                    'override-test', str(HELPER), str(self.session), str(self.system)]
+
+    def command(self, name, body):
+        p = self.bin/name; p.write_text('#!/bin/bash\nset -eu\n'+body); p.chmod(0o700)
+
+    def run_helper(self):
+        return subprocess.run(self.cmd, env=self.env, capture_output=True, text=True, timeout=5)
+
+    def refuse(self):
+        r = self.run_helper(); self.assertNotEqual(r.returncode, 0, r.stdout+r.stderr)
+        self.assertNotIn('PASS VM-only', r.stdout)
+        self.assertEqual(self.target.read_bytes(), b'original module')
+        self.assertFalse((self.root/'mounted').exists())
+        return r
+
+    def test_optional_absent_is_noop(self):
+        self.source.unlink(); self.contract.unlink()
+        r = self.run_helper(); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse((self.root/'calls').exists()); self.assertEqual(self.target.read_bytes(), b'original module')
+
+    def test_success_checks_both_hashes_and_readonly_mount(self):
+        r = self.run_helper(); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('original='+self.old+' replacement='+self.new+' read-only', r.stdout)
+        self.assertEqual(self.target.read_bytes(), b'patched module')
+        self.assertEqual((self.root/'calls').read_text().splitlines(), ['mount','mount'])
+
+    def test_missing_contract_refused(self):
+        self.contract.unlink(); self.refuse()
+
+    def test_missing_module_refused(self):
+        self.source.unlink(); self.refuse()
+
+    def test_bad_original_hash_refused(self):
+        self.contract.write_text('0'*64+' '+self.new+'\n'); self.refuse()
+
+    def test_bad_replacement_hash_refused(self):
+        self.source.write_bytes(b'changed'); self.refuse()
+
+    def test_extra_contract_fields_refused(self):
+        self.contract.write_text(self.old+' '+self.new+' extra\n'); self.refuse()
+
+    def test_source_symlink_refused(self):
+        saved = self.root/'source'; self.source.rename(saved); self.source.symlink_to(saved); self.refuse()
+
+    def test_hardlinked_readonly_baseline_is_preserved(self):
+        alias = self.root/'baseline-link'; os.link(self.target, alias)
+        r = self.run_helper(); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(alias.read_bytes(), b'original module')
+        self.assertEqual(self.target.read_bytes(), b'patched module')
+
+    def test_source_hardlink_refused(self):
+        os.link(self.source, self.root/'source-link'); self.refuse()
+
+    def test_bind_failure_preserves_code_and_original(self):
+        self.env['MODE']='bind-fail'; self.assertEqual(self.refuse().returncode, 41)
+
+    def test_remount_failure_rolls_back(self):
+        self.env['MODE']='remount-fail'; self.assertEqual(self.refuse().returncode, 42)
+        self.assertIn('umount', (self.root/'calls').read_text())
+
+    def test_writable_mount_refused_and_rolled_back(self):
+        self.env['MODE']='writable'; self.refuse()
+
+    def test_post_bind_identity_mismatch_rolled_back(self):
+        self.env['MODE']='corrupt'; self.refuse()
+
+    def test_interruption_rolls_back(self):
+        self.env['MODE']='interrupt'; self.assertEqual(self.refuse().returncode, 143)
+
+    def test_mountpoint_probe_error_refused_before_mount(self):
+        self.env['MODE']='mountpoint-error'; self.refuse()
+        self.assertFalse((self.root/'calls').exists())
+
+    def test_existing_mount_is_not_unmounted(self):
+        (self.root/'mounted').touch(); r = self.run_helper()
+        self.assertNotEqual(r.returncode, 0); self.assertTrue((self.root/'mounted').exists())
+        self.assertFalse((self.root/'calls').exists())
 
 
 if __name__ == '__main__':
