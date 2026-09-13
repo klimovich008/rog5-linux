@@ -1,0 +1,1425 @@
+{
+  "schema": 1,
+  "status": "PASS_NONROOT_VM_SESSION",
+  "scope": "generic ARM64 VirGL VM; no ASUS/Adreno/phone execution",
+  "starting_commit": "84efe306d7d4453d2852dfd358bcb2cd5a634dd0",
+  "starting_tree": "a020b642899309ca69f4ba36033ad3f1baa98d8b",
+  "vm_source_commit": "fcf8068558bc908618a5494f26df319eb1efb404",
+  "vm_source_tree": "ab636f0bef668c050a6893898f7294275e565134",
+  "integrated_source_commit": "a00a99d6531ffc272879808b6e0fbf0f5334ba8f",
+  "integrated_source_tree": "24adab15e34913ed93086e759fc36968fb2c7126",
+  "view": {
+    "status": "PASS_VIEW_PREPARED",
+    "authority": "none",
+    "physical_status": "NOT RUN",
+    "scope": "read-only QEMU mapped-file fixture; guest execution NOT RUN",
+    "security_model": "mapped-file",
+    "readonly_required": true,
+    "permission_policy": "package-read; guest ownership root:root; no privileged mode bits",
+    "authentication": "reused trusted materialization receipt; archive hashes rechecked, signatures not rerun",
+    "source_tree_sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+    "receipt_sha256": "fe055a529374001ca97a56c7406d3723777febcaee6cbd2eab378f99dba37ede",
+    "preparer_sha256": "0175160104695369a61520e5a4b670d4303ce1a7081e900f020b929898229f3c",
+    "counts": {
+      "file": 43331,
+      "directory": 3339,
+      "symlink": 9141
+    },
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "root": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+    "source_inode_changes": "hardlink count and ctime only; no chmod/chown/xattr/content writes",
+    "duration_seconds": 33.209824271994876
+  },
+  "view_result": {
+    "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+    "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+    "size": 1102
+  },
+  "view_metadata": {
+    "guest_metadata_sha256": "743e11d5e7341e87d28929478f0482b7bb4f2605bf96f07065367f538c212857",
+    "source_tree_sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+    "view_prepared_by": "46fbcd5ac7755c4d17904bd8605762ff9aa511ff",
+    "verifier_source": "fcf8068558bc908618a5494f26df319eb1efb404",
+    "scope": "actual metadata bytes checked after first VM and before second; no view rewrite"
+  },
+  "retained_after_vms": {
+    "status": "PASS",
+    "scope": "every retained runtime file byte/hash, mode, symlink and directory manifest entry unchanged after both VMs; view metadata unchanged",
+    "entries": 55811,
+    "guest_metadata_sha256": "743e11d5e7341e87d28929478f0482b7bb4f2605bf96f07065367f538c212857",
+    "duration_seconds": 14.722386772016762
+  },
+  "actual_permission_vm": {
+    "status": "PASS",
+    "scope": "actual ARM64 generic VM package permission/symlink/account execution; Denial/GPU/phone NOT RUN",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-nonroot-view-r2",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=2",
+      "--pids-limit=64",
+      "-v",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-guest-r2/initramfs.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-guest-r2/payload:/payload:ro",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "1",
+      "-m",
+      "256M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload"
+    ],
+    "source_commit": "46fbcd5ac7755c4d17904bd8605762ff9aa511ff",
+    "duration_seconds": 4.104614932992263,
+    "exit_status": 0,
+    "cleanup_exit_status": 0,
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "hashes": {
+      "serial.log": "c9e770ec91d5c7938701f3e3f3d597c6986bba885b6a96a8d421f9ea9044b4f5",
+      "initramfs.gz": "95a3af11cb96504c8270fc6577ba15b64796bdcff4d2c9c7c0b7ff94ee93feee",
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "67e7495a03295628ab5a4d7f3a05ce741a5f6a81ec00aaa2a61b4f0020081982",
+      "initramfs/stage/probe-user.sh": "db703eb41e193df16556576773a6e3a552b902a5213bd7b0b2b614621f1e5c16",
+      "initramfs/stage/nonroot-session.sh": "eb4c28767ff7ff8bf3902c64a436be7847ec26a3e94c3f9e41e8c05ec167564f"
+    }
+  },
+  "initial_permission_vm": {
+    "status": "FAIL",
+    "result": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-guest-r1/result.json",
+      "sha256": "df23c1d4ae984676ae51f083fd8ad6a5f8df1fe0bdc888089f3dcee2ae20e403",
+      "size": 2426
+    },
+    "cause": "private probe nested shell quoting; corrected with separately syntax-checked child script; no Denial execution"
+  },
+  "first_session": {
+    "driver": {
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "--runtime",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "--deniald",
+        "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "--flutter-bundle",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+        "--image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--render-node",
+        "/dev/dri/renderD128",
+        "--output",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r1",
+        "--deadline",
+        "120",
+        "--observe-mobile",
+        "--observe-mobile-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "--trace-focus",
+        "--evidence-writer",
+        "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/build/evidence-writer",
+        "--observe-mobile-apps-text",
+        "--non-root-session",
+        "--runtime-security-model",
+        "mapped-file",
+        "--link-payload"
+      ],
+      "source_commit": "46fbcd5ac7755c4d17904bd8605762ff9aa511ff",
+      "source_tree": "dff5aa913eadf80ef226ae8c28b796015de1cac6",
+      "unchanged_binary_hashes": {
+        "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libapp.so": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libflutter_engine.so": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418"
+      },
+      "free_before": 3281080320,
+      "exit_status": 0,
+      "duration_seconds": 105.9037046309968,
+      "free_after": 3274985472
+    },
+    "result": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r1/result.json",
+      "sha256": "84527f66ccc058798166c67eb0ccdaad1c4408464a8aaec4c154235f675acbf4",
+      "size": 76038
+    },
+    "serial": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r1/serial.log",
+      "sha256": "6bd1daa193ed55a307f13d7d188b3147b907257e98ab8471c4868522ef806abe",
+      "size": 1450238
+    },
+    "protocol": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r1/protocol/events.log",
+      "sha256": "81635005ca38717fed99daabdd47de30919a4b9435b1d78fb6fa130d3e3d8b22",
+      "size": 104866
+    },
+    "shell_rendering": {
+      "status": "PASS",
+      "scope": "Denial terminal counters; not visual or phone proof",
+      "raster_frames": 215,
+      "output_page_flips": 215,
+      "render_errors": []
+    },
+    "nonroot": {
+      "status": "PASS",
+      "exec_paths": {
+        "bus": true,
+        "denial": true,
+        "mousepad": true,
+        "foot": true
+      },
+      "scope": "VM UID1000 exec paths, empty groups/capabilities and NoNewPrivs; seatd fixture, not logind/login/lock-screen or phone qualification"
+    },
+    "focus_history": [
+      "mousepad",
+      "foot",
+      "mousepad",
+      "foot"
+    ],
+    "text": {
+      "status": "PASS",
+      "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+      "native_toplevel_observed": true,
+      "keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "expected_keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "unfocused_keys": false
+    },
+    "cleanup": "PASS",
+    "post_terminal_app_exits": [
+      "OBSERVE launcher app=mousepad exit=1",
+      "OBSERVE launcher app=foot exit=230"
+    ],
+    "source_hashes": {
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "504ed4bfcb0d3bc1c64ca0c3efe6e1ff4a66bc2639bc629aa222c78100fc1ce2",
+      "initramfs.cpio.gz": "a1c3775167eb5d95c88cffada3863bc2353956eb203290a33b44c2c58d8396a9",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "initramfs/stage/nonroot-session": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "initramfs/stage/nonroot-session.sh": "eb4c28767ff7ff8bf3902c64a436be7847ec26a3e94c3f9e41e8c05ec167564f",
+      "initramfs/stage/focus-trace": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+      "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+      "initramfs/stage/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "initramfs/stage/evidence-writer": "f055f339f7f37493b7fc092e9744feeaf14943cef3441375d726ab01d05003e4",
+      "initramfs/stage/launcher-evidence.sh": "5033c592e50161825f632673e3bdbe90b50fc37e57baeaa39f93ec909f1c1392",
+      "protocol/events.log": "81635005ca38717fed99daabdd47de30919a4b9435b1d78fb6fa130d3e3d8b22",
+      "serial.log": "6bd1daa193ed55a307f13d7d188b3147b907257e98ab8471c4868522ef806abe"
+    },
+    "payload": {
+      "deniald": {
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "bytes": 15990872,
+        "mode": "0o755"
+      },
+      "flutter/data/flutter_assets/AssetManifest.bin": {
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "bytes": 2439,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/FontManifest.json": {
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "bytes": 307,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/NOTICES.Z": {
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "bytes": 14745,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/branding/denial-dark.svg": {
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "bytes": 3344,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png": {
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "bytes": 1617,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png": {
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "bytes": 1775,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png": {
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "bytes": 860,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png": {
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "bytes": 836,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png": {
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "bytes": 535,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png": {
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "bytes": 1162,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png": {
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "bytes": 748,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png": {
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "bytes": 1204,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png": {
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "bytes": 1298,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png": {
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "bytes": 968,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png": {
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "bytes": 993,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png": {
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "bytes": 1075,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png": {
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "bytes": 858,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png": {
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "bytes": 813,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png": {
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "bytes": 1227,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png": {
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "bytes": 818,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png": {
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "bytes": 1495,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf": {
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "bytes": 277828,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf": {
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "bytes": 273860,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf": {
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "bytes": 273900,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/icons/application-default-icon.svg": {
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "bytes": 408,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png": {
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "bytes": 3913008,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf": {
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "bytes": 1645184,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/shaders/ink_sparkle.frag": {
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "bytes": 21856,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/shaders/stretch_effect.frag": {
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "bytes": 17624,
+        "mode": "0o644"
+      },
+      "flutter/data/icudtl.dat": {
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "bytes": 10822192,
+        "mode": "0o644"
+      },
+      "flutter/lib/libapp.so": {
+        "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "bytes": 10814352,
+        "mode": "0o644"
+      },
+      "flutter/lib/libflutter_engine.so": {
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "bytes": 15999928,
+        "mode": "0o755"
+      }
+    },
+    "duration_seconds": 105.79250465100631
+  },
+  "final_session": {
+    "driver": {
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "--runtime",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "--deniald",
+        "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "--flutter-bundle",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+        "--image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--render-node",
+        "/dev/dri/renderD128",
+        "--output",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2",
+        "--deadline",
+        "120",
+        "--observe-mobile",
+        "--observe-mobile-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "--trace-focus",
+        "--evidence-writer",
+        "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/build/evidence-writer",
+        "--observe-mobile-apps-text",
+        "--non-root-session",
+        "--runtime-security-model",
+        "mapped-file",
+        "--link-payload"
+      ],
+      "source_commit": "fcf8068558bc908618a5494f26df319eb1efb404",
+      "source_tree": "ab636f0bef668c050a6893898f7294275e565134",
+      "unchanged_binary_hashes": {
+        "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libapp.so": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libflutter_engine.so": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418"
+      },
+      "free_before": 3274100736,
+      "exit_status": 0,
+      "duration_seconds": 109.86626810999587,
+      "free_after": 3264536576
+    },
+    "result": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/result.json",
+      "sha256": "78bc26befae8ed325a7b7b13f73f416f915492d1413da384f96e6da0236b7df7",
+      "size": 76421
+    },
+    "serial": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/serial.log",
+      "sha256": "852847e21eacc791722f930df75c85ab14c7d9699138e5afbb6b0009692f41eb",
+      "size": 1440466
+    },
+    "protocol": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/protocol/events.log",
+      "sha256": "b3d999ed9e1422de7d33a255f5dfc0630c00a2d61540804ca23ff07a2302b628",
+      "size": 106931
+    },
+    "shell_rendering": {
+      "status": "PASS",
+      "scope": "Denial terminal counters; not visual or phone proof",
+      "raster_frames": 210,
+      "output_page_flips": 210,
+      "render_errors": []
+    },
+    "nonroot": {
+      "status": "PASS",
+      "exec_paths": {
+        "bus": true,
+        "denial": true,
+        "mousepad": true,
+        "foot": true
+      },
+      "scope": "VM UID1000 exec paths, empty groups/capabilities and NoNewPrivs; seatd fixture, not logind/login/lock-screen or phone qualification"
+    },
+    "focus_history": [
+      "mousepad",
+      "foot",
+      "mousepad",
+      "foot"
+    ],
+    "text": {
+      "status": "PASS",
+      "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+      "native_toplevel_observed": true,
+      "keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "expected_keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "unfocused_keys": false
+    },
+    "cleanup": "PASS",
+    "post_terminal_app_exits": [
+      "OBSERVE launcher app=mousepad exit=1",
+      "OBSERVE launcher app=foot exit=230"
+    ],
+    "source_hashes": {
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "aefbb45a450c1b81a7ee1d23ae7aa1fa35510bd3caf6294464c22cf7979a2da8",
+      "initramfs.cpio.gz": "526734171621a9ea3f5c91740541ff8a3daf343b92865fa30e52a7e23b00f221",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "initramfs/stage/nonroot-session": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "initramfs/stage/nonroot-session.sh": "dad5bc330935f8ca249c5499af0b8848eb4647d933acfc6625f048dab0b7a783",
+      "initramfs/stage/focus-trace": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+      "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+      "initramfs/stage/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "initramfs/stage/evidence-writer": "f055f339f7f37493b7fc092e9744feeaf14943cef3441375d726ab01d05003e4",
+      "initramfs/stage/launcher-evidence.sh": "5033c592e50161825f632673e3bdbe90b50fc37e57baeaa39f93ec909f1c1392",
+      "protocol/events.log": "b3d999ed9e1422de7d33a255f5dfc0630c00a2d61540804ca23ff07a2302b628",
+      "serial.log": "852847e21eacc791722f930df75c85ab14c7d9699138e5afbb6b0009692f41eb"
+    },
+    "payload": {
+      "deniald": {
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "bytes": 15990872,
+        "mode": "0o755"
+      },
+      "flutter/data/flutter_assets/AssetManifest.bin": {
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "bytes": 2439,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/FontManifest.json": {
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "bytes": 307,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/NOTICES.Z": {
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "bytes": 14745,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/branding/denial-dark.svg": {
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "bytes": 3344,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png": {
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "bytes": 1617,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png": {
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "bytes": 1775,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png": {
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "bytes": 860,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png": {
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "bytes": 836,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png": {
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "bytes": 535,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png": {
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "bytes": 1162,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png": {
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "bytes": 748,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png": {
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "bytes": 1204,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png": {
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "bytes": 1298,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png": {
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "bytes": 968,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png": {
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "bytes": 993,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png": {
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "bytes": 1075,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png": {
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "bytes": 858,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png": {
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "bytes": 813,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png": {
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "bytes": 1227,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png": {
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "bytes": 818,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png": {
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "bytes": 1495,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf": {
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "bytes": 277828,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf": {
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "bytes": 273860,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf": {
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "bytes": 273900,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/icons/application-default-icon.svg": {
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "bytes": 408,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png": {
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "bytes": 3913008,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf": {
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "bytes": 1645184,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/shaders/ink_sparkle.frag": {
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "bytes": 21856,
+        "mode": "0o644"
+      },
+      "flutter/data/flutter_assets/shaders/stretch_effect.frag": {
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "bytes": 17624,
+        "mode": "0o644"
+      },
+      "flutter/data/icudtl.dat": {
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "bytes": 10822192,
+        "mode": "0o644"
+      },
+      "flutter/lib/libapp.so": {
+        "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "bytes": 10814352,
+        "mode": "0o644"
+      },
+      "flutter/lib/libflutter_engine.so": {
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "bytes": 15999928,
+        "mode": "0o755"
+      }
+    },
+    "duration_seconds": 109.78464634800912
+  },
+  "fixes": {
+    "cache_startup_order": "VM1 bus encountered EACCES before cache ownership transfer; VM2 starts bus after transfer and warning is absent",
+    "locale": "normal fixture user uses C.UTF-8; actual Foot fallback warning gone",
+    "nested_output": "two actual extraction regressions fail before resolved-path guard and pass afterward",
+    "metadata_binding": "new preparer hashes generated permission/symlink metadata; existing view bound separately without rebuilding it"
+  },
+  "focused": {
+    "view": {
+      "tests": 13,
+      "seconds": 0.243,
+      "status": "PASS",
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-qemu-runtime-view.py"
+      ],
+      "log": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-final-focused.log",
+        "sha256": "df57ac1c6043cff8505626f6b66e99cfac0a98f3500eaa1f21ee25e5a4a25548",
+        "size": 1470
+      }
+    },
+    "guest": {
+      "tests": 35,
+      "seconds": 0.613,
+      "status": "PASS",
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-qemu-virtio-drm-prerequisites.py"
+      ],
+      "log": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-final-focused.log",
+        "sha256": "311b9481b2ed6d25e0c9f867c9b6babbc12638dcebef09ac17223b23b585fcb1",
+        "size": 134
+      }
+    },
+    "review_before": {
+      "status": "EXPECTED FAIL",
+      "tests": 2,
+      "log": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-review-before.log",
+        "sha256": "63904af37cf96285e5e775c43b89757e889b2e18655330ed8568dca7ae981a89",
+        "size": 1677
+      }
+    },
+    "launcher_reuse": {
+      "status": "PASS",
+      "tests": 10,
+      "seconds": 2.239,
+      "executor": "bounded implementation agent",
+      "command": [
+        "python3",
+        "scripts/host/test-qemu-launcher-apps.py"
+      ]
+    }
+  },
+  "review": {
+    "kind": "independent read-only source review of view builder by guest implementation agent",
+    "confirmed": "output inside source, including symlink ancestor, could mutate source while returning success; fixed and regressed",
+    "remaining_limit": "shared source must remain immutable during use; no adversarial concurrent-host-writer snapshot guarantee"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-nonroot-session-active-r2",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-nonroot-session-20260913-r1/active-qualified-report",
+        "TMPDIR=/home/deck/.local/state/rog5-nonroot-session-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "a00a99d6531ffc272879808b6e0fbf0f5334ba8f",
+      "source_tree": "24adab15e34913ed93086e759fc36968fb2c7126",
+      "started": "2026-09-13T06:15:14.080297+00:00",
+      "exit_status": 0,
+      "duration_seconds": 142.85223523600143
+    },
+    "counts": {
+      "PASS": 94,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/active-qualified-report/summary.json",
+      "sha256": "53f37b3e5034eb448eadd5ea640e74158d8b9742e11c0c0228f8cb7d872ac13d",
+      "size": 112345
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/active-qualified-report/summary.xml",
+      "sha256": "036b96b4537031fa8df6b5ef0953570bee20bdd2efd27081b5845b195c3338a9",
+      "size": 56153
+    }
+  },
+  "selection_preflight_failure": {
+    "status": "FAIL before tests",
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-nonroot-session-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-nonroot-session-20260913-r1/active-final-report",
+        "TMPDIR=/home/deck/.local/state/rog5-nonroot-session-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "fcf8068558bc908618a5494f26df319eb1efb404",
+      "source_tree": "ab636f0bef668c050a6893898f7294275e565134",
+      "started": "2026-09-13T06:14:26.902041+00:00",
+      "exit_status": 1,
+      "duration_seconds": 0.16429733301629312
+    },
+    "log": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/active-final.log",
+      "sha256": "945402fa3954691d00f8900c64f229e80a28692837ad4c5e540c2c63e1eba34d",
+      "size": 744
+    },
+    "cause": "new manifest entry omitted from retained shell selector; one-line selection correction, no VM source changes"
+  },
+  "visual": {
+    "status": "PASS bounded manual inspection",
+    "scope": "actual final VM captures; text and final terminal only",
+    "observations": [
+      {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/observe/02-editor-test.png",
+        "sha256": "6385f44165c100384c73b4fb4b64f54563b0e785da335c7581e3d31cdb6005e6",
+        "size": 33096,
+        "observation": "Complete test visible with keyboard"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/observe/03-editor-tes.png",
+        "sha256": "869eb5891c4746e3dae292076fa4ce83b2e9e8cd2af9bcb4348a7899eff7fd53",
+        "size": 31270,
+        "observation": "Complete tes visible after backspace"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/observe/04-editor-test-restored.png",
+        "sha256": "3bcb8a1eea2e0abfea71f1e079f78c71c21c40215ef1cc92701edafed693e5e3",
+        "size": 31145,
+        "observation": "Complete test restored after OSK t key"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/observe/04b-editor-keyboard-dismissed.png",
+        "sha256": "ca823377167a0d9404587e603506a1657f11db7a7809877afa63461e9f00a741",
+        "size": 16290,
+        "observation": "Intermediate dismissal: title overlaps status area and keyboard sliver remains; settled dismissal NOT RUN"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/guest-nonroot-r2/observe/05-foot-restored.png",
+        "sha256": "dff1856b54697345032e7403069bc0234b08959d6508347d47cc027c3bc4e5e2",
+        "size": 8468,
+        "observation": "Full mobile-user Foot prompt visible, keyboard absent, C locale warning absent"
+      }
+    ],
+    "automatic_caret_visibility": "NOT RUN: fixed manual viewport pan retained",
+    "settled_editor_keyboard_dismissal": "NOT RUN: intermediate capture only"
+  },
+  "retention": {
+    "scope": "terminal historical failed VM duplicate staging only; result and logs preserved",
+    "files": [
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/deniald",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/deniald",
+        "sha256": "8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591",
+        "size": 15979872,
+        "mode": 493,
+        "old_inode": 7394867,
+        "retained_inode": 7394955
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "mode": 420,
+        "old_inode": 7394919,
+        "retained_inode": 7395007
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/FontManifest.json",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "mode": 420,
+        "old_inode": 7394925,
+        "retained_inode": 7395013
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "mode": 420,
+        "old_inode": 7394926,
+        "retained_inode": 7395014
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "mode": 420,
+        "old_inode": 7394882,
+        "retained_inode": 7394970
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "mode": 420,
+        "old_inode": 7394918,
+        "retained_inode": 7395006
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "mode": 420,
+        "old_inode": 7394912,
+        "retained_inode": 7395000
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "mode": 420,
+        "old_inode": 7394902,
+        "retained_inode": 7394990
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "mode": 420,
+        "old_inode": 7394904,
+        "retained_inode": 7394992
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "mode": 420,
+        "old_inode": 7394908,
+        "retained_inode": 7394996
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "mode": 420,
+        "old_inode": 7394894,
+        "retained_inode": 7394982
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "mode": 420,
+        "old_inode": 7394900,
+        "retained_inode": 7394988
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "mode": 420,
+        "old_inode": 7394910,
+        "retained_inode": 7394998
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "mode": 420,
+        "old_inode": 7394898,
+        "retained_inode": 7394986
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "mode": 420,
+        "old_inode": 7394916,
+        "retained_inode": 7395004
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "mode": 420,
+        "old_inode": 7394892,
+        "retained_inode": 7394980
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "mode": 420,
+        "old_inode": 7394914,
+        "retained_inode": 7395002
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "mode": 420,
+        "old_inode": 7394886,
+        "retained_inode": 7394974
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "mode": 420,
+        "old_inode": 7394896,
+        "retained_inode": 7394984
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "mode": 420,
+        "old_inode": 7394906,
+        "retained_inode": 7394994
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "mode": 420,
+        "old_inode": 7394888,
+        "retained_inode": 7394976
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "mode": 420,
+        "old_inode": 7394890,
+        "retained_inode": 7394978
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "mode": 420,
+        "old_inode": 7394876,
+        "retained_inode": 7394964
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "mode": 420,
+        "old_inode": 7394877,
+        "retained_inode": 7394965
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "mode": 420,
+        "old_inode": 7394878,
+        "retained_inode": 7394966
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "mode": 420,
+        "old_inode": 7394874,
+        "retained_inode": 7394962
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "mode": 420,
+        "old_inode": 7394880,
+        "retained_inode": 7394968
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "mode": 420,
+        "old_inode": 7394924,
+        "retained_inode": 7395012
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "mode": 420,
+        "old_inode": 7394922,
+        "retained_inode": 7395010
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "mode": 420,
+        "old_inode": 7394921,
+        "retained_inode": 7395009
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/data/icudtl.dat",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "mode": 420,
+        "old_inode": 7394870,
+        "retained_inode": 7394958
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/lib/libapp.so",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libapp.so",
+        "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+        "size": 10814352,
+        "mode": 420,
+        "old_inode": 7394928,
+        "retained_inode": 7395016
+      },
+      {
+        "removed": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r2/payload/flutter/lib/libflutter_engine.so",
+        "retained": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/guest-virgl-r3/payload/flutter/lib/libflutter_engine.so",
+        "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+        "size": 15975760,
+        "mode": 420,
+        "old_inode": 7394929,
+        "retained_inode": 7395017
+      }
+    ],
+    "open_handles": "none",
+    "live_containers": [],
+    "mounts": "none under retired payload",
+    "active_builder_references": "none in repository scripts/tools/configs or original evidence preparers",
+    "before_free_bytes": 3287146496,
+    "after_free_bytes": 3347419136,
+    "removed_count": 33,
+    "status": "COMPLETE"
+  },
+  "limitations": [
+    "VirGL/generic ARM64 kernel is not SM8350 or Adreno hardware evidence",
+    "Privilege records cover pre-exec paths with empty bounding/capability sets and NoNewPrivs; no logind/login/lock-screen/security qualification",
+    "Root seatd, udev and supervisor remain in this isolated VM fixture; no persistent device groups added",
+    "Realtime scheduling grants refused without privilege; no broad capabilities granted to suppress warnings",
+    "Mousepad optional shortcuts/spell plugins still report missing optional libraries",
+    "Compositor teardown precedes recorded app nonzero exits; clean owned-process cleanup is not zero app-exit qualification",
+    "Retained package signature audit reused; archive hashes and every payload entry rechecked, signatures not rerun",
+    "No new Denial, engine, AOT or kernel build; no persistent target composition installed"
+  ],
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "candidate_creation": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false
+}

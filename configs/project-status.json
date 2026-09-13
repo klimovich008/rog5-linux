@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Non-root runtime permission prerequisite corrected and qualified offline",
+  "phase": "Non-root Denial and two native apps qualified in ARM64 VirGL VM",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The retained extractor used owner-only permissions, preventing an ordinary guest user from executing public programs. Added an explicit package-read profile while preserving the default and retained runtime.19 focused tests and two real non-owner container cases PASS; no capabilities or privileged mode bits. Full non-root Denial/native-app VM session remains NOT RUN: the separate1.6GB runtime would breach the3GiB disk reserve, and user/bus/seat setup remains to be qualified. Next prepare a bounded separate runtime view with authenticated permission metadata, then reuse the retained Denial/AOT bytes for non-root VM qualification. A660 XR24/fence/readback remains a separate authorized physical boundary; no phone operation, candidate, signing or claim. Physical NOT RUN and S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-13-nonroot-runtime.md"
+  "next": "Final bounded VM passed: Denial, session bus, Mousepad and Foot use UID1000 with empty supplementary groups/capabilities and NoNewPrivs. It recorded 210 frames/page flips, four native focus visits and 12 OSK key events. Captures show test/tes/test and the mobile terminal; cleanup passed. The permission view avoids a 1.6 GB copy; all 55,811 original entries and guest metadata remain unchanged. Next prepare reproducible target-side non-root session composition against the existing mobile policy, resolving the seatd fixture versus logind/login boundary while reusing retained binaries. Automatic caret visibility and settled editor keyboard dismissal remain unqualified. A660 XR24/fence/readback needs its separate authorized physical trial. No phone operation, candidate, signing or claim; mobile physical NOT RUN and S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-13-nonroot-session.md"
 }
