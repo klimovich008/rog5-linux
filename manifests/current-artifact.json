@@ -1399,20 +1399,48 @@
     },
     "authenticated_denial": {
       "status": "FAIL_VM_ONLY",
-      "set_id": "private:rog5-session-cleanup-20260913-r1",
-      "source_commit": "44167bfa9d278c61798481b1dc1fe6218668f150",
-      "source_tree": "4aef55ef41c07c841e6f9de2d1adb265672e1ddd",
+      "set_id": "private:rog5-session-services-20260913-r1",
+      "source_commit": "87d9289d3538421cc2c1f01a82259e87355bd470",
+      "source_tree": "bd68ed381774391fe35984774cb52c5057d41930",
       "evidence": {
-        "path": "test-results/2026-09-13-session-cleanup-qualification.json",
-        "sha256": "9074ba66316a58e89f83c0242e3050db0a5176a1ce58aa49f3b409295656821e",
-        "size": 284464
+        "path": "test-results/2026-09-13-session-services-qualification.json",
+        "sha256": "87ef03327f843574d68824fe8af67ee900c891d8ea44098f9b362075d2e05db5",
+        "size": 215189
       },
       "partial_milestones": {
-        "shutdown": "PASS normal systemd poweroff in staging-only treatment and final combined VM; no panic",
-        "client_teardown": "FAIL: foot124, editor124; launcher143 after requested termination",
-        "rendering": "22 raster_frames/page_flips,14 delivered_vsyncs in about69s; no responsiveness or input qualification",
-        "complete_session": "FAIL",
+        "cache_activation_environment": "PASS exact values imported and verified",
+        "desktop_services": "PASS four active services and actual /run/user/1000/doc fuse.portal mount",
+        "client_configuration": "PASS two native Wayland clients configured",
+        "client_teardown": "FAIL harness result: Foot230, Mousepad0, launcher143 after requested TERM. Pinned Foot source supports default failure-code return on its SIGTERM path; not proof of a render fault.",
+        "rendering": "PASS terminal counters only:27 raster frames/page flips, no recorded render errors",
+        "shutdown": "PASS normal systemd poweroff without panic; failed /var unmount message retained",
+        "complete_session": "FAIL; PAM child rejected Foot230, no complete local-scope-removal qualification",
         "physical": "NOT RUN"
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none"
+    },
+    "generic_session_kernel": {
+      "status": "PASS_BUILD_VM_ONLY",
+      "set_id": "private:rog5-session-services-20260913-r1",
+      "source_commit": "f16c48b459862f3f249920d805c7e9d91ab6051d",
+      "source_tree": "8b7b07f15404d56465e75a57c4bd7b0d04206d12",
+      "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+      "profile": "virtio-session",
+      "image": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+        "bytes": 7049224
+      },
+      "config": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/.config",
+        "sha256": "23af1f7083bb5607f65904ab6d46a101c5d67fd73a6ae10dd868877db16870af",
+        "bytes": 65375
+      },
+      "provenance": {
+        "path": "/home/deck/.local/state/rog5-session-services-20260913-r1/kernel-r3-result.json",
+        "sha256": "cd7ac24a07b63fe3dd07cdee8a9892528c694dffe68cee4eae60e607149391e3",
+        "size": 7682
       },
       "physical_status": "NOT RUN",
       "authority": "none"

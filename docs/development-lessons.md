@@ -2894,3 +2894,34 @@ explicit needed variables into both activation environments and verify them.
 Document-portal separately reported missing /dev/fuse with CONFIG_FUSE_FS unset;
 a successful modprobe service did not prove that prerequisite. Do not disable
 services or stretch deadlines to hide those distinct missing requirements.
+
+For activated desktop services, validate three independent FUSE prerequisites:
+the configured kernel and accessible character device, the authenticated helper
+bytes with their package-required guest ownership/setuid mode, and the actual
+mounted document filesystem. The mapped runtime intentionally strips setuid;
+restore only the exact package helper in isolated guest RAM, never on the host
+runtime. A service-active result alone does not prove a successful FUSE mount.
+Use the real symlink-farm producer in staging regressions: cp -as preserves /./
+in its links, so literal link-text comparison rejected the legitimate source.
+Canonical existing path comparison retains rejection of different destinations.
+
+A subprocess log RLIMIT_FSIZE also limits every artifact written by descendants.
+The first FUSE kernel build compiled for659 seconds, then its linker hit the8MiB
+log cap on vmlinux.o. A container limit probe confirmed the inherited limit.
+Keep a separate bounded artifact limit and stream/cap logs independently; do not
+reuse a VM command wrapper for a kernel build without auditing inherited limits.
+The unchanged-input incremental resume finished in28 seconds; preserve failed
+receipts and use the existing explicit INCREMENTAL_BUILD=1 identity guard.
+
+Validate small packaged CLI contracts before a costly VM. This retained
+activation helper returns64 for --help, but accepts the intended --systemd and
+variable names and then fails only at a deliberately absent fixture bus. Keep
+parser proof separate from successful service activation. Private relaunch
+wrappers must change only output arguments, not globally replace names inside
+retained input-receipt paths; a prelaunch missing-file error ran no VM.
+
+Complete runtime setup discovery before running the final integrated tier. This
+turn ran three passing intermediate tiers while the VM still exposed staging
+prerequisites, then correctly ran one final frozen tier. The repeated full tiers
+added no information about the missing guest cmp or symlink spelling; constrained
+command-path and actual-producer regressions now cover those cheaply.

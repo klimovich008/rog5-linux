@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM shutdown repaired; authenticated Denial clients hit deadlines**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM desktop services qualified; Foot stop protocol needs correction**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The combined generic ARM64 VirGL VM now shuts down normally. Its executable alias caused a library instruction-page fault during shutdown; detaching only that VM-owned alias fixes the controlled and combined routes. Denial rendered22 frames/page flips and two clients configured, but both clients returned124, so the combined session remains FAIL. Next transfer RAM schema-cache variables to activated user services and prepare a separately qualified generic VM kernel with FUSE for the document portal. No timeout increase or service disabling is justified. Phone A660/display/touch needs fresh authorization; all physical rows remain NOT RUN and S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-session-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The generic ARM64 VirGL VM verifies GTK activation-cache transfer, four accessibility/portal services and a real document FUSE mount. Both native clients configured; Denial recorded27 frames/page flips and normal VM poweroff. Overall session remains FAIL: requested TERM returned Foot230, Mousepad0, launcher143. Pinned Foot source explains230 on forced termination; qualify its normal child-exit callback using an owned0600 FIFO stop token in one bounded VM without globally accepting230. Then require complete PAM/session/scope cleanup. Phone A660/display/touch remains unauthorized and NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-session-services.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
