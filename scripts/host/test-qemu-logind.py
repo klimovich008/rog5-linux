@@ -209,6 +209,29 @@ def validate_session_archive(archive, receipt):
     return record
 
 
+def validate_apps_inputs(reference, writer):
+    # Fail before compilation or VM startup. The semantic PNG check is shared
+    # with the actual observer; the supplied executable must target the guest.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('apps_preflight', REPO/'scripts/host/qemu-mobile-observer.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    module.launcher_tile_signatures(reference)
+    with writer.open('rb') as stream:
+        header = stream.read(20)
+    if len(header) != 20 or header[:7] != b'\x7fELF\x02\x01\x01' or header[18:20] != b'\xb7\x00':
+        raise ValueError('evidence writer must be a little-endian ARM64 ELF executable')
+
+
+def observation_channel(apps):
+    if apps:
+        # Host is the sole event-log writer. Duplex channel returns the exact
+        # completion token only after the observation oracles pass.
+        return ['-chardev', 'socket,id=apps,path=/observe/apps.sock,server=on,wait=off',
+                '-device', 'virtserialport,chardev=apps,name=rog5.apps,nr=1']
+    return ['-chardev', 'file,id=editor,path=/observe/editor.log',
+            '-device', 'virtserialport,chardev=editor,name=rog5.editor,nr=1']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('runtime-view', 'runtime-receipt', 'kernel', 'qemu-image', 'toolchain-image', 'libc', 'libloading', 'output'):
@@ -216,14 +239,22 @@ def main():
     parser.add_argument('--session-archive', type=Path)
     parser.add_argument('--session-receipt', type=Path)
     parser.add_argument('--host-render-node', type=Path)
-    parser.add_argument('--observe-editor', action='store_true',
+    observation = parser.add_mutually_exclusive_group()
+    observation.add_argument('--observe-editor', action='store_true',
                         help='pointer-only OSK editor test in authenticated session; VM only')
+    observation.add_argument('--observe-apps', action='store_true',
+                             help='launcher-driven app switching and OSK in authenticated VM')
+    parser.add_argument('--launcher-reference', type=Path)
+    parser.add_argument('--evidence-writer', type=Path)
     args = parser.parse_args()
     combined = args.session_archive is not None
     if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
         parser.error('combined session requires archive, receipt and explicit host render node')
-    if args.observe_editor and not combined:
-        parser.error('editor observation requires combined authenticated session')
+    if (args.observe_editor or args.observe_apps) and not combined:
+        parser.error('observation requires combined authenticated session')
+    if args.observe_apps != (args.launcher_reference is not None and args.evidence_writer is not None) or (
+            not args.observe_apps and (args.launcher_reference is not None or args.evidence_writer is not None)):
+        parser.error('apps observation requires exactly launcher-reference and evidence-writer')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -243,6 +274,7 @@ def main():
               'runtime_limit': 'Runtime receipt identity is bound; complete runtime inventory/authentication is a prior external prerequisite, not rerun here.'}
     started = time.monotonic()
     observer = None
+    observation_key = 'apps_observation' if args.observe_apps else 'editor_observation'
     try:
         for image in (args.qemu_image, args.toolchain_image):
             if not re.fullmatch(r'[0-9a-f]{64}', image):
@@ -264,6 +296,8 @@ def main():
             result['scope'] += '; actual mobile launcher, VirGL rendering and native clients'
             node = args.host_render_node.stat()
             result['host_render_node'] = {'path': str(args.host_render_node), 'rdev': node.st_rdev, 'resolved': str(args.host_render_node.resolve())}
+        if args.observe_apps:
+            validate_apps_inputs(regular(args.launcher_reference), regular(args.evidence_writer))
         result['runtime_view'] = str(runtime)
         result['container_images'] = {'qemu': args.qemu_image, 'toolchain': args.toolchain_image}
         for key, command in [('commit', ['rev-parse', 'HEAD']), ('tree', ['rev-parse', 'HEAD^{tree}']),
@@ -278,7 +312,13 @@ def main():
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
         if combined:
             input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
-        if args.observe_editor:
+        if args.observe_apps:
+            source_names_extra = ['logind-apps.sh', 'launcher-apps.sh', 'launcher-evidence.sh', 'evidence-writer.rs']
+            input_files += [SOURCES/name for name in source_names_extra]
+            input_files += [regular(args.launcher_reference), regular(args.evidence_writer),
+                            REPO/'scripts/host/qemu-logind-apps.py',
+                            REPO/'scripts/host/qemu-launcher-protocol.py']
+        if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
         # libloading's retained Linux dependency is cfg-if. Freeze matching cached
@@ -332,6 +372,15 @@ def main():
         if args.observe_editor:
             scripts['logind-editor.sh'] = 'logind-editor.sh'
             (stage / 'stage/editor-probe').write_text('1\n')
+        if args.observe_apps:
+            scripts.update({name: name for name in ['logind-apps.sh', 'launcher-apps.sh', 'launcher-evidence.sh']})
+            token = 'ROG5_APPS_DONE_' + uuid.uuid4().hex
+            (stage / 'stage/apps-probe').write_text('1\n')
+            (stage / 'stage/apps-observe-token').write_text(token+'\n')
+            shutil.copyfile(args.evidence_writer, stage / 'stage/evidence-writer')
+            (stage / 'stage/evidence-writer').chmod(0o755)
+            for name in ['apps-probe', 'apps-observe-token', 'evidence-writer']:
+                result['outputs']['stage/'+name] = identity(stage / 'stage' / name)
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)
@@ -372,30 +421,31 @@ def main():
             pos = command.index(args.qemu_image)
             command[pos:pos] = ['--security-opt=no-new-privileges', '--device', str(args.host_render_node)+':/dev/dri/renderD128:rw',
                                 '-e', 'XDG_CACHE_HOME=/tmp/rog5-qemu-cache']
-        if args.observe_editor:
+        if args.observe_editor or args.observe_apps:
             import importlib.util
-            spec = importlib.util.spec_from_file_location('logind_editor', REPO/'scripts/host/qemu-logind-editor.py')
+            filename = 'qemu-logind-apps.py' if args.observe_apps else 'qemu-logind-editor.py'
+            spec = importlib.util.spec_from_file_location('logind_observer', REPO/'scripts/host'/filename)
             module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-            observer = module.LiveEditor(output/'observe', name)
+            observer = (module.LiveApps(output/'observe', name, token, args.launcher_reference) if args.observe_apps
+                        else module.LiveEditor(output/'observe', name))
             pos = command.index(args.qemu_image)
             command[pos:pos] = ['-v', f'{output / "observe"}:/observe:rw']
             command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off',
                         '-vnc', 'unix:/observe/vnc.sock', '-device', 'virtio-tablet-device',
-                        '-device', 'virtio-serial-device',
-                        '-chardev', 'file,id=editor,path=/observe/editor.log',
-                        '-device', 'virtserialport,chardev=editor,name=rog5.editor,nr=1']
+                        '-device', 'virtio-serial-device']
+            command += observation_channel(args.observe_apps)
         def finish_observer(error):
             nonlocal observer
             if observer:
                 current, observer = observer, None
-                result['editor_observation'] = current.finish(error)
+                result[observation_key] = current.finish(error)
         container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'],
                   poll=observer.tick if observer else None, finalize=finish_observer)
         serial = (output / 'serial.log').read_text(errors='replace')
         # Preserve shutdown/panic evidence even when the requested UI probe failed.
         require_vm_poweroff(serial)
-        if args.observe_editor and result['editor_observation']['status'] != 'PASS':
-            raise RuntimeError('requested editor observation incomplete or failed')
+        if (args.observe_editor or args.observe_apps) and result[observation_key]['status'] != 'PASS':
+            raise RuntimeError('requested UI observation incomplete or failed')
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
         if combined:
@@ -415,7 +465,7 @@ def main():
         result['error'] = f'{type(error).__name__}: {error}'
     finally:
         if observer:
-            result['editor_observation'] = observer.finish(result.get('error', 'VM incomplete'))
+            result[observation_key] = observer.finish(result.get('error', 'VM incomplete'))
         result['duration_seconds'] = time.monotonic() - started
         result['ended_utc'] = now()
         for path in output.glob('*.log'):

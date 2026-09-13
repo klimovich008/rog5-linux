@@ -188,6 +188,8 @@ active_tests=(
 	scripts/host/test-qemu-logind-runner.py
 	scripts/host/test-logind-font-cache.py
 	scripts/host/test-qemu-logind-editor.py
+	scripts/host/test-qemu-logind-apps.py
+	scripts/host/test-logind-apps.py
 	scripts/host/test-review-metadata-checkers.py
 	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py

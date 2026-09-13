@@ -313,7 +313,7 @@ class ActivatedServices(unittest.TestCase):
     def qualify(self, mode='success'):
         source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
         functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
-        boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^if \[\[ -f /run/editor-probe \]\]", source, re.M | re.S).group(1)
+        boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^if \[\[ -f /run/apps-probe \]\]", source, re.M | re.S).group(1)
         code = 'set -euo pipefail\n' + functions + r'''
 export XDG_RUNTIME_DIR=/run/user/1000
 MODE=$1; CLOCK_COUNT=$2
@@ -893,6 +893,49 @@ run_authenticated_editor
                                   capture_output=True,text=True,timeout=3)
             self.assertEqual(result.returncode,42,result.stdout+result.stderr)
             self.assertFalse((root/'rog5-text-probe.txt').exists())
+
+
+class AppsPreflight(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('apps_runner_fixture', RUNNER)
+        cls.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.runner)
+
+    def test_channel_is_duplex_with_single_log_writer_and_fixed_port(self):
+        channel = self.runner.observation_channel(True)
+        self.assertEqual(channel, ['-chardev', 'socket,id=apps,path=/observe/apps.sock,server=on,wait=off',
+                                  '-device', 'virtserialport,chardev=apps,name=rog5.apps,nr=1'])
+        self.assertIn('file,id=editor,path=/observe/editor.log', self.runner.observation_channel(False))
+
+    def test_cli_refuses_incomplete_or_conflicting_observation_before_effects(self):
+        required = [value for name in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for value in ['--'+name, '/unused']]
+        combined = ['--session-archive', '/unused', '--session-receipt', '/unused', '--host-render-node', '/unused']
+        for extra in [['--observe-apps'], combined+['--observe-apps'],
+                      combined+['--observe-apps', '--launcher-reference', '/unused'],
+                      combined+['--observe-editor', '--observe-apps'],
+                      ['--launcher-reference', '/unused'], ['--evidence-writer', '/unused']]:
+            with self.subTest(extra=extra):
+                result = subprocess.run([sys.executable, str(RUNNER), *required, *extra],
+                                        capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, 2)
+                self.assertRegex(result.stderr, 'observation requires|not allowed with argument')
+
+    def test_reference_semantics_and_guest_architecture_checked(self):
+        spec = importlib.util.spec_from_file_location('editor_png_fixture', RUNNER.with_name('test-qemu-logind-editor.py'))
+        fixture = importlib.util.module_from_spec(spec); spec.loader.exec_module(fixture)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); png = root/'reference.png'; writer = root/'writer'
+            png.write_bytes(fixture.PNG)
+            elf = b'\x7fELF\x02\x01\x01'+b'\0'*11+b'\xb7\0'
+            writer.write_bytes(elf)
+            self.runner.validate_apps_inputs(png, writer)
+            for data in [b'', elf[:18]+b'\x3e\0', b'#!/bin/sh\nexit 0\n', elf.replace(b'ELF', b'BAD')]:
+                writer.write_bytes(data)
+                with self.assertRaisesRegex(ValueError, 'ARM64 ELF'):
+                    self.runner.validate_apps_inputs(png, writer)
+            writer.write_bytes(elf); png.write_bytes(b'not a PNG')
+            with self.assertRaises(ValueError): self.runner.validate_apps_inputs(png, writer)
 
 
 class Archive(unittest.TestCase):

@@ -8242,6 +8242,65 @@
         "scripts/host/test-qemu-virtio-drm.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-logind-apps.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 15,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/qemu-logind-apps.py",
+        "scripts/host/qemu-logind-editor.py",
+        "scripts/host/qemu-mobile-observer.py",
+        "scripts/host/qemu-launcher-protocol.py",
+        "scripts/host/test-qemu-logind-editor.py",
+        "scripts/host/test-qemu-launcher-protocol.py",
+        "scripts/host/test-qemu-virtio-drm.py",
+        "scripts/host/test-qemu-mobile-observer.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-logind-apps.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3",
+        "bash"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-apps.sh",
+        "tools/qemu-virtio-drm/logind-denial.sh",
+        "tools/qemu-virtio-drm/launcher-apps.sh",
+        "tools/qemu-virtio-drm/launcher-evidence.sh"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

@@ -13,6 +13,12 @@ foot_close_owned=0
 foot_close_fifo=$HOME/foot-close.pipe
 readers=()
 if [[ -f /run/editor-probe ]]; then source /run/logind-editor.sh; fi
+if [[ -f /run/apps-probe ]]; then
+    [[ ! -f /run/editor-probe ]]
+    source /run/launcher-apps.sh
+    source /run/launcher-evidence.sh
+    source /run/logind-apps.sh
+fi
 require_fuse_device() {
     local device=${1:-/dev/fuse} helper=${2:-/usr/bin/fusermount3} metadata
     [[ -c $device && -r $device && -w $device ]] || {
@@ -131,6 +137,11 @@ publish_cache_environment() {
 start_log() {
     local name=$1
     mkfifo "$HOME/$name.pipe"
+    if [[ -f /run/apps-probe && ( $name == mousepad || $name == foot ) ]]; then
+        # Authenticated launcher preparation owns the attributed prefix readers.
+        : > "$HOME/$name.log"
+        return 0
+    fi
     if [[ $name == mousepad && -f /run/editor-probe ]]; then
         drain_editor_protocol < "$HOME/$name.pipe" > "$HOME/$name.log" &
         readers+=("$!")
@@ -268,9 +279,11 @@ stop_all_owned() {
 finish() {
     local rc=$?
     trap - EXIT TERM INT
+    if [[ -f /run/apps-probe ]]; then cleanup_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }; fi
     stop_all_owned cleanup || { [[ $rc != 0 ]] || rc=1; }
     remove_foot_close || { [[ $rc != 0 ]] || rc=1; }
     for pid in "${readers[@]}"; do kill -TERM "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
+    if [[ -f /run/apps-probe ]]; then finish_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }; fi
     if [[ $rc != 0 ]]; then
         echo "FAIL combined user session status=$rc"
         for name in denial foot mousepad; do echo "OBSERVE last $name log"; tail -n 100 "$HOME/$name.log" || :; done
@@ -282,6 +295,7 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 require_fuse_device
 publish_cache_environment
+if [[ -f /run/apps-probe ]]; then prepare_authenticated_apps; fi
 /usr/bin/denial-mobile-session --check
 /usr/bin/denial-mobile-session > "$HOME/denial.pipe" 2>&1 &
 launcher=$!
@@ -300,7 +314,10 @@ done <<< "$manager"
 [[ ${DENIAL_SOCKET:-} == "$XDG_RUNTIME_DIR/"* && -S $DENIAL_SOCKET ]]
 printf 'OBSERVE activated local Denial wayland=%s socket=%s\n' "$WAYLAND_DISPLAY" "$DENIAL_SOCKET"
 qualify_activated_services
-if [[ -f /run/editor-probe ]]; then
+if [[ -f /run/apps-probe ]]; then
+    run_authenticated_apps
+    stop_all_owned stop
+elif [[ -f /run/editor-probe ]]; then
     run_authenticated_editor
     stop_all_owned stop
 else
@@ -328,5 +345,6 @@ while read -r unit load active rest; do
 done <<< "$units"
 for pid in "${readers[@]}"; do wait "$pid"; done
 readers=()
+if [[ -f /run/apps-probe ]]; then finish_authenticated_apps; fi
 cat "$HOME/denial.log"
 echo 'PASS authenticated Denial launcher and native clients stopped'

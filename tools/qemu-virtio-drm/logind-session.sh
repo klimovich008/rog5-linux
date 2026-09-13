@@ -72,8 +72,14 @@ systemctl is-active systemd-user-sessions.service
 [[ ! -e /run/nologin ]]
 echo 'OBSERVE packaged Permit User Sessions removed startup nologin'
 udevadm settle --timeout=8
-if [[ -f /run/editor-probe ]]; then
+if [[ -f /run/editor-probe || -f /run/apps-probe ]]; then
     [[ -c /dev/vport0p1 ]]
+    expected_port=rog5.editor
+    if [[ -f /run/apps-probe ]]; then
+        [[ ! -f /run/editor-probe ]]
+        expected_port=rog5.apps
+    fi
+    [[ $(cat /sys/class/virtio-ports/vport0p1/name) == "$expected_port" ]]
     chown 1000:1000 /dev/vport0p1
     chmod 600 /dev/vport0p1
 fi
