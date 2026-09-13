@@ -8379,6 +8379,39 @@
         "scripts/host/qemu-caret-protocol.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-logind-startup-diagnostic.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 20,
+      "prerequisites": [
+        "python3",
+        "bash",
+        "tail",
+        "head",
+        "od",
+        "tr",
+        "timeout",
+        "sleep"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-observer.sh",
+        "scripts/host/test-qemu-logind.py",
+        "scripts/host/test-qemu-virtio-drm.py"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
