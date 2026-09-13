@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Authenticated local logind session and mediated virtual devices pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial renders through authenticated logind; combined cleanup remains FAIL**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The retained generic ARM64 VM now runs actual systemd PID1, original PAM login authentication, an active UID1000 tty1 session, user manager and libseat/logind DRM/input acquisition and release, followed by verified session/scope removal. This run contains no compositor; prior non-root rendering and packaged session payload remain separate proofs. Next combine the prepared Denial entry and native apps with this authenticated local-session route in one bounded VM run. Phone A660/display/touch requires fresh physical authorization. All mobile physical rows stay NOT RUN; S06/R01 stay FAIL. See [current repair evidence](../test-results/2026-09-13-logind-session.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The generic ARM64 VirGL VM runs the production Denial entry through actual PAM/logind: 24 frames/page flips and two native clients configured. Overall combined run remains FAIL: clients exited before intentional cleanup and VM init panicked during shutdown; portal/accessibility services also failed. The empty-output-config production guard is corrected. Stop combined retries; next isolate shutdown using retained logind-only controls and capture client exit statuses. Phone A660/display/touch needs fresh physical authorization. All mobile physical rows stay NOT RUN; S06/R01 stay FAIL. See [current repair evidence](../test-results/2026-09-13-logind-denial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -2857,3 +2857,13 @@ under the existing VM/container memory limit. Emit bounded failure tails before
 VM teardown, and restore any temporary executable view on failure as well as
 success. Keep the exact failing run and distinguish inferred allocation cause
 from the observed SIGXFSZ.
+
+The third combined run still panicked with init SIGBUS after restoring canonical
+/usr/bin. That correction is insufficient; do not promote the executable-alias
+hypothesis to an established shutdown cause. Stop combined successors and isolate
+shutdown with the retained passing logind-only bytes, one variable per control.
+Capture client wait statuses even when kill reports an already-exited process:
+configuration markers followed by missing processes do not distinguish deadlines
+from crashes. The65-second client limits versus about69 seconds of compositor
+progress justify investigating expiry, not asserting it. Preserve ancillary
+portal/accessibility service failures separately from rendering counters.

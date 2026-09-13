@@ -1358,23 +1358,23 @@
     },
     "session_payload": {
       "status": "PREPARED_NOT_INSTALLED",
-      "set_id": "private:rog5-session-payload-20260913-r1",
-      "source_commit": "f94182682ea43c65320a3fe97e10ed90d44651ce",
-      "source_tree": "dfb7f5b49b32453292263a4155b380d8051609de",
+      "set_id": "private:rog5-logind-denial-20260913-r1",
+      "source_commit": "4947e75da6a045e8d7e761364e6f96f21607eeb6",
+      "source_tree": "6b50a256831494208a3f3f26e86179c6ae9ac151",
       "archive": {
-        "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/session.tar.gz",
-        "sha256": "ef3c36cb6761e4840a86113d225e3fe85e548f871a6f0d0cbcf781ea771cf7a4",
-        "size": 26671977
+        "path": "/home/deck/.local/state/rog5-logind-denial-20260913-r1/payload-r2/session.tar.gz",
+        "sha256": "1ff417307c96bac90977b64a143e1a81b535d94a03109ca967c40e9b1f269d0c",
+        "size": 26672036
       },
       "provenance": {
-        "path": "/home/deck/.local/state/rog5-session-payload-20260913-r1/payload-r1/provenance.json",
-        "sha256": "c730b6f335e4b596c9ffe24871d8907a112d8dcf1ab6a2270dfd366d92a50518",
-        "size": 10468
+        "path": "/home/deck/.local/state/rog5-logind-denial-20260913-r1/payload-r2/provenance.json",
+        "sha256": "676552f9db7ffcc64caf8c52f4da21ae383e6b392a4ad5eb58955df022d86fb5",
+        "size": 10469
       },
       "evidence": {
-        "path": "test-results/2026-09-13-session-payload-qualification.json",
-        "sha256": "eebf59df72249231285b399009d46f0c2a746f27c919cb36bc0b8a15a2790cd5",
-        "size": 70938
+        "path": "test-results/2026-09-13-logind-denial-qualification.json",
+        "sha256": "4956fb8fa90837a48d90d68bbc49e0b9b6265475218be9973c8bdb751e29bd84",
+        "size": 295284
       },
       "physical_status": "NOT RUN",
       "authority": "none"
@@ -1393,6 +1393,29 @@
         "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
         "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
         "bytes": 1102
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none"
+    },
+    "authenticated_denial": {
+      "status": "FAIL_VM_ONLY",
+      "set_id": "private:rog5-logind-denial-20260913-r1",
+      "source_commit": "b79045d74e5973ab85d73bd4b5fabfc0e67e5e0d",
+      "source_tree": "f2725cf1d1cfb740ef1e93a8caeec8015ef5aaa5",
+      "evidence": {
+        "path": "test-results/2026-09-13-logind-denial-qualification.json",
+        "sha256": "4956fb8fa90837a48d90d68bbc49e0b9b6265475218be9973c8bdb751e29bd84",
+        "size": 295284
+      },
+      "partial_milestones": {
+        "authenticated_local_session": "observed",
+        "user_targets": "both active",
+        "native_clients": "two configured; no usability/input PASS",
+        "raster_frames": 24,
+        "output_page_flips": 24,
+        "delivered_vsyncs": 18,
+        "complete_session": "FAIL",
+        "normal_vm_poweroff": "FAIL"
       },
       "physical_status": "NOT RUN",
       "authority": "none"
