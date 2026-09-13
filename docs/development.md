@@ -889,3 +889,20 @@ read. Source tests use `test-keyboard-animation-geometry.py` with an explicit
 matching source and Dart tool. These adapter tests and a frontend compile do not
 qualify actual animation timing or phone touch. Keep exact AOT/runtime and the
 current VM proof distinct until a changed-runtime observation is executed.
+
+For the selected Denial userspace, `check-denial-runtime-linkage.py` runs the
+actual ARM64 dynamic loader and a small Rust `dlopen(RTLD_NOW)` probe inside a
+read-only bubblewrap root, with no host GPU device, network or application startup.
+Supply the exact materialized root/tree SHA, bundle, compositor and ARM64 probe;
+use a fresh output directory. The committed linkage profile covers the native
+binary, Foot/Mousepad, engine/AOT and Mesa EGL/GBM/MSM/Freedreno entry points.
+Each library is checked in a fresh process. Loaded package files and driver
+JSON descriptors must match the authenticated materialization tree. Missing
+libraries, symbols, relocations, architecture, receipts or tools cannot pass.
+
+The probe never invokes a requested symbol, but loading/resolution can run
+constructors, IFUNC resolvers and destructors. These tests prove only current
+loader closure, not optional later dlopen, driver initialization, hardware
+acceleration, firmware availability or phone compatibility. Preserve the real
+phone's kernel/module/trial binding separately; a matching userspace closure
+cannot authorize substituting a new module cohort into a frozen boot trial.

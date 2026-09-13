@@ -2726,3 +2726,10 @@ spring. The pinned SpringSimulation defaults snapToEnd=false; normalize its
 terminal residue at the shared boundary rather than hiding only the sheet.
 A fake spring test cannot establish exact framework endpoint semantics: inspect
 the pinned source and retain real Flutter/VM timing as a separate qualification.
+
+A library destructor observed at process exit does not prove explicit cleanup
+preceded a success receipt. Use an unbuffered fixture marker and verify ordering;
+removing explicit dlclose must fail that test. Keep libraries in separate loader
+probe processes so one probe's global state cannot mask another's dependencies.
+Generic VirGL evidence does not exercise the retained MSM DRI/Freedreno paths;
+load those exact package files offline before preparing a phone userspace binding.
