@@ -388,6 +388,16 @@ def session_observer(module, args, directory, name, token):
     return module.LiveEditor(directory, name)
 
 
+def stage_close_ptrace(enabled, source, output):
+    if not enabled:
+        return []
+    # A distinct, recorded compiler configuration; default helpers contain no
+    # ptrace calls. Never replace an existing source in the fresh build output.
+    with (source/'app-close-ptrace.rs').open('rb') as src, (output/'app-close-ptrace.rs').open('xb') as dst:
+        shutil.copyfileobj(src, dst)
+    return ['--cfg', 'close_ptrace']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('runtime-view', 'runtime-receipt', 'kernel', 'qemu-image', 'toolchain-image', 'libc', 'libloading', 'output'):
@@ -418,6 +428,8 @@ def main():
     parser.add_argument('--evidence-writer', type=Path)
     parser.add_argument('--settings-sync-diagnostic', type=Path,
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
+    parser.add_argument('--app-close-ptrace', action='store_true',
+                        help='explicit intrusive VM diagnostic: one owned main-thread PC snapshot; requires app-close-probe')
     parser.add_argument('--app-close-probe', action='store_true',
                         help='close-only diagnostic: bounded read-only owned Mousepad proc sampler')
     parser.add_argument('--device-readiness-20s', action='store_true',
@@ -449,6 +461,8 @@ def main():
         parser.error('settings-sync-diagnostic requires observe-apps')
     if args.app_close_probe and not (args.close_only and args.settings_sync_diagnostic is not None):
         parser.error('app-close-probe requires close-only and settings-sync-diagnostic')
+    if args.app_close_ptrace and not args.app_close_probe:
+        parser.error('app-close-ptrace requires app-close-probe')
     if args.device_readiness_20s and not combined:
         parser.error('device-readiness-20s requires combined session')
     install_handlers()
@@ -547,6 +561,8 @@ def main():
             input_files += [regular(args.settings_sync_diagnostic), SOURCES/'settings-sync-diagnostic.c']
         if args.app_close_probe:
             input_files.append(SOURCES/'app-close-probe.rs')
+        if args.app_close_ptrace:
+            input_files.append(SOURCES/'app-close-ptrace.rs')
         if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
@@ -584,6 +600,8 @@ def main():
                 rust += ['--cfg', 'denial_session']
                 if args.startup_only:
                     rust += ['--cfg', 'startup_only']
+            if binary_name == 'app-close-probe':
+                rust += stage_close_ptrace(args.app_close_ptrace, SOURCES, output)
             command = ['podman', 'run', '--rm', '--name', name, '--pull=never', '--network=none', '--read-only',
                        '--memory=512m', '--memory-swap=512m', '--cpus=1', '--pids-limit=128']
             for directory in dependency_dirs:

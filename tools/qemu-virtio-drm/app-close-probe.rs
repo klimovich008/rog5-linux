@@ -1,4 +1,8 @@
-// VM-only read-only close observation. Records never prove successful shutdown.
+// VM-only close observation; default read-only. Explicit close_ptrace builds
+// add one intrusive snapshot. Records never prove successful shutdown.
+#[cfg(close_ptrace)]
+#[path = "app-close-ptrace.rs"]
+mod ptrace;
 use std::{fs::{self, OpenOptions}, io::{self, Read, Write}, os::unix::{fs::{MetadataExt, OpenOptionsExt}, ffi::OsStrExt}, path::Path, time::{Duration, Instant}};
 #[repr(C)]
 struct Timespec { seconds: i64, nanos: i64 }
@@ -110,6 +114,10 @@ fn sample<W: Write>(root: &Path, timeout: Target, app: Target, uid: u32, round: 
     // Preserve at least1KiB for clock + main-thread data in every later round.
     // Extra workers/FD/maps may be omitted with an explicit truncation footer.
     out.reserved = 5usize.saturating_sub(round) * 1024;
+    // Reserve the requested snapshot before earlier optional worker/FD records
+    // consume its space. Released after the round1 proc sample, still within8KiB.
+    #[cfg(close_ptrace)]
+    if round <= 1 { out.reserved += 1536; }
     let mut time = Timespec { seconds: 0, nanos: 0 };
     // SAFETY: valid writable timespec; CLOCK_MONOTONIC is1 on both Linux ABIs.
     if unsafe { clock_gettime(1, &mut time) } != 0 { return Err(io::Error::last_os_error()); }
@@ -181,6 +189,44 @@ fn markers(bytes: &[u8]) -> bool {
 fn valid_stdout(meta: &fs::Metadata, uid: u32) -> bool {
     meta.is_file() && meta.uid() == uid && meta.mode() & 0o7777 == 0o600 && meta.nlink() == 1 && meta.len() == 0
 }
+#[cfg(close_ptrace)]
+fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result<(String, Vec<u8>), String> {
+    let owned_root = root.to_owned();
+    let validate = move || {
+        check(&owned_root, timeout, uid, None, None)?;
+        check(&owned_root, app, uid, Some(timeout.pid), Some("mousepad"))?;
+        Ok(())
+    };
+    let shot = ptrace::capture(app.pid as i32, validate)?;
+    let mapping = pc_map(root, app.pid, format!("-1 {:#x} {:#x}", shot.sp, shot.pc).as_bytes());
+    // Maps are read after detach, not an atomic snapshot. Reject attribution if
+    // either identity changed before that bounded read finished.
+    check(root, timeout, uid, None, None)?;
+    check(root, app, uid, Some(timeout.pid), Some("mousepad"))?;
+    let mut now = Timespec { seconds: 0, nanos: 0 };
+    // SAFETY: writable timespec, Linux CLOCK_MONOTONIC.
+    if unsafe { clock_gettime(1, &mut now) } != 0 { return Err(io::Error::last_os_error().to_string()); }
+    Ok((format!("intrusive=true pc={:#x} sp={:#x} fp={:#x} lr={:?} interrupt_to_detach_us={} end_monotonic={}.{:09}",
+        shot.pc, shot.sp, shot.frame_pointer, shot.link_register, shot.interrupt_to_detach.as_micros(), now.seconds, now.nanos), mapping))
+}
+#[cfg(close_ptrace)]
+fn before_snapshot_deadline<T>(start: Instant, capture: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+    if start.elapsed() >= Duration::from_millis(1200) { return Err("snapshot-start-deadline".into()); }
+    capture()
+}
+#[cfg(close_ptrace)]
+fn publish_pc<W: Write>(out: &mut Records<W>, pid: u32, result: Result<(String, Vec<u8>), String>) -> io::Result<bool> {
+    out.reserved -= 1536;
+    match result {
+        Ok((shot, mapping)) => {
+            let before = out.count;
+            out.add("ptrace-pc", 1, pid, shot.as_bytes())?;
+            out.add("ptrace-map", 1, pid, &mapping)?;
+            Ok(out.count == before + 2)
+        },
+        Err(e) => { out.add("ptrace-unavailable", 1, pid, e.as_bytes())?; Ok(false) }
+    }
+}
 fn run() -> Result<(), String> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     if args.len() != 4 || args.iter().any(|s| s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit())) { return Err("four positive identity arguments required".into()); }
@@ -193,15 +239,28 @@ fn run() -> Result<(), String> {
     if !valid_stdout(&meta, 1000) { return Err("stdout must be empty owned0600 single-link regular file".into()); }
     let mut out = Records::new(io::stdout().lock());
     let start = Instant::now();
+    let timeout = Target {pid: values[0] as u32, start: values[1]};
+    let app = Target {pid: values[2] as u32, start: values[3]};
+    #[cfg(close_ptrace)]
+    let mut snapshot_done = false;
     for round in 0..6 {
         if round > 0 {
             let next = start + Duration::from_millis(round as u64 * 200);
             if let Some(delay) = next.checked_duration_since(Instant::now()) { std::thread::sleep(delay); }
         }
         if start.elapsed() >= Duration::from_millis(1200) { out.truncated = true; break; }
-        if !sample(Path::new("/proc"), Target {pid: values[0] as u32,start: values[1]}, Target {pid: values[2] as u32,start: values[3]}, 1000, round, &mut out).map_err(|e| e.to_string())? { break; }
+        if !sample(Path::new("/proc"), timeout, app, 1000, round, &mut out).map_err(|e| e.to_string())? { break; }
+        #[cfg(close_ptrace)]
+        if round == 1 {
+            let result = before_snapshot_deadline(start, || pc_observation(Path::new("/proc"), timeout, app, 1000));
+            snapshot_done = publish_pc(&mut out, app.pid, result).map_err(|e| e.to_string())?;
+            if !snapshot_done { break; }
+        }
     }
-    out.finish(start.elapsed()).map_err(|e| e.to_string())
+    out.finish(start.elapsed()).map_err(|e| e.to_string())?;
+    #[cfg(close_ptrace)]
+    if !snapshot_done { return Err("requested ptrace snapshot not captured/published".into()); }
+    Ok(())
 }
 fn main() { if let Err(e) = run() { eprintln!("APP_CLOSE_PROBE refused: {e}"); std::process::exit(125); } }
 
@@ -209,6 +268,42 @@ fn main() { if let Err(e) = run() { eprintln!("APP_CLOSE_PROBE refused: {e}"); s
 mod tests {
     use super::*;
     use std::os::unix::fs::symlink;
+    #[cfg(close_ptrace)]
+    #[test] fn expired_budget_never_starts_snapshot() {
+        let mut called=false;
+        assert_eq!(before_snapshot_deadline(Instant::now()-Duration::from_secs(2),|| {called=true;Ok(())}),Err("snapshot-start-deadline".into()));
+        assert!(!called);
+        assert_eq!(before_snapshot_deadline(Instant::now(),||Ok(7)).unwrap(),7);
+    }
+    #[cfg(close_ptrace)]
+    #[test] fn actual_pc_observation_revalidates_parent_uid_and_start() {
+        use std::process::{Command, Stdio, Child};
+        struct Owned(Child);
+        impl Drop for Owned { fn drop(&mut self) { if matches!(self.0.try_wait(),Ok(None)) { let _=self.0.kill(); let _=self.0.wait(); } } }
+        let dir=std::env::temp_dir().join(format!("rog5-pc-integration-{}",std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        struct Scratch(std::path::PathBuf);
+        impl Drop for Scratch { fn drop(&mut self) { let _=fs::remove_dir_all(&self.0); } }
+        let _scratch=Scratch(dir.clone());
+        symlink("/bin/sleep",dir.join("mousepad")).unwrap();
+        let child=Owned(Command::new(dir.join("mousepad")).arg("30").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap());
+        let root=Path::new("/proc"); let start=Instant::now();
+        let app=loop {
+            let id=identity(&read(&root.join(format!("{}/stat",child.0.id())),4096).unwrap()).unwrap();
+            if id.comm=="mousepad" { break Target{pid:id.pid,start:id.start}; }
+            assert!(start.elapsed()<Duration::from_secs(1)); std::thread::sleep(Duration::from_millis(1));
+        };
+        let id=identity(&read(&root.join(format!("{}/stat",std::process::id())),4096).unwrap()).unwrap();
+        let timeout=Target{pid:id.pid,start:id.start};
+        // SAFETY: read-only current credential query for the owned-child fixture.
+        let uid=unsafe{getuid()};
+        assert!(pc_observation(root,timeout,Target{start:app.start+1,..app},uid).is_err());
+        assert!(pc_observation(root,timeout,app,uid+1).is_err());
+        let (shot,map)=pc_observation(root,timeout,app,uid).unwrap();
+        assert!(shot.contains("intrusive=true pc=0x") && shot.contains("end_monotonic="));
+        assert!(!map.starts_with(b"unavailable:"));
+        assert!(String::from_utf8(read(&root.join(format!("{}/status",app.pid)),8192).unwrap()).unwrap().contains("TracerPid:\t0"));
+    }
     fn stat(pid: u32, parent: u32, start: u64, comm: &str) -> String { format!("{pid} ({comm}) S {parent} {} {start}\n", vec!["0";17].join(" ")) }
     #[test] fn parses_parentheses_and_rejects_short_stat() { let i=identity(stat(20,10,99,"weird ) comm").as_bytes()).unwrap(); assert_eq!((i.pid,i.ppid,i.start,i.comm),(20,10,99,"weird ) comm".into())); assert!(identity(b"20 (x) S 10").is_err()); }
     #[test] fn cpu_and_switch_counters_reject_missing_invalid_or_reused_data() {
@@ -258,6 +353,8 @@ mod tests {
         for round in 1..6 {
             fs::write(dir.join("20/task/20/stat"),task_stat(42+round as u64)).unwrap();
             assert!(sample(&dir,t,a,1000,round,&mut out).unwrap());
+            #[cfg(close_ptrace)]
+            if round==1 { assert!(publish_pc(&mut out,a.pid,Ok(("snapshot".repeat(25),vec![b'x';768]))).unwrap()); }
         }
         out.finish(Duration::from_millis(1000)).unwrap();
         let data=String::from_utf8_lossy(&out.writer); assert!(data.contains("kind=task round=5 pid=20")); assert!(data.contains("truncated=true")); assert!(data.len()<=8192);
@@ -266,6 +363,8 @@ mod tests {
         assert!(data.contains("voluntary=5 involuntary=6"));
         assert_eq!(data.matches("kind=thread-cpu").count(),6);
         assert!(data.contains("ticks_per_second="));
+        #[cfg(close_ptrace)]
+        { assert!(data.contains("kind=ptrace-pc") && data.contains("kind=ptrace-map")); }
         let mut out=Records::new(Vec::new());
         fs::write(dir.join("20/stat"),stat(20,10,99,"wrong")).unwrap(); assert!(check(&dir,a,1000,Some(10),Some("mousepad")).is_err());
         fs::write(dir.join("20/stat"),stat(20,10,99,"mousepad").replace(") S ",") Z ")).unwrap(); assert_eq!(check(&dir,a,1000,Some(10),Some("mousepad")).unwrap_err(),"exited");

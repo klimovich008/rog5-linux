@@ -2050,6 +2050,30 @@ class AppsPreflight(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertRegex(result.stderr, 'observation requires|not allowed with argument|settings-sync-diagnostic requires observe-apps')
 
+    def test_ptrace_requires_explicit_proc_probe_before_effects(self):
+        required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
+                  'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]
+        combined=['--session-archive','/unused','--session-receipt','/unused','--host-render-node','/unused']
+        apps=['--observe-apps','--launcher-reference','/unused','--evidence-writer','/unused',
+              '--close-only','--settings-sync-diagnostic','/unused']
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--app-close-ptrace']), \
+                patch.object(self.runner,'install_handlers') as effects,patch('sys.stderr',new_callable=io.StringIO):
+            with self.assertRaises(SystemExit) as result:self.runner.main()
+            self.assertEqual(result.exception.code,2);effects.assert_not_called()
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--app-close-probe','--app-close-ptrace']), \
+                patch.object(self.runner,'install_handlers',side_effect=RuntimeError('accepted intrusive probe')):
+            with self.assertRaisesRegex(RuntimeError,'accepted intrusive probe'):self.runner.main()
+
+    def test_ptrace_source_and_compile_flag_are_opt_in(self):
+        with tempfile.TemporaryDirectory() as directory:
+            d=Path(directory);source=d/'source';output=d/'output';source.mkdir();output.mkdir()
+            self.assertEqual(self.runner.stage_close_ptrace(False,source,output),[])
+            self.assertEqual(list(output.iterdir()),[])
+            (source/'app-close-ptrace.rs').write_bytes(b'actual-module-fixture')
+            self.assertEqual(self.runner.stage_close_ptrace(True,source,output),['--cfg','close_ptrace'])
+            self.assertEqual((output/'app-close-ptrace.rs').read_bytes(),b'actual-module-fixture')
+            with self.assertRaises(FileExistsError):self.runner.stage_close_ptrace(True,source,output)
+
     def test_close_probe_requires_explicit_close_and_sync_probe_before_effects(self):
         required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
                   'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]
