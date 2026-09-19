@@ -456,7 +456,7 @@ def main():
                         'logind-boot.sh', 'logind-session.sh', 'logind-user.sh', 'logind-observer.sh',
                         'logind-linker-cache.sh']
         if combined:
-            source_names += ['logind-denial.sh', 'logind-denial-prepare.sh', 'logind-font-cache.sh', 'logind-gtk-im-cache.sh']
+            source_names += ['logind-denial.sh', 'logind-denial-prepare.sh', 'logind-font-cache.sh', 'logind-gtk-im-cache.sh', 'logind-icon-cache.sh']
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
         if args.linker_cache is not None:
             input_files += [args.linker_cache/'ld.so.cache', args.linker_cache/'result.json',
@@ -523,7 +523,8 @@ def main():
         if combined:
             scripts.update({'logind-denial.sh': 'logind-denial.sh', 'logind-denial-prepare.sh': 'logind-denial-prepare.sh',
                             'logind-font-cache.sh': 'logind-font-cache.sh',
-                            'logind-gtk-im-cache.sh': 'logind-gtk-im-cache.sh'})
+                            'logind-gtk-im-cache.sh': 'logind-gtk-im-cache.sh',
+                            'logind-icon-cache.sh': 'logind-icon-cache.sh'})
             (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
             os.link(args.session_archive, payload / 'session.tar.gz')
         if args.startup_only:

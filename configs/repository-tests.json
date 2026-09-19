@@ -8502,6 +8502,31 @@
         "tools/qemu-virtio-drm/logind-linker-cache.sh"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-logind-icon-cache.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3",
+        "gtk-update-icon-cache"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-icon-cache.sh"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

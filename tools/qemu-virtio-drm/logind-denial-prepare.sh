@@ -74,6 +74,8 @@ source /run/logind-gtk-im-cache.sh
 stage_gtk_im_override
 stage_wayland_debug_override
 prepare_gtk_im_cache
+source /run/logind-icon-cache.sh
+stage_icon_cache
 # The extracted package closure has not executed Fontconfig's cache hook.
 # Prepare once in guest RAM, then prove the unprivileged consumer uses it.
 source /run/logind-font-cache.sh
