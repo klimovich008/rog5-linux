@@ -8177,7 +8177,14 @@
       "mandatory": true,
       "deadline_seconds": 20,
       "prerequisites": [
-        "python3"
+        "bash",
+        "cc",
+        "mktemp",
+        "od",
+        "python3",
+        "stat",
+        "stdbuf",
+        "tr"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",

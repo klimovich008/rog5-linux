@@ -1340,13 +1340,13 @@ class StartupOnly(unittest.TestCase):
             tool.write_text('#!/bin/bash\nprintf \'%s\\n\' "$@" > "$ARGUMENTS"\ncat "$DATA"\n')
             tool.chmod(0o755); (root/'data').write_text(data)
             env = {'PATH':str(root)+':/usr/bin:/bin', 'LANG':'C',
-                   'ARGUMENTS':str(root/'arguments'), 'DATA':str(root/'data')}
+                   'ARGUMENTS':str(root/'arguments'), 'DATA':str(root/'data'), 'TMPDIR':str(root)}
             result = subprocess.run(['bash','-c', 'set -euo pipefail; source "$1"; logind_startup_timings',
                                      'fixture', str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],
                                     env=env, capture_output=True, text=True, timeout=12)
             self.assertEqual(result.returncode, 0, result.stderr)
             packet = re.search(r'bytes=(\d+) hex=([0-9a-f]+)', result.stdout)
-            self.assertEqual(bytes.fromhex(packet[2]).decode(), data.rstrip('\n'))
+            self.assertEqual(bytes.fromhex(packet[2]).decode(), data)
             self.assertNotIn(self.runner.SUCCESS, result.stdout)
             arguments = (root/'arguments').read_text().splitlines()
             self.assertEqual(arguments[:2], ['show','--no-pager'])
@@ -1361,7 +1361,57 @@ class StartupOnly(unittest.TestCase):
                 self.assertNotIn('status=read', failed.stdout)
                 packet = re.search(r'bytes=(\d+) hex=([0-9a-f]+)', failed.stdout)
                 self.assertIsNotNone(packet, 'partial timing bytes discarded')
-                self.assertEqual(bytes.fromhex(packet[2]).decode(), data.rstrip('\n'))
+                self.assertEqual(bytes.fromhex(packet[2]).decode(), data)
+
+    def test_buffered_partial_stdout_survives_real_timeout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); source=root/'buffered.c'
+            source.write_text('#include <stdio.h>\n#include <unistd.h>\nint main(void){printf("Id=ldconfig.service\\n");while(1)pause();}\n')
+            subprocess.run(['cc',str(source),'-o',str(root/'systemctl')],check=True,capture_output=True,timeout=10)
+            timeout=root/'timeout'
+            timeout.write_text('#!/bin/bash\nexec /usr/bin/timeout -k .1 .2 "${@:4}"\n');timeout.chmod(0o755)
+            env=dict(os.environ,PATH=str(root)+':/usr/bin:/bin',TMPDIR=str(root))
+            result=subprocess.run(['bash','-c','source "$1"; logind_startup_timings','fixture',
+                str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],env=env,capture_output=True,text=True,timeout=3)
+            self.assertEqual(result.returncode,124,result.stdout+result.stderr)
+            packet=re.search(r'DIAGNOSTIC_UNIT_TIMINGS status=failed code=124 bytes=(\d+) hex=([0-9a-f]+)',result.stdout)
+            self.assertIsNotNone(packet,'buffered partial properties disappeared when the writer was killed')
+            self.assertEqual(bytes.fromhex(packet[2]).decode(),'Id=ldconfig.service\n')
+
+    def test_query_stderr_is_bounded_encoded_and_never_session_proof(self):
+        for overflow in (False,True):
+            with self.subTest(overflow=overflow),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);tool=root/'systemctl'
+                if overflow:
+                    tool.write_text('#!/bin/bash\nhead -c 2097152 /dev/zero >&2\n')
+                else:
+                    tool.write_text('#!/bin/bash\nprintf "Id=ldconfig.service\\n"\nprintf "'+self.runner.SUCCESS+'\\n" >&2\nexit 42\n')
+                tool.chmod(0o755)
+                env=dict(os.environ,PATH=str(root)+':/usr/bin:/bin',TMPDIR=str(root))
+                result=subprocess.run(['bash','-c','source "$1"; logind_startup_timings','fixture',
+                    str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],env=env,capture_output=True,text=True,timeout=4)
+                self.assertNotEqual(result.returncode,0)
+                self.assertLess(len(result.stdout)+len(result.stderr),70000)
+                self.assertNotIn(self.runner.SUCCESS,result.stdout+result.stderr)
+                packet=re.search(r'DIAGNOSTIC_UNIT_QUERY code=(\d+) bytes=(\d+) hex=([0-9a-f]*)',result.stdout)
+                self.assertIsNotNone(packet)
+                self.assertLessEqual(int(packet[2]),16384)
+                if not overflow:
+                    self.assertEqual(result.returncode,42)
+                    self.assertEqual(bytes.fromhex(packet[3]).decode(),self.runner.SUCCESS+'\n')
+                self.assertEqual(list(root.glob('rog5-unit-query.*')),[])
+
+    def test_encoder_failure_is_propagated_and_scratch_removed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name,body in [('systemctl','printf "Id=ldconfig.service\\n"'),('od','exit 41')]:
+                p=root/name;p.write_text('#!/bin/bash\n'+body+'\n');p.chmod(0o755)
+            result=subprocess.run(['bash','-c','source "$1"; if logind_startup_timings; then exit 0; else exit $?; fi','fixture',
+                str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],
+                env=dict(os.environ,PATH=str(root)+':/usr/bin:/bin',TMPDIR=str(root)),capture_output=True,text=True,timeout=3)
+            self.assertEqual(result.returncode,41,result.stdout+result.stderr)
+            self.assertNotIn('status=read',result.stdout)
+            self.assertEqual(list(root.glob('rog5-unit-query.*')),[])
 
     def test_actual_user_dispatch_skips_denial_only_for_explicit_marker(self):
         source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-user.sh').read_text()

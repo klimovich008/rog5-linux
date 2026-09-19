@@ -1,9 +1,22 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
-logind_startup_timings() {
-    local record status=0 encoded
-    record=$(timeout -k 1 8 systemctl show --no-pager \
+logind_startup_timings() (
+    set -o pipefail
+    local temporary status=0 query_status=0 encoded bytes stderr_encoded stderr_bytes
+    local LC_ALL=C
+    export LC_ALL
+    temporary=$(mktemp -d "${TMPDIR:-/run}/rog5-unit-query.XXXXXXXX") || return $?
+    trap 'status=$?; trap - EXIT; rm -rf -- "$temporary" || { ((status != 0)) || status=1; }; exit "$status"' EXIT
+    trap 'exit 143' TERM
+    trap 'exit 130' INT
+    # Keep the existing eight-second command/one-second kill-after bound. Each
+    # output file is capped before it enters shell memory; line buffering makes
+    # already emitted property rows survive timeout. Debug stderr is evidence,
+    # never a source of raw serial success markers.
+    (ulimit -f 16 || exit $?
+     export SYSTEMD_LOG_LEVEL=debug SYSTEMD_COLORS=0
+     exec timeout -k 1 8 stdbuf -oL systemctl show --no-pager \
         -p Id -p LoadState -p ActiveState -p ActiveEnterTimestampMonotonic \
         -p InactiveExitTimestampMonotonic -p ExecMainStartTimestampMonotonic \
         -p ExecMainExitTimestampMonotonic -p ConditionTimestampMonotonic \
@@ -11,21 +24,21 @@ logind_startup_timings() {
         systemd-hwdb-update.service ldconfig.service \
         systemd-journal-catalog-update.service systemd-tmpfiles-setup.service \
         systemd-tmpfiles-setup-dev-early.service systemd-udevd.service \
-        systemd-udev-trigger.service systemd-logind.service sysinit.target) || status=$?
-    # A timed-out multi-unit query can already contain useful complete units.
-    # Retain that bounded partial payload, with the original failure status.
-    if ((${#record} == 0 || ${#record} > 16384)); then
-        record=${record:0:16384}
-        ((status != 0)) || status=1
-    fi
-    # Encode all fields: diagnostics must never inject serial success markers.
-    encoded=$(printf '%s' "$record" | LC_ALL=C od -An -v -tx1 | LC_ALL=C tr -d ' \n') || return $?
+        systemd-udev-trigger.service systemd-logind.service sysinit.target) > "$temporary/stdout" 2> "$temporary/stderr" || query_status=$?
+    status=$query_status
+    bytes=$(stat -c %s -- "$temporary/stdout") || return $?
+    stderr_bytes=$(stat -c %s -- "$temporary/stderr") || return $?
+    ((bytes <= 16384 && stderr_bytes <= 16384)) || return 1
+    ((bytes != 0 || status != 0)) || status=1
+    encoded=$(od -An -v -tx1 "$temporary/stdout" | tr -d ' \n') || return $?
+    stderr_encoded=$(od -An -v -tx1 "$temporary/stderr" | tr -d ' \n') || return $?
+    printf 'DIAGNOSTIC_UNIT_QUERY code=%s bytes=%s hex=%s\n' "$query_status" "$stderr_bytes" "$stderr_encoded"
     if ((status)); then
-        printf 'DIAGNOSTIC_UNIT_TIMINGS status=failed code=%s bytes=%s hex=%s\n' "$status" "${#record}" "$encoded"
+        printf 'DIAGNOSTIC_UNIT_TIMINGS status=failed code=%s bytes=%s hex=%s\n' "$status" "$bytes" "$encoded"
         return "$status"
     fi
-    printf 'DIAGNOSTIC_UNIT_TIMINGS status=read bytes=%s hex=%s\n' "${#record}" "$encoded"
-}
+    printf 'DIAGNOSTIC_UNIT_TIMINGS status=read bytes=%s hex=%s\n' "$bytes" "$encoded"
+)
 logind_query_sessions() {
     timeout -k 1 3 loginctl list-sessions --no-legend --no-pager "$@"
 }
