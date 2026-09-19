@@ -1,7 +1,7 @@
 #!/bin/bash
 # Function-only helpers; the production entry below is restricted to VM PID1.
 generate_icon_caches() (
-    local tree=$1 child= theme count=0 status started=$SECONDS
+    local tree=$1 child= theme count=0 seen=0 status started=$SECONDS
     [[ $tree == /* && -d $tree && ! -L $tree ]] || return 1
     stop_icon_query() {
         if [[ -n $child ]]; then
@@ -15,19 +15,34 @@ generate_icon_caches() (
     for theme in "$tree"/*; do
         [[ -d $theme && -f $theme/index.theme ]] || continue
         [[ ! -L $theme && ! -L $theme/index.theme ]] || return 1
-        ((count+=1)); ((count<=32)) || return 1
+        ((seen+=1)); ((seen<=32)) || return 1
         # The caller owns this writable RAM overlay. Never retain stale caches
         # or follow a copied cache symlink into the immutable lower directory.
         rm -f -- "$theme/icon-theme.cache" || return $?
         timeout -k 1 10 gtk-update-icon-cache -q "$theme" & child=$!
         status=0; wait "$child" || status=$?; child=
         ((status==0)) || return "$status"
+        # An inheritance-only alias (the packaged default theme) has no local
+        # icon directories. The real GTK tool succeeds without creating a cache.
+        # Allow that precise case; zero exit with missing output elsewhere fails.
+        if [[ ! -e $theme/icon-theme.cache && ! -L $theme/icon-theme.cache ]] &&
+            awk '
+                /^[[:space:]]*[#;]/ || /^[[:space:]]*$/ {next}
+                /^\[Icon Theme\][[:space:]]*$/ {section=1; next}
+                /^\[/ {section=0}
+                section && /^(ScaledDirectories|Directories)[[:space:]]*=/ {dirs=1}
+                section && /^Inherits[[:space:]]*=[[:space:]]*[^[:space:]]/ {inherits=1}
+                END {exit !(inherits && !dirs)}
+            ' "$theme/index.theme"; then
+            continue
+        fi
         [[ -f $theme/icon-theme.cache && -s $theme/icon-theme.cache &&
            ! -L $theme/icon-theme.cache ]] || return 1
         timeout -k 1 10 gtk-update-icon-cache --validate "$theme" & child=$!
         status=0; wait "$child" || status=$?; child=
         ((status==0)) || return "$status"
         [[ ! $theme -nt $theme/icon-theme.cache ]] || return 1
+        ((count+=1))
     done
     ((count>0)) || return 1
     printf 'PASS icon caches generated themes=%s elapsed_seconds=%s\n' "$count" "$((SECONDS-started))"

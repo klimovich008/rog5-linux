@@ -45,6 +45,13 @@ class IconCache(Fixture, unittest.TestCase):
         self.assertGreaterEqual((self.theme/'icon-theme.cache').stat().st_mtime_ns, self.theme.stat().st_mtime_ns)
         subprocess.run(['gtk-update-icon-cache', '--validate', str(self.theme)], check=True, capture_output=True)
 
+    def test_inheritance_only_default_needs_no_cache(self):
+        alias = self.source/'default'; alias.mkdir()
+        (alias/'index.theme').write_text('[Icon Theme]\nInherits=Test\n')
+        r = self.run_helper(); self.assertEqual(r.returncode, 0, r.stdout+r.stderr)
+        self.assertFalse((alias/'icon-theme.cache').exists())
+        self.assertTrue((self.theme/'icon-theme.cache').is_file())
+
     def test_no_theme_is_failure(self):
         (self.theme/'index.theme').unlink()
         self.assertNotEqual(self.run_helper().returncode, 0)
@@ -106,7 +113,7 @@ else
 fi
 ''')
         self.command('findmnt', '[[ $MODE != writable ]] && echo ro,nodev,nosuid,noexec || echo rw\n')
-        self.command('umount', 'echo "umount $*" >> "$CALLS"\nif [[ ${@: -1} == "$SOURCE" ]]; then rm "$STATE"; else rm "$STATE.overlay"; fi\n')
+        self.command('umount', '[[ $MODE != unmount-fail ]] || exit 44\necho "umount $*" >> "$CALLS"\nif [[ ${@: -1} == "$SOURCE" ]]; then rm "$STATE"; else rm "$STATE.overlay"; fi\n')
 
     def test_mount_success_only_cache_outputs_change(self):
         r=self.run_helper(); self.assertEqual(r.returncode,0,r.stdout+r.stderr)
@@ -123,6 +130,16 @@ fi
                 self.assertFalse((self.root/'mounted').exists())
                 self.assertEqual(list(self.output.iterdir()),[])
                 self.assertFalse((self.theme/'icon-theme.cache').exists())
+
+    def test_unmount_failure_retains_backing_scratch(self):
+        self.env['MODE']='unmount-fail'
+        r=self.run_helper(); self.assertEqual(r.returncode,44,r.stdout+r.stderr)
+        self.assertTrue((self.root/'mounted').exists())
+        self.assertTrue((self.root/'mounted.overlay').exists())
+        scratch=list(self.output.glob('.icons.*'))
+        self.assertEqual(len(scratch),1)
+        self.assertTrue((scratch[0]/'merged/Test/icon-theme.cache').is_file())
+        self.assertIn('FAIL icon overlay cleanup',r.stderr)
 
     def test_existing_mount_is_preserved(self):
         (self.root/'mounted').touch()
