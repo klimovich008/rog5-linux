@@ -3212,3 +3212,13 @@ preparation and authenticated VM poweroff do not close a missing unit-timing
 packet: the nine-unit query still timed out124 with zero bytes. Stop unchanged
 UI retries and isolate property retrieval/output buffering next, retaining the
 full timing failure and original app/VM deadlines.
+
+Startup query capture (2026-09-19): command substitution can hide buffered partial
+stdout when a timed-out process dies. Demonstrate buffering with a real C writer,
+then line-buffer the actual CLI and retain bounded, encoded stderr separately.
+Do not let raw diagnostics contain acceptance markers. The VM now preserves8/9
+GetAll responses; earlier zero bytes were not proof of no query progress. Keep
+complete timing FAIL while using separately verified ldconfig dispatch and PAM
+cleanup for an independent experiment. That app-close run again reached Mousepad
+only near282s and exhausted300s before close. Stop unchanged full-boot retries;
+isolate exact ARM64 app shutdown separately, with full-session acceptance retained.

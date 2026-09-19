@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Linker-cache source PASS; VM authentication/cleanup PASS, unit-timing query FAIL",
+  "phase": "Query capture fixed; cache dispatch verified; app-close observation still blocked by startup time",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "108 integrated checks PASS. Exact ARM64 cache admitted/staged; startup-only VM authenticates and powers off normally, but nine-unit timing query124/zero bytes keeps overall FAIL and cache speedup unqualified. Isolate timing query execution/transport before another UI attempt. Mousepad137 shutdown remains unresolved; prior mapping/focus and caret/OSK scoped evidence retained. Phone tests NOT RUN, no phone operation authorized; S06/R01 FAIL unchanged.",
-  "evidence": "test-results/2026-09-19-vm-linker-cache.md"
+  "next": "108 integrated checks PASS. Startup query now exposes8 unit replies and times out waiting for sysinit.target; complete timing FAIL remains. ldconfig skip and authenticated cleanup verified. Separate app-close VM hits300s before ACK/close, Mousepad launched near282s. Stop unchanged full-boot retries; establish a focused exact-ARM64 app-close environment and its headless display dependency, preserving separate full-session qualification. Mousepad137, S06/R01 remain unresolved FAIL; phone tests NOT RUN, no phone operation authorized.",
+  "evidence": "test-results/2026-09-19-unit-query-capture.md"
 }

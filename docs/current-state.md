@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Linker-cache source PASS; VM authentication/cleanup PASS, unit-timing query FAIL**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Query capture fixed; cache dispatch verified; app-close observation still blocked by startup time**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-108 integrated checks PASS. Exact ARM64 cache admitted/staged; startup-only VM authenticates and powers off normally, but nine-unit timing query124/zero bytes keeps overall FAIL and cache speedup unqualified. Isolate timing query execution/transport before another UI attempt. Mousepad137 shutdown remains unresolved; prior mapping/focus and caret/OSK scoped evidence retained. Phone tests NOT RUN, no phone operation authorized; S06/R01 FAIL unchanged. See [current repair evidence](../test-results/2026-09-19-vm-linker-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+108 integrated checks PASS. Startup query now exposes8 unit replies and times out waiting for sysinit.target; complete timing FAIL remains. ldconfig skip and authenticated cleanup verified. Separate app-close VM hits300s before ACK/close, Mousepad launched near282s. Stop unchanged full-boot retries; establish a focused exact-ARM64 app-close environment and its headless display dependency, preserving separate full-session qualification. Mousepad137, S06/R01 remain unresolved FAIL; phone tests NOT RUN, no phone operation authorized. See [current repair evidence](../test-results/2026-09-19-unit-query-capture.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

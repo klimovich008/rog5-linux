@@ -1714,6 +1714,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "unit_query_capture": {
+      "status": "COLLECTOR_FIXED_TIMING_PARTIAL_CLOSE_TIMEOUT",
+      "set_id": "private:rog5-unit-query-20260919-r1",
+      "source_commit": "9169523db92784828e55214965eca5d71cbb5f5e",
+      "evidence": {
+        "path": "test-results/2026-09-19-unit-query-capture-qualification.json",
+        "sha256": "df93519f57f059c6ecad637f7701f1668959a7a03b299a0e6dc9d644624d5a43",
+        "bytes": 68533
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {
