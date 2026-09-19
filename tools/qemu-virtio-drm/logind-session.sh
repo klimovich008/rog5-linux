@@ -1,6 +1,36 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
+logind_prepare_fuse_diagnostics() {
+    local state=$1 etc=$2
+    [[ -f $state/session-sha256 ]] || return 0
+    mkdir -p "$etc/udev/rules.d" || return $?
+    # RAM-only fixture rule, installed before systemd starts coldplug. udev's
+    # per-event log level exposes original processing, not just a later retry.
+    (set -C; printf 'SUBSYSTEM=="misc", KERNEL=="fuse", OPTIONS="log_level=debug"\n' > \
+        "$etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules") || return $?
+    (set -C; printf 'failure-only diagnostic; never admission\n' > "$state/fuse-event-diagnostic")
+}
+logind_fuse_event_diagnostic() {
+    local status=0 trigger_status=0 initialized_status=0 journal_status=0
+    [[ -c /dev/fuse && -d /sys/devices/virtual/misc/fuse ]] || return 1
+    echo 'fuse_phase=before-retrigger'
+    logind_device_database_snapshot /dev/fuse || status=$?
+    # Settle waits for the event UUID, including failed worker completions.
+    # Preserve that status separately and ask the real initialization reader.
+    timeout -k 1 3 udevadm trigger --action=add --settle /sys/devices/virtual/misc/fuse || trigger_status=$?
+    printf 'trigger_status=%s\nfuse_phase=after-retrigger\n' "$trigger_status"
+    logind_device_database_snapshot /dev/fuse || status=$?
+    udevadm wait --timeout=1 --initialized=yes /dev/fuse || initialized_status=$?
+    printf 'initialized_status=%s\n' "$initialized_status"
+    journalctl -b --no-pager --output=short-monotonic -u systemd-udevd \
+        --grep='fuse|c10:229' -n 100 || journal_status=$?
+    printf 'journal_status=%s\n' "$journal_status"
+    ((status != 0)) || status=$trigger_status
+    ((status != 0)) || status=$initialized_status
+    ((status != 0)) || status=$journal_status
+    return "$status"
+}
 logind_device_database_snapshot() {
     local database_root=/run/udev/data
     local metadata device major minor extra database data read_status truncated status=0
@@ -156,6 +186,21 @@ logind_wait_devices() (
         snapshot_status=${pipeline_status[0]}
         printf 'OBSERVE device-readiness snapshot-capture-status=%s\n' "${pipeline_status[1]}"
         logind_publish_diagnostic DEVICE_SNAPSHOT "$snapshot_status" "$temporary/snapshot" || :
+        if [[ -f $state/fuse-event-diagnostic && -f $state/session-sha256 ]]; then
+            # The failed baseline above remains failed even if this one
+            # diagnostic retrigger initializes FUSE. No second session attempt.
+            printf 'OBSERVE fuse-event phase=diagnostic-only deadline_seconds=10\n'
+            if timeout -k 1 10 bash --noprofile --norc -c \
+                'source "$1"; logind_fuse_event_diagnostic' \
+                diagnostic "${BASH_SOURCE[0]}" 2>&1 |
+                logind_capture_bounded "$temporary/fuse"; then
+                pipeline_status=("${PIPESTATUS[@]}")
+            else
+                pipeline_status=("${PIPESTATUS[@]}")
+            fi
+            printf 'OBSERVE fuse-event capture_status=%s\n' "${pipeline_status[1]}"
+            logind_publish_diagnostic FUSE_EVENT "${pipeline_status[0]}" "$temporary/fuse" || :
+        fi
     else
         # Failure to retain the observation must not become a successful test.
         status=$diagnostic_status

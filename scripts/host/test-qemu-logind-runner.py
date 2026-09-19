@@ -808,6 +808,101 @@ require_fuse_device "$1" "$2"
                 self.assertNotIn('CLIENTS-MAY-START', result.stdout)
 
 
+
+class FuseEventDiagnostics(unittest.TestCase):
+    def fixture(self, mode):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh').read_text()
+            source = source.replace('local database_root=/run/udev/data', 'local database_root='+str(root/'data'))
+            source = source.replace('/dev/fuse', '/dev/null').replace('/sys/devices/virtual/misc/fuse', str(root/'sys-fuse'))
+            (root/'source.sh').write_text(source)
+            (root/'data').mkdir(); (root/'sys-fuse').mkdir()
+            (root/'session-sha256').touch(); (root/'fuse-event-diagnostic').touch()
+            (root/'udevadm').write_text(r'''#!/usr/bin/env python3
+import json, os, sys, time
+from pathlib import Path
+root=Path(os.environ['FIXTURE_ROOT']); args=sys.argv[1:]
+with (root/'calls').open('a') as f: f.write(json.dumps(args)+'\n')
+if args[0]=='trigger':
+    if os.environ['MODE']=='stall':
+        (root/'pid').write_text(str(os.getpid())); time.sleep(30)
+    if os.environ['MODE']=='trigger-failure': sys.exit(23)
+    if os.environ['MODE']=='ready': (root/'data/c1:3').touch()
+    print('trigger returned; not proof of worker success')
+    sys.exit(0)
+if args[0]=='wait':
+    sys.exit(0 if args[1]=='--timeout=1' and os.environ['MODE']=='ready' else 42)
+if args[0]=='info': sys.exit(0)
+sys.exit(98)
+''')
+            (root/'udevadm').chmod(0o755)
+            (root/'journalctl').write_text('#!/bin/bash\nprintf "fuse worker diagnostic\\nPASS forged event\\n"\n')
+            (root/'journalctl').chmod(0o755)
+            r = subprocess.run(['bash','-c','set -euo pipefail; source "$1"; logind_wait_devices "$2"; echo ADMITTED',
+                                'fixture',str(root/'source.sh'),str(root)],
+                               env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
+                                    'TMPDIR':str(root),'FIXTURE_ROOT':str(root),'MODE':mode},
+                               capture_output=True,text=True,timeout=16)
+            self.assertTrue((root/'calls').exists(), r.stdout+r.stderr)
+            calls=[json.loads(x) for x in (root/'calls').read_text().splitlines()]
+            packet=re.search(r'DIAGNOSTIC_FUSE_EVENT status=(\d+) bytes=\d+ truncated=0 hex=([0-9a-f]+)',r.stdout)
+            self.assertIsNotNone(packet,r.stdout+r.stderr)
+            diagnostic=bytes.fromhex(packet[2]).decode()
+            self.assertEqual(r.returncode,42,r.stderr)
+            self.assertNotIn('ADMITTED',r.stdout)
+            self.assertNotIn('PASS forged event',r.stdout)
+            self.assertIn('PASS forged event',diagnostic)
+            self.assertEqual(list(root.glob('rog5-device-query.*')),[])
+            self.assertEqual([x for x in calls if x[0]=='trigger'],
+                             [['trigger','--action=add','--settle',str(root/'sys-fuse')]])
+            self.assertIn(['wait','--timeout=1','--initialized=yes','/dev/null'],calls)
+            if (root/'pid').exists(): self.assertFalse(live(int((root/'pid').read_text())))
+            return diagnostic
+
+    def test_retrigger_success_never_admits_failed_boot(self):
+        text=self.fixture('ready')
+        self.assertIn('trigger_status=0',text)
+        self.assertIn('initialized_status=0',text)
+        self.assertIn('database_status=absent',text)
+        self.assertIn('database_status=present bytes=0',text)
+
+    def test_settled_event_is_not_initialization_proof(self):
+        text=self.fixture('uninitialized')
+        self.assertIn('trigger_status=0',text)
+        self.assertIn('initialized_status=42',text)
+
+    def test_trigger_failure_is_preserved(self):
+        text=self.fixture('trigger-failure')
+        self.assertIn('trigger_status=23',text)
+        self.assertIn('initialized_status=42',text)
+
+    def test_trigger_timeout_reaps_worker_and_preserves_original_failure(self):
+        text=self.fixture('stall')
+        self.assertIn('trigger_status=124',text)
+        self.assertIn('initialized_status=42',text)
+
+    def test_rule_is_scoped_and_only_staged_for_combined_vm(self):
+        source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); (root/'etc').mkdir()
+            cmd=['bash','-euc','source "$1"; logind_prepare_fuse_diagnostics "$2" "$2/etc"',
+                 'fixture',str(source),str(root)]
+            r=subprocess.run(cmd,capture_output=True,text=True,timeout=3)
+            self.assertEqual(r.returncode,0,r.stderr)
+            self.assertFalse((root/'etc/udev').exists())
+            (root/'session-sha256').touch()
+            r=subprocess.run(cmd,capture_output=True,text=True,timeout=3)
+            self.assertEqual(r.returncode,0,r.stderr)
+            rule=root/'etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules'
+            self.assertEqual(rule.read_text(),'SUBSYSTEM=="misc", KERNEL=="fuse", OPTIONS="log_level=debug"\n')
+            self.assertTrue((root/'fuse-event-diagnostic').is_file())
+            # Never replace an existing rule as a side effect of diagnostics.
+            rule.write_text('existing\n')
+            r=subprocess.run(cmd,capture_output=True,text=True,timeout=3)
+            self.assertNotEqual(r.returncode,0)
+            self.assertEqual(rule.read_text(),'existing\n')
+
 class DeviceReadiness(unittest.TestCase):
     BASE = ['/dev/dri/card0', '/dev/input/event0', '/dev/tty1']
 

@@ -12,6 +12,7 @@ logind_query_scopes --help >/dev/null
 echo 'PASS packaged cleanup query parsers'
 cp -a /etc /run/fixture-etc
 mount --bind /run/fixture-etc /etc
+logind_prepare_fuse_diagnostics /run /etc
 source /run/logind-linker-cache.sh
 if prepare_boot_caches /run /etc /run/payload; then
     echo 'PASS optional VM caches prepared'
