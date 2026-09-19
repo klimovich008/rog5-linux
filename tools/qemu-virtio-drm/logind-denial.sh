@@ -5,7 +5,17 @@ set -euo pipefail
 export GSETTINGS_SCHEMA_DIR=/run/gtk-runtime/schemas
 export XDG_DATA_DIRS=/run/gtk-runtime:/usr/local/share:/usr/share
 export GTK_IM_MODULE_FILE=/run/gtk-runtime/immodules.cache
-export DENIA_RENDER_AUDIT=1
+# Verbose compositor/engine tracing is a diagnostic mode. A private VM policy
+# controls it explicitly, independent of the invoking user's environment.
+export DENIA_RENDER_AUDIT=0
+if [[ -e /run/denial-render-audit || -L /run/denial-render-audit ]]; then
+    [[ -f /run/denial-render-audit && ! -L /run/denial-render-audit ]]
+    DENIA_RENDER_AUDIT=$(cat -- /run/denial-render-audit)
+    case $DENIA_RENDER_AUDIT in
+        0|1) ;;
+        *) echo 'FAIL invalid VM render audit policy' >&2; exit 1 ;;
+    esac
+fi
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 [[ -S /run/user/1000/bus ]]
 cd "$HOME"

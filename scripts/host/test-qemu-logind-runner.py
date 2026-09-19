@@ -400,6 +400,70 @@ logind_failure_journal(){ :; }
                     self.assertIn(f'stage={2 if first else 1} status={first or second}', result.stderr)
 
 
+class RenderAuditEnvironment(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('audit_runner', RUNNER)
+        self.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.runner)
+
+    def run_bootstrap(self, policy=None, inherited='1'):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        # Execute the actual pre-launch exports; replace only the VM identity
+        # precondition and the private policy path for this ordinary host test.
+        bootstrap = source.split('export DBUS_SESSION_BUS_ADDRESS=', 1)[0]
+        bootstrap = bootstrap.replace(
+            '[[ $EUID == 1000 && -d /sys/bus/virtio/devices && -f /run/session-sha256 ]]', ':')
+        bootstrap = bootstrap.replace('/run/denial-render-audit', '"$1"')
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'policy'
+            if policy is not None:
+                path.write_text(policy)
+            return subprocess.run(['bash', '-c', bootstrap +
+                '\nbash -c \'printf "%s" "$DENIA_RENDER_AUDIT"\'\n', 'fixture', str(path)],
+                env={**os.environ, 'DENIA_RENDER_AUDIT': inherited},
+                capture_output=True, text=True, timeout=3)
+
+    def test_default_and_explicit_policy_reach_child(self):
+        for policy, expected in [(None, '0'), ('0\n', '0'), ('1\n', '1')]:
+            with self.subTest(policy=policy):
+                result = self.run_bootstrap(policy)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, expected)
+
+    def test_invalid_policy_stops_before_launch(self):
+        for policy in ['', 'yes\n', '1\n0\n', ' 1\n']:
+            with self.subTest(policy=policy):
+                result = self.run_bootstrap(policy)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, '')
+
+    def test_staged_policy_reaches_child_and_cannot_overwrite(self):
+        for enabled in (False, True):
+            with self.subTest(enabled=enabled), tempfile.TemporaryDirectory() as directory:
+                policy = self.runner.stage_render_audit(enabled, Path(directory))
+                self.assertEqual(policy.read_text(), '1\n' if enabled else '0\n')
+                child = self.run_bootstrap(policy.read_text())
+                self.assertEqual(child.returncode, 0, child.stderr)
+                self.assertEqual(child.stdout, str(int(enabled)))
+                with self.assertRaises(FileExistsError):
+                    self.runner.stage_render_audit(not enabled, Path(directory))
+
+    def test_cli_requires_denial_execution_before_effects(self):
+        required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                    'toolchain-image', 'libc', 'libloading', 'output'] for v in ['--'+n, '/unused']]
+        combined = ['--session-archive', '/unused', '--session-receipt', '/unused', '--host-render-node', '/unused']
+        for extra in ([], combined + ['--startup-only']):
+            with self.subTest(extra=extra), patch.object(sys, 'argv',
+                    [str(RUNNER), *required, *extra, '--render-audit']), \
+                    patch.object(self.runner, 'install_handlers') as effects, \
+                    patch('sys.stderr', new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as status: self.runner.main()
+                self.assertEqual(status.exception.code, 2)
+                effects.assert_not_called()
+        with patch.object(sys, 'argv', [str(RUNNER), *required, *combined, '--render-audit']), \
+                patch.object(self.runner, 'install_handlers', side_effect=RuntimeError('accepted audit mode')):
+            with self.assertRaisesRegex(RuntimeError, 'accepted audit mode'): self.runner.main()
+
+
 class CacheEnvironment(unittest.TestCase):
     def publish(self, mode='success'):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
@@ -1682,6 +1746,23 @@ class AppsPreflight(unittest.TestCase):
 
 
 class Archive(unittest.TestCase):
+    def test_rcu_cpu_stall_cannot_be_promoted_by_poweroff(self):
+        spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        # Both report forms were observed in retained generic ARM64 VMs.
+        for notice in ('rcu: INFO: rcu_sched detected stalls on CPUs/tasks:',
+                       'rcu: INFO: rcu_sched self-detected stall on CPU'):
+            for prefix in ('', '[   21.123456] ', '\x1b[0m'):
+                with self.subTest(notice=notice,prefix=prefix), self.assertRaisesRegex(RuntimeError,'RCU'):
+                    module.require_vm_poweroff(prefix+notice+'\nPASS session\nreboot: Power down\n')
+
+    def test_rcu_boot_information_is_not_a_stall(self):
+        spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        module.require_vm_poweroff('rcu: Hierarchical RCU implementation.\n'
+                                  'rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.\n'
+                                  'reboot: Power down\n')
+
     def test_vm_panic_cannot_be_promoted_by_earlier_success(self):
         spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)

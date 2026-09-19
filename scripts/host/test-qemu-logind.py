@@ -235,6 +235,11 @@ def disk_guard(output):
 
 
 def require_vm_poweroff(serial):
+    serial = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', serial)
+    # A recovered CPU stall still invalidates a successful qualification. Both
+    # forms occur in the retained VM evidence; normal RCU boot messages do not.
+    if re.search(r'\brcu: INFO: \S+ (?:self-)?detected stalls?\b', serial):
+        raise RuntimeError('VM recorded an RCU CPU stall')
     if 'Kernel panic' in serial or 'reboot: Power down' not in serial:
         raise RuntimeError('VM lacks normal poweroff or recorded a kernel panic')
 
@@ -361,6 +366,13 @@ def observation_channel(apps):
             '-device', 'virtserialport,chardev=editor,name=rog5.editor,nr=1']
 
 
+def stage_render_audit(enabled, stage):
+    target = stage / 'denial-render-audit'
+    with target.open('x') as stream:
+        stream.write('1\n' if enabled else '0\n')
+    return target
+
+
 def session_observer(module, args, directory, name, token):
     if args.observe_apps:
         options = {'automatic_caret': args.automatic_caret}
@@ -383,6 +395,8 @@ def main():
                         help='TCG host-thread mode; preserves guest CPU count and existing limits')
     parser.add_argument('--startup-only', action='store_true',
                         help='combined VM preparation and PAM readiness/cleanup only; no Denial execution')
+    parser.add_argument('--render-audit', action='store_true',
+                        help='opt in to verbose Denial/engine render tracing; terminal counters remain enabled without it')
     observation = parser.add_mutually_exclusive_group()
     observation.add_argument('--observe-editor', action='store_true',
                         help='pointer-only OSK editor test in authenticated session; VM only')
@@ -419,6 +433,8 @@ def main():
         parser.error('close-only requires observe-apps and excludes caret/text observation')
     if args.startup_only and (not combined or args.observe_apps or args.observe_editor):
         parser.error('startup-only requires combined inputs and excludes UI observation')
+    if args.render_audit and (not combined or args.startup_only):
+        parser.error('render-audit requires a combined Denial session')
     if args.settings_sync_diagnostic is not None and not args.observe_apps:
         parser.error('settings-sync-diagnostic requires observe-apps')
     install_handlers()
@@ -568,6 +584,8 @@ def main():
                             'logind-gtk-im-cache.sh': 'logind-gtk-im-cache.sh',
                             'logind-icon-cache.sh': 'logind-icon-cache.sh'})
             (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
+            audit_policy = stage_render_audit(args.render_audit, stage / 'stage')
+            result['outputs']['stage/denial-render-audit'] = identity(audit_policy)
             os.link(args.session_archive, payload / 'session.tar.gz')
         if args.startup_only:
             (stage / 'stage/startup-only').write_text('1\n')
