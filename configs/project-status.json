@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Settings-sync diagnostic source PASS; VM startup budget exhausted before controlled close",
+  "phase": "Linker-cache source PASS; VM authentication/cleanup PASS, unit-timing query FAIL",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "106 integrated checks PASS; changed VM timed out before controlled close, so settings-sync remains unobserved. Host ARM64 ldconfig generated a cache in0.166s; target loader resolves Mousepad/Foot. Implement exact-runtime cache admission and guest-RAM staging before another UI run; never generate from the encoded QEMU mapped-file view. VM cache reuse and speedup NOT RUN. Preserve prior mapping/focus PASS, Mousepad137 FAIL, caret/OSK scoped evidence and S06/R01 FAIL. Phone physical tests NOT RUN; no phone operation authorized.",
-  "evidence": "test-results/2026-09-19-vm-settings-sync.md"
+  "next": "108 integrated checks PASS. Exact ARM64 cache admitted/staged; startup-only VM authenticates and powers off normally, but nine-unit timing query124/zero bytes keeps overall FAIL and cache speedup unqualified. Isolate timing query execution/transport before another UI attempt. Mousepad137 shutdown remains unresolved; prior mapping/focus and caret/OSK scoped evidence retained. Phone tests NOT RUN, no phone operation authorized; S06/R01 FAIL unchanged.",
+  "evidence": "test-results/2026-09-19-vm-linker-cache.md"
 }

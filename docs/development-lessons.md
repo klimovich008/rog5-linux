@@ -3202,3 +3202,13 @@ symlinks, read-only mounts, target ldconfig and bounded isolated scratch. The
 ARM64 loader can validate cache consumption with --list; this is dependency
 resolution, not app/session qualification. Full input admission, exact emulator
 binding and guest-only staging remain required before reusing the cache.
+
+Verified linker-cache integration (2026-09-19): bind mapped guest permission
+metadata independently of restrictive owner-only extraction modes. Stage atomic
+publications on each destination filesystem; /run and /etc need not share one.
+Full input verification cost31.308s outside the VM; generation itself is a small
+fraction. Preserve that cost separately from guest startup. A successful cache
+preparation and authenticated VM poweroff do not close a missing unit-timing
+packet: the nine-unit query still timed out124 with zero bytes. Stop unchanged
+UI retries and isolate property retrieval/output buffering next, retaining the
+full timing failure and original app/VM deadlines.

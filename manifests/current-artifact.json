@@ -1701,6 +1701,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "linker_cache": {
+      "status": "SOURCE_PASS_STARTUP_TIMING_FAIL",
+      "set_id": "private:rog5-linker-cache-integration-20260919-r1",
+      "source_commit": "bc3147d233e1597f31d83af0c875f14ec9a88ca6",
+      "cache_sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "evidence": {
+        "path": "test-results/2026-09-19-vm-linker-cache-qualification.json",
+        "sha256": "0efe2bca226b4d210baec228416be3882b5eafe333f7448b6c4c188655698e3c",
+        "bytes": 47502
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {

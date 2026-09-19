@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Settings-sync diagnostic source PASS; VM startup budget exhausted before controlled close**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Linker-cache source PASS; VM authentication/cleanup PASS, unit-timing query FAIL**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-106 integrated checks PASS; changed VM timed out before controlled close, so settings-sync remains unobserved. Host ARM64 ldconfig generated a cache in0.166s; target loader resolves Mousepad/Foot. Implement exact-runtime cache admission and guest-RAM staging before another UI run; never generate from the encoded QEMU mapped-file view. VM cache reuse and speedup NOT RUN. Preserve prior mapping/focus PASS, Mousepad137 FAIL, caret/OSK scoped evidence and S06/R01 FAIL. Phone physical tests NOT RUN; no phone operation authorized. See [current repair evidence](../test-results/2026-09-19-vm-settings-sync.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+108 integrated checks PASS. Exact ARM64 cache admitted/staged; startup-only VM authenticates and powers off normally, but nine-unit timing query124/zero bytes keeps overall FAIL and cache speedup unqualified. Isolate timing query execution/transport before another UI attempt. Mousepad137 shutdown remains unresolved; prior mapping/focus and caret/OSK scoped evidence retained. Phone tests NOT RUN, no phone operation authorized; S06/R01 FAIL unchanged. See [current repair evidence](../test-results/2026-09-19-vm-linker-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
