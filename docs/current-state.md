@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM snapshot locates Mousepad in GLib allocation; app close FAIL remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Bounded stack component qualified offline; VM Mousepad close FAIL remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen source1ab6d7c6: active112PASS and17Rust/2Python focused checks PASS; one ARM64 VM FAIL397.639s with Foot0/Mousepad137. One intrusive PC maps exact GLib g_malloc+0; caller strongly matches datalist_append empty-list allocation, not a lock/OOM/spin diagnosis. PAM cleanup0, initial /var unmount FAIL, normal VM poweroff PASS; inputs/runtime unchanged and owned jobs terminal. Next recover higher-level caller using exact debug data or a bounded, tested frame-pointer observation at the existing single stop; preserve deadlines/signals/identity and avoid unchanged VM repeats. No phone operation authorized; physical NOT RUN and S06/R01 FAIL preserved. See [current repair evidence](../test-results/2026-09-20-close-pc-vm.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Source f9bea083 adds a stopped-task observer with detach and final identity checks, plus a four-frame stack reader that is not yet wired into the VM. All 24 host Rust cases and three Python wrappers pass, as do ARM64 compilation, five traversal fixtures and the ABI check. The active tier passes 112 tests. Real ARM64 stack capture and VM integration remain NOT RUN. The previous VM snapshot points to g_malloc with an inferred datalist_append caller; Mousepad exit 137 remains unexplained. Next add an explicit stack option to the existing single-stop sampler, qualify bounded output and guard wiring, then freeze inputs for one discriminating VM. Do not repeat the unchanged VM or patch GLib from one sample. Phone physical tests remain NOT RUN; S06/R01 FAIL preserved. See [current repair evidence](../test-results/2026-09-20-close-stack-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

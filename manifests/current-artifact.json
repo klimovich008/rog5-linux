@@ -2147,6 +2147,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "close_stack_preparation": {
+      "status": "Host stack component PASS; ARM64 compile/pure fixtures PASS; VM integration NOT RUN",
+      "source_commit": "f9bea083c268b67735c98c67c8075b5ae5822e56",
+      "source_tree": "391831c48bb1bb28a832531d22450d2671e91bad",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-stack-preparation-qualification.json",
+        "sha256": "cfac7dae70644c3c69515290afcd98f6711882272553a04474fe5a31600a46cf",
+        "bytes": 6853
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-close-stack-20260920-r1"
     }
   },
   "denial_phone_linkage": {

@@ -3455,3 +3455,12 @@ Task accounting and capture channels (2026-09-20): the bounded close probe measu
 Intrusive snapshot cleanup (2026-09-20): real owned-child tests must prove resumed CPU progress, not merely absence of a stopped state—a zombie can satisfy the latter. The EXITKILL mutation is now rejected. Distinguish synthetic PTRACE_EVENT_STOP, pre-existing group stop and signal-delivery stop; DETACH0 would suppress a real pending signal. A dedicated tracer thread joined before return provides kernel detach on error/panic, but does not remove the numeric-PID attach race or outer watchdog requirement. Keep actual ARM64 ptrace NOT RUN when qemu-user only tests register-layout decoding. Write compiler outputs beneath the wrapper's writable TMPDIR mount; the enclosing evidence directory is read-only inside that compiler container.
 
 PC attribution (2026-09-20): resolve a sampled address with the exact mapped ELF, PT_LOAD offsets, symbol size and relocation, not objdump's nearest exported label. This snapshot is g_malloc+0 before its allocator call; the unexported caller matches a56-byte datalist allocation by source/disassembly, but one point proves neither allocator blocking nor a loop. Preserve CPU/exit evidence and intrusive-stop duration. Recover the higher-level caller before changing GLib or increasing timeouts; reuse the frozen112PASS tier when only evidence metadata changes.
+
+Bounded stack preparation (2026-09-20): test remote-read behavior with an actual
+owned child and page-boundary short read, not only synthetic frame lists. Keep
+observer output behind successful detach and final identity validation, including
+panic/error paths. A main-thread stop does not freeze other threads; preserve
+partial failure and raw PAC addresses rather than inventing a complete backtrace.
+The component passed24 host Rust cases and ARM64 pure/ABI checks; integration
+and real ARM64 stack reads remain separate. No full VM was spent before that
+integration can produce the missing higher-level caller evidence.

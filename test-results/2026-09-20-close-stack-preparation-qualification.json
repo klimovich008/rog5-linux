@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "authority": "none; owned host fixtures and ARM64 user emulation only",
+  "physical_status": "NOT RUN",
+  "source": {
+    "commit": "f9bea083c268b67735c98c67c8075b5ae5822e56",
+    "tree": "391831c48bb1bb28a832531d22450d2671e91bad"
+  },
+  "starting_commit": "04c4197f59d284aa12053edb6abf517936b42ee4",
+  "inputs": {
+    "tools/qemu-virtio-drm/app-close-ptrace.rs": {
+      "path": "tools/qemu-virtio-drm/app-close-ptrace.rs",
+      "sha256": "2d7a77f95426f7ab70a6e828d6c24538ec9cecba0b670937c09c656e91125b21",
+      "bytes": 15824
+    },
+    "tools/qemu-virtio-drm/app-close-stack.rs": {
+      "path": "tools/qemu-virtio-drm/app-close-stack.rs",
+      "sha256": "5148d56807ae9d1e6d5bcb1843a16ed765d60377288202cc4291361bff249c21",
+      "bytes": 10006
+    },
+    "scripts/host/test-app-close-probe.py": {
+      "path": "scripts/host/test-app-close-probe.py",
+      "sha256": "455fcaf96edf13233d3ffc57c60096ebe04b7cc2fe210e13c9096306b634c084",
+      "bytes": 3530
+    }
+  },
+  "before": {
+    "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/before.log",
+    "sha256": "09dbf442e8d26552072e875699137068034ac66730c657d2427e26891d3671f9",
+    "bytes": 2637
+  },
+  "checks": [
+    {
+      "name": "focused-final",
+      "command": [
+        "python3",
+        "scripts/host/test-app-close-probe.py"
+      ],
+      "exit_status": 0,
+      "seconds": 5.776707131008152
+    },
+    {
+      "name": "stack-lib",
+      "command": [
+        "rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "--crate-type=lib",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-lib"
+      ],
+      "exit_status": 0,
+      "seconds": 0.9162833740119822,
+      "output": {
+        "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-lib",
+        "bytes": 189758,
+        "sha256": "a274ff0f107bb3d5df94b3574c468ca3e2f8fc561cf1a63ed415680f41122f36"
+      }
+    },
+    {
+      "name": "stack-tests",
+      "command": [
+        "rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "--test",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-tests"
+      ],
+      "exit_status": 0,
+      "seconds": 5.478665486036334,
+      "output": {
+        "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-tests",
+        "bytes": 7582112,
+        "sha256": "94e2e828856efa8c4d710795b19559a4eda23f267f27934c2362342581f5edaf"
+      }
+    },
+    {
+      "name": "arm64-pure",
+      "command": [
+        "qemu-aarch64-static",
+        "-L",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-tests",
+        "--test-threads=1",
+        "--skip",
+        "ptrace::tests::",
+        "--skip",
+        "tests::actual_owned_child_stack_and_partial_syscall"
+      ],
+      "exit_status": 0,
+      "seconds": 0.11449732404435053
+    },
+    {
+      "name": "arm64-abi",
+      "command": [
+        "qemu-aarch64-static",
+        "-L",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/stack-tests",
+        "--exact",
+        "ptrace::tests::abi_size_and_fields_are_explicit"
+      ],
+      "exit_status": 0,
+      "seconds": 0.11471355700632557
+    }
+  ],
+  "mutation": {
+    "mutation": "accept partial frame reads",
+    "expected": "test failure",
+    "exit_status": 101,
+    "seconds": 1.2207726949709468,
+    "command": [
+      "/home/deck/.local/state/rog5-close-stack-20260920-r1/tmp/mutation/tests",
+      "--exact",
+      "tests::partial_error_and_cycle_preserve_only_completed_frames"
+    ]
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "f9bea083c268b67735c98c67c8075b5ae5822e56",
+    "source_tree": "391831c48bb1bb28a832531d22450d2671e91bad",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 193.98248890700052
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "scope": {
+    "host_real_ptrace_and_process_vm_readv": "PASS",
+    "host_rust_cases": 24,
+    "python_wrappers": 3,
+    "arm64_pure_cases": 5,
+    "arm64_abi_cases": 1,
+    "arm64_real_stack_capture": "NOT RUN",
+    "sampler_integration": "NOT RUN; new module not included",
+    "new_vm": "NOT RUN",
+    "phone": "NOT RUN"
+  },
+  "limits": [
+    "15ms observer deadline is cooperative; syscalls/scheduling require outer watchdog",
+    "four16-byte frame records within readable/writable main stack and64KiB of SP",
+    "frame-pointer candidates only; omitted/prologue/signal frames may skip or misrepresent callers",
+    "other threads remain running; map/frame reads not atomic",
+    "raw PAC values preserved; unmatched executable mapping does not reject raw return address"
+  ],
+  "log_identities": [
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/focused-final.log",
+      "sha256": "e0a9aa669c7c77b17bab44df13f6ece5b1007352ed1ea2329ec7d4ec1a6e1f11",
+      "bytes": 2323
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/stack-lib.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/stack-tests.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/arm64-pure.log",
+      "sha256": "b92e7bd1ea9a78daa46129f1ad19035444abdd906df80539ef1a6bed3ef21859",
+      "bytes": 424
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/arm64-abi.log",
+      "sha256": "a091cbb7bf7e0e8eeaa701749678d61da82f03b3439d69fbbe3d3671e08aacbb",
+      "bytes": 173
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-close-stack-20260920-r1/mutation-short-read.log",
+      "sha256": "13f364b9472ce7aacf74e945bedb9b1a038d7393729f699289949d3c92d762a9",
+      "bytes": 692
+    }
+  ]
+}
