@@ -2010,7 +2010,7 @@ class TcgMode(unittest.TestCase):
                 with self.assertRaises(SystemExit) as status: self.runner.main()
                 self.assertEqual(status.exception.code, 2); effects.assert_not_called()
 
-    def command(self, mode, combined):
+    def command(self, mode, combined, extra=()):
         # Execute the actual command-construction statements. No rewritten QEMU
         # command model or container/VM execution belongs in this host regression.
         tree = ast.parse(RUNNER.read_text())
@@ -2021,7 +2021,7 @@ class TcgMode(unittest.TestCase):
         combined_block = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
                               and isinstance(n.test, ast.Name) and n.test.id == 'combined'
                               and n.lineno > command.lineno)
-        args = self.parsed(['--tcg-thread', mode]); args.qemu_image = 'pinned-image'
+        args = self.parsed(['--tcg-thread', mode, *extra]); args.qemu_image = 'pinned-image'
         args.host_render_node = Path('/dev/dri/renderD128')
         env = dict(args=args, combined=combined, name='owned-fixture', runtime=Path('/fixture/runtime'),
                    kernel=Path('/fixture/Image'), output=Path('/fixture/output'), payload=Path('/fixture/payload'))
@@ -2042,6 +2042,21 @@ class TcgMode(unittest.TestCase):
                 self.assertIn('--cpus=2', single); self.assertIn('--pids-limit=64', single)
                 self.assertIn('--memory-swap=2048m' if combined else '--memory-swap=1024m', single)
                 self.assertIn('/fixture/runtime:/runtime:ro', single)
+
+    def test_mops_control_is_explicit_and_default_stays_enabled(self):
+        self.assertFalse(self.parsed([]).disable_mops)
+        self.assertTrue(self.parsed(['--disable-mops']).disable_mops)
+
+    def test_mops_control_changes_only_kernel_argument(self):
+        for combined in (False, True):
+            with self.subTest(combined=combined):
+                normal = self.command('single', combined)
+                control = self.command('single', combined, ['--disable-mops'])
+                self.assertEqual(len(normal), len(control))
+                changed = [i for i, pair in enumerate(zip(normal, control)) if pair[0] != pair[1]]
+                self.assertEqual(changed, [normal.index('-append')+1])
+                self.assertEqual(control[changed[0]], normal[changed[0]]+' arm64.nomops')
+                self.assertNotIn('arm64.nomops', normal[changed[0]])
 
 
 if __name__ == '__main__':

@@ -393,6 +393,8 @@ def main():
     parser.add_argument('--host-render-node', type=Path)
     parser.add_argument('--tcg-thread', choices=('multi', 'single'), default='multi',
                         help='TCG host-thread mode; preserves guest CPU count and existing limits')
+    parser.add_argument('--disable-mops', action='store_true',
+                        help='explicit generic-VM diagnostic: append arm64.nomops; no default CPU-feature workaround')
     parser.add_argument('--startup-only', action='store_true',
                         help='combined VM preparation and PAM readiness/cleanup only; no Denial execution')
     parser.add_argument('--render-audit', action='store_true',
@@ -637,7 +639,8 @@ def main():
                    '-accel', 'tcg,thread='+args.tcg_thread, '-global', 'virtio-mmio.force-legacy=false', '-display', 'none',
                    '-device', 'virtio-gpu-device', '-device', 'virtio-keyboard-device', '-monitor', 'none', '-nic', 'none',
                    '-serial', 'stdio', '-no-reboot', '-kernel', '/Image', '-initrd', '/initramfs.gz',
-                   '-append', 'console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1',
+                   '-append', 'console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1'
+                   + (' arm64.nomops' if args.disable_mops else ''),
                    '-fsdev', 'local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on',
                    '-device', 'virtio-9p-device,fsdev=rootfs,mount_tag=rootfs',
                    '-fsdev', 'local,id=payload,path=/payload,security_model=none,readonly=on',
