@@ -235,3 +235,36 @@ with a similar name. SM8350 source comparisons, Hotdog's subsystem investigation
 and Pocketblue's mobile Firefox configuration retain their priorities above.
 No phone access, package installation, runtime upgrade, build, or VM was performed
 for this research recheck; it does not change any earlier runtime result.
+
+### September 20 focused sensor-readiness follow-up
+
+At local HEAD `415849cd49b4ac9e091ada0a735d3f337dbdbf3f`, the community
+and linked primary sources were checked again. Live Denial main/dev remain
+`cd84b8b72f21024edc3da33d5f3c8dbe9ce44985` /
+`5ab4004a36df28799b5f0636ee0cf31d1eba8c31`; no newer upstream fix is implied.
+Existing uncommitted VM probe changes were preserved.
+
+Hotdog main resolved to `47087509c4289c2580c54f5433e55366b2e00445`.
+The exact [sensor gate](https://github.com/Sr-0w/hotdog-linux-bringup/blob/47087509c4289c2580c54f5433e55366b2e00445/helpers/hotdog-sensor-proxy-gate.sh)
+was read, not executed (4,536 bytes; SHA-256
+`053d693a728e2b1da219258ded298a073c9fa87c2c32ed266b2a0d610d6fba05`).
+It supplies a useful readiness idea: wait for SensorProxy's
+`HasAccelerometer`, not merely process existence or D-Bus name ownership.
+Its [matching evidence](https://github.com/Sr-0w/hotdog-linux-bringup/blob/47087509c4289c2580c54f5433e55366b2e00445/docs/evidence/2026-08-23-userspace-has-a-sensor-path-now.md)
+explicitly calls the early-claim refcount explanation an inference, without
+source verification of iio-sensor-proxy. Preserve that uncertainty.
+
+Do not import this gate unchanged: it unbinds an SM8150-specific SD controller,
+uses OpenRC and root-local helper paths, and ends with a successful `echo` even
+when accelerometer readiness never arrives. For ROG5's later sensor milestone,
+first check whether the pinned Arch package includes the libssc backend. Then
+test delayed enumeration and absent sensors offline, with bounded readiness and
+an explicit degraded result that leaves manual rotation available. No current
+ROG5 sensor failure, sensor package closure, or physical result is established
+by this source review.
+
+The Mi A3 community post links an agent-instruction repository rather than a
+verified ROG5-compatible kernel implementation; no skill or kernel code was
+installed. Same-SoC SM8350 comparisons remain the first kernel lead. Wvkbd
+remains a protocol-test candidate and Pocketblue/mobile-config-firefox a mobile
+browser reference. This bounded recheck added no build, VM, or phone operation.
