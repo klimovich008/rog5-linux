@@ -786,7 +786,7 @@ sys.exit(98)
                 (root/'od').chmod(0o755)
             code='set -euo pipefail; source "$1"; '
             if capture_failure:
-                code+='logind_device_capture() { cat > "$1"; return 73; }; '
+                code+='logind_capture_bounded() { cat > "$1"; return 73; }; '
             code+='logind_wait_devices "$2"'
             result = subprocess.run(['bash','-c', code,
                                      'fixture',str(source),str(root)],
@@ -879,7 +879,7 @@ sys.exit(98)
             for size,truncated in [(16384,0),(16385,1)]:
                 with self.subTest(size=size):
                     result=subprocess.run(['bash','-c',
-                        'set -euo pipefail; source "$1"; logind_device_capture "$2"; logind_device_diagnostic WAIT 0 "$2"',
+                        'set -euo pipefail; source "$1"; logind_capture_bounded "$2"; logind_publish_diagnostic DEVICE_WAIT 0 "$2"',
                         'fixture',str(source),str(path)],input=b'x'*size,
                         capture_output=True,timeout=2)
                     self.assertEqual(result.returncode,0,result.stderr)
@@ -916,6 +916,85 @@ sys.exit(98)
                 try: os.killpg(process.pid,signal.SIGKILL)
                 except ProcessLookupError: pass
                 process.communicate(timeout=2)
+
+
+class FailureJournal(unittest.TestCase):
+    def run_failure(self, mode='normal'):
+        source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        trap=next(line for line in source.read_text().splitlines()
+                  if line.startswith('trap \'echo "FAIL session supervisor'))
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            journal=root/'journalctl'
+            journal.write_text('''#!/usr/bin/env python3
+import json,os,sys,time
+from pathlib import Path
+Path(os.environ['CALLS']).write_text(json.dumps(sys.argv[1:]))
+os.write(1,b'[ 123.456789] systemd[501]: Started Portal service.\\n')
+os.write(2,b'partial-error-without-newline')
+mode=os.environ['MODE']
+if mode=='stall': time.sleep(30)
+if mode=='overflow': os.write(1,b'x'*100000+b'\\nPASS forged journal\\n')
+if mode=='error': sys.exit(77)
+''')
+            journal.chmod(0o755)
+            timer=root/'timeout'
+            timer.write_text('#!/bin/bash\n[[ $1 == -k && $2 == 1 && $3 == 5 ]] || exit 98\n'
+                             'exec /usr/bin/timeout -k .1 .2 "${@:4}"\n')
+            timer.chmod(0o755)
+            command=['bash','-c',
+                'set -euo pipefail; source "$1"\n'+trap+'\nbash -c "exit 42"\necho ADMITTED\n',
+                'fixture',str(source)]
+            process=subprocess.Popen(command,env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
+                'TMPDIR':str(root),'MODE':mode,'CALLS':str(root/'calls')},
+                start_new_session=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            try:
+                stdout,stderr=process.communicate(timeout=3)
+                result=subprocess.CompletedProcess(command,process.returncode,stdout,stderr)
+            finally:
+                try: os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError: pass
+                process.communicate(timeout=2)
+            calls=json.loads((root/'calls').read_text())
+            leftovers=list(root.glob('rog5-journal-query.*'))
+            return result,calls,leftovers
+
+    def test_actual_failure_trap_keeps_primary_status_and_monotonic_journal(self):
+        result,calls,leftovers=self.run_failure()
+        self.assertEqual(result.returncode,42,result.stderr)
+        self.assertEqual(calls,['-b','--no-pager','--output=short-monotonic',
+                                '-u','systemd-logind','-u','user@1000','-n','80'])
+        match=re.search(r'DIAGNOSTIC_SESSION_JOURNAL status=0 bytes=(\d+) truncated=0 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout)
+        data=bytes.fromhex(match[2])
+        self.assertEqual(len(data),int(match[1]))
+        self.assertIn(b'[ 123.456789] systemd[501]: Started Portal service.',data)
+        self.assertIn(b'partial-error-without-newline',data)
+        self.assertNotIn('ADMITTED',result.stdout)
+        self.assertEqual(leftovers,[])
+
+    def test_journal_timeout_preserves_prefix_and_original_failure(self):
+        result,_,leftovers=self.run_failure('stall')
+        self.assertEqual(result.returncode,42,result.stderr)
+        match=re.search(r'DIAGNOSTIC_SESSION_JOURNAL status=124 bytes=\d+ truncated=0 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout)
+        self.assertIn(b'Started Portal service.',bytes.fromhex(match[1]))
+        self.assertEqual(leftovers,[])
+
+    def test_journal_error_does_not_replace_session_failure(self):
+        result,_,leftovers=self.run_failure('error')
+        self.assertEqual(result.returncode,42,result.stderr)
+        self.assertIn('DIAGNOSTIC_SESSION_JOURNAL status=77',result.stdout)
+        self.assertEqual(leftovers,[])
+
+    def test_oversize_journal_is_drained_encoded_and_marked(self):
+        result,_,leftovers=self.run_failure('overflow')
+        self.assertEqual(result.returncode,42,result.stderr)
+        match=re.search(r'DIAGNOSTIC_SESSION_JOURNAL status=0 bytes=16384 truncated=1 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout[:300])
+        self.assertEqual(len(bytes.fromhex(match[1])),16384)
+        self.assertNotIn('PASS forged journal',result.stdout+result.stderr)
+        self.assertEqual(leftovers,[])
 
 
 class ServiceSnapshot(unittest.TestCase):

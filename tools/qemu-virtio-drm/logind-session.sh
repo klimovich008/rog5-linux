@@ -21,7 +21,7 @@ logind_device_snapshot() {
     ((query_status == 0)) || status=1
     return "$status"
 }
-logind_device_capture() {
+logind_capture_bounded() {
     # Keep one extra byte to detect truncation; drain the rest so verbosity
     # cannot SIGPIPE the observed command or change its exit status.
     local status=0 drain_status=0
@@ -30,15 +30,41 @@ logind_device_capture() {
     ((status != 0)) || status=$drain_status
     return "$status"
 }
-logind_device_diagnostic() {
+logind_publish_diagnostic() {
     local label=$1 status=$2 file=$3 bytes truncated=0 encoded
     bytes=$(stat -c %s -- "$file") || return $?
     ((bytes <= 16385)) || return 1
     if ((bytes > 16384)); then bytes=16384; truncated=1; fi
     encoded=$(head -c 16384 -- "$file" | od -An -v -tx1 | tr -d ' \n') || return $?
-    printf 'DIAGNOSTIC_DEVICE_%s status=%s bytes=%s truncated=%s hex=%s\n' \
+    printf 'DIAGNOSTIC_%s status=%s bytes=%s truncated=%s hex=%s\n' \
         "$label" "$status" "$bytes" "$truncated" "$encoded"
 }
+logind_failure_journal() (
+    set -o pipefail
+    local temporary status=0 capture_status=0
+    local -a pipeline_status
+    temporary=$(mktemp -d "${TMPDIR:-/run}/rog5-journal-query.XXXXXXXX") || return $?
+    trap 'status=$?; trap - EXIT; rm -rf -- "$temporary" || { ((status != 0)) || status=1; }; exit "$status"' EXIT
+    trap 'exit 143' TERM
+    trap 'exit 130' INT
+    # Use the system journal, independently of the timed-out user-bus query.
+    # -b fixes the clock domain to this boot; these are journal receipt times,
+    # not guaranteed exact state-transition times. Retain the original filters.
+    printf 'OBSERVE session-journal phase=begin deadline_seconds=5 clock=CLOCK_MONOTONIC\n'
+    if timeout -k 1 5 stdbuf -oL -e0 journalctl -b --no-pager --output=short-monotonic \
+        -u systemd-logind -u user@1000 -n 80 2>&1 |
+        logind_capture_bounded "$temporary/journal"; then
+        pipeline_status=("${PIPESTATUS[@]}")
+    else
+        pipeline_status=("${PIPESTATUS[@]}")
+    fi
+    status=${pipeline_status[0]}
+    capture_status=${pipeline_status[1]}
+    printf 'OBSERVE session-journal phase=end status=%s capture_status=%s\n' "$status" "$capture_status"
+    logind_publish_diagnostic SESSION_JOURNAL "$status" "$temporary/journal" || capture_status=$?
+    ((status != 0)) || status=$capture_status
+    return "$status"
+)
 logind_wait_devices() (
     set -o pipefail
     local state=${1:-/run} status=0
@@ -71,7 +97,7 @@ logind_wait_devices() (
     printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s boottime=%s\n' "${devices[*]}" "$uptime"
     if SYSTEMD_LOG_TARGET=console SYSTEMD_LOG_LEVEL=debug SYSTEMD_COLORS=0 \
         udevadm wait --timeout=8 --initialized=yes "${devices[@]}" 2>&1 |
-        logind_device_capture "$temporary/wait"; then
+        logind_capture_bounded "$temporary/wait"; then
         pipeline_status=("${PIPESTATUS[@]}")
     else
         pipeline_status=("${PIPESTATUS[@]}")
@@ -80,7 +106,7 @@ logind_wait_devices() (
     diagnostic_status=${pipeline_status[1]}
     read -r uptime unused < /proc/uptime || uptime=unavailable
     printf 'OBSERVE device-readiness phase=end status=%s capture_status=%s boottime=%s\n' "$status" "$diagnostic_status" "$uptime"
-    logind_device_diagnostic WAIT "$status" "$temporary/wait" || diagnostic_status=$?
+    logind_publish_diagnostic DEVICE_WAIT "$status" "$temporary/wait" || diagnostic_status=$?
     if ((status)); then
         # This is a later observation, not the state at the wait's failure.
         # Bound the entire snapshot independently; it never changes admission.
@@ -88,14 +114,14 @@ logind_wait_devices() (
         if timeout -k 1 3 bash --noprofile --norc -c \
             'source "$1"; shift; logind_device_snapshot "$@"' \
             snapshot "${BASH_SOURCE[0]}" "${devices[@]}" 2>&1 |
-            logind_device_capture "$temporary/snapshot"; then
+            logind_capture_bounded "$temporary/snapshot"; then
             pipeline_status=("${PIPESTATUS[@]}")
         else
             pipeline_status=("${PIPESTATUS[@]}")
         fi
         snapshot_status=${pipeline_status[0]}
         printf 'OBSERVE device-readiness snapshot-capture-status=%s\n' "${pipeline_status[1]}"
-        logind_device_diagnostic SNAPSHOT "$snapshot_status" "$temporary/snapshot" || :
+        logind_publish_diagnostic DEVICE_SNAPSHOT "$snapshot_status" "$temporary/snapshot" || :
     else
         # Failure to retain the observation must not become a successful test.
         status=$diagnostic_status
@@ -209,7 +235,7 @@ if [[ ${BASH_SOURCE[0]} != "$0" ]]; then return 0; fi
 set -euo pipefail
 read -r cmdline < /proc/cmdline
 [[ $EUID == 0 && " $cmdline " == *' rog5.logind_fixture=1 '* && -d /sys/bus/virtio/devices ]]
-trap 'echo "FAIL session supervisor line=$LINENO"; cat /run/pam-session.log 2>/dev/null || :; journalctl -b --no-pager -u systemd-logind -u user@1000 -n 80 || :' ERR
+trap 'echo "FAIL session supervisor line=$LINENO"; cat /run/pam-session.log 2>/dev/null || :; logind_failure_journal || :' ERR
 restore_needed=0
 [[ ! -f /run/session-sha256 ]] || restore_needed=2
 trap logind_finish EXIT
