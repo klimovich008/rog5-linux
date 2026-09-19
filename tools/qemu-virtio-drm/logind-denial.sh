@@ -82,15 +82,16 @@ qualify_activated_services() {
     local -a services=(at-spi-dbus-bus.service xdg-document-portal.service
         xdg-desktop-portal-gtk.service xdg-desktop-portal.service)
     service_clock before-start || return $?
-    # Exact-clock VM evidence placed successful completion at19.70s and
-    # readiness only0.44s before the former20s lower cutoff. Allow5s fixture
-    # scheduling headroom; all user/PAM/service/VM outer limits stay unchanged.
+    # The retained single-TCG VM journal shows GTK/main portals ready at
+    # 255.14/257.54s after the before-start sample at221.83s: about36s.
+    # Give this VM-only check40s, retaining all user/PAM/VM outer limits.
+    # This is scheduling headroom, not a startup-performance qualification.
     started=$SECONDS; rc=0
-    echo 'OBSERVE stage=service-start phase=begin deadline_seconds=25' >&2
-    timeout -k 1 25 systemctl --user start "${services[@]}" || rc=$?
+    echo 'OBSERVE stage=service-start phase=begin deadline_seconds=40' >&2
+    timeout -k 1 40 systemctl --user start "${services[@]}" || rc=$?
     printf 'OBSERVE stage=service-start phase=end status=%s elapsed_seconds=%s\n' "$rc" "$((SECONDS-started))" >&2
     # These samples bracket the external timeout invocation. The first sample
-    # plus25s is a lower bound on the actual timeout cutoff, not its exact arm
+    # plus40s is a lower bound on the actual timeout cutoff, not its exact arm
     # timestamp; include process/observer latency in any near-boundary inference.
     clock_rc=0; service_clock after-start || clock_rc=$?
     service_snapshot "${services[@]}"

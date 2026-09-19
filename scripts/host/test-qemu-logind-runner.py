@@ -587,7 +587,18 @@ lsclocks(){
     fi
     case $MODE in clock_fail) return 43;; clock_bad) echo not-a-clock;; *) echo 100.123456789;; esac
 }
-timeout(){ printf 'BOUNDED %s\n' "$*" >&2; shift 3; "$@"; }
+timeout(){
+    printf 'BOUNDED %s\n' "$*" >&2
+    local limit=$3; shift 3
+    # Virtual elapsed time at the real service boundary: no long host sleep.
+    if [[ $1 == systemctl && $3 == start ]]; then
+        case $MODE in
+            ready_at_36) ((limit > 36)) || return 124;;
+            never_ready) return 124;;
+        esac
+    fi
+    "$@"
+}
 stdbuf(){
     [[ $1 == -oL && $2 == -e0 ]] || return 98
     [[ $MODE != start_fail_buffer_tool ]] || return 127
@@ -671,11 +682,20 @@ require_fuse_device "$1" "$2"
                 result = self.qualify(mode)
                 self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
                 names = 'at-spi-dbus-bus.service xdg-document-portal.service xdg-desktop-portal-gtk.service xdg-desktop-portal.service'
-                self.assertIn('BOUNDED -k 1 25 systemctl --user start '+names, result.stderr)
+                self.assertIn('BOUNDED -k 1 40 systemctl --user start '+names, result.stderr)
                 self.assertIn('BOUNDED -k 1 3 systemctl --user is-active '+names, result.stderr)
                 self.assertIn('MOUNT --kernel --noheadings --raw --mountpoint /run/user/1000/doc --output TARGET,FSTYPE,OPTIONS', result.stderr)
                 self.assertIn('OBSERVE document portal mount=/run/user/1000/doc fuse', result.stdout)
                 self.assertIn('CLIENTS-MAY-START', result.stdout)
+
+    def test_observed_late_readiness_fits_bounded_vm_allowance(self):
+        result = self.qualify('ready_at_36')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('CLIENTS-MAY-START', result.stdout)
+        self.assertIn('BOUNDED -k 1 40 systemctl --user start', result.stderr)
+        result = self.qualify('never_ready')
+        self.assertEqual(result.returncode, 124, result.stdout + result.stderr)
+        self.assertNotIn('CLIENTS-MAY-START', result.stdout)
 
     def test_each_boundary_reports_its_exact_status_on_stderr(self):
         stages = ['service-start', 'service-state', 'document-mount']
