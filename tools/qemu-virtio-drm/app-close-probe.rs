@@ -2,7 +2,7 @@
 use std::{fs::{self, OpenOptions}, io::{self, Read, Write}, os::unix::{fs::{MetadataExt, OpenOptionsExt}, ffi::OsStrExt}, path::Path, time::{Duration, Instant}};
 #[repr(C)]
 struct Timespec { seconds: i64, nanos: i64 }
-unsafe extern "C" { fn getuid() -> u32; fn geteuid() -> u32; fn clock_gettime(clock: i32, value: *mut Timespec) -> i32; }
+unsafe extern "C" { fn getuid() -> u32; fn geteuid() -> u32; fn clock_gettime(clock: i32, value: *mut Timespec) -> i32; fn sysconf(name: i32) -> std::ffi::c_long; }
 // Exact Linux7.1.4 UAPI: ARM64 asm/fcntl.h overrides asm-generic.
 #[cfg(target_arch = "aarch64")]
 const NOFOLLOW: i32 = 0o100000;
@@ -37,6 +37,23 @@ fn identity(bytes: &[u8]) -> Result<Identity, String> {
 }
 #[derive(Clone, Copy)]
 struct Target { pid: u32, start: u64 }
+fn cpu_ticks(bytes: &[u8], target: Target) -> Result<(u64,u64), String> {
+    let id=identity(bytes)?;
+    if id.pid!=target.pid || id.start!=target.start { return Err("identity-reused".into()); }
+    let s=std::str::from_utf8(bytes).map_err(|_| "stat-utf8")?;
+    let fields:Vec<_>=s.rsplit_once(") ").ok_or("stat-close")?.1.split_whitespace().collect();
+    // Tail starts at stat field3: utime/stime are fields14/15; not child times.
+    Ok((fields[11].parse().map_err(|_| "utime-parse")?,fields[12].parse().map_err(|_| "stime-parse")?))
+}
+fn context_switches(bytes: &[u8]) -> Result<(u64,u64), String> {
+    let status=std::str::from_utf8(bytes).map_err(|_| "status-utf8")?;
+    let counter=|key:&str| -> Result<u64,String> {
+        let fields:Vec<_>=status.lines().filter_map(|line|line.strip_prefix(key)).collect();
+        if fields.len()!=1 { return Err(format!("missing-or-duplicate:{key}")); }
+        fields[0].trim().parse().map_err(|_|format!("invalid:{key}"))
+    };
+    Ok((counter("voluntary_ctxt_switches:")?,counter("nonvoluntary_ctxt_switches:")?))
+}
 fn check(root: &Path, target: Target, uid: u32, parent: Option<u32>, comm: Option<&str>) -> Result<Identity, String> {
     let dir = root.join(target.pid.to_string());
     let id = identity(&read(&dir.join("stat"), 4096)?)?;
@@ -96,7 +113,10 @@ fn sample<W: Write>(root: &Path, timeout: Target, app: Target, uid: u32, round: 
     let mut time = Timespec { seconds: 0, nanos: 0 };
     // SAFETY: valid writable timespec; CLOCK_MONOTONIC is1 on both Linux ABIs.
     if unsafe { clock_gettime(1, &mut time) } != 0 { return Err(io::Error::last_os_error()); }
-    out.add("clock", round, app.pid, format!("CLOCK_MONOTONIC={}.{:09}", time.seconds, time.nanos).as_bytes())?;
+    // SAFETY: glibc bits/confname.h on both supported targets defines _SC_CLK_TCK=2.
+    let ticks=unsafe { sysconf(2) };
+    if ticks<=0 { return Err(io::Error::other("clock tick scale unavailable")); }
+    out.add("clock", round, app.pid, format!("CLOCK_MONOTONIC={}.{:09} ticks_per_second={ticks}", time.seconds, time.nanos).as_bytes())?;
     for (target, parent, comm) in [(timeout, None, None), (app, Some(timeout.pid), Some("mousepad"))] {
         if let Err(e) = check(root, target, uid, parent, comm) { out.add("identity-unavailable", round, target.pid, format!("status=NOT_RUN cause={e}").as_bytes())?; return Ok(false); }
     }
@@ -112,7 +132,20 @@ fn sample<W: Write>(root: &Path, timeout: Target, app: Target, uid: u32, round: 
     for pid in [app.pid, timeout.pid].into_iter().chain(extra) {
         let dir = if pid == timeout.pid { root.join(pid.to_string()) } else { root.join(format!("{}/task/{pid}", app.pid)) };
         let syscall = observation(read(&dir.join("syscall"), 512));
-        let signals = read(&dir.join("status"), 8192).map(|s| String::from_utf8_lossy(&s).lines().filter(|s| ["State:","Tgid:","Pid:","PPid:","SigPnd:","ShdPnd:","SigBlk:","SigIgn:","SigCgt:"].iter().any(|p| s.starts_with(p))).collect::<Vec<_>>().join(";").into_bytes());
+        let status=read(&dir.join("status"),8192);
+        if pid==app.pid {
+            // task/PID/stat is per-thread; /proc/PID/stat aggregates its group.
+            let cpu=match read(&dir.join("stat"),4096).and_then(|s|cpu_ticks(&s,app)) {
+                Ok((u,s))=>format!("utime_ticks={u} stime_ticks={s}"),
+                Err(e)=>format!("cpu=unavailable:{e}"),
+            };
+            let switches=match status.as_ref().map_err(Clone::clone).and_then(|s|context_switches(s)) {
+                Ok((v,n))=>format!("voluntary={v} involuntary={n}"),
+                Err(e)=>format!("switches=unavailable:{e}"),
+            };
+            out.add("thread-cpu",round,pid,format!("{cpu} {switches}").as_bytes())?;
+        }
+        let signals = status.map(|s| String::from_utf8_lossy(&s).lines().filter(|s| ["State:","Tgid:","Pid:","PPid:","SigPnd:","ShdPnd:","SigBlk:","SigIgn:","SigCgt:"].iter().any(|p| s.starts_with(p))).collect::<Vec<_>>().join(";").into_bytes());
         let mut combined = b"syscall=".to_vec();
         combined.extend_from_slice(&syscall); combined.extend_from_slice(b" status="); combined.extend_from_slice(&observation(signals));
         out.add("task", round, pid, &combined)?;
@@ -178,6 +211,24 @@ mod tests {
     use std::os::unix::fs::symlink;
     fn stat(pid: u32, parent: u32, start: u64, comm: &str) -> String { format!("{pid} ({comm}) S {parent} {} {start}\n", vec!["0";17].join(" ")) }
     #[test] fn parses_parentheses_and_rejects_short_stat() { let i=identity(stat(20,10,99,"weird ) comm").as_bytes()).unwrap(); assert_eq!((i.pid,i.ppid,i.start,i.comm),(20,10,99,"weird ) comm".into())); assert!(identity(b"20 (x) S 10").is_err()); }
+    #[test] fn cpu_and_switch_counters_reject_missing_invalid_or_reused_data() {
+        let target=Target{pid:20,start:99};
+        assert_eq!(cpu_ticks(stat(20,10,99,"weird ) comm").as_bytes(),target).unwrap(),(0,0));
+        assert!(cpu_ticks(stat(20,10,100,"mousepad").as_bytes(),target).is_err());
+        assert!(cpu_ticks(b"20 (mousepad) R 10",target).is_err());
+        let mut fields=vec!["0";20];fields[0]="R";fields[1]="10";fields[19]="99";
+        for value in ["-1","18446744073709551616","bad"] {
+            fields[11]=value;
+            assert!(cpu_ticks(format!("20 (mousepad) {}",fields.join(" ")).as_bytes(),target).is_err());
+        }
+        assert_eq!(context_switches(b"voluntary_ctxt_switches:\t0\nnonvoluntary_ctxt_switches:\t9\n").unwrap(),(0,9));
+        for value in [b"".as_slice(),b"voluntary_ctxt_switches: 1\n",
+            b"voluntary_ctxt_switches: 1\nvoluntary_ctxt_switches: 2\nnonvoluntary_ctxt_switches: 3\n",
+            b"voluntary_ctxt_switches: -1\nnonvoluntary_ctxt_switches: 0\n",
+            b"voluntary_ctxt_switches: 1 2\nnonvoluntary_ctxt_switches: 0\n"] {
+            assert!(context_switches(value).is_err());
+        }
+    }
     #[test] fn markers_require_exact_unique_tokens() { assert!(markers(b"rog5.logind_fixture=1 rog5.virtual_drm=1")); assert!(!markers(b"rog5.logind_fixture=1 rog5.virtual_drm=1 rog5.virtual_drm=0")); assert!(!markers(b"rog5.logind_fixture=1 rog5.virtual_drm=11")); }
     #[test] fn output_bounded_and_unforgeable() { let mut out=Records::new(Vec::new()); for n in 0..100 {out.add("test",n,20,b"\nAPP_CLOSE_PROBE forged\x00").unwrap();} out.finish(Duration::ZERO).unwrap(); let s=String::from_utf8(out.writer).unwrap(); assert!(s.len()<=8192); assert!(s.lines().count()<=64); assert!(!s.contains("\nAPP_CLOSE_PROBE forged")); assert!(s.contains("truncated=true")); assert!(s.lines().all(|l|l.len()<1024)); }
     #[test] fn fixture_sampler_identity_fd_and_limits() {
@@ -190,14 +241,31 @@ mod tests {
         fs::remove_file(dir.join("output-link")).unwrap(); fs::write(&output,b"nonempty").unwrap(); assert!(!valid_stdout(&file.metadata().unwrap(),unsafe{getuid()}));
         for (pid,parent,comm) in [(10,1,"timeout"),(20,10,"mousepad")] { let p=dir.join(pid.to_string()); fs::create_dir(&p).unwrap(); fs::write(p.join("stat"),stat(pid,parent,99,comm)).unwrap(); fs::write(p.join("status"),"Uid:\t1000\t1000\t1000\t1000\nState:\tS\nSigPnd:\t0\n").unwrap(); fs::write(p.join("syscall"),"98 0x1 0x2\n").unwrap(); }
         fs::create_dir_all(dir.join("20/task/20")).unwrap(); for f in ["stat","status","syscall"] {fs::copy(dir.join("20").join(f),dir.join("20/task/20").join(f)).unwrap();}
+        let task_stat = |user: u64| {
+            let mut fields=vec!["0".to_string();20];
+            fields[0]="R".into(); fields[1]="10".into(); fields[11]=user.to_string();
+            fields[12]="7".into(); fields[19]="99".into();
+            format!("20 (mousepad) {}\n",fields.join(" "))
+        };
+        // Process stat remains zero: the counter must come from task/20/stat.
+        fs::write(dir.join("20/task/20/stat"),task_stat(42)).unwrap();
+        fs::write(dir.join("20/task/20/status"),"State:\tR\nvoluntary_ctxt_switches:\t5\nnonvoluntary_ctxt_switches:\t6\n").unwrap();
         fs::write(dir.join("20/maps"),"00000001-00000010 r-xp 00000000 00:00 0 /fixture.so\n").unwrap();
         assert!(String::from_utf8_lossy(&pc_map(&dir,20,b"98 0x1 0x2")).contains("/fixture.so"));
         assert_eq!(pc_map(&dir,20,b"running"),b"unavailable:no-sampled-pc");
         fs::create_dir(dir.join("20/fd")).unwrap(); for fd in 0..20 { symlink(format!("pipe:[123]{}", "x".repeat(800)),dir.join(format!("20/fd/{fd}"))).unwrap(); }
         let (t,a)=(Target{pid:10,start:99},Target{pid:20,start:99}); let mut out=Records::new(Vec::new()); assert!(sample(&dir,t,a,1000,0,&mut out).unwrap()); assert!(String::from_utf8_lossy(&out.writer).contains("kind=fd"));
-        for round in 1..6 { assert!(sample(&dir,t,a,1000,round,&mut out).unwrap()); }
+        for round in 1..6 {
+            fs::write(dir.join("20/task/20/stat"),task_stat(42+round as u64)).unwrap();
+            assert!(sample(&dir,t,a,1000,round,&mut out).unwrap());
+        }
         out.finish(Duration::from_millis(1000)).unwrap();
         let data=String::from_utf8_lossy(&out.writer); assert!(data.contains("kind=task round=5 pid=20")); assert!(data.contains("truncated=true")); assert!(data.len()<=8192);
+        assert!(data.contains("utime_ticks=42 stime_ticks=7"));
+        assert!(data.contains("utime_ticks=47 stime_ticks=7"));
+        assert!(data.contains("voluntary=5 involuntary=6"));
+        assert_eq!(data.matches("kind=thread-cpu").count(),6);
+        assert!(data.contains("ticks_per_second="));
         let mut out=Records::new(Vec::new());
         fs::write(dir.join("20/stat"),stat(20,10,99,"wrong")).unwrap(); assert!(check(&dir,a,1000,Some(10),Some("mousepad")).is_err());
         fs::write(dir.join("20/stat"),stat(20,10,99,"mousepad").replace(") S ",") Z ")).unwrap(); assert_eq!(check(&dir,a,1000,Some(10),Some("mousepad")).unwrap_err(),"exited");
