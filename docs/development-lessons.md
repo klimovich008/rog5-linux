@@ -3323,6 +3323,11 @@ cannot explain a failure before its startup. Community demos identify useful
 source leads, but same-SoC code still needs exact-board comparison and license
 checks before reuse. The [source audit](../test-results/2026-09-19-upstream-denial-community-audit.md)
 records covered and still-needed fixes without another build or phone trial.
+When upstream promotes an already examined development branch, compare tree
+identities before repeating that audit or rebuilding: main `cd84b8b7` and dev
+`5ab4004a` have identical trees. Community readiness helpers also need failure
+semantics reviewed before reuse; a final successful log command can conceal an
+expired sensor wait even when the underlying service-ordering idea is useful.
 
 Device diagnostics (2026-09-19): preserve the producer status while capping and draining debug output, and label later snapshots separately. This VM passed the same initialized-device wait; instrumentation and scheduling changed timing, so this does not explain the preceding failure. An aborted qualification can still contain useful compositor counters: inspect retained logs before calling rendering unexecuted. The live service query timed out with no properties despite line buffering; use already captured individual service journal events with monotonic timestamps to distinguish late readiness from a stuck start transaction. Bound new fault-injection tests using measured runtime: 107 runner cases took 23.067s, exceeding the former 20s host-test limit. Raising only that test limit to 30s allowed the active tier to pass; production deadlines remain unchanged.
 

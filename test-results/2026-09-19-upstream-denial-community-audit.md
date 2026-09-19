@@ -142,3 +142,53 @@ and detailed community links/licenses/access limitations. No credentials or raw
 phone evidence were copied into Git. Source-review findings are not test PASS.
 postmarketOS wiki/current GitLab source access was limited; support matrices were
 not inferred from old search snippets. New upstream tests/build/VM: NOT RUN.
+
+### Subsequent main merge and concrete reuse checks
+
+Live Git now reports main at
+[`cd84b8b72f21024edc3da33d5f3c8dbe9ce44985`](https://github.com/denialwm/denial/commit/cd84b8b72f21024edc3da33d5f3c8dbe9ce44985).
+It merges the already examined dev revision `5ab4004a`; both have tree
+`8fad31cf8d75d3c7f2032032537eb3b59d00854b`. A local
+`git diff --exit-code 5ab4004a cd84b8b7` returned zero. Thus the new main
+identity adds no source change beyond that dev review. Against the previous
+main it contains six non-merge commits and the merge, changing 141 files.
+The exact new main still substitutes Linear without render-set membership
+and rejects Invalid-only pools in `kms_state.rs`. No patch retirement or
+rebuild follows from the merge alone. New upstream builds/tests remain NOT RUN.
+
+The community's same-SoC lead was checked against our actual pinned Linux
+`7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`. Its Sony Sagami DTSI uses
+a bootloader simple-framebuffer and Sony-specific SLPI firmware; it does not
+provide a native ASUS panel or board GPU override to copy. The same source's
+`sm8350-hdk.dts` enables `gpu` and names `qcom/sm8350/a660_zap.mbn`, already
+present in our GPU overlay. This comparison found no missing change to import.
+Keep the separately guarded GPUCC/GMU/SMMU registration overlay and ASUS
+firmware/reservation evidence; identical SoCs do not imply identical boards.
+
+Hotdog was pinned at `47087509c4289c2580c54f5433e55366b2e00445` for a
+read of its [sensor gate](https://github.com/Sr-0w/hotdog-linux-bringup/blob/47087509c4289c2580c54f5433e55366b2e00445/helpers/hotdog-sensor-proxy-gate.sh).
+The useful idea is to establish DSP services and actual sensor enumeration
+before the graphical client claims the accelerometer: owning a D-Bus name is
+not sufficient readiness. The helper itself is unsuitable for direct reuse:
+it unbinds a specific SM8150 SD controller to free GPIO96, invokes root-local
+helpers/OpenRC, and can finish with a successful final echo after sensor
+readiness expires. A future Arch implementation needs an explicit degraded
+result, bounded service operations and ASUS-specific DSP/firmware validation.
+This is a source finding about that helper, not a demonstrated ROG5 defect.
+Its [display regression](https://github.com/Sr-0w/hotdog-linux-bringup/blob/47087509c4289c2580c54f5433e55366b2e00445/docs/evidence/2026-08-20-display-regression-01.md)
+also retains DSI/DSC corruption despite recovery after lock/unlock; it supplies
+diagnostic ideas, not a proven replacement panel sequence.
+
+A further community lead is the author's [Fairphone 6 charging-mode report](https://catcrafts.net/posts/fairphone-6-postmarketos-offline-charging-mode):
+a charger-origin boot enters a reduced-power session, with explicit display
+and debug activation and shutdown on cable removal. This is a product-policy
+idea only; its implementation and license were not audited here. Preserve
+ASUS slot A for rescue/charging. Do not copy CPU/charger settings or infer
+that this resolves S06/R01. The N900 suspend project addresses OMAP I2C noirq
+behavior, so it is not a direct Qualcomm kernel fix.
+
+The Reddit web listing was cached and a direct JSON request returned HTTP403;
+linked primary sources and live Denial Git refs were checked separately.
+This is a bounded relevance search, not a full
+community inventory. No external code was imported, no runtime was upgraded,
+and no phone operation or new VM execution occurred during this follow-up.
