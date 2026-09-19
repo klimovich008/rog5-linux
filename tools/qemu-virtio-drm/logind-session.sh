@@ -1,8 +1,42 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
+logind_device_database_snapshot() {
+    local database_root=/run/udev/data
+    local metadata device major minor extra database data read_status truncated status=0
+    local LC_ALL=C
+    # One stat process, then bounded builtin reads. Capture every consumer before
+    # slower udev/property queries can exhaust the enclosing 3s snapshot budget.
+    metadata=$(LC_ALL=C stat -c '%n %t %T' -- "$@") || status=$?
+    printf 'database_stat_status=%s\n' "$status"
+    while read -r device major minor extra; do
+        [[ -n $device ]] || continue
+        if [[ -n $extra || ! $major =~ ^[0-9a-fA-F]{1,8}$ || ! $minor =~ ^[0-9a-fA-F]{1,8}$ ]]; then
+            printf 'database_status=invalid-device-metadata\n'
+            status=1; continue
+        fi
+        database=$database_root/c$((16#$major)):$((16#$minor))
+        printf 'database_device=%s database_path=%s\n' "$device" "$database"
+        if [[ -L $database || ( -e $database && ! -f $database ) ]]; then
+            printf 'database_status=refused-nonregular\n'; status=1
+        elif [[ ! -e $database ]]; then
+            printf 'database_status=absent\n'
+        else
+            data=; read_status=0; truncated=0
+            IFS= read -r -N 1025 data < "$database" || read_status=$?
+            if ((${#data} > 1024)); then data=${data:0:1024}; truncated=1; fi
+            printf 'database_status=present bytes=%s truncated=%s read_status=%s\n' \
+                "${#data}" "$truncated" "$read_status"
+            printf '%s\ndatabase_end\n' "$data"
+        fi
+    done <<< "$metadata"
+    # Presence/empty contents/ID_PROCESSING are observations, never admission.
+    # The caller encodes this data and retains the original wait failure.
+    return "$status"
+}
 logind_device_snapshot() {
     local device status=0 query_status uptime unused
+    logind_device_database_snapshot "$@" || status=1
     for device in "$@"; do
         read -r uptime unused < /proc/uptime || uptime=unavailable
         printf 'device=%s boottime=%s\n' "$device" "$uptime"

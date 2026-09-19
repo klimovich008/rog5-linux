@@ -813,6 +813,61 @@ sys.exit(int(os.environ['FAILURE']))
 
 
 class DeviceReadinessDiagnostics(unittest.TestCase):
+    def test_database_snapshot_refuses_symlink_and_fifo_without_reading(self):
+        source = RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); database = root/'database'; database.mkdir()
+            staged = root/'snapshot.sh'
+            staged.write_text(source.read_text().replace('local database_root=/run/udev/data',
+                                                        'local database_root='+str(database)))
+            target = root/'target'; target.write_text('PRIVATE_FIXTURE_DO_NOT_READ')
+            entry = database/'c1:3'  # Real host /dev/null metadata, no device I/O.
+            for kind in ('symlink', 'fifo'):
+                with self.subTest(kind=kind):
+                    if kind == 'symlink': entry.symlink_to(target)
+                    else: os.mkfifo(entry)
+                    try:
+                        r = subprocess.run(['bash','-c',
+                            'source "$1"; logind_device_database_snapshot /dev/null',
+                            'fixture',str(staged)],capture_output=True,text=True,timeout=3)
+                        self.assertEqual(r.returncode,1,r.stderr)
+                        self.assertIn('database_status=refused-nonregular',r.stdout)
+                        self.assertNotIn('PRIVATE_FIXTURE_DO_NOT_READ',r.stdout+r.stderr)
+                    finally: entry.unlink()
+
+    def test_database_states_survive_a_later_property_query_timeout(self):
+        source = RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); database = root/'database'; database.mkdir()
+            (database/'c226:0').write_text('E:ID_PROCESSING=1\nI:1234\n')
+            (database/'c4:1').touch()  # Empty is present, not missing/uninitialized.
+            (database/'c13:64').write_text('x'*2048)
+            # No c10:229 record: distinguish absent from an empty record.
+            staged = root/'snapshot.sh'
+            staged.write_text(source.read_text().replace('local database_root=/run/udev/data',
+                                                        'local database_root='+str(database)))
+            (root/'stat').write_text('''#!/bin/bash
+if [[ $2 == '%n %t %T' ]]; then
+    printf '/dev/dri/card0 e2 0\\n/dev/input/event0 d 40\\n/dev/tty1 4 1\\n/dev/fuse a e5\\n'
+else exec /usr/bin/stat "$@"; fi
+''')
+            (root/'stat').chmod(0o755)
+            (root/'udevadm').write_text('#!/bin/bash\nexec sleep 30\n')
+            (root/'udevadm').chmod(0o755)
+            r = subprocess.run(['timeout','-k','1','1','bash','-c',
+                'source "$1"; logind_device_snapshot /dev/dri/card0 /dev/input/event0 /dev/tty1 /dev/fuse',
+                'fixture',str(staged)],env={**os.environ,'PATH':str(root)+':/usr/bin:/bin'},
+                capture_output=True,text=True,timeout=4)
+            self.assertEqual(r.returncode,124,r.stderr)
+            self.assertIn('database_device=/dev/dri/card0',r.stdout)
+            self.assertIn('E:ID_PROCESSING=1',r.stdout)
+            self.assertIn('database_device=/dev/tty1',r.stdout)
+            self.assertIn('database_status=present bytes=0 truncated=0',r.stdout)
+            self.assertIn('database_device=/dev/fuse',r.stdout)
+            self.assertIn('database_status=absent',r.stdout)
+            self.assertIn('database_status=present bytes=1024 truncated=1',r.stdout)
+            self.assertNotIn('x'*1025,r.stdout)
+
     def run_wait(self, failure=42, verbose=False, snapshot_failure=False,
                  snapshot_stall=False, capture_failure=False, encoder_failure=False):
         source = RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
