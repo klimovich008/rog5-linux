@@ -329,7 +329,7 @@ logind_tty_unowned
 
 
 class ExecutableView(unittest.TestCase):
-    def restore(self, first=0, second=0, original=None):
+    def restore(self, first=0, second=0, original=None, abort=None):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
         source = script.read_text()
         restore_state = re.search(r'\|\| restore_needed=(\d+)', source).group(1)
@@ -342,12 +342,30 @@ class ExecutableView(unittest.TestCase):
         code = r'''
 set -euo pipefail
 source "$1"
-FIRST=$2; SECOND=$3
-/run/original-bin/umount(){ printf 'CALL original %s\n' "$*"; return "$FIRST"; }
+FIRST=$2; SECOND=$3; ABORT=$4
+/run/original-bin/umount(){
+    printf 'CALL original %s\n' "$*"
+    [[ ${1:-} != --lazy ]] || return "$ABORT"
+    return "$FIRST"
+}
 /usr/bin/umount(){ printf 'CALL canonical %s\n' "$*"; return "$SECOND"; }
 ''' + f'restore_needed={restore_state}\n' + exit_trap + '\n' + body
-        return subprocess.run(['bash', '-c', code, 'fixture', str(script), str(first), str(second)],
+        return subprocess.run(['bash', '-c', code, 'fixture', str(script), str(first), str(second),
+                               str(first if abort is None else abort)],
                               capture_output=True, text=True, timeout=3)
+
+    def test_aborted_session_detaches_busy_owned_overlay_and_preserves_timeout(self):
+        result = self.restore(first=32, abort=0, original=124)
+        self.assertEqual(result.returncode, 124, result.stdout+result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['CALL original --lazy /usr/bin', 'CALL canonical --lazy /run/original-bin'])
+
+    def test_normal_restore_failure_stays_failure_after_abort_detach(self):
+        result = self.restore(first=32, abort=0)
+        self.assertEqual(result.returncode, 32, result.stdout+result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['CALL original /usr/bin', 'CALL original --lazy /usr/bin',
+                          'CALL canonical --lazy /run/original-bin'])
 
     def test_lazy_alias_release_follows_canonical_restore_and_has_no_force(self):
         result = self.restore()
@@ -371,11 +389,13 @@ FIRST=$2; SECOND=$3
             with self.subTest(first=first, second=second):
                 result = self.restore(first, second, original=37)
                 self.assertEqual(result.returncode, 37, result.stdout+result.stderr)
-                self.assertIn('CALL original /usr/bin', result.stdout)
+                self.assertIn('CALL original --lazy /usr/bin', result.stdout)
                 if not first:
                     self.assertIn('CALL canonical --lazy /run/original-bin', result.stdout)
                 else:
                     self.assertNotIn('CALL canonical', result.stdout)
+                if first or second:
+                    self.assertIn(f'stage={2 if first else 1} status={first or second}', result.stderr)
 
 
 class CacheEnvironment(unittest.TestCase):

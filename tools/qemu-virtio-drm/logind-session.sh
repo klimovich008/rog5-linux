@@ -65,11 +65,22 @@ logind_tty_unowned() {
     return 0
 }
 logind_restore_executable_view() {
+    local mode=${1:-normal}
+    local -a overlay_options=()
+    case $mode in
+        normal) ;;
+        abort) overlay_options=(--lazy) ;;
+        *) return 2 ;;
+    esac
     # 2: overlay and alias remain; 1: only alias remains; 0: both released.
     # Advance only after success, so EXIT cleanup cannot repeat an already
     # completed /usr/bin unmount when releasing the alias failed.
     if ((restore_needed == 2)); then
-        /run/original-bin/umount /usr/bin || return $?
+        # An already-failed session can leave users of this owned RAM overlay.
+        # Detach it on abort so late shutdown cannot force-unmount its shared
+        # 9P alias. Successful-session restoration remains an ordinary unmount;
+        # lazy detach neither proves client cleanup nor changes the failure.
+        /run/original-bin/umount "${overlay_options[@]}" /usr/bin || return $?
         restore_needed=1
     fi
     if ((restore_needed == 1)); then
@@ -82,9 +93,10 @@ logind_restore_executable_view() {
     fi
 }
 logind_finish() {
-    local rc=$? cleanup_rc=0
+    local rc=$? cleanup_rc=0 mode=normal
     trap - EXIT
-    logind_restore_executable_view || cleanup_rc=$?
+    ((rc == 0)) || mode=abort
+    logind_restore_executable_view "$mode" || cleanup_rc=$?
     if ((cleanup_rc)); then
         printf 'FAIL executable view cleanup stage=%s status=%s\n' "$restore_needed" "$cleanup_rc" >&2
         ((rc != 0)) || rc=$cleanup_rc

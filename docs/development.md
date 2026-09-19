@@ -1173,6 +1173,13 @@ unowned before and after, and requires successful session/scope enumeration
 after PAM logout. The original PAM checks and packaged Permit User Sessions
 service remain in the path. A timeout is failure, never cleanup qualification.
 
+On an already-failed VM exit, detach the owned executable overlay lazily before
+releasing its shared-9P alias; preserve the original failure. Successful sessions
+still require ordinary overlay unmounting. Track each completed release so alias
+failure cannot trigger another overlay unmount. A busy-mount regression can run
+in an isolated user/mount namespace without repeating the complete UI flow. This
+proves mount ordering and error preservation, not guest 9P or shutdown behavior.
+
 The same manual logind runner accepts the complete optional group
 `--session-archive`, `--session-receipt`, and `--host-render-node /dev/dri/renderD128`
 for a combined Denial VM. It verifies every archive file before RAM extraction,
