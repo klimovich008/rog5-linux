@@ -3314,3 +3314,12 @@ Per-device initialization must retain later identity, seat, PAM and access check
 No unchanged VM retry, deadline increase or Denial/kernel rebuild was justified.
 
 A mode-specific udev wait removes an unrelated global-queue dependency, but its aggregate failure does not identify the failed device. This VM returned status 1 before PAM with no device-specific diagnostic; do not label it a timeout from the numeric status alone. The next observation must correlate each fixed device with existence/initialization state and capture bounded udev diagnostics while preserving the single eight-second wait and its original fatal result. Cached ARM64 udev-database fixtures prove the admission predicate, not live guest rule completion. The same turn reused the frozen integrated result after verified scratch cleanup, avoiding another unchanged three-minute tier.
+
+Upstream reuse (2026-09-19): check live refs before extending local fixes; the
+cached Denial history missed v0.4.3 and several overlapping corrections. Compare
+production functions and matched engine ABI, not commit titles alone. Retain
+semantic regressions when dropping an overlapping patch. A newer compositor
+cannot explain a failure before its startup. Community demos identify useful
+source leads, but same-SoC code still needs exact-board comparison and license
+checks before reuse. The [source audit](../test-results/2026-09-19-upstream-denial-community-audit.md)
+records covered and still-needed fixes without another build or phone trial.
