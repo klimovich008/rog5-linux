@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Exact ARM64 app closes cleanly in focused host test; Denial VM close remains unresolved",
+  "phase": "Denial VM close failure reproduced; settings sync returned before forced kill",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The retained ARM64 Mousepad package reached a mapped frame and exited 0 within the unchanged two-second close policy; total run 12.77 s, real DConf active, g_settings_sync 0.337 ms. The eight-CPU fixture exhausted its 96-task cap; two-CPU affinity stayed at 90 tasks without limit or OOM events. This host component result does not qualify missing portal/input services or resolve the Denial VM's exit 137 and full startup timing FAIL. Next compare the broker/systemd close path with the same diagnostic; avoid unchanged full boots that expire before close. S06/R01 remain FAIL, phone tests NOT RUN; no phone operation authorized.",
-  "evidence": "test-results/2026-09-19-focused-arm64-app-close.md"
+  "next": "One diagnostic Denial/VirGL VM reached owned Mousepad/Foot mapping and exact approved teardown. Foot exited0, Mousepad137; real g_settings_sync returned in0.209312ms before forced kill, excluding an unfinished sync call at termination in this run. QEMU326.516s under an explicit420s diagnostic envelope; standard300s qualification remains FAIL. Next bracket application shutdown and run-loop return using exact package/API semantics; preserve app65s and two-second kill grace, avoid another sync-only boot or broker-only substitute. S06/R01 remain FAIL; phone tests NOT RUN and no phone operation authorized.",
+  "evidence": "test-results/2026-09-19-denial-close-diagnostic.md"
 }

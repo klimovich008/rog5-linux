@@ -1738,6 +1738,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; isolated host fixture; not Denial VM"
+    },
+    "close_sync_observation": {
+      "status": "VM_CLOSE_FAIL_SETTINGS_SYNC_RETURNED",
+      "set_id": "private:rog5-denial-close-diagnostic-20260919-r1",
+      "source_commit": "b79b6d09e43c3c80f51079b69859ab170c78f19c",
+      "evidence": {
+        "path": "test-results/2026-09-19-denial-close-diagnostic-qualification.json",
+        "sha256": "59ad142a7458bdf519c964e1533ec63382ae739bafdffcf503c483ccdad94a29",
+        "bytes": 37103
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; diagnostic420s envelope, not standard300s qualification"
     }
   },
   "denial_phone_linkage": {

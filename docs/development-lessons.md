@@ -3236,3 +3236,14 @@ The 12.77 s Weston component PASS does not close the Denial VM exit 137 or quali
 portal, input, graphics or security services. Keep executed snapshots separate
 from later harness fixes; reuse the verified runtime instead of another full boot
 that cannot reach the question being tested.
+
+### Denial close observation,2026-09-19
+
+Two standard300s boots expired before controlled close. A separately recorded
+420s diagnostic envelope reached it without changing app65s, TERM/KILL2s or
+ACK/owner guards: Mousepad137, Foot0, real settings sync BEGIN/END in0.209312ms.
+Keep the standard qualification FAIL and diagnostic result distinct. The actual
+returned call excludes an unfinished sync at termination; it does not locate
+the surrounding shutdown delay. Original DConf had started before close, so do
+not spend another boot or substitute fixture testing cold activation. Next probe
+shutdown callback/run-loop boundaries, preserving exact runtime and deadlines.

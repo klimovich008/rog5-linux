@@ -1,0 +1,622 @@
+{
+  "schema": 1,
+  "status": "VM_CLOSE_FAIL_SETTINGS_SYNC_RETURNED",
+  "authority": "none",
+  "physical_status": "NOT RUN",
+  "source": {
+    "commit": "b79b6d09e43c3c80f51079b69859ab170c78f19c",
+    "tree": "a43af1710fb4f4ff2470f8035a964332167a2ff6",
+    "worktree_status": "",
+    "dirty": false
+  },
+  "command": [
+    "/usr/bin/python3",
+    "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/run.py"
+  ],
+  "production_arguments": [
+    "--runtime-view",
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+    "--runtime-receipt",
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+    "--qemu-image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--toolchain-image",
+    "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "--libc",
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+    "--libloading",
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+    "--output",
+    "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1",
+    "--session-archive",
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+    "--session-receipt",
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+    "--host-render-node",
+    "/dev/dri/renderD128",
+    "--observe-apps",
+    "--launcher-reference",
+    "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+    "--evidence-writer",
+    "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+    "--close-only",
+    "--settings-sync-diagnostic",
+    "/home/deck/.local/state/rog5-mousepad-close-20260913-r1/build-r2/settings-sync-diagnostic.so",
+    "--linker-cache",
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2"
+  ],
+  "scope": "one ARM64 Denial/VirGL diagnostic observation, not the standard300s qualification or phone test",
+  "prior_goal_turn": "No new goal progress: rechecked completed cleanup; this turn advances shutdown diagnosis.",
+  "diagnostic_wrapper": {
+    "identity": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/run.py",
+      "sha256": "148e858c38630eeedecce203f8a6b6b64229140691bb4f6f3291b568ff6b87e8",
+      "bytes": 3653
+    },
+    "source": "\"\"\"One diagnostic VM observation; never standard-deadline qualification.\"\"\"\nimport hashlib, importlib.util, json, pathlib, subprocess, sys, time\nE=pathlib.Path(__file__).resolve().parent\nW=E.parent/'rog5-review-correctness-20260912-r1'\nP=E.parent/'rog5-unit-query-20260919-r1/close-r1/result.json'\ndef digest(path):\n    with pathlib.Path(path).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()\ndef write(path,value):\n    with path.open('x') as f:json.dump(value,f,indent=2);f.write('\\n')\ndef main():\n    if sys.argv[1:]:raise SystemExit('no arguments accepted')\n    if subprocess.check_output(['git','status','--porcelain'],cwd=W):raise SystemExit('source not frozen')\n    if subprocess.check_output(['podman','ps','-q']).strip():raise SystemExit('another container active')\n    prior=json.loads(P.read_text())\n    if prior['status']!='FAIL':raise SystemExit('unexpected predecessor')\n    # Prove the production sources and immutable inputs are the same as the\n    # preceding diagnostic attempt. Only this outer observation allowance changes.\n    verified={}\n    for path,row in prior['inputs'].items():\n        got=digest(path)\n        if got!=row['sha256']:raise SystemExit('changed prior input: '+path)\n        verified[path]=got\n    args=prior['command'][2:]\n    args[args.index('--output')+1]=str(E/'vm-r1')\n    if '--close-only' not in args or '--settings-sync-diagnostic' not in args:raise SystemExit('wrong scope')\n    source=W/'scripts/host/test-qemu-logind.py'\n    spec=importlib.util.spec_from_file_location('production_logind',source)\n    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)\n    original=module.container\n    changes=[]\n    def diagnostic_container(command,name,log,deadline,steps,**kw):\n        if log.name=='serial.log':\n            if deadline!=300 or 'qemu-system-aarch64' not in command or changes:\n                raise RuntimeError('unexpected diagnostic dispatch')\n            changes.append({'container':name,'standard_seconds':300,'diagnostic_seconds':420,\n                            'existing_conditional_cleanup_grace_seconds':module.APPS_CLEANUP_GRACE})\n            deadline=420\n            write(E/'vm-dispatch.json',changes[0])\n        return original(command,name,log,deadline,steps,**kw)\n    module.container=diagnostic_container\n    record={'status':'RUNNING','authority':'none','scope':'diagnostic observation only; standard 300-second qualification excluded',\n            'standard_qualification':'NOT RUN; prior FAIL retained','physical_status':'NOT RUN',\n            'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip(),\n            'source_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=W,text=True).strip(),\n            'wrapper_sha256':digest(__file__),'runner_sha256':digest(source),'verified_prior_inputs':verified,\n            'command':[sys.executable,str(E/'run.py')],'production_arguments':args}\n    write(E/'started.json',record)\n    start=time.monotonic();sys.argv=[str(source),*args]\n    code=module.main()\n    raw=json.loads((E/'vm-r1/result.json').read_text())\n    record.update(status='DIAGNOSTIC_COMPLETED' if code==0 else 'DIAGNOSTIC_FAILED',\n                  internal_check_status=raw['status'],exit_status=code,duration_seconds=time.monotonic()-start,\n                  deadline_changes=changes,raw_result_sha256=digest(E/'vm-r1/result.json'))\n    write(E/'diagnostic-result.json',record)\n    print(json.dumps({k:record[k] for k in ('status','internal_check_status','standard_qualification','duration_seconds')}))\n    return code\nif __name__=='__main__':raise SystemExit(main())\n"
+  },
+  "deadline_changes": [
+    {
+      "container": "rog5-logind-vm-b4f097aec05a4e7d",
+      "standard_seconds": 300,
+      "diagnostic_seconds": 420,
+      "existing_conditional_cleanup_grace_seconds": 30
+    }
+  ],
+  "standard_300s_qualification": "NOT RUN; preceding FAIL retained",
+  "unchanged_deadlines": "Mousepad65s, TERM/KILL2s, user120s, PAM140s; ACK/owner guards unchanged",
+  "duration_seconds": 368.8680846139905,
+  "qemu_seconds": 326.51641838101204,
+  "settings_sync": {
+    "records": [
+      [
+        "loaded resolved=true",
+        "923",
+        "274.984597744"
+      ],
+      [
+        "BEGIN",
+        "923",
+        "312.998475984"
+      ],
+      [
+        "END",
+        "923",
+        "312.998685296"
+      ]
+    ],
+    "duration_ms": "0.209312000",
+    "meaning": "real call returned before forced kill; unfinished settings sync is excluded at termination in this run; other delay not localized"
+  },
+  "evidence_excerpt": [
+    "OBSERVE launcher app=mousepad owner=909 start=27303",
+    "OBSERVE launcher app=foot owner=1128 start=30459",
+    "OBSERVE authenticated launcher teardown",
+    "DENIAL_DIAGNOSTIC app-close app=foot phase=begin pid=1148 clock=CLOCK_BOOTTIME seconds=310.45",
+    "DENIAL_DIAGNOSTIC app-close app=mousepad phase=begin pid=921 clock=CLOCK_BOOTTIME seconds=310.83",
+    "DENIAL_DIAGNOSTIC app-close app=foot phase=close-returned pid=1148 clock=CLOCK_BOOTTIME seconds=312.13",
+    "OBSERVE launcher-lifecycle app=foot phase=normal-close status=0 child_status=0",
+    "OBSERVE launcher app=foot exit=0",
+    "DENIAL_DIAGNOSTIC app-close app=mousepad phase=close-returned pid=921 clock=CLOCK_BOOTTIME seconds=313.33",
+    "DENIAL_DIAGNOSTIC timeout: sending signal TERM to command \u2018/usr/bin/bash\u2019",
+    "DENIAL_DIAGNOSTIC timeout: sending signal KILL to command \u2018/usr/bin/bash\u2019",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=923 clock=CLOCK_MONOTONIC seconds=274.984597744",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=BEGIN pid=923 clock=CLOCK_MONOTONIC seconds=312.998475984",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=END pid=923 clock=CLOCK_MONOTONIC seconds=312.998685296",
+    "OBSERVE launcher-lifecycle app=mousepad phase=normal-close status=137 child_status=137",
+    "OBSERVE launcher app=mousepad exit=137",
+    "DENIAL_DIAGNOSTIC controller-exit phase=controlled-close status=1"
+  ],
+  "post_run_input_hashes_verified": 37,
+  "inputs": {
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "bytes": 3268
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+      "sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "bytes": 10806
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+      "sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "bytes": 6735
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "bytes": 5719226
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "bytes": 170538
+    },
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "bytes": 1102
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+      "bytes": 38807
+    },
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587
+    },
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+      "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "bytes": 7574
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py",
+      "sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "bytes": 13931
+    },
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "bytes": 26746087
+    },
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "sha256": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "bytes": 13602
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "bytes": 41526
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+      "sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "bytes": 8509
+    },
+    "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": {
+      "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "bytes": 650222
+    },
+    "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": {
+      "path": "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+      "sha256": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "bytes": 11042
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+      "sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "bytes": 15214
+    },
+    "/home/deck/.local/state/rog5-mousepad-close-20260913-r1/build-r2/settings-sync-diagnostic.so": {
+      "path": "/home/deck/.local/state/rog5-mousepad-close-20260913-r1/build-r2/settings-sync-diagnostic.so",
+      "sha256": "cd9ebf78923abf87de27651c762b82cd7c36e44434ccded4acd94d10bc3f9d4b",
+      "bytes": 70880
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+      "sha256": "5caaf19b529722b9dbfa93ffd49b9604c21bfe0650a1370cd41a67088a9b8bc5",
+      "bytes": 2376
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+      "sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "bytes": 2258
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+      "sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "bytes": 6377
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+      "sha256": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "bytes": 33473
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+      "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+      "bytes": 9258
+    }
+  },
+  "host_tools": {
+    "podman": {
+      "path": "/usr/bin/podman",
+      "sha256": "24b289615ccc7ef409861b4931fe9297318485b693d42b2e8ff55e069b314ca0",
+      "bytes": 46750280
+    },
+    "clang": {
+      "path": "/usr/bin/clang-20",
+      "sha256": "466441076b17c1106a17f31c2b782baf12271c2445e19950879b81c0f793c1ba",
+      "bytes": 145400
+    },
+    "bash": {
+      "path": "/usr/bin/bash",
+      "sha256": "66bb45cd80c82ea4c352c774c0f1577ad51707f55749e90dd6b787a9fb3022d1",
+      "bytes": 1162328
+    },
+    "cpio": {
+      "path": "/usr/bin/cpio",
+      "sha256": "7c800f6a2bd806629e3bafe54ef2321f17c88b0ec8049a265fba827f77808c5f",
+      "bytes": 145064
+    },
+    "gzip": {
+      "path": "/usr/bin/gzip",
+      "sha256": "3e0aa8ddb52c009c608d2f1669c195925b0d9208b699f48b45132dc86fd209dd",
+      "bytes": 97344
+    }
+  },
+  "container_images": {
+    "qemu": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "toolchain": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d"
+  },
+  "outputs": {
+    "logind-seat-probe": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/payload/logind-seat-probe",
+      "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+      "bytes": 552584
+    },
+    "pam-session": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/payload/pam-session",
+      "sha256": "b5135a36064662b916948864736f787ea25b48595a9491164ddb7cc6cd4555bb",
+      "bytes": 564224
+    },
+    "stage/apps-probe": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/apps-probe",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "bytes": 2
+    },
+    "stage/apps-observe-token": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/apps-observe-token",
+      "sha256": "39f6650fc003b880f7ab9d6dc1f102aa2af852cd6c0e15d7be8b73b068321f22",
+      "bytes": 48
+    },
+    "stage/evidence-writer": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104
+    },
+    "stage/linker-cache": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/linker-cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587
+    },
+    "stage/linker-cache.sha256": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/linker-cache.sha256",
+      "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+      "bytes": 65
+    },
+    "stage/settings-sync-diagnostic.so": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/settings-sync-diagnostic.so",
+      "sha256": "cd9ebf78923abf87de27651c762b82cd7c36e44434ccded4acd94d10bc3f9d4b",
+      "bytes": 70880
+    },
+    "initramfs/init": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/init",
+      "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+      "bytes": 3120
+    },
+    "initramfs.gz": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs.gz",
+      "sha256": "7c4a11725bb27a2d061aeb692c9d506cc047bed4407d7d904c4b101e968d2070",
+      "bytes": 213248
+    },
+    "initramfs/stage/guest.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/guest.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874
+    },
+    "initramfs/stage/logind-probe.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-probe.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912
+    },
+    "initramfs/stage/logind-user.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267
+    },
+    "initramfs/stage/independent-observer.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/independent-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020
+    },
+    "initramfs/stage/logind-linker-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395
+    },
+    "initramfs/stage/logind-denial.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783
+    },
+    "initramfs/stage/logind-denial-prepare.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186
+    },
+    "initramfs/stage/logind-font-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112
+    },
+    "initramfs/stage/logind-gtk-im-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633
+    },
+    "initramfs/stage/logind-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544
+    },
+    "initramfs/stage/launcher-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700
+    },
+    "initramfs/stage/launcher-evidence.sh": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/initramfs/stage/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596
+    },
+    "serial.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/serial.log",
+      "sha256": "3c5340c0bcddb9a52def8859261e72f335cf60cda5c25848825de461fe94935d",
+      "bytes": 175540
+    },
+    "launcher-evidence.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/launcher-evidence.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "launcher-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/launcher-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/pam-session.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "gzip.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/gzip.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/pam-session.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-font-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-font-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-denial.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-seat-probe.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-seat-probe.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/pam-session.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "guest.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/guest.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial-prepare.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-denial-prepare.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "independent-observer.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/independent-observer.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-linker-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-linker-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-gtk-im-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-gtk-im-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-user.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-user.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-probe.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-probe.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/logind-seat-probe.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "init.build.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/init.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.absence.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/serial.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/serial.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "cpio.log": {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/cpio.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "raw_evidence": [
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/started.json",
+      "sha256": "6d0fbd790dfc9cf0b46c542703e1d77747fbffe3c236c177e9c654f35bbd794e",
+      "bytes": 8996
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/diagnostic-result.json",
+      "sha256": "71ba701d1856ba9fdf3bfd3a188ae755acf7e72a064de9a5899af24c1960f083",
+      "bytes": 9407
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/result.json",
+      "sha256": "d5337c50fb27e45722728d8ed07b2bef9db6f737e45fa59b90fd40eb18eb4597",
+      "bytes": 91884
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/serial.log",
+      "sha256": "3c5340c0bcddb9a52def8859261e72f335cf60cda5c25848825de461fe94935d",
+      "bytes": 175540
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/observe/apps.log",
+      "sha256": "438478c20f82152e2167f90885bd27756ede8cc6db9e4cfc8b5bfedb9be4adb5",
+      "bytes": 123688
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-close-diagnostic-20260919-r1/vm-r1/observe/apps-result.json",
+      "sha256": "9de0153e4d47e29778bcb81c247ab56f3407beb687d083277acd116e5ce5835e",
+      "bytes": 16312
+    }
+  ],
+  "original_comparison": {
+    "path": "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/original-vm-comparison.md",
+    "sha256": "1bcc33095543175f0b1b64a25616f356d58ba737acc084c79355137c606b36c2",
+    "bytes": 7593
+  },
+  "result": {
+    "mapping_focus": "PASS",
+    "focus_history": [
+      "mousepad",
+      "foot"
+    ],
+    "ack": true,
+    "approved_teardown": true,
+    "mousepad_exit": 137,
+    "foot_exit": 0,
+    "normal_poweroff": true,
+    "container_absent": true,
+    "text_entry": "NOT RUN",
+    "phone": "NOT RUN"
+  },
+  "limits": [
+    "Probe does not locate time before/after sync or explain why normal close exceeded2s.",
+    "No cross-clock subtraction: sync CLOCK_MONOTONIC, close brackets CLOCK_BOOTTIME, Wayland logger separate.",
+    "Probe perturbs shutdown slightly; this is not an uninstrumented timing qualification.",
+    "Last pointer enter(null surface) alone is not proof of malformed server protocol or cause; destruction and queued messages need source-level comparison."
+  ],
+  "next": "Observe application shutdown entry/return and run-loop return using exact package/API semantics before another costly VM; keep close policy and Denial unchanged."
+}
