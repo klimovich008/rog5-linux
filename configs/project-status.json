@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "VM visibly launches both apps; remaining Rust child watchdog corrected offline",
+  "phase": "VM coldplug priority host-tested; readiness still fails before PAM",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Diagnostic VM at a947d956 passed six device checks, PAM/seat access and real document-portal FUSE mount. Mousepad and Foot visibly launched; observer PASS, session FAIL child exit124 during controlled close. Source28c98531 fixes the omitted120s Rust child cap: full190s child/230s PAM/260s unit/440s host; basic/startup-only unchanged. Actual Rust argument regression fails old120s and passes correction; ARM64 helper and111 active suites PASS. Corrected runtime NOT RUN. Next one retained-input close-only VM to qualify app exit/compositor cleanup; do not repeat kernel or Denial builds. Earlier FUSE absence remains unexplained; failure-only retrigger not executed because wait passed. Physical NOT RUN; S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-19-fuse-events-pam-budget.md"
+  "next": "Two retained-input VMs FAIL before PAM. First original FUSE event completed after the initialized wait; priority comparison brought FUSE completion inside the wait but still timed out. Later all-six database snapshot does not prove deadline readiness. Source d579cbca and111 active suites PASS; corrected190s Rust child runtime remains NOT RUN. Extend scoped worker diagnostics to all six exact consumers and capture a timestamped pre-wait database snapshot; retain the 8s initialized gate and failure. Distinguish late processing from queued/undispatched completion events before another bounded VM. No unchanged VM rerun or kernel/Denial rebuild. Physical NOT RUN; S06/R01 FAIL retained.",
+  "evidence": "test-results/2026-09-19-udev-priority.md"
 }

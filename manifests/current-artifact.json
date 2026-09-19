@@ -2030,6 +2030,32 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "pam_child_session_attempt": {
+      "status": "FAIL_VM_DEVICE_WAIT_ORIGINAL_FUSE_LATE",
+      "set_id": "private:rog5-pam-child-session-20260919-r1",
+      "source_commit": "03d06168c2183846dc16700995f9d62bb8a9da33",
+      "source_tree": "5b261d35735f227b021149b1706fa501c476387a",
+      "evidence": {
+        "path": "test-results/2026-09-19-udev-priority-qualification.json",
+        "sha256": "274e572ae353792691b4e8f415fb6b481c83f0b57663c557e7483733643cfad3",
+        "bytes": 42365
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
+    },
+    "udev_priority_comparison": {
+      "status": "PASS_HOST_PRIORITY_VM_FAIL_DEVICE_WAIT",
+      "set_id": "private:rog5-udev-priority-20260919-r1",
+      "source_commit": "d579cbca43983d754cf9bee2f52933a6911b41b2",
+      "source_tree": "dacf7020a7337061edab499f871bcab47ec2230b",
+      "evidence": {
+        "path": "test-results/2026-09-19-udev-priority-qualification.json",
+        "sha256": "274e572ae353792691b4e8f415fb6b481c83f0b57663c557e7483733643cfad3",
+        "bytes": 42365
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {

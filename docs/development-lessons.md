@@ -3425,3 +3425,13 @@ observer's files before describing the compositor as not started. A passing
 initialized-device wait leaves failure-only diagnostics unexecuted and cannot
 explain a previous missing FUSE database. Size growing host-test deadlines from
 measured parallel runtime;132 cases took31.435s under the old30s limit.
+
+Coldplug event timing (2026-09-19): capture all required consumers' processing-end
+records, not only the first missing device. A later all-ready database snapshot
+and I: initialization timestamps do not establish readiness at the wait deadline.
+A successful multicast send does not prove waiter dispatch. Pinned initialized
+udevadm wait has no final timeout recheck and receives unrelated events; backlog
+is a hypothesis until distinguished from late target processing. Append scoped
+priorities only against a verified vendor command, and preserve readiness gates.
+Two failed VMs took251s and231s; use the captured stage boundary to select the
+next diagnostic rather than repeat unchanged full sessions.

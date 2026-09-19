@@ -1,0 +1,431 @@
+{
+  "schema": 1,
+  "authority": "none; generic ARM64 VM/offline qualification only",
+  "physical_status": "NOT RUN",
+  "starting_commit": "03d06168c2183846dc16700995f9d62bb8a9da33",
+  "starting_tree": "5b261d35735f227b021149b1706fa501c476387a",
+  "source_commit": "d579cbca43983d754cf9bee2f52933a6911b41b2",
+  "source_tree": "dacf7020a7337061edab499f871bcab47ec2230b",
+  "before": {
+    "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/before.log",
+    "sha256": "7ac4da154ab6d5b96d5f446f93668cb1a103dbd66aae0b80c82f987ec3d5c038",
+    "bytes": 886
+  },
+  "focused": {
+    "status": "PASS",
+    "cases": 24,
+    "seconds": 12.82,
+    "log": {
+      "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/focused-final.log",
+      "sha256": "60217e45a19040ab6b80a46507957da39b16c6f69aef27aa627b66711446ec8a",
+      "bytes": 124
+    }
+  },
+  "package_staging": {
+    "command": [
+      "bash",
+      "-euc",
+      "source \"$1\"; logind_prepare_device_priority \"$2\" \"$3\" \"$4\"",
+      "fixture",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "/home/deck/.local/state/rog5-udev-priority-20260919-r1/fixture/etc",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/systemd-udev-trigger.service",
+      "/home/deck/.local/state/rog5-udev-priority-20260919-r1/fixture"
+    ],
+    "seconds": 0.008177951036486775,
+    "status": "PASS",
+    "vendor_unit": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/systemd/system/systemd-udev-trigger.service",
+      "sha256": "42e585c2859b76e4106b64b915dc900f1e5390bf32686a9181acd95eea1c7064",
+      "unchanged": true
+    },
+    "generated": {
+      "text": "[Service]\nExecStart=\nExecStart=-udevadm trigger --type=all --action=add --prioritized-subsystem=module,block,tpmrm,net,tty,input,drm,misc,virtio-ports\n",
+      "sha256": "5187c90c6aa4e51ca972677ab306155e520c1d21c623fadc4b0cc7997ff8741f"
+    }
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "d579cbca43983d754cf9bee2f52933a6911b41b2",
+    "source_tree": "dacf7020a7337061edab499f871bcab47ec2230b",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 182.52265803900082
+  },
+  "counts": {
+    "PASS": 111,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "vms": [
+    {
+      "terminal": {
+        "source_commit": "03d06168c2183846dc16700995f9d62bb8a9da33",
+        "source_tree": "5b261d35735f227b021149b1706fa501c476387a",
+        "command": [
+          "/usr/bin/python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "--runtime-view",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+          "--runtime-receipt",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+          "--kernel",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+          "--qemu-image",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--toolchain-image",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "--libc",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--libloading",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "--output",
+          "/home/deck/.local/state/rog5-pam-child-session-20260919-r1/vm-r1",
+          "--session-archive",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+          "--session-receipt",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+          "--host-render-node",
+          "/dev/dri/renderD128",
+          "--observe-apps",
+          "--launcher-reference",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+          "--evidence-writer",
+          "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+          "--close-only",
+          "--settings-sync-diagnostic",
+          "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+          "--linker-cache",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+          "--tcg-thread",
+          "single",
+          "--hwdb-cache",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared",
+          "--disable-mops"
+        ],
+        "authority": "none; generic ARM64 VM only",
+        "physical": "NOT RUN",
+        "delta": "Corrected full-session Rust child190s, PAM230s, unit260s, host440s. Same close-only VM, source/runtime/kernel/engine and service/app guards otherwise retained; explicit arm64.nomops is diagnostic only. FUSE failed-boot diagnostics retained.",
+        "status": "FAIL",
+        "active_test": {
+          "path": "/home/deck/.local/state/rog5-pam-child-budget-20260919-r1/active-result.json",
+          "sha256": "216f909356da4623a551a4c00a77723837d3da46e824010509ad7fc0d45d8719"
+        },
+        "script": {
+          "path": "/home/deck/.local/state/rog5-pam-child-session-20260919-r1/run-vm.py",
+          "sha256": "b872c24751f6af510f92471a7325976b2f0a4e81eed229c76d7c10157a3bb67b"
+        },
+        "prior_result": {
+          "path": "/home/deck/.local/state/rog5-fuse-events-20260919-r1/vm-r1/result.json",
+          "sha256": "1e65a6577f1233aca980ee56b99b4d827c792755236ab6fa302d398749244348"
+        },
+        "unchanged_input_hashes": {
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+          "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+        },
+        "intentional_changes": {
+          "tools/qemu-virtio-drm/logind-pam-session.rs": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+              "sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+              "bytes": 6735
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+              "sha256": "c3acc2da0984b9a2b4c4c51fe4262fc24d3ebf31c4200e42b39a46ebabd961f5"
+            }
+          },
+          "tools/qemu-virtio-drm/logind-boot.sh": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+              "sha256": "418512cc00a81da109c2b45908dff6cfd6aff8d7116006af35d31d4c51d27332",
+              "bytes": 3325
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+              "sha256": "fe0446cfecc0dca295863554e774f52ec28f43a4058b984fb30a99dda31860fa"
+            }
+          },
+          "tools/qemu-virtio-drm/logind-session.sh": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+              "sha256": "c0d81170934f90690bc4ed2a32aa523755e885056ab0018ab7c768da570d5051",
+              "bytes": 19583
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+              "sha256": "626eb58c02b990f04ad35ac62765f1bdec2302f0f7dd29275074a67815a31138"
+            }
+          },
+          "scripts/host/test-qemu-logind.py": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+              "sha256": "49ae749e649bb7c9394ecaae90e55624e4a09969acac3e62ae0fd16957e962a8",
+              "bytes": 43416
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+              "sha256": "cb66671f0cfc250c3766029c177b0e2af8d6b6ce2b09d963f358de44d63ba59a"
+            }
+          }
+        },
+        "exit_status": 1,
+        "seconds": 250.79021104698768,
+        "runtime_bytes_and_metadata_unchanged": true,
+        "input_hashes_unchanged": true
+      },
+      "result": {
+        "path": "/home/deck/.local/state/rog5-pam-child-session-20260919-r1/vm-r1/result.json",
+        "sha256": "43a6b8a7e1253e052705a0117e1d3714560c9cd6ae24d60033e617169044e0c6",
+        "bytes": 85006
+      },
+      "decoded": {
+        "DEVICE_WAIT": {
+          "status": 1,
+          "bytes": 201,
+          "truncated": 0,
+          "text": "sd-device-monitor(n/a): Unable to get network namespace of udev netlink socket, unable to determine if we are in host netns, ignoring: Invalid argument\nTimed out for waiting devices being initialized.\n"
+        },
+        "DEVICE_SNAPSHOT": {
+          "status": 124,
+          "bytes": 2394,
+          "truncated": 0,
+          "text": "database_stat_status=0\ndatabase_device=/dev/dri/card0 database_path=/run/udev/data/c226:0\ndatabase_status=absent\ndatabase_device=/dev/input/event0 database_path=/run/udev/data/c13:64\ndatabase_status=present bytes=292 truncated=0 read_status=1\nS:input/by-path/platform-a003600.virtio_mmio-event-mouse\nI:142177387\nE:ID_INPUT=1\nE:ID_INPUT_MOUSE=1\nE:ID_BUS=platform\nE:ID_SERIAL=noserial\nE:ID_PATH=platform-a003600.virtio_mmio\nE:ID_PATH_TAG=platform-a003600_virtio_mmio\nE:ID_INTEGRATION=internal\nE:LIBINPUT_DEVICE_GROUP=6/627/3:virtio1\nV:1\n\ndatabase_end\ndatabase_device=/dev/tty1 database_path=/run/udev/data/c4:1\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=absent\ndatabase_device=/dev/input/event1 database_path=/run/udev/data/c13:65\ndatabase_status=present bytes=340 truncated=0 read_status=1\nS:input/by-path/platform-a003c00.virtio_mmio-event-kbd\nI:142185994\nE:ID_INPUT=1\nE:ID_INPUT_KEY=1\nE:ID_INPUT_KEYBOARD=1\nE:ID_BUS=platform\nE:ID_SERIAL=noserial\nE:ID_PATH=platform-a003c00.virtio_mmio\nE:ID_PATH_TAG=platform-a003c00_virtio_mmio\nE:ID_INTEGRATION=internal\nE:LIBINPUT_DEVICE_GROUP=6/627/1:virtio4\nG:power-switch\nQ:power-switch\nV:1\n\ndatabase_end\ndatabase_device=/dev/vport0p1 database_path=/run/udev/data/c252:1\ndatabase_status=absent\ndevice=/dev/dri/card0 boottime=172.41\ntype=character special file rdev=e2:0 mode=600 uid=0 gid=0\nstat_status=0\nDEVPATH=/devices/platform/a003e00.virtio_mmio/drm/card0\nDEVNAME=/dev/dri/card0\nDEVTYPE=drm_minor\nMAJOR=226\nMINOR=0\nSUBSYSTEM=drm\nquery_status=0\ndevice=/dev/input/event0 boottime=172.90\ntype=character special file rdev=d:40 mode=660 uid=0 gid=992\nstat_status=0\nDEVPATH=/devices/platform/a003600.virtio_mmio/virtio1/input/input0/event0\nDEVNAME=/dev/input/event0\nMAJOR=13\nMINOR=64\nSUBSYSTEM=input\nUSEC_INITIALIZED=142177387\nID_INPUT=1\nID_INPUT_MOUSE=1\nID_BUS=platform\nID_SERIAL=noserial\nID_PATH=platform-a003600.virtio_mmio\nID_PATH_TAG=platform-a003600_virtio_mmio\nID_INTEGRATION=internal\nLIBINPUT_DEVICE_GROUP=6/627/3:virtio1\nDEVLINKS=/dev/input/by-path/platform-a003600.virtio_mmio-event-mouse\nquery_status=0\ndevice=/dev/tty1 boottime=173.77\ntype=character special file rdev=4:1 mode=600 uid=0 gid=5\nstat_status=0\nDEVPATH=/devices/virtual/tty/tty1\nDEVNAME=/dev/tty1\nMAJOR=4\nMINOR=1\nSUBSYSTEM=tty\nquery_status=0\ndevice=/dev/fuse boottime=174.24\n"
+        },
+        "FUSE_EVENT": {
+          "status": 0,
+          "bytes": 2888,
+          "truncated": 0,
+          "text": "fuse_phase=before-retrigger\ndatabase_stat_status=0\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ntrigger_status=0\nfuse_phase=after-retrigger\ndatabase_stat_status=0\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ninitialized_status=0\n[  178.713501] rog5-logind-vm (udev-worker)[429]: fuse: sd-device-monitor(worker): Passed 249 byte to netlink monitor.\n[  178.713289] rog5-logind-vm (udev-worker)[429]: fuse: Device processed (SEQNUM=1634, ACTION=add, UUID=a16ffac7-8dae-4b3d-96f6-2ec92249a6e8)\n[  178.713193] rog5-logind-vm (udev-worker)[429]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  178.712428] rog5-logind-vm (udev-worker)[429]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  178.703718] rog5-logind-vm (udev-worker)[429]: fuse: Successfully created symlink '/dev/char/10:229' to '/dev/fuse'\n[  178.703191] rog5-logind-vm (udev-worker)[429]: fuse: Preserve permissions of /dev/fuse, uid=0, gid=0, mode=0666\n[  178.702927] rog5-logind-vm (udev-worker)[429]: fuse: /usr/lib/udev/rules.d/99-fuse3.rules:1 MODE=\"0666\": Set mode: 0666\n[  178.682896] rog5-logind-vm (udev-worker)[429]: fuse: /usr/lib/udev/rules.d/50-udev-default.rules:113 MODE=\"0666\": Set mode: 0666\n[  178.674790] rog5-logind-vm (udev-worker)[429]: fuse: The log level is changed to 'debug' while processing device (SEQNUM=1634, ACTION=add, UUID=a16ffac7-8dae-4b3d-96f6-2ec92249a6e8)\n[  173.270089] rog5-logind-vm (udev-worker)[432]: fuse: sd-device-monitor(worker): Passed 249 byte to netlink monitor.\n[  173.255946] rog5-logind-vm (udev-worker)[432]: fuse: Device processed (SEQNUM=1608, ACTION=add, UUID=cf2016a3-bda4-4779-bfde-e0005df990b1)\n[  173.255866] rog5-logind-vm (udev-worker)[432]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  173.255552] rog5-logind-vm (udev-worker)[432]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  173.255148] rog5-logind-vm (udev-worker)[432]: fuse: Successfully created symlink '/dev/char/10:229' to '/dev/fuse'\n[  173.254519] rog5-logind-vm (udev-worker)[432]: fuse: Preserve permissions of /dev/fuse, uid=0, gid=0, mode=0666\n[  173.254176] rog5-logind-vm (udev-worker)[432]: fuse: /usr/lib/udev/rules.d/99-fuse3.rules:1 MODE=\"0666\": Set mode: 0666\n[  173.235111] rog5-logind-vm (udev-worker)[432]: fuse: /usr/lib/udev/rules.d/50-udev-default.rules:113 MODE=\"0666\": Set mode: 0666\n[  173.234534] rog5-logind-vm (udev-worker)[432]: fuse: The log level is changed to 'debug' while processing device (SEQNUM=1608, ACTION=add, UUID=cf2016a3-bda4-4779-bfde-e0005df990b1)\njournal_status=0\n"
+        },
+        "SESSION_JOURNAL": {
+          "status": 0,
+          "bytes": 186,
+          "truncated": 0,
+          "text": "[  151.094455] rog5-logind-vm systemd-logind[450]: New seat seat0.\n[  168.015916] rog5-logind-vm systemd-logind[450]: Watching system buttons on /dev/input/event1 (QEMU Virtio Keyboard)\n"
+        }
+      },
+      "poweroff": {
+        "status": "PASS",
+        "check": "existing RCU-aware require_vm_poweroff",
+        "limits": "/var unmount failure retained; no PAM/session executed"
+      }
+    },
+    {
+      "terminal": {
+        "source_commit": "d579cbca43983d754cf9bee2f52933a6911b41b2",
+        "source_tree": "dacf7020a7337061edab499f871bcab47ec2230b",
+        "command": [
+          "/usr/bin/python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "--runtime-view",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+          "--runtime-receipt",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+          "--kernel",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+          "--qemu-image",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--toolchain-image",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "--libc",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--libloading",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "--output",
+          "/home/deck/.local/state/rog5-udev-priority-20260919-r1/vm-r1",
+          "--session-archive",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+          "--session-receipt",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+          "--host-render-node",
+          "/dev/dri/renderD128",
+          "--observe-apps",
+          "--launcher-reference",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+          "--evidence-writer",
+          "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+          "--close-only",
+          "--settings-sync-diagnostic",
+          "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+          "--linker-cache",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+          "--tcg-thread",
+          "single",
+          "--hwdb-cache",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared",
+          "--disable-mops"
+        ],
+        "authority": "none; generic ARM64 VM only",
+        "physical": "NOT RUN",
+        "delta": "VM-only coldplug override appends drm,misc,virtio-ports to original priority list. Existing initialized8s gate, Rust child190/PAM230/unit260/host440 deadlines, original runtime/kernel/engine and close-only flow retained. Scoped FUSE diagnostics and explicit arm64.nomops retained; no phone proof.",
+        "status": "FAIL",
+        "active_test": {
+          "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/active-result.json",
+          "sha256": "f9f68542e2bc650f6e8f3c5e46699c487bf380bdc3f839a5c68d039d04f422a1"
+        },
+        "script": {
+          "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/run-vm.py",
+          "sha256": "f11dc8c05bc30e36faec83e1c78b37539c8532bd3b24729838f555fb4057c121"
+        },
+        "prior_result": {
+          "path": "/home/deck/.local/state/rog5-pam-child-session-20260919-r1/vm-r1/result.json",
+          "sha256": "43a6b8a7e1253e052705a0117e1d3714560c9cd6ae24d60033e617169044e0c6"
+        },
+        "unchanged_input_hashes": {
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": "c3acc2da0984b9a2b4c4c51fe4262fc24d3ebf31c4200e42b39a46ebabd961f5",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": "cb66671f0cfc250c3766029c177b0e2af8d6b6ce2b09d963f358de44d63ba59a",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+          "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+          "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+          "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+        },
+        "intentional_changes": {
+          "tools/qemu-virtio-drm/logind-boot.sh": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+              "sha256": "fe0446cfecc0dca295863554e774f52ec28f43a4058b984fb30a99dda31860fa",
+              "bytes": 3325
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+              "sha256": "5ff58027b3ec331daf016fe4bb0ca98b42022632d46bb0c6d8563324ca7b60b5"
+            }
+          },
+          "tools/qemu-virtio-drm/logind-session.sh": {
+            "before": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+              "sha256": "626eb58c02b990f04ad35ac62765f1bdec2302f0f7dd29275074a67815a31138",
+              "bytes": 19585
+            },
+            "after": {
+              "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+              "sha256": "45b8b7f79915106519c6d9f3b61157aa9c108230603ed8cddd87a29b3b86a5ac"
+            }
+          }
+        },
+        "exit_status": 1,
+        "seconds": 231.1420250129886,
+        "runtime_bytes_and_metadata_unchanged": true,
+        "input_hashes_unchanged": true
+      },
+      "result": {
+        "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/vm-r1/result.json",
+        "sha256": "28b321ddcc73eaf017a99e61a1184f2c827395e890161f8bdc7d46d91530209b",
+        "bytes": 84577
+      },
+      "decoded": {
+        "DEVICE_WAIT": {
+          "status": 1,
+          "bytes": 201,
+          "truncated": 0,
+          "text": "sd-device-monitor(n/a): Unable to get network namespace of udev netlink socket, unable to determine if we are in host netns, ignoring: Invalid argument\nTimed out for waiting devices being initialized.\n"
+        },
+        "DEVICE_SNAPSHOT": {
+          "status": 124,
+          "bytes": 2954,
+          "truncated": 0,
+          "text": "database_stat_status=0\ndatabase_device=/dev/dri/card0 database_path=/run/udev/data/c226:0\ndatabase_status=present bytes=261 truncated=0 read_status=1\nS:dri/by-path/platform-a003e00.virtio_mmio-card\nI:122705258\nE:ID_PATH=platform-a003e00.virtio_mmio\nE:ID_PATH_TAG=platform-a003e00_virtio_mmio\nE:ID_FOR_SEAT=drm-platform-a003e00_virtio_mmio\nG:uaccess\nG:master-of-seat\nG:seat\nQ:uaccess\nQ:master-of-seat\nQ:seat\nV:1\n\ndatabase_end\ndatabase_device=/dev/input/event0 database_path=/run/udev/data/c13:64\ndatabase_status=present bytes=292 truncated=0 read_status=1\nS:input/by-path/platform-a003600.virtio_mmio-event-mouse\nI:122687508\nE:ID_INPUT=1\nE:ID_INPUT_MOUSE=1\nE:ID_BUS=platform\nE:ID_SERIAL=noserial\nE:ID_PATH=platform-a003600.virtio_mmio\nE:ID_PATH_TAG=platform-a003600_virtio_mmio\nE:ID_INTEGRATION=internal\nE:LIBINPUT_DEVICE_GROUP=6/627/3:virtio1\nV:1\n\ndatabase_end\ndatabase_device=/dev/tty1 database_path=/run/udev/data/c4:1\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ndatabase_device=/dev/input/event1 database_path=/run/udev/data/c13:65\ndatabase_status=present bytes=340 truncated=0 read_status=1\nS:input/by-path/platform-a003c00.virtio_mmio-event-kbd\nI:122695539\nE:ID_INPUT=1\nE:ID_INPUT_KEY=1\nE:ID_INPUT_KEYBOARD=1\nE:ID_BUS=platform\nE:ID_SERIAL=noserial\nE:ID_PATH=platform-a003c00.virtio_mmio\nE:ID_PATH_TAG=platform-a003c00_virtio_mmio\nE:ID_INTEGRATION=internal\nE:LIBINPUT_DEVICE_GROUP=6/627/1:virtio4\nG:power-switch\nQ:power-switch\nV:1\n\ndatabase_end\ndatabase_device=/dev/vport0p1 database_path=/run/udev/data/c252:1\ndatabase_status=present bytes=61 truncated=0 read_status=1\nS:virtio-ports/rog5.apps\nI:122719336\nG:systemd\nQ:systemd\nV:1\n\ndatabase_end\ndevice=/dev/dri/card0 boottime=153.19\ntype=character special file rdev=e2:0 mode=660 uid=0 gid=983\nstat_status=0\nDEVPATH=/devices/platform/a003e00.virtio_mmio/drm/card0\nDEVNAME=/dev/dri/card0\nDEVTYPE=drm_minor\nMAJOR=226\nMINOR=0\nSUBSYSTEM=drm\nUSEC_INITIALIZED=122705258\nID_PATH=platform-a003e00.virtio_mmio\nID_PATH_TAG=platform-a003e00_virtio_mmio\nID_FOR_SEAT=drm-platform-a003e00_virtio_mmio\nDEVLINKS=/dev/dri/by-path/platform-a003e00.virtio_mmio-card\nTAGS=:uaccess:master-of-seat:seat:\nCURRENT_TAGS=:uaccess:master-of-seat:seat:\nquery_status=0\ndevice=/dev/input/event0 boottime=154.06\ntype=character special file rdev=d:40 mode=660 uid=0 gid=992\nstat_status=0\nDEVPATH=/devices/platform/a003600.virtio_mmio/virtio1/input/input0/event0\nDEVNAME=/dev/input/event0\nMAJOR=13\nMINOR=64\nSUBSYSTEM=input\nUSEC_INITIALIZED=122687508\nID_INPUT=1\nID_INPUT_MOUSE=1\nID_BUS=platform\nID_SERIAL=noserial\nID_PATH=platform-a003600.virtio_mmio\nID_PATH_TAG=platform-a003600_virtio_mmio\nID_INTEGRATION=internal\nLIBINPUT_DEVICE_GROUP=6/627/3:virtio1\nDEVLINKS=/dev/input/by-path/platform-a003600.virtio_mmio-event-mouse\nquery_status=0\ndevice=/dev/tty1 boottime=154.69\n"
+        },
+        "FUSE_EVENT": {
+          "status": 0,
+          "bytes": 2888,
+          "truncated": 0,
+          "text": "fuse_phase=before-retrigger\ndatabase_stat_status=0\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ntrigger_status=0\nfuse_phase=after-retrigger\ndatabase_stat_status=0\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ninitialized_status=0\n[  159.106456] rog5-logind-vm (udev-worker)[533]: fuse: sd-device-monitor(worker): Passed 249 byte to netlink monitor.\n[  159.105342] rog5-logind-vm (udev-worker)[533]: fuse: Device processed (SEQNUM=1634, ACTION=add, UUID=2407f0bb-7fed-49af-bc39-8f98a740380f)\n[  159.105196] rog5-logind-vm (udev-worker)[533]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  159.102677] rog5-logind-vm (udev-worker)[533]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  159.099277] rog5-logind-vm (udev-worker)[533]: fuse: Successfully created symlink '/dev/char/10:229' to '/dev/fuse'\n[  159.098623] rog5-logind-vm (udev-worker)[533]: fuse: Preserve permissions of /dev/fuse, uid=0, gid=0, mode=0666\n[  159.098281] rog5-logind-vm (udev-worker)[533]: fuse: /usr/lib/udev/rules.d/99-fuse3.rules:1 MODE=\"0666\": Set mode: 0666\n[  159.085234] rog5-logind-vm (udev-worker)[533]: fuse: /usr/lib/udev/rules.d/50-udev-default.rules:113 MODE=\"0666\": Set mode: 0666\n[  159.083824] rog5-logind-vm (udev-worker)[533]: fuse: The log level is changed to 'debug' while processing device (SEQNUM=1634, ACTION=add, UUID=2407f0bb-7fed-49af-bc39-8f98a740380f)\n[  144.763314] rog5-logind-vm (udev-worker)[432]: fuse: sd-device-monitor(worker): Passed 249 byte to netlink monitor.\n[  144.762944] rog5-logind-vm (udev-worker)[432]: fuse: Device processed (SEQNUM=1508, ACTION=add, UUID=285eee03-d881-4be4-8af0-1b5fb1658439)\n[  144.762759] rog5-logind-vm (udev-worker)[432]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  144.743798] rog5-logind-vm (udev-worker)[432]: fuse: sd-device: Created database file '/run/udev/data/c10:229' for '/devices/virtual/misc/fuse'.\n[  144.743375] rog5-logind-vm (udev-worker)[432]: fuse: Successfully created symlink '/dev/char/10:229' to '/dev/fuse'\n[  144.742850] rog5-logind-vm (udev-worker)[432]: fuse: Preserve permissions of /dev/fuse, uid=0, gid=0, mode=0666\n[  144.742490] rog5-logind-vm (udev-worker)[432]: fuse: /usr/lib/udev/rules.d/99-fuse3.rules:1 MODE=\"0666\": Set mode: 0666\n[  144.729307] rog5-logind-vm (udev-worker)[432]: fuse: /usr/lib/udev/rules.d/50-udev-default.rules:113 MODE=\"0666\": Set mode: 0666\n[  144.717852] rog5-logind-vm (udev-worker)[432]: fuse: The log level is changed to 'debug' while processing device (SEQNUM=1508, ACTION=add, UUID=285eee03-d881-4be4-8af0-1b5fb1658439)\njournal_status=0\n"
+        },
+        "SESSION_JOURNAL": {
+          "status": 0,
+          "bytes": 186,
+          "truncated": 0,
+          "text": "[  134.322326] rog5-logind-vm systemd-logind[453]: New seat seat0.\n[  149.121526] rog5-logind-vm systemd-logind[453]: Watching system buttons on /dev/input/event1 (QEMU Virtio Keyboard)\n"
+        }
+      },
+      "poweroff": {
+        "status": "PASS",
+        "check": "actual require_vm_poweroff function from frozen source",
+        "limits": "/var unmount failure retained; PAM/session NOT RUN"
+      }
+    }
+  ],
+  "waiter_source": {
+    "commit": "3255daee1572366b74fe92f002a3d60ecbb27103",
+    "finding": "Initialized waiter checks on matching events, has no periodic or final-timeout recheck, and receives all events one datagram per dispatch. Backlog timeout possible; not established as this run cause. Remaining five original completion times absent."
+  },
+  "next": "Extend scoped worker diagnostics to all six exact consumers and capture a timestamped pre-wait database snapshot; retain the 8s initialized gate and failure. Distinguish late processing from queued/undispatched completion events before another bounded VM. No unchanged VM rerun or kernel/Denial rebuild."
+}
