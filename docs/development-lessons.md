@@ -3435,3 +3435,13 @@ is a hypothesis until distinguished from late target processing. Append scoped
 priorities only against a verified vendor command, and preserve readiness gates.
 Two failed VMs took251s and231s; use the captured stage boundary to select the
 next diagnostic rather than repeat unchanged full sessions.
+
+Complete watchdog inventory (2026-09-19): the same Rust helper contains both
+Command timeout arguments and a process alarm armed before PAM. Testing only the
+child missed alarm140<child190, consistent with supervisor142 and absent cleanup.
+Compile both actual expressions under all runner cfg modes; include kill grace
+and different start times when describing reserves. Full alarm225 remains inside
+shell230; this does not fix Mousepad137. New run reaches only APP_RUN_BEGIN before
+forced close, so investigate that boundary rather than assuming older late-unref
+observations recur. Use the recorded compiler wrapper PATH and disk-backed TMPDIR
+for focused tests; report compiler stderr directly to avoid an opaque harness error.

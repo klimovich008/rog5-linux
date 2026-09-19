@@ -2056,6 +2056,32 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "consumer_event_diagnostic": {
+      "status": "PASS_HOST_CONSUMER_CAPTURE_VM_FAIL_MOUSEPAD_AND_PAM_ALARM",
+      "set_id": "private:rog5-consumer-events-20260919-r1",
+      "source_commit": "d655dcde64ee15bce4060ba4516d4cd45dfd658a",
+      "source_tree": "1bbf027ad564a08cf4e9abf66746ba0f5409b46b",
+      "evidence": {
+        "path": "test-results/2026-09-19-consumer-events-qualification.json",
+        "sha256": "a528cc1975c554d9473afa506bf25e3740785fd481b76f7d8da1f704181eef7e",
+        "bytes": 32858
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
+    },
+    "pam_process_alarm_repair": {
+      "status": "PASS_HOST_ARM64_PAM_ALARM_RUNTIME_NOT_RUN",
+      "set_id": "private:rog5-pam-alarm-20260919-r1",
+      "source_commit": "c56abeeaf9ca39da446b351ca5afeab87dfb5eba",
+      "source_tree": "0cd94bf97e8713f0e2e2488e42af2ccd84a63f41",
+      "evidence": {
+        "path": "test-results/2026-09-19-consumer-events-qualification.json",
+        "sha256": "a528cc1975c554d9473afa506bf25e3740785fd481b76f7d8da1f704181eef7e",
+        "bytes": 32858
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {

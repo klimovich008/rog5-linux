@@ -1,0 +1,321 @@
+{
+  "schema": 1,
+  "authority": "none; generic ARM64 VM and offline fixtures only",
+  "physical_status": "NOT RUN",
+  "starting_commit": "1724de965a8681f794f540594634ca5020ddf7d1",
+  "starting_tree": "2071465f344a5135b639c70a7758829c972ddc19",
+  "source_commit": "c56abeeaf9ca39da446b351ca5afeab87dfb5eba",
+  "source_tree": "0cd94bf97e8713f0e2e2488e42af2ccd84a63f41",
+  "before": {
+    "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/before.log",
+    "sha256": "ac0bca5ca10e02669a56b22bbc95b3832b0d1464d2dee42b1487a6b42692c5dd",
+    "bytes": 857
+  },
+  "focused": {
+    "status": "PASS",
+    "cases": 26,
+    "seconds": 17.196,
+    "log": {
+      "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/focused-r3.log",
+      "sha256": "57bc8297d22abe36e9fe9a5817e3d3816aeae6ac20675ad8e9a7c52a0b064e62",
+      "bytes": 126
+    }
+  },
+  "arm64_rule": {
+    "command": [
+      "timeout",
+      "-k",
+      "1",
+      "10",
+      "qemu-aarch64-static",
+      "-L",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/udevadm",
+      "verify",
+      "--root=/home/deck/.local/state/rog5-consumer-events-20260919-r1/rule-fixture",
+      "/etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules"
+    ],
+    "exit_status": 0,
+    "seconds": 0.060482682019937783,
+    "rule_sha256": "a1f6bba5aafed4685fd7483967e949097a62435318f9cb389f16ee7cbed081ea"
+  },
+  "diagnostic_active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "d655dcde64ee15bce4060ba4516d4cd45dfd658a",
+    "source_tree": "1bbf027ad564a08cf4e9abf66746ba0f5409b46b",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 186.41416214901255
+  },
+  "alarm_before": {
+    "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-before-r3.log",
+    "sha256": "5dcc323e02ce9da717d5a95daf36769ed93b7c77a3553c675eb5b52d5e5248b3",
+    "bytes": 779
+  },
+  "alarm_focused": {
+    "cases": 15,
+    "seconds": 2.002,
+    "log": {
+      "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-focused.log",
+      "sha256": "c5c02c7fdc9cce4a7a03f62bd158aa066764bf1d0665c8336a15a4aa4a5bfbe6",
+      "bytes": 114
+    }
+  },
+  "alarm_build": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-pam-alarm-build-r1",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1:/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1:rw",
+      "--env",
+      "TMPDIR=/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/opt/denial-rust/bin/rustc",
+      "--edition=2024",
+      "--target=aarch64-unknown-linux-gnu",
+      "--crate-name=pam_session",
+      "-Dwarnings",
+      "-C",
+      "linker=/usr/bin/aarch64-linux-gnu-gcc",
+      "-C",
+      "opt-level=2",
+      "-C",
+      "lto=thin",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "strip=debuginfo",
+      "--remap-path-prefix",
+      "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1=/logind-fixture",
+      "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1/logind-pam-session.rs",
+      "-o",
+      "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1/payload/pam-session",
+      "--extern",
+      "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--extern",
+      "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--cfg",
+      "denial_session",
+      "-L",
+      "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+    ],
+    "source_commit": "c56abeeaf9ca39da446b351ca5afeab87dfb5eba",
+    "source_tree": "0cd94bf97e8713f0e2e2488e42af2ccd84a63f41",
+    "source_sha256": "e17ec76c2960192927a49f9080e5d8d14ed48c7413d3c233d96ae31c82c6ad88",
+    "exit_status": 0,
+    "seconds": 6.9311709820176475,
+    "output": {
+      "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/alarm-build-r1/payload/pam-session",
+      "bytes": 564224,
+      "sha256": "bffcf5eaa028c901de437953ad30f4934578097b9b0814c74305895308bcdddd"
+    }
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "c56abeeaf9ca39da446b351ca5afeab87dfb5eba",
+    "source_tree": "0cd94bf97e8713f0e2e2488e42af2ccd84a63f41",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 185.63124007103033
+  },
+  "counts": {
+    "PASS": 111,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "vm": {
+    "source_commit": "d655dcde64ee15bce4060ba4516d4cd45dfd658a",
+    "source_tree": "1bbf027ad564a08cf4e9abf66746ba0f5409b46b",
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-consumer-events-20260919-r1/vm-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--close-only",
+      "--settings-sync-diagnostic",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "--linker-cache",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+      "--tcg-thread",
+      "single",
+      "--hwdb-cache",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared",
+      "--disable-mops"
+    ],
+    "authority": "none; generic ARM64 VM only",
+    "physical": "NOT RUN",
+    "delta": "VM-only diagnostic capture expands scoped worker logs to all six consumers and adds timestamped pre-wait database snapshot. This perturbs scheduling; no isolated performance claim. Existing initialized8s gate, Rust child190/PAM230/unit260/host440 deadlines, original runtime/kernel/engine and close-only flow retained. Scoped FUSE diagnostics and explicit arm64.nomops retained; no phone proof.",
+    "status": "FAIL",
+    "active_test": {
+      "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/active-result.json",
+      "sha256": "ad4e8db47125969bffd88db24993183324e0d4d983c9631fc475046896fd00bc"
+    },
+    "script": {
+      "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/run-vm.py",
+      "sha256": "cb141344f631872b75c6edae405a32cbd13ff93ff169664d0b9aa3d9c42baf3c"
+    },
+    "prior_result": {
+      "path": "/home/deck/.local/state/rog5-udev-priority-20260919-r1/vm-r1/result.json",
+      "sha256": "28b321ddcc73eaf017a99e61a1184f2c827395e890161f8bdc7d46d91530209b"
+    },
+    "unchanged_input_hashes": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": "c3acc2da0984b9a2b4c4c51fe4262fc24d3ebf31c4200e42b39a46ebabd961f5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": "5ff58027b3ec331daf016fe4bb0ca98b42022632d46bb0c6d8563324ca7b60b5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": "cb66671f0cfc250c3766029c177b0e2af8d6b6ce2b09d963f358de44d63ba59a",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+    },
+    "intentional_changes": {
+      "tools/qemu-virtio-drm/logind-session.sh": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "45b8b7f79915106519c6d9f3b61157aa9c108230603ed8cddd87a29b3b86a5ac",
+          "bytes": 20431
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "19e3d8ba6bdc1f40b771a92f2930b1afd9f7e68c3b772fe46486b59f40e85280"
+        }
+      }
+    },
+    "exit_status": 1,
+    "seconds": 395.965728584968,
+    "runtime_bytes_and_metadata_unchanged": true,
+    "input_hashes_unchanged": true
+  },
+  "vm_result": {
+    "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/vm-r1/result.json",
+    "sha256": "525948fa540fe4fed266647f5f230b8330146443808f8465ed4b4d464e4fd115",
+    "bytes": 99745
+  },
+  "decoded": {
+    "DEVICE_WAIT": {
+      "status": 0,
+      "bytes": 152,
+      "truncated": 0,
+      "text": "sd-device-monitor(n/a): Unable to get network namespace of udev netlink socket, unable to determine if we are in host netns, ignoring: Invalid argument\n"
+    },
+    "DEVICE_BEFORE": {
+      "status": 0,
+      "bytes": 678,
+      "truncated": 0,
+      "text": "database_phase=begin boottime=163.59\ndatabase_stat_status=0\ndatabase_device=/dev/dri/card0 database_path=/run/udev/data/c226:0\ndatabase_status=absent\ndatabase_device=/dev/input/event0 database_path=/run/udev/data/c13:64\ndatabase_status=absent\ndatabase_device=/dev/tty1 database_path=/run/udev/data/c4:1\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=absent\ndatabase_device=/dev/input/event1 database_path=/run/udev/data/c13:65\ndatabase_status=absent\ndatabase_device=/dev/vport0p1 database_path=/run/udev/data/c252:1\ndatabase_status=absent\ndatabase_phase=end boottime=163.76\n"
+    },
+    "SESSION_JOURNAL": {
+      "status": 0,
+      "bytes": 8450,
+      "truncated": 0,
+      "text": "[  195.093499] rog5-logind-vm systemd[553]: Created slice User Application Slice.\n[  195.095462] rog5-logind-vm systemd[553]: Reached target Paths.\n[  195.099769] rog5-logind-vm systemd[553]: Reached target Timers.\n[  195.138666] rog5-logind-vm systemd[553]: Starting D-Bus User Message Bus Socket...\n[  195.142072] rog5-logind-vm systemd[553]: Listening on GnuPG network certificate management daemon.\n[  195.143310] rog5-logind-vm systemd[553]: Listening on GnuPG cryptographic agent and passphrase cache (access for web browsers).\n[  195.146680] rog5-logind-vm systemd[553]: Listening on GnuPG cryptographic agent and passphrase cache (restricted).\n[  195.147824] rog5-logind-vm systemd[553]: Listening on GnuPG cryptographic agent (ssh-agent emulation).\n[  195.157159] rog5-logind-vm systemd[553]: Listening on GnuPG cryptographic agent and passphrase cache.\n[  195.158175] rog5-logind-vm systemd[553]: Listening on GnuPG public key management service.\n[  195.213880] rog5-logind-vm systemd[553]: Listening on Query the User Interactively for a Password.\n[  195.218086] rog5-logind-vm systemd[553]: Listening on Disk Image Download Service Socket.\n[  195.259009] rog5-logind-vm systemd[553]: Listening on Journal Log Access Socket.\n[  195.262208] rog5-logind-vm systemd[553]: Listening on Virtual Machine and Container Registration Service Socket.\n[  195.326627] rog5-logind-vm systemd[553]: Listening on Simple File System Backed Storage Provider.\n[  195.711307] rog5-logind-vm systemd[553]: Listening on D-Bus User Message Bus Socket.\n[  195.714280] rog5-logind-vm systemd[553]: Reached target Sockets.\n[  195.717547] rog5-logind-vm systemd[553]: Reached target Basic System.\n[  195.722184] rog5-logind-vm systemd[553]: Reached target Main User Target.\n[  195.726206] rog5-logind-vm systemd[553]: Startup finished in 8.253s.\n[  198.731971] rog5-logind-vm systemd[553]: Created slice User Core Session Slice.\n[  198.778042] rog5-logind-vm systemd[553]: Starting D-Bus User Message Bus...\n[  199.147095] rog5-logind-vm dbus-broker-launch[585]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +31: Eavesdropping is deprecated and ignored\n[  199.147095] rog5-logind-vm dbus-broker-launch[585]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +33: Eavesdropping is deprecated and ignored\n[  199.143189] rog5-logind-vm systemd[553]: Started D-Bus User Message Bus.\n[  199.269010] rog5-logind-vm dbus-broker-launch[585]: Ready\n[  235.155432] rog5-logind-vm systemd[553]: Reached target Denial graphical session.\n[  235.179688] rog5-logind-vm systemd[553]: Reached target Current graphical user session.\n[  235.198835] rog5-logind-vm systemd[553]: Reached target Startup of XDG autostart applications.\n[  238.146679] rog5-logind-vm systemd[553]: Starting Accessibility services bus...\n[  238.874997] rog5-logind-vm systemd[553]: Starting flatpak document portal service...\n[  241.378517] rog5-logind-vm systemd[553]: Starting Portal service (GTK/GNOME implementation)...\n[  241.573811] rog5-logind-vm systemd[553]: Starting Portal service...\n[  243.648791] rog5-logind-vm systemd[553]: Starting sandboxed app permission store...\n[  248.104058] rog5-logind-vm systemd[553]: Started Accessibility services bus.\n[  248.278671] rog5-logind-vm systemd[553]: Started sandboxed app permission store.\n[  248.723341] rog5-logind-vm systemd[553]: Started flatpak document portal service.\n[  254.471075] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback\n[  266.554664] rog5-logind-vm dbus-broker-launch[905]: Ready\n[  268.277927] rog5-logind-vm systemd[553]: Created slice Slice /app/dbus-:1.12-org.a11y.atspi.Registry.\n[  268.406292] rog5-logind-vm systemd[553]: Started dbus-:1.12-org.a11y.atspi.Registry@0.service.\n[  269.210226] rog5-logind-vm systemd[553]: Started Portal service (GTK/GNOME implementation).\n[  269.342641] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback\n[  269.792894] rog5-logind-vm at-spi2-registryd[913]: SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry\n[  270.013636] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  270.025843] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  270.034834] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  270.039549] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Settings as a last-resort fallback\n[  270.106494] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback\n[  270.177493] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback\n[  270.298216] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback\n[  270.397825] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback\n[  270.496951] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback\n[  271.570787] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Failed to connect to PipeWire: Couldn't connect to PipeWire\n[  271.592956] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback\n[  271.681679] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback\n[  271.762607] rog5-logind-vm /usr/lib/xdg-desktop-portal[807]: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback\n[  271.869408] rog5-logind-vm systemd[553]: Started Portal service.\n[  292.818529] rog5-logind-vm systemd[553]: Starting User preferences database...\n[  294.762363] rog5-logind-vm systemd[553]: Started User preferences database.\n[  319.393831] rog5-logind-vm systemd-logind[455]: Session c1 logged out. Waiting for processes to exit.\n[  319.936924] rog5-logind-vm dbus-broker[907]: Dispatched 39 messages @ 387(\u00b1642)\u03bcs / message.\n[  319.946954] rog5-logind-vm systemd[553]: Stopping Accessibility services bus...\n[  319.961986] rog5-logind-vm systemd[553]: Stopping Portal service (GTK/GNOME implementation)...\n[  319.990594] rog5-logind-vm systemd[553]: Stopping Portal service...\n[  320.006863] rog5-logind-vm systemd[553]: Stopping flatpak document portal service...\n[  320.026776] rog5-logind-vm systemd[553]: Stopping sandboxed app permission store...\n[  320.241776] rog5-logind-vm systemd[553]: Stopped sandboxed app permission store.\n[  320.264619] rog5-logind-vm systemd[553]: xdg-permission-store.service: Consumed 1.486s CPU time over 1min 16.550s wall clock time.\n[  320.306944] rog5-logind-vm systemd[553]: Stopped Portal service.\n[  320.315416] rog5-logind-vm systemd[553]: xdg-desktop-portal.service: Consumed 4.570s CPU time over 1min 18.724s wall clock time.\n[  320.370363] rog5-logind-vm systemd[553]: Stopped Accessibility services bus.\n[  320.378224] rog5-logind-vm systemd[553]: at-spi-dbus-bus.service: Consumed 3.728s CPU time over 1min 22.205s wall clock time.\n[  320.546172] rog5-logind-vm systemd[553]: Stopped Portal service (GTK/GNOME implementation).\n[  320.554050] rog5-logind-vm systemd[553]: xdg-desktop-portal-gtk.service: Consumed 9.615s CPU time over 1min 19.152s wall clock time.\n[  320.582890] rog5-logind-vm systemd[553]: Stopped target Current graphical user session.\n[  320.606439] rog5-logind-vm systemd[553]: Stopped target Denial graphical session.\n[  320.634763] rog5-logind-vm systemd[553]: Stopped target Startup of XDG autostart applications.\n[  320.802724] rog5-logind-vm systemd[553]: Stopped flatpak document portal service.\n[  320.827236] rog5-logind-vm systemd[553]: xdg-document-portal.service: Consumed 2.307s CPU time over 1min 21.919s wall clock time.\n"
+    }
+  },
+  "poweroff": {
+    "status": "PASS",
+    "check": "actual require_vm_poweroff; generic VM only"
+  },
+  "visual_inspection": {
+    "status": "PASS",
+    "scope": "personally inspected editor and controlled-terminal pixels; no text entry or phone proof",
+    "images": [
+      {
+        "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/vm-r1/observe/01-mousepad-launched.png",
+        "sha256": "8ec1306a0fcce756d3c7a39b2f07104b830ae336ea217383932a787630ff68fa",
+        "bytes": 14069
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-consumer-events-20260919-r1/vm-r1/observe/03-foot-launched.png",
+        "sha256": "590f7f3aa27fed3a09de0c1809b87cad2690dbdd119f2742d1ab28bdac73480a",
+        "bytes": 9329
+      }
+    ]
+  },
+  "conclusion": {
+    "qualification_status": "PASS_HOST_CONSUMER_CAPTURE_VM_FAIL_MOUSEPAD_AND_PAM_ALARM",
+    "phase": "VM launches both apps; Mousepad close FAIL; independent PAM alarm repaired offline",
+    "next": "VM d655dcde passed device readiness in4.88s, PAM/seat/portal access and visible Mousepad/Foot launch. Foot0, Mousepad137; supervisor142 and missing PAM cleanup expose alarm140<child190. Source c56abeea fixes full alarm225 within outer230; actual-expression regression and ARM64 build pass, corrected runtime NOT RUN. Prepare bounded read-only main-thread/task syscall and FD observations during the owned Mousepad close interval, preserving the2s kill grace and FIFO draining; distinguish a blocked protocol/pipe/futex wait before adding interposers. Use repaired225s PAM alarm for the next justified VM. Earlier intermittent device-readiness failures remain unresolved; no unchanged retry or kernel/Denial rebuild. Phone physical NOT RUN; S06/R01 FAIL preserved.",
+    "report": "The one diagnostic VM at d655dcde fails overall in395.897096215s\n(wrapper395.965728585s). Pre-wait database snapshot163.59\u2192163.76 has tty1\npresent-empty and five other entries absent. The unchanged wait164.64\u2192169.52\npasses in4.88s. Therefore failure-only original-event capture and FUSE retrigger\nare NOT RUN. This success does not explain or supersede earlier readiness FAILs.\n\nPAM authentication, local nonroot session/seat/device access, portal services and\nreal FUSE mount pass. Portal start takes34s (CLOCK_MONOTONIC237.478373712 to\n272.359676448). Both apps visibly render; the retained Mousepad editor and Foot\nterminal screenshots were personally inspected. Observer and mapping/focus\nprotocol PASS, approved teardown true. Text entry and phone touch NOT RUN.\n\nFoot exits0. Mousepad exits137 after the controlled close. Its timeout reports\nTERM then KILL; close brackets311.62\u2192314.10 BOOTTIME include transport/reaping,\nnot exact signal timestamps. Exact PID980 probe shows loaded and APP_RUN_BEGIN,\nbut no shutdown/sync/run-end/unref/destructor markers. Its last client protocol\nmessages destroy the toplevel, xdg_surface and wl_surface. This locates the\nobserved failure before the later probe boundaries, without proving its cause.\nThe65s app watchdog had not elapsed based on the recorded launch/close interval;\nthe normal-close path signals its timeout process, whose2s kill grace remains.\n\nThe fixture supervisor then exits142, PAM cleanup markers are absent. Source\nreveals another independent budget contradiction: the Rust helper arms alarm140\nbefore authentication, despite child190. Exit142 is consistent with SIGALRM;\nthere is no separately captured signal-delivery receipt. This cannot explain\naway Mousepad137, already recorded before the supervisor exits.\n\nSource correction c56abeeaf9ca39da446b351ca5afeab87dfb5eba, tree\n0cd94bf97e8713f0e2e2488e42af2ccd84a63f41 changes the full alarm to225s,\ninside outer230; child190 plus1s kill grace leaves a shared reserve for\nauthentication/PAM teardown. Nominal5s between alarm and outer timeout is not\na measured guarantee because their start times differ. Basic40/startup140 remain.\nThe regression compiles actual child AND alarm expressions with real runner cfg;\nold140 fails140>=225.15 focused budget/cleanup cases PASS2.002s. Initial focused\nattempts missed the recorded rustc wrapper PATH/TMPDIR and are retained as harness\nerrors, not pre-fix failures. Compiler stderr now appears in assertion failures.\n\nThe complete ARM64 helper compiles with -Dwarnings in6.931170982s,\nSHA256 bffcf5eaa028c901de437953ad30f4934578097b9b0814c74305895308bcdddd,\n564224B. Corrected alarm runtime and successful PAM/compositor cleanup NOT RUN.\nNo second VM executed after correction. Independent review found no further\nfixed watchdog in the PAM process; seat-probe and app watchdogs remain distinct.\n\nNormal guest poweroff passes the RCU-aware check; /var unmount FAIL retained.\nNo containers remain; original runtime bytes/metadata and all input hashes pass\npost-run verification. Failed-session shutdown is not successful PAM or normal\ncompositor lifecycle proof. No phone operation or protected-storage mutation.\n\nNext: bounded read-only task/syscall/FD observation during Mousepad close under\nthe existing2s grace, with owned identity and FIFO reader preservation. Do not\nattribute missing shutdown markers to settings sync or unref. Keep the repaired\nalarm separate, and avoid another unchanged expensive VM retry.",
+    "lesson": "Complete watchdog inventory (2026-09-19): the same Rust helper contains both\nCommand timeout arguments and a process alarm armed before PAM. Testing only the\nchild missed alarm140<child190, consistent with supervisor142 and absent cleanup.\nCompile both actual expressions under all runner cfg modes; include kill grace\nand different start times when describing reserves. Full alarm225 remains inside\nshell230; this does not fix Mousepad137. New run reaches only APP_RUN_BEGIN before\nforced close, so investigate that boundary rather than assuming older late-unref\nobservations recur. Use the recorded compiler wrapper PATH and disk-backed TMPDIR\nfor focused tests; report compiler stderr directly to avoid an opaque harness error."
+  }
+}

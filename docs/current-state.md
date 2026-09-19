@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM coldplug priority host-tested; readiness still fails before PAM**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM launches both apps; Mousepad close FAIL; independent PAM alarm repaired offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Two retained-input VMs FAIL before PAM. First original FUSE event completed after the initialized wait; priority comparison brought FUSE completion inside the wait but still timed out. Later all-six database snapshot does not prove deadline readiness. Source d579cbca and111 active suites PASS; corrected190s Rust child runtime remains NOT RUN. Extend scoped worker diagnostics to all six exact consumers and capture a timestamped pre-wait database snapshot; retain the 8s initialized gate and failure. Distinguish late processing from queued/undispatched completion events before another bounded VM. No unchanged VM rerun or kernel/Denial rebuild. Physical NOT RUN; S06/R01 FAIL retained. See [current repair evidence](../test-results/2026-09-19-udev-priority.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+VM d655dcde passed device readiness in4.88s, PAM/seat/portal access and visible Mousepad/Foot launch. Foot0, Mousepad137; supervisor142 and missing PAM cleanup expose alarm140<child190. Source c56abeea fixes full alarm225 within outer230; actual-expression regression and ARM64 build pass, corrected runtime NOT RUN. Prepare bounded read-only main-thread/task syscall and FD observations during the owned Mousepad close interval, preserving the2s kill grace and FIFO draining; distinguish a blocked protocol/pipe/futex wait before adding interposers. Use repaired225s PAM alarm for the next justified VM. Earlier intermittent device-readiness failures remain unresolved; no unchanged retry or kernel/Denial rebuild. Phone physical NOT RUN; S06/R01 FAIL preserved. See [current repair evidence](../test-results/2026-09-19-consumer-events.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
