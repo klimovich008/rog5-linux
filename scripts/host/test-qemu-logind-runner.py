@@ -827,6 +827,61 @@ require_fuse_device "$1" "$2"
 
 
 
+class DeviceColdplugPriority(unittest.TestCase):
+    ORIGINAL = 'ExecStart=-udevadm trigger --type=all --action=add --prioritized-subsystem=module,block,tpmrm,net,tty,input\n'
+
+    def prepare(self, unit_text, existing=None, combined=True):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); etc=root/'etc'; etc.mkdir()
+            if combined: (root/'session-sha256').touch()
+            unit=root/'systemd-udev-trigger.service'; unit.write_text('[Service]\n'+unit_text)
+            before=unit.read_bytes()
+            target=etc/'systemd/system/systemd-udev-trigger.service.d/rog5-vm-priority.conf'
+            if existing is not None:
+                target.parent.mkdir(parents=True); target.write_text(existing)
+            source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+            r=subprocess.run(['bash','-euc','source "$1"; logind_prepare_device_priority "$2" "$3" "$4"',
+                              'fixture',str(source),str(etc),str(unit),str(root)],
+                             capture_output=True,text=True,timeout=3)
+            self.assertEqual(unit.read_bytes(),before)
+            return r,target.read_text() if target.exists() else None
+
+    def test_basic_fixture_retains_packaged_priority(self):
+        r,text=self.prepare(self.ORIGINAL,combined=False)
+        self.assertEqual(r.returncode,0,r.stderr)
+        self.assertIsNone(text)
+
+    def test_generated_override_prioritizes_all_session_consumers_and_preserves_trigger(self):
+        r,text=self.prepare(self.ORIGINAL)
+        self.assertEqual(r.returncode,0,r.stderr)
+        lines=text.splitlines()
+        self.assertEqual(lines[:2],['[Service]','ExecStart='])
+        self.assertEqual(len(lines),3)
+        command,subsystems=lines[2].split('--prioritized-subsystem=')
+        self.assertEqual(command,'ExecStart=-udevadm trigger --type=all --action=add ')
+        values=subsystems.split(',')
+        self.assertEqual(len(values),len(set(values)))
+        self.assertTrue({'drm','input','tty','misc','virtio-ports'} <= set(values))
+        self.assertGreater(values.index('drm'),values.index('input'))
+        self.assertGreater(values.index('misc'),values.index('input'))
+        self.assertGreater(values.index('virtio-ports'),values.index('input'))
+        self.assertEqual([v for v in values if v not in {'drm','misc','virtio-ports'}],
+                         ['module','block','tpmrm','net','tty','input'])
+
+    def test_changed_or_multiple_packaged_commands_refuse(self):
+        for text in [self.ORIGINAL.replace('--action=add','--action=change'),
+                     self.ORIGINAL+'ExecStart=/unexpected\n']:
+            with self.subTest(text=text):
+                r,result=self.prepare(text)
+                self.assertNotEqual(r.returncode,0)
+                self.assertIsNone(result)
+
+    def test_existing_override_is_not_replaced(self):
+        r,text=self.prepare(self.ORIGINAL,'existing\n')
+        self.assertNotEqual(r.returncode,0)
+        self.assertEqual(text,'existing\n')
+
+
 class FuseEventDiagnostics(unittest.TestCase):
     def fixture(self, mode):
         with tempfile.TemporaryDirectory() as directory:

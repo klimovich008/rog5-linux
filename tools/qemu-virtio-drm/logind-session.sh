@@ -1,6 +1,19 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
+logind_prepare_device_priority() {
+    local etc=$1 unit=$2 state=$3
+    [[ -f $state/session-sha256 ]] || return 0
+    local original='ExecStart=-udevadm trigger --type=all --action=add --prioritized-subsystem=module,block,tpmrm,net,tty,input'
+    # The VM consumes DRM, FUSE and a virtio application channel. Coldplug
+    # enumeration can finish while their unprioritized events still queue.
+    # Preserve packaged priorities and promote these consumers plus ancestors.
+    [[ $(grep -c '^ExecStart=' "$unit") == 1 ]] || return 1
+    grep -Fx -- "$original" "$unit" >/dev/null || return 1
+    mkdir -p "$etc/systemd/system/systemd-udev-trigger.service.d" || return $?
+    (set -C; printf '[Service]\nExecStart=\n%s,drm,misc,virtio-ports\n' "$original" > \
+        "$etc/systemd/system/systemd-udev-trigger.service.d/rog5-vm-priority.conf")
+}
 logind_prepare_fuse_diagnostics() {
     local state=$1 etc=$2
     [[ -f $state/session-sha256 ]] || return 0
