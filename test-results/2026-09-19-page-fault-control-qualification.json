@@ -1,0 +1,1332 @@
+{
+  "schema": 1,
+  "scope": "Generic ARM64 anonymous-page/COW control, not Denial or phone qualification",
+  "authority": "none",
+  "physical_status": "NOT RUN",
+  "starting_commit": "7417e8300914b7d59649c5d300ab6269501a0921",
+  "starting_tree": "79b42ec63581bf22d93768b5a19e96e79fa72b9a",
+  "source_commit": "117f46d627f90783f8697ebfd7c7511e1dff5e76",
+  "source_tree": "8f778a6482fb74e838593f058587181f13875bef",
+  "changed_source": {
+    "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+    "sha256": "670ceacd0e49e5c102fd0c558bf26cfc48937204f0916e56a26b027cedf9b67d",
+    "bytes": 4445
+  },
+  "initial_probe_failure": {
+    "source_commit": "8e3ce2b81a29b554dc323a6e1261b85ad58baf27",
+    "source_tree": "0e09ac411249e6e0c3e279d4ba93f4ab1e54be0c",
+    "authority": "none; generic VM kernel control only",
+    "physical": "NOT RUN",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+      "sha256": "7183b75b0849406a76cb2fa3723f78f8cfbc4c353311e996d830ff5c9df37167",
+      "bytes": 4194
+    },
+    "kernel": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224
+    },
+    "guest": {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/stage/init",
+      "sha256": "438256363e21a7021d9a9a2cbb2522648ac0bff1f857b0a9d97a9a0f1ba2544d",
+      "bytes": 5096
+    },
+    "active": {
+      "command": [
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "8e3ce2b81a29b554dc323a6e1261b85ad58baf27",
+      "source_tree": "0e09ac411249e6e0c3e279d4ba93f4ab1e54be0c",
+      "authority": "host tests only; no phone",
+      "exit_status": 0,
+      "duration_seconds": 181.2129152090056
+    },
+    "steps": [
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-19T17:58:44.391153+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/stage",
+        "stdin_sha256": "ada790e962d4d999f19b7e84b784ca170d7e708f6fa201c02e07db404e4a1226",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0038481050287373364,
+        "ended_utc": "2026-09-19T17:58:44.395039+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-19T17:58:44.395456+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.00319977302569896,
+        "ended_utc": "2026-09-19T17:58:44.398671+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-normal-20260919-r1",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1"
+        ],
+        "started_utc": "2026-09-19T17:58:44.399383+00:00",
+        "deadline_seconds": 120,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 1.319210269022733,
+        "ended_utc": "2026-09-19T17:58:45.718610+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/normal.serial.log",
+          "sha256": "ef4b7973abd892bd27d35cc971bd4832ebea0c3430010abe785e326d18130082",
+          "bytes": 6817
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-page-fault-normal-20260919-r1"
+        ],
+        "started_utc": "2026-09-19T17:58:45.719034+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03382825601147488,
+        "ended_utc": "2026-09-19T17:58:45.752879+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/normal.serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-page-fault-normal-20260919-r1"
+        ],
+        "started_utc": "2026-09-19T17:58:45.753311+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033747784967999905,
+        "ended_utc": "2026-09-19T17:58:45.787075+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/normal.serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-nomops-20260919-r1",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1 arm64.nomops"
+        ],
+        "started_utc": "2026-09-19T17:58:45.788581+00:00",
+        "deadline_seconds": 120,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 1.1686069470015354,
+        "ended_utc": "2026-09-19T17:58:46.957209+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/nomops.serial.log",
+          "sha256": "2659c1fb20f08aa7e395eb83f33c60a954e2e753faf40832ca51e9e527a0c711",
+          "bytes": 6821
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-page-fault-nomops-20260919-r1"
+        ],
+        "started_utc": "2026-09-19T17:58:46.957646+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.033845756959635764,
+        "ended_utc": "2026-09-19T17:58:46.991508+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/nomops.serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-page-fault-nomops-20260919-r1"
+        ],
+        "started_utc": "2026-09-19T17:58:46.991848+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03377919498598203,
+        "ended_utc": "2026-09-19T17:58:47.025640+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/nomops.serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "arms": [
+      {
+        "mode": "normal",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-normal-20260919-r1",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1"
+        ],
+        "status": "FAIL",
+        "error": "[]",
+        "seconds": 1.3889441969804466,
+        "serial": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/normal.serial.log",
+          "sha256": "ef4b7973abd892bd27d35cc971bd4832ebea0c3430010abe785e326d18130082",
+          "bytes": 6817
+        }
+      },
+      {
+        "mode": "nomops",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-nomops-20260919-r1",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1 arm64.nomops"
+        ],
+        "status": "FAIL",
+        "error": "[]",
+        "seconds": 1.2378634459455498,
+        "serial": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/nomops.serial.log",
+          "sha256": "2659c1fb20f08aa7e395eb83f33c60a954e2e753faf40832ca51e9e527a0c711",
+          "bytes": 6821
+        }
+      }
+    ],
+    "initramfs": {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/initramfs.gz",
+      "sha256": "bbf34a9fed7ad0ccc14e646402a028f49bb760c97385393f5a947f8ee64511fa",
+      "bytes": 1989
+    },
+    "kernel_and_source_unchanged": true,
+    "status": "FAIL"
+  },
+  "initial_preflight": [
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/stage/init"
+      ],
+      "seconds": 0.1145971369696781,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "-DPROBE_USER_TEST",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/user"
+      ],
+      "seconds": 0.11014992196578532,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "qemu-aarch64-static",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/user"
+      ],
+      "seconds": 0.3680030480027199,
+      "exit_status": 0,
+      "log": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/user.log"
+    },
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "-DPROBE_USER_TEST",
+        "-DPROBE_CORRUPT_PARENT",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/corrupt"
+      ],
+      "seconds": 0.10656244901474565,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "qemu-aarch64-static",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/corrupt"
+      ],
+      "seconds": 0.04949151002801955,
+      "exit_status": 1,
+      "log": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/corrupt.log"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/stage/init",
+      "sha256": "438256363e21a7021d9a9a2cbb2522648ac0bff1f857b0a9d97a9a0f1ba2544d",
+      "bytes": 5096
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/user",
+      "sha256": "c66e47609f38a73671ea574b379ae2a3ada3514875a95afc317f393d4d26e63f",
+      "bytes": 5096
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r1/corrupt",
+      "sha256": "d1444948a8dd1cc45b5a4434261c756da00b4d75c989ea5092bd11f9bfcef5ad",
+      "bytes": 5096
+    }
+  ],
+  "final_preflight": [
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/stage/init"
+      ],
+      "seconds": 0.12065519200405106,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "-DPROBE_USER_TEST",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/user"
+      ],
+      "seconds": 0.1096165879862383,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "qemu-aarch64-static",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/user"
+      ],
+      "seconds": 0.37434954004129395,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-fno-builtin",
+        "-O2",
+        "-mgeneral-regs-only",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "-DPROBE_USER_TEST",
+        "-DPROBE_CORRUPT_PARENT",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+        "-o",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/corrupt"
+      ],
+      "seconds": 0.10665986896492541,
+      "exit_status": 0
+    },
+    {
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "qemu-aarch64-static",
+        "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/corrupt"
+      ],
+      "seconds": 0.05078057199716568,
+      "exit_status": 1
+    }
+  ],
+  "final_kernel_controls": {
+    "source_commit": "117f46d627f90783f8697ebfd7c7511e1dff5e76",
+    "source_tree": "8f778a6482fb74e838593f058587181f13875bef",
+    "authority": "none; generic VM kernel control only",
+    "physical": "NOT RUN",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-smoke/page-fault.c",
+      "sha256": "670ceacd0e49e5c102fd0c558bf26cfc48937204f0916e56a26b027cedf9b67d",
+      "bytes": 4445
+    },
+    "kernel": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224
+    },
+    "guest": {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/stage/init",
+      "sha256": "78de0be36596748c8d9297bf08f47b9fb8a1e245930e3de8c6d31ef7d864c777",
+      "bytes": 3840
+    },
+    "active": {
+      "command": [
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "8e3ce2b81a29b554dc323a6e1261b85ad58baf27",
+      "source_tree": "0e09ac411249e6e0c3e279d4ba93f4ab1e54be0c",
+      "authority": "host tests only; no phone",
+      "exit_status": 0,
+      "duration_seconds": 181.2129152090056
+    },
+    "steps": [
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-19T18:01:06.236359+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/stage",
+        "stdin_sha256": "ada790e962d4d999f19b7e84b784ca170d7e708f6fa201c02e07db404e4a1226",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0038797850138507783,
+        "ended_utc": "2026-09-19T18:01:06.240280+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-19T18:01:06.240710+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0033580060116946697,
+        "ended_utc": "2026-09-19T18:01:06.244085+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-normal-20260919-r2",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1"
+        ],
+        "started_utc": "2026-09-19T18:01:06.244714+00:00",
+        "deadline_seconds": 120,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.7742338849930093,
+        "ended_utc": "2026-09-19T18:01:10.018964+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/normal.serial.log",
+          "sha256": "afda4a1a522765ab10c46c5b4301bde20ca63460599fdc364eceeaa81120549a",
+          "bytes": 7039
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-page-fault-normal-20260919-r2"
+        ],
+        "started_utc": "2026-09-19T18:01:10.019391+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03380284097511321,
+        "ended_utc": "2026-09-19T18:01:10.053212+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/normal.serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-page-fault-normal-20260919-r2"
+        ],
+        "started_utc": "2026-09-19T18:01:10.053588+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03379072999814525,
+        "ended_utc": "2026-09-19T18:01:10.087394+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/normal.serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-nomops-20260919-r2",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1 arm64.nomops"
+        ],
+        "started_utc": "2026-09-19T18:01:10.088963+00:00",
+        "deadline_seconds": 120,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.9245164549793117,
+        "ended_utc": "2026-09-19T18:01:14.013503+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/nomops.serial.log",
+          "sha256": "d171b18c8bb0d2f2b145cbdca276233dfe237ee3475f163aa568fdd597395128",
+          "bytes": 7043
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-page-fault-nomops-20260919-r2"
+        ],
+        "started_utc": "2026-09-19T18:01:14.014032+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.034461840987205505,
+        "ended_utc": "2026-09-19T18:01:14.048509+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/nomops.serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-page-fault-nomops-20260919-r2"
+        ],
+        "started_utc": "2026-09-19T18:01:14.048895+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03381491999607533,
+        "ended_utc": "2026-09-19T18:01:14.082725+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/nomops.serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "arms": [
+      {
+        "mode": "normal",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-normal-20260919-r2",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1"
+        ],
+        "status": "PASS",
+        "elapsed_guest_ms": 2485,
+        "mops_advertised": true,
+        "seconds": 3.843955912045203,
+        "serial": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/normal.serial.log",
+          "sha256": "afda4a1a522765ab10c46c5b4301bde20ca63460599fdc364eceeaa81120549a",
+          "bytes": 7039
+        }
+      },
+      {
+        "mode": "nomops",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-page-fault-nomops-20260919-r2",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "--security-opt=no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.page_fault_probe=1 arm64.nomops"
+        ],
+        "status": "PASS",
+        "elapsed_guest_ms": 2649,
+        "mops_advertised": false,
+        "seconds": 3.994559075043071,
+        "serial": {
+          "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/nomops.serial.log",
+          "sha256": "d171b18c8bb0d2f2b145cbdca276233dfe237ee3475f163aa568fdd597395128",
+          "bytes": 7043
+        }
+      }
+    ],
+    "initramfs": {
+      "path": "/home/deck/.local/state/rog5-page-fault-control-20260919-r2/initramfs.gz",
+      "sha256": "2984a435185075fc7d1ba94af3eeaf81e1d9659029c13d5420ddf7b810956c60",
+      "bytes": 2027
+    },
+    "kernel_and_source_unchanged": true,
+    "status": "PASS"
+  },
+  "kernel_source_review": {
+    "commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "tree": "2ea2be38c5e4dc9aafffbbc0db5aae0f6513a1d9",
+    "clean": true,
+    "inputs": [
+      {
+        "path": "/home/deck/Projects/rog-phone-linux-migration/repo/build/qemu-linux-source/Documentation/admin-guide/kernel-parameters.txt",
+        "sha256": "9d58849c5af6766527a36f927df51588fb594a82448a8b38b96ef1201c099b58",
+        "bytes": 317312
+      },
+      {
+        "path": "/home/deck/Projects/rog-phone-linux-migration/repo/build/qemu-linux-source/arch/arm64/kernel/pi/idreg-override.c",
+        "sha256": "749bb2b397543cae21fd1f4446e92b92c5a17f8dabc354618a0154cccc3cd108",
+        "bytes": 10715
+      },
+      {
+        "path": "/home/deck/Projects/rog-phone-linux-migration/repo/build/qemu-linux-source/arch/arm64/lib/copy_page.S",
+        "sha256": "76a9dc5308e534dc2bde83478f3b18f1747dee115e4fe9f0e9731b46086b8a96",
+        "bytes": 1706
+      },
+      {
+        "path": "/home/deck/Projects/rog-phone-linux-migration/repo/build/qemu-linux-source/arch/arm64/lib/clear_page.S",
+        "sha256": "daaa92ea2647bebc9b648c4223fe778c6a3592d3c794e6c86b3c1aa24549f539",
+        "bytes": 959
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/.rog5-kbuild-inputs-v1",
+        "sha256": "3009e41bc549dd576b3c89276a96924e74d2c904d7825f06a67ec021763a24b3",
+        "bytes": 1290
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/.config",
+        "sha256": "23af1f7083bb5607f65904ab6d46a101c5d67fd73a6ae10dd868877db16870af",
+        "bytes": 65375
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/vmlinux",
+        "sha256": "124a102d1bab639579efab1c41f6de62ddd32fb2cdce6f72290f61cfac06975e",
+        "bytes": 9165728
+      },
+      {
+        "path": "/usr/bin/clang-20",
+        "sha256": "466441076b17c1106a17f31c2b782baf12271c2445e19950879b81c0f793c1ba",
+        "bytes": 145400
+      },
+      {
+        "path": "/usr/bin/ld.lld",
+        "sha256": "15de1de0f0a68cc29cddd8ecc86f7614f4c0b02028d530e50c7a43efdd1a331b",
+        "bytes": 18528
+      },
+      {
+        "path": "/usr/bin/qemu-aarch64-static",
+        "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+        "bytes": 6348264
+      }
+    ],
+    "finding": "arm64.nomops alias sets id_aa64isar2.mops=0; both copy_page and clear_page select alternatives using ARM64_HAS_MOPS. No Image modification required. Existing vmlinux identity matches previously Image-reproduction-verified ELF.",
+    "scope": "read-only exact source plus binary identity; not runtime instruction tracing"
+  },
+  "qemu_source_review": {
+    "schema": 1,
+    "status": "READ_ONLY_AUDIT_COMPLETE",
+    "scope": "exact retained QEMU introspection and primary source review; no guest execution or phone evidence",
+    "authority": "none",
+    "evidence_recording": {
+      "raw_private_files": [],
+      "note": "Raw command outputs were returned through exec tool calls and were not saved separately. This record transcribes their identities and relevant outputs; no source/network checks were rerun for handoff."
+    },
+    "image": {
+      "id": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "created": "2026-09-12 18:02:51.015696169 +0000 UTC",
+      "repo_digests": [
+        "localhost/rog5-qemu-virgl@sha256:b0ee14f024bbb0cbc20bd3b1333be4828c4887a46b088b91b826e841370ccf07"
+      ],
+      "labels": {
+        "io.buildah.version": "1.40.1",
+        "org.opencontainers.image.version": "24.04"
+      }
+    },
+    "packages": {
+      "qemu-system-arm": "1:8.2.2+ds-0ubuntu1.18",
+      "qemu-system-common": "1:8.2.2+ds-0ubuntu1.18",
+      "qemu-system-data": "1:8.2.2+ds-0ubuntu1.18"
+    },
+    "binary": {
+      "path_in_container": "/usr/bin/qemu-system-aarch64",
+      "sha256": "b511b60cc31479b71dfdd589e6c981ae37b20ef0e75adc5a57bb0d6737e9b30c",
+      "version_output": "QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)\nCopyright (c) 2003-2023 Fabrice Bellard and the QEMU Project developers"
+    },
+    "container_prefix": [
+      "podman",
+      "run",
+      "--rm",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32"
+    ],
+    "commands": [
+      {
+        "argv": [
+          "podman",
+          "image",
+          "inspect",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--format",
+          "{{.Id}} {{.Created}} {{json .RepoDigests}} {{json .Labels}}"
+        ],
+        "exit_status": 0
+      },
+      {
+        "container_argv": [
+          "qemu-system-aarch64",
+          "--version"
+        ],
+        "exit_status": 0
+      },
+      {
+        "container_argv": [
+          "sh",
+          "-c",
+          "dpkg-query -W qemu-system-arm qemu-system-common qemu-system-data; sha256sum /usr/bin/qemu-system-aarch64"
+        ],
+        "exit_status": 0
+      },
+      {
+        "container_extra": [
+          "-i"
+        ],
+        "container_argv": [
+          "qemu-system-aarch64",
+          "-M",
+          "none",
+          "-cpu",
+          "max",
+          "-S",
+          "-display",
+          "none",
+          "-qmp",
+          "stdio"
+        ],
+        "host_subprocess_timeout_seconds": 15,
+        "exit_status": 0,
+        "guest_instructions_executed": false,
+        "qmp_requests": [
+          {
+            "execute": "qmp_capabilities"
+          },
+          {
+            "execute": "query-cpu-model-expansion",
+            "arguments": {
+              "type": "full",
+              "model": {
+                "name": "max"
+              }
+            }
+          },
+          {
+            "execute": "query-cpu-model-expansion",
+            "arguments": {
+              "type": "full",
+              "model": {
+                "name": "max",
+                "props": {
+                  "mops": false
+                }
+              }
+            }
+          },
+          {
+            "execute": "quit"
+          }
+        ],
+        "qmp_findings": {
+          "full_model_properties": [
+            "sve768",
+            "sve128",
+            "sve1024",
+            "sve1280",
+            "pauth-impdef",
+            "sve896",
+            "sve256",
+            "sve1536",
+            "sve1792",
+            "sve384",
+            "sve",
+            "sve2048",
+            "pauth",
+            "pauth-qarma3",
+            "sve512",
+            "aarch64",
+            "pmu",
+            "sve1920",
+            "sve1152",
+            "sve640",
+            "sve1408",
+            "sve1664"
+          ],
+          "mops_false_response": {
+            "error": {
+              "class": "GenericError",
+              "desc": "Parameter 'mops' is unexpected"
+            }
+          },
+          "shutdown_reason": "host-qmp-quit"
+        }
+      }
+    ],
+    "source_history": [
+      {
+        "commit": "854c001f121578c96b023b5db0c5550250505a0e",
+        "url": "https://github.com/qemu/qemu/commit/854c001f121578c96b023b5db0c5550250505a0e",
+        "title": "target/arm: Make FEAT_MOPS SET* insns handle Xs == XZR correctly",
+        "disposition": "Correction already present in inspected v8.2.2 helper-a64.c; not a newly available fix for this retained base."
+      },
+      {
+        "commit": "4d044472ab7666adf99d4daa0cc90b7502b90109",
+        "url": "https://github.com/qemu/qemu/commit/4d044472ab7666adf99d4daa0cc90b7502b90109",
+        "title": "target/arm: Correct MTE tag checking for reverse-copy MOPS",
+        "disposition": "Correction already present in inspected v8.2.2 mte_helper.c."
+      },
+      {
+        "commit": "8009519b3094ab515def1fe9bbc444d463579448",
+        "url": "https://github.com/qemu/qemu/commit/8009519b3094ab515def1fe9bbc444d463579448",
+        "title": "target/arm: Use set/clear_helper_retaddr in helper-a64.c",
+        "disposition": "Later concurrent-munmap race correction. At this revision added set/clear_helper_retaddr are no-op macros outside CONFIG_USER_ONLY; not a demonstrated system-QEMU fix."
+      }
+    ],
+    "source_files_inspected": [
+      "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/target/arm/tcg/helper-a64.c",
+      "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/target/arm/tcg/cpu64.c",
+      "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/target/arm/tcg/mte_helper.c",
+      "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/include/exec/cpu_ldst.h",
+      "https://raw.githubusercontent.com/qemu/qemu/8009519b3094ab515def1fe9bbc444d463579448/include/exec/cpu_ldst.h"
+    ],
+    "source_retrieval": {
+      "method": "Python urllib.request HTTP GET and json decoding; GitHub commit-search query repo:qemu/qemu MOPS per_page=100 returned39 entries; commit-detail requests for three revisions above; no source checkout/build",
+      "search_url": "https://api.github.com/search/commits?q=repo:qemu/qemu+MOPS&per_page=100",
+      "files_read_limit_bytes": 400000,
+      "request_timeouts_seconds": [
+        15,
+        20
+      ]
+    },
+    "distro_patch_archive": {
+      "url": "https://security.ubuntu.com/ubuntu/pool/main/q/qemu/qemu_8.2.2+ds-0ubuntu1.18.debian.tar.xz",
+      "bytes": 261892,
+      "sha256": "7f1993808bbe15fee04c13aeb8ab5bc4f011b0b3b3a15d511c19d8956b34dc48",
+      "published_identity_url": "https://lists.ubuntu.com/archives/noble-changes/2026-July/057142.html",
+      "identity_matches_published_sha256": true,
+      "inspection": "Read archive members under patches and changelog; no matches for MOPS, helper-a64.c,8009519, or set/clear_helper_retaddr. No source archive modification."
+    },
+    "conclusion": {
+      "individual_qemu_mops_false_supported": false,
+      "known_matching_system_emulation_bug_demonstrated": false,
+      "suggested_control": "Same Image and -cpu max, using exact-kernel documented arm64.nomops after coordinator verifies its implementation. Treat as hypothesis discrimination, not known-QEMU-bug fix.",
+      "kernel_control_status": "Coordinator independently investigating; not executed by this audit."
+    },
+    "limitations": [
+      "No raw private stdout/stderr files saved; tool-call outputs are the original raw record.",
+      "Source search is bounded, not exhaustive proof that no MOPS issue exists.",
+      "No full distro original-source rebuild or binary equivalence reproduction.",
+      "No guest boot, VM benchmark, hardware run, source edit, or phone operation."
+    ]
+  },
+  "comparison": "Both tested paths passed eight rounds and normal guest poweroff without RCU/panic. The full startup stall was NOT REPRODUCED. This neither proves general MOPS correctness nor establishes a benefit from disabling it.",
+  "remaining": [
+    "Read-only 9P/file-backed faults, full systemd/PAM load and concurrent startup differ from this microprobe.",
+    "Earlier full VM RCU and portal failures remain open.",
+    "No Denial/Flutter or kernel rebuild, no phone actions or protected-storage mutation."
+  ],
+  "next": "Use a bounded read-only 9P/file-backed COW control before repeating the full Denial session; retain exact kernel/QEMU and explicit MOPS mode. Do not relabel the earlier startup failures.",
+  "previous_turn": "progress: committed qualification fixes, source audit and retained inconclusive full-VM evidence",
+  "final_active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "117f46d627f90783f8697ebfd7c7511e1dff5e76",
+    "source_tree": "8f778a6482fb74e838593f058587181f13875bef",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 179.4224969400093
+  },
+  "final_active_counts": {
+    "PASS": 111,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "initial_active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "8e3ce2b81a29b554dc323a6e1261b85ad58baf27",
+    "source_tree": "0e09ac411249e6e0c3e279d4ba93f4ab1e54be0c",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 181.2129152090056
+  }
+}

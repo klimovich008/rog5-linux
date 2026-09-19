@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "RCU gate and audit policy qualified; VM startup control inconclusive",
+  "phase": "Anonymous/COW VM controls pass; full startup stall remains unresolved",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Frozen source8bf3985d passes111 active suites and119 runner cases. Render auditing is explicitly opt-in; required counters and fence operations remain. The single audit-off VM passes device readiness/PAM/logind but repeats a pre-Denial RCU self-stall and reaches the unchanged300-second deadline without completed rendering, portal or application evidence. Comparison is inconclusive; runtime/input hashes remain unchanged. Review the exact generic kernel page-fault/TCG path and advertised MOPS alternatives before choosing a smaller startup control; do not retry the full session unchanged, raise deadlines, or blame the phone kernel. Earlier portal timeout, S06/R01 FAIL and physical NOT RUN remain open.",
-  "evidence": "test-results/2026-09-19-rcu-render-audit.md"
+  "next": "Frozen source117f46d6 passes111 active suites. A5KiB probe completes eight32MiB anonymous-page/COW rounds in both normal and arm64.nomops modes on the exact retained kernel/QEMU, with normal poweroff and no RCU stall. The first probe required disabled madvise; it was corrected to mmap/munmap without changing the kernel. These controls do not reproduce or repair the earlier full startup failure. Next isolate read-only9P/file-backed faults with a bounded control before another full Denial retry; keep nomops explicit, preserve deadlines and do not infer phone behavior. Portal/app readiness, S06/R01 FAIL and physical NOT RUN remain open.",
+  "evidence": "test-results/2026-09-19-page-fault-control.md"
 }

@@ -1912,6 +1912,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; full generic VM FAIL, no phone proof"
+    },
+    "page_fault_control": {
+      "status": "PASS_ANONYMOUS_COW_BOTH_MOPS_MODES_FULL_STARTUP_STALL_NOT_REPRODUCED",
+      "set_id": "private:rog5-page-fault-control-20260919-r1-r2",
+      "source_commit": "117f46d627f90783f8697ebfd7c7511e1dff5e76",
+      "source_tree": "8f778a6482fb74e838593f058587181f13875bef",
+      "evidence": {
+        "path": "test-results/2026-09-19-page-fault-control-qualification.json",
+        "sha256": "becd3f8a31fc4c942ff2e57f467b7fabf1ad94f911a68b3ec661199f5959cf07",
+        "bytes": 45143
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; anonymous-page kernel probe only, full Denial startup unresolved"
     }
   },
   "denial_phone_linkage": {

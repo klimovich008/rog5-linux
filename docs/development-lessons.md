@@ -3339,3 +3339,15 @@ CPU stall must invalidate VM qualification despite later poweroff/success text;
 include observed ANSI/timestamp variants in semantic regressions. Sampled PCs
 after page-copy/clear calls do not measure their duration. Repeated early stalls
 justify a narrower kernel/TCG investigation before another full session retry.
+
+Reduced page-fault control (2026-09-19): user-mode ARM64 success does not prove
+syscall availability in the retained guest kernel. The first probe used madvise
+despite CONFIG_ADVISE_SYSCALLS being disabled; both tiny guests stopped before
+their workload. mmap/munmap exercised the intended anonymous-page/COW checks
+without changing kernel configuration. Complete that focused target check
+before the active tier; the initial181s active run could not detect this gap.
+Verify controls against exact sources: this QEMU rejects a mops CPU property,
+while the pinned kernel supports arm64.nomops. Both modes passed the reduced
+probe in about4s each; that does not explain full startup stalls or justify a
+default CPU-feature workaround. Sampled page-helper PCs do not identify their
+duration or the mapping's backing file.
