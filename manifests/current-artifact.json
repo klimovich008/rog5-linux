@@ -2004,6 +2004,32 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; nested full-session budgets not exercised past device failure"
+    },
+    "fuse_event_diagnostic": {
+      "status": "PASS_HOST_FUSE_DIAGNOSTICS_VM_FAIL_CHILD_TIMEOUT",
+      "set_id": "private:rog5-fuse-events-20260919-r1",
+      "source_commit": "a947d956ad09fd29a8021ea4e16b225653b1adb3",
+      "source_tree": "369e8aa9a7d73a3fd39c619a81ff1e65842dbcc6",
+      "evidence": {
+        "path": "test-results/2026-09-19-fuse-events-pam-budget-qualification.json",
+        "sha256": "c28f6d42252257edcd39b078208df8a9ccec202f3faa1b93f421c7b3aeaa06ca",
+        "bytes": 31576
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
+    },
+    "pam_child_budget_repair": {
+      "status": "PASS_HOST_ARM64_CHILD_BUDGET_RUNTIME_NOT_RUN",
+      "set_id": "private:rog5-pam-child-budget-20260919-r1",
+      "source_commit": "28c985314f63769d554eea0cd924386f406c6ea1",
+      "source_tree": "3d9fe1905918b8e3eadebd172e726d83567b1952",
+      "evidence": {
+        "path": "test-results/2026-09-19-fuse-events-pam-budget-qualification.json",
+        "sha256": "c28f6d42252257edcd39b078208df8a9ccec202f3faa1b93f421c7b3aeaa06ca",
+        "bytes": 31576
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {

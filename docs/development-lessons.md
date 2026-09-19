@@ -3413,3 +3413,15 @@ turn its incomplete result into a new prerequisite for the existing Denial/app
 session path after independent PAM/device/cleanup observations. Host ARM64 tools
 need the ordinary runtime root, not the9P mapped-file view whose symlinks are
 stored as ordinary file payloads.
+
+Nested watchdog audit (2026-09-19): trace every launched process, including
+compiled helper command arguments. Host/unit/shell budget checks missed the Rust
+PAM child's120s timeout, which remained shorter than the allowed preparation,
+portals, app flow and cleanup. Compile and evaluate the actual child argument
+expression with the runner's actual cfg selection; preserve basic/startup-only
+limits. Visible app windows and observer PASS do not prove successful teardown.
+Buffered PAM output can hide active app progress from serial; inspect the owned
+observer's files before describing the compositor as not started. A passing
+initialized-device wait leaves failure-only diagnostics unexecuted and cannot
+explain a previous missing FUSE database. Size growing host-test deadlines from
+measured parallel runtime;132 cases took31.435s under the old30s limit.

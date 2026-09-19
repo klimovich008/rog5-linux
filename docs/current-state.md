@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Nested VM budgets fixed offline; failure snapshot isolates absent FUSE database**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM visibly launches both apps; remaining Rust child watchdog corrected offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Source4752ea52 passes111 active suites and20 focused cases. Full VM deadlines are420s host/240s fixture/210s PAM; basic and startup-only unchanged, inner services/app checks retained. The one nomops VM fails before PAM:8s initialized-device wait times out; database-first snapshot shows five entries present, only FUSE absent. Empty tty1 entry is valid. No RCU observed; normal poweroff with /var unmount failure; deadline repair runtime NOT RUN. Next isolate FUSE event/database processing; coldplug enumeration already completed, so adding ordering alone is not a demonstrated fix. Preserve readiness/permission/FUSE checks and all earlier results. Physical NOT RUN; S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-19-session-budgets.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Diagnostic VM at a947d956 passed six device checks, PAM/seat access and real document-portal FUSE mount. Mousepad and Foot visibly launched; observer PASS, session FAIL child exit124 during controlled close. Source28c98531 fixes the omitted120s Rust child cap: full190s child/230s PAM/260s unit/440s host; basic/startup-only unchanged. Actual Rust argument regression fails old120s and passes correction; ARM64 helper and111 active suites PASS. Corrected runtime NOT RUN. Next one retained-input close-only VM to qualify app exit/compositor cleanup; do not repeat kernel or Denial builds. Earlier FUSE absence remains unexplained; failure-only retrigger not executed because wait passed. Physical NOT RUN; S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-19-fuse-events-pam-budget.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
