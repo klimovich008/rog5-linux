@@ -57,7 +57,10 @@ fn run()->Result<(),Box<dyn std::error::Error>> {
     // is failure, not PAM cleanup proof. The VM coordinator verifies scope removal.
     unsafe {
         if libc::signal(libc::SIGALRM,libc::SIG_DFL)==libc::SIG_ERR {return Err("cannot arm fixture deadline".into());}
-        libc::alarm(if cfg!(denial_session) { 140 } else { 40 });
+        // Full child190s +35s authentication/PAM cleanup; the outer shell
+        // owns230s, leaving5s beyond this last-resort process alarm.
+        // Startup-only and basic retain their original140s/40s alarms.
+        libc::alarm(if cfg!(denial_session) { if cfg!(startup_only) { 140 } else { 225 } } else { 40 });
     }
     // SAFETY: fixed authenticated guest library, signatures from pam_appl.h.
     // Library and conversation stay live until pam_end has released the handle.

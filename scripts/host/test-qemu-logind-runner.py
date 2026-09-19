@@ -66,6 +66,7 @@ class SessionBudgets(unittest.TestCase):
         # selected by the real runner; never invoke PAM or setpriv in this test.
         rust_source = (root/'logind-pam-session.rs').read_text()
         arguments = re.search(r'child.args\((\[.*?\])\)', rust_source, re.S).group(1)
+        alarm = re.search(r'libc::alarm\((.*?)\);', rust_source, re.S).group(1)
         cfg = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
                    and ast.unparse(n.test) == "combined and binary_name == 'pam-session'")
         env = dict(combined=combined, binary_name='pam-session', rust=[],
@@ -73,16 +74,19 @@ class SessionBudgets(unittest.TestCase):
         exec(compile(ast.Module(body=[cfg], type_ignores=[]), str(RUNNER), 'exec'), env)
         with tempfile.TemporaryDirectory() as directory:
             d=Path(directory)
-            (d/'child.rs').write_text('fn main() { let args = '+arguments+'; println!("{}", args[2]); }')
-            subprocess.run(['rustc','--edition=2024','-Dwarnings',*env['rust'],
-                            str(d/'child.rs'),'-o',str(d/'child')],check=True,
-                           capture_output=True,text=True,timeout=10)
-            child=int(subprocess.check_output([str(d/'child')],text=True,timeout=3))
-        return host, unit, pam, child
+            (d/'child.rs').write_text('fn main() { let args = '+arguments+'; let alarm: u32 = '+alarm+'; println!("{} {}", args[2], alarm); }')
+            compiled=subprocess.run(['rustc','--edition=2024','-Dwarnings',*env['rust'],
+                                     str(d/'child.rs'),'-o',str(d/'child')],
+                                    capture_output=True,text=True,timeout=10)
+            self.assertEqual(compiled.returncode,0,compiled.stdout+compiled.stderr)
+            child,alarm=map(int,subprocess.check_output([str(d/'child')],text=True,timeout=3).split())
+        return host, unit, pam, child, alarm
 
     def test_full_session_reserves_flow_and_cleanup_after_slow_start(self):
-        host, unit, pam, child = self.budgets(True)
+        host, unit, pam, child, alarm = self.budgets(True)
         self.assertGreaterEqual(child, 60 + 40 + 60 + 30)
+        self.assertGreaterEqual(alarm, child + 35)
+        self.assertGreaterEqual(pam, alarm + 5)
         self.assertGreaterEqual(pam, child + 40)
         # Retained startup reaches service start at235.52s. A permitted40s
         # service wait,60s flow and30s cleanup cannot fit the previous300s cap.
@@ -92,11 +96,11 @@ class SessionBudgets(unittest.TestCase):
         self.assertGreaterEqual(pam, 60 + 40 + 60 + 30)
         self.assertGreaterEqual(unit, 30 + pam)
         self.assertGreaterEqual(host, 180 + unit)
-        self.assertEqual((host, unit, pam, child), (440, 260, 230, 190))
+        self.assertEqual((host, unit, pam, child, alarm), (440, 260, 230, 190, 225))
 
     def test_basic_and_startup_only_deadlines_are_unchanged(self):
-        self.assertEqual(self.budgets(False), (180, 65, 45, 20))
-        self.assertEqual(self.budgets(True, True), (300, 170, 145, 120))
+        self.assertEqual(self.budgets(False), (180, 65, 45, 20, 40))
+        self.assertEqual(self.budgets(True, True), (300, 170, 145, 120, 140))
 
 
 class CleanupGrace(unittest.TestCase):
