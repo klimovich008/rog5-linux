@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "VM cache accepted; device/PAM pass, portal timeout and RCU stall remain",
+  "phase": "RCU gate and audit policy qualified; VM startup control inconclusive",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Exact-runtime hwdb cache admission and RAM consumption are integrated and qualified; the final active tier passes 111 suites. The corrected VM passes device initialization and PAM, records two Denial frames/page flips and a complete 6183-byte monotonic EXIT journal, but portal startup returns124 and the300-second VM deadline expires. A single-TCG RCU self-stall maps to the user page-allocation path in the exact retained kernel. Use these retained observations to isolate scheduling and portal readiness before another VM; do not increase deadlines or retry unchanged. Cache generator unit outcome was not separately captured, so no measured boot-speedup or causal fix is claimed. App release/text entry and phone qualification remain open; S06/R01 FAIL and physical NOT RUN unchanged.",
-  "evidence": "test-results/2026-09-19-hwdb-cache-integration.md"
+  "next": "Frozen source8bf3985d passes111 active suites and119 runner cases. Render auditing is explicitly opt-in; required counters and fence operations remain. The single audit-off VM passes device readiness/PAM/logind but repeats a pre-Denial RCU self-stall and reaches the unchanged300-second deadline without completed rendering, portal or application evidence. Comparison is inconclusive; runtime/input hashes remain unchanged. Review the exact generic kernel page-fault/TCG path and advertised MOPS alternatives before choosing a smaller startup control; do not retry the full session unchanged, raise deadlines, or blame the phone kernel. Earlier portal timeout, S06/R01 FAIL and physical NOT RUN remain open.",
+  "evidence": "test-results/2026-09-19-rcu-render-audit.md"
 }

@@ -1899,6 +1899,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; cache setup/device/PAM/render counters observed, full VM FAIL; no phone proof"
+    },
+    "render_audit_control": {
+      "status": "PASS_HOST_AUDIT_POLICY_VM_FAIL_EARLY_RCU_COMPARISON_INCONCLUSIVE",
+      "set_id": "private:rog5-rcu-portal-audit-20260919-r1",
+      "source_commit": "8bf3985d9fef54c66422e4c89383dd15a22a1f3e",
+      "source_tree": "a231fcfc250c3d44ea7dcc27910b73511bebf22a",
+      "evidence": {
+        "path": "test-results/2026-09-19-rcu-render-audit-qualification.json",
+        "sha256": "1b148e8ce83850ee1d71567e4c87f1e4333619eaa0cffdfa4bb644259cb20c78",
+        "bytes": 65560
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; full generic VM FAIL, no phone proof"
     }
   },
   "denial_phone_linkage": {

@@ -3329,3 +3329,13 @@ Device diagnostics (2026-09-19): preserve the producer status while capping and 
 Failure reporting (2026-09-19): a subshell function with its own EXIT trap can skip the parent ERR trap. An external-command fixture missed this; the actual readiness function reproduces it, and retained ARM64 Bash confirms the semantics. Collect failure evidence in the existing supervisor EXIT path, preserve the original status, and keep ERR only for an available line marker. A control failing before its intended observation can still expose a concrete defect; repair that defect offline before another VM. The partial device snapshot is a later observation and does not identify the exact state at timeout. Reuse the retained validated hardware-database cache only after matching its input/consumer and staging contract; a costly cold rebuild is not proof of the later timeout cause.
 
 Cache integration (2026-09-19): test realistic cache size through the real packaging executor. Tiny fixtures missed that cpio shares the8MiB tool-output limit; a14MB hardware database belongs on the existing read-only payload mount, followed by verified guest-RAM installation. Do not weaken output limits to accommodate data placement. Guard both original and mapped runtime roots before creating output directories. A successful device wait after cache reuse does not establish causality: this run still timed out at portal startup and also reported an RCU self-stall under single-threaded TCG. Symbolize against an ELF verified to reproduce the exact executed Image; a page-allocation stack alone is not a root cause. The completed monotonic EXIT journal now distinguishes document-portal readiness from GTK/main portal startup.
+
+Render-audit control (2026-09-19): distinguish mandatory counters/fences from
+diagnostic logs and GPU timer queries before disabling instrumentation. Execute
+the actual bootstrap and staging path in tests; source markers alone miss an
+unconditional export. Treat an earlier startup failure as an inconclusive
+comparison, even when its selected policy is correctly staged. A recovered RCU
+CPU stall must invalidate VM qualification despite later poweroff/success text;
+include observed ANSI/timestamp variants in semantic regressions. Sampled PCs
+after page-copy/clear calls do not measure their duration. Repeated early stalls
+justify a narrower kernel/TCG investigation before another full session retry.
