@@ -2134,6 +2134,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; library not wired into runtime"
+    },
+    "close_pc_observation": {
+      "status": "VM FAIL; intrusive PC observation succeeded; physical NOT RUN",
+      "set_id": "private:rog5-close-pc-vm-20260920-r1",
+      "source_commit": "1ab6d7c64e5c431be80e48848e35e0d724bb5f5b",
+      "source_tree": "81ca919acd20652b8e86297fcf270e974378ae66",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-pc-vm-qualification.json",
+        "sha256": "428921e7b904cda4bb1e9e9883180cf9a15580da35aa6f0a4f782b1831e8fec7",
+        "bytes": 68142
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {

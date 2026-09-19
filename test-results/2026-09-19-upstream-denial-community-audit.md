@@ -192,3 +192,46 @@ linked primary sources and live Denial Git refs were checked separately.
 This is a bounded relevance search, not a full
 community inventory. No external code was imported, no runtime was upgraded,
 and no phone operation or new VM execution occurred during this follow-up.
+
+### September 20 recheck and additional keyboard lead
+
+At local project HEAD `1ab6d7c64e5c431be80e48848e35e0d724bb5f5b`, live
+`git ls-remote` and GitHub API still identify main as `cd84b8b7` and dev as
+`5ab4004a`. Main is 30 commits ahead of our pinned `85b2303e`, including merges;
+it has not advanced beyond the source tree examined above. A fresh exact-main
+read of `compatible_xrgb8888_modifiers()` and `allocate_scanout_pool()` confirms
+the fabricated Linear fallback and Invalid-only rejection remain. Existing
+upstream corrections are useful, but no new build or local patch retirement
+is justified by unchanged upstream bytes.
+
+The r/mobilelinux feed also links the Rust
+[linux-mobile-keyboard crate](https://crates.io/crates/linux-mobile-keyboard).
+The registry identifies version 0.1.2, MIT OR Apache-2.0, with its repository
+at [Codeberg](https://codeberg.org/maybeJosiah/linux-mobile-keyboard).
+Codeberg/docs.rs web access failed; the published 0.1.2 archive was read directly
+from crates.io, bounded to 1 MiB and without filesystem extraction or execution.
+Its actual `src/lib.rs` supplies precise reasons not to adopt this version:
+
+- `show()` and `hide()` discard D-Bus and signal errors, update tracked visibility,
+  and return success. That state is not confirmation of a visible keyboard.
+- `wait_for_readiness()` can accept any detected keyboard PID, not necessarily
+  the child it launched; its fallback uses the child PID without protocol proof.
+- `kill_if_spawned()` and `Drop` signal `self.pid` even when no owned child exists.
+  Detection of another keyboard can therefore lead to termination of an unowned
+  process. Clones also share the child handle while retaining copied PIDs.
+
+These are source-level counterexamples, not executed signal tests or a claim
+that our installed software has these defects. The useful idea is a small
+backend adapter with lazy startup; direct dependency adoption is deferred.
+[wvkbd](https://github.com/jjsullivan5196/wvkbd) remains the concrete independent
+protocol-test candidate: upstream documents automatic text-field activation
+through input-method-v2 and portrait/landscape layouts. Denial interoperability
+and lock-screen behavior remain NOT RUN.
+
+The Nothing Phone Spacewar demonstrations are useful interaction references,
+but this bounded search did not establish the demonstrated shell's public
+source and licensing. Do not substitute an unrelated Android/UEFI repository
+with a similar name. SM8350 source comparisons, Hotdog's subsystem investigations,
+and Pocketblue's mobile Firefox configuration retain their priorities above.
+No phone access, package installation, runtime upgrade, build, or VM was performed
+for this research recheck; it does not change any earlier runtime result.

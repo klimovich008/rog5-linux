@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Bounded PC snapshot prepared and tested offline; VM Mousepad close FAIL remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM snapshot locates Mousepad in GLib allocation; app close FAIL remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Source4ad368f8 adds library-only app-close-ptrace.rs: host signal/detach/deadline/identity/exit/panic fixtures and mutation tests PASS; ARM64 compile/ABI PASS, actual ARM64 ptrace NOT RUN. Existing read-only sampler and VM runner unchanged. Next wire a separate explicit VM-only opt-in for one main-thread snapshot with exact owner/UID/starttime revalidation and outer watchdog, retain counters/byte budgets, qualify real integration guards then freeze and run one bounded VM. Preserve pending signals and group stops; no EXITKILL or global ptrace policy changes. Prior VM3826b100 shows47 CPU ticks/0.600528s before Mousepad137; no PC/spin diagnosis. Phone physical NOT RUN; S06/R01 FAIL preserved. See [current repair evidence](../test-results/2026-09-20-close-pc-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen source1ab6d7c6: active112PASS and17Rust/2Python focused checks PASS; one ARM64 VM FAIL397.639s with Foot0/Mousepad137. One intrusive PC maps exact GLib g_malloc+0; caller strongly matches datalist_append empty-list allocation, not a lock/OOM/spin diagnosis. PAM cleanup0, initial /var unmount FAIL, normal VM poweroff PASS; inputs/runtime unchanged and owned jobs terminal. Next recover higher-level caller using exact debug data or a bounded, tested frame-pointer observation at the existing single stop; preserve deadlines/signals/identity and avoid unchanged VM repeats. No phone operation authorized; physical NOT RUN and S06/R01 FAIL preserved. See [current repair evidence](../test-results/2026-09-20-close-pc-vm.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
