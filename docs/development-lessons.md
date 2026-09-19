@@ -3222,3 +3222,17 @@ complete timing FAIL while using separately verified ldconfig dispatch and PAM
 cleanup for an independent experiment. That app-close run again reached Mousepad
 only near282s and exhausted300s before close. Stop unchanged full-boot retries;
 isolate exact ARM64 app shutdown separately, with full-session acceptance retained.
+
+Focused ARM64 close (2026-09-19): preserve the app's real DConf backend and the
+same TERM/kill-after policy when isolating shutdown from a slow VM boot. Require
+configure/ack, a committed buffer and matching frame callback before close;
+record actual child status and sync BEGIN/END. A process or socket alone is not
+readiness. Host user emulation may expose more CPUs than the guest and exhaust
+a task bound through worker pools: record pids.peak/pids.events and memory events
+before changing limits. Two-CPU affinity avoided the observed 96-task failure
+without extending close grace. Report early child death immediately, propagate
+log-writer thread errors, and retain exact query statuses with diagnostic booleans.
+The 12.77 s Weston component PASS does not close the Denial VM exit 137 or qualify absent
+portal, input, graphics or security services. Keep executed snapshots separate
+from later harness fixes; reuse the verified runtime instead of another full boot
+that cannot reach the question being tested.

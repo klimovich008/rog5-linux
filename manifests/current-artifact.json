@@ -1726,6 +1726,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "focused_app_close": {
+      "status": "FOCUSED_ARM64_CLOSE_PASS_VM_UNRESOLVED",
+      "set_id": "private:rog5-arm64-app-close-20260919-r1",
+      "source_commit": "e18413e40e290f710d04086682a932a072f84809",
+      "evidence": {
+        "path": "test-results/2026-09-19-focused-arm64-app-close-qualification.json",
+        "sha256": "d015dedf937daa123f2c9b6176efb6fc0e593b921e106bbfb7642e039c965a15",
+        "bytes": 73914
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; isolated host fixture; not Denial VM"
     }
   },
   "denial_phone_linkage": {

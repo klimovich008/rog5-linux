@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Query capture fixed; cache dispatch verified; app-close observation still blocked by startup time**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Exact ARM64 app closes cleanly in focused host test; Denial VM close remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-108 integrated checks PASS. Startup query now exposes8 unit replies and times out waiting for sysinit.target; complete timing FAIL remains. ldconfig skip and authenticated cleanup verified. Separate app-close VM hits300s before ACK/close, Mousepad launched near282s. Stop unchanged full-boot retries; establish a focused exact-ARM64 app-close environment and its headless display dependency, preserving separate full-session qualification. Mousepad137, S06/R01 remain unresolved FAIL; phone tests NOT RUN, no phone operation authorized. See [current repair evidence](../test-results/2026-09-19-unit-query-capture.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The retained ARM64 Mousepad package reached a mapped frame and exited 0 within the unchanged two-second close policy; total run 12.77 s, real DConf active, g_settings_sync 0.337 ms. The eight-CPU fixture exhausted its 96-task cap; two-CPU affinity stayed at 90 tasks without limit or OOM events. This host component result does not qualify missing portal/input services or resolve the Denial VM's exit 137 and full startup timing FAIL. Next compare the broker/systemd close path with the same diagnostic; avoid unchanged full boots that expire before close. S06/R01 remain FAIL, phone tests NOT RUN; no phone operation authorized. See [current repair evidence](../test-results/2026-09-19-focused-arm64-app-close.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
