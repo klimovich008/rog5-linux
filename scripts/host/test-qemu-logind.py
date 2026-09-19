@@ -418,6 +418,8 @@ def main():
     parser.add_argument('--evidence-writer', type=Path)
     parser.add_argument('--settings-sync-diagnostic', type=Path,
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
+    parser.add_argument('--app-close-probe', action='store_true',
+                        help='close-only diagnostic: bounded read-only owned Mousepad proc sampler')
     parser.add_argument('--linker-cache', type=Path,
                         help='exact-runtime cache directory from prepare-qemu-linker-cache.py; VM-only RAM staging')
     parser.add_argument('--hwdb-cache', type=Path,
@@ -443,6 +445,8 @@ def main():
         parser.error('render-audit requires a combined Denial session')
     if args.settings_sync_diagnostic is not None and not args.observe_apps:
         parser.error('settings-sync-diagnostic requires observe-apps')
+    if args.app_close_probe and not (args.close_only and args.settings_sync_diagnostic is not None):
+        parser.error('app-close-probe requires close-only and settings-sync-diagnostic')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -537,6 +541,8 @@ def main():
                 input_files.append(REPO/'scripts/host/qemu-caret-protocol.py')
         if args.settings_sync_diagnostic is not None:
             input_files += [regular(args.settings_sync_diagnostic), SOURCES/'settings-sync-diagnostic.c']
+        if args.app_close_probe:
+            input_files.append(SOURCES/'app-close-probe.rs')
         if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
@@ -557,7 +563,10 @@ def main():
         stage = output / 'initramfs'
         for directory in ('dev', 'sysroot', 'stage/payload'):
             (stage / directory).mkdir(parents=True, exist_ok=True)
-        for source_name, binary_name in [('logind-seat-probe.rs', 'logind-seat-probe'), ('logind-pam-session.rs', 'pam-session')]:
+        helpers = [('logind-seat-probe.rs', 'logind-seat-probe'), ('logind-pam-session.rs', 'pam-session')]
+        if args.app_close_probe:
+            helpers.append(('app-close-probe.rs', 'app-close-probe'))
+        for source_name, binary_name in helpers:
             disk_guard(output)
             source = output / source_name
             shutil.copyfile(SOURCES / source_name, source)

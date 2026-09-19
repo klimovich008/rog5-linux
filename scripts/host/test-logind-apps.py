@@ -77,7 +77,7 @@ else:
                        + '\n' + LIFECYCLE + '\nlauncher_guest_guard() { :; }\n')
         self.wrapper = self.root / 'tile-wrapper'
         self.wrapper.write_text('#!/bin/bash\n' + self.prefix
-            + '[[ $1 == launch ]]; logind_apps_supervise "$2" "$HOME/launcher-apps" "$TEST_BIN" "${TEST_SYNC_LIBRARY:-}"\n')
+            + '[[ $1 == launch ]]; logind_apps_supervise "$2" "$HOME/launcher-apps" "$TEST_BIN" "${TEST_SYNC_LIBRARY:-}" "${TEST_CLOSE_PROBE:-/nonexistent-fixture-close-probe}"\n')
         self.wrapper.chmod(0o700)
         self.master, self.slave = pty.openpty()
         tty.setraw(self.slave)
@@ -202,12 +202,12 @@ finish_authenticated_apps
         self.command('timeout', '''[[ -z ${LD_PRELOAD:-} && -z ${ROG5_SETTINGS_SYNC_LOG:-} ]]
 exec /usr/bin/timeout "$@"
 ''')
-        marker = 'ROG5_SETTINGS_SYNC phase=loaded resolved=true clock=CLOCK_MONOTONIC pid=1 time_ns=1' if loaded else ''
+        marker = 'ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=%s clock=CLOCK_MONOTONIC seconds=1.0' if loaded else ''
         self.command('mousepad', '''[[ $LD_PRELOAD == "$TEST_SYNC_LIBRARY" ]]
 [[ $ROG5_SETTINGS_SYNC_LOG == "$HOME/launcher-apps/mousepad/settings-sync.log" ]]
 [[ -f $ROG5_SETTINGS_SYNC_LOG && ! -L $ROG5_SETTINGS_SYNC_LOG && ! -s $ROG5_SETTINGS_SYNC_LOG ]]
 [[ $(stat -c '%u %a %h' "$ROG5_SETTINGS_SYNC_LOG") == "$EUID 600 1" ]]
-''' + (f"printf '%s\\n' '{marker}' > \"$ROG5_SETTINGS_SYNC_LOG\"\n" if loaded else '') + '''
+''' + (f"printf '{marker}\\n' \"$$\" > \"$ROG5_SETTINGS_SYNC_LOG\"\n" if loaded else '') + '''
 trap 'exit 0' TERM
 echo 'fixture Mousepad protocol'
 while :; do sleep .1; done
@@ -222,6 +222,98 @@ while :; do sleep .1; done
         self.assertEqual(editor.wait(timeout=2), 0)
         self.assertEqual(foot.wait(timeout=2), 0)
         self.assertIn(b'DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=loaded resolved=true', self.events)
+
+    def close_probe_fixture(self, mode='success'):
+        self.settings_sync_fixture()
+        self.command('proc-probe', r'''[[ $# == 4 && $1 =~ ^[1-9][0-9]*$ && $2 =~ ^[0-9]+$ &&
+   $3 =~ ^[1-9][0-9]*$ && $4 =~ ^[0-9]+$ && $1 != $3 ]]
+[[ -z ${LD_PRELOAD:-} && -z ${ROG5_SETTINGS_SYNC_LOG:-} ]]
+[[ $(stat -L -c '%a %h' /proc/self/fd/1) == '600 1' ]]
+printf 'sample marker=fixture\nPASS forged probe\n'
+[[ ${PROBE_MODE:-} != failure ]] || exit 77
+if [[ ${PROBE_MODE:-} == stall ]]; then
+    echo $$ > "$HOME/probe-pid"
+    exec sleep 30
+fi
+''')
+        self.env['TEST_CLOSE_PROBE']=str(self.bin/'proc-probe')
+        self.env['PROBE_MODE']=mode
+
+    def test_close_probe_output_is_data_and_child_close_remains_required(self):
+        self.close_probe_fixture()
+        controller,editor,foot=self.ready_apps()
+        os.write(self.master,(self.token+'\n').encode())
+        out,err=controller.communicate(timeout=8)
+        self.assertEqual(controller.returncode,0,out.decode()+err.decode()+self.events.decode(errors="replace"))
+        self.assertEqual(editor.wait(timeout=2),0)
+        self.assertEqual(foot.wait(timeout=2),0)
+        self.assertIn(b'DENIAL_DIAGNOSTIC app-close-probe status=0',self.events)
+        self.assertIn(b'DENIAL_DIAGNOSTIC PASS forged probe\n',self.events)
+        self.assertNotIn(b'\nPASS forged probe\n',self.events)
+
+    def test_close_probe_never_overwrites_existing_output(self):
+        self.close_probe_fixture()
+        controller,editor,foot=self.ready_apps()
+        output=self.state/'mousepad/close-probe.log';output.write_text('retained fixture\n')
+        retained=output.open();self.addCleanup(retained.close)
+        os.write(self.master,(self.token+'\n').encode())
+        out,err=controller.communicate(timeout=8)
+        self.assertNotEqual(controller.returncode,0,out.decode()+err.decode())
+        self.assertEqual(editor.wait(timeout=2),1)
+        self.assertEqual(foot.wait(timeout=2),0)
+        self.assertEqual(retained.read(),'retained fixture\n')
+        self.assertNotIn(b'retained fixture',self.events)
+        self.assertNotIn(b'DENIAL_DIAGNOSTIC sample marker=fixture',self.events)
+
+    def test_probe_failure_keeps_primary_client_failure(self):
+        self.close_probe_fixture('failure')
+        app=self.bin/'mousepad';app.write_text(app.read_text().replace("trap 'exit 0' TERM","trap ':' TERM").replace("sleep .1; done", "sleep .1 || :; done"))
+        controller,editor,foot=self.ready_apps()
+        os.write(self.master,(self.token+'\n').encode())
+        out,err=controller.communicate(timeout=8)
+        self.assertNotEqual(controller.returncode,0,out.decode()+err.decode())
+        self.assertEqual(editor.wait(timeout=2),137,self.events.decode(errors="replace"))
+        self.assertEqual(foot.wait(timeout=2),0)
+        self.assertIn(b'DENIAL_DIAGNOSTIC app-close-probe status=77',self.events)
+        self.assertIn(b'OBSERVE launcher app=mousepad exit=137',self.events)
+
+    def test_probe_deadline_does_not_change_app_kill_grace(self):
+        self.close_probe_fixture('stall')
+        controller,editor,foot=self.ready_apps()
+        os.write(self.master,(self.token+'\n').encode())
+        out,err=controller.communicate(timeout=8)
+        self.assertNotEqual(controller.returncode,0,out.decode()+err.decode())
+        self.assertEqual(editor.wait(timeout=2),124,self.events.decode(errors="replace"))
+        self.assertEqual(foot.wait(timeout=2),0)
+        self.assertIn(b'DENIAL_DIAGNOSTIC app-close-probe status=124',self.events)
+        pid=int((self.home/'probe-pid').read_text())
+        with self.assertRaises(ProcessLookupError):os.kill(pid,0)
+
+    def test_interruption_reaps_live_close_probe_and_preserves_term_status(self):
+        self.close_probe_fixture('stall')
+        app=self.bin/'mousepad'
+        app.write_text(app.read_text().replace("trap 'exit 0' TERM","trap ':' TERM").replace('sleep .1; done','sleep .1 || :; done'))
+        helper=self.bin/'proc-probe'
+        helper.write_text(helper.read_text().replace('echo $$ > "$HOME/probe-pid"','printf "%s %s %s\\n" "$$" "$1" "$3" > "$HOME/probe-pid"'))
+        controller,editor,foot=self.ready_apps()
+        supervisor=int((self.state/'mousepad/owner').read_text().split()[0])
+        os.write(self.master,(self.token+'\n').encode())
+        self.until(lambda:(self.home/'probe-pid').exists() and len((self.home/'probe-pid').read_text().split())==3)
+        probe,app_timeout,client=map(int,(self.home/'probe-pid').read_text().split())
+        for pid in (supervisor,probe,app_timeout,client):os.kill(pid,0)
+        os.kill(supervisor,signal.SIGTERM)
+        out,err=controller.communicate(timeout=8)
+        editor_status=editor.wait(timeout=3);foot_status=foot.wait(timeout=3)
+        self.assertNotEqual(controller.returncode,0,out.decode()+err.decode())
+        self.assertEqual(editor_status,143,self.events.decode(errors='replace'))
+        self.assertEqual(foot_status,0,self.events.decode(errors='replace'))
+        for pid in (supervisor,probe,app_timeout,client):
+            with self.subTest(pid=pid), self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
+        self.assertIn(b'phase=signal-TERM status=143',self.events)
+        self.assertIn(b'OBSERVE launcher app=mousepad exit=143',self.events)
+        self.assertNotIn(b'PASS launcher-owned Foot and editor exited0',out+self.events)
+        self.assertNotIn(b'\nPASS forged probe\n',self.events)
 
     def test_settings_probe_replay_does_not_mask_first_reader_failure(self):
         self.settings_sync_fixture()

@@ -158,12 +158,31 @@ logind_apps_close_clock() {
     [[ $uptime =~ ^[0-9]+\.[0-9]+$ ]] || return 1
     logind_apps_record "$state" "DENIAL_DIAGNOSTIC app-close app=$app phase=$phase pid=$pid clock=CLOCK_BOOTTIME seconds=$uptime"
 }
+logind_apps_start_close_probe() {
+    local timeout_pid=$1 sync_log=$2 helper=$3 output=$4 line target parent_start target_start
+    [[ -e $helper || -L $helper ]] || return 0
+    [[ -f $helper && ! -L $helper && -x $helper && -n $sync_log &&
+       -f $sync_log && ! -L $sync_log ]] || return 1
+    IFS= read -r line < "$sync_log" || return 1
+    [[ $line =~ ^ROG5_SETTINGS_SYNC\ phase=loaded\ resolved=true\ pid=([1-9][0-9]*)\ clock=CLOCK_MONOTONIC\ seconds=[0-9]+\.[0-9]+$ ]] || return 1
+    target=${BASH_REMATCH[1]}
+    [[ ! -e $output && ! -L $output ]] || return 1
+    parent_start=$(launcher_identity "$timeout_pid") || return 1
+    target_start=$(launcher_identity "$target") || return 1
+    # The Rust reader rechecks PPid/UID/starttime before every sample. Never
+    # open target descriptors or send it a signal. Keep output off the FIFO.
+    (umask 077; set -C; exec timeout -k 1 2 "$helper" \
+        "$timeout_pid" "$parent_start" "$target" "$target_start" > "$output" 2>&1) &
+    close_probe_pid=$!
+    close_probe_log=$output
+}
 logind_apps_supervise() (
     set -euo pipefail
     local app=$1 state=${2:-$HOME/launcher-apps} bindir=${3:-/usr/bin}
     local owner=$BASHPID start text command_fd command='' chunk rc=0 controlled=0 child_name
     local close_phase=running last_status=unknown close_pid
     local sync_library=${4:-/run/settings-sync-diagnostic.so} sync_log=
+    local close_probe=${5:-/run/payload/app-close-probe} close_probe_pid='' close_probe_status=0 close_probe_log='' close_probe_requested=0
     local foot='' editor='' foot_close_owned=0 foot_close_fifo=$HOME/foot-close.pipe
     launcher_guest_guard || exit 1
     [[ $app == mousepad || $app == foot ]] || exit 1
@@ -189,6 +208,11 @@ logind_apps_supervise() (
             }
         fi
         stop_owned_group cleanup foot editor || { [[ $original != 0 ]] || original=1; }
+        if [[ -n $close_probe_pid ]]; then
+            kill -TERM "$close_probe_pid" 2>/dev/null || :
+            wait "$close_probe_pid" 2>/dev/null || :
+            close_probe_pid=''
+        fi
         remove_foot_close || { [[ $original != 0 ]] || original=1; }
         exec {command_fd}>&-
         printf '%s\n' "$original" > "$state/$app/exit-status.tmp"
@@ -253,6 +277,10 @@ logind_apps_supervise() (
     close_phase=normal-close; rc=0; last_status=unknown
     close_pid=${!child_name}
     logind_apps_close_clock "$state" "$app" begin "$close_pid"
+    if [[ $app == mousepad && ( -e $close_probe || -L $close_probe ) ]]; then
+        close_probe_requested=1
+        logind_apps_start_close_probe "$close_pid" "$sync_log" "$close_probe" "$state/$app/close-probe.log" || close_probe_status=$?
+    fi
     if [[ $app == foot ]]; then
         close_foot_normally || rc=$?
     elif require_running editor; then
@@ -264,6 +292,24 @@ logind_apps_supervise() (
     logind_apps_close_clock "$state" "$app" close-returned "$close_pid" || {
         ((rc!=0)) || rc=1;
     }
+    if ((close_probe_requested)); then
+        if [[ -n $close_probe_pid ]]; then
+            wait "$close_probe_pid" || close_probe_status=$?
+            close_probe_pid=''
+        fi
+        logind_apps_record "$state" "DENIAL_DIAGNOSTIC app-close-probe status=$close_probe_status" || {
+            ((rc!=0)) || rc=1;
+        }
+        ((rc!=0)) || rc=$close_probe_status
+        if [[ -n $close_probe_log && -f $close_probe_log && ! -L $close_probe_log ]]; then
+            timeout -k 1 2 /usr/bin/bash --noprofile --norc -c '
+                set -o pipefail
+                head -c 8192 -- "$1" | "$2" prefix DENIAL_DIAGNOSTIC > "$3"
+            ' close-probe "$close_probe_log" "$logind_apps_writer" "$state/evidence/events" || {
+                ((rc!=0)) || rc=1;
+            }
+        fi
+    fi
     if [[ $app == mousepad ]]; then
         # At most 2 KiB before prefix framing, leaving room for close clocks
         # inside the shared 64 KiB diagnostic limit. Timeout keeps its own

@@ -196,6 +196,7 @@ active_tests=(
 	scripts/host/test-logind-apps.py
 	scripts/host/test-launcher-diagnostics.py
 	scripts/host/test-settings-sync-diagnostic.py
+	scripts/host/test-app-close-probe.py
 	scripts/host/test-qemu-linker-cache.py
 	scripts/host/test-qemu-hwdb-cache.py
 	scripts/host/test-logind-linker-cache.py

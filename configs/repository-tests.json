@@ -8454,6 +8454,31 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-app-close-probe.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 20,
+      "prerequisites": [
+        "python3",
+        "rustc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/app-close-probe.rs"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-qemu-linker-cache.py",
       "interpreter": "python3",
       "tiers": [

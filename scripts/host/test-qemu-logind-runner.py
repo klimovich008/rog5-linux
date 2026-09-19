@@ -1966,6 +1966,21 @@ class AppsPreflight(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertRegex(result.stderr, 'observation requires|not allowed with argument|settings-sync-diagnostic requires observe-apps')
 
+    def test_close_probe_requires_explicit_close_and_sync_probe_before_effects(self):
+        required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
+                  'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]
+        combined=['--session-archive','/unused','--session-receipt','/unused','--host-render-node','/unused']
+        apps=['--observe-apps','--launcher-reference','/unused','--evidence-writer','/unused']
+        for extra in [[],combined+apps,combined+apps+['--close-only']]:
+            with self.subTest(extra=extra),patch.object(sys,'argv',[str(RUNNER),*required,*extra,'--app-close-probe']), \
+                    patch.object(self.runner,'install_handlers') as effects,patch('sys.stderr',new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as status:self.runner.main()
+                self.assertEqual(status.exception.code,2);effects.assert_not_called()
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--close-only',
+                '--settings-sync-diagnostic','/unused','--app-close-probe']), \
+                patch.object(self.runner,'install_handlers',side_effect=RuntimeError('accepted explicit probe')):
+            with self.assertRaisesRegex(RuntimeError,'accepted explicit probe'):self.runner.main()
+
     def test_close_only_cli_and_factory_preserve_explicit_scope(self):
         required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
                     'toolchain-image', 'libc', 'libloading', 'output'] for v in ['--'+n, '/unused']]
