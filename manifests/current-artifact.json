@@ -2108,6 +2108,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "close_cpu_observation": {
+      "status": "PASS_VM_CPU_OBSERVATION_FAIL_MOUSEPAD137",
+      "set_id": "private:rog5-close-cpu-20260920-r1",
+      "source_commit": "3826b100569d0ce5786382b7e5e7c48a6ed46ee7",
+      "source_tree": "d51f46c803b43fa3bd3c15f8572d798dd676b548",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-cpu-qualification.json",
+        "sha256": "f4dbdf316c72f18bc37e8b0af6b0524257eb48a23ed1170291a45c264a9cf5ea",
+        "bytes": 72150
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {
