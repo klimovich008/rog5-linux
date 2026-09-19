@@ -92,7 +92,11 @@ class DiagnosticSnapshot(unittest.TestCase):
             while not marker.exists() and time.monotonic()<deadline:time.sleep(.01)
             self.assertTrue(marker.exists())
             os.killpg(process.pid,signal.SIGTERM)
-            process.communicate(timeout=3)
+            # GNU timeout owns a separate process group. The shell can defer
+            # its TERM trap until the existing 3s watchdog + 1s kill grace
+            # finishes; allow one second for trap/cleanup scheduling as well.
+            # This bounds observation, without extending the guest watchdog.
+            process.communicate(timeout=5)
             self.assertNotEqual(process.returncode,0)
             self.assertEqual(list(self.state.glob('snapshot.*')),[])
         finally:
