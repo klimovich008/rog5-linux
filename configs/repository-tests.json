@@ -8474,7 +8474,8 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [
-        "tools/qemu-virtio-drm/app-close-probe.rs"
+        "tools/qemu-virtio-drm/app-close-probe.rs",
+        "tools/qemu-virtio-drm/app-close-ptrace.rs"
       ],
       "optional_subchecks": []
     },
