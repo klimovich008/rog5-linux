@@ -1689,6 +1689,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; offline fixture"
+    },
+    "settings_sync_diagnostic": {
+      "status": "SETTINGS_SYNC_DIAGNOSTIC_VM_FAIL",
+      "set_id": "private:rog5-mousepad-close-20260913-r1",
+      "source_commit": "5c1a6fb65b68d8da0b07351d9c2b71881387213f",
+      "evidence": {
+        "path": "test-results/2026-09-19-vm-settings-sync-qualification.json",
+        "sha256": "6546fcb0f76896ab789a8f369e274038149fe48a51c795d09948afd4e586354f",
+        "bytes": 164549
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline fixture"
     }
   },
   "denial_phone_linkage": {

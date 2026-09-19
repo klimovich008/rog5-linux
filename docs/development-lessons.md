@@ -3184,3 +3184,21 @@ to the intended command arguments: the same head utility also replays required
 close diagnostics. Forwarded TERM can activate GNU timeout kill-after before its
 nominal command deadline; retain signal/close records and investigate the real
 application shutdown API rather than accepting137 or enlarging grace blindly.
+
+Settings-sync diagnostic (2026-09-19): consume app-only LD_PRELOAD/log variables
+after constructor initialization so unrelated exec children do not inherit a
+GIO-specific interposer. Exercise a real exec child lacking GIO. Preserve errno
+and original errors; sequential diagnostic reads must each propagate failure.
+No observed sync marker before an earlier VM deadline does not prove the app
+never entered sync: replay may not have occurred. An app launch at guest293s
+cannot answer a close question within the unchanged300s VM budget. Account for
+exact runtime cache preparation separately before another full UI attempt.
+
+Cache preparation feasibility (2026-09-19): a mapped-file 9P runtime view encodes
+symlinks as regular host files plus metadata. Do not execute host tools against
+that representation as though it were the guest filesystem. Generate target
+linker caches from the original authenticated materialized tree with actual
+symlinks, read-only mounts, target ldconfig and bounded isolated scratch. The
+ARM64 loader can validate cache consumption with --list; this is dependency
+resolution, not app/session qualification. Full input admission, exact emulator
+binding and guest-only staging remain required before reusing the cache.
