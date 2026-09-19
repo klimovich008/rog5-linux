@@ -162,7 +162,7 @@ logind_failure_journal() (
 )
 logind_wait_devices() (
     set -o pipefail
-    local state=${1:-/run} status=0
+    local state=${1:-/run} status=0 readiness_seconds=8
     local temporary uptime unused snapshot_status=0 diagnostic_status=0 before_status=0
     local -a pipeline_status
     local -a devices=(/dev/dri/card0 /dev/input/event0 /dev/tty1)
@@ -181,7 +181,17 @@ logind_wait_devices() (
         # Keyboard/tablet numbering can swap: both are consumed by this mode.
         devices+=(/dev/input/event1 /dev/vport0p1)
     fi
-    # Wait for all consumers in one eight-second budget, not unrelated events
+    if [[ -e $state/device-readiness-20s || -L $state/device-readiness-20s ]]; then
+        [[ -f $state/session-sha256 && -f $state/device-readiness-20s &&
+           ! -L $state/device-readiness-20s && $(cat "$state/device-readiness-20s") == 20 ]] || {
+            echo 'FAIL invalid combined-VM readiness experiment' >&2
+            return 1
+        }
+        # Explicit slow-TCG experiment, not a new default. This consumes the
+        # existing fixture reserve; all outer deadlines still apply.
+        readiness_seconds=20
+    fi
+    # Wait for all consumers in one shared budget, not unrelated events
     # elsewhere in the udev queue. Initialization is stronger than node presence.
     # Later port identity/ownership, PAM, VT and seat checks remain mandatory.
     temporary=$(mktemp -d "${TMPDIR:-/run}/rog5-device-query.XXXXXXXX") || return $?
@@ -203,9 +213,9 @@ logind_wait_devices() (
         printf 'OBSERVE device-readiness snapshot=before-wait deadline_seconds=2 capture_status=%s\n' "${pipeline_status[1]}"
     fi
     read -r uptime unused < /proc/uptime || uptime=unavailable
-    printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s boottime=%s\n' "${devices[*]}" "$uptime"
+    printf 'OBSERVE device-readiness phase=begin deadline_seconds=%s devices=%s boottime=%s\n' "$readiness_seconds" "${devices[*]}" "$uptime"
     if SYSTEMD_LOG_TARGET=console SYSTEMD_LOG_LEVEL=debug SYSTEMD_COLORS=0 \
-        udevadm wait --timeout=8 --initialized=yes "${devices[@]}" 2>&1 |
+        udevadm wait --timeout="$readiness_seconds" --initialized=yes "${devices[@]}" 2>&1 |
         logind_capture_bounded "$temporary/wait"; then
         pipeline_status=("${PIPESTATUS[@]}")
     else

@@ -1917,11 +1917,95 @@ run_authenticated_editor
             self.assertFalse((root/'rog5-text-probe.txt').exists())
 
 
+class DeviceReadinessExperiment(unittest.TestCase):
+    def run_wait(self, selected=False, combined=True, failed=False, malformed=False):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            if combined:
+                (root/'session-sha256').touch()
+                (root/'apps-probe').touch()
+            if selected:
+                (root/'device-readiness-20s').write_text('wrong\n' if malformed else '20\n')
+            tool = root/'udevadm'
+            tool.write_text('''#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+with Path(os.environ['CALLS']).open('a') as f: f.write(json.dumps(sys.argv[1:])+'\\n')
+if sys.argv[1]=='info': sys.exit(0)
+assert sys.argv[1]=='wait' and sys.argv[3]=='--initialized=yes'
+# Virtual12s readiness: no real sleep, retries or device access.
+sys.exit(42 if os.environ['FAILED']=='1' or sys.argv[2]!='--timeout=20' else 0)
+''')
+            tool.chmod(0o755)
+            source = RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+            fixture_source = root/'source.sh'
+            # Snapshot runs in another shell which sources this file again.
+            # Isolate that observation from host devices and the host journal.
+            fixture_source.write_text(source.read_text()+'\nlogind_device_snapshot(){ echo fixture-snapshot; }\n')
+            r = subprocess.run(['bash','-euc','source "$1"; logind_wait_devices "$2"; echo ADMITTED',
+                                'fixture',str(fixture_source),str(root)], capture_output=True,text=True,timeout=5,
+                               env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
+                                    'TMPDIR':str(root),'CALLS':str(root/'calls'),'FAILED':str(int(failed))})
+            calls = [json.loads(x) for x in (root/'calls').read_text().splitlines()] if (root/'calls').exists() else []
+            self.assertEqual(list(root.glob('rog5-device-query.*')), [])
+            return r, calls
+
+    def test_selected_wait_admits_late_devices_once_without_dropping_consumers(self):
+        r, calls = self.run_wait(selected=True)
+        self.assertEqual(r.returncode, 0, r.stdout+r.stderr)
+        self.assertEqual(calls, [['wait','--timeout=20','--initialized=yes',
+                         '/dev/dri/card0','/dev/input/event0','/dev/tty1','/dev/fuse',
+                         '/dev/input/event1','/dev/vport0p1']])
+        self.assertIn('deadline_seconds=20', r.stdout)
+        self.assertIn('ADMITTED', r.stdout)
+
+    def test_default_and_selected_failure_remain_fatal_without_retry(self):
+        for selected in (False, True):
+            r, calls = self.run_wait(selected=selected, failed=selected)
+            self.assertEqual(r.returncode, 42, r.stdout+r.stderr)
+            self.assertNotIn('ADMITTED', r.stdout)
+            self.assertEqual([c[:3] for c in calls if c[0]=='wait'],
+                             [['wait','--timeout='+('20' if selected else '8'),'--initialized=yes']])
+
+    def test_override_refuses_basic_or_malformed_before_device_effects(self):
+        for combined, malformed in ((False, False), (True, True)):
+            r, calls = self.run_wait(selected=True, combined=combined, malformed=malformed)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertEqual(calls, [])
+
+
 class AppsPreflight(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         spec = importlib.util.spec_from_file_location('apps_runner_fixture', RUNNER)
         cls.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.runner)
+
+    def test_readiness_experiment_requires_combined_and_stages_exact_marker(self):
+        required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
+                  'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]
+        with patch.object(sys,'argv',[str(RUNNER),*required,'--device-readiness-20s']), \
+                patch.object(self.runner,'install_handlers') as effects,patch('sys.stderr',new_callable=io.StringIO):
+            with self.assertRaises(SystemExit) as status:self.runner.main()
+            self.assertEqual(status.exception.code,2);effects.assert_not_called()
+        combined=['--session-archive','/unused','--session-receipt','/unused','--host-render-node','/unused']
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,'--device-readiness-20s']), \
+                patch.object(self.runner,'install_handlers',side_effect=RuntimeError('accepted explicit wait')):
+            with self.assertRaisesRegex(RuntimeError,'accepted explicit wait'):self.runner.main()
+        nodes=[n for n in ast.walk(ast.parse(RUNNER.read_text())) if isinstance(n,ast.If)
+               and ast.unparse(n.test)=='args.device_readiness_20s']
+        self.assertEqual(len(nodes),1)
+        with tempfile.TemporaryDirectory() as directory:
+            stage=Path(directory);(stage/'stage').mkdir()
+            env=dict(args=SimpleNamespace(device_readiness_20s=False),stage=stage,
+                     result={'outputs':{}},identity=self.runner.identity)
+            code=compile(ast.Module(body=nodes,type_ignores=[]),str(RUNNER),'exec')
+            exec(code,env);self.assertEqual(list((stage/'stage').iterdir()),[])
+            env['args'].device_readiness_20s=True
+            exec(code,env)
+            target=stage/'stage/device-readiness-20s'
+            self.assertEqual(target.read_bytes(),b'20\n')
+            self.assertEqual(env['result']['outputs']['stage/device-readiness-20s'],self.runner.identity(target))
+            with self.assertRaises(FileExistsError):exec(code,env)
 
     def test_settings_probe_staging_checks_architecture_and_preserves_exact_bytes(self):
         with tempfile.TemporaryDirectory() as work:

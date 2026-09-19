@@ -420,6 +420,8 @@ def main():
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
     parser.add_argument('--app-close-probe', action='store_true',
                         help='close-only diagnostic: bounded read-only owned Mousepad proc sampler')
+    parser.add_argument('--device-readiness-20s', action='store_true',
+                        help='combined VM experiment: one 20s initialized-device wait; default remains 8s')
     parser.add_argument('--linker-cache', type=Path,
                         help='exact-runtime cache directory from prepare-qemu-linker-cache.py; VM-only RAM staging')
     parser.add_argument('--hwdb-cache', type=Path,
@@ -447,6 +449,8 @@ def main():
         parser.error('settings-sync-diagnostic requires observe-apps')
     if args.app_close_probe and not (args.close_only and args.settings_sync_diagnostic is not None):
         parser.error('app-close-probe requires close-only and settings-sync-diagnostic')
+    if args.device_readiness_20s and not combined:
+        parser.error('device-readiness-20s requires combined session')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -629,6 +633,11 @@ def main():
         if args.settings_sync_diagnostic is not None:
             target = stage_settings_sync_diagnostic(args.settings_sync_diagnostic, stage/'stage')
             result['outputs']['stage/settings-sync-diagnostic.so'] = identity(target)
+        if args.device_readiness_20s:
+            target = stage/'stage/device-readiness-20s'
+            with target.open('x') as stream:
+                stream.write('20\n')
+            result['outputs']['stage/device-readiness-20s'] = identity(target)
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)
