@@ -3351,3 +3351,10 @@ while the pinned kernel supports arm64.nomops. Both modes passed the reduced
 probe in about4s each; that does not explain full startup stalls or justify a
 default CPU-feature workaround. Sampled page-helper PCs do not identify their
 duration or the mapping's backing file.
+
+File-backed control (2026-09-19): raw ARM64 syscall flags can override asm-generic
+values. A real symlink negative test caught O_NOFOLLOW accidentally specifying
+O_LARGEFILE; use the pinned architecture UAPI and run refusal cases before VM
+qualification. Synthetic read-only9P private mapping and fork/COW pass in about6s
+per mode here. Preserve full-byte host backing checks separately from sampled
+guest page checks; neither passing reduced workload explains full startup stalls.

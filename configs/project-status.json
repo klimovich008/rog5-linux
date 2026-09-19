@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Anonymous/COW VM controls pass; full startup stall remains unresolved",
+  "phase": "Read-only 9P/COW controls pass; full startup stall remains unresolved",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Frozen source117f46d6 passes111 active suites. A5KiB probe completes eight32MiB anonymous-page/COW rounds in both normal and arm64.nomops modes on the exact retained kernel/QEMU, with normal poweroff and no RCU stall. The first probe required disabled madvise; it was corrected to mmap/munmap without changing the kernel. These controls do not reproduce or repair the earlier full startup failure. Next isolate read-only9P/file-backed faults with a bounded control before another full Denial retry; keep nomops explicit, preserve deadlines and do not infer phone behavior. Portal/app readiness, S06/R01 FAIL and physical NOT RUN remain open.",
-  "evidence": "test-results/2026-09-19-page-fault-control.md"
+  "next": "Frozen source11b40249 completes eight 32 MiB file-backed/COW rounds over read-only 9P in normal and arm64.nomops modes, with unchanged backing bytes, no RCU stall and normal poweroff. The ARM64 no-follow flag error in the new probe was caught and corrected by a symlink negative test. These controls do not reproduce or repair the full startup failure. Next prepare a bounded startup-only comparison using the retained full runtime and explicit nomops control before another interactive Denial retry. Preserve S06/R01 FAIL and physical NOT RUN.",
+  "evidence": "test-results/2026-09-19-file-page-fault-control.md"
 }

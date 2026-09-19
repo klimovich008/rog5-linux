@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Anonymous/COW VM controls pass; full startup stall remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Read-only 9P/COW controls pass; full startup stall remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen source117f46d6 passes111 active suites. A5KiB probe completes eight32MiB anonymous-page/COW rounds in both normal and arm64.nomops modes on the exact retained kernel/QEMU, with normal poweroff and no RCU stall. The first probe required disabled madvise; it was corrected to mmap/munmap without changing the kernel. These controls do not reproduce or repair the earlier full startup failure. Next isolate read-only9P/file-backed faults with a bounded control before another full Denial retry; keep nomops explicit, preserve deadlines and do not infer phone behavior. Portal/app readiness, S06/R01 FAIL and physical NOT RUN remain open. See [current repair evidence](../test-results/2026-09-19-page-fault-control.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen source11b40249 completes eight 32 MiB file-backed/COW rounds over read-only 9P in normal and arm64.nomops modes, with unchanged backing bytes, no RCU stall and normal poweroff. The ARM64 no-follow flag error in the new probe was caught and corrected by a symlink negative test. These controls do not reproduce or repair the full startup failure. Next prepare a bounded startup-only comparison using the retained full runtime and explicit nomops control before another interactive Denial retry. Preserve S06/R01 FAIL and physical NOT RUN. See [current repair evidence](../test-results/2026-09-19-file-page-fault-control.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

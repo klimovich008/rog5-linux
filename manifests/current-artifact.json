@@ -1925,6 +1925,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; anonymous-page kernel probe only, full Denial startup unresolved"
+    },
+    "file_page_fault_control": {
+      "status": "PASS_READONLY_9P_COW_BOTH_MOPS_MODES_FULL_STARTUP_STALL_NOT_REPRODUCED",
+      "set_id": "private:rog5-file-page-fault-control-20260919-r1-r2",
+      "source_commit": "11b40249f5fd3212dd9f6d794284d01a58802bd6",
+      "source_tree": "572691d39794a0ef7b459660051db35f28cb13b7",
+      "evidence": {
+        "path": "test-results/2026-09-19-file-page-fault-control-qualification.json",
+        "sha256": "1b9d58615a94b283e2abfc5b3780c788decad4c57b89684f9af588baf0e50384",
+        "bytes": 40705
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; synthetic-file kernel probe only; full Denial startup unresolved"
     }
   },
   "denial_phone_linkage": {
