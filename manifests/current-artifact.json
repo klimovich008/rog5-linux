@@ -1991,6 +1991,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM comparison only, no default CPU-feature workaround"
+    },
+    "session_budget_repair": {
+      "status": "PASS_HOST_NESTED_BUDGETS_VM_FAIL_FUSE_INITIALIZATION",
+      "set_id": "private:rog5-session-budgets-20260919-r1",
+      "source_commit": "4752ea529197af94390c170afa5199ed633b0949",
+      "source_tree": "a6416acf31d933df0c123e3c7f5224740f0a2013",
+      "evidence": {
+        "path": "test-results/2026-09-19-session-budgets-qualification.json",
+        "sha256": "049bac00567558767affaacfdc01f8c45db08d35610cb4eac85500fccbf7e4f6",
+        "bytes": 19338
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; nested full-session budgets not exercised past device failure"
     }
   },
   "denial_phone_linkage": {

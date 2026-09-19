@@ -3350,6 +3350,14 @@ window. Mapping one visible app before cutoff does not prove the next gesture,
 second app or cleanup failed internally. Reconcile nested budgets before
 repeating, rather than inferring a graphics defect from an incomplete flow.
 
+Device evidence (2026-09-19): the database-first failure snapshot finally
+captured a FUSE-only missing receipt while the other five entries existed,
+including empty tty1. Capture completion is separate from the slower remaining
+query timeout. Check the actual coldplug service and boot ordering before
+adding dependencies: enumeration had already finished here. Do not remove
+initialization checks because static-node permissions look correct, and do not
+claim a later snapshot proves the exact device state at the wait cutoff.
+
 Device diagnostics (2026-09-19): preserve the producer status while capping and draining debug output, and label later snapshots separately. This VM passed the same initialized-device wait; instrumentation and scheduling changed timing, so this does not explain the preceding failure. An aborted qualification can still contain useful compositor counters: inspect retained logs before calling rendering unexecuted. The live service query timed out with no properties despite line buffering; use already captured individual service journal events with monotonic timestamps to distinguish late readiness from a stuck start transaction. Bound new fault-injection tests using measured runtime: 107 runner cases took 23.067s, exceeding the former 20s host-test limit. Raising only that test limit to 30s allowed the active tier to pass; production deadlines remain unchanged.
 
 Failure reporting (2026-09-19): a subshell function with its own EXIT trap can skip the parent ERR trap. An external-command fixture missed this; the actual readiness function reproduces it, and retained ARM64 Bash confirms the semantics. Collect failure evidence in the existing supervisor EXIT path, preserve the original status, and keep ERR only for an available line marker. A control failing before its intended observation can still expose a concrete defect; repair that defect offline before another VM. The partial device snapshot is a later observation and does not identify the exact state at timeout. Reuse the retained validated hardware-database cache only after matching its input/consumer and staging contract; a costly cold rebuild is not proof of the later timeout cause.

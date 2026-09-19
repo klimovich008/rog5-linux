@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **MOPS-disabled VM maps visible Mousepad; full app flow still fails outer deadline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Nested VM budgets fixed offline; failure snapshot isolates absent FUSE database**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-One full-workload arm64.nomops VM at96b44f25 reaches Denial app flow and visibly maps/focuses Mousepad without an observed RCU stall, but expires at300s during home-return gesture before Foot or approved teardown.40s portal allowance is reached through successful service/FUSE gating; exact completion timestamps were not captured. All consumed source/runtime inputs match the normal arm; initramfs differs only in fresh observer token and inode/mtime metadata. Reused unchanged111-suite host PASS; no new build or phone operation. Next reconcile host/PAM/app deadline composition against measured startup and the existing60s app-flow bound before another VM, rather than repeat or promote MOPS as a workaround. Physical NOT RUN; S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-19-denial-nomops-session.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Source4752ea52 passes111 active suites and20 focused cases. Full VM deadlines are420s host/240s fixture/210s PAM; basic and startup-only unchanged, inner services/app checks retained. The one nomops VM fails before PAM:8s initialized-device wait times out; database-first snapshot shows five entries present, only FUSE absent. Empty tty1 entry is valid. No RCU observed; normal poweroff with /var unmount failure; deadline repair runtime NOT RUN. Next isolate FUSE event/database processing; coldplug enumeration already completed, so adding ordering alone is not a demonstrated fix. Preserve readiness/permission/FUSE checks and all earlier results. Physical NOT RUN; S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-19-session-budgets.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
