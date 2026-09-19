@@ -27,7 +27,7 @@ class Admission(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.original = self.root/'runtime'; self.view = self.root/'view'
-        self.directory = self.root/'prepared'; self.destination = self.root/'stage'
+        self.directory = self.root/'prepared'; self.destination = self.root/'assembly'
         for path in (self.original, self.view, self.directory, self.destination):
             path.mkdir()
         tools = {}
@@ -220,7 +220,7 @@ class RunnerWiring(unittest.TestCase):
         self.assertFalse(output.exists(), 'runner changed the retained original runtime')
 
     def test_stage_records_actual_outputs(self):
-        destination = self.root/'stage'
+        destination = self.root/'assembly'
         record = {'status':'fixture admitted'}
         def stage(directory, runtime, receipt, output):
             self.assertEqual((directory,runtime,receipt),('cache','runtime','receipt'))
@@ -234,7 +234,7 @@ class RunnerWiring(unittest.TestCase):
         self.assertEqual(result['hwdb_cache'],record)
         module.stage.assert_called_once()
         for name in ('hwdb-cache','hwdb-cache.sha256'):
-            self.assertEqual(result['outputs']['stage/'+name],self.runner.identity(destination/name))
+            self.assertEqual(result['outputs']['payload/'+name],self.runner.identity(destination/'payload'/name))
 
     def test_stage_failure_propagates_without_acceptance(self):
         result = {'outputs':{}}
@@ -243,6 +243,28 @@ class RunnerWiring(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'fixture refusal'):
                 self.runner.stage_hwdb_cache('cache','runtime','receipt',self.root/'stage',result)
         self.assertEqual(result,{'outputs':{}})
+
+    def test_large_cache_does_not_enter_bounded_initramfs(self):
+        # The first integrated attempt hit SIGXFSZ at 8 MiB. Exercise actual
+        # staging and the same bounded cpio executor with a 14 MB cache.
+        def stage(directory, runtime, receipt, output):
+            with (output/'hwdb-cache').open('wb') as stream:
+                stream.truncate(13996390)
+            (output/'hwdb-cache.sha256').write_text('fixture\n')
+            return {'status':'fixture'}
+        with mock.patch.object(self.runner,'hwdb_cache_module',return_value=SimpleNamespace(stage=stage)):
+            self.runner.stage_hwdb_cache('cache','runtime','receipt',self.root,{'outputs':{}})
+        initramfs = self.root/'initramfs'; (initramfs/'stage').mkdir(parents=True)
+        (initramfs/'stage/guest.sh').write_text('#!/bin/sh\nexit 0\n')
+        members = sorted(str(path.relative_to(initramfs)) for path in initramfs.rglob('*'))
+        archive = self.root/'initramfs.cpio'
+        with archive.open('xb') as output:
+            self.runner.execute(['cpio','--null','-o','--quiet','--format=newc','--owner=0:0'],
+                self.root/'cpio.log',10,[],cwd=initramfs,
+                data=('\0'.join(members)+'\0').encode(),stdout=output)
+        self.assertLess(archive.stat().st_size,self.runner.LOG_LIMIT)
+        self.assertEqual((self.root/'payload/hwdb-cache').stat().st_size,13996390)
+        self.assertNotIn(b'hwdb-cache',archive.read_bytes())
 
 
 if __name__ == '__main__':

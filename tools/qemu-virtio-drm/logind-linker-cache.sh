@@ -10,14 +10,14 @@ prepare_vm_cache() (
         hwdb) prefix=hwdb-cache; relative=udev/hwdb.bin; unit=systemd-hwdb-update; minimum=80; maximum=67108864 ;;
         *) return 1 ;;
     esac
-    local run=${1:-/run} etc=${2:-/etc} expected size staged='' marker_staged='' status
+    local run=${1:-/run} etc=${2:-/etc} input=${3:-${1:-/run}} expected size staged='' marker_staged='' status
     local dropin made_systemd=0 made_system=0 made_dropin=0 committed=0
     local cache marker guard parent
-    [[ ! -e $run/$prefix && ! -L $run/$prefix &&
-       ! -e $run/$prefix.sha256 && ! -L $run/$prefix.sha256 ]] && return 0
+    [[ ! -e $input/$prefix && ! -L $input/$prefix &&
+       ! -e $input/$prefix.sha256 && ! -L $input/$prefix.sha256 ]] && return 0
     [[ $run == /* && $etc == /* && $run != *[$'\n\r\t %:']* &&
        $etc != *[$'\n\r\t:']* && -d $run && ! -L $run &&
-       -d $etc && ! -L $etc ]] || return 1
+       -d $etc && ! -L $etc && $input == /* && -d $input && ! -L $input ]] || return 1
     if [[ $kind == hwdb ]]; then
         [[ -d $etc/udev && ! -L $etc/udev ]] || return 1
     fi
@@ -25,14 +25,14 @@ prepare_vm_cache() (
     marker=$run/$prefix.verified
     dropin=$etc/systemd/system/$unit.service.d
     guard=$dropin/50-rog5-cache.conf
-    for parent in "$run/$prefix" "$run/$prefix.sha256"; do
+    for parent in "$input/$prefix" "$input/$prefix.sha256"; do
         [[ -f $parent && ! -L $parent && -r $parent ]] || return 1
         [[ $(stat -c %h -- "$parent") == 1 ]] || return 1
     done
-    size=$(stat -c %s -- "$run/$prefix") || return $?
+    size=$(stat -c %s -- "$input/$prefix") || return $?
     [[ $size =~ ^[0-9]+$ ]] && ((size >= minimum && size <= maximum)) || return 1
-    [[ $(stat -c %s -- "$run/$prefix.sha256") == 65 ]] || return 1
-    IFS= read -r expected < "$run/$prefix.sha256" || return 1
+    [[ $(stat -c %s -- "$input/$prefix.sha256") == 65 ]] || return 1
+    IFS= read -r expected < "$input/$prefix.sha256" || return 1
     [[ $expected =~ ^[[:xdigit:]]{64}$ ]] || return 1
     expected=${expected,,}
     [[ ! -e $cache && ! -L $cache && ! -e $marker && ! -L $marker &&
@@ -41,7 +41,7 @@ prepare_vm_cache() (
         [[ ! -L $parent && ( ! -e $parent || -d $parent ) ]] || return 1
     done
     local digest
-    digest=$(sha256sum -- "$run/$prefix") || return $?
+    digest=$(sha256sum -- "$input/$prefix") || return $?
     [[ ${digest%% *} == "$expected" ]] || return 1
     staged=$(mktemp -d -- "$etc/.rog5-$prefix.XXXXXXXX") || return $?
     # Keep staging hardlinks until commit so cleanup can identify owned outputs
@@ -67,7 +67,7 @@ prepare_vm_cache() (
     # /run and /etc can be distinct tmpfs mounts. Each atomic publication
     # must use a staging inode on the destination filesystem.
     marker_staged=$(mktemp -d -- "$run/.rog5-$prefix.XXXXXXXX") || return $?
-    cp -- "$run/$prefix" "$staged/cache" || return $?
+    cp -- "$input/$prefix" "$staged/cache" || return $?
     chmod 0644 -- "$staged/cache" || return $?
     digest=$(sha256sum -- "$staged/cache") || return $?
     [[ ${digest%% *} == "$expected" ]] || return 1
@@ -112,6 +112,6 @@ prepare_linker_cache() { prepare_vm_cache linker "$@"; }
 prepare_hwdb_cache() { prepare_vm_cache hwdb "$@"; }
 
 prepare_boot_caches() {
-    prepare_linker_cache "$@" || return $?
+    prepare_linker_cache "${1:-/run}" "${2:-/etc}" || return $?
     prepare_hwdb_cache "$@" || return $?
 }

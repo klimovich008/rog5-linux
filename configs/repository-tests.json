@@ -8489,7 +8489,8 @@
       "mandatory": true,
       "deadline_seconds": 15,
       "prerequisites": [
-        "python3"
+        "python3",
+        "cpio"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",

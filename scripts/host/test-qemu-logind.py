@@ -338,14 +338,17 @@ def hwdb_cache_module():
     return module
 
 
-def stage_hwdb_cache(directory, runtime, receipt, stage, result):
+def stage_hwdb_cache(directory, runtime, receipt, output, result):
     # Admit and copy once, before compiler/container work. The copied bytes are
     # verified by the guest before the generator-suppression marker is published.
+    # Large data belongs on the existing read-only 9p payload mount, outside
+    # the 8 MiB initramfs/tool-output budget. The guest copies it to private RAM.
+    stage = output/'payload'
     stage.mkdir(parents=True, exist_ok=True)
     record = hwdb_cache_module().stage(directory, runtime, receipt, stage)
     result['hwdb_cache'] = record
     for member in ('hwdb-cache', 'hwdb-cache.sha256'):
-        result['outputs']['stage/'+member] = identity(stage/member)
+        result['outputs']['payload/'+member] = identity(stage/member)
 
 
 def observation_channel(apps):
@@ -465,7 +468,7 @@ def main():
         if args.linker_cache is not None:
             result['linker_cache'] = linker_cache_module().validate(args.linker_cache, runtime, receipt)
         if args.hwdb_cache is not None:
-            stage_hwdb_cache(args.hwdb_cache, runtime, receipt, output/'initramfs/stage', result)
+            stage_hwdb_cache(args.hwdb_cache, runtime, receipt, output, result)
             result['runtime_limit'] = 'Hardware-database admission reverified complete original/mapped runtime inventories, bytes and metadata before staging.'
         if combined:
             session_record = validate_session_archive(regular(args.session_archive), regular(args.session_receipt))
@@ -528,7 +531,7 @@ def main():
                 raise RuntimeError(f'mandatory host tool missing: {tool}')
             result.setdefault('host_tools', {})[tool] = identity(Path(found))
         payload = output / 'payload'
-        payload.mkdir()
+        payload.mkdir(exist_ok=True)
         stage = output / 'initramfs'
         for directory in ('dev', 'sysroot', 'stage/payload'):
             (stage / directory).mkdir(parents=True, exist_ok=True)

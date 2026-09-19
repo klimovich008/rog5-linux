@@ -30,7 +30,7 @@ class HardwareDatabase(unittest.TestCase):
 import os, pathlib, sys
 root = pathlib.Path(os.environ['HWDB_FIXTURE'])
 if sys.argv[1:] != ['query', 'usb:v046Dp0200d0000']: sys.exit(91)
-if (root/'etc/udev/hwdb.bin').read_bytes() != (root/'run/hwdb-cache').read_bytes(): sys.exit(92)
+if (root/'etc/udev/hwdb.bin').read_bytes() != (pathlib.Path(os.environ['HWDB_INPUT'])/'hwdb-cache').read_bytes(): sys.exit(92)
 if (root/'run/hwdb-cache.verified').exists(): sys.exit(93)
 if (root/'etc/systemd/system/systemd-hwdb-update.service.d').exists(): sys.exit(94)
 (root/'queried').write_text('published cache consumed before suppression')
@@ -49,13 +49,14 @@ sys.stdout.write('wrong answer\\n' if mode == 'wrong' else ''' + repr(QUERY) + '
         (self.run/'hwdb-cache').write_bytes(self.data)
         (self.run/'hwdb-cache.sha256').write_text(hashlib.sha256(self.data).hexdigest()+'\n')
 
-    def call(self, mode='', inject=''):
+    def call(self, mode='', inject='', input_directory=None):
+        input_directory = input_directory or self.run
         env = dict(os.environ, PATH=str(self.bin)+':'+os.environ['PATH'],
-                   HWDB_FIXTURE=str(self.root), HWDB_MODE=mode)
+                   HWDB_FIXTURE=str(self.root), HWDB_MODE=mode, HWDB_INPUT=str(input_directory))
         return subprocess.run(['bash', '--noprofile', '--norc', '-c',
             'source "$1" || exit $?\n'+inject+
-            '\nif prepare_hwdb_cache "$2" "$3"; then exit 0; else exit $?; fi',
-            'fixture', str(SCRIPT), str(self.run), str(self.etc)],
+            '\nif prepare_hwdb_cache "$2" "$3" "$4"; then exit 0; else exit $?; fi',
+            'fixture', str(SCRIPT), str(self.run), str(self.etc), str(input_directory)],
             env=env, capture_output=True, text=True, timeout=8)
 
     def clean_failure(self, result):
@@ -126,6 +127,19 @@ sys.stdout.write('wrong answer\\n' if mode == 'wrong' else ''' + repr(QUERY) + '
         self.assertEqual(self.output.read_bytes(), b'keep')
         self.assertFalse(self.marker.exists())
 
+    def test_payload_input_remains_separate_from_ram_marker(self):
+        self.inputs()
+        payload = self.run/'payload'; payload.mkdir()
+        for name in ('hwdb-cache', 'hwdb-cache.sha256'):
+            (self.run/name).rename(payload/name)
+            (payload/name).chmod(0o444)
+        result = self.call(input_directory=payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((payload/'hwdb-cache').read_bytes(), self.data)
+        self.assertEqual((payload/'hwdb-cache').stat().st_mode & 0o777, 0o444)
+        self.assertTrue(self.marker.exists())
+        self.assertFalse((payload/'hwdb-cache.verified').exists())
+
     def test_failure_at_publication(self):
         self.inputs()
         for point in ('cache', 'guard', 'marker'):
@@ -167,7 +181,7 @@ sys.stdout.write('wrong answer\\n' if mode == 'wrong' else ''' + repr(QUERY) + '
         fragment = boot.split('source /run/logind-linker-cache.sh\n', 1)[1].split('\ndate -u ', 1)[0]
         # Execute the actual call site against private fixture roots. Substitute
         # only the physical poweroff effect; no host or guest power operation.
-        fragment = fragment.replace('prepare_boot_caches;', 'prepare_boot_caches "$2" "$3";')
+        fragment = fragment.replace('prepare_boot_caches /run /etc /run/payload;', 'prepare_boot_caches "$2" "$3" "$2";')
         fragment = fragment.replace('/usr/bin/poweroff -ff', "printf 'fixture poweroff\\n'")
         result = self.call(mode='fail', inject=fragment+'\necho unexpected continuation; exit 0')
         self.assertEqual(result.returncode, 1)
