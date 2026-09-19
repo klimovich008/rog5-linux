@@ -1,5 +1,5 @@
-//! Single main-thread PC snapshot for a future, explicitly intrusive VM probe.
-//! Not a CLI or enabled by the current read-only sampler. The caller must gate
+//! Single main-thread snapshot for an explicitly intrusive VM probe.
+//! Default sampler builds exclude this module. The caller must gate
 //! VM/UID/owner identity and supply a revalidation closure. Numeric-PID seize is
 //! not atomic with that check; stopped revalidation prevents false attribution.
 use std::{ffi::c_void, io, thread, time::{Duration, Instant}};
@@ -61,8 +61,9 @@ fn decode(registers: &[u64], length: usize) -> Result<Snapshot, String> {
 #[derive(Clone, Copy, PartialEq)]
 enum Stage { Seized, Interrupted, Stopped }
 
-fn run(pid: i32, validate: impl Fn() -> Result<(), String>,
-       hook: impl Fn(Stage) -> Result<(), String>) -> Result<Snapshot, String> {
+fn run<T>(pid: i32, validate: impl Fn() -> Result<(), String>,
+       hook: impl Fn(Stage) -> Result<(), String>,
+       inspect: impl FnOnce(&Snapshot) -> Result<T, String>) -> Result<(Snapshot, T), String> {
     validate()?;
     // Options=0: especially NO EXITKILL, signal injection, syscall tracing,
     // clone following or persistent relationship outside this one snapshot.
@@ -106,29 +107,50 @@ fn run(pid: i32, validate: impl Fn() -> Result<(), String>,
         let mut registers = [0u64; REGISTER_WORDS];
         let mut iovec = Iovec { base: registers.as_mut_ptr().cast(), length: std::mem::size_of_val(&registers) };
         request(GETREGSET, pid, 1, &mut iovec as *mut Iovec as usize)?; // NT_PRSTATUS
-        decode(&registers, iovec.length)
+        let snapshot = decode(&registers, iovec.length)?;
+        let extra = inspect(&snapshot)?;
+        Ok::<_, String>((snapshot, extra))
     })();
     // Detach even when identity or register reading failed. Errors before this
     // point use tracer-thread exit cleanup; no captured value escapes failure.
     request(DETACH, pid, 0, 0)?;
-    let mut snapshot = observed?;
+    let (mut snapshot, extra) = observed?;
     snapshot.interrupt_to_detach = started.elapsed();
     validate()?;
-    Ok(snapshot)
+    Ok((snapshot, extra))
 }
 
+#[cfg(test)]
 fn capture_with(pid: i32, validate: impl Fn() -> Result<(), String> + Send + 'static,
                 hook: impl Fn(Stage) -> Result<(), String> + Send + 'static) -> Result<Snapshot, String> {
+    capture_inspect_with(pid, validate, hook, |_| Ok(())).map(|(shot, ())| shot)
+}
+
+fn capture_inspect_with<T: Send + 'static>(pid: i32,
+    validate: impl Fn() -> Result<(), String> + Send + 'static,
+    hook: impl Fn(Stage) -> Result<(), String> + Send + 'static,
+    inspect: impl FnOnce(&Snapshot) -> Result<T, String> + Send + 'static,
+) -> Result<(Snapshot, T), String> {
     if pid <= 1 || pid as u32 == std::process::id() { return Err("invalid-target-pid".into()); }
     // The relationship belongs to this Linux task, not the whole process.
     // join waits for task exit: kernel exit_ptrace detaches on every error or
     // panic, including a deadline before the interrupt stop can be reaped.
-    thread::Builder::new().name("vm-pc-snapshot".into()).spawn(move || run(pid, validate, hook))
+    thread::Builder::new().name("vm-pc-snapshot".into()).spawn(move || run(pid, validate, hook, inspect))
         .map_err(|e| format!("tracer-thread:{e}"))?.join().map_err(|_| "tracer-panicked".to_string())?
 }
 
+/// Run a bounded read-only observer while this exact tracee is stopped.
+/// Observer results escape only after detach and final identity validation.
+/// The caller owns observer deadlines; the outer watchdog remains mandatory.
+pub fn capture_inspect<T: Send + 'static>(pid: i32,
+    validate: impl Fn() -> Result<(), String> + Send + 'static,
+    inspect: impl FnOnce(&Snapshot) -> Result<T, String> + Send + 'static,
+) -> Result<(Snapshot, T), String> {
+    capture_inspect_with(pid, validate, |_| Ok(()), inspect)
+}
+
 pub fn capture(pid: i32, validate: impl Fn() -> Result<(), String> + Send + 'static) -> Result<Snapshot, String> {
-    capture_with(pid, validate, |_| Ok(()))
+    capture_inspect(pid, validate, |_| Ok(())).map(|(shot, ())| shot)
 }
 
 #[cfg(test)]
@@ -177,6 +199,24 @@ mod tests {
         assert!(shot.pc != 0 && shot.sp != 0);
         assert_eq!(checks.load(Ordering::SeqCst), 3);
         running(pid);
+    }
+    #[test] fn stopped_observer_runs_before_detach_and_failure_releases_child() {
+        let child = child(); let pid = child.0.id() as i32;
+        let (shot, value) = capture_inspect(pid, || Ok(()), move |shot| {
+            assert!(status(pid).contains("State:\tt"));
+            assert_ne!(shot.pc, 0);
+            Ok(42u32)
+        }).unwrap();
+        assert_eq!(value,42); assert_ne!(shot.pc,0); running(pid);
+        let result = capture_inspect(pid, || Ok(()), |_| Err::<(),_>("observer-read-error".into()));
+        assert_eq!(result.unwrap_err(),"observer-read-error"); running(pid);
+        let result = capture_inspect(pid, || Ok(()), |_| -> Result<(),String> { panic!("observer-panic") });
+        assert_eq!(result.unwrap_err(),"tracer-panicked"); running(pid);
+        let calls = AtomicUsize::new(0);
+        let result = capture_inspect(pid, move || {
+            if calls.fetch_add(1,Ordering::SeqCst)==2 {Err("final-identity".into())} else {Ok(())}
+        }, |_| Ok(42u32));
+        assert_eq!(result.unwrap_err(),"final-identity"); running(pid);
     }
     #[test] fn identity_refusal_never_publishes_registers() {
         let child = child(); let pid = child.0.id() as i32;
