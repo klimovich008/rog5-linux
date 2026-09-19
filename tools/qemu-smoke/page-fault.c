@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Bounded anonymous-page/COW probe for a generic QEMU kernel, never a phone.
+/* Bounded anonymous/file-backed COW probe for a generic QEMU kernel, never a phone.
  * Raw syscall adapter follows tools/qemu-smoke/init.c. PROBE_USER_TEST exercises
  * the same data checks under qemu-user; it cannot qualify the guest kernel.
  */
 #define PAGES 8192
 #define PAGE_SIZE 4096
 #define ROUNDS 8
+/* arch/arm64/include/uapi/asm/fcntl.h overrides the generic flag value. */
+#define ARM64_O_NOFOLLOW 0100000
+#ifndef PROBE_BACKING_PATH
+#define PROBE_BACKING_PATH "/backing/pages.bin"
+#endif
 static volatile unsigned char *memory;
 
 static long call(long n, long a, long b, long c, long d, long e)
@@ -69,11 +74,30 @@ static __attribute__((noreturn)) void fail(const char *stage)
 	say("FAIL page-fault-probe "); say(stage); say("\n"); end(1);
 }
 
+#ifdef PROBE_FILE_BACKED
+static int original_page(volatile unsigned char *data, unsigned int page)
+{
+	unsigned long off = page * PAGE_SIZE;
+	return data[off] == 0x31 && data[off + 1] == page % 251 &&
+		data[off + 2048] == 0x5c && data[off + 4095] == 0xc5;
+}
+#endif
+
+static void phase(unsigned int round, const char *name)
+{
+	say("OBSERVE page-fault-round="); number(round + 1);
+	say(" phase="); say(name); say(" monotonic_ms=");
+	number(millis()); say("\n");
+}
+
 void _start(void)
 {
 	unsigned long started, finish;
 	long pid, waited, mapped;
 	int status;
+#ifdef PROBE_FILE_BACKED
+	long backing;
+#endif
 #ifndef PROBE_USER_TEST
 	long fd;
 	if (call(172, 0, 0, 0, 0, 0) != 1) end(1);
@@ -85,25 +109,50 @@ void _start(void)
 		if (fd != i && call(24, fd, i, 0, 0, 0) < 0)
 			fail("dup-console");
 #endif
+#ifdef PROBE_FILE_BACKED
+#ifndef PROBE_USER_TEST
+	if (call(40, (long)"probe", (long)"/backing", (long)"9p", 1,
+		 (long)"trans=virtio,version=9p2000.L,msize=262144") < 0)
+		fail("mount-backing-readonly");
+#endif
+	backing = call(56, -100, (long)PROBE_BACKING_PATH, ARM64_O_NOFOLLOW, 0, 0);
+	if (backing < 0) fail("open-backing"); /* O_RDONLY | O_NOFOLLOW */
+	if (call(62, backing, 0, 2, 0, 0) != PAGES * PAGE_SIZE)
+		fail("backing-size");
+	say("OBSERVE page-fault-backing=file-private\n");
+#else
+	say("OBSERVE page-fault-backing=anonymous\n");
+#endif
 	started = millis();
 	if (!started) fail("clock-start");
 	say("BEGIN page-fault-probe pages=8192 rounds=8\n");
 	for (unsigned int round = 0; round < ROUNDS; round++) {
+		phase(round, "private-write");
+#ifdef PROBE_FILE_BACKED
+		mapped = call(222, 0, PAGES * PAGE_SIZE, 3, 2, backing);
+#else
 		/* Fresh private anonymous pages. The retained minimal kernel disables
 		 * CONFIG_ADVISE_SYSCALLS, so do not depend on MADV_DONTNEED.
 		 */
 		mapped = call(222, 0, PAGES * PAGE_SIZE, 3, 0x22, -1);
+#endif
 		if (mapped < 0) fail("map-pages");
 		memory = (volatile unsigned char *)mapped;
 		for (unsigned int p = 0; p < PAGES; p++) {
 			unsigned long off = p * PAGE_SIZE;
+#ifdef PROBE_FILE_BACKED
+			if (!original_page(memory, p)) fail("file-page");
+#else
 			if (memory[off] || memory[off + 1] ||
 			    memory[off + 2048] || memory[off + 4095])
 				fail("anonymous-zero");
+#endif
 			memory[off] = 1 + p % 127;
+			memory[off + 1] = 0;
 			memory[off + 2048] = 0x55;
 			memory[off + 4095] = 0xaa;
 		}
+		phase(round, "fork-cow");
 		pid = call(220, 17, 0, 0, 0, 0); /* clone(SIGCHLD), private VM. */
 		if (pid < 0) fail("clone");
 		if (!pid) {
@@ -133,8 +182,21 @@ void _start(void)
 		}
 		if (call(215, (long)memory, PAGES * PAGE_SIZE, 0, 0, 0) < 0)
 			fail("unmap-pages");
+#ifdef PROBE_FILE_BACKED
+		phase(round, "backing-check");
+		mapped = call(222, 0, PAGES * PAGE_SIZE, 1, 2, backing);
+		if (mapped < 0) fail("remap-backing");
+		for (unsigned int p = 0; p < PAGES; p++)
+			if (!original_page((volatile unsigned char *)mapped, p))
+				fail("backing-isolation");
+		if (call(215, mapped, PAGES * PAGE_SIZE, 0, 0, 0) < 0)
+			fail("unmap-backing");
+#endif
 		say("PASS page-fault-round="); number(round + 1); say("\n");
 	}
+#ifdef PROBE_FILE_BACKED
+	if (call(57, backing, 0, 0, 0, 0) < 0) fail("close-backing");
+#endif
 	finish = millis();
 	if (finish < started || !finish) fail("clock-end");
 	say("PASS page-fault-probe pages=8192 rounds=8 elapsed_ms=");
