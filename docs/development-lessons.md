@@ -3300,3 +3300,15 @@ alone did not reach the app-release probe: accessibility/portal start timed out
 and its combined diagnostic query also timed out. Before another full app run,
 obtain a partial-preserving pending-unit diagnostic within existing bounds; do
 not infer that avoiding RCU makes a session successful or raise deadlines.
+
+Service snapshot buffering (2026-09-19): an actual libc producer reproduces
+loss of completed small replies when timeout kills a fully buffered stdout
+writer. Use line-buffered stdout, unbuffered stderr and flush the bounded relay;
+keep overflow, primary status and deadlines. The retained ARM64 tool fixture
+confirms that mechanism, not that an earlier real systemctl received replies.
+The controlled VM then failed earlier at global udev settle, so snapshot/app
+validation was NOT RUN. Audit every consumed virtual device before replacing a
+global barrier: keyboard/tablet event numbering swaps, FUSE permissions and VT
+ownership matter, and host render-node exposure is not a guest dependency.
+Per-device initialization must retain later identity, seat, PAM and access checks.
+No unchanged VM retry, deadline increase or Denial/kernel rebuild was justified.

@@ -1836,6 +1836,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM app flow not reached"
+    },
+    "service_snapshot_control": {
+      "status": "PASS_SNAPSHOT_FIXTURE_VM_FAIL_UDEV_SETTLE_BEFORE_PAM",
+      "set_id": "private:rog5-service-snapshot-20260919-r1",
+      "source_commit": "814f0cd646f6b74abae738e380bcbe8c3082011f",
+      "evidence": {
+        "path": "test-results/2026-09-19-service-snapshot-partial-replies-qualification.json",
+        "sha256": "dbdec771bebf331428f315be87a7a7754dca640480bcb940a4637fd9efe05c26",
+        "bytes": 134447
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM preparation only"
     }
   },
   "denial_phone_linkage": {

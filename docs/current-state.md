@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM TCG option qualified; latest app trial blocked at accessibility/portal startup**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM snapshot buffering fixed; next blocker is global udev readiness before PAM**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The single-TCG close-only VM reached Denial rendering and normal guest poweroff without an RCU report, but service-start timed out 124 within the existing 25s bound before either app mapped; the 3s unit snapshot also timed out. App release probe NOT RUN. Capture which accessibility/portal job remains pending using a bounded diagnostic that preserves partial replies, then change only a demonstrated cause before another full app trial. Do not increase deadlines or retry unchanged. Startup controls remain FAIL where inventories are incomplete; Mousepad exit 137, S06/R01 FAIL and phone physical NOT RUN remain open. No phone authority. See [current repair evidence](../test-results/2026-09-19-startup-controls-and-hwdb-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Snapshot buffering fix passes native/ARM64 fixtures, 94 runner cases and 109 active suites. The controlled VM instead failed at global udev settle 8s before PAM/Denial, so real service snapshot and app release were NOT RUN. Implement and regress a mode-specific initialized-device barrier within the same 8s bound: card0/event0/tty1; combined adds fuse; editor/apps add event1/vport0p1. Keep both input paths regardless of role order, exact port identity, seat/PAM/access and fallback guards. Retained udevadm wait API and consumer audit support this scope but do not prove it would pass. Prior portal-start 124 and Mousepad exit 137 remain open; S06/R01 FAIL and phone physical NOT RUN unchanged; no phone authority. See [current repair evidence](../test-results/2026-09-19-service-snapshot-partial-replies.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
