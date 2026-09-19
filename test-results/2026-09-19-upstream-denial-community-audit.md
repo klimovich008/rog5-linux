@@ -77,6 +77,28 @@ ROG5/anakin port emerged in this bounded search.
    versus session configuration may be reusable ideas, subject to comparison
    with our existing work. Retain Arch; its partition/flashing guide does not
    apply to our rescue layout.
+5. **Practical mobile applications:** the community's
+   [Pocketblue post](https://www.reddit.com/r/mobilelinux/comments/1vwe4bb/fedora_atomic_by_pocketblue/)
+   leads to its [mobile Firefox configuration](https://pocketblue.github.io/tips-and-tricks/flatpaks/).
+   This is a concrete app-usability reference for our eventual Arch session;
+   it is not a kernel port or evidence that our browser, portal or keyboard works.
+   Inspect the actual configuration and its license before importing anything.
+
+The follow-up source read also confirms a useful sensor integration distinction
+in [Hotdog's support description](https://github.com/Sr-0w/hotdog-linux-bringup):
+its `iio-sensor-proxy` uses `libssc` to communicate with Qualcomm SEE over QMI,
+without an IIO/input device, and applies a measured `ACCEL_MOUNT_MATRIX`.
+This is a lead for the non-cellular rotation milestone, not permission to copy
+its sensor firmware, calibration or axis matrix. Its suspend report explicitly
+retains Bluetooth and other resume limitations. These are that project's
+reported results, not independently reproduced results or ROG5 qualification.
+
+Live Denial refs were checked again during this follow-up: main remains
+`93eb3261ff4c86b84b80e05d642c753c5ece3159`, dev remains
+`1395c0f5e70ecc3158fcdd9b03d02850d7ec17d2`. The v0.4.3 annotated tag object
+is `d65db9bc1c2758c26c75eedd47581ff6d653607a`; do not confuse the tag-object
+identity with its target commit. No newer compositor build is justified by
+these unchanged refs alone.
 
 The OnePlus 12R Denial demonstration uses Snapdragon 8 Gen 2/Adreno 740,
 not our SM8350/A660. Its success is neither ROG5 GPU nor panel qualification.
