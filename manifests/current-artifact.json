@@ -1872,6 +1872,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM only"
+    },
+    "monotonic_journal_control": {
+      "status": "PASS_EXIT_JOURNAL_HOST_VM_NOT_RUN_AFTER_FIX",
+      "set_id": "private:rog5-portal-monotonic-20260919-r1",
+      "source_commit": "ff9966efb053cd66078d9bd9c37656e7e7dba9f3",
+      "vm_source_commit": "1901bd6cbca98ac4b0f4fc60444963b8176032bb",
+      "evidence": {
+        "path": "test-results/2026-09-19-monotonic-failure-journal-qualification.json",
+        "sha256": "92a78457f144cfbdf3cfc446b98b28a4e5ee71bb0908b32cf13dc55ae37585a5",
+        "bytes": 48686
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; final placement host-qualified, VM NOT RUN"
     }
   },
   "denial_phone_linkage": {
