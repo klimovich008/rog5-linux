@@ -1860,6 +1860,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM preparation only"
+    },
+    "device_diagnostics_control": {
+      "status": "PASS_DIAGNOSTICS_VM_FAIL_SERVICE_START",
+      "set_id": "private:rog5-device-diagnostics-20260919-r1",
+      "source_commit": "4beee9a27b2136c01a7aab400e97d3d9a29c07b5",
+      "evidence": {
+        "path": "test-results/2026-09-19-device-readiness-diagnostics-qualification.json",
+        "sha256": "400b853df2f8bc706b0c8d17115f8f3c93e25e1de00532bebff7b37f18f01901",
+        "bytes": 123962
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM only"
     }
   },
   "denial_phone_linkage": {
