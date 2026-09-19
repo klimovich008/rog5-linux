@@ -33,6 +33,10 @@ STARTUP_UNITS = ('systemd-hwdb-update.service', 'ldconfig.service',
 
 def startup_result(serial):
     """Decode bounded diagnostic data without treating it as session proof."""
+    failures = re.findall(r'^(?:bash\[[1-9][0-9]*\]: )?DIAGNOSTIC_UNIT_TIMINGS status=failed code=(\d+) bytes=(\d+) hex=[0-9a-f]*$', serial, re.M)
+    if failures:
+        code, size = failures[0]
+        raise ValueError(f'startup timing query failed (code={code}, bytes={size}); inventory unqualified')
     packet = re.findall(r'^(?:bash\[[1-9][0-9]*\]: )?DIAGNOSTIC_UNIT_TIMINGS status=read bytes=(\d+) hex=([0-9a-f]+)$', serial, re.M)
     handoff = re.findall(r'^OBSERVE pid1-handoff boottime=([0-9]+\.[0-9]+)$', serial, re.M)
     ready = 'PASS startup-only authenticated readiness; Denial NOT RUN'

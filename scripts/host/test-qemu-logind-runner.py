@@ -1955,7 +1955,15 @@ class StartupOnly(unittest.TestCase):
 
     def test_failed_partial_timing_data_never_qualifies(self):
         serial = self.serial().replace('status=read bytes=', 'status=failed code=124 bytes=')
-        with self.assertRaises(ValueError): self.runner.startup_result(serial)
+        with self.assertRaisesRegex(ValueError, 'startup timing query failed.*code=124'):
+            self.runner.startup_result(serial)
+
+    def test_failed_timing_packet_cannot_hide_behind_successful_inventory(self):
+        failed = 'bash[473]: DIAGNOSTIC_UNIT_TIMINGS status=failed code=124 bytes=0 hex=\n'
+        for serial in (failed+self.serial(), self.serial()+failed):
+            with self.subTest(serial=serial[:50]), self.assertRaisesRegex(
+                    ValueError, 'startup timing query failed.*code=124'):
+                self.runner.startup_result(serial)
 
     def test_missing_or_duplicate_timing_proof_fails(self):
         serial = self.serial()
