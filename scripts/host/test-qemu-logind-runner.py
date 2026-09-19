@@ -703,7 +703,7 @@ sys.exit(int(os.environ['FAILURE']))
             result = subprocess.run(['bash', '-c', code, 'fixture',
                                      str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'), str(root)],
                                     env={**os.environ, 'PATH': str(root)+':'+os.environ['PATH'],
-                                         'ARGUMENTS': str(root/'args'), 'MISSING': missing,
+                                         'TMPDIR': str(root), 'ARGUMENTS': str(root/'args'), 'MISSING': missing,
                                          'UNINITIALIZED': uninitialized, 'FAILURE': str(failure)},
                                     capture_output=True, text=True, timeout=3)
             arguments = json.loads((root/'args').read_text()) if (root/'args').exists() else None
@@ -744,6 +744,178 @@ sys.exit(int(os.environ['FAILURE']))
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIsNone(arguments)
                 self.assertNotIn('ADMITTED', result.stdout)
+
+
+class DeviceReadinessDiagnostics(unittest.TestCase):
+    def run_wait(self, failure=42, verbose=False, snapshot_failure=False,
+                 snapshot_stall=False, capture_failure=False, encoder_failure=False):
+        source = RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'session-sha256').touch()
+            (root/'apps-probe').touch()
+            (root/'udevadm').write_text('''#!/usr/bin/env python3
+import json, os, sys, time
+from pathlib import Path
+args=sys.argv[1:]
+with open(os.environ['CALLS'],'a') as f:
+    f.write(json.dumps(args)+'\\n')
+if args[:3] == ['wait','--timeout=8','--initialized=yes']:
+    if os.environ.get('SYSTEMD_LOG_TARGET') != 'console' or os.environ.get('SYSTEMD_LOG_LEVEL') != 'debug':
+        sys.exit(int(os.environ['FAILURE']))
+    os.write(1,b'wait-stdout\\n')
+    os.write(2,b'wait-stderr-without-newline')
+    if os.environ['VERBOSE']=='1':
+        os.write(2,b'x'*100000+b'\\nPASS forged readiness\\n')
+    sys.exit(int(os.environ['FAILURE']))
+if args[:2] == ['info','--query=property']:
+    if os.environ['SNAPSHOT_STALL']=='1': time.sleep(30)
+    if os.environ['SNAPSHOT_FAILURE']=='1': sys.exit(127)
+    print('DEVNAME='+args[-1])
+    if args[-1] != '/dev/fuse': print('USEC_INITIALIZED=1234')
+    sys.exit(0)
+sys.exit(98)
+''')
+            (root/'udevadm').chmod(0o755)
+            (root/'journalctl').write_text('#!/bin/bash\nprintf "synthetic pending udev worker\\n"\n')
+            (root/'journalctl').chmod(0o755)
+            (root/'stat').write_text('#!/bin/bash\ncase "${@: -1}" in /dev/*) printf "character special file 1 3 600 0 0\\n";; *) exec /usr/bin/stat "$@";; esac\n')
+            (root/'stat').chmod(0o755)
+            if encoder_failure:
+                (root/'od').write_text('#!/bin/bash\nexit 74\n')
+                (root/'od').chmod(0o755)
+            code='set -euo pipefail; source "$1"; '
+            if capture_failure:
+                code+='logind_device_capture() { cat > "$1"; return 73; }; '
+            code+='logind_wait_devices "$2"'
+            result = subprocess.run(['bash','-c', code,
+                                     'fixture',str(source),str(root)],
+                                    env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
+                                         'TMPDIR':str(root),'CALLS':str(root/'calls'),
+                                         'FAILURE':str(failure),'VERBOSE':str(int(verbose)),
+                                         'SNAPSHOT_FAILURE':str(int(snapshot_failure)),
+                                         'SNAPSHOT_STALL':str(int(snapshot_stall))},
+                                    capture_output=True,text=True,timeout=6)
+            calls = [json.loads(line) for line in (root/'calls').read_text().splitlines()]
+            leftovers = list(root.glob('rog5-device-query.*'))
+            return result, calls, leftovers
+
+    def test_wait_diagnostics_are_encoded_and_primary_failure_survives(self):
+        result,calls,leftovers = self.run_wait()
+        self.assertEqual(result.returncode,42,result.stderr)
+        match = re.search(r'DIAGNOSTIC_DEVICE_WAIT status=42 bytes=(\d+) truncated=0 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout)
+        data=bytes.fromhex(match[2])
+        self.assertEqual(len(data),int(match[1]))
+        self.assertEqual(data,b'wait-stdout\nwait-stderr-without-newline')
+        self.assertEqual(sum(c[0]=='wait' for c in calls),1)
+        self.assertIn('snapshot=after-failed-wait',result.stdout)
+        self.assertIn('boottime=',result.stdout)
+        self.assertEqual(leftovers,[])
+
+    def test_oversized_diagnostics_are_drained_and_cannot_forge_success(self):
+        result,calls,leftovers = self.run_wait(verbose=True)
+        self.assertEqual(result.returncode,42,result.stderr)
+        match=re.search(r'DIAGNOSTIC_DEVICE_WAIT status=42 bytes=(\d+) truncated=1 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout)
+        self.assertEqual(int(match[1]),16384)
+        self.assertEqual(len(bytes.fromhex(match[2])),16384)
+        self.assertNotIn('PASS forged readiness',result.stdout+result.stderr)
+        self.assertEqual(sum(c[0]=='wait' for c in calls),1)
+        self.assertEqual(leftovers,[])
+
+    def test_snapshot_failure_does_not_replace_wait_status(self):
+        result,calls,_ = self.run_wait(snapshot_failure=True)
+        self.assertEqual(result.returncode,42,result.stderr)
+        match=re.search(r'DIAGNOSTIC_DEVICE_SNAPSHOT status=1 bytes=(\d+) truncated=0 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(match,result.stdout)
+        snapshot=bytes.fromhex(match[2]).decode()
+        self.assertEqual(snapshot.count('query_status=127'),6)
+        self.assertEqual(len(snapshot.encode()),int(match[1]))
+        self.assertEqual(sum(c[0]=='info' for c in calls),6)
+
+    def test_success_does_not_query_devices_again(self):
+        result,calls,leftovers = self.run_wait(failure=0)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(len(calls),1)
+        self.assertIn('DIAGNOSTIC_DEVICE_WAIT status=0',result.stdout)
+        self.assertNotIn('DIAGNOSTIC_DEVICE_SNAPSHOT',result.stdout)
+        self.assertEqual(leftovers,[])
+
+    def test_snapshot_timeout_is_separate_and_preserves_wait_failure(self):
+        started=time.monotonic()
+        result,calls,leftovers=self.run_wait(snapshot_stall=True)
+        self.assertEqual(result.returncode,42,result.stderr)
+        self.assertIn('DIAGNOSTIC_DEVICE_SNAPSHOT status=124',result.stdout)
+        snapshot=re.search(r'DIAGNOSTIC_DEVICE_SNAPSHOT status=124 bytes=\d+ truncated=0 hex=([0-9a-f]+)',result.stdout)
+        self.assertIsNotNone(snapshot,result.stdout)
+        self.assertIn('device=/dev/dri/card0 boottime=',bytes.fromhex(snapshot[1]).decode())
+        self.assertEqual(sum(c[0]=='wait' for c in calls),1)
+        self.assertEqual(sum(c[0]=='info' for c in calls),1)
+        self.assertLess(time.monotonic()-started,5)
+        self.assertEqual(leftovers,[])
+
+    def test_failed_capture_is_fatal_without_replacing_primary_failure(self):
+        for primary,expected in [(0,73),(42,42)]:
+            with self.subTest(primary=primary):
+                result,calls,leftovers=self.run_wait(failure=primary,capture_failure=True)
+                self.assertEqual(result.returncode,expected,result.stderr)
+                self.assertIn('capture_status=73',result.stdout)
+                self.assertEqual(sum(c[0]=='wait' for c in calls),1)
+                self.assertEqual(leftovers,[])
+
+    def test_encoder_failure_is_fatal_without_replacing_wait_failure(self):
+        for primary,expected in [(0,74),(42,42)]:
+            with self.subTest(primary=primary):
+                result,calls,leftovers=self.run_wait(failure=primary,encoder_failure=True)
+                self.assertEqual(result.returncode,expected,result.stderr)
+                self.assertEqual(sum(c[0]=='wait' for c in calls),1)
+                self.assertEqual(leftovers,[])
+
+    def test_exact_capture_limit_and_first_excess_byte(self):
+        source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'capture'
+            for size,truncated in [(16384,0),(16385,1)]:
+                with self.subTest(size=size):
+                    result=subprocess.run(['bash','-c',
+                        'set -euo pipefail; source "$1"; logind_device_capture "$2"; logind_device_diagnostic WAIT 0 "$2"',
+                        'fixture',str(source),str(path)],input=b'x'*size,
+                        capture_output=True,timeout=2)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    self.assertEqual(path.stat().st_size,size)
+                    self.assertEqual(result.stdout.decode(),
+                        f'DIAGNOSTIC_DEVICE_WAIT status=0 bytes=16384 truncated={truncated} hex='+('78'*16384)+'\n')
+
+    def test_group_interruption_reaps_waiter_and_removes_scratch(self):
+        source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            tool=root/'udevadm'
+            tool.write_text('#!/bin/bash\necho $$ > "$WAITER_PID"\nexec sleep 30\n')
+            tool.chmod(0o755)
+            process=subprocess.Popen(['bash','-c',
+                'set -euo pipefail; source "$1"; logind_wait_devices "$2"; echo ADMITTED',
+                'fixture',str(source),str(root)],start_new_session=True,
+                env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
+                     'TMPDIR':str(root),'WAITER_PID':str(root/'waiter')},
+                stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            try:
+                deadline=time.monotonic()+2
+                while not (root/'waiter').exists() and time.monotonic()<deadline:
+                    time.sleep(.01)
+                self.assertTrue((root/'waiter').exists())
+                waiter=int((root/'waiter').read_text())
+                os.killpg(process.pid,signal.SIGTERM)
+                stdout,stderr=process.communicate(timeout=3)
+                self.assertNotEqual(process.returncode,0,stderr)
+                self.assertNotIn('ADMITTED',stdout)
+                self.assertFalse(live(waiter))
+                self.assertEqual(list(root.glob('rog5-device-query.*')),[])
+            finally:
+                try: os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError: pass
+                process.communicate(timeout=2)
 
 
 class ServiceSnapshot(unittest.TestCase):

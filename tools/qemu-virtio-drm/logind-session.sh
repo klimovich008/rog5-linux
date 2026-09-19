@@ -1,8 +1,49 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
-logind_wait_devices() {
+logind_device_snapshot() {
+    local device status=0 query_status uptime unused
+    for device in "$@"; do
+        read -r uptime unused < /proc/uptime || uptime=unavailable
+        printf 'device=%s boottime=%s\n' "$device" "$uptime"
+        query_status=0
+        stat -c 'type=%F rdev=%t:%T mode=%a uid=%u gid=%g' -- "$device" || query_status=$?
+        printf 'stat_status=%s\n' "$query_status"
+        ((query_status == 0)) || status=1
+        query_status=0
+        udevadm info --query=property "$device" || query_status=$?
+        printf 'query_status=%s\n' "$query_status"
+        ((query_status == 0)) || status=1
+    done
+    query_status=0
+    journalctl -b --no-pager -u systemd-udevd -n 40 || query_status=$?
+    printf 'journal_status=%s\n' "$query_status"
+    ((query_status == 0)) || status=1
+    return "$status"
+}
+logind_device_capture() {
+    # Keep one extra byte to detect truncation; drain the rest so verbosity
+    # cannot SIGPIPE the observed command or change its exit status.
+    local status=0 drain_status=0
+    head -c 16385 > "$1" || status=$?
+    cat > /dev/null || drain_status=$?
+    ((status != 0)) || status=$drain_status
+    return "$status"
+}
+logind_device_diagnostic() {
+    local label=$1 status=$2 file=$3 bytes truncated=0 encoded
+    bytes=$(stat -c %s -- "$file") || return $?
+    ((bytes <= 16385)) || return 1
+    if ((bytes > 16384)); then bytes=16384; truncated=1; fi
+    encoded=$(head -c 16384 -- "$file" | od -An -v -tx1 | tr -d ' \n') || return $?
+    printf 'DIAGNOSTIC_DEVICE_%s status=%s bytes=%s truncated=%s hex=%s\n' \
+        "$label" "$status" "$bytes" "$truncated" "$encoded"
+}
+logind_wait_devices() (
+    set -o pipefail
     local state=${1:-/run} status=0
+    local temporary uptime unused snapshot_status=0 diagnostic_status=0
+    local -a pipeline_status
     local -a devices=(/dev/dri/card0 /dev/input/event0 /dev/tty1)
     if [[ -f $state/editor-probe && -f $state/apps-probe ]]; then
         echo 'FAIL conflicting virtual observation modes' >&2
@@ -22,11 +63,45 @@ logind_wait_devices() {
     # Wait for all consumers in one eight-second budget, not unrelated events
     # elsewhere in the udev queue. Initialization is stronger than node presence.
     # Later port identity/ownership, PAM, VT and seat checks remain mandatory.
-    printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s\n' "${devices[*]}"
-    udevadm wait --timeout=8 --initialized=yes "${devices[@]}" || status=$?
-    printf 'OBSERVE device-readiness phase=end status=%s\n' "$status"
+    temporary=$(mktemp -d "${TMPDIR:-/run}/rog5-device-query.XXXXXXXX") || return $?
+    trap 'status=$?; trap - EXIT; rm -rf -- "$temporary" || { ((status != 0)) || status=1; }; exit "$status"' EXIT
+    trap 'exit 143' TERM
+    trap 'exit 130' INT
+    read -r uptime unused < /proc/uptime || uptime=unavailable
+    printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s boottime=%s\n' "${devices[*]}" "$uptime"
+    if SYSTEMD_LOG_TARGET=console SYSTEMD_LOG_LEVEL=debug SYSTEMD_COLORS=0 \
+        udevadm wait --timeout=8 --initialized=yes "${devices[@]}" 2>&1 |
+        logind_device_capture "$temporary/wait"; then
+        pipeline_status=("${PIPESTATUS[@]}")
+    else
+        pipeline_status=("${PIPESTATUS[@]}")
+    fi
+    status=${pipeline_status[0]}
+    diagnostic_status=${pipeline_status[1]}
+    read -r uptime unused < /proc/uptime || uptime=unavailable
+    printf 'OBSERVE device-readiness phase=end status=%s capture_status=%s boottime=%s\n' "$status" "$diagnostic_status" "$uptime"
+    logind_device_diagnostic WAIT "$status" "$temporary/wait" || diagnostic_status=$?
+    if ((status)); then
+        # This is a later observation, not the state at the wait's failure.
+        # Bound the entire snapshot independently; it never changes admission.
+        printf 'OBSERVE device-readiness snapshot=after-failed-wait deadline_seconds=3\n'
+        if timeout -k 1 3 bash --noprofile --norc -c \
+            'source "$1"; shift; logind_device_snapshot "$@"' \
+            snapshot "${BASH_SOURCE[0]}" "${devices[@]}" 2>&1 |
+            logind_device_capture "$temporary/snapshot"; then
+            pipeline_status=("${PIPESTATUS[@]}")
+        else
+            pipeline_status=("${PIPESTATUS[@]}")
+        fi
+        snapshot_status=${pipeline_status[0]}
+        printf 'OBSERVE device-readiness snapshot-capture-status=%s\n' "${pipeline_status[1]}"
+        logind_device_diagnostic SNAPSHOT "$snapshot_status" "$temporary/snapshot" || :
+    else
+        # Failure to retain the observation must not become a successful test.
+        status=$diagnostic_status
+    fi
     return "$status"
-}
+)
 logind_startup_timings() (
     set -o pipefail
     local temporary status=0 query_status=0 encoded bytes stderr_encoded stderr_bytes
