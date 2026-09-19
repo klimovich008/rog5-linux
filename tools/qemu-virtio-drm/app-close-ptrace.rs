@@ -149,6 +149,7 @@ pub fn capture_inspect<T: Send + 'static>(pid: i32,
     capture_inspect_with(pid, validate, |_| Ok(()), inspect)
 }
 
+#[cfg(any(not(close_stack), test))]
 pub fn capture(pid: i32, validate: impl Fn() -> Result<(), String> + Send + 'static) -> Result<Snapshot, String> {
     capture_inspect(pid, validate, |_| Ok(())).map(|(shot, ())| shot)
 }

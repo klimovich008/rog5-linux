@@ -398,6 +398,14 @@ def stage_close_ptrace(enabled, source, output):
     return ['--cfg', 'close_ptrace']
 
 
+def stage_close_stack(enabled, source, output):
+    if not enabled:
+        return []
+    with (source/'app-close-stack.rs').open('rb') as src, (output/'app-close-stack.rs').open('xb') as dst:
+        shutil.copyfileobj(src, dst)
+    return ['--cfg', 'close_stack']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('runtime-view', 'runtime-receipt', 'kernel', 'qemu-image', 'toolchain-image', 'libc', 'libloading', 'output'):
@@ -428,6 +436,8 @@ def main():
     parser.add_argument('--evidence-writer', type=Path)
     parser.add_argument('--settings-sync-diagnostic', type=Path,
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
+    parser.add_argument('--app-close-stack', action='store_true',
+                        help='explicit VM diagnostic: bounded frame candidates during the single ptrace stop; requires app-close-ptrace')
     parser.add_argument('--app-close-ptrace', action='store_true',
                         help='explicit intrusive VM diagnostic: one owned main-thread PC snapshot; requires app-close-probe')
     parser.add_argument('--app-close-probe', action='store_true',
@@ -463,6 +473,8 @@ def main():
         parser.error('app-close-probe requires close-only and settings-sync-diagnostic')
     if args.app_close_ptrace and not args.app_close_probe:
         parser.error('app-close-ptrace requires app-close-probe')
+    if args.app_close_stack and not args.app_close_ptrace:
+        parser.error('app-close-stack requires app-close-ptrace')
     if args.device_readiness_20s and not combined:
         parser.error('device-readiness-20s requires combined session')
     install_handlers()
@@ -563,6 +575,8 @@ def main():
             input_files.append(SOURCES/'app-close-probe.rs')
         if args.app_close_ptrace:
             input_files.append(SOURCES/'app-close-ptrace.rs')
+        if args.app_close_stack:
+            input_files.append(SOURCES/'app-close-stack.rs')
         if args.observe_editor or args.observe_apps:
             input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
                             REPO/'scripts/host/qemu-mobile-observer.py']
@@ -602,6 +616,7 @@ def main():
                     rust += ['--cfg', 'startup_only']
             if binary_name == 'app-close-probe':
                 rust += stage_close_ptrace(args.app_close_ptrace, SOURCES, output)
+                rust += stage_close_stack(args.app_close_stack, SOURCES, output)
             command = ['podman', 'run', '--rm', '--name', name, '--pull=never', '--network=none', '--read-only',
                        '--memory=512m', '--memory-swap=512m', '--cpus=1', '--pids-limit=128']
             for directory in dependency_dirs:

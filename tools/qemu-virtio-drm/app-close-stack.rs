@@ -121,9 +121,11 @@ pub fn capture(pid: i32, sp: u64, fp: u64) -> Result<Trace,String> {
     walk(&mappings,sp,fp,|address,bytes| read_frame(pid,address,bytes),|| started.elapsed()>=BUDGET)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(close_stack)))]
 #[path="app-close-ptrace.rs"]
 mod ptrace;
+#[cfg(all(test, close_stack))]
+use crate::ptrace;
 
 #[cfg(test)]
 mod tests {

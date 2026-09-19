@@ -53,11 +53,15 @@ int main(void) {
         with tempfile.TemporaryDirectory(prefix='rog5-app-close-probe-') as temp:
             target = Path(temp)
             for kind, flags in [('tests', ['--test','--cfg','close_ptrace']), ('release', []),
-                                ('intrusive', ['--cfg','close_ptrace'])]:
+                                ('intrusive', ['--cfg','close_ptrace']),
+                                ('stack-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack']),
+                                ('stack-release', ['--cfg','close_ptrace','--cfg','close_stack'])]:
                 subprocess.run(['rustc', '--edition=2024', '-D', 'warnings', *flags,
                                 str(SOURCE), '-o', str(target / kind)], check=True, timeout=30)
             subprocess.run([str(target / 'tests'), '--nocapture', '--test-threads=1'], check=True, timeout=15)
-            for kind in ['release','intrusive']:
+            subprocess.run([str(target / 'stack-tests'), '--test-threads=1', '--skip',
+                            'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
+            for kind in ['release','intrusive','stack-release']:
                 result = subprocess.run([str(target / kind), '1', '1', '2', '1'],
                                     capture_output=True, timeout=3)
                 self.assertEqual(result.returncode, 125)

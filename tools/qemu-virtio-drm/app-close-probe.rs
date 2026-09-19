@@ -3,6 +3,11 @@
 #[cfg(close_ptrace)]
 #[path = "app-close-ptrace.rs"]
 mod ptrace;
+#[cfg(all(close_stack, not(close_ptrace)))]
+compile_error!("stack capture requires ptrace capture");
+#[cfg(close_stack)]
+#[path = "app-close-stack.rs"]
+mod stack;
 use std::{fs::{self, OpenOptions}, io::{self, Read, Write}, os::unix::{fs::{MetadataExt, OpenOptionsExt}, ffi::OsStrExt}, path::Path, time::{Duration, Instant}};
 #[repr(C)]
 struct Timespec { seconds: i64, nanos: i64 }
@@ -17,6 +22,14 @@ compile_error!("unsupported proc fixture architecture");
 const NONBLOCK: i32 = 0o4000;
 const MAX_BYTES: usize = 8192;
 const MAX_RECORDS: usize = 64;
+#[cfg(not(close_stack))]
+const ROUND_RESERVE: usize = 1024;
+#[cfg(close_stack)]
+const ROUND_RESERVE: usize = 768;
+#[cfg(all(close_ptrace, not(close_stack)))]
+const SNAPSHOT_RESERVE: usize = 1536;
+#[cfg(close_stack)]
+const SNAPSHOT_RESERVE: usize = 3072;
 
 fn read(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
     let file = OpenOptions::new().read(true).custom_flags(NOFOLLOW | NONBLOCK)
@@ -111,13 +124,13 @@ fn pc_map(root: &Path, pid: u32, syscall: &[u8]) -> Vec<u8> {
     b"unavailable:no-matching-map-within-bound".to_vec()
 }
 fn sample<W: Write>(root: &Path, timeout: Target, app: Target, uid: u32, round: usize, out: &mut Records<W>) -> io::Result<bool> {
-    // Preserve at least1KiB for clock + main-thread data in every later round.
+    // Reserve later clock/CPU records; stack mode gives optional task data less room.
     // Extra workers/FD/maps may be omitted with an explicit truncation footer.
-    out.reserved = 5usize.saturating_sub(round) * 1024;
+    out.reserved = 5usize.saturating_sub(round) * ROUND_RESERVE;
     // Reserve the requested snapshot before earlier optional worker/FD records
     // consume its space. Released after the round1 proc sample, still within8KiB.
     #[cfg(close_ptrace)]
-    if round <= 1 { out.reserved += 1536; }
+    if round <= 1 { out.reserved += SNAPSHOT_RESERVE; }
     let mut time = Timespec { seconds: 0, nanos: 0 };
     // SAFETY: valid writable timespec; CLOCK_MONOTONIC is1 on both Linux ABIs.
     if unsafe { clock_gettime(1, &mut time) } != 0 { return Err(io::Error::last_os_error()); }
@@ -190,14 +203,22 @@ fn valid_stdout(meta: &fs::Metadata, uid: u32) -> bool {
     meta.is_file() && meta.uid() == uid && meta.mode() & 0o7777 == 0o600 && meta.nlink() == 1 && meta.len() == 0
 }
 #[cfg(close_ptrace)]
-fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result<(String, Vec<u8>), String> {
+fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result<(String, Vec<u8>, Vec<String>), String> {
     let owned_root = root.to_owned();
     let validate = move || {
         check(&owned_root, timeout, uid, None, None)?;
         check(&owned_root, app, uid, Some(timeout.pid), Some("mousepad"))?;
         Ok(())
     };
-    let shot = ptrace::capture(app.pid as i32, validate)?;
+    #[cfg(not(close_stack))]
+    let (shot, extra) = (ptrace::capture(app.pid as i32, validate)?, Vec::new());
+    #[cfg(close_stack)]
+    let (shot, trace) = ptrace::capture_inspect(app.pid as i32, validate, move |shot| {
+        // Preserve a successful PC even when stack layout/read is unsupported.
+        Ok(stack::capture(app.pid as i32, shot.sp, shot.frame_pointer))
+    })?;
+    #[cfg(close_stack)]
+    let extra = stack_records(trace);
     let mapping = pc_map(root, app.pid, format!("-1 {:#x} {:#x}", shot.sp, shot.pc).as_bytes());
     // Maps are read after detach, not an atomic snapshot. Reject attribution if
     // either identity changed before that bounded read finished.
@@ -207,7 +228,33 @@ fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result
     // SAFETY: writable timespec, Linux CLOCK_MONOTONIC.
     if unsafe { clock_gettime(1, &mut now) } != 0 { return Err(io::Error::last_os_error().to_string()); }
     Ok((format!("intrusive=true pc={:#x} sp={:#x} fp={:#x} lr={:?} interrupt_to_detach_us={} end_monotonic={}.{:09}",
-        shot.pc, shot.sp, shot.frame_pointer, shot.link_register, shot.interrupt_to_detach.as_micros(), now.seconds, now.nanos), mapping))
+        shot.pc, shot.sp, shot.frame_pointer, shot.link_register, shot.interrupt_to_detach.as_micros(), now.seconds, now.nanos), mapping, extra))
+}
+#[cfg(close_stack)]
+fn stack_path(path: &str) -> String {
+    if path.len()<=64 {format!("path_hex={}",path.as_bytes().iter().map(|b|format!("{b:02x}")).collect::<String>())}
+    else {"path_status=over-64-bytes".into()}
+}
+#[cfg(close_stack)]
+fn stack_records(result: Result<stack::Trace, String>) -> Vec<String> {
+    let trace = match result {
+        Ok(t) => t,
+        Err(e) => return vec![format!("status=unavailable reason={}", escaped(e.as_bytes()))],
+    };
+    let mut records=vec![format!("status=observed candidates={} stop={:?} complete_backtrace=false",trace.frames.len(),trace.stop)];
+    for (index, frame) in trace.frames.into_iter().enumerate() {
+        let mapping = match frame.executable_mapping {
+            Some(m) => {
+                // Fixed-size hexadecimal path encoding cannot forge records and
+                // does not spend the whole byte budget on an unusual long path.
+                let path = stack_path(&m.path);
+                format!("map_start={:#x} map_end={:#x} file_offset={:#x} {path}",m.start,m.end,m.offset)
+            },
+            None => "mapping=unavailable raw_return_preserved=true".into(),
+        };
+        records.push(format!("index={index} fp={:#x} return={:#x} {mapping}",frame.address,frame.return_address));
+    }
+    records
 }
 #[cfg(close_ptrace)]
 fn before_snapshot_deadline<T>(start: Instant, capture: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
@@ -215,14 +262,15 @@ fn before_snapshot_deadline<T>(start: Instant, capture: impl FnOnce() -> Result<
     capture()
 }
 #[cfg(close_ptrace)]
-fn publish_pc<W: Write>(out: &mut Records<W>, pid: u32, result: Result<(String, Vec<u8>), String>) -> io::Result<bool> {
-    out.reserved -= 1536;
+fn publish_pc<W: Write>(out: &mut Records<W>, pid: u32, result: Result<(String, Vec<u8>, Vec<String>), String>) -> io::Result<bool> {
+    out.reserved -= SNAPSHOT_RESERVE;
     match result {
-        Ok((shot, mapping)) => {
+        Ok((shot, mapping, extra)) => {
             let before = out.count;
             out.add("ptrace-pc", 1, pid, shot.as_bytes())?;
             out.add("ptrace-map", 1, pid, &mapping)?;
-            Ok(out.count == before + 2)
+            for record in &extra { out.add("ptrace-stack", 1, pid, record.as_bytes())?; }
+            Ok(out.count == before + 2 + extra.len())
         },
         Err(e) => { out.add("ptrace-unavailable", 1, pid, e.as_bytes())?; Ok(false) }
     }
@@ -299,10 +347,32 @@ mod tests {
         let uid=unsafe{getuid()};
         assert!(pc_observation(root,timeout,Target{start:app.start+1,..app},uid).is_err());
         assert!(pc_observation(root,timeout,app,uid+1).is_err());
-        let (shot,map)=pc_observation(root,timeout,app,uid).unwrap();
+        let (shot,map,_extra)=pc_observation(root,timeout,app,uid).unwrap();
+        #[cfg(close_stack)]
+        assert!(_extra.first().is_some_and(|s|s.starts_with("status=observed") || s.starts_with("status=unavailable")));
         assert!(shot.contains("intrusive=true pc=0x") && shot.contains("end_monotonic="));
         assert!(!map.starts_with(b"unavailable:"));
         assert!(String::from_utf8(read(&root.join(format!("{}/status",app.pid)),8192).unwrap()).unwrap().contains("TracerPid:\t0"));
+    }
+    #[cfg(close_ptrace)]
+    fn snapshot_fixture_records() -> Vec<String> {
+        #[cfg(close_stack)]
+        return std::iter::once("status=observed candidates=4 stop=Limit complete_backtrace=false".into())
+            .chain((0..4).map(|_| "f".repeat(330))).collect();
+        #[cfg(not(close_stack))]
+        Vec::new()
+    }
+    #[cfg(close_stack)]
+    #[test] fn stack_records_preserve_partial_and_raw_addresses() {
+        assert_eq!(stack_path("a\n"),"path_hex=610a");
+        assert_eq!(stack_path(&"a".repeat(65)),"path_status=over-64-bytes");
+        let trace=stack::Trace {frames:vec![stack::Frame {address:0x1000,return_address:0xff000123,executable_mapping:None}],stop:stack::Stop::ShortRead};
+        let lines=stack_records(Ok(trace));
+        assert!(lines[0].contains("candidates=1 stop=ShortRead"));
+        assert!(lines[1].contains("return=0xff000123 mapping=unavailable"));
+        assert!(stack_records(Err("maps-byte-limit".into()))[0].contains("status=unavailable"));
+        let mut out=Records::new(Vec::new()); out.bytes=MAX_BYTES-128;out.reserved=SNAPSHOT_RESERVE;
+        assert!(!publish_pc(&mut out,20,Ok(("pc".into(),vec![],lines))).unwrap());
     }
     fn stat(pid: u32, parent: u32, start: u64, comm: &str) -> String { format!("{pid} ({comm}) S {parent} {} {start}\n", vec!["0";17].join(" ")) }
     #[test] fn parses_parentheses_and_rejects_short_stat() { let i=identity(stat(20,10,99,"weird ) comm").as_bytes()).unwrap(); assert_eq!((i.pid,i.ppid,i.start,i.comm),(20,10,99,"weird ) comm".into())); assert!(identity(b"20 (x) S 10").is_err()); }
@@ -349,12 +419,16 @@ mod tests {
         assert!(String::from_utf8_lossy(&pc_map(&dir,20,b"98 0x1 0x2")).contains("/fixture.so"));
         assert_eq!(pc_map(&dir,20,b"running"),b"unavailable:no-sampled-pc");
         fs::create_dir(dir.join("20/fd")).unwrap(); for fd in 0..20 { symlink(format!("pipe:[123]{}", "x".repeat(800)),dir.join(format!("20/fd/{fd}"))).unwrap(); }
-        let (t,a)=(Target{pid:10,start:99},Target{pid:20,start:99}); let mut out=Records::new(Vec::new()); assert!(sample(&dir,t,a,1000,0,&mut out).unwrap()); assert!(String::from_utf8_lossy(&out.writer).contains("kind=fd"));
+        let (t,a)=(Target{pid:10,start:99},Target{pid:20,start:99}); let mut out=Records::new(Vec::new()); assert!(sample(&dir,t,a,1000,0,&mut out).unwrap());
+        #[cfg(not(close_stack))]
+        assert!(String::from_utf8_lossy(&out.writer).contains("kind=fd"));
+        #[cfg(close_stack)]
+        assert!(out.truncated); // Optional800-byte FD record yields to stack/core records.
         for round in 1..6 {
             fs::write(dir.join("20/task/20/stat"),task_stat(42+round as u64)).unwrap();
             assert!(sample(&dir,t,a,1000,round,&mut out).unwrap());
             #[cfg(close_ptrace)]
-            if round==1 { assert!(publish_pc(&mut out,a.pid,Ok(("snapshot".repeat(25),vec![b'x';768]))).unwrap()); }
+            if round==1 { assert!(publish_pc(&mut out,a.pid,Ok(("snapshot".repeat(25),vec![b'x';768],snapshot_fixture_records()))).unwrap()); }
         }
         out.finish(Duration::from_millis(1000)).unwrap();
         let data=String::from_utf8_lossy(&out.writer); assert!(data.contains("kind=task round=5 pid=20")); assert!(data.contains("truncated=true")); assert!(data.len()<=8192);
@@ -364,7 +438,9 @@ mod tests {
         assert_eq!(data.matches("kind=thread-cpu").count(),6);
         assert!(data.contains("ticks_per_second="));
         #[cfg(close_ptrace)]
-        { assert!(data.contains("kind=ptrace-pc") && data.contains("kind=ptrace-map")); }
+        { assert!(data.contains("kind=ptrace-pc") && data.contains("kind=ptrace-map"));
+            #[cfg(close_stack)]
+            assert_eq!(data.matches("kind=ptrace-stack").count(),5); }
         let mut out=Records::new(Vec::new());
         fs::write(dir.join("20/stat"),stat(20,10,99,"wrong")).unwrap(); assert!(check(&dir,a,1000,Some(10),Some("mousepad")).is_err());
         fs::write(dir.join("20/stat"),stat(20,10,99,"mousepad").replace(") S ",") Z ")).unwrap(); assert_eq!(check(&dir,a,1000,Some(10),Some("mousepad")).unwrap_err(),"exited");
