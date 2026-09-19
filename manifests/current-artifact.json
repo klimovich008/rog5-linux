@@ -1787,6 +1787,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; induced failure124 preserved; full Denial session still FAIL"
+    },
+    "gtk_icon_cache": {
+      "status": "VM_GTK_ICON_CACHE_PASS",
+      "set_id": "private:rog5-icon-cache-integration-20260919-r4",
+      "source_commit": "23d9a942e3047e849747fcf271168d990398bea8",
+      "evidence": {
+        "path": "test-results/2026-09-19-gtk-icon-cache-qualification.json",
+        "sha256": "b80ee61aee643ac31d93c1b08938b53bdc9282fb51497fb5f37c76dfa8adc708",
+        "bytes": 394656
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; full Denial timeout remains FAIL"
     }
   },
   "denial_phone_linkage": {

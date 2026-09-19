@@ -3258,3 +3258,15 @@ in addition to controlled-callee tests. New shutdown/run-return markers passed
 real ARM64 GLib and one Denial VM close; prior137 failures remain unresolved.
 Use observer intervals precisely and advance the still-unqualified low-caret
 flow without another unchanged close-only loop or heavyweight rebuild.
+
+GTK theme-cache reconstruction (2026-09-19): measure the actual filesystem path.
+Native user-QEMU hid most of the missing-cache cost; readonly9P enumeration took
+5.2s versus0.23s with the same assets and real GTK cache mappings. Copying the
+whole27MB tree into guest RAM exceeded30s. An overlay keeps assets readonly and
+copies up only caches; change its final VFS bind flags, not overlay filesystem
+configuration. Inheritance-only themes legitimately produce no cache: distinguish
+that case from a failed or empty output for a theme with local directories.
+Reduced systemd fixtures must create the normal session's mobile account before
+claiming UID1000 consumer coverage. Reuse validated cache staging by exact hashes
+instead of repeating unchanged runtime walks. Full-session benefit remains a
+separate measurement; package-hook success and lookup speed are not phone proof.

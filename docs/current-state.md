@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM abort cleanup and poweroff passed; full session timeout remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM GTK icon-cache repair passed; full session startup remains unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Targeted ARM64 VM r2 passed busy overlay/9P-alias detach while preserving induced service124, then normal packaged-systemd poweroff in25.696s. Initial r1 fixture failed before intended check; preserved. Low-caret input PASS and full-session120s timeout FAIL remain. Production scripts unchanged; prior108-suite pass reused. Next measure service/app startup intervals before another full session, keeping deadlines. No phone authority; physical NOT RUN,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-vm-abort-poweroff.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Missing GTK icon caches now generated in private RAM overlay: final UID1000 lookup0.110s, same1030 names,3 mapped caches and normal systemd poweroff34.016s; generation9s. Frozen-source active tier109PASS/0FAIL in176.094s. Copy/remount/inheritance/account-fixture failures retained. Next measure portal and Mousepad startup with this helper and unchanged deadlines. Full-session120s timeout FAIL, S06/R01 FAIL and physical NOT RUN remain; no phone authority. See [current repair evidence](../test-results/2026-09-19-gtk-icon-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
