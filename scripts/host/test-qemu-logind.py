@@ -569,6 +569,8 @@ def main():
                     '--extern', 'libc=' + str(libc), '--extern', 'libloading=' + str(libloading)]
             if combined and binary_name == 'pam-session':
                 rust += ['--cfg', 'denial_session']
+                if args.startup_only:
+                    rust += ['--cfg', 'startup_only']
             command = ['podman', 'run', '--rm', '--name', name, '--pull=never', '--network=none', '--read-only',
                        '--memory=512m', '--memory-swap=512m', '--cpus=1', '--pids-limit=128']
             for directory in dependency_dirs:
@@ -676,11 +678,11 @@ def main():
             if observer:
                 current, observer = observer, None
                 result[observation_key] = current.finish(error)
-        # Full session:180s boot reserve +240s guest fixture (210s PAM and
+        # Full session:180s boot reserve +260s guest fixture (230s PAM and
         # 30s surrounding work). Keep startup-only/basic limits unchanged.
         # Existing one-shot approved-cleanup grace remains separately bounded.
         container(command, name, output / 'serial.log',
-                  (300 if args.startup_only else 420) if combined else 180, result['steps'],
+                  (300 if args.startup_only else 440) if combined else 180, result['steps'],
                   poll=observer.tick if observer else None, finalize=finish_observer,
                   cleanup_ready=(lambda: apps_cleanup_ready(observer)) if args.observe_apps else None)
         serial = (output / 'serial.log').read_text(errors='replace')

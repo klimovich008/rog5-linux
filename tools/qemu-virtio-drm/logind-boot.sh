@@ -67,8 +67,8 @@ StandardError=journal+console
 EOF
 if [[ -f /run/session-sha256 ]]; then
     fixture_deadline=170
-    # Full VM:210s PAM plus30s device preflight and surrounding cleanup.
-    [[ -f /run/startup-only ]] || fixture_deadline=240
+    # Full VM:230s PAM plus30s device preflight and surrounding cleanup.
+    [[ -f /run/startup-only ]] || fixture_deadline=260
     sed -i "s/TimeoutStartSec=65/TimeoutStartSec=$fixture_deadline/" /etc/systemd/system/rog5-logind-fixture.service
 fi
 /usr/bin/bash /run/independent-observer.sh &

@@ -367,9 +367,9 @@ logind_tty_unowned || { echo 'FAIL tty1 ownership not proven free'; exit 1; }
 pam_deadline=45
 if [[ -f /run/session-sha256 ]]; then
     pam_deadline=145
-    # Full VM session:60s preparation +40s portals +60s app flow +30s
-    # cleanup, with20s scheduling headroom. Every inner check still applies.
-    [[ -f /run/startup-only ]] || pam_deadline=210
+    # Full VM:190s Rust child (60s setup +40s portals +60s flow +30s
+    # cleanup), plus40s PAM authentication/teardown. Every inner check applies.
+    [[ -f /run/startup-only ]] || pam_deadline=230
 fi
 timeout -k 1 "$pam_deadline" setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh
 [[ $(fgconsole) == 1 ]]

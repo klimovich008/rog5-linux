@@ -8185,6 +8185,7 @@
         "mktemp",
         "od",
         "python3",
+        "rustc",
         "stat",
         "stdbuf",
         "tr"
