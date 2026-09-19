@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "authority": "none; generic ARM64 VM and offline fixtures only",
+  "physical_status": "NOT RUN",
+  "starting_commit": "83c95c678fea10fabad7c9ac43355dd0a8362fd5",
+  "starting_tree": "8d2bf0eb94dedcb5909186b8d352ffbc65bd713d",
+  "source_commit": "1784e75b8b238dde44af8f17d5d87b8a86a3a53c",
+  "source_tree": "5f2ca2ac93a864b57275e4f862c2691216f80f03",
+  "before": {
+    "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/before-final.log",
+    "sha256": "dc0babdebb7f68dd2916f5460034f5a1e74ee0cbbed393d554038f6a077e43e0",
+    "bytes": 9619
+  },
+  "focused": {
+    "cases": 18,
+    "seconds": 2.55,
+    "status": "PASS",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/focused.log",
+      "sha256": "8bdaf0dee579fa8cc703f35d99ef57cae540d1833bd2982e1e40b0f8e16aee43",
+      "bytes": 117
+    }
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "1784e75b8b238dde44af8f17d5d87b8a86a3a53c",
+    "source_tree": "5f2ca2ac93a864b57275e4f862c2691216f80f03",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 190.87605116795748
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "vm": {
+    "source_commit": "1784e75b8b238dde44af8f17d5d87b8a86a3a53c",
+    "source_tree": "5f2ca2ac93a864b57275e4f862c2691216f80f03",
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--close-only",
+      "--settings-sync-diagnostic",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "--linker-cache",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+      "--tcg-thread",
+      "single",
+      "--hwdb-cache",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared",
+      "--disable-mops",
+      "--app-close-probe",
+      "--device-readiness-20s"
+    ],
+    "authority": "none; generic ARM64 VM only",
+    "physical": "NOT RUN",
+    "delta": "Explicit combined-VM initialized20s readiness experiment, default8 unchanged. One shared initialized wait; all six consumers and original rules preserved. Additional12s consumes existing setup reserve; outer230/unit260/host440 caps unchanged and may expire first. All other prior inputs including app-close probe, PAM alarm225, kernel/runtime/engine retained. No phone proof.",
+    "status": "FAIL",
+    "active_test": {
+      "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/active-result.json",
+      "sha256": "eddb83ed8467ab3a52b9364a3d7a99b56ccedf428660d118cf46bb83e75a929b"
+    },
+    "script": {
+      "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/run-vm.py",
+      "sha256": "47fc51796daa7a6f7904b4f1245380f90895ecf4255687d4638989a7d55e5c6c"
+    },
+    "runner": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "sha256": "c1ad2bb70d700dd4eb3451fe412abace2852ac6fd6fd09700788f195882de936"
+    },
+    "prior_result": {
+      "path": "/home/deck/.local/state/rog5-app-close-proc-20260919-r1/vm-r1/result.json",
+      "sha256": "0e4d3dd1501b9b54052225a51056f034d8f1876f66d58686dc3c45718822e459"
+    },
+    "unchanged_input_hashes": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": "e17ec76c2960192927a49f9080e5d8d14ed48c7413d3c233d96ae31c82c6ad88",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": "5ff58027b3ec331daf016fe4bb0ca98b42022632d46bb0c6d8563324ca7b60b5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "fddefcec9e82f3022511c135b2cb06d56e083193c0f92e6d62b03b81aa545233",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs": "1b353d9203bb3b2cd28efb0474601dff092a09f23bf8b776062c7af35438d672",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+    },
+    "intentional_changes": {
+      "tools/qemu-virtio-drm/logind-session.sh": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "19e3d8ba6bdc1f40b771a92f2930b1afd9f7e68c3b772fe46486b59f40e85280",
+          "bytes": 23103
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "f4f04ad8482e02cdc05061f71a4f292e4e049077ff218fbc7a82e5da658e84d7"
+        }
+      },
+      "scripts/host/test-qemu-logind.py": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "sha256": "f74bce0b82a6e1faa8e7c74cd98ca16e65be67c57279bdcc32eef0548928ee74",
+          "bytes": 44088
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "sha256": "c1ad2bb70d700dd4eb3451fe412abace2852ac6fd6fd09700788f195882de936"
+        }
+      }
+    },
+    "exit_status": 1,
+    "seconds": 382.2189978690003,
+    "runtime_bytes_and_metadata_unchanged": true,
+    "input_hashes_unchanged": true
+  },
+  "vm_result": {
+    "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1/result.json",
+    "sha256": "464160c343b4f89907f5c68735b0a43434fc5d628c3bcd4cdd8828fff47a48d5",
+    "bytes": 105212
+  },
+  "decoded": {
+    "DEVICE_WAIT": {
+      "status": 0,
+      "bytes": 152,
+      "truncated": 0,
+      "text": "sd-device-monitor(n/a): Unable to get network namespace of udev netlink socket, unable to determine if we are in host netns, ignoring: Invalid argument\n",
+      "copies": 1
+    },
+    "DEVICE_BEFORE": {
+      "status": 0,
+      "bytes": 678,
+      "truncated": 0,
+      "text": "database_phase=begin boottime=141.32\ndatabase_stat_status=0\ndatabase_device=/dev/dri/card0 database_path=/run/udev/data/c226:0\ndatabase_status=absent\ndatabase_device=/dev/input/event0 database_path=/run/udev/data/c13:64\ndatabase_status=absent\ndatabase_device=/dev/tty1 database_path=/run/udev/data/c4:1\ndatabase_status=present bytes=0 truncated=0 read_status=1\n\ndatabase_end\ndatabase_device=/dev/fuse database_path=/run/udev/data/c10:229\ndatabase_status=absent\ndatabase_device=/dev/input/event1 database_path=/run/udev/data/c13:65\ndatabase_status=absent\ndatabase_device=/dev/vport0p1 database_path=/run/udev/data/c252:1\ndatabase_status=absent\ndatabase_phase=end boottime=141.53\n",
+      "copies": 1
+    },
+    "SESSION_JOURNAL": {
+      "status": 0,
+      "bytes": 8440,
+      "truncated": 0,
+      "text": "[  175.382886] rog5-logind-vm systemd[550]: Reached target Paths.\n[  175.383684] rog5-logind-vm systemd[550]: Reached target Timers.\n[  175.422057] rog5-logind-vm systemd[550]: Starting D-Bus User Message Bus Socket...\n[  175.423849] rog5-logind-vm systemd[550]: Listening on GnuPG network certificate management daemon.\n[  175.427341] rog5-logind-vm systemd[550]: Listening on GnuPG cryptographic agent and passphrase cache (access for web browsers).\n[  175.430256] rog5-logind-vm systemd[550]: Listening on GnuPG cryptographic agent and passphrase cache (restricted).\n[  175.431390] rog5-logind-vm systemd[550]: Listening on GnuPG cryptographic agent (ssh-agent emulation).\n[  175.436519] rog5-logind-vm systemd[550]: Listening on GnuPG cryptographic agent and passphrase cache.\n[  175.437704] rog5-logind-vm systemd[550]: Listening on GnuPG public key management service.\n[  175.499034] rog5-logind-vm systemd[550]: Listening on Query the User Interactively for a Password.\n[  175.502663] rog5-logind-vm systemd[550]: Listening on Disk Image Download Service Socket.\n[  175.549792] rog5-logind-vm systemd[550]: Listening on Journal Log Access Socket.\n[  175.551488] rog5-logind-vm systemd[550]: Listening on Virtual Machine and Container Registration Service Socket.\n[  175.622105] rog5-logind-vm systemd[550]: Listening on Simple File System Backed Storage Provider.\n[  176.041247] rog5-logind-vm systemd[550]: Listening on D-Bus User Message Bus Socket.\n[  176.045723] rog5-logind-vm systemd[550]: Reached target Sockets.\n[  176.047900] rog5-logind-vm systemd[550]: Reached target Basic System.\n[  176.050805] rog5-logind-vm systemd[550]: Reached target Main User Target.\n[  176.058271] rog5-logind-vm systemd[550]: Startup finished in 8.607s.\n[  179.192684] rog5-logind-vm systemd[550]: Created slice User Core Session Slice.\n[  179.218032] rog5-logind-vm systemd[550]: Starting D-Bus User Message Bus...\n[  179.611228] rog5-logind-vm systemd[550]: Started D-Bus User Message Bus.\n[  179.614437] rog5-logind-vm dbus-broker-launch[583]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +31: Eavesdropping is deprecated and ignored\n[  179.622074] rog5-logind-vm dbus-broker-launch[583]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +33: Eavesdropping is deprecated and ignored\n[  179.726987] rog5-logind-vm dbus-broker-launch[583]: Ready\n[  216.791053] rog5-logind-vm systemd[550]: Reached target Denial graphical session.\n[  216.779809] rog5-logind-vm systemd[550]: Reached target Current graphical user session.\n[  216.791729] rog5-logind-vm systemd[550]: Reached target Startup of XDG autostart applications.\n[  223.239396] rog5-logind-vm systemd[550]: Starting Accessibility services bus...\n[  224.645717] rog5-logind-vm systemd[550]: Starting flatpak document portal service...\n[  225.762479] rog5-logind-vm systemd[550]: Starting Portal service (GTK/GNOME implementation)...\n[  228.186382] rog5-logind-vm systemd[550]: Starting Portal service...\n[  231.419282] rog5-logind-vm systemd[550]: Starting sandboxed app permission store...\n[  233.047990] rog5-logind-vm systemd[550]: Started Accessibility services bus.\n[  235.626112] rog5-logind-vm systemd[550]: Started sandboxed app permission store.\n[  235.824879] rog5-logind-vm systemd[550]: Started flatpak document portal service.\n[  238.055155] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback\n[  250.339592] rog5-logind-vm dbus-broker-launch[936]: Ready\n[  251.269132] rog5-logind-vm systemd[550]: Created slice Slice /app/dbus-:1.12-org.a11y.atspi.Registry.\n[  251.306515] rog5-logind-vm systemd[550]: Started dbus-:1.12-org.a11y.atspi.Registry@0.service.\n[  251.557871] rog5-logind-vm systemd[550]: Started Portal service (GTK/GNOME implementation).\n[  251.634423] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback\n[  252.197231] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  252.203715] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  252.209055] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name is not activatable\n[  252.212998] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Settings as a last-resort fallback\n[  252.260756] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback\n[  252.329464] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback\n[  252.402968] rog5-logind-vm at-spi2-registryd[940]: SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry\n[  252.405972] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback\n[  252.445468] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback\n[  252.520960] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback\n[  252.977717] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Failed to connect to PipeWire: Couldn't connect to PipeWire\n[  252.986254] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback\n[  253.010031] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback\n[  253.034058] rog5-logind-vm /usr/lib/xdg-desktop-portal[855]: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback\n[  253.077843] rog5-logind-vm systemd[550]: Started Portal service.\n[  273.327523] rog5-logind-vm systemd[550]: Starting User preferences database...\n[  274.382059] rog5-logind-vm systemd[550]: Started User preferences database.\n[  301.759340] rog5-logind-vm dbus-broker[937]: Dispatched 39 messages @ 519(\u00b11139)\u03bcs / message.\n[  301.779917] rog5-logind-vm systemd[550]: Stopping Accessibility services bus...\n[  301.803727] rog5-logind-vm systemd[550]: Stopping Portal service (GTK/GNOME implementation)...\n[  301.830362] rog5-logind-vm systemd[550]: Stopping Portal service...\n[  301.843098] rog5-logind-vm systemd[550]: Stopping flatpak document portal service...\n[  301.848006] rog5-logind-vm systemd[550]: Stopping sandboxed app permission store...\n[  302.046646] rog5-logind-vm systemd[550]: Stopped sandboxed app permission store.\n[  302.058554] rog5-logind-vm systemd[550]: xdg-permission-store.service: Consumed 1.259s CPU time over 1min 10.594s wall clock time.\n[  302.117208] rog5-logind-vm systemd[550]: Stopped Portal service.\n[  302.118853] rog5-logind-vm systemd[550]: xdg-desktop-portal.service: Consumed 3.540s CPU time over 1min 13.919s wall clock time.\n[  302.147003] rog5-logind-vm systemd[550]: Stopped Accessibility services bus.\n[  302.153892] rog5-logind-vm systemd[550]: at-spi-dbus-bus.service: Consumed 3.168s CPU time over 1min 18.905s wall clock time.\n[  302.322727] rog5-logind-vm systemd[550]: Stopped Portal service (GTK/GNOME implementation).\n[  302.325483] rog5-logind-vm systemd[550]: xdg-desktop-portal-gtk.service: Consumed 8.665s CPU time over 1min 16.557s wall clock time.\n[  302.331519] rog5-logind-vm systemd[550]: Stopped target Current graphical user session.\n[  302.338422] rog5-logind-vm systemd[550]: Stopped target Denial graphical session.\n[  302.367517] rog5-logind-vm systemd[550]: Stopped target Startup of XDG autostart applications.\n[  302.405151] rog5-logind-vm systemd[550]: Stopped flatpak document portal service.\n[  302.406706] rog5-logind-vm systemd[550]: xdg-document-portal.service: Consumed 2.053s CPU time over 1min 17.741s wall clock time.\n[  304.461997] rog5-logind-vm systemd-logind[454]: Session c1 logged out. Waiting for processes to exit.\n[  304.509109] rog5-logind-vm systemd-logind[454]: Removed session c1.\n",
+      "copies": 1
+    }
+  },
+  "poweroff": {
+    "status": "PASS",
+    "check": "actual require_vm_poweroff; generic VM only"
+  },
+  "conclusion": {
+    "qualification_status": "PASS_VM_READY20_AND_PAM_CLEANUP_FAIL_MOUSEPAD137",
+    "phase": "VM readiness experiment passes; app-close sampler observes runnable main thread; Mousepad close FAIL",
+    "next": "VM1784e75b: explicit20s readiness PASS16.45s; PAM/seat and both visible apps PASS. Foot0, Mousepad137 remains. Read-only close probe captured39 records/1039ms: main thread runnable in five samples, no stable syscall/PC; final PermissionDenied with pendingSIGKILL is consistent with teardown, exact cause unobserved. Corrected PAM helper closes session/deletes credentials/ends0 and preserves failed child1. Next add bounded task-specific CPU ticks and context-switch counters to distinguish execution from runnable scheduling delay; retain clock scale, six rounds and byte/time limits. Do not claim a spin, extend app grace or rerun unchanged. Readiness20s remains explicit diagnostic;8s default and outer caps preserved. Phone physical NOT RUN; S06/R01 FAIL retained.",
+    "report": "One VM at the frozen source completed in382.146982498s; wrapper382.218997869s.\nReadiness20s PASS:141.86\u2192158.31 BOOTTIME,16.45s. This exceeds the old8s limit\nand establishes the usefulness of the explicit arm for this run. It does not\nestablish repeated-start reliability or erase historical8s failures. No retry\nor original-rule replacement occurred; failure-only snapshot/retrigger NOT RUN.\n\nPAM authentication, nonroot active VT/seat and mediated device access passed.\nBoth Mousepad and Foot visibly launched; their screenshots were personally\ninspected. Mapping/focus protocol and observer PASS, approved teardown true.\nNo text-entry or phone-touch claim. Foot exited0; Mousepad again exited137 after\nTERM/KILL. Close-begin292.91 and close-returned296.07 include preparation,\ntransport and reaping, so neither is an exact signal-delivery timestamp.\n\nThe sampler ran successfully:39 records,1039ms,invalidated=false,truncated=true.\nFirst sample295.021760480 is2.112s after the pre-close marker; this is not proof\nthat TERM had already been delivered2.112s earlier. Main-thread PID1001 is\nreported as syscall=running and State:R in rounds0\u20134. Exact pinned Linux\nfs/proc/base.c and lib/syscall.c show this means no stable blocked-task snapshot\nwas obtained; it does not prove uninterrupted execution or a spin loop. No\nmain-thread PC was available. Timeout PID1000 waits in ARM64rt_sigsuspend133;\none worker waits in futex98/WAIT_PRIVATE and two workers in ppoll73. These\nworker states do not locate the main-thread failure.\n\nRound5 reports syscall PermissionDenied with shared pendingSIGKILL0x100.\nThe0400 proc syscall inode can become root-owned when a task loses its mm;\nthis is consistent with teardown, not proof of an earlier permission blocker.\nExact cause is unobserved. Truncation means omitted FD/worker records are not\nproof of absence. The settings probe again has loaded/APP_RUN_BEGIN without\nshutdown, sync, run-end, unref or destructor markers. Do not generalize an older\nlate-unref observation to this run.\n\nThe corrected PAM helper reaches close-session0, delete-credentials0 and end0,\nthen preserves child failure1. This is observed cleanup on the failure path,\nnot a successful app/session lifecycle. The prior alarm142 incident remains\nhistorical; this observation alone does not isolate timing causality.\nJournal reports session c1 removal. Normal VM poweroff passes; /var unmount\nFAIL remains. Input hashes and original runtime bytes/metadata verify unchanged;\nno owned containers remain. Phone physical results remain NOT RUN.\n\nNext: add raw main-thread utime/stime and voluntary/nonvoluntary context-switch\ncounters to the existing six-round sampler, recording clock-tick scale and\nkeeping its byte/time bounds. Use /proc/PID/task/PID/stat, since /proc/PID/stat\naggregates the thread group. This distinguishes measured execution from absent\naccounted progress without ptrace, signals, interposers or a kernel rebuild.\nPERF_EVENTS/SCHEDSTATS are disabled; ordinary stat/status counters are available.\nNo unchanged VM repeat is justified. Increased CPU use alone would not prove a spin.\n",
+    "lesson": "Readiness and runnable sampling (2026-09-19/20): the explicit20s shared initialized-device wait admitted all consumers in16.45s, preserving original rules and the8s default. Its extra12s consumes existing setup reserve; it does not guarantee full inner timeouts before the unchanged outer cap. The close sampler reports main-thread running/StateR repeatedly, which exact kernel code defines as failure to obtain a stable blocked snapshot\u2014not a spin-loop diagnosis. Retain task-specific CPU ticks and context switches for the next discrimination; process stat aggregates threads. Final syscall PermissionDenied concurrent with pendingSIGKILL can reflect teardown and must not justify weakening permissions. Qualify successful PAM failure-path cleanup separately from Mousepad137 and successful session teardown."
+  },
+  "probe_observation": {
+    "status": "PASS_BOUNDED_OBSERVATION_NOT_APP_CLOSE",
+    "readiness": {
+      "status": "PASS",
+      "selected_seconds": 20,
+      "begin_boottime": 141.86,
+      "end_boottime": 158.31,
+      "duration": 16.45
+    },
+    "main_thread": {
+      "pid": 1001,
+      "rounds0_to4": "syscall=running; State:R",
+      "interpretation": "no stable blocked-task snapshot; not proof of continuous CPU use or spin",
+      "round5": "PermissionDenied; shared pending0x100 (SIGKILL); exact cause unobserved"
+    },
+    "capture": {
+      "status": 0,
+      "records": 39,
+      "truncated": true,
+      "elapsed_ms": 1039,
+      "invalidated": false,
+      "first_monotonic": 295.02176048,
+      "last_monotonic": 296.02799096,
+      "raw_diagnostic_lines": [
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=0 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=295.021760480\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=0 pid=1001 clipped=false value=\"syscall=running\\n status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=0 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=0 pid=1000 clipped=false value=\"syscall=133 0xffffdd9d0cd0 0x8 0x0 0x0 0x0 0x0 0xffffdd9d0bf0 0xffffad8d5094\\n status=State:\\tS (sleeping);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=0 pid=1013 clipped=false value=\"syscall=98 0xaaaadccfcf60 0x80 0x1 0x0 0xffffb928c540 0x31 0xffffb25ee2f0 0xffffb928c568\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1013;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=0 pid=1014 clipped=false value=\"syscall=73 0xffffac000880 0x2 0x0 0x0 0x8 0x0 0xffffb1dde2b0 0xffffb9231c6c\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1014;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\tfffffffe7ffbfeff;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=0 pid=1015 clipped=false value=\"syscall=73 0xffffa40008c0 0x1 0x0 0x0 0x8 0x0 0xffffb15ce2d0 0xffffb9231c6c\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1015;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=0 target=/dev/null\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=1 target=/run/mobile-home/mousepad.pipe\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=2 target=/run/mobile-home/mousepad.pipe\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=3 target=/run/mobile-home/launcher-apps/mousepad/settings-sync.log\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=4 target=/dev/tty1\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=5 target=anon_inode:[eventfd]\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=6 target=anon_inode:[eventfd]\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=fd round=0 pid=1001 clipped=false value=\"fd=7 target=anon_inode:[eventfd]\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=1 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=295.220449264\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=1 pid=1001 clipped=false value=\"syscall=running\\n status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=1 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=1 pid=1000 clipped=false value=\"syscall=133 0xffffdd9d0cd0 0x8 0x0 0x0 0x0 0x0 0xffffdd9d0bf0 0xffffad8d5094\\n status=State:\\tS (sleeping);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=1 pid=1013 clipped=false value=\"syscall=98 0xaaaadccfcf60 0x80 0x1 0x0 0xffffb928c540 0x31 0xffffb25ee2f0 0xffffb928c568\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1013;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=2 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=295.420750848\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=2 pid=1001 clipped=false value=\"syscall=running\\n status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=2 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=2 pid=1000 clipped=false value=\"syscall=133 0xffffdd9d0cd0 0x8 0x0 0x0 0x0 0x0 0xffffdd9d0bf0 0xffffad8d5094\\n status=State:\\tS (sleeping);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=2 pid=1013 clipped=false value=\"syscall=98 0xaaaadccfcf60 0x80 0x1 0x0 0xffffb928c540 0x31 0xffffb25ee2f0 0xffffb928c568\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1013;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=3 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=295.621090032\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=3 pid=1001 clipped=false value=\"syscall=running\\n status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=3 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=3 pid=1000 clipped=false value=\"syscall=133 0xffffdd9d0cd0 0x8 0x0 0x0 0x0 0x0 0xffffdd9d0bf0 0xffffad8d5094\\n status=State:\\tS (sleeping);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=4 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=295.820278192\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=4 pid=1001 clipped=false value=\"syscall=running\\n status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=4 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=4 pid=1000 clipped=false value=\"syscall=133 0xffffdd9d0cd0 0x8 0x0 0x0 0x0 0x0 0xffffdd9d0bf0 0xffffad8d5094\\n status=State:\\tS (sleeping);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=4 pid=1013 clipped=false value=\"syscall=98 0xaaaadccfcf60 0x80 0x1 0x0 0xffffb928c540 0x31 0xffffb25ee2f0 0xffffb928c568\\n status=State:\\tS (sleeping);Tgid:\\t1001;Pid:\\t1013;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000000;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=clock round=5 pid=1001 clipped=false value=\"CLOCK_MONOTONIC=296.027990960\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=5 pid=1001 clipped=false value=\"syscall=unavailable:open:PermissionDenied status=State:\\tR (running);Tgid:\\t1001;Pid:\\t1001;PPid:\\t1000;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000100;SigBlk:\\t0000000000200a00;SigIgn:\\t0000000000001004;SigCgt:\\t0000000100004000\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=pc-map round=5 pid=1001 clipped=false value=\"unavailable:no-sampled-pc\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=task round=5 pid=1000 clipped=false value=\"syscall=unavailable:open:PermissionDenied status=State:\\tR (running);Tgid:\\t1000;Pid:\\t1000;PPid:\\t985;SigPnd:\\t0000000000000000;ShdPnd:\\t0000000000000100;SigBlk:\\t0000000000202a00;SigIgn:\\t0000000000324006;SigCgt:\\tfffffffe7781bef9\"",
+        "DENIAL_DIAGNOSTIC APP_CLOSE_PROBE kind=footer records=39 truncated=true elapsed_ms=1039 diagnostic_only=true invalidated=false"
+      ]
+    },
+    "app_close": {
+      "mousepad": 137,
+      "foot": 0,
+      "begin_boottime": 292.91,
+      "returned_boottime": 296.07,
+      "limit": "markers bracket setup/transport/close; exact TERM time not recorded"
+    },
+    "pam": {
+      "status": "PASS_CLEANUP_AFTER_FAILED_CHILD",
+      "close_session": 0,
+      "delete_credentials": 0,
+      "end": 0,
+      "child_status": 1,
+      "alarm225_binary_exercised": true,
+      "limit": "does not prove clean application or compositor teardown"
+    },
+    "visual": {
+      "status": "PASS",
+      "scope": "personally viewed editor and controlled terminal screenshots; text entry and phone NOT RUN",
+      "images": [
+        {
+          "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1/observe/01-mousepad-launched.png",
+          "sha256": "8ec1306a0fcce756d3c7a39b2f07104b830ae336ea217383932a787630ff68fa",
+          "bytes": 14069
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1/observe/03-foot-launched.png",
+          "sha256": "590f7f3aa27fed3a09de0c1809b87cad2690dbdd119f2742d1ab28bdac73480a",
+          "bytes": 9329
+        }
+      ]
+    },
+    "physical": "NOT RUN"
+  },
+  "helper_outputs": [
+    {
+      "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1/payload/app-close-probe",
+      "sha256": "15ad7c72cb72e17b5588d7f52fc1fbbda6fb38c7feb26582dcd9fe3a95af324d",
+      "bytes": 553320
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-device-ready20-20260919-r1/vm-r1/payload/pam-session",
+      "sha256": "bffcf5eaa028c901de437953ad30f4934578097b9b0814c74305895308bcdddd",
+      "bytes": 564224
+    }
+  ]
+}

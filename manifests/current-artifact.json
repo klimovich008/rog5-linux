@@ -2095,6 +2095,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "device_ready20_experiment": {
+      "status": "PASS_VM_READY20_AND_PAM_CLEANUP_FAIL_MOUSEPAD137",
+      "set_id": "private:rog5-device-ready20-20260919-r1",
+      "source_commit": "1784e75b8b238dde44af8f17d5d87b8a86a3a53c",
+      "source_tree": "5f2ca2ac93a864b57275e4f862c2691216f80f03",
+      "evidence": {
+        "path": "test-results/2026-09-19-device-ready20-qualification.json",
+        "sha256": "1083ee73c1287cbe5461c9683b80fb3ac80e9199b557bb3f1b7c4cc10f2708d1",
+        "bytes": 40202
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {

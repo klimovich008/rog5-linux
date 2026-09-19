@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Read-only close sampler qualified offline; VM identifies late input initialization",
+  "phase": "VM readiness experiment passes; app-close sampler observes runnable main thread; Mousepad close FAIL",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "VM348daa7a failed before PAM: initialized wait139.51\u2192148.73, both input DBs absent152.68 and original input completions157.08/157.12. This proves late inputs for this run; not a missing-event-only diagnosis. Sampler source/ARM64 tests and112-suite active tier PASS, app-close capture and corrected PAM runtime NOT RUN. Prepare an explicit combined-VM20s initialized-device wait experiment (8s default retained), review nested timing reserves, test admission/failure semantics, then one bounded VM. Keep all six devices/rules, identity/PAM and outer bounds; no unchanged retry. Prior Mousepad137, intermittent startup and S06/R01 FAIL remain. Phone physical NOT RUN.",
-  "evidence": "test-results/2026-09-19-app-close-proc.md"
+  "next": "VM1784e75b: explicit20s readiness PASS16.45s; PAM/seat and both visible apps PASS. Foot0, Mousepad137 remains. Read-only close probe captured39 records/1039ms: main thread runnable in five samples, no stable syscall/PC; final PermissionDenied with pendingSIGKILL is consistent with teardown, exact cause unobserved. Corrected PAM helper closes session/deletes credentials/ends0 and preserves failed child1. Next add bounded task-specific CPU ticks and context-switch counters to distinguish execution from runnable scheduling delay; retain clock scale, six rounds and byte/time limits. Do not claim a spin, extend app grace or rerun unchanged. Readiness20s remains explicit diagnostic;8s default and outer caps preserved. Phone physical NOT RUN; S06/R01 FAIL retained.",
+  "evidence": "test-results/2026-09-19-device-ready20.md"
 }
