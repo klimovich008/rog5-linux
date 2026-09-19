@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Startup comparison finds timing/readiness failures; RCU stall not reproduced**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **PAM/device startup passes; timing inventory incomplete; database diagnostics prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Two full-runtime startup-only VMs on source2f83c7cf both power off normally with no RCU stall. Normal mode passes PAM/logind/device access and cleanup but its timing query times out; nomops fails the device-initialization wait before PAM. Neither arm qualifies and no default CPU-feature workaround is justified. Final source includes a tested watchdog-observation correction; sourced693210a reports explicit query failure and rejects conflicting timing packets. Next inspect exact udev initialization semantics and tty/fuse startup ordering, preserving bounds and readiness guards. Denial rendering and phone tests remain NOT RUN in this comparison; historical S06/R01 FAIL remain open. See [current repair evidence](../test-results/2026-09-19-full-startup-mops.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Sourceb03ed53e adds bounded database-first failure capture; host and six retained ARM64 Bash cases pass. The one nomops startup-only VM passes device readiness in0.58s, PAM/logind and cleanup, with normal poweroff/no RCU stall. Its timing query still times out after six of nine units, so VM qualification remains FAIL and the new failure snapshot is NOT RUN there. Next use one bounded default-CPU Denial/app VM; the failed startup-only timing diagnostic is separate from that existing session path. Do not claim the intermittent device or earlier RCU failure fixed. Preserve physical NOT RUN and S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-udev-readiness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

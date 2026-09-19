@@ -1952,6 +1952,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; normal readiness/cleanup passed but timing failed; nomops readiness failed"
+    },
+    "udev_database_diagnostic": {
+      "status": "PASS_SNAPSHOT_FIXTURES_AND_PAM_CLEANUP_VM_FAIL_TIMING_SNAPSHOT_NOT_RUN",
+      "set_id": "private:rog5-udev-readiness-20260919-r1",
+      "source_commit": "b03ed53e35cb55e52181e756b6e134ec6ddf8e4e",
+      "source_tree": "6c9c33b80ebc872083f7e0cacf8aa577bef3a46b",
+      "evidence": {
+        "path": "test-results/2026-09-19-udev-readiness-qualification.json",
+        "sha256": "2642521c08eaf65c1a3860b9413de75607390ab730814815e4301602fbc77ae9",
+        "bytes": 106415
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; database snapshot not exercised in system VM because wait succeeded"
     }
   },
   "denial_phone_linkage": {

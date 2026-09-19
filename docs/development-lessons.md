@@ -3368,3 +3368,14 @@ member bytes: fresh cpio inode/mtime headers can differ despite equal payloads.
 An interruption-test observer must include the existing helper watchdog and kill
 grace; observing exactly at its3s watchdog raced deferred shell-trap cleanup.
 The test now allows5s without changing production deadlines or cleanup assertions.
+
+Udev failure capture (2026-09-19): an empty udev database entry can represent an
+initialized character device without USEC_INITIALIZED. Capture database presence
+and ID_PROCESSING before slow property queries, with bounded text reads and the
+existing overall snapshot limit. Keep later snapshots separate from the state at
+the wait deadline. A successful retry cannot qualify an unexecuted failure path.
+The startup-only timing inventory remains a distinct diagnostic gate; do not
+turn its incomplete result into a new prerequisite for the existing Denial/app
+session path after independent PAM/device/cleanup observations. Host ARM64 tools
+need the ordinary runtime root, not the9P mapped-file view whose symlinks are
+stored as ordinary file payloads.
