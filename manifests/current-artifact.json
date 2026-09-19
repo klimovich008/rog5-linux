@@ -1848,6 +1848,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM preparation only"
+    },
+    "device_readiness_control": {
+      "status": "PASS_DEVICE_WAIT_FIXTURES_VM_FAIL_BEFORE_PAM",
+      "set_id": "private:rog5-device-readiness-20260919-r1",
+      "source_commit": "1020884d4a781d0463d25a913b861bdfc0bbedbd",
+      "evidence": {
+        "path": "test-results/2026-09-19-initialized-device-readiness-qualification.json",
+        "sha256": "0c7c7ee9f8abe45b810c39886bed549c49223b70bf94a28202f6eb3403eff614",
+        "bytes": 135503
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM preparation only"
     }
   },
   "denial_phone_linkage": {
