@@ -3270,3 +3270,17 @@ Reduced systemd fixtures must create the normal session's mobile account before
 claiming UID1000 consumer coverage. Reuse validated cache staging by exact hashes
 instead of repeating unchanged runtime walks. Full-session benefit remains a
 separate measurement; package-hook success and lookup speed are not phone proof.
+
+Application-release observation (2026-09-19): a run-return marker emitted before
+the probe disconnects its own signals does not prove the caller resumed. Bracket
+observer removal before attributing a later stall to object release. Validate
+matching-pointer interposition against real ARM64 GLib finalization, preserve
+call counts/errno and clear the pending pointer before forwarding recursive
+cleanup. Matching pointer is not proof of thread identity or final reference;
+a DSO destructor marker is not process exit. Reuse completed small-fixture and
+frozen-tier checks, but preserve a full VM startup timeout as a separate failure
+when the intended app observation never ran. Record host resource evidence and
+guest stage boundaries before changing runtime deadlines. The packaged GdkPixbuf
+uses Glycin without external loader entries: an absent legacy loader cache is
+not itself a defect. Do not generate caches solely because a historical path
+is absent; verify the exact package's loader architecture first.

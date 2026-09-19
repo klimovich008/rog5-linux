@@ -1799,6 +1799,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; full Denial timeout remains FAIL"
+    },
+    "cached_startup_unref_probe": {
+      "status": "VM_STARTUP_TIMING_OBSERVED_UNREF_TRIAL_BLOCKED_BY_STARTUP_TIMEOUT",
+      "set_id": "private:rog5-app-unref-vm-20260919-r1",
+      "source_commit": "41b4e607fff85c6a3b25b21858e145d5a17a5e26",
+      "evidence": {
+        "path": "test-results/2026-09-19-cached-startup-and-unref-probe-qualification.json",
+        "sha256": "940a25a614af3f9a427caad52dde9ca302e1da602df0b6bca85388d859bb8dfd",
+        "bytes": 380870
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; Mousepad137 retained, new VM startup timeout"
     }
   },
   "denial_phone_linkage": {

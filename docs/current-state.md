@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM GTK icon-cache repair passed; full session startup remains unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM cached startup measured; new release probe qualified offline, VM startup timeout unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Missing GTK icon caches now generated in private RAM overlay: final UID1000 lookup0.110s, same1030 names,3 mapped caches and normal systemd poweroff34.016s; generation9s. Frozen-source active tier109PASS/0FAIL in176.094s. Copy/remount/inheritance/account-fixture failures retained. Next measure portal and Mousepad startup with this helper and unchanged deadlines. Full-session120s timeout FAIL, S06/R01 FAIL and physical NOT RUN remain; no phone authority. See [current repair evidence](../test-results/2026-09-19-gtk-icon-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Cached Mousepad first buffered submission took 12.026s versus 22.304s in the historical control; close exit 137 persists. The new release probe passes 17 host cases, real ARM64 GLib finalization and the 109-suite active tier in 185.519s. The latest 300s VM trial hit pre-app RCU stalls: Denial launcher appeared, app shutdown was NOT RUN, and normal poweroff was not observed. Isolate startup variability before reusing the release probe; no identical retry or deadline increase. S06/R01 remain FAIL and phone physical tests remain NOT RUN; no phone authority. See [current repair evidence](../test-results/2026-09-19-cached-startup-and-unref-probe.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
