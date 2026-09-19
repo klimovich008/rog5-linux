@@ -1,5 +1,5 @@
 //! Bounded frame-pointer candidates for a stopped, identity-validated VM task.
-//! Not wired into the VM sampler yet. Call only within capture_inspect(). Other
+//! Enabled by the explicit stack option. Call only within capture_inspect(). Other
 //! threads remain runnable, so maps and frame records are not an atomic snapshot.
 use std::{ffi::c_void, fs::File, io::{self, Read}, time::{Duration, Instant}};
 
@@ -7,6 +7,10 @@ const MAX_MAPS: usize = 65536;
 const MAX_FRAMES: usize = 4;
 const MAX_DISTANCE: u64 = 65536;
 const BUDGET: Duration = Duration::from_millis(15);
+const PEEKDATA: u32 = 2;
+
+#[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+compile_error!("stack reader requires the 64-bit Linux ptrace word ABI");
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Mapping {
@@ -91,21 +95,30 @@ fn walk(mappings: &[Mapping], sp: u64, mut fp: u64,
     Ok(Trace {frames,stop})
 }
 
-#[repr(C)]
-struct Iovec { base: *mut c_void, length: usize }
 unsafe extern "C" {
-    fn process_vm_readv(pid: i32, local: *const Iovec, local_count: usize,
-        remote: *const Iovec, remote_count: usize, flags: usize) -> isize;
+    fn ptrace(request: u32, pid: i32, address: *mut c_void, data: *mut c_void) -> isize;
+    fn __errno_location() -> *mut i32;
 }
 
 fn read_frame(pid: i32, address: u64, bytes: &mut [u8;16]) -> io::Result<usize> {
     let address=usize::try_from(address).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
-    let local=Iovec {base:bytes.as_mut_ptr().cast(),length:bytes.len()};
-    let remote=Iovec {base:address as *mut c_void,length:bytes.len()};
-    // SAFETY: kernel copies at most16 bytes into the live local array. Remote
-    // memory is only read, and this function never dereferences a remote pointer.
-    let result=unsafe {process_vm_readv(pid,&local,1,&remote,1,0)};
-    if result<0 {Err(io::Error::last_os_error())} else {Ok(result as usize)}
+    for offset in [0usize,8] {
+        let target=address.checked_add(offset).ok_or(io::ErrorKind::InvalidInput)?;
+        // SAFETY: errno is thread-local. PEEKDATA reads one remote word while
+        // this calling tracer task owns the stop; no remote pointer is locally
+        // dereferenced and no tracee memory is written. A returned all-ones word
+        // is valid data when errno remains zero, not an error sentinel by itself.
+        let (word,error)=unsafe {
+            *__errno_location()=0;
+            let value=ptrace(PEEKDATA,pid,target as *mut c_void,std::ptr::null_mut());
+            (value,*__errno_location())
+        };
+        if word == -1 && error != 0 {
+            return if offset==0 {Err(io::Error::from_raw_os_error(error))} else {Ok(offset)};
+        }
+        bytes[offset..offset+8].copy_from_slice(&(word as u64).to_ne_bytes());
+    }
+    Ok(16)
 }
 
 /// Read up to four conventional 16-byte FP records. This is not DWARF unwinding
@@ -182,7 +195,7 @@ mod tests {
         let pid=child.0.id() as i32;let fp=values[0];let boundary=values[1];
         let (_,trace)=ptrace::capture_inspect(pid,||Ok(()),move|shot| capture(pid,shot.sp,fp)).unwrap();
         assert_eq!(trace.stop,Stop::End);assert_eq!(trace.frames.len(),2);
-        assert_eq!(trace.frames[0].return_address,0x12345678);assert_eq!(trace.frames[1].return_address,0x87654321);
+        assert_eq!(trace.frames[0].return_address,0x12345678);assert_eq!(trace.frames[1].return_address,u64::MAX);
         let (_,partial)=ptrace::capture_inspect(pid,||Ok(()),move|_| {
             let mut bytes=[0u8;16];read_frame(pid,boundary,&mut bytes).map_err(|e|e.to_string())
         }).unwrap();assert_eq!(partial,8);
