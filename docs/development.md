@@ -1179,6 +1179,10 @@ still require ordinary overlay unmounting. Track each completed release so alias
 failure cannot trigger another overlay unmount. A busy-mount regression can run
 in an isolated user/mount namespace without repeating the complete UI flow. This
 proves mount ordering and error preservation, not guest 9P or shutdown behavior.
+A reduced packaged-systemd VM must also stage its alias/overlay before PID1, as
+the real session does. Installing them afterward introduced recursive paths in
+the first abort fixture; matching production allowed failure124 and normal
+poweroff in26s. Keep this failure-path result separate from full-session success.
 
 The same manual logind runner accepts the complete optional group
 `--session-archive`, `--session-receipt`, and `--host-render-node /dev/dri/renderD128`

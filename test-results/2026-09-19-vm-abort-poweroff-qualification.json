@@ -1,0 +1,1670 @@
+{
+  "status": "VM_ABORT_CLEANUP_PASS",
+  "authority": "none; isolated failure-path diagnostic only",
+  "physical": "NOT RUN",
+  "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+  "source_tree": "8dc62ef0912df887d8c4418a9b39037b73ba7db7",
+  "attempts": [
+    {
+      "prepared": {
+        "status": "PREPARED_NOT_RUN",
+        "authority": "none; isolated generic ARM64 VM only",
+        "physical": "NOT RUN",
+        "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+        "source_tree": "8dc62ef0912df887d8c4418a9b39037b73ba7db7",
+        "inputs": {
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+            "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+            "bytes": 7049224
+          },
+          "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init": {
+            "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init",
+            "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+            "bytes": 3120
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/guest.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/guest.sh",
+            "sha256": "463ea6a0cda66efe84d1c520f82a5125c9cc56705527d9de73213513dc74ce7b",
+            "bytes": 1376
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/abort.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/abort.sh",
+            "sha256": "8a093487225aa9d3ccdd5e8335fc9f9a8947a705e2d1e6ca8e7f2bd4993db277",
+            "bytes": 1221
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "sha256": "a7a2cd15f02da9b701c7bd181886258f4b0896057a4658f80f4116aa59def1c7",
+            "bytes": 8472
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+            "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+            "bytes": 4395
+          },
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+            "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+            "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+            "bytes": 1102
+          },
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+            "bytes": 63587
+          },
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+            "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+            "bytes": 7574
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+            "sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+            "bytes": 38807
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+            "bytes": 3268
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/prepare.py": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/prepare.py",
+            "sha256": "5c30548c00627a0b26342a8beb760fade9029b16ce697e563e891d4d737f7059",
+            "bytes": 3420
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/run.py": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/run.py",
+            "sha256": "abe81c16a90b5e80698b83a7065be791c956add5368725be25cb527ff7c18bf7",
+            "bytes": 3586
+          }
+        },
+        "outputs": {
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/init": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/init",
+            "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+            "bytes": 3120
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs.gz": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs.gz",
+            "sha256": "509296d24771f505bd5cf0b20207f8bffeba5ddd139ece36ca86dadbd19cdcb6",
+            "bytes": 21974
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/linker-cache": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/linker-cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+            "bytes": 63587
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-linker-cache.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-linker-cache.sh",
+            "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+            "bytes": 4395
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-probe.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-probe.sh",
+            "sha256": "a7a2cd15f02da9b701c7bd181886258f4b0896057a4658f80f4116aa59def1c7",
+            "bytes": 8472
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/abort.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/abort.sh",
+            "sha256": "8a093487225aa9d3ccdd5e8335fc9f9a8947a705e2d1e6ca8e7f2bd4993db277",
+            "bytes": 1221
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/linker-cache.sha256": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/linker-cache.sha256",
+            "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+            "bytes": 65
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/guest.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/guest.sh",
+            "sha256": "463ea6a0cda66efe84d1c520f82a5125c9cc56705527d9de73213513dc74ce7b",
+            "bytes": 1376
+          }
+        },
+        "steps": [
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-linker-cache.sh"
+            ],
+            "started_utc": "2026-09-19T11:18:00.682090+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006504994002170861,
+            "ended_utc": "2026-09-19T11:18:00.688622+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/logind-linker-cache.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/logind-probe.sh"
+            ],
+            "started_utc": "2026-09-19T11:18:00.689053+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006407011998817325,
+            "ended_utc": "2026-09-19T11:18:00.695475+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/logind-probe.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/abort.sh"
+            ],
+            "started_utc": "2026-09-19T11:18:00.695844+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.00634122098563239,
+            "ended_utc": "2026-09-19T11:18:00.702197+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/abort.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs/stage/guest.sh"
+            ],
+            "started_utc": "2026-09-19T11:18:00.702621+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.0064416430541314185,
+            "ended_utc": "2026-09-19T11:18:00.709076+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/guest.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "cpio",
+              "--null",
+              "-o",
+              "--quiet",
+              "--format=newc",
+              "--owner=0:0"
+            ],
+            "started_utc": "2026-09-19T11:18:00.710117+00:00",
+            "deadline_seconds": 10,
+            "cwd": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs",
+            "stdin_sha256": "1dd56c5169fb25ad7ed8838b100051c1f9080eb1884b9f1771c2ece622d1bb35",
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.00885464996099472,
+            "ended_utc": "2026-09-19T11:18:00.718996+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/cpio.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "gzip",
+              "-n",
+              "-c",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs.cpio"
+            ],
+            "started_utc": "2026-09-19T11:18:00.719474+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.007878818025346845,
+            "ended_utc": "2026-09-19T11:18:00.727368+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/gzip.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          }
+        ],
+        "kernel": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "runtime": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "runtime_receipt": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "runtime_scope": "Existing mapped-file runtime authentication reused; receipt and linker cache validated, complete inventory not rerun",
+        "cache": {
+          "schema": 1,
+          "status": "PASS_TARGET_CACHE_PREPARED",
+          "authority": "none",
+          "physical_status": "NOT RUN",
+          "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "view": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+          "view_metadata_sha256": "8427a45540ab33025cfdfa87c6cd147cee2bb777ee2cf4fdf0a87d121133a57e",
+          "tree": {
+            "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+            "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0"
+          },
+          "materialization": {
+            "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/result.json",
+            "sha256": "fe055a529374001ca97a56c7406d3723777febcaee6cbd2eab378f99dba37ede"
+          },
+          "view_receipt": {
+            "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+            "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5"
+          },
+          "preparer_sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+          "tools": {
+            "qemu": {
+              "path": "/usr/bin/qemu-aarch64-static",
+              "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867"
+            },
+            "bwrap": {
+              "path": "/usr/bin/bwrap",
+              "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6"
+            },
+            "ldconfig": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/ldconfig",
+              "sha256": "8794bf13f7a651963a219d8031fe04800d06ac6e44a29fbdfd81b64855b2bd98"
+            },
+            "loader": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/ld-linux-aarch64.so.1",
+              "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d"
+            }
+          },
+          "cache": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654"
+          },
+          "consumers": {
+            "mousepad": {
+              "cache_searches": 71,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/mousepad.log",
+                "sha256": "edc7ca5b51e3aff776e0b03c9b5f23a1c56ee6bc9d98dad329ac58e4aa2f3b9f"
+              }
+            },
+            "foot": {
+              "cache_searches": 21,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/foot.log",
+                "sha256": "c3b819dd2531be3b0b4982aca8b80d35271af67cb946d42e8f6cd3ca1db8126f"
+              }
+            }
+          },
+          "steps": [
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch",
+                "/run",
+                "--tmpfs",
+                "/var",
+                "--dir",
+                "/var/cache/ldconfig",
+                "--",
+                "/opt/qemu",
+                "/usr/bin/ldconfig",
+                "-X",
+                "-C",
+                "/run/ld.so.cache"
+              ],
+              "exit_status": 0,
+              "seconds": 0.16734646598342806,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/generate.log",
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--",
+                "/opt/qemu",
+                "/usr/bin/ldconfig",
+                "-p"
+              ],
+              "exit_status": 0,
+              "seconds": 0.03520706098061055,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/inventory.log",
+                "sha256": "8d6b8ca78252960d5bb782064fc5999975d1208c0196544a394c5a1edd06fc4a"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--setenv",
+                "LD_DEBUG",
+                "libs",
+                "--",
+                "/opt/qemu",
+                "/usr/lib/ld-linux-aarch64.so.1",
+                "--list",
+                "/usr/bin/mousepad"
+              ],
+              "exit_status": 0,
+              "seconds": 0.06724921899149194,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/mousepad.log",
+                "sha256": "edc7ca5b51e3aff776e0b03c9b5f23a1c56ee6bc9d98dad329ac58e4aa2f3b9f"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--setenv",
+                "LD_DEBUG",
+                "libs",
+                "--",
+                "/opt/qemu",
+                "/usr/lib/ld-linux-aarch64.so.1",
+                "--list",
+                "/usr/bin/foot"
+              ],
+              "exit_status": 0,
+              "seconds": 0.03510266897501424,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/foot.log",
+                "sha256": "c3b819dd2531be3b0b4982aca8b80d35271af67cb946d42e8f6cd3ca1db8126f"
+              }
+            }
+          ],
+          "seconds": 31.308148535026703,
+          "authentication": "retained authenticated package receipt; every runtime byte/symlink rechecked; signatures not rerun"
+        },
+        "qemu_image": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "deadline_seconds": 90
+      },
+      "result": {
+        "status": "FAIL",
+        "scope": "induced failure cleanup and systemd poweroff only; no PAM, Denial, UI or phone qualification",
+        "physical": "NOT RUN",
+        "authority": "none",
+        "prepared": {
+          "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/prepared.json",
+          "sha256": "f463f2dafab4dc1a6971050187fc218bb07e9812ec299734137a8ebed5e88e88",
+          "bytes": 19262
+        },
+        "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+        "source_tree": "8dc62ef0912df887d8c4418a9b39037b73ba7db7",
+        "container": "rog5-abort-vm-0fa05e80d3ec4d25",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-abort-vm-0fa05e80d3ec4d25",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/payload:/payload:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "1",
+          "-m",
+          "512M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "steps": [
+          {
+            "command": [
+              "podman",
+              "run",
+              "--rm",
+              "--name",
+              "rog5-abort-vm-0fa05e80d3ec4d25",
+              "--pull=never",
+              "--network=none",
+              "--read-only",
+              "--memory=1024m",
+              "--memory-swap=1024m",
+              "--cpus=2",
+              "--pids-limit=64",
+              "-v",
+              "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/initramfs.gz:/initramfs.gz:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/payload:/payload:ro",
+              "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+              "qemu-system-aarch64",
+              "-M",
+              "virt",
+              "-cpu",
+              "max",
+              "-smp",
+              "1",
+              "-m",
+              "512M",
+              "-accel",
+              "tcg,thread=multi",
+              "-global",
+              "virtio-mmio.force-legacy=false",
+              "-display",
+              "none",
+              "-monitor",
+              "none",
+              "-nic",
+              "none",
+              "-serial",
+              "stdio",
+              "-no-reboot",
+              "-kernel",
+              "/Image",
+              "-initrd",
+              "/initramfs.gz",
+              "-append",
+              "console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1",
+              "-fsdev",
+              "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+              "-device",
+              "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+              "-fsdev",
+              "local,id=payload,path=/payload,security_model=none,readonly=on",
+              "-device",
+              "virtio-9p-device,fsdev=payload,mount_tag=payload"
+            ],
+            "started_utc": "2026-09-19T11:18:23.531338+00:00",
+            "deadline_seconds": 90,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 23.665886007016525,
+            "ended_utc": "2026-09-19T11:18:47.197255+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.log",
+              "sha256": "6d79e2a3591436a2ed89574321eeb19a0d90f5e44b3805a21a0ecc269f164dd0",
+              "bytes": 13504
+            }
+          },
+          {
+            "command": [
+              "podman",
+              "rm",
+              "--force",
+              "--ignore",
+              "rog5-abort-vm-0fa05e80d3ec4d25"
+            ],
+            "started_utc": "2026-09-19T11:18:47.197805+00:00",
+            "deadline_seconds": 15,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.06688498699804768,
+            "ended_utc": "2026-09-19T11:18:47.264708+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.cleanup.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "podman",
+              "container",
+              "exists",
+              "rog5-abort-vm-0fa05e80d3ec4d25"
+            ],
+            "started_utc": "2026-09-19T11:18:47.265139+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 1,
+            "duration_seconds": 0.03389266796875745,
+            "ended_utc": "2026-09-19T11:18:47.299046+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.absence.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            },
+            "interpretation": "exit 1 proves named container absent"
+          }
+        ],
+        "error": "RuntimeError: VM lacks normal poweroff or recorded a kernel panic",
+        "duration_seconds": 23.76831186300842,
+        "logs": [
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/abort.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/guest.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/logind-linker-cache.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/logind-probe.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.log",
+            "sha256": "6d79e2a3591436a2ed89574321eeb19a0d90f5e44b3805a21a0ecc269f164dd0",
+            "bytes": 13504
+          }
+        ]
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r1/serial.log",
+        "sha256": "6d79e2a3591436a2ed89574321eeb19a0d90f5e44b3805a21a0ecc269f164dd0",
+        "bytes": 13504
+      },
+      "markers": [
+        {
+          "line": 125,
+          "text": "OBSERVE abort diagnostic exec packaged systemd PID1; no login or Denial"
+        },
+        {
+          "line": 142,
+          "text": "\u001b[0;1;38:5:185m/etc/systemd/system/rog5-abort.service:11: Failed to parse output specifier, ignoring: console"
+        },
+        {
+          "line": 144,
+          "text": "\u001b[0;1;38:5:185m/etc/systemd/system/rog5-abort.service:12: Failed to parse output specifier, ignoring: console"
+        },
+        {
+          "line": 159,
+          "text": "rog5-abort.service: Main process exited, code=exited, status=127/n/a"
+        },
+        {
+          "line": 197,
+          "text": "(umount)[92]: usr-bin.mount: usr-bin.mount: Unable to locate executable '/usr/bin/umount': Too many levels of symbolic links"
+        },
+        {
+          "line": 198,
+          "text": "(umount)[91]: tmp.mount: tmp.mount: Unable to locate executable '/usr/bin/umount': Too many levels of symbolic links"
+        },
+        {
+          "line": 199,
+          "text": "(umount)[90]: run-payload.mount: run-payload.mount: Unable to locate executable '/usr/bin/umount': Too many levels of symbolic links"
+        },
+        {
+          "line": 200,
+          "text": "(umount)[93]: var.mount: var.mount: Unable to locate executable '/usr/bin/umount': Too many levels of symbolic links"
+        },
+        {
+          "line": 201,
+          "text": "(umount)[93]: var.mount: var.mount: Failed at step EXEC spawning /usr/bin/umount: Too many levels of symbolic links"
+        },
+        {
+          "line": 202,
+          "text": "(umount)[89]: run-original\\x2dbin.mount: run-original\\x2dbin.mount: Unable to locate executable '/usr/bin/umount': Too many levels of symbolic links"
+        },
+        {
+          "line": 203,
+          "text": "(umount)[92]: usr-bin.mount: usr-bin.mount: Failed at step EXEC spawning /usr/bin/umount: Too many levels of symbolic links"
+        },
+        {
+          "line": 204,
+          "text": "(umount)[91]: tmp.mount: tmp.mount: Failed at step EXEC spawning /usr/bin/umount: Too many levels of symbolic links"
+        },
+        {
+          "line": 205,
+          "text": "(umount)[89]: run-original\\x2dbin.mount: run-original\\x2dbin.mount: Failed at step EXEC spawning /usr/bin/umount: Too many levels of symbolic links"
+        },
+        {
+          "line": 206,
+          "text": "(umount)[90]: run-payload.mount: run-payload.mount: Failed at step EXEC spawning /usr/bin/umount: Too many levels of symbolic links"
+        },
+        {
+          "line": 271,
+          "text": "Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000007"
+        }
+      ],
+      "container_absent": true,
+      "scripts": {
+        "guest.sh": "#!/usr/bin/bash\n# Private isolated ARM64 VM diagnostic. Never a phone script.\nset -euo pipefail\nread -r cmdline < /proc/cmdline\n[[ $$ == 1 && $EUID == 0 && \" $cmdline \" == *' rog5.abort_fixture=1 '* && -d /sys/bus/virtio/devices ]]\ntrap 'echo \"FAIL abort PID1 setup line=$LINENO\"; /usr/bin/poweroff -ff' ERR\nexport PATH=/usr/bin LANG=C.UTF-8\ncp -a /etc /run/fixture-etc\nmount --bind /run/fixture-etc /etc\nsource /run/logind-linker-cache.sh\nprepare_linker_cache\nmount -t tmpfs -o mode=0755,size=32m tmpfs /var\nmkdir -p /var/lib /var/log /var/tmp /etc/systemd/system\nchmod 1777 /var/tmp\nprintf '47b22e3177df4db18d6ed283dff17712\\n' > /etc/machine-id\nprintf 'rog5-abort-vm\\n' > /etc/hostname\ncat > /etc/systemd/system/rog5-abort.target <<'EOF'\n[Unit]\nDescription=Isolated abort cleanup diagnostic\nDefaultDependencies=no\nRequires=rog5-abort.service\nAfter=rog5-abort.service\nEOF\ncat > /etc/systemd/system/rog5-abort.service <<'EOF'\n[Unit]\nDescription=Induced failure and owned mount cleanup\nDefaultDependencies=no\nOnFailure=poweroff.target\n[Service]\nType=oneshot\nExecStart=/usr/bin/bash /run/abort.sh\nTimeoutStartSec=30\nTimeoutStopSec=10\nKillMode=control-group\nStandardOutput=console\nStandardError=console\nEOF\necho 'OBSERVE abort diagnostic exec packaged systemd PID1; no login or Denial'\nexec /usr/lib/systemd/systemd --unit=rog5-abort.target --log-target=console --log-level=info\n",
+        "abort.sh": "#!/usr/bin/bash\nset -euo pipefail\nread -r cmdline < /proc/cmdline\n[[ $EUID == 0 && \" $cmdline \" == *' rog5.abort_fixture=1 '* && -d /sys/bus/virtio/devices ]]\nsource /run/logind-probe.sh\nmkdir /run/original-bin /run/session-bin\nmount --bind /usr/bin /run/original-bin\ncp -as /run/original-bin/. /run/session-bin/\nmount --bind /run/session-bin /usr/bin\nbash -c 'cd /usr/bin; : > /run/holder-ready; exec sleep 60' &\nholder=$!\nfor ((i=0;i<200;i++)); do [[ ! -f /run/holder-ready ]] || break; sleep .01; done\n[[ -f /run/holder-ready ]] && kill -0 \"$holder\"\nset +e\n/run/original-bin/umount /usr/bin\nbusy=$?\nset -e\n[[ $busy == 32 ]]\necho 'OBSERVE owned RAM executable overlay busy status=32'\nset +e\n(\n    set -e\n    restore_needed=2\n    trap logind_finish EXIT\n    timeout -k 1 1 sleep 20\n)\nrc=$?\nset -e\n[[ $rc == 124 ]]\nkill -0 \"$holder\"\nif awk '$5==\"/usr/bin\" || $5==\"/run/original-bin\" {found=1} END {exit !found}' /proc/self/mountinfo; then\n    echo 'FAIL abort diagnostic owned mounts remain'\n    exit 1\nfi\necho 'PASS abort diagnostic mounts absent with live holder; original status=124'\nkill \"$holder\"\nwait \"$holder\" || [[ $? == 143 ]]\necho 'OBSERVE abort diagnostic returning original failure=124 to systemd'\nexit \"$rc\"\n",
+        "prepare.py": "from pathlib import Path\nimport json,hashlib,subprocess,importlib.util,shutil\nE=Path(__file__).resolve().parent;W=E.parent/'rog5-review-correctness-20260912-r1';B=E.parent/'rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1';CACHE=E.parent/'rog5-linker-cache-integration-20260919-r1/prepared-r2'\nspec=importlib.util.spec_from_file_location('logind',W/'scripts/host/test-qemu-logind.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\nassert not subprocess.check_output(['git','status','--porcelain'],cwd=W)\nassert not subprocess.check_output(['podman','ps','-q']).strip();m.disk_guard(E)\nprior=json.loads((B/'result.json').read_text());root=Path(prior['runtime_view']);receipt=E.parent/'rog5-nonroot-session-20260913-r1/view-r1/result.json'\nassert m.identity(receipt)['sha256']=='acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5'\ncache=m.linker_cache_module().validate(CACHE,root,receipt)\nstage=E/'initramfs';stage.mkdir();(E/'payload').mkdir()\nfor n in ['sysroot','dev','stage/payload']:(stage/n).mkdir(parents=True,exist_ok=True)\ninputs={}\ndef pin(p,expected=None):\n r=m.identity(p)\n if expected:assert r['sha256']==expected,p\n inputs[str(p)]=r\n return r\nkernel=W/'build/qemu-virtio-session/arch/arm64/boot/Image';pin(kernel,prior['inputs'][str(kernel)]['sha256'])\ninit=B/'initramfs/init';pin(init,prior['outputs']['initramfs/init']['sha256']);shutil.copyfile(init,stage/'init');(stage/'init').chmod(0o755)\nfor src,name in [(E/'guest.sh','guest.sh'),(E/'abort.sh','abort.sh'),(W/'tools/qemu-virtio-drm/logind-session.sh','logind-probe.sh'),(W/'tools/qemu-virtio-drm/logind-linker-cache.sh','logind-linker-cache.sh')]:\n pin(src);shutil.copyfile(src,stage/'stage'/name);(stage/'stage'/name).chmod(0o755)\nm.linker_cache_module().stage(CACHE,root,receipt,stage/'stage')\nfor p in [receipt,CACHE/'ld.so.cache',CACHE/'result.json',W/'scripts/host/test-qemu-logind.py',W/'tools/qemu-virtio-drm/init.c',E/'prepare.py',E/'run.py']:pin(p)\nsteps=[]\nfor p in (stage/'stage').glob('*.sh'):m.execute(['bash','-n',str(p)],E/(p.name+'.syntax.log'),10,steps)\nmembers=sorted(str(p.relative_to(stage)) for p in stage.rglob('*'))\nwith (E/'initramfs.cpio').open('xb') as f:m.execute(['cpio','--null','-o','--quiet','--format=newc','--owner=0:0'],E/'cpio.log',10,steps,cwd=stage,data=('\\0'.join(members)+'\\0').encode(),stdout=f)\nwith (E/'initramfs.gz').open('xb') as f:m.execute(['gzip','-n','-c',str(E/'initramfs.cpio')],E/'gzip.log',10,steps,stdout=f)\noutputs={str(p):m.identity(p) for p in [stage/'init',E/'initramfs.gz',*[p for p in (stage/'stage').iterdir() if p.is_file()]]}\nrecord=dict(status='PREPARED_NOT_RUN',authority='none; isolated generic ARM64 VM only',physical='NOT RUN',source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip(),source_tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=W,text=True).strip(),inputs=inputs,outputs=outputs,steps=steps,kernel=str(kernel),runtime=str(root),runtime_receipt=str(receipt),runtime_scope='Existing mapped-file runtime authentication reused; receipt and linker cache validated, complete inventory not rerun',cache=cache,qemu_image=prior['container_images']['qemu'],deadline_seconds=90)\nwith (E/'prepared.json').open('x') as f:json.dump(record,f,indent=2);f.write('\\n')\nprint(json.dumps(dict(status=record['status'],inputs=len(inputs),outputs=len(outputs),initramfs=outputs[str(E/'initramfs.gz')])))\n",
+        "run.py": "from pathlib import Path\nimport json,subprocess,importlib.util,time,uuid,re\nE=Path(__file__).resolve().parent;W=E.parent/'rog5-review-correctness-20260912-r1'\nspec=importlib.util.spec_from_file_location('logind',W/'scripts/host/test-qemu-logind.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\ndef main():\n m.install_handlers();p=json.loads((E/'prepared.json').read_text());assert not (E/'started.json').exists()\n assert not subprocess.check_output(['git','status','--porcelain'],cwd=W)\n assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip()==p['source_commit']\n assert not subprocess.check_output(['podman','ps','-q']).strip();m.disk_guard(E)\n for x in [*p['inputs'].values(),*p['outputs'].values()]:assert m.identity(Path(x['path']))==x,x['path']\n name='rog5-abort-vm-'+uuid.uuid4().hex[:16]\n cmd=['podman','run','--rm','--name',name,'--pull=never','--network=none','--read-only','--memory=1024m','--memory-swap=1024m','--cpus=2','--pids-limit=64','-v',p['runtime']+':/runtime:ro','-v',p['kernel']+':/Image:ro','-v',str(E/'initramfs.gz')+':/initramfs.gz:ro','-v',str(E/'payload')+':/payload:ro',p['qemu_image'],'qemu-system-aarch64','-M','virt','-cpu','max','-smp','1','-m','512M','-accel','tcg,thread=multi','-global','virtio-mmio.force-legacy=false','-display','none','-monitor','none','-nic','none','-serial','stdio','-no-reboot','-kernel','/Image','-initrd','/initramfs.gz','-append','console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1','-fsdev','local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on','-device','virtio-9p-device,fsdev=rootfs,mount_tag=rootfs','-fsdev','local,id=payload,path=/payload,security_model=none,readonly=on','-device','virtio-9p-device,fsdev=payload,mount_tag=payload']\n r=dict(status='FAIL',scope='induced failure cleanup and systemd poweroff only; no PAM, Denial, UI or phone qualification',physical='NOT RUN',authority='none',prepared=m.identity(E/'prepared.json'),source_commit=p['source_commit'],source_tree=p['source_tree'],container=name,command=cmd,steps=[])\n with (E/'started.json').open('x') as f:json.dump(r,f,indent=2);f.write('\\n')\n t=time.monotonic()\n try:\n  m.container(cmd,name,E/'serial.log',p['deadline_seconds'],r['steps'])\n  serial=(E/'serial.log').read_text(errors='replace');m.require_vm_poweroff(serial)\n  markers=['OBSERVE owned RAM executable overlay busy status=32','PASS abort diagnostic mounts absent with live holder; original status=124','OBSERVE abort diagnostic returning original failure=124 to systemd']\n  assert all(serial.count(x)==1 for x in markers),'missing or repeated diagnostic marker'\n  assert re.search(r'rog5-abort.service: Main process exited, code=exited, status=124',serial),'systemd did not retain induced failure'\n  assert 'FAIL abort' not in serial and 'FAIL executable view cleanup' not in serial\n  for x in [*p['inputs'].values(),*p['outputs'].values()]:assert m.identity(Path(x['path']))==x,x['path']\n  m.disk_guard(E);r.update(status='PASS',induced_service_result='FAIL exit124 retained',normal_poweroff=True,panic=False,markers=markers)\n except BaseException as exc:r['error']=f'{type(exc).__name__}: {exc}'\n finally:\n  r['duration_seconds']=time.monotonic()-t;r['logs']=[m.identity(x) for x in sorted(E.glob('*.log'))]\n  with (E/'result.json').open('x') as f:json.dump(r,f,indent=2);f.write('\\n')\n print(json.dumps({k:v for k,v in r.items() if k in ['status','error','duration_seconds','induced_service_result','normal_poweroff']}));return 0 if r['status']=='PASS' else 1\nif __name__=='__main__':raise SystemExit(main())\n"
+      }
+    },
+    {
+      "prepared": {
+        "status": "PREPARED_NOT_RUN",
+        "authority": "none; isolated generic ARM64 VM only",
+        "physical": "NOT RUN",
+        "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+        "source_tree": "8dc62ef0912df887d8c4418a9b39037b73ba7db7",
+        "inputs": {
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+            "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+            "bytes": 7049224
+          },
+          "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init": {
+            "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init",
+            "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+            "bytes": 3120
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/guest.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/guest.sh",
+            "sha256": "2f10ef4bf56f6d761260a1760a470cda8c65ca7ab60adaae3adbf9eb04337b94",
+            "bytes": 1634
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/abort.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/abort.sh",
+            "sha256": "918a53dce86f2a195dd651f2582791ba8043bbc6941b068236e3bc94bcc9eb87",
+            "bytes": 1056
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+            "sha256": "a7a2cd15f02da9b701c7bd181886258f4b0896057a4658f80f4116aa59def1c7",
+            "bytes": 8472
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+            "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+            "bytes": 4395
+          },
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+            "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+            "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+            "bytes": 1102
+          },
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+            "bytes": 63587
+          },
+          "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+            "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+            "bytes": 7574
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+            "sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+            "bytes": 38807
+          },
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+            "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+            "bytes": 3268
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/prepare.py": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/prepare.py",
+            "sha256": "5c30548c00627a0b26342a8beb760fade9029b16ce697e563e891d4d737f7059",
+            "bytes": 3420
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/run.py": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/run.py",
+            "sha256": "9ac1d2f7bbe9e4abc0185aa73c5bbc62727da56e90d37aa2127c53cb9c835ddd",
+            "bytes": 3695
+          }
+        },
+        "outputs": {
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/init": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/init",
+            "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+            "bytes": 3120
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs.gz": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs.gz",
+            "sha256": "01d6aa51dff402c3f956ee59f4d7d9ceeeb0057e638725a92e5c00c2bb62d0cc",
+            "bytes": 22019
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/linker-cache": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/linker-cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+            "bytes": 63587
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-linker-cache.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-linker-cache.sh",
+            "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+            "bytes": 4395
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-probe.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-probe.sh",
+            "sha256": "a7a2cd15f02da9b701c7bd181886258f4b0896057a4658f80f4116aa59def1c7",
+            "bytes": 8472
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/abort.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/abort.sh",
+            "sha256": "918a53dce86f2a195dd651f2582791ba8043bbc6941b068236e3bc94bcc9eb87",
+            "bytes": 1056
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/linker-cache.sha256": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/linker-cache.sha256",
+            "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+            "bytes": 65
+          },
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/guest.sh": {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/guest.sh",
+            "sha256": "2f10ef4bf56f6d761260a1760a470cda8c65ca7ab60adaae3adbf9eb04337b94",
+            "bytes": 1634
+          }
+        },
+        "steps": [
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-linker-cache.sh"
+            ],
+            "started_utc": "2026-09-19T11:20:21.967296+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006276805012021214,
+            "ended_utc": "2026-09-19T11:20:21.973599+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/logind-linker-cache.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/logind-probe.sh"
+            ],
+            "started_utc": "2026-09-19T11:20:21.974028+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006510197010356933,
+            "ended_utc": "2026-09-19T11:20:21.980556+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/logind-probe.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/abort.sh"
+            ],
+            "started_utc": "2026-09-19T11:20:21.980977+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006238344009034336,
+            "ended_utc": "2026-09-19T11:20:21.987230+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/abort.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "bash",
+              "-n",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs/stage/guest.sh"
+            ],
+            "started_utc": "2026-09-19T11:20:21.987652+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.006294245016761124,
+            "ended_utc": "2026-09-19T11:20:21.993960+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/guest.sh.syntax.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "cpio",
+              "--null",
+              "-o",
+              "--quiet",
+              "--format=newc",
+              "--owner=0:0"
+            ],
+            "started_utc": "2026-09-19T11:20:21.995038+00:00",
+            "deadline_seconds": 10,
+            "cwd": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs",
+            "stdin_sha256": "1dd56c5169fb25ad7ed8838b100051c1f9080eb1884b9f1771c2ece622d1bb35",
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.010492864006664604,
+            "ended_utc": "2026-09-19T11:20:22.005555+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/cpio.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "gzip",
+              "-n",
+              "-c",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs.cpio"
+            ],
+            "started_utc": "2026-09-19T11:20:22.006037+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.010537775990087539,
+            "ended_utc": "2026-09-19T11:20:22.016592+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/gzip.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          }
+        ],
+        "kernel": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "runtime": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+        "runtime_receipt": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "runtime_scope": "Existing mapped-file runtime authentication reused; receipt and linker cache validated, complete inventory not rerun",
+        "cache": {
+          "schema": 1,
+          "status": "PASS_TARGET_CACHE_PREPARED",
+          "authority": "none",
+          "physical_status": "NOT RUN",
+          "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "view": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+          "view_metadata_sha256": "8427a45540ab33025cfdfa87c6cd147cee2bb777ee2cf4fdf0a87d121133a57e",
+          "tree": {
+            "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+            "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0"
+          },
+          "materialization": {
+            "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/result.json",
+            "sha256": "fe055a529374001ca97a56c7406d3723777febcaee6cbd2eab378f99dba37ede"
+          },
+          "view_receipt": {
+            "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+            "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5"
+          },
+          "preparer_sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+          "tools": {
+            "qemu": {
+              "path": "/usr/bin/qemu-aarch64-static",
+              "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867"
+            },
+            "bwrap": {
+              "path": "/usr/bin/bwrap",
+              "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6"
+            },
+            "ldconfig": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/ldconfig",
+              "sha256": "8794bf13f7a651963a219d8031fe04800d06ac6e44a29fbdfd81b64855b2bd98"
+            },
+            "loader": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/ld-linux-aarch64.so.1",
+              "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d"
+            }
+          },
+          "cache": {
+            "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+            "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654"
+          },
+          "consumers": {
+            "mousepad": {
+              "cache_searches": 71,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/mousepad.log",
+                "sha256": "edc7ca5b51e3aff776e0b03c9b5f23a1c56ee6bc9d98dad329ac58e4aa2f3b9f"
+              }
+            },
+            "foot": {
+              "cache_searches": 21,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/foot.log",
+                "sha256": "c3b819dd2531be3b0b4982aca8b80d35271af67cb946d42e8f6cd3ca1db8126f"
+              }
+            }
+          },
+          "steps": [
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch",
+                "/run",
+                "--tmpfs",
+                "/var",
+                "--dir",
+                "/var/cache/ldconfig",
+                "--",
+                "/opt/qemu",
+                "/usr/bin/ldconfig",
+                "-X",
+                "-C",
+                "/run/ld.so.cache"
+              ],
+              "exit_status": 0,
+              "seconds": 0.16734646598342806,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/generate.log",
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--",
+                "/opt/qemu",
+                "/usr/bin/ldconfig",
+                "-p"
+              ],
+              "exit_status": 0,
+              "seconds": 0.03520706098061055,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/inventory.log",
+                "sha256": "8d6b8ca78252960d5bb782064fc5999975d1208c0196544a394c5a1edd06fc4a"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--setenv",
+                "LD_DEBUG",
+                "libs",
+                "--",
+                "/opt/qemu",
+                "/usr/lib/ld-linux-aarch64.so.1",
+                "--list",
+                "/usr/bin/mousepad"
+              ],
+              "exit_status": 0,
+              "seconds": 0.06724921899149194,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/mousepad.log",
+                "sha256": "edc7ca5b51e3aff776e0b03c9b5f23a1c56ee6bc9d98dad329ac58e4aa2f3b9f"
+              }
+            },
+            {
+              "command": [
+                "bwrap",
+                "--unshare-all",
+                "--die-with-parent",
+                "--new-session",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+                "/",
+                "--tmpfs",
+                "/opt",
+                "--ro-bind",
+                "/usr/bin/qemu-aarch64-static",
+                "/opt/qemu",
+                "--proc",
+                "/proc",
+                "--dev",
+                "/dev",
+                "--clearenv",
+                "--setenv",
+                "PATH",
+                "/usr/bin",
+                "--setenv",
+                "LC_ALL",
+                "C",
+                "--tmpfs",
+                "/etc",
+                "--ro-bind",
+                "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/scratch/ld.so.cache",
+                "/etc/ld.so.cache",
+                "--setenv",
+                "LD_DEBUG",
+                "libs",
+                "--",
+                "/opt/qemu",
+                "/usr/lib/ld-linux-aarch64.so.1",
+                "--list",
+                "/usr/bin/foot"
+              ],
+              "exit_status": 0,
+              "seconds": 0.03510266897501424,
+              "log": {
+                "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/foot.log",
+                "sha256": "c3b819dd2531be3b0b4982aca8b80d35271af67cb946d42e8f6cd3ca1db8126f"
+              }
+            }
+          ],
+          "seconds": 31.308148535026703,
+          "authentication": "retained authenticated package receipt; every runtime byte/symlink rechecked; signatures not rerun"
+        },
+        "qemu_image": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "deadline_seconds": 90
+      },
+      "result": {
+        "status": "PASS",
+        "scope": "induced failure cleanup and systemd poweroff only; no PAM, Denial, UI or phone qualification",
+        "physical": "NOT RUN",
+        "authority": "none",
+        "prepared": {
+          "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/prepared.json",
+          "sha256": "4c763d21a014e3b325c6b20c1112b4f9d919fe270a03858882ea2f41041ff1b3",
+          "bytes": 19263
+        },
+        "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+        "source_tree": "8dc62ef0912df887d8c4418a9b39037b73ba7db7",
+        "container": "rog5-abort-vm-5e560876ccd247c0",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-abort-vm-5e560876ccd247c0",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/payload:/payload:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "1",
+          "-m",
+          "512M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "steps": [
+          {
+            "command": [
+              "podman",
+              "run",
+              "--rm",
+              "--name",
+              "rog5-abort-vm-5e560876ccd247c0",
+              "--pull=never",
+              "--network=none",
+              "--read-only",
+              "--memory=1024m",
+              "--memory-swap=1024m",
+              "--cpus=2",
+              "--pids-limit=64",
+              "-v",
+              "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/initramfs.gz:/initramfs.gz:ro",
+              "-v",
+              "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/payload:/payload:ro",
+              "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+              "qemu-system-aarch64",
+              "-M",
+              "virt",
+              "-cpu",
+              "max",
+              "-smp",
+              "1",
+              "-m",
+              "512M",
+              "-accel",
+              "tcg,thread=multi",
+              "-global",
+              "virtio-mmio.force-legacy=false",
+              "-display",
+              "none",
+              "-monitor",
+              "none",
+              "-nic",
+              "none",
+              "-serial",
+              "stdio",
+              "-no-reboot",
+              "-kernel",
+              "/Image",
+              "-initrd",
+              "/initramfs.gz",
+              "-append",
+              "console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1",
+              "-fsdev",
+              "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+              "-device",
+              "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+              "-fsdev",
+              "local,id=payload,path=/payload,security_model=none,readonly=on",
+              "-device",
+              "virtio-9p-device,fsdev=payload,mount_tag=payload"
+            ],
+            "started_utc": "2026-09-19T11:20:39.222512+00:00",
+            "deadline_seconds": 90,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 25.620421582018025,
+            "ended_utc": "2026-09-19T11:21:04.842961+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.log",
+              "sha256": "b92e5b6403edebc9e32d85250cbe24d0149121e875e6cf931f7915e8c45f4982",
+              "bytes": 10870
+            }
+          },
+          {
+            "command": [
+              "podman",
+              "rm",
+              "--force",
+              "--ignore",
+              "rog5-abort-vm-5e560876ccd247c0"
+            ],
+            "started_utc": "2026-09-19T11:21:04.843421+00:00",
+            "deadline_seconds": 15,
+            "status": "PASS",
+            "exit_status": 0,
+            "duration_seconds": 0.03384859795914963,
+            "ended_utc": "2026-09-19T11:21:04.877285+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.cleanup.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            }
+          },
+          {
+            "command": [
+              "podman",
+              "container",
+              "exists",
+              "rog5-abort-vm-5e560876ccd247c0"
+            ],
+            "started_utc": "2026-09-19T11:21:04.877705+00:00",
+            "deadline_seconds": 10,
+            "status": "PASS",
+            "exit_status": 1,
+            "duration_seconds": 0.03375745698576793,
+            "ended_utc": "2026-09-19T11:21:04.911480+00:00",
+            "log": {
+              "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.absence.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "bytes": 0
+            },
+            "interpretation": "exit 1 proves named container absent"
+          }
+        ],
+        "induced_service_result": "FAIL exit124 retained",
+        "normal_poweroff": true,
+        "panic": false,
+        "markers": [
+          "OBSERVE owned RAM executable overlay busy status=32",
+          "PASS abort diagnostic mounts absent with live holder; original status=124",
+          "OBSERVE abort diagnostic returning original failure=124 to systemd"
+        ],
+        "duration_seconds": 25.696364866977092,
+        "logs": [
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/abort.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/guest.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/logind-linker-cache.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/logind-probe.sh.syntax.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.log",
+            "sha256": "b92e5b6403edebc9e32d85250cbe24d0149121e875e6cf931f7915e8c45f4982",
+            "bytes": 10870
+          }
+        ]
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-vm-abort-guest-20260919-r2/serial.log",
+        "sha256": "b92e5b6403edebc9e32d85250cbe24d0149121e875e6cf931f7915e8c45f4982",
+        "bytes": 10870
+      },
+      "markers": [
+        {
+          "line": 125,
+          "text": "OBSERVE abort diagnostic exec packaged systemd PID1; no login or Denial"
+        },
+        {
+          "line": 147,
+          "text": "OBSERVE owned RAM executable overlay busy status=32"
+        },
+        {
+          "line": 152,
+          "text": "PASS abort diagnostic mounts absent with live holder; original status=124"
+        },
+        {
+          "line": 153,
+          "text": "OBSERVE abort diagnostic returning original failure=124 to systemd"
+        },
+        {
+          "line": 154,
+          "text": "rog5-abort.service: Main process exited, code=exited, status=124/n/a"
+        },
+        {
+          "line": 245,
+          "text": "reboot: Power down"
+        }
+      ],
+      "container_absent": true,
+      "scripts": {
+        "guest.sh": "#!/usr/bin/bash\n# Private isolated ARM64 VM diagnostic. Never a phone script.\nset -euo pipefail\nread -r cmdline < /proc/cmdline\n[[ $$ == 1 && $EUID == 0 && \" $cmdline \" == *' rog5.abort_fixture=1 '* && -d /sys/bus/virtio/devices ]]\ntrap 'echo \"FAIL abort PID1 setup line=$LINENO\"; /usr/bin/poweroff -ff' ERR\nexport PATH=/usr/bin LANG=C.UTF-8\ncp -a /etc /run/fixture-etc\nmount --bind /run/fixture-etc /etc\nsource /run/logind-linker-cache.sh\nprepare_linker_cache\nmount -t tmpfs -o mode=0755,size=32m tmpfs /var\nmkdir -p /var/lib /var/log /var/tmp /etc/systemd/system\nchmod 1777 /var/tmp\nprintf '47b22e3177df4db18d6ed283dff17712\\n' > /etc/machine-id\nprintf 'rog5-abort-vm\\n' > /etc/hostname\ncat > /etc/systemd/system/rog5-abort.target <<'EOF'\n[Unit]\nDescription=Isolated abort cleanup diagnostic\nDefaultDependencies=no\nRequires=rog5-abort.service\nAfter=rog5-abort.service\nEOF\ncat > /etc/systemd/system/rog5-abort.service <<'EOF'\n[Unit]\nDescription=Induced failure and owned mount cleanup\nDefaultDependencies=no\nOnFailure=poweroff.target\n[Service]\nType=oneshot\nExecStart=/usr/bin/bash /run/abort.sh\nTimeoutStartSec=30\nTimeoutStopSec=10\nKillMode=control-group\nStandardOutput=tty\nStandardError=inherit\nTTYPath=/dev/console\nEOF\n# Match production: install both mounts before systemd changes propagation.\nmkdir /run/original-bin /run/session-bin\nmount --bind /usr/bin /run/original-bin\ncp -as /run/original-bin/. /run/session-bin/\nmount --bind /run/session-bin /usr/bin\necho 'OBSERVE abort diagnostic exec packaged systemd PID1; no login or Denial'\nexec /usr/lib/systemd/systemd --unit=rog5-abort.target --log-target=console --log-level=info\n",
+        "abort.sh": "#!/usr/bin/bash\nset -euo pipefail\nread -r cmdline < /proc/cmdline\n[[ $EUID == 0 && \" $cmdline \" == *' rog5.abort_fixture=1 '* && -d /sys/bus/virtio/devices ]]\nsource /run/logind-probe.sh\nbash -c 'cd /usr/bin; : > /run/holder-ready; exec sleep 60' &\nholder=$!\nfor ((i=0;i<200;i++)); do [[ ! -f /run/holder-ready ]] || break; sleep .01; done\n[[ -f /run/holder-ready ]] && kill -0 \"$holder\"\nset +e\n/run/original-bin/umount /usr/bin\nbusy=$?\nset -e\n[[ $busy == 32 ]]\necho 'OBSERVE owned RAM executable overlay busy status=32'\nset +e\n(\n    set -e\n    restore_needed=2\n    trap logind_finish EXIT\n    timeout -k 1 1 sleep 20\n)\nrc=$?\nset -e\n[[ $rc == 124 ]]\nkill -0 \"$holder\"\nif awk '$5==\"/usr/bin\" || $5==\"/run/original-bin\" {found=1} END {exit !found}' /proc/self/mountinfo; then\n    echo 'FAIL abort diagnostic owned mounts remain'\n    exit 1\nfi\necho 'PASS abort diagnostic mounts absent with live holder; original status=124'\nkill \"$holder\"\nwait \"$holder\" || [[ $? == 143 ]]\necho 'OBSERVE abort diagnostic returning original failure=124 to systemd'\nexit \"$rc\"\n",
+        "prepare.py": "from pathlib import Path\nimport json,hashlib,subprocess,importlib.util,shutil\nE=Path(__file__).resolve().parent;W=E.parent/'rog5-review-correctness-20260912-r1';B=E.parent/'rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1';CACHE=E.parent/'rog5-linker-cache-integration-20260919-r1/prepared-r2'\nspec=importlib.util.spec_from_file_location('logind',W/'scripts/host/test-qemu-logind.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\nassert not subprocess.check_output(['git','status','--porcelain'],cwd=W)\nassert not subprocess.check_output(['podman','ps','-q']).strip();m.disk_guard(E)\nprior=json.loads((B/'result.json').read_text());root=Path(prior['runtime_view']);receipt=E.parent/'rog5-nonroot-session-20260913-r1/view-r1/result.json'\nassert m.identity(receipt)['sha256']=='acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5'\ncache=m.linker_cache_module().validate(CACHE,root,receipt)\nstage=E/'initramfs';stage.mkdir();(E/'payload').mkdir()\nfor n in ['sysroot','dev','stage/payload']:(stage/n).mkdir(parents=True,exist_ok=True)\ninputs={}\ndef pin(p,expected=None):\n r=m.identity(p)\n if expected:assert r['sha256']==expected,p\n inputs[str(p)]=r\n return r\nkernel=W/'build/qemu-virtio-session/arch/arm64/boot/Image';pin(kernel,prior['inputs'][str(kernel)]['sha256'])\ninit=B/'initramfs/init';pin(init,prior['outputs']['initramfs/init']['sha256']);shutil.copyfile(init,stage/'init');(stage/'init').chmod(0o755)\nfor src,name in [(E/'guest.sh','guest.sh'),(E/'abort.sh','abort.sh'),(W/'tools/qemu-virtio-drm/logind-session.sh','logind-probe.sh'),(W/'tools/qemu-virtio-drm/logind-linker-cache.sh','logind-linker-cache.sh')]:\n pin(src);shutil.copyfile(src,stage/'stage'/name);(stage/'stage'/name).chmod(0o755)\nm.linker_cache_module().stage(CACHE,root,receipt,stage/'stage')\nfor p in [receipt,CACHE/'ld.so.cache',CACHE/'result.json',W/'scripts/host/test-qemu-logind.py',W/'tools/qemu-virtio-drm/init.c',E/'prepare.py',E/'run.py']:pin(p)\nsteps=[]\nfor p in (stage/'stage').glob('*.sh'):m.execute(['bash','-n',str(p)],E/(p.name+'.syntax.log'),10,steps)\nmembers=sorted(str(p.relative_to(stage)) for p in stage.rglob('*'))\nwith (E/'initramfs.cpio').open('xb') as f:m.execute(['cpio','--null','-o','--quiet','--format=newc','--owner=0:0'],E/'cpio.log',10,steps,cwd=stage,data=('\\0'.join(members)+'\\0').encode(),stdout=f)\nwith (E/'initramfs.gz').open('xb') as f:m.execute(['gzip','-n','-c',str(E/'initramfs.cpio')],E/'gzip.log',10,steps,stdout=f)\noutputs={str(p):m.identity(p) for p in [stage/'init',E/'initramfs.gz',*[p for p in (stage/'stage').iterdir() if p.is_file()]]}\nrecord=dict(status='PREPARED_NOT_RUN',authority='none; isolated generic ARM64 VM only',physical='NOT RUN',source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip(),source_tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=W,text=True).strip(),inputs=inputs,outputs=outputs,steps=steps,kernel=str(kernel),runtime=str(root),runtime_receipt=str(receipt),runtime_scope='Existing mapped-file runtime authentication reused; receipt and linker cache validated, complete inventory not rerun',cache=cache,qemu_image=prior['container_images']['qemu'],deadline_seconds=90)\nwith (E/'prepared.json').open('x') as f:json.dump(record,f,indent=2);f.write('\\n')\nprint(json.dumps(dict(status=record['status'],inputs=len(inputs),outputs=len(outputs),initramfs=outputs[str(E/'initramfs.gz')])))\n",
+        "run.py": "from pathlib import Path\nimport json,subprocess,importlib.util,time,uuid,re\nE=Path(__file__).resolve().parent;W=E.parent/'rog5-review-correctness-20260912-r1'\nspec=importlib.util.spec_from_file_location('logind',W/'scripts/host/test-qemu-logind.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\ndef main():\n m.install_handlers();p=json.loads((E/'prepared.json').read_text());assert not (E/'started.json').exists()\n assert not subprocess.check_output(['git','status','--porcelain'],cwd=W)\n assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip()==p['source_commit']\n assert not subprocess.check_output(['podman','ps','-q']).strip();m.disk_guard(E)\n for x in [*p['inputs'].values(),*p['outputs'].values()]:assert m.identity(Path(x['path']))==x,x['path']\n name='rog5-abort-vm-'+uuid.uuid4().hex[:16]\n cmd=['podman','run','--rm','--name',name,'--pull=never','--network=none','--read-only','--memory=1024m','--memory-swap=1024m','--cpus=2','--pids-limit=64','-v',p['runtime']+':/runtime:ro','-v',p['kernel']+':/Image:ro','-v',str(E/'initramfs.gz')+':/initramfs.gz:ro','-v',str(E/'payload')+':/payload:ro',p['qemu_image'],'qemu-system-aarch64','-M','virt','-cpu','max','-smp','1','-m','512M','-accel','tcg,thread=multi','-global','virtio-mmio.force-legacy=false','-display','none','-monitor','none','-nic','none','-serial','stdio','-no-reboot','-kernel','/Image','-initrd','/initramfs.gz','-append','console=ttyAMA0 rdinit=/init panic=-1 rog5.abort_fixture=1','-fsdev','local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on','-device','virtio-9p-device,fsdev=rootfs,mount_tag=rootfs','-fsdev','local,id=payload,path=/payload,security_model=none,readonly=on','-device','virtio-9p-device,fsdev=payload,mount_tag=payload']\n r=dict(status='FAIL',scope='induced failure cleanup and systemd poweroff only; no PAM, Denial, UI or phone qualification',physical='NOT RUN',authority='none',prepared=m.identity(E/'prepared.json'),source_commit=p['source_commit'],source_tree=p['source_tree'],container=name,command=cmd,steps=[])\n with (E/'started.json').open('x') as f:json.dump(r,f,indent=2);f.write('\\n')\n t=time.monotonic()\n try:\n  m.container(cmd,name,E/'serial.log',p['deadline_seconds'],r['steps'])\n  serial=(E/'serial.log').read_text(errors='replace');m.require_vm_poweroff(serial)\n  markers=['OBSERVE owned RAM executable overlay busy status=32','PASS abort diagnostic mounts absent with live holder; original status=124','OBSERVE abort diagnostic returning original failure=124 to systemd']\n  assert all(serial.count(x)==1 for x in markers),'missing or repeated diagnostic marker'\n  assert [serial.index(x) for x in markers]==sorted(serial.index(x) for x in markers),'out-of-order markers'\n  assert re.search(r'rog5-abort.service: Main process exited, code=exited, status=124',serial),'systemd did not retain induced failure'\n  assert 'FAIL abort' not in serial and 'FAIL executable view cleanup' not in serial\n  for x in [*p['inputs'].values(),*p['outputs'].values()]:assert m.identity(Path(x['path']))==x,x['path']\n  m.disk_guard(E);r.update(status='PASS',induced_service_result='FAIL exit124 retained',normal_poweroff=True,panic=False,markers=markers)\n except BaseException as exc:r['error']=f'{type(exc).__name__}: {exc}'\n finally:\n  r['duration_seconds']=time.monotonic()-t;r['logs']=[m.identity(x) for x in sorted(E.glob('*.log'))]\n  with (E/'result.json').open('x') as f:json.dump(r,f,indent=2);f.write('\\n')\n print(json.dumps({k:v for k,v in r.items() if k in ['status','error','duration_seconds','induced_service_result','normal_poweroff']}));return 0 if r['status']=='PASS' else 1\nif __name__=='__main__':raise SystemExit(main())\n"
+      }
+    }
+  ],
+  "review": {
+    "agent": "abort_guest_review",
+    "outcome": "r2 guest scripts reviewed; no blocker; before-PID1 staging matches production; r1 propagation explanation remains hypothesis"
+  },
+  "inherited_active_tier": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "f5c8acfd3ac1942c23975d47fc87f375eed80d8b",
+    "source_tree": "efcba7749932badd0316a093e18855f0a6d25b79",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 173.60147805599263
+  },
+  "inherited_active_tier_scope": "Production tools and scripts unchanged since active108PASS; not rerun for private diagnostic or metadata",
+  "capture_timing": {
+    "scope": "Original retained host capture file mtimes; interval includes actions, waits and image writes; not per-action durations or guest clock",
+    "captures": [
+      {
+        "capture": "00-home-ready-probe-1.png",
+        "host_seconds_since_first": 0.0,
+        "host_seconds_since_previous_capture": 0.0
+      },
+      {
+        "capture": "01-mousepad-launched-waiting.png",
+        "host_seconds_since_first": 9.67,
+        "host_seconds_since_previous_capture": 9.67
+      },
+      {
+        "capture": "01-mousepad-launched.png",
+        "host_seconds_since_first": 28.296,
+        "host_seconds_since_previous_capture": 18.626
+      },
+      {
+        "capture": "02-overview-or-home.png",
+        "host_seconds_since_first": 29.978,
+        "host_seconds_since_previous_capture": 1.681
+      },
+      {
+        "capture": "02-home-returned-probe-1.png",
+        "host_seconds_since_first": 31.599,
+        "host_seconds_since_previous_capture": 1.622
+      },
+      {
+        "capture": "03-foot-launched.png",
+        "host_seconds_since_first": 38.02,
+        "host_seconds_since_previous_capture": 6.421
+      },
+      {
+        "capture": "04-mousepad-restored.png",
+        "host_seconds_since_first": 41.264,
+        "host_seconds_since_previous_capture": 3.244
+      },
+      {
+        "capture": "00-editor-long-document.png",
+        "host_seconds_since_first": 42.078,
+        "host_seconds_since_previous_capture": 0.813
+      },
+      {
+        "capture": "01-editor-keyboard.png",
+        "host_seconds_since_first": 44.732,
+        "host_seconds_since_previous_capture": 2.655
+      },
+      {
+        "capture": "01c-editor-bottom-retapped.png",
+        "host_seconds_since_first": 45.568,
+        "host_seconds_since_previous_capture": 0.836
+      },
+      {
+        "capture": "02-editor-test.png",
+        "host_seconds_since_first": 47.73,
+        "host_seconds_since_previous_capture": 2.163
+      },
+      {
+        "capture": "03-editor-tes.png",
+        "host_seconds_since_first": 49.263,
+        "host_seconds_since_previous_capture": 1.533
+      },
+      {
+        "capture": "04-editor-test-restored.png",
+        "host_seconds_since_first": 50.796,
+        "host_seconds_since_previous_capture": 1.532
+      },
+      {
+        "capture": "04b-editor-keyboard-dismissed.png",
+        "host_seconds_since_first": 51.739,
+        "host_seconds_since_previous_capture": 0.944
+      },
+      {
+        "capture": "05-foot-restored.png",
+        "host_seconds_since_first": 54.965,
+        "host_seconds_since_previous_capture": 3.225
+      }
+    ]
+  },
+  "limitations": [
+    "Minimal systemd target excludes PAM/logind/native UI",
+    "No full-session timeout fix",
+    "Induced service exit124 remains FAIL",
+    "No phone, OLED, touch, Adreno, suspend or installed qualification"
+  ]
+}

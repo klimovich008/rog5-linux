@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM low-caret input passed; session timeout and shutdown remain failed**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM abort cleanup and poweroff passed; full session timeout remains**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Low-caret retap/visible OSK typing test→tes→test passed in diagnostic VM at9b1a18bc; overall session FAIL after user120s timeout, busy cleanup and PID1 panic. Fix f5c8acfd preserves failure while detaching owned mounts;6focused cases and3real-mount treatments PASS, old source reproduces failure; integrated108suites PASS. Guest fix validation NOT RUN. Next prepare targeted VM abort/poweroff check without repeating UI; measure full session timing separately. No phone authority; physical NOT RUN,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-low-caret-and-abort-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Targeted ARM64 VM r2 passed busy overlay/9P-alias detach while preserving induced service124, then normal packaged-systemd poweroff in25.696s. Initial r1 fixture failed before intended check; preserved. Low-caret input PASS and full-session120s timeout FAIL remain. Production scripts unchanged; prior108-suite pass reused. Next measure service/app startup intervals before another full session, keeping deadlines. No phone authority; physical NOT RUN,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-vm-abort-poweroff.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

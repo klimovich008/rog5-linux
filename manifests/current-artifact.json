@@ -1775,6 +1775,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; interaction PASS, complete VM FAIL, cleanup fix guest validation NOT RUN"
+    },
+    "abort_cleanup_guest": {
+      "status": "VM_ABORT_CLEANUP_PASS",
+      "set_id": "private:rog5-vm-abort-guest-20260919-r2",
+      "source_commit": "19eadb8c44e24c3bd968d86ed18769c3dc0a3f4c",
+      "evidence": {
+        "path": "test-results/2026-09-19-vm-abort-poweroff-qualification.json",
+        "sha256": "8f0a13548995bd99b78e9bd282b74c066b62e04fe32910e3af317f55b69e72db",
+        "bytes": 90652
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; induced failure124 preserved; full Denial session still FAIL"
     }
   },
   "denial_phone_linkage": {
