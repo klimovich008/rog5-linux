@@ -20,8 +20,15 @@ logind_prepare_fuse_diagnostics() {
     mkdir -p "$etc/udev/rules.d" || return $?
     # RAM-only fixture rule, installed before systemd starts coldplug. udev's
     # per-event log level exposes original processing, not just a later retry.
-    (set -C; printf 'SUBSYSTEM=="misc", KERNEL=="fuse", OPTIONS="log_level=debug"\n' > \
-        "$etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules") || return $?
+    (set -C; cat > "$etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules" <<'RULES'
+SUBSYSTEM=="misc", KERNEL=="fuse", OPTIONS="log_level=debug"
+SUBSYSTEM=="drm", KERNEL=="card0", OPTIONS="log_level=debug"
+SUBSYSTEM=="input", KERNEL=="event0", OPTIONS="log_level=debug"
+SUBSYSTEM=="input", KERNEL=="event1", OPTIONS="log_level=debug"
+SUBSYSTEM=="tty", KERNEL=="tty1", OPTIONS="log_level=debug"
+SUBSYSTEM=="virtio-ports", KERNEL=="vport0p1", OPTIONS="log_level=debug"
+RULES
+    ) || return $?
     (set -C; printf 'failure-only diagnostic; never admission\n' > "$state/fuse-event-diagnostic")
 }
 logind_fuse_event_diagnostic() {
@@ -44,10 +51,19 @@ logind_fuse_event_diagnostic() {
     ((status != 0)) || status=$journal_status
     return "$status"
 }
+logind_consumer_events() {
+    # Query before the failure-only retrigger. Keep only the six consumers'
+    # original completion/broadcast records, not dependency-wide rule tracing.
+    # These are journal receipt times; a send is not proof of waiter dispatch.
+    journalctl -b --no-pager --output=short-monotonic -u systemd-udevd \
+        --grep='^(card0|event0|event1|tty1|fuse|vport0p1): (Device processed|sd-device-monitor.*Passed|sd-device: Created database file|.*[Ff]ailed)' -n 100
+}
 logind_device_database_snapshot() {
     local database_root=/run/udev/data
     local metadata device major minor extra database data read_status truncated status=0
-    local LC_ALL=C
+    local LC_ALL=C uptime unused
+    read -r uptime unused < /proc/uptime || uptime=unavailable
+    printf 'database_phase=begin boottime=%s\n' "$uptime"
     # One stat process, then bounded builtin reads. Capture every consumer before
     # slower udev/property queries can exhaust the enclosing 3s snapshot budget.
     metadata=$(LC_ALL=C stat -c '%n %t %T' -- "$@") || status=$?
@@ -73,6 +89,8 @@ logind_device_database_snapshot() {
             printf '%s\ndatabase_end\n' "$data"
         fi
     done <<< "$metadata"
+    read -r uptime unused < /proc/uptime || uptime=unavailable
+    printf 'database_phase=end boottime=%s\n' "$uptime"
     # Presence/empty contents/ID_PROCESSING are observations, never admission.
     # The caller encodes this data and retains the original wait failure.
     return "$status"
@@ -145,7 +163,7 @@ logind_failure_journal() (
 logind_wait_devices() (
     set -o pipefail
     local state=${1:-/run} status=0
-    local temporary uptime unused snapshot_status=0 diagnostic_status=0
+    local temporary uptime unused snapshot_status=0 diagnostic_status=0 before_status=0
     local -a pipeline_status
     local -a devices=(/dev/dri/card0 /dev/input/event0 /dev/tty1)
     if [[ -f $state/editor-probe && -f $state/apps-probe ]]; then
@@ -170,6 +188,20 @@ logind_wait_devices() (
     trap 'status=$?; trap - EXIT; rm -rf -- "$temporary" || { ((status != 0)) || status=1; }; exit "$status"' EXIT
     trap 'exit 143' TERM
     trap 'exit 130' INT
+    if [[ -f $state/fuse-event-diagnostic && -f $state/session-sha256 ]]; then
+        # Snapshot only database state; no property query or retrigger. Retain
+        # it now, but defer serial encoding until after the unchanged wait.
+        if timeout -k 1 2 bash --noprofile --norc -c \
+            'source "$1"; shift; logind_device_database_snapshot "$@"' \
+            snapshot "${BASH_SOURCE[0]}" "${devices[@]}" 2>&1 |
+            logind_capture_bounded "$temporary/before"; then
+            pipeline_status=("${PIPESTATUS[@]}")
+        else
+            pipeline_status=("${PIPESTATUS[@]}")
+        fi
+        before_status=${pipeline_status[0]}
+        printf 'OBSERVE device-readiness snapshot=before-wait deadline_seconds=2 capture_status=%s\n' "${pipeline_status[1]}"
+    fi
     read -r uptime unused < /proc/uptime || uptime=unavailable
     printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s boottime=%s\n' "${devices[*]}" "$uptime"
     if SYSTEMD_LOG_TARGET=console SYSTEMD_LOG_LEVEL=debug SYSTEMD_COLORS=0 \
@@ -200,6 +232,16 @@ logind_wait_devices() (
         printf 'OBSERVE device-readiness snapshot-capture-status=%s\n' "${pipeline_status[1]}"
         logind_publish_diagnostic DEVICE_SNAPSHOT "$snapshot_status" "$temporary/snapshot" || :
         if [[ -f $state/fuse-event-diagnostic && -f $state/session-sha256 ]]; then
+            if timeout -k 1 3 bash --noprofile --norc -c \
+                'source "$1"; logind_consumer_events' \
+                diagnostic "${BASH_SOURCE[0]}" 2>&1 |
+                logind_capture_bounded "$temporary/events"; then
+                pipeline_status=("${PIPESTATUS[@]}")
+            else
+                pipeline_status=("${PIPESTATUS[@]}")
+            fi
+            printf 'OBSERVE consumer-events deadline_seconds=3 capture_status=%s\n' "${pipeline_status[1]}"
+            logind_publish_diagnostic DEVICE_EVENTS "${pipeline_status[0]}" "$temporary/events" || :
             # The failed baseline above remains failed even if this one
             # diagnostic retrigger initializes FUSE. No second session attempt.
             printf 'OBSERVE fuse-event phase=diagnostic-only deadline_seconds=10\n'
@@ -217,6 +259,10 @@ logind_wait_devices() (
     else
         # Failure to retain the observation must not become a successful test.
         status=$diagnostic_status
+    fi
+    # Do not delay the post-failure database snapshot with this larger packet.
+    if [[ -f $temporary/before ]]; then
+        logind_publish_diagnostic DEVICE_BEFORE "$before_status" "$temporary/before" || :
     fi
     return "$status"
 )

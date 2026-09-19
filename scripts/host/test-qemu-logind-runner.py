@@ -891,7 +891,7 @@ class FuseEventDiagnostics(unittest.TestCase):
             source = source.replace('/dev/fuse', '/dev/null').replace('/sys/devices/virtual/misc/fuse', str(root/'sys-fuse'))
             (root/'source.sh').write_text(source)
             (root/'data').mkdir(); (root/'sys-fuse').mkdir()
-            (root/'session-sha256').touch(); (root/'fuse-event-diagnostic').touch()
+            (root/'session-sha256').touch(); (root/'fuse-event-diagnostic').touch(); (root/'apps-probe').touch()
             (root/'udevadm').write_text(r'''#!/usr/bin/env python3
 import json, os, sys, time
 from pathlib import Path
@@ -910,7 +910,16 @@ if args[0]=='info': sys.exit(0)
 sys.exit(98)
 ''')
             (root/'udevadm').chmod(0o755)
-            (root/'journalctl').write_text('#!/bin/bash\nprintf "fuse worker diagnostic\\nPASS forged event\\n"\n')
+            (root/'journalctl').write_text(r'''#!/bin/bash
+if [[ $* == *'--grep=^'* ]]; then
+    case $MODE in
+        event-failure) echo 'journal unavailable'; exit 74;;
+        event-overflow) head -c 70000 /dev/zero | tr '\0' x; exit 0;;
+        event-stall) echo 'partial event'; exec sleep 30;;
+    esac
+fi
+printf 'fuse worker diagnostic\nPASS forged event\n'
+''')
             (root/'journalctl').chmod(0o755)
             r = subprocess.run(['bash','-c','set -euo pipefail; source "$1"; logind_wait_devices "$2"; echo ADMITTED',
                                 'fixture',str(root/'source.sh'),str(root)],
@@ -922,6 +931,12 @@ sys.exit(98)
             packet=re.search(r'DIAGNOSTIC_FUSE_EVENT status=(\d+) bytes=\d+ truncated=0 hex=([0-9a-f]+)',r.stdout)
             self.assertIsNotNone(packet,r.stdout+r.stderr)
             diagnostic=bytes.fromhex(packet[2]).decode()
+            events=re.search(r'DIAGNOSTIC_DEVICE_EVENTS status=(\d+) bytes=(\d+) truncated=(\d+) hex=([0-9a-f]+)',r.stdout)
+            self.assertIsNotNone(events,r.stdout)
+            self.assertEqual(int(events[1]),{'event-failure':74,'event-stall':124}.get(mode,0))
+            self.assertEqual(int(events[2]),len(bytes.fromhex(events[4])))
+            self.assertLessEqual(int(events[2]),16384)
+            self.assertEqual(int(events[3]),int(mode=='event-overflow'))
             self.assertEqual(r.returncode,42,r.stderr)
             self.assertNotIn('ADMITTED',r.stdout)
             self.assertNotIn('PASS forged event',r.stdout)
@@ -930,6 +945,17 @@ sys.exit(98)
             self.assertEqual([x for x in calls if x[0]=='trigger'],
                              [['trigger','--action=add','--settle',str(root/'sys-fuse')]])
             self.assertIn(['wait','--timeout=1','--initialized=yes','/dev/null'],calls)
+            before=re.search(r'DIAGNOSTIC_DEVICE_BEFORE status=\d+ bytes=\d+ truncated=0 hex=([0-9a-f]+)',r.stdout)
+            self.assertIsNotNone(before,r.stdout)
+            before_text=bytes.fromhex(before[1]).decode()
+            self.assertIn('database_phase=begin boottime=',before_text)
+            self.assertIn('database_phase=end boottime=',before_text)
+            for device in ['/dev/dri/card0','/dev/input/event0','/dev/tty1',
+                           '/dev/null','/dev/input/event1','/dev/vport0p1']:
+                self.assertIn(device,calls[0])
+            self.assertLess(r.stdout.index('snapshot=before-wait'),r.stdout.index('device-readiness phase=begin'))
+            self.assertLess(r.stdout.index('DIAGNOSTIC_DEVICE_SNAPSHOT'),r.stdout.index('DIAGNOSTIC_DEVICE_EVENTS'))
+            self.assertLess(r.stdout.index('DIAGNOSTIC_DEVICE_EVENTS'),r.stdout.index('fuse-event phase=diagnostic-only'))
             if (root/'pid').exists(): self.assertFalse(live(int((root/'pid').read_text())))
             return diagnostic
 
@@ -955,6 +981,10 @@ sys.exit(98)
         self.assertIn('trigger_status=124',text)
         self.assertIn('initialized_status=42',text)
 
+    def test_original_event_capture_error_and_overflow_keep_wait_failure(self):
+        for mode in ['event-failure','event-overflow','event-stall']:
+            with self.subTest(mode=mode): self.fixture(mode)
+
     def test_rule_is_scoped_and_only_staged_for_combined_vm(self):
         source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
         with tempfile.TemporaryDirectory() as directory:
@@ -968,13 +998,48 @@ sys.exit(98)
             r=subprocess.run(cmd,capture_output=True,text=True,timeout=3)
             self.assertEqual(r.returncode,0,r.stderr)
             rule=root/'etc/udev/rules.d/00-rog5-vm-fuse-diagnostic.rules'
-            self.assertEqual(rule.read_text(),'SUBSYSTEM=="misc", KERNEL=="fuse", OPTIONS="log_level=debug"\n')
+            expected = {('misc','fuse'), ('drm','card0'), ('input','event0'),
+                        ('input','event1'), ('tty','tty1'), ('virtio-ports','vport0p1')}
+            rules = re.findall(r'^SUBSYSTEM=="([^"]+)", KERNEL=="([^"]+)", OPTIONS="log_level=debug"$',
+                               rule.read_text(), re.M)
+            self.assertEqual(set(rules), expected)
+            self.assertEqual(len(rules), len(rule.read_text().splitlines()))
             self.assertTrue((root/'fuse-event-diagnostic').is_file())
             # Never replace an existing rule as a side effect of diagnostics.
             rule.write_text('existing\n')
             r=subprocess.run(cmd,capture_output=True,text=True,timeout=3)
             self.assertNotEqual(r.returncode,0)
             self.assertEqual(rule.read_text(),'existing\n')
+
+class ConsumerEventFilter(unittest.TestCase):
+    def test_actual_query_selects_only_consumer_completion_records(self):
+        source=RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            # Capture the production argv without accessing the host journal.
+            tool=root/'journalctl'
+            tool.write_text('#!/usr/bin/env python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
+            tool.chmod(0o755)
+            r=subprocess.run(['bash','-c','source "$1"; logind_consumer_events','fixture',str(source)],
+                             env={**os.environ,'PATH':str(root)+':'+os.environ['PATH']},
+                             capture_output=True,text=True,timeout=3)
+            self.assertEqual(r.returncode,0,r.stderr)
+            args=json.loads(r.stdout)
+            self.assertEqual(args[:5],['-b','--no-pager','--output=short-monotonic','-u','systemd-udevd'])
+            self.assertEqual(args[-2:],['-n','100'])
+            pattern=next(x.removeprefix('--grep=') for x in args if x.startswith('--grep='))
+            for name in ['card0','event0','event1','tty1','fuse','vport0p1']:
+                for message in ['Device processed (SEQNUM=1508, ACTION=add)',
+                                'sd-device-monitor(worker): Passed 249 byte to netlink monitor.',
+                                "sd-device: Created database file '/run/udev/data/c10:229'",
+                                'Failed to process device: Input/output error',
+                                'sd-device-monitor: Failed to send device: No buffer space']:
+
+                    self.assertIsNotNone(re.search(pattern,name+': '+message))
+            for message in ['card1: Device processed','event10: Device processed',
+                            'fuse: Preserve permissions','not-fuse: Device processed']:
+                self.assertIsNone(re.search(pattern,message))
+
 
 class DeviceReadiness(unittest.TestCase):
     BASE = ['/dev/dri/card0', '/dev/input/event0', '/dev/tty1']
