@@ -2082,6 +2082,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "app_close_proc_observation": {
+      "status": "PASS_HOST_ARM64_PROBE_FAIL_VM_INPUT_READY_CAPTURE_NOT_RUN",
+      "set_id": "private:rog5-app-close-proc-20260919-r1",
+      "source_commit": "348daa7a88c4a7c414599e2650fc63aa464b974e",
+      "source_tree": "ac45e0d4bb7ea9265f7f64b3eff5f31d08867cae",
+      "evidence": {
+        "path": "test-results/2026-09-19-app-close-proc-qualification.json",
+        "sha256": "af5e79c542c9fa740620ea7d03e832e28bd2d4428e5b25c97ca2cb9135d3ed7d",
+        "bytes": 41089
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone or candidate"
     }
   },
   "denial_phone_linkage": {
