@@ -1978,6 +1978,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; generic ARM64 VM only"
+    },
+    "full_session_nomops_control": {
+      "status": "FAIL_VM_DEADLINE_MOUSEPAD_MAPPED_FOOT_NOT_RUN_NO_RCU_OBSERVED",
+      "set_id": "private:rog5-denial-session-resume-20260919-r3",
+      "source_commit": "96b44f257d29e3cf99a4f798a68329a9afaf74bf",
+      "source_tree": "11f5c6837987699e4ffef59299916cb72e1b59d0",
+      "evidence": {
+        "path": "test-results/2026-09-19-denial-nomops-session-qualification.json",
+        "sha256": "0bbfbb82fe4c206be9d75286a0b74ab129d1e8a1f0869616fbc788dabd12f535",
+        "bytes": 33460
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM comparison only, no default CPU-feature workaround"
     }
   },
   "denial_phone_linkage": {

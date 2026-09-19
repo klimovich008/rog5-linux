@@ -3341,6 +3341,15 @@ full workloads; use the existing bounded CPU-feature comparison to discriminate
 the repeated page-copy sample. Container resource snapshots must be labeled by
 their actual cgroup scope, not inferred from the separate launcher service.
 
+Full app controls (2026-09-19): compare generated initramfs members as well as
+declared inputs. A fresh observer UUID is required per run, so exact archive
+equality is inappropriate; isolate that token and inode/mtime differences while
+requiring identical executable/policy bytes. Preserve independent deadlines in
+interpretation: a host boot deadline can cut short the guest's valid60s app
+window. Mapping one visible app before cutoff does not prove the next gesture,
+second app or cleanup failed internally. Reconcile nested budgets before
+repeating, rather than inferring a graphics defect from an incomplete flow.
+
 Device diagnostics (2026-09-19): preserve the producer status while capping and draining debug output, and label later snapshots separately. This VM passed the same initialized-device wait; instrumentation and scheduling changed timing, so this does not explain the preceding failure. An aborted qualification can still contain useful compositor counters: inspect retained logs before calling rendering unexecuted. The live service query timed out with no properties despite line buffering; use already captured individual service journal events with monotonic timestamps to distinguish late readiness from a stuck start transaction. Bound new fault-injection tests using measured runtime: 107 runner cases took 23.067s, exceeding the former 20s host-test limit. Raising only that test limit to 30s allowed the active tier to pass; production deadlines remain unchanged.
 
 Failure reporting (2026-09-19): a subshell function with its own EXIT trap can skip the parent ERR trap. An external-command fixture missed this; the actual readiness function reproduces it, and retained ARM64 Bash confirms the semantics. Collect failure evidence in the existing supervisor EXIT path, preserve the original status, and keep ERR only for an available line marker. A control failing before its intended observation can still expose a concrete defect; repair that defect offline before another VM. The partial device snapshot is a later observation and does not identify the exact state at timeout. Reuse the retained validated hardware-database cache only after matching its input/consumer and staging contract; a costly cold rebuild is not proof of the later timeout cause.

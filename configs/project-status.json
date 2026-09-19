@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "VM portal timing mitigation tested offline; repeated pre-session RCU stall remains open",
+  "phase": "MOPS-disabled VM maps visible Mousepad; full app flow still fails outer deadline",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Sourcebc8918e1 passes111 active suites. The retained normal-CPU VM reaches portals35.71s after before-start, beyond25s, and renders4frames before orderly guest poweroff; it remains FAIL and reports a /var unmount failure. A40s VM-only allowance passes host fixtures, but its one follow-up repeats the pre-session copy_user_highpage RCU stall, enters service startup at274.18s and ends at the unchanged300s host deadline. No app flow completed. Next discriminate the full-workload MOPS path with the existing --disable-mops control and unchanged runtime/limits, after reviewing the retained comparison; do not infer a workaround from earlier startup-only controls or repeat an unchanged run. Physical NOT RUN; S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-19-denial-session-resume.md"
+  "next": "One full-workload arm64.nomops VM at96b44f25 reaches Denial app flow and visibly maps/focuses Mousepad without an observed RCU stall, but expires at300s during home-return gesture before Foot or approved teardown.40s portal allowance is reached through successful service/FUSE gating; exact completion timestamps were not captured. All consumed source/runtime inputs match the normal arm; initramfs differs only in fresh observer token and inode/mtime metadata. Reused unchanged111-suite host PASS; no new build or phone operation. Next reconcile host/PAM/app deadline composition against measured startup and the existing60s app-flow bound before another VM, rather than repeat or promote MOPS as a workaround. Physical NOT RUN; S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-19-denial-nomops-session.md"
 }
