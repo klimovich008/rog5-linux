@@ -1,0 +1,6318 @@
+{
+  "vm_source": {
+    "commit": "9b1a18bc064e0e4ee74e287681fb8b1fd313b4c2",
+    "tree": "dcba1a78aafb400a9ddd37b0627347511296fe02",
+    "worktree_status": "",
+    "dirty": false
+  },
+  "fix_source": {
+    "commit": "f5c8acfd3ac1942c23975d47fc87f375eed80d8b",
+    "tree": "efcba7749932badd0316a093e18855f0a6d25b79"
+  },
+  "vm_status": "FAIL",
+  "vm_error": "RuntimeError: VM lacks normal poweroff or recorded a kernel panic",
+  "vm_duration_seconds": 399.60279080696637,
+  "vm_result": {
+    "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/result.json",
+    "sha256": "bbdc4b378cdc0a97f6faa41b0ab5deb5663204e713d834e3c143ffa839147900",
+    "bytes": 135729
+  },
+  "vm_steps": [
+    {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-logind-build-14de985d22a5431f",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1:/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1:rw",
+        "--env",
+        "TMPDIR=/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "/opt/denial-rust/bin/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "--crate-name=logind_seat_probe",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "lto=thin",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "strip=debuginfo",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1=/logind-fixture",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/payload/logind-seat-probe",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+      ],
+      "started_utc": "2026-09-19T10:44:59.215848+00:00",
+      "deadline_seconds": 60,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 6.533860723953694,
+      "ended_utc": "2026-09-19T10:45:05.749734+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "rm",
+        "--force",
+        "--ignore",
+        "rog5-logind-build-14de985d22a5431f"
+      ],
+      "started_utc": "2026-09-19T10:45:05.750259+00:00",
+      "deadline_seconds": 15,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.03556363401003182,
+      "ended_utc": "2026-09-19T10:45:05.785841+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "container",
+        "exists",
+        "rog5-logind-build-14de985d22a5431f"
+      ],
+      "started_utc": "2026-09-19T10:45:05.786276+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 1,
+      "duration_seconds": 0.03469849703833461,
+      "ended_utc": "2026-09-19T10:45:05.820991+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "interpretation": "exit 1 proves named container absent"
+    },
+    {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-logind-build-47835e88d05f4ceb",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1:/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1:rw",
+        "--env",
+        "TMPDIR=/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "/opt/denial-rust/bin/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "--crate-name=pam_session",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "lto=thin",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "strip=debuginfo",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1=/logind-fixture",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-pam-session.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/payload/pam-session",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "--cfg",
+        "denial_session",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+      ],
+      "started_utc": "2026-09-19T10:45:05.822801+00:00",
+      "deadline_seconds": 60,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 6.984337111003697,
+      "ended_utc": "2026-09-19T10:45:12.807160+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "rm",
+        "--force",
+        "--ignore",
+        "rog5-logind-build-47835e88d05f4ceb"
+      ],
+      "started_utc": "2026-09-19T10:45:12.807586+00:00",
+      "deadline_seconds": 15,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.03467337501933798,
+      "ended_utc": "2026-09-19T10:45:12.842275+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "container",
+        "exists",
+        "rog5-logind-build-47835e88d05f4ceb"
+      ],
+      "started_utc": "2026-09-19T10:45:12.842676+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 1,
+      "duration_seconds": 0.03472615598002449,
+      "ended_utc": "2026-09-19T10:45:12.877418+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "interpretation": "exit 1 proves named container absent"
+    },
+    {
+      "command": [
+        "clang",
+        "--target=aarch64-none-elf",
+        "-fuse-ld=lld",
+        "-nostdlib",
+        "-static",
+        "-fno-pic",
+        "-fno-stack-protector",
+        "-DROG5_SYSTEMD_PID1",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wl,--build-id=none,--entry=_start",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+        "-o",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init"
+      ],
+      "started_utc": "2026-09-19T10:45:12.878359+00:00",
+      "deadline_seconds": 30,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.21700494101969525,
+      "ended_utc": "2026-09-19T10:45:13.095380+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/init.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/guest.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.597521+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.00617292698007077,
+      "ended_utc": "2026-09-19T10:45:27.603718+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/guest.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-probe.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.604758+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006069016002584249,
+      "ended_utc": "2026-09-19T10:45:27.610846+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-probe.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-user.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.611810+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006076026009395719,
+      "ended_utc": "2026-09-19T10:45:27.617907+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-user.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/independent-observer.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.618867+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.00600936496630311,
+      "ended_utc": "2026-09-19T10:45:27.624893+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/independent-observer.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-linker-cache.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.625881+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.0062639599782414734,
+      "ended_utc": "2026-09-19T10:45:27.632163+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-linker-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-denial.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.633239+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006142767029814422,
+      "ended_utc": "2026-09-19T10:45:27.639402+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-denial.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-denial-prepare.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.640435+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006099055986851454,
+      "ended_utc": "2026-09-19T10:45:27.646553+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-denial-prepare.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-font-cache.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.647602+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006278040003962815,
+      "ended_utc": "2026-09-19T10:45:27.653898+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-font-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-gtk-im-cache.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.654919+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006057814985979348,
+      "ended_utc": "2026-09-19T10:45:27.660995+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-gtk-im-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-apps.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.662028+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006174527981784195,
+      "ended_utc": "2026-09-19T10:45:27.668222+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/launcher-apps.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.668845+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006250989972613752,
+      "ended_utc": "2026-09-19T10:45:27.675124+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/launcher-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/launcher-evidence.sh"
+      ],
+      "started_utc": "2026-09-19T10:45:27.676163+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.006142408004961908,
+      "ended_utc": "2026-09-19T10:45:27.682328+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/launcher-evidence.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "cpio",
+        "--null",
+        "-o",
+        "--quiet",
+        "--format=newc",
+        "--owner=0:0"
+      ],
+      "started_utc": "2026-09-19T10:45:27.683683+00:00",
+      "deadline_seconds": 10,
+      "cwd": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs",
+      "stdin_sha256": "40b6197b2a68a927589816435cdd6a5c810e3a50af18d0c16630ceb4c8a0ec86",
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.010267406003549695,
+      "ended_utc": "2026-09-19T10:45:27.693973+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/cpio.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "gzip",
+        "-n",
+        "-c",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs.cpio"
+      ],
+      "started_utc": "2026-09-19T10:45:27.694456+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.034354656003415585,
+      "ended_utc": "2026-09-19T10:45:27.728829+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/gzip.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-logind-vm-68ed2154d1cf480c",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=2048m",
+        "--memory-swap=2048m",
+        "--cpus=2",
+        "--pids-limit=64",
+        "-v",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs.gz:/initramfs.gz:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/payload:/payload:ro",
+        "--security-opt=no-new-privileges",
+        "--device",
+        "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+        "-e",
+        "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+        "-v",
+        "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe:/observe:rw",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "qemu-system-aarch64",
+        "-M",
+        "virt",
+        "-cpu",
+        "max",
+        "-smp",
+        "2",
+        "-m",
+        "1024M",
+        "-accel",
+        "tcg,thread=multi",
+        "-global",
+        "virtio-mmio.force-legacy=false",
+        "-display",
+        "egl-headless,rendernode=/dev/dri/renderD128",
+        "-device",
+        "virtio-gpu-gl-device,xres=540,yres=1224",
+        "-device",
+        "virtio-keyboard-device",
+        "-monitor",
+        "none",
+        "-nic",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-kernel",
+        "/Image",
+        "-initrd",
+        "/initramfs.gz",
+        "-append",
+        "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1",
+        "-fsdev",
+        "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+        "-fsdev",
+        "local,id=payload,path=/payload,security_model=none,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=payload,mount_tag=payload",
+        "-name",
+        "rog5-logind-vm-68ed2154d1cf480c",
+        "-qmp",
+        "unix:/observe/qmp.sock,server=on,wait=off",
+        "-vnc",
+        "unix:/observe/vnc.sock",
+        "-device",
+        "virtio-tablet-device",
+        "-device",
+        "virtio-serial-device",
+        "-chardev",
+        "socket,id=apps,path=/observe/apps.sock,server=on,wait=off",
+        "-device",
+        "virtserialport,chardev=apps,name=rog5.apps,nr=1"
+      ],
+      "started_utc": "2026-09-19T10:45:27.760923+00:00",
+      "deadline_seconds": 420,
+      "status": "PASS",
+      "cleanup_eligible_seconds": 335.079985563003,
+      "exit_status": 0,
+      "duration_seconds": 347.54272949299775,
+      "ended_utc": "2026-09-19T10:51:15.303845+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.log",
+        "sha256": "4fd3a482bd1dd07fbb232c4ccb7627f144f1687eb201b45f2ab371fdfa0e7582",
+        "bytes": 136387
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "rm",
+        "--force",
+        "--ignore",
+        "rog5-logind-vm-68ed2154d1cf480c"
+      ],
+      "started_utc": "2026-09-19T10:51:15.308847+00:00",
+      "deadline_seconds": 15,
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.03809335600817576,
+      "ended_utc": "2026-09-19T10:51:15.347035+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "container",
+        "exists",
+        "rog5-logind-vm-68ed2154d1cf480c"
+      ],
+      "started_utc": "2026-09-19T10:51:15.347512+00:00",
+      "deadline_seconds": 10,
+      "status": "PASS",
+      "exit_status": 1,
+      "duration_seconds": 0.035013471031561494,
+      "ended_utc": "2026-09-19T10:51:15.382542+00:00",
+      "log": {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "interpretation": "exit 1 proves named container absent"
+    }
+  ],
+  "vm_inputs": [
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "bytes": 3268,
+      "verified_sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+      "sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "bytes": 10806,
+      "verified_sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+      "sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "bytes": 6735,
+      "verified_sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874,
+      "verified_sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912,
+      "verified_sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "basis": "evidence-producing Git blob; current source has reviewed cleanup fix"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267,
+      "verified_sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020,
+      "verified_sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395,
+      "verified_sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783,
+      "verified_sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186,
+      "verified_sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112,
+      "verified_sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633,
+      "verified_sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224,
+      "verified_sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "bytes": 5719226,
+      "verified_sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "bytes": 170538,
+      "verified_sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "bytes": 1102,
+      "verified_sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+      "bytes": 38807,
+      "verified_sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587,
+      "verified_sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+      "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "bytes": 7574,
+      "verified_sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py",
+      "sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "bytes": 13931,
+      "verified_sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "bytes": 26746087,
+      "verified_sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "sha256": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "bytes": 13602,
+      "verified_sha256": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "bytes": 41526,
+      "verified_sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544,
+      "verified_sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700,
+      "verified_sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596,
+      "verified_sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+      "sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "bytes": 8509,
+      "verified_sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "bytes": 650222,
+      "verified_sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104,
+      "verified_sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+      "sha256": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "bytes": 11042,
+      "verified_sha256": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+      "sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "bytes": 15214,
+      "verified_sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-caret-protocol.py",
+      "sha256": "226641ea5729b876538497b3efdb4c833a3a057fcde46945fe1e06a88649e685",
+      "bytes": 14764,
+      "verified_sha256": "226641ea5729b876538497b3efdb4c833a3a057fcde46945fe1e06a88649e685",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "bytes": 71000,
+      "verified_sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+      "sha256": "2f41cbd173397022628b07d880f30169a638fdc53f79a3dab99c942532131748",
+      "bytes": 4647,
+      "verified_sha256": "2f41cbd173397022628b07d880f30169a638fdc53f79a3dab99c942532131748",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+      "sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "bytes": 2258,
+      "verified_sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+      "sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "bytes": 6377,
+      "verified_sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+      "sha256": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "bytes": 33473,
+      "verified_sha256": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "basis": "current retained input"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+      "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+      "bytes": 9258,
+      "verified_sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+      "basis": "current retained input"
+    }
+  ],
+  "vm_outputs": {
+    "logind-seat-probe": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/payload/logind-seat-probe",
+      "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+      "bytes": 552584
+    },
+    "pam-session": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/payload/pam-session",
+      "sha256": "b5135a36064662b916948864736f787ea25b48595a9491164ddb7cc6cd4555bb",
+      "bytes": 564224
+    },
+    "stage/apps-probe": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/apps-probe",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "bytes": 2
+    },
+    "stage/apps-observe-token": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/apps-observe-token",
+      "sha256": "3ef1c8bb0f94c3ff20d04eae5791bc0ad0047d8dbb5fd3d8e128834a2c3df077",
+      "bytes": 48
+    },
+    "stage/evidence-writer": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104
+    },
+    "stage/bottom-caret-probe": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/bottom-caret-probe",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "bytes": 2
+    },
+    "stage/linker-cache": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/linker-cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587
+    },
+    "stage/linker-cache.sha256": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/linker-cache.sha256",
+      "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+      "bytes": 65
+    },
+    "stage/settings-sync-diagnostic.so": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/settings-sync-diagnostic.so",
+      "sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "bytes": 71000
+    },
+    "initramfs/init": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/init",
+      "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+      "bytes": 3120
+    },
+    "initramfs.gz": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs.gz",
+      "sha256": "4ba380b18cab3124f017937b3085f0e3e945c964dffa2609af37d4c6a36c34bd",
+      "bytes": 213858
+    },
+    "initramfs/stage/guest.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/guest.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874
+    },
+    "initramfs/stage/logind-probe.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-probe.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912
+    },
+    "initramfs/stage/logind-user.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267
+    },
+    "initramfs/stage/independent-observer.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/independent-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020
+    },
+    "initramfs/stage/logind-linker-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395
+    },
+    "initramfs/stage/logind-denial.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783
+    },
+    "initramfs/stage/logind-denial-prepare.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186
+    },
+    "initramfs/stage/logind-font-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112
+    },
+    "initramfs/stage/logind-gtk-im-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633
+    },
+    "initramfs/stage/logind-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544
+    },
+    "initramfs/stage/launcher-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700
+    },
+    "initramfs/stage/launcher-evidence.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/initramfs/stage/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596
+    },
+    "serial.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.log",
+      "sha256": "4fd3a482bd1dd07fbb232c4ccb7627f144f1687eb201b45f2ab371fdfa0e7582",
+      "bytes": 136387
+    },
+    "launcher-evidence.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/launcher-evidence.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "launcher-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/launcher-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "gzip.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/gzip.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-font-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-font-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-denial.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/pam-session.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "guest.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/guest.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial-prepare.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-denial-prepare.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "independent-observer.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/independent-observer.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-linker-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-linker-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-gtk-im-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-gtk-im-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-user.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-user.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-probe.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-probe.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/logind-seat-probe.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "init.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/init.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "cpio.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/cpio.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "observer_result": {
+    "status": "PASS",
+    "scope": "Local VM captures and synthetic pointer delivery only",
+    "visual_semantics": "NOT RUN: inspect screenshots separately",
+    "phone_touch": "NOT RUN",
+    "profile": "mobile",
+    "capture_backend": "UNIX VNC raw",
+    "screenshots": [
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-home-ready-probe-1.png",
+        "sha256": "1ef3a9a0c55ca00cb6261a0a53d4f8efea0da97ade4beba16c8d73e7f79b7683",
+        "size": 650332,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched-waiting.png",
+        "sha256": "3fb090dcb49b88348bcded8a4d0092ee1ccbb325e0dfbaf1d248ab0c82113fea",
+        "size": 5015,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched.png",
+        "sha256": "4becdd6070193d9dec800c3a9b09a2c9d2dcce0598465ecc37f859a1c416be73",
+        "size": 24480,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-overview-or-home.png",
+        "sha256": "df38db7ea683efe31021948b1ad7f2819520bf67bbbada73edf07b9167b5e11a",
+        "size": 231933,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-home-returned-probe-1.png",
+        "sha256": "863d61e5748df262d61c61c1f5c9e5ec8317687c959179e2b842002669d56526",
+        "size": 650946,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-foot-launched.png",
+        "sha256": "87e354090aaffaee9025ed96a71072f68fd46035f948fa9740678b499c75aa68",
+        "size": 9429,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-mousepad-restored.png",
+        "sha256": "5f6e36c5d43fcb9d7b3f2b061100b3033a5676acde61c30f310845e9ee15f4c0",
+        "size": 24638,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-editor-long-document.png",
+        "sha256": "4ebfecf469b415f6c54bae57e8892f0a77152cc2299a0717d9dfc664e22799fa",
+        "size": 24679,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-editor-keyboard.png",
+        "sha256": "7b3cff453ef64ebd2214d5220d7fb6fa77f4f7b3cf3abdcbfbeb8c8eccebe318",
+        "size": 35031,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01c-editor-bottom-retapped.png",
+        "sha256": "b41f1e48ebf6a7f8c50f1cd04a4a476618491cfa7e45231607799a0650e1a9b4",
+        "size": 34798,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-editor-test.png",
+        "sha256": "2847fdfba21d41656aaf1879a90ded0b4fbf2cf92e64e6bc4e794e2b5fdb05e4",
+        "size": 38221,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-editor-tes.png",
+        "sha256": "dacfff78098a1583d4be81a8f38e57094d97eb7364485174939aed7b5d85a81f",
+        "size": 35224,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-editor-test-restored.png",
+        "sha256": "495d09a619dc00b031699f267cf68032a52c0ca933a641c9a6419b5fbaf2980e",
+        "size": 35124,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04b-editor-keyboard-dismissed.png",
+        "sha256": "b745d7b4103066cfc8c4ad99955e8c073ad7d6e7a2fa2af5ba98634330374bd8",
+        "size": 27524,
+        "width": 540,
+        "height": 1224
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/05-foot-restored.png",
+        "sha256": "30d466f34c7965dc5f8e97aecbc73ed3637a1c9e358c168f927059c0af0771f1",
+        "size": 9421,
+        "width": 540,
+        "height": 1224
+      }
+    ],
+    "actions": [
+      {
+        "operation": "home",
+        "value": "00-home-ready"
+      },
+      {
+        "operation": "click",
+        "value": [
+          77,
+          752
+        ]
+      },
+      {
+        "operation": "client",
+        "value": [
+          "mousepad",
+          "01-mousepad-launched"
+        ]
+      },
+      {
+        "operation": "home_gesture",
+        "value": [
+          [
+            270,
+            1194
+          ],
+          [
+            270,
+            1150
+          ],
+          [
+            270,
+            1060
+          ],
+          [
+            270,
+            970
+          ],
+          [
+            270,
+            880
+          ]
+        ]
+      },
+      {
+        "operation": "capture",
+        "value": "02-overview-or-home"
+      },
+      {
+        "operation": "click",
+        "value": [
+          25,
+          1080
+        ]
+      },
+      {
+        "operation": "home",
+        "value": "02-home-returned"
+      },
+      {
+        "operation": "click",
+        "value": [
+          205,
+          592
+        ]
+      },
+      {
+        "operation": "client",
+        "value": [
+          "foot",
+          "03-foot-launched"
+        ]
+      },
+      {
+        "operation": "gesture",
+        "value": [
+          [
+            270,
+            1194
+          ],
+          [
+            315,
+            1194
+          ],
+          [
+            365,
+            1194
+          ],
+          [
+            415,
+            1194
+          ]
+        ]
+      },
+      {
+        "operation": "client",
+        "value": [
+          "mousepad",
+          "04-mousepad-restored"
+        ]
+      },
+      {
+        "operation": "capture",
+        "value": "00-editor-long-document"
+      },
+      {
+        "operation": "arm-baseline",
+        "value": null
+      },
+      {
+        "operation": "move",
+        "value": [
+          270,
+          1100
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "await-baseline",
+        "value": null
+      },
+      {
+        "operation": "move",
+        "value": [
+          500,
+          1218
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "move",
+        "value": [
+          500,
+          1180
+        ]
+      },
+      {
+        "operation": "move",
+        "value": [
+          500,
+          1140
+        ]
+      },
+      {
+        "operation": "move",
+        "value": [
+          500,
+          1100
+        ]
+      },
+      {
+        "operation": "move",
+        "value": [
+          500,
+          1060
+        ]
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "capture",
+        "value": "01-editor-keyboard"
+      },
+      {
+        "operation": "arm-mapping",
+        "value": null
+      },
+      {
+        "operation": "move",
+        "value": [
+          270,
+          838
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "await-mapping",
+        "value": null
+      },
+      {
+        "operation": "capture",
+        "value": "01c-editor-bottom-retapped"
+      },
+      {
+        "operation": "move",
+        "value": [
+          243,
+          921
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "move",
+        "value": [
+          137,
+          921
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "move",
+        "value": [
+          111,
+          1005
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "move",
+        "value": [
+          243,
+          921
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "capture",
+        "value": "02-editor-test"
+      },
+      {
+        "operation": "move",
+        "value": [
+          501,
+          1089
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "capture",
+        "value": "03-editor-tes"
+      },
+      {
+        "operation": "move",
+        "value": [
+          243,
+          921
+        ]
+      },
+      {
+        "operation": "button",
+        "value": true
+      },
+      {
+        "operation": "button",
+        "value": false
+      },
+      {
+        "operation": "capture",
+        "value": "04-editor-test-restored"
+      },
+      {
+        "operation": "home_gesture",
+        "value": [
+          [
+            270,
+            868
+          ],
+          [
+            270,
+            898
+          ],
+          [
+            270,
+            958
+          ],
+          [
+            270,
+            1018
+          ],
+          [
+            270,
+            1078
+          ],
+          [
+            270,
+            1138
+          ],
+          [
+            270,
+            1198
+          ]
+        ]
+      },
+      {
+        "operation": "capture",
+        "value": "04b-editor-keyboard-dismissed"
+      },
+      {
+        "operation": "gesture",
+        "value": [
+          [
+            270,
+            1194
+          ],
+          [
+            315,
+            1194
+          ],
+          [
+            365,
+            1194
+          ],
+          [
+            415,
+            1194
+          ]
+        ]
+      },
+      {
+        "operation": "client",
+        "value": [
+          "foot",
+          "05-foot-restored"
+        ]
+      }
+    ],
+    "probe": "launcher app switching with native Mousepad OSK text entry",
+    "launcher_reference": {
+      "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "size": 650222,
+      "width": 540,
+      "height": 1224
+    },
+    "launcher_tiles": {
+      "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+      "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+    },
+    "qmp_request_limit": 96,
+    "action_policy": "bottom caret; explicit surface-coordinate check; no manual viewport pan; OSK pointer keys only",
+    "bottom_caret": {
+      "status": "PASS",
+      "baseline": {
+        "caret": {
+          "surface": 25,
+          "x": 92,
+          "y": 1070,
+          "width": 0,
+          "height": 20,
+          "sequence": 99,
+          "rectangle_sequence": 98
+        },
+        "geometry": {
+          "x": 26,
+          "y": 23,
+          "width": 540,
+          "height": 1176,
+          "sequence": 109
+        },
+        "pointer": {
+          "surface": 25,
+          "x": 296.4921875,
+          "y": 1075.8828125,
+          "sequence": 86,
+          "button": 272
+        },
+        "expected_pointer": [
+          296,
+          1075
+        ],
+        "expected_upward_offset": 0
+      },
+      "translated": {
+        "caret": {
+          "surface": 25,
+          "x": 92,
+          "y": 1070,
+          "width": 0,
+          "height": 20,
+          "sequence": 169,
+          "rectangle_sequence": 168
+        },
+        "geometry": {
+          "x": 26,
+          "y": 23,
+          "width": 540,
+          "height": 1176,
+          "sequence": 175
+        },
+        "pointer": {
+          "surface": 25,
+          "x": 296.4921875,
+          "y": 1079.859375,
+          "sequence": 156,
+          "button": 272
+        },
+        "expected_pointer": [
+          296,
+          1079.2
+        ],
+        "expected_upward_offset": 266.20000000000005
+      },
+      "scope": "committed client caret and delivered surface coordinates; inspect captures for visibility; no phone touch"
+    },
+    "tile_checks": [
+      {
+        "capture": "00-home-ready-probe-1",
+        "matched": true
+      },
+      {
+        "capture": "02-home-returned-probe-1",
+        "matched": true
+      }
+    ],
+    "qmp": [
+      {
+        "request": {
+          "execute": "qmp_capabilities",
+          "id": 1
+        },
+        "response": {
+          "return": {},
+          "id": 1
+        }
+      },
+      {
+        "request": {
+          "execute": "query-name",
+          "id": 2
+        },
+        "response": {
+          "return": {
+            "name": "rog5-logind-vm-68ed2154d1cf480c"
+          },
+          "id": 2
+        }
+      },
+      {
+        "request": {
+          "execute": "query-status",
+          "id": 3
+        },
+        "response": {
+          "return": {
+            "status": "running",
+            "singlestep": false,
+            "running": true
+          },
+          "id": 3
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 4,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 4681
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 20148
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 4
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 5,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 5
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 6,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 6
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 7,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 7
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 8,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 8
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 9,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 30811
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 9
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 10,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 28400
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 10
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 11,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 25989
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 11
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 12,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 23577
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 12
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 13,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 13
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 14,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 1520
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 28936
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 14
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 15,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 15
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 16,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 16
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 17,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 12462
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 15861
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 17
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 18,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 18
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 19,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 19
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 20,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 20
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 21,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 21
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 22,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 19150
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 22
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 23,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 22189
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 23
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 24,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 25229
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 24
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 25,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 25
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 26,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 29472
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 26
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 27,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 27
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 28,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 28
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 29,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30396
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 32633
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 29
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 30,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 30
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 31,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30396
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31615
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 31
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 32,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30396
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 30543
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 32
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 33,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30396
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 29472
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 33
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 34,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30396
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 28400
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 34
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 35,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 35
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 36,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 22452
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 36
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 37,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 37
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 38,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 38
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 39,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 14773
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 24676
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 39
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 40,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 40
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 41,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 41
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 42,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 8329
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 24676
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 42
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 43,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 43
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 44,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 44
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 45,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 6748
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 26926
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 45
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 46,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 46
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 47,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 47
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 48,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 14773
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 24676
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 48
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 49,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 49
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 50,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 50
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 51,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 30457
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 29177
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 51
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 52,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 52
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 53,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 53
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 54,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 14773
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 24676
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 54
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 55,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 55
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 56,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 56
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 57,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 23256
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 57
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 58,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 58
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 59,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 24059
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 59
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 60,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 25667
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 60
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 61,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 27275
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 61
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 62,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 28882
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 62
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 63,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 30490
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 63
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 64,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 32097
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 64
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 65,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 65
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 66,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 16414
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 66
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 67,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 67
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 68,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 19150
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 68
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 69,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 22189
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 69
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 70,
+          "arguments": {
+            "events": [
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "x",
+                  "value": 25229
+                }
+              },
+              {
+                "type": "abs",
+                "data": {
+                  "axis": "y",
+                  "value": 31990
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 70
+        }
+      },
+      {
+        "request": {
+          "execute": "input-send-event",
+          "id": 71,
+          "arguments": {
+            "events": [
+              {
+                "type": "btn",
+                "data": {
+                  "button": "left",
+                  "down": false
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "return": {},
+          "id": 71
+        }
+      }
+    ],
+    "pointer_released": true
+  },
+  "apps_result": {
+    "status": "FAIL",
+    "scope": "authenticated VM launcher-driven app switching and OSK; no phone proof",
+    "observation": {
+      "status": "PASS",
+      "scope": "Local VM captures and synthetic pointer delivery only",
+      "visual_semantics": "NOT RUN: inspect screenshots separately",
+      "phone_touch": "NOT RUN",
+      "profile": "mobile",
+      "capture_backend": "UNIX VNC raw",
+      "screenshots": [
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-home-ready-probe-1.png",
+          "sha256": "1ef3a9a0c55ca00cb6261a0a53d4f8efea0da97ade4beba16c8d73e7f79b7683",
+          "size": 650332,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched-waiting.png",
+          "sha256": "3fb090dcb49b88348bcded8a4d0092ee1ccbb325e0dfbaf1d248ab0c82113fea",
+          "size": 5015,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched.png",
+          "sha256": "4becdd6070193d9dec800c3a9b09a2c9d2dcce0598465ecc37f859a1c416be73",
+          "size": 24480,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-overview-or-home.png",
+          "sha256": "df38db7ea683efe31021948b1ad7f2819520bf67bbbada73edf07b9167b5e11a",
+          "size": 231933,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-home-returned-probe-1.png",
+          "sha256": "863d61e5748df262d61c61c1f5c9e5ec8317687c959179e2b842002669d56526",
+          "size": 650946,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-foot-launched.png",
+          "sha256": "87e354090aaffaee9025ed96a71072f68fd46035f948fa9740678b499c75aa68",
+          "size": 9429,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-mousepad-restored.png",
+          "sha256": "5f6e36c5d43fcb9d7b3f2b061100b3033a5676acde61c30f310845e9ee15f4c0",
+          "size": 24638,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-editor-long-document.png",
+          "sha256": "4ebfecf469b415f6c54bae57e8892f0a77152cc2299a0717d9dfc664e22799fa",
+          "size": 24679,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-editor-keyboard.png",
+          "sha256": "7b3cff453ef64ebd2214d5220d7fb6fa77f4f7b3cf3abdcbfbeb8c8eccebe318",
+          "size": 35031,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01c-editor-bottom-retapped.png",
+          "sha256": "b41f1e48ebf6a7f8c50f1cd04a4a476618491cfa7e45231607799a0650e1a9b4",
+          "size": 34798,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-editor-test.png",
+          "sha256": "2847fdfba21d41656aaf1879a90ded0b4fbf2cf92e64e6bc4e794e2b5fdb05e4",
+          "size": 38221,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-editor-tes.png",
+          "sha256": "dacfff78098a1583d4be81a8f38e57094d97eb7364485174939aed7b5d85a81f",
+          "size": 35224,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-editor-test-restored.png",
+          "sha256": "495d09a619dc00b031699f267cf68032a52c0ca933a641c9a6419b5fbaf2980e",
+          "size": 35124,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04b-editor-keyboard-dismissed.png",
+          "sha256": "b745d7b4103066cfc8c4ad99955e8c073ad7d6e7a2fa2af5ba98634330374bd8",
+          "size": 27524,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/05-foot-restored.png",
+          "sha256": "30d466f34c7965dc5f8e97aecbc73ed3637a1c9e358c168f927059c0af0771f1",
+          "size": 9421,
+          "width": 540,
+          "height": 1224
+        }
+      ],
+      "actions": [
+        {
+          "operation": "home",
+          "value": "00-home-ready"
+        },
+        {
+          "operation": "click",
+          "value": [
+            77,
+            752
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "mousepad",
+            "01-mousepad-launched"
+          ]
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              270,
+              1150
+            ],
+            [
+              270,
+              1060
+            ],
+            [
+              270,
+              970
+            ],
+            [
+              270,
+              880
+            ]
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "02-overview-or-home"
+        },
+        {
+          "operation": "click",
+          "value": [
+            25,
+            1080
+          ]
+        },
+        {
+          "operation": "home",
+          "value": "02-home-returned"
+        },
+        {
+          "operation": "click",
+          "value": [
+            205,
+            592
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "foot",
+            "03-foot-launched"
+          ]
+        },
+        {
+          "operation": "gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              315,
+              1194
+            ],
+            [
+              365,
+              1194
+            ],
+            [
+              415,
+              1194
+            ]
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "mousepad",
+            "04-mousepad-restored"
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "00-editor-long-document"
+        },
+        {
+          "operation": "arm-baseline",
+          "value": null
+        },
+        {
+          "operation": "move",
+          "value": [
+            270,
+            1100
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "await-baseline",
+          "value": null
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1218
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1180
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1140
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1100
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1060
+          ]
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "01-editor-keyboard"
+        },
+        {
+          "operation": "arm-mapping",
+          "value": null
+        },
+        {
+          "operation": "move",
+          "value": [
+            270,
+            838
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "await-mapping",
+          "value": null
+        },
+        {
+          "operation": "capture",
+          "value": "01c-editor-bottom-retapped"
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            137,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            111,
+            1005
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "02-editor-test"
+        },
+        {
+          "operation": "move",
+          "value": [
+            501,
+            1089
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "03-editor-tes"
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "04-editor-test-restored"
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              270,
+              868
+            ],
+            [
+              270,
+              898
+            ],
+            [
+              270,
+              958
+            ],
+            [
+              270,
+              1018
+            ],
+            [
+              270,
+              1078
+            ],
+            [
+              270,
+              1138
+            ],
+            [
+              270,
+              1198
+            ]
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "04b-editor-keyboard-dismissed"
+        },
+        {
+          "operation": "gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              315,
+              1194
+            ],
+            [
+              365,
+              1194
+            ],
+            [
+              415,
+              1194
+            ]
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "foot",
+            "05-foot-restored"
+          ]
+        }
+      ],
+      "probe": "launcher app switching with native Mousepad OSK text entry",
+      "launcher_reference": {
+        "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+        "size": 650222,
+        "width": 540,
+        "height": 1224
+      },
+      "launcher_tiles": {
+        "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+        "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+      },
+      "qmp_request_limit": 96,
+      "action_policy": "bottom caret; explicit surface-coordinate check; no manual viewport pan; OSK pointer keys only",
+      "bottom_caret": {
+        "status": "PASS",
+        "baseline": {
+          "caret": {
+            "surface": 25,
+            "x": 92,
+            "y": 1070,
+            "width": 0,
+            "height": 20,
+            "sequence": 99,
+            "rectangle_sequence": 98
+          },
+          "geometry": {
+            "x": 26,
+            "y": 23,
+            "width": 540,
+            "height": 1176,
+            "sequence": 109
+          },
+          "pointer": {
+            "surface": 25,
+            "x": 296.4921875,
+            "y": 1075.8828125,
+            "sequence": 86,
+            "button": 272
+          },
+          "expected_pointer": [
+            296,
+            1075
+          ],
+          "expected_upward_offset": 0
+        },
+        "translated": {
+          "caret": {
+            "surface": 25,
+            "x": 92,
+            "y": 1070,
+            "width": 0,
+            "height": 20,
+            "sequence": 169,
+            "rectangle_sequence": 168
+          },
+          "geometry": {
+            "x": 26,
+            "y": 23,
+            "width": 540,
+            "height": 1176,
+            "sequence": 175
+          },
+          "pointer": {
+            "surface": 25,
+            "x": 296.4921875,
+            "y": 1079.859375,
+            "sequence": 156,
+            "button": 272
+          },
+          "expected_pointer": [
+            296,
+            1079.2
+          ],
+          "expected_upward_offset": 266.20000000000005
+        },
+        "scope": "committed client caret and delivered surface coordinates; inspect captures for visibility; no phone touch"
+      },
+      "tile_checks": [
+        {
+          "capture": "00-home-ready-probe-1",
+          "matched": true
+        },
+        {
+          "capture": "02-home-returned-probe-1",
+          "matched": true
+        }
+      ],
+      "qmp": [
+        {
+          "request": {
+            "execute": "qmp_capabilities",
+            "id": 1
+          },
+          "response": {
+            "return": {},
+            "id": 1
+          }
+        },
+        {
+          "request": {
+            "execute": "query-name",
+            "id": 2
+          },
+          "response": {
+            "return": {
+              "name": "rog5-logind-vm-68ed2154d1cf480c"
+            },
+            "id": 2
+          }
+        },
+        {
+          "request": {
+            "execute": "query-status",
+            "id": 3
+          },
+          "response": {
+            "return": {
+              "status": "running",
+              "singlestep": false,
+              "running": true
+            },
+            "id": 3
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 4,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 4681
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 20148
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 4
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 5,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 5
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 6,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 6
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 7,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 7
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 8,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 8
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 9,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30811
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 9
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 10,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28400
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 10
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 11,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 25989
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 11
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 12,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 23577
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 12
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 13,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 13
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 14,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 1520
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28936
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 14
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 15,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 15
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 16,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 16
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 17,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 12462
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 15861
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 17
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 18,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 18
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 19,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 19
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 20,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 20
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 21,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 21
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 22,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 19150
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 22
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 23,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 22189
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 23
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 24,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 25229
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 24
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 25,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 25
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 26,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 29472
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 26
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 27,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 27
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 28,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 28
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 29,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 32633
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 29
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 30,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 30
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 31,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31615
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 31
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 32,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30543
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 32
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 33,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 29472
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 33
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 34,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28400
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 34
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 35,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 35
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 36,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 22452
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 36
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 37,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 37
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 38,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 38
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 39,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 39
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 40,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 40
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 41,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 41
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 42,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 8329
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 42
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 43,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 43
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 44,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 44
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 45,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 6748
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 26926
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 45
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 46,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 46
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 47,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 47
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 48,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 48
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 49,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 49
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 50,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 50
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 51,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30457
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 29177
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 51
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 52,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 52
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 53,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 53
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 54,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 54
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 55,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 55
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 56,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 56
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 57,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 23256
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 57
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 58,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 58
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 59,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24059
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 59
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 60,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 25667
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 60
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 61,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 27275
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 61
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 62,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28882
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 62
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 63,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30490
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 63
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 64,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 32097
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 64
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 65,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 65
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 66,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 66
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 67,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 67
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 68,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 19150
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 68
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 69,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 22189
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 69
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 70,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 25229
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 70
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 71,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 71
+          }
+        }
+      ],
+      "pointer_released": true
+    },
+    "launcher_protocol": {
+      "status": "PASS",
+      "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+      "owners": {
+        "mousepad": {
+          "pid": "899",
+          "start": "28020"
+        },
+        "foot": {
+          "pid": "1121",
+          "start": "31182"
+        }
+      },
+      "mapped": {
+        "mousepad": true,
+        "foot": true
+      },
+      "ready": {
+        "mousepad": true,
+        "foot": true
+      },
+      "focus_history": [
+        "mousepad",
+        "foot",
+        "mousepad",
+        "foot"
+      ],
+      "focus_generation": 4,
+      "active_app": "foot",
+      "pending_focus": null,
+      "expected_sequence": [
+        "mousepad",
+        "foot",
+        "mousepad",
+        "foot"
+      ],
+      "client_state": {
+        "mousepad": {
+          "interval_seen": false,
+          "keyboard_focus": {},
+          "surfaces": {
+            "26": {
+              "surface": "25",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "5",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "27": "26"
+          }
+        },
+        "foot": {
+          "interval_seen": false,
+          "keyboard_focus": {
+            "21": "3"
+          },
+          "surfaces": {
+            "30": {
+              "surface": "3",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "69",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "31": "30"
+          }
+        }
+      },
+      "focus_visits": [
+        {
+          "app": "mousepad",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "foot",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "mousepad",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "foot",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        }
+      ],
+      "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+      "errors": [],
+      "post_terminal_exits": [],
+      "visual_semantics": "NOT RUN",
+      "phone": "NOT RUN"
+    },
+    "editor_protocol": {
+      "status": "PASS",
+      "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+      "native_toplevel_observed": true,
+      "keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "expected_keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "unfocused_keys": false
+    },
+    "acknowledgement_sent": true,
+    "approved_teardown": true,
+    "clean_client_exits": false,
+    "stream_bytes": 219027,
+    "diagnostic_bytes": 52983,
+    "phone": "NOT RUN",
+    "caret_protocol": {
+      "error": null,
+      "sequence": 293,
+      "caret": {
+        "surface": 25,
+        "x": 128,
+        "y": 1070,
+        "width": 0,
+        "height": 20,
+        "sequence": 293,
+        "rectangle_sequence": 292
+      },
+      "presses": [
+        {
+          "surface": 25,
+          "x": 296.4921875,
+          "y": 1075.8828125,
+          "sequence": 86,
+          "button": 272
+        },
+        {
+          "surface": 25,
+          "x": 296.4921875,
+          "y": 1079.859375,
+          "sequence": 156,
+          "button": 272
+        }
+      ],
+      "geometries": {
+        "25": {
+          "x": 26,
+          "y": 23,
+          "width": 540,
+          "height": 1176,
+          "sequence": 286
+        }
+      },
+      "objects": 3,
+      "evidence": "client-protocol-only"
+    },
+    "error": "incomplete application observation/cleanup"
+  },
+  "screenshots": [
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-editor-long-document.png",
+      "sha256": "4ebfecf469b415f6c54bae57e8892f0a77152cc2299a0717d9dfc664e22799fa",
+      "bytes": 24679
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/00-home-ready-probe-1.png",
+      "sha256": "1ef3a9a0c55ca00cb6261a0a53d4f8efea0da97ade4beba16c8d73e7f79b7683",
+      "bytes": 650332
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-editor-keyboard.png",
+      "sha256": "7b3cff453ef64ebd2214d5220d7fb6fa77f4f7b3cf3abdcbfbeb8c8eccebe318",
+      "bytes": 35031
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched-waiting.png",
+      "sha256": "3fb090dcb49b88348bcded8a4d0092ee1ccbb325e0dfbaf1d248ab0c82113fea",
+      "bytes": 5015
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01-mousepad-launched.png",
+      "sha256": "4becdd6070193d9dec800c3a9b09a2c9d2dcce0598465ecc37f859a1c416be73",
+      "bytes": 24480
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/01c-editor-bottom-retapped.png",
+      "sha256": "b41f1e48ebf6a7f8c50f1cd04a4a476618491cfa7e45231607799a0650e1a9b4",
+      "bytes": 34798
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-editor-test.png",
+      "sha256": "2847fdfba21d41656aaf1879a90ded0b4fbf2cf92e64e6bc4e794e2b5fdb05e4",
+      "bytes": 38221
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-home-returned-probe-1.png",
+      "sha256": "863d61e5748df262d61c61c1f5c9e5ec8317687c959179e2b842002669d56526",
+      "bytes": 650946
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/02-overview-or-home.png",
+      "sha256": "df38db7ea683efe31021948b1ad7f2819520bf67bbbada73edf07b9167b5e11a",
+      "bytes": 231933
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-editor-tes.png",
+      "sha256": "dacfff78098a1583d4be81a8f38e57094d97eb7364485174939aed7b5d85a81f",
+      "bytes": 35224
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/03-foot-launched.png",
+      "sha256": "87e354090aaffaee9025ed96a71072f68fd46035f948fa9740678b499c75aa68",
+      "bytes": 9429
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-editor-test-restored.png",
+      "sha256": "495d09a619dc00b031699f267cf68032a52c0ca933a641c9a6419b5fbaf2980e",
+      "bytes": 35124
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04-mousepad-restored.png",
+      "sha256": "5f6e36c5d43fcb9d7b3f2b061100b3033a5676acde61c30f310845e9ee15f4c0",
+      "bytes": 24638
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/04b-editor-keyboard-dismissed.png",
+      "sha256": "b745d7b4103066cfc8c4ad99955e8c073ad7d6e7a2fa2af5ba98634330374bd8",
+      "bytes": 27524
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/observe/05-foot-restored.png",
+      "sha256": "30d466f34c7965dc5f8e97aecbc73ed3637a1c9e358c168f927059c0af0771f1",
+      "bytes": 9421
+    }
+  ],
+  "serial": {
+    "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/bottom-caret-r1/serial.log",
+    "sha256": "4fd3a482bd1dd07fbb232c4ccb7627f144f1687eb201b45f2ab371fdfa0e7582",
+    "bytes": 136387
+  },
+  "failure_markers": [
+    {
+      "line": 1640,
+      "text": "bash[423]: FAIL session supervisor line=144"
+    },
+    {
+      "line": 1752,
+      "text": "bash[1367]: FAIL local PAM fixture: session child failed: exit status: 124"
+    },
+    {
+      "line": 1838,
+      "text": "bash[423]: FAIL executable view cleanup stage=2 status=32"
+    },
+    {
+      "line": 2023,
+      "text": "[\u001b[0;1;31mFAILED\u001b[0m] Failed unmounting \u001b[0;1;39m/run/original-bin\u001b[0m."
+    },
+    {
+      "line": 2031,
+      "text": "[\u001b[0;1;31mFAILED\u001b[0m] Failed unmounting \u001b[0;1;39m/usr/bin/unix_chkpwd\u001b[0m."
+    },
+    {
+      "line": 2043,
+      "text": "[\u001b[0;1;31mFAILED\u001b[0m] Failed unmounting \u001b[0;1;39m/var\u001b[0m."
+    },
+    {
+      "line": 2118,
+      "text": "Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000007"
+    }
+  ],
+  "owned_container_absence": {
+    "command": [
+      "podman",
+      "container",
+      "exists",
+      "rog5-logind-vm-68ed2154d1cf480c"
+    ],
+    "exit": 1
+  },
+  "focused": [
+    {
+      "command": [
+        "python3",
+        "scripts/host/test-qemu-logind-runner.py",
+        "ExecutableView"
+      ],
+      "status": 0,
+      "seconds": 0.16448485001455992
+    },
+    {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-qemu-logind-runner.py",
+        "ExecutableView"
+      ],
+      "status": 0,
+      "seconds": 0.2649949250044301
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "tools/qemu-virtio-drm/logind-session.sh"
+      ],
+      "status": 0,
+      "seconds": 0.003976413980126381
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 0.008048709016293287
+    }
+  ],
+  "namespace": [
+    {
+      "label": "old-abort",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "unshare",
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/mount-fixture.sh",
+        "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/old-logind-session.sh",
+        "aborted"
+      ],
+      "exit": 1,
+      "expected": 1,
+      "seconds": 0.0649502010201104
+    },
+    {
+      "label": "new-abort",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "unshare",
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/mount-fixture.sh",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+        "aborted"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "seconds": 0.03212940396042541
+    },
+    {
+      "label": "new-strict-busy",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "unshare",
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/mount-fixture.sh",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+        "strict_busy"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "seconds": 0.0641673969803378
+    },
+    {
+      "label": "new-success",
+      "command": [
+        "timeout",
+        "-k",
+        "2",
+        "30",
+        "unshare",
+        "--user",
+        "--map-root-user",
+        "--mount",
+        "bash",
+        "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/mount-fixture.sh",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+        "success"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "seconds": 0.03214449400547892
+    }
+  ],
+  "namespace_fixture": "#!/bin/bash\nset -euo pipefail\nsource \"$1\"\nmode=$2\nmount --make-rprivate /\nmount -t tmpfs -o size=4M,nosuid,nodev tmpfs /run\nmkdir /run/original-bin\nmount --bind /usr/bin /run/original-bin\nmount --bind /usr/bin /usr/bin\nholder=\ncleanup() { if [[ -n $holder ]]; then kill \"$holder\" 2>/dev/null || :; wait \"$holder\" 2>/dev/null || :; fi; }\ntrap cleanup EXIT\nif [[ $mode != success ]]; then\n    bash -c 'cd /usr/bin; : > /run/holder-ready; exec sleep 20' &\n    holder=$!\n    for ((i=0;i<100;i++)); do [[ ! -f /run/holder-ready ]] || break; sleep .01; done\n    [[ -f /run/holder-ready ]]\nfi\nset +e\n(\n    set -e\n    restore_needed=2\n    trap logind_finish EXIT\n    if [[ $mode == aborted ]]; then exit 124; fi\n    logind_restore_executable_view\n)\nrc=$?\nset -e\nexpected=0\n[[ $mode != aborted ]] || expected=124\n[[ $mode != strict_busy ]] || expected=32\n[[ $rc == \"$expected\" ]]\nif awk '$5==\"/usr/bin\" || $5==\"/run/original-bin\" {found=1} END {exit !found}' /proc/self/mountinfo; then\n    echo 'FAIL owned mounts remain after EXIT'\n    exit 1\nfi\nprintf 'PASS real namespace mounts released mode=%s preserved_status=%s\\n' \"$mode\" \"$rc\"\n",
+  "physical": "NOT RUN",
+  "authority": "none; VM and offline host tests only",
+  "cleanup_fix_vm_validation": "NOT RUN",
+  "active_result": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "f5c8acfd3ac1942c23975d47fc87f375eed80d8b",
+    "source_tree": "efcba7749932badd0316a093e18855f0a6d25b79",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 173.60147805599263
+  },
+  "active_counts": {
+    "schema": 1,
+    "tier": "active",
+    "counts": {
+      "PASS": 108,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    }
+  },
+  "active_summary": {
+    "sha256": "32401d31d3c443774dd32e6937bdd7b6506cbaba5b81e418e31e528c8117444d",
+    "path": "/home/deck/.local/state/rog5-vm-abort-cleanup-20260919-r1/active-report/summary.json"
+  },
+  "visual_review": {
+    "status": "PASS for inspected VM captures only",
+    "reviewed": [
+      "01c-editor-bottom-retapped.png",
+      "02-editor-test.png",
+      "03-editor-tes.png",
+      "04-editor-test-restored.png"
+    ],
+    "observations": [
+      "Caret at end of line-50 remains above revealed keyboard",
+      "Same visible line reads line-50test, line-50tes, then line-50test"
+    ],
+    "limits": "Synthetic pointer gestures and OSK keys; keyboard manually revealed; no real touch, phone OLED or Adreno proof"
+  },
+  "review": {
+    "agent": "vm_abort_cleanup_review",
+    "result": "Abort-only lazy overlay detach justified; preserve original status and per-stage progress; normal path remains ordinary; no force; no actual VM treatment observed",
+    "scope": "read-only review of source and retained failure; not an additional execution"
+  }
+}

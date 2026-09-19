@@ -1762,6 +1762,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; diagnostic420s; prior137 and standard300s qualification unresolved"
+    },
+    "low_caret_and_abort_cleanup": {
+      "status": "LOW_CARET_PASS_VM_FAIL_CLEANUP_HOST_PASS",
+      "set_id": "private:rog5-vm-abort-cleanup-20260919-r1",
+      "source_commit": "f5c8acfd3ac1942c23975d47fc87f375eed80d8b",
+      "vm_source_commit": "9b1a18bc064e0e4ee74e287681fb8b1fd313b4c2",
+      "evidence": {
+        "path": "test-results/2026-09-19-low-caret-and-abort-cleanup-qualification.json",
+        "sha256": "636154df7b62fab0c73d9ca43e6052283ffa3dce05adf66006cea4c7694b15c9",
+        "bytes": 171856
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; interaction PASS, complete VM FAIL, cleanup fix guest validation NOT RUN"
     }
   },
   "denial_phone_linkage": {

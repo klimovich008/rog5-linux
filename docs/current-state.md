@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM clean close passed once; low-caret runtime retest prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM low-caret input passed; session timeout and shutdown remain failed**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-New shutdown probe passed16focused tests and actual ARM64 GLib callback-order checks; integrated108suites PASS. One diagnostic Denial VM passed owned two-app mapping/focus and clean exits0;80frames/pageflips,no render errors,normal poweroff. Shutdown signal interval41.805ms and later run return42.106ms. Earlier137 failures remain unresolved. Correct prior inference: observed sync END covers only that external invocation; GLib internal relative-bound sync bypasses preload. Standard300s qualification remains FAIL. Next run prepared automatic/bottom-caret treatment with retained GTK module and exact payload; no rebuild. Phone tests NOT RUN,no phone authority,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-application-shutdown-probe.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Low-caret retap/visible OSK typing test→tes→test passed in diagnostic VM at9b1a18bc; overall session FAIL after user120s timeout, busy cleanup and PID1 panic. Fix f5c8acfd preserves failure while detaching owned mounts;6focused cases and3real-mount treatments PASS, old source reproduces failure; integrated108suites PASS. Guest fix validation NOT RUN. Next prepare targeted VM abort/poweroff check without repeating UI; measure full session timing separately. No phone authority; physical NOT RUN,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-low-caret-and-abort-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
