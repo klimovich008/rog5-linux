@@ -3284,3 +3284,19 @@ guest stage boundaries before changing runtime deadlines. The packaged GdkPixbuf
 uses Glycin without external loader entries: an absent legacy loader cache is
 not itself a defect. Do not generate caches solely because a historical path
 is absent; verify the exact package's loader architecture first.
+
+Startup controls (2026-09-19): successful poweroff or a cache condition skip does
+not repair an incomplete diagnostic inventory. Preserve failed packets and
+separate authentication/cleanup facts. Global PID1 debug's unit-loading duration
+is not a generator timer. Host scheduling snapshots describe only their short
+window; generic QEMU thread names do not prove vCPU IDs. When comparing TCG
+thread modes, retain guest SMP, resources, artifacts and deadlines, and do not
+infer cause/reliability from one run. Generate a cache using the exact package
+hook and authenticated real runtime, then bind its receipt to the actual mapped
+VM view and source revision. Measure RAM staging separately. The file-size cap
+also applies to cpio stdout: use verified compressed transport instead of raising
+the bound, and retain failed assembly and both cache identities. Single-TCG
+alone did not reach the app-release probe: accessibility/portal start timed out
+and its combined diagnostic query also timed out. Before another full app run,
+obtain a partial-preserving pending-unit diagnostic within existing bounds; do
+not infer that avoiding RCU makes a session successful or raise deadlines.

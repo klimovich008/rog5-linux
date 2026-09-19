@@ -1811,6 +1811,31 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; Mousepad137 retained, new VM startup timeout"
+    },
+    "startup_hwdb_control": {
+      "status": "VM_STARTUP_TCG_SINGLE_FAIL_MULTI_RCU_REPRODUCED",
+      "set_id": "private:rog5-vm-startup-stall-20260919-r1",
+      "source_commit": "ec8890c4d50c978749acf248e094e78762efe9d1",
+      "runner_implementation_commit": "c49cd51d738642b3f3a036ac8b73b39657ca9c79",
+      "evidence": {
+        "path": "test-results/2026-09-19-startup-controls-and-hwdb-cache-qualification.json",
+        "sha256": "6e7a1d0161a2db9f9094754fdf4600c3312069d454b9e6e4bc8c4b12a5b72ccf",
+        "bytes": 504469
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; startup-only fixture; RCU and app close unresolved"
+    },
+    "single_tcg_app_control": {
+      "status": "FAIL_SERVICE_START_124_APP_RELEASE_NOT_RUN",
+      "set_id": "private:rog5-app-unref-single-20260919-r1",
+      "source_commit": "c49cd51d738642b3f3a036ac8b73b39657ca9c79",
+      "evidence": {
+        "path": "test-results/2026-09-19-single-tcg-app-control-qualification.json",
+        "sha256": "57190ad8151c8903054a2aa1976bf3f1c2b186c7dfdf15c456cdec2db9d2f807",
+        "bytes": 108693
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM app flow not reached"
     }
   },
   "denial_phone_linkage": {

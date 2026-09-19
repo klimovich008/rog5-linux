@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM cached startup measured; new release probe qualified offline, VM startup timeout unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM TCG option qualified; latest app trial blocked at accessibility/portal startup**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Cached Mousepad first buffered submission took 12.026s versus 22.304s in the historical control; close exit 137 persists. The new release probe passes 17 host cases, real ARM64 GLib finalization and the 109-suite active tier in 185.519s. The latest 300s VM trial hit pre-app RCU stalls: Denial launcher appeared, app shutdown was NOT RUN, and normal poweroff was not observed. Isolate startup variability before reusing the release probe; no identical retry or deadline increase. S06/R01 remain FAIL and phone physical tests remain NOT RUN; no phone authority. See [current repair evidence](../test-results/2026-09-19-cached-startup-and-unref-probe.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The single-TCG close-only VM reached Denial rendering and normal guest poweroff without an RCU report, but service-start timed out 124 within the existing 25s bound before either app mapped; the 3s unit snapshot also timed out. App release probe NOT RUN. Capture which accessibility/portal job remains pending using a bounded diagnostic that preserves partial replies, then change only a demonstrated cause before another full app trial. Do not increase deadlines or retry unchanged. Startup controls remain FAIL where inventories are incomplete; Mousepad exit 137, S06/R01 FAIL and phone physical NOT RUN remain open. No phone authority. See [current repair evidence](../test-results/2026-09-19-startup-controls-and-hwdb-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
