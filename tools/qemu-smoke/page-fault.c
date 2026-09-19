@@ -6,8 +6,7 @@
 #define PAGES 8192
 #define PAGE_SIZE 4096
 #define ROUNDS 8
-static volatile unsigned char memory[PAGES * PAGE_SIZE]
-	__attribute__((aligned(PAGE_SIZE)));
+static volatile unsigned char *memory;
 
 static long call(long n, long a, long b, long c, long d, long e)
 {
@@ -16,9 +15,10 @@ static long call(long n, long a, long b, long c, long d, long e)
 	register long x2 __asm__("x2") = c;
 	register long x3 __asm__("x3") = d;
 	register long x4 __asm__("x4") = e;
+	register long x5 __asm__("x5") = 0; /* mmap file offset; unused otherwise. */
 	register long x8 __asm__("x8") = n;
 	__asm__ volatile("svc 0" : "+r"(x0)
-		: "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x8)
+		: "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5), "r"(x8)
 		: "memory", "cc");
 	return x0;
 }
@@ -72,7 +72,7 @@ static __attribute__((noreturn)) void fail(const char *stage)
 void _start(void)
 {
 	unsigned long started, finish;
-	long pid, waited;
+	long pid, waited, mapped;
 	int status;
 #ifndef PROBE_USER_TEST
 	long fd;
@@ -89,9 +89,12 @@ void _start(void)
 	if (!started) fail("clock-start");
 	say("BEGIN page-fault-probe pages=8192 rounds=8\n");
 	for (unsigned int round = 0; round < ROUNDS; round++) {
-		/* Discard only the page-aligned private test array, not our stack. */
-		if (call(233, (long)memory, sizeof(memory), 4, 0, 0) < 0)
-			fail("discard-pages");
+		/* Fresh private anonymous pages. The retained minimal kernel disables
+		 * CONFIG_ADVISE_SYSCALLS, so do not depend on MADV_DONTNEED.
+		 */
+		mapped = call(222, 0, PAGES * PAGE_SIZE, 3, 0x22, -1);
+		if (mapped < 0) fail("map-pages");
+		memory = (volatile unsigned char *)mapped;
 		for (unsigned int p = 0; p < PAGES; p++) {
 			unsigned long off = p * PAGE_SIZE;
 			if (memory[off] || memory[off + 1] ||
@@ -128,6 +131,8 @@ void _start(void)
 			    memory[off + 2048] != 0x55 || memory[off + 4095] != 0xaa)
 				fail("parent-isolation");
 		}
+		if (call(215, (long)memory, PAGES * PAGE_SIZE, 0, 0, 0) < 0)
+			fail("unmap-pages");
 		say("PASS page-fault-round="); number(round + 1); say("\n");
 	}
 	finish = millis();
