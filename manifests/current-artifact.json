@@ -1938,6 +1938,20 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; synthetic-file kernel probe only; full Denial startup unresolved"
+    },
+    "startup_mops_control": {
+      "status": "FAIL_TIMING_QUERY_AND_DEVICE_READINESS_NO_RCU_STALL_OBSERVED",
+      "set_id": "private:rog5-full-startup-mops-20260919-r1",
+      "source_commit": "c8d2b29cc7e4bd9cd54f5591d9b44642a6a7a2ff",
+      "source_tree": "e7909cd4b4a213a8ca96aa7e4f32855dd34dd279",
+      "vm_source_commit": "2f83c7cfdda80c529ab3d870eaee6a5b9973063d",
+      "evidence": {
+        "path": "test-results/2026-09-19-full-startup-mops-qualification.json",
+        "sha256": "d5c2a75ba8935dca46443d794daad3a5cf3cdbaafc4fab72aee3fefb19978e51",
+        "bytes": 110235
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; normal readiness/cleanup passed but timing failed; nomops readiness failed"
     }
   },
   "denial_phone_linkage": {

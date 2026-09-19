@@ -3358,3 +3358,13 @@ O_LARGEFILE; use the pinned architecture UAPI and run refusal cases before VM
 qualification. Synthetic read-only9P private mapping and fork/COW pass in about6s
 per mode here. Preserve full-byte host backing checks separately from sampled
 guest page checks; neither passing reduced workload explains full startup stalls.
+
+Full-runtime MOPS control (2026-09-19): neither startup-only arm reproduced the
+RCU stall; the normal arm passed PAM/cleanup but lost its timing inventory, while
+nomops failed device initialization before PAM. Keep these stages distinct and
+do not infer a CPU workaround. Reject explicit failed timing packets even beside
+a complete inventory, and report their exit/byte count. Compare actual initramfs
+member bytes: fresh cpio inode/mtime headers can differ despite equal payloads.
+An interruption-test observer must include the existing helper watchdog and kill
+grace; observing exactly at its3s watchdog raced deferred shell-trap cleanup.
+The test now allows5s without changing production deadlines or cleanup assertions.

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Read-only 9P/COW controls pass; full startup stall remains unresolved",
+  "phase": "Startup comparison finds timing/readiness failures; RCU stall not reproduced",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Frozen source11b40249 completes eight 32 MiB file-backed/COW rounds over read-only 9P in normal and arm64.nomops modes, with unchanged backing bytes, no RCU stall and normal poweroff. The ARM64 no-follow flag error in the new probe was caught and corrected by a symlink negative test. These controls do not reproduce or repair the full startup failure. Next prepare a bounded startup-only comparison using the retained full runtime and explicit nomops control before another interactive Denial retry. Preserve S06/R01 FAIL and physical NOT RUN.",
-  "evidence": "test-results/2026-09-19-file-page-fault-control.md"
+  "next": "Two full-runtime startup-only VMs on source2f83c7cf both power off normally with no RCU stall. Normal mode passes PAM/logind/device access and cleanup but its timing query times out; nomops fails the device-initialization wait before PAM. Neither arm qualifies and no default CPU-feature workaround is justified. Final source includes a tested watchdog-observation correction; sourced693210a reports explicit query failure and rejects conflicting timing packets. Next inspect exact udev initialization semantics and tty/fuse startup ordering, preserving bounds and readiness guards. Denial rendering and phone tests remain NOT RUN in this comparison; historical S06/R01 FAIL remain open.",
+  "evidence": "test-results/2026-09-19-full-startup-mops.md"
 }

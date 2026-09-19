@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Read-only 9P/COW controls pass; full startup stall remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Startup comparison finds timing/readiness failures; RCU stall not reproduced**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen source11b40249 completes eight 32 MiB file-backed/COW rounds over read-only 9P in normal and arm64.nomops modes, with unchanged backing bytes, no RCU stall and normal poweroff. The ARM64 no-follow flag error in the new probe was caught and corrected by a symlink negative test. These controls do not reproduce or repair the full startup failure. Next prepare a bounded startup-only comparison using the retained full runtime and explicit nomops control before another interactive Denial retry. Preserve S06/R01 FAIL and physical NOT RUN. See [current repair evidence](../test-results/2026-09-19-file-page-fault-control.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Two full-runtime startup-only VMs on source2f83c7cf both power off normally with no RCU stall. Normal mode passes PAM/logind/device access and cleanup but its timing query times out; nomops fails the device-initialization wait before PAM. Neither arm qualifies and no default CPU-feature workaround is justified. Final source includes a tested watchdog-observation correction; sourced693210a reports explicit query failure and rejects conflicting timing packets. Next inspect exact udev initialization semantics and tty/fuse startup ordering, preserving bounds and readiness guards. Denial rendering and phone tests remain NOT RUN in this comparison; historical S06/R01 FAIL remain open. See [current repair evidence](../test-results/2026-09-19-full-startup-mops.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
