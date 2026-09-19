@@ -343,6 +343,8 @@ class ExecutableView(unittest.TestCase):
 set -euo pipefail
 source "$1"
 FIRST=$2; SECOND=$3; ABORT=$4
+# Journal transport is covered by FailureJournal; this fixture owns mounts only.
+logind_failure_journal(){ :; }
 /run/original-bin/umount(){
     printf 'CALL original %s\n' "$*"
     [[ ${1:-} != --lazy ]] || return "$ABORT"
@@ -939,12 +941,17 @@ if mode=='error': sys.exit(77)
 ''')
             journal.chmod(0o755)
             timer=root/'timeout'
-            timer.write_text('#!/bin/bash\n[[ $1 == -k && $2 == 1 && $3 == 5 ]] || exit 98\n'
+            timer.write_text('#!/bin/bash\n[[ $1 == -k && $2 == 1 && ( $3 == 5 || $3 == 3 ) ]] || exit 98\n'
                              'exec /usr/bin/timeout -k .1 .2 "${@:4}"\n')
             timer.chmod(0o755)
+            udev=root/'udevadm'
+            udev.write_text('#!/bin/bash\n[[ $1 != wait ]] || exit 42\n')
+            udev.chmod(0o755)
+            action='logind_wait_devices "$2"' if mode=='subshell' else 'bash -c "exit 42"'
+            if mode=='success':action='true'
             command=['bash','-c',
-                'set -euo pipefail; source "$1"\n'+trap+'\nbash -c "exit 42"\necho ADMITTED\n',
-                'fixture',str(source)]
+                'set -euo pipefail; source "$1"\n'+trap+'\nrestore_needed=0; trap logind_finish EXIT\n'+action+'\necho ADMITTED\n',
+                'fixture',str(source),str(root)]
             process=subprocess.Popen(command,env={**os.environ,'PATH':str(root)+':'+os.environ['PATH'],
                 'TMPDIR':str(root),'MODE':mode,'CALLS':str(root/'calls')},
                 start_new_session=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
@@ -955,7 +962,7 @@ if mode=='error': sys.exit(77)
                 try: os.killpg(process.pid,signal.SIGKILL)
                 except ProcessLookupError: pass
                 process.communicate(timeout=2)
-            calls=json.loads((root/'calls').read_text())
+            calls=json.loads((root/'calls').read_text()) if (root/'calls').exists() else []
             leftovers=list(root.glob('rog5-journal-query.*'))
             return result,calls,leftovers
 
@@ -971,6 +978,22 @@ if mode=='error': sys.exit(77)
         self.assertIn(b'[ 123.456789] systemd[501]: Started Portal service.',data)
         self.assertIn(b'partial-error-without-newline',data)
         self.assertNotIn('ADMITTED',result.stdout)
+        self.assertEqual(result.stdout.count('DIAGNOSTIC_SESSION_JOURNAL'),1)
+        self.assertEqual(leftovers,[])
+
+    def test_subshell_failure_uses_exit_path_even_without_err_trap(self):
+        result,calls,leftovers=self.run_failure('subshell')
+        self.assertEqual(result.returncode,42,result.stderr)
+        self.assertIn('--output=short-monotonic',calls)
+        self.assertEqual(result.stdout.count('DIAGNOSTIC_SESSION_JOURNAL'),1)
+        self.assertNotIn('ADMITTED',result.stdout)
+        self.assertEqual(leftovers,[])
+
+    def test_success_does_not_collect_failure_journal(self):
+        result,calls,leftovers=self.run_failure('success')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(calls,[])
+        self.assertNotIn('DIAGNOSTIC_SESSION_JOURNAL',result.stdout)
         self.assertEqual(leftovers,[])
 
     def test_journal_timeout_preserves_prefix_and_original_failure(self):

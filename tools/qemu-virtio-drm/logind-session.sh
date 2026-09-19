@@ -222,7 +222,14 @@ logind_restore_executable_view() {
 logind_finish() {
     local rc=$? cleanup_rc=0 mode=normal
     trap - EXIT
-    ((rc == 0)) || mode=abort
+    if ((rc != 0)); then
+        mode=abort
+        # A subshell function with an EXIT trap can bypass the caller's ERR
+        # trap. Collect once here for every failed supervisor exit, while the
+        # executable view is still present, without changing the primary error.
+        cat /run/pam-session.log 2>/dev/null || :
+        logind_failure_journal || :
+    fi
     logind_restore_executable_view "$mode" || cleanup_rc=$?
     if ((cleanup_rc)); then
         printf 'FAIL executable view cleanup stage=%s status=%s\n' "$restore_needed" "$cleanup_rc" >&2
@@ -235,7 +242,7 @@ if [[ ${BASH_SOURCE[0]} != "$0" ]]; then return 0; fi
 set -euo pipefail
 read -r cmdline < /proc/cmdline
 [[ $EUID == 0 && " $cmdline " == *' rog5.logind_fixture=1 '* && -d /sys/bus/virtio/devices ]]
-trap 'echo "FAIL session supervisor line=$LINENO"; cat /run/pam-session.log 2>/dev/null || :; logind_failure_journal || :' ERR
+trap 'echo "FAIL session supervisor line=$LINENO"' ERR
 restore_needed=0
 [[ ! -f /run/session-sha256 ]] || restore_needed=2
 trap logind_finish EXIT
