@@ -359,6 +359,8 @@ def main():
     parser.add_argument('--session-archive', type=Path)
     parser.add_argument('--session-receipt', type=Path)
     parser.add_argument('--host-render-node', type=Path)
+    parser.add_argument('--tcg-thread', choices=('multi', 'single'), default='multi',
+                        help='TCG host-thread mode; preserves guest CPU count and existing limits')
     parser.add_argument('--startup-only', action='store_true',
                         help='combined VM preparation and PAM readiness/cleanup only; no Denial execution')
     observation = parser.add_mutually_exclusive_group()
@@ -574,7 +576,7 @@ def main():
                    '-v', f'{runtime}:/runtime:ro', '-v', f'{kernel}:/Image:ro',
                    '-v', f'{output / "initramfs.gz"}:/initramfs.gz:ro', '-v', f'{payload}:/payload:ro', args.qemu_image,
                    'qemu-system-aarch64', '-M', 'virt', '-cpu', 'max', '-smp', '1', '-m', '512M',
-                   '-accel', 'tcg,thread=multi', '-global', 'virtio-mmio.force-legacy=false', '-display', 'none',
+                   '-accel', 'tcg,thread='+args.tcg_thread, '-global', 'virtio-mmio.force-legacy=false', '-display', 'none',
                    '-device', 'virtio-gpu-device', '-device', 'virtio-keyboard-device', '-monitor', 'none', '-nic', 'none',
                    '-serial', 'stdio', '-no-reboot', '-kernel', '/Image', '-initrd', '/initramfs.gz',
                    '-append', 'console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1',

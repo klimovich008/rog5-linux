@@ -1499,5 +1499,72 @@ class StartupOnly(unittest.TestCase):
                 self.runner.startup_result(serial[:match.start()]+packet+serial[match.end():])
 
 
+class TcgMode(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('tcg_runner_fixture', RUNNER)
+        self.runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.runner)
+        self.required = [v for n in ['runtime-view', 'runtime-receipt', 'kernel', 'qemu-image',
+                         'toolchain-image', 'libc', 'libloading', 'output'] for v in ['--'+n, '/unused']]
+
+    def parsed(self, options):
+        observed = []
+        original = self.runner.argparse.ArgumentParser.parse_args
+        def capture(parser, *args, **kwargs):
+            result = original(parser, *args, **kwargs); observed.append(result); return result
+        with patch.object(sys, 'argv', [str(RUNNER), *self.required, *options]), \
+                patch.object(self.runner.argparse.ArgumentParser, 'parse_args', capture), \
+                patch.object(self.runner, 'install_handlers', side_effect=RuntimeError('CLI accepted')):
+            with self.assertRaisesRegex(RuntimeError, 'CLI accepted'): self.runner.main()
+        return observed[0]
+
+    def test_default_and_explicit_modes_reach_real_argument_parser(self):
+        for options, expected in [([], 'multi'), (['--tcg-thread', 'multi'], 'multi'),
+                                  (['--tcg-thread', 'single'], 'single')]:
+            with self.subTest(options=options):
+                self.assertEqual(self.parsed(options).tcg_thread, expected)
+
+    def test_invalid_mode_rejected_before_effects(self):
+        for value in ['invalid', 'single,thread=multi', '']:
+            with self.subTest(value=value), patch.object(sys, 'argv',
+                    [str(RUNNER), *self.required, '--tcg-thread', value]), \
+                    patch.object(self.runner, 'install_handlers') as effects, \
+                    patch('sys.stderr', new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as status: self.runner.main()
+                self.assertEqual(status.exception.code, 2); effects.assert_not_called()
+
+    def command(self, mode, combined):
+        # Execute the actual command-construction statements. No rewritten QEMU
+        # command model or container/VM execution belongs in this host regression.
+        tree = ast.parse(RUNNER.read_text())
+        command = next(n for n in ast.walk(tree) if isinstance(n, ast.Assign)
+                       and any(isinstance(t, ast.Name) and t.id == 'command' for t in n.targets)
+                       and isinstance(n.value, ast.List) and isinstance(n.value.elts[0], ast.Constant)
+                       and n.value.elts[0].value == 'podman')
+        combined_block = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
+                              and isinstance(n.test, ast.Name) and n.test.id == 'combined'
+                              and n.lineno > command.lineno)
+        args = self.parsed(['--tcg-thread', mode]); args.qemu_image = 'pinned-image'
+        args.host_render_node = Path('/dev/dri/renderD128')
+        env = dict(args=args, combined=combined, name='owned-fixture', runtime=Path('/fixture/runtime'),
+                   kernel=Path('/fixture/Image'), output=Path('/fixture/output'), payload=Path('/fixture/payload'))
+        exec(compile(ast.Module(body=[command, combined_block], type_ignores=[]), str(RUNNER), 'exec'), env)
+        return env['command']
+
+    def test_mode_changes_only_accelerator_not_guest_smp_or_containment(self):
+        for combined in (False, True):
+            with self.subTest(combined=combined):
+                multi = self.command('multi', combined); single = self.command('single', combined)
+                changed = [i for i, pair in enumerate(zip(multi, single)) if pair[0] != pair[1]]
+                self.assertEqual(len(multi), len(single))
+                self.assertEqual(changed, [multi.index('-accel')+1])
+                self.assertEqual(single[changed[0]], 'tcg,thread=single')
+                self.assertEqual(multi[changed[0]], 'tcg,thread=multi')
+                self.assertEqual(single[single.index('-smp')+1], '2' if combined else '1')
+                self.assertIn('--network=none', single); self.assertIn('--read-only', single)
+                self.assertIn('--cpus=2', single); self.assertIn('--pids-limit=64', single)
+                self.assertIn('--memory-swap=2048m' if combined else '--memory-swap=1024m', single)
+                self.assertIn('/fixture/runtime:/runtime:ro', single)
+
+
 if __name__ == '__main__':
     unittest.main()
