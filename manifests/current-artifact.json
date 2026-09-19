@@ -1885,6 +1885,20 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; final placement host-qualified, VM NOT RUN"
+    },
+    "hwdb_cache_control": {
+      "status": "PASS_HWDB_AND_EXIT_JOURNAL_VM_FAIL_PORTAL_TIMEOUT_RCU_STALL",
+      "set_id": "private:rog5-hwdb-integration-20260919-r1-r2",
+      "source_commit": "8cd7b08fce0bebd2a5d38fec95de7f01bf2dc028",
+      "source_tree": "d258d7cc7711be6cef89a55f90c39700aa95264a",
+      "cache_sha256": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+      "evidence": {
+        "path": "test-results/2026-09-19-hwdb-cache-integration-qualification.json",
+        "sha256": "be65e57822a5464e2473eb72d108b1be41b50cc24f7af0a9382cccec2efc4be1",
+        "bytes": 81641
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; cache setup/device/PAM/render counters observed, full VM FAIL; no phone proof"
     }
   },
   "denial_phone_linkage": {
