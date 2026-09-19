@@ -107,6 +107,34 @@ unresolved ROG5 path, followed by a host regression if a real defect is found.
 
 ## Retained evidence and limits
 
+### Later live-ref follow-up on September 19
+
+Main is still `93eb3261ff4c86b84b80e05d642c753c5ece3159`, but dev has
+advanced to `5ab4004a36df28799b5f0636ee0cf31d1eba8c31`. This supersedes only
+the earlier statement that dev was unchanged. The GitHub
+[comparison](https://github.com/denialwm/denial/compare/1395c0f5e70ecc3158fcdd9b03d02850d7ec17d2...5ab4004a36df28799b5f0636ee0cf31d1eba8c31)
+contains four commits and 102 changed files: scrolling geometry/color fixes,
+display/input/architecture integration, Flutter Nix lock refresh, and a
+non-Flutter geometry compilation fix. The changed architecture helpers map
+native ARM64 build outputs and engine targets; this is useful upstream work,
+not an executed or qualified ARM64 package. The session target also gains
+ordering against `graphical-session-pre.target`.
+
+An exact-source read of
+[kms_state.rs](https://github.com/denialwm/denial/blob/5ab4004a36df28799b5f0636ee0cf31d1eba8c31/compositor/src/bin/deniald/kms_state.rs)
+confirms that the unsupported Linear substitution and Invalid-only pool
+rejection remain. These four commits do not retire our modifier repair. The
+full 102-file change was not behaviorally audited; no build or runtime result
+is claimed. In particular, session ordering changes do not establish a fix
+for the retained pre-Denial kernel stall.
+
+The community and linked primary repositories were revisited. The priority
+remains same-SoC SM8350/Sagami comparison first, then narrowly applicable
+Hotdog display, SMB5 and sensor investigations. Hotdog's current README keeps
+display instability, incomplete charging qualification and Bluetooth failures
+explicit; its older Reddit demonstration is not a current support matrix.
+No source was imported and no phone operation occurred in this follow-up.
+
 Private audit directory: `rog5-denial-upstream-check-20260919-r1` under the local
 state root. It retains the bare Git comparison, GitHub release/engine responses,
 graphics/mobile reports and machine-readable source identities, relevant diff,
