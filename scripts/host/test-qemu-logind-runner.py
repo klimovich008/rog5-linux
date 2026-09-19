@@ -522,6 +522,11 @@ lsclocks(){
     case $MODE in clock_fail) return 43;; clock_bad) echo not-a-clock;; *) echo 100.123456789;; esac
 }
 timeout(){ printf 'BOUNDED %s\n' "$*" >&2; shift 3; "$@"; }
+stdbuf(){
+    [[ $1 == -oL && $2 == -e0 ]] || return 98
+    [[ $MODE != start_fail_buffer_tool ]] || return 127
+    shift 2; "$@"
+}
 systemctl(){
     printf 'SERVICE %s\n' "$*" >&2
     if [[ $2 == start ]]; then [[ $MODE != start_fail* ]] || return 124; return 0; fi
@@ -624,13 +629,15 @@ require_fuse_device "$1" "$2"
                     self.assertNotIn(f'OBSERVE stage={later}', result.stderr)
 
     def test_monotonic_clock_and_snapshot_precede_failure_return(self):
-        for mode in ['success', 'start_fail', 'start_fail_snapshot', 'start_fail_overflow']:
+        for mode in ['success', 'start_fail', 'start_fail_snapshot', 'start_fail_overflow',
+                     'start_fail_buffer_tool']:
             with self.subTest(mode=mode):
                 r = self.qualify(mode)
                 self.assertEqual(r.returncode, 0 if mode == 'success' else 124, r.stderr)
                 self.assertIn('clock=CLOCK_MONOTONIC seconds=100.123456789', r.stderr)
                 self.assertIn('OBSERVE service-snapshot phase=begin', r.stderr)
-                status = 42 if mode in ['start_fail_snapshot', 'start_fail_overflow'] else 0
+                status = (127 if mode == 'start_fail_buffer_tool' else
+                          42 if mode in ['start_fail_snapshot', 'start_fail_overflow'] else 0)
                 self.assertIn(f'OBSERVE service-snapshot phase=end status={status}', r.stderr)
                 self.assertIn('--property=ActiveEnterTimestampMonotonic', r.stderr)
                 self.assertLess(len(r.stderr), 68000)
@@ -660,6 +667,45 @@ require_fuse_device "$1" "$2"
                 result = self.qualify(mode)
                 self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
                 self.assertNotIn('CLIENTS-MAY-START', result.stdout)
+
+
+class ServiceSnapshot(unittest.TestCase):
+    def test_completed_unit_output_survives_a_later_query_timeout(self):
+        # A libc-buffered producer writes a complete small reply then stalls.
+        # Run the actual snapshot function and timeout, not a duplicate model.
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        function = re.search(r'^service_snapshot\(\) \{.*?^\}', source, re.M | re.S).group()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            producer = root/'producer.c'
+            producer.write_text('''#include <stdio.h>
+#include <unistd.h>
+int main(void) {
+    puts("Id=at-spi-dbus-bus.service");
+    puts("ActiveState=active");
+    puts("Job=0");
+    fputs("diagnostic-without-newline", stderr);
+    for (;;) pause();
+}
+''')
+            subprocess.run(['cc', '-Wall', '-Wextra', '-Werror', str(producer),
+                            '-o', str(root/'systemctl')], check=True, timeout=15,
+                           capture_output=True)
+            # Preserve the actual timeout/group cleanup but shorten fixture time.
+            # Reject any change to the production deadline arguments.
+            timer = root/'timeout'
+            timer.write_text('#!/bin/bash\n[[ $1 == -k && $2 == 1 && $3 == 3 ]] || exit 98\n'
+                             'exec /usr/bin/timeout -k .1 .2 "${@:4}"\n')
+            timer.chmod(0o755)
+            code = 'set -euo pipefail\n' + function + '\nservice_snapshot at-spi-dbus-bus.service xdg-desktop-portal.service\n'
+            result = subprocess.run(['bash', '-c', code],
+                                    env={**os.environ, 'PATH': str(root)+':'+os.environ['PATH']},
+                                    capture_output=True, text=True, timeout=6)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, '')
+            self.assertIn('Id=at-spi-dbus-bus.service\nActiveState=active\nJob=0\n', result.stderr)
+            self.assertIn('diagnostic-without-newline', result.stderr)
+            self.assertIn('OBSERVE service-snapshot phase=end status=124', result.stderr)
 
 
 class FuseHelperStaging(unittest.TestCase):

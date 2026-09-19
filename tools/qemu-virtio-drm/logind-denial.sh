@@ -50,16 +50,19 @@ service_snapshot() {
     echo 'OBSERVE service-snapshot phase=begin deadline_seconds=3' >&2
     # Query only lifecycle properties of the requested units and their known
     # permission-store dependency. Preserve the start command status regardless
-    # of diagnostic failure. No environment, command lines or secrets are read.
+    # of diagnostic failure. Line-buffer stdout so timeout cannot discard
+    # completed unit replies still held in systemctl's stdio buffer. Keep stderr
+    # unbuffered (even incomplete error lines must survive). Flush the
+    # bounded relay too. No environment, command lines or secrets are read.
     (set -o pipefail
-        timeout -k 1 3 systemctl --user show "$@" xdg-permission-store.service \
+        timeout -k 1 3 stdbuf -oL -e0 systemctl --user show "$@" xdg-permission-store.service \
             --property=Id --property=ActiveState --property=SubState --property=Result \
             --property=BusName --property=MainPID --property=Job \
             --property=ExecMainStartTimestampMonotonic --property=ActiveEnterTimestampMonotonic \
             --property=StateChangeTimestampMonotonic --property=CPUUsageNSec 2>&1 |
         LC_ALL=C awk 'BEGIN {remaining=65536}
             {line=$0 "\n"; if (length(line)>remaining) {overflow=1; next}
-             if (!overflow) {printf "%s",line; remaining-=length(line)}}
+             if (!overflow) {printf "%s",line; remaining-=length(line); fflush()}}
             END {if (overflow) exit 42}'
     ) >&2 || status=$?
     printf 'OBSERVE service-snapshot phase=end status=%s\n' "$status" >&2
