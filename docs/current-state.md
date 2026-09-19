@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial VM close failure reproduced; settings sync returned before forced kill**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM clean close passed once; low-caret runtime retest prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-One diagnostic Denial/VirGL VM reached owned Mousepad/Foot mapping and exact approved teardown. Foot exited0, Mousepad137; real g_settings_sync returned in0.209312ms before forced kill, excluding an unfinished sync call at termination in this run. QEMU326.516s under an explicit420s diagnostic envelope; standard300s qualification remains FAIL. Next bracket application shutdown and run-loop return using exact package/API semantics; preserve app65s and two-second kill grace, avoid another sync-only boot or broker-only substitute. S06/R01 remain FAIL; phone tests NOT RUN and no phone operation authorized. See [current repair evidence](../test-results/2026-09-19-denial-close-diagnostic.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+New shutdown probe passed16focused tests and actual ARM64 GLib callback-order checks; integrated108suites PASS. One diagnostic Denial VM passed owned two-app mapping/focus and clean exits0;80frames/pageflips,no render errors,normal poweroff. Shutdown signal interval41.805ms and later run return42.106ms. Earlier137 failures remain unresolved. Correct prior inference: observed sync END covers only that external invocation; GLib internal relative-bound sync bypasses preload. Standard300s qualification remains FAIL. Next run prepared automatic/bottom-caret treatment with retained GTK module and exact payload; no rebuild. Phone tests NOT RUN,no phone authority,S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-19-application-shutdown-probe.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

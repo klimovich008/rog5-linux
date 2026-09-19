@@ -1,0 +1,988 @@
+{
+  "schema": 1,
+  "status": "SHUTDOWN_PROBE_VALIDATED_VM_PASS",
+  "authority": "none",
+  "physical_status": "NOT RUN",
+  "source": {
+    "commit": "ced1f905203a8d34466dd33181c36f3acddf8264",
+    "tree": "6ce7c3c00d0567ca0234f69f698de7eb541e4c40",
+    "worktree_status": "",
+    "dirty": false
+  },
+  "command": [
+    "/usr/bin/python3",
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/run-vm.py"
+  ],
+  "production_arguments": [
+    "--runtime-view",
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+    "--runtime-receipt",
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+    "--qemu-image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--toolchain-image",
+    "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "--libc",
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+    "--libloading",
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+    "--output",
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1",
+    "--session-archive",
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+    "--session-receipt",
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+    "--host-render-node",
+    "/dev/dri/renderD128",
+    "--observe-apps",
+    "--launcher-reference",
+    "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+    "--evidence-writer",
+    "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+    "--close-only",
+    "--settings-sync-diagnostic",
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so",
+    "--linker-cache",
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2"
+  ],
+  "deadline_changes": [
+    {
+      "container": "rog5-logind-vm-009c49098cd04dec",
+      "standard_seconds": 300,
+      "diagnostic_seconds": 420,
+      "existing_conditional_cleanup_grace_seconds": 30
+    }
+  ],
+  "prior_standard_300s_qualification": "FAIL retained; new diagnostic420s does not qualify it",
+  "scope": "VM-only diagnostic; actual ARM64 GLib fixture and source/ELF review",
+  "correction": "Previous observed sync END proves only that interposed invocation returned. GLib later calls its own g_settings_sync through R_AARCH64_RELATIVE; internal call is not observed. Earlier blanket exclusion is unsupported.",
+  "source_urls": [
+    "https://raw.githubusercontent.com/GNOME/glib/2.88.3/gio/gapplication.c",
+    "https://raw.githubusercontent.com/GNOME/gtk/3.24.52/gtk/gtkapplication.c",
+    "https://docs.gtk.org/gio/signal.Application.shutdown.html"
+  ],
+  "source_audit_identities": {
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgio-2.0.so.0": {
+      "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+      "bytes": 2428456
+    },
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgobject-2.0.so.0": {
+      "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+      "bytes": 462680
+    },
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglib-2.0.so.0": {
+      "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+      "bytes": 1576520
+    },
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/glib-2.0/gobject/gsignal.h": {
+      "sha256": "832973e148d5aa717a11648316d2d94d2d7fcab19942924bb15c7d48a18e52e0",
+      "bytes": 27322
+    },
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/glib-2.0/gio/gapplication.h": {
+      "sha256": "56efc2dc73ee881da53fbabb3dfdd40c033befe45ff02f6e4a3d1e037a3f7793",
+      "bytes": 15092
+    },
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/gapplication-2.88.3.c": {
+      "sha256": "86dbce94a75e1907a620f7faaa3c78083be984608f3e66bb24cd4b3de0cae4a2",
+      "bytes": 114722
+    },
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/gtkapplication-3.24.52.c": {
+      "sha256": "3419e3407691137e8cc39ec4e6a3b936bd2416f2d6ff9700c2a09add6d7d11fd",
+      "bytes": 58219
+    },
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/gapplication-run-disassembly.log": {
+      "sha256": "a45e3313eacb35f94647ace0f6d0908d06da4f31eae0270543b4a0ce33713807",
+      "bytes": 13991
+    },
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/gapplication-run-relative-relocation.log": {
+      "sha256": "1e2bd094fda40e52860d4911369d1e03ee455e7990489e5ef6a33ed1a9953d8a",
+      "bytes": 84
+    }
+  },
+  "source_probe": "/* VM-only probe: observe the real call; never replace or time-limit it. */\n#define _GNU_SOURCE\n#include <dlfcn.h>\n#include <errno.h>\n#include <fcntl.h>\n#include <pthread.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <sys/stat.h>\n#include <time.h>\n#include <unistd.h>\n\nstatic int log_fd = -1;\nstatic void (*real_sync)(void);\nstatic pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;\nstatic unsigned int records;\n\n/* Do not report failure through stderr: it may be a stalled evidence FIFO. */\nstatic void fail(void)\n{\n\t_exit(125);\n}\n\nstatic void check_log(void)\n{\n\tstruct stat st;\n\tif (fstat(log_fd, &st) || !S_ISREG(st.st_mode) ||\n\t    st.st_uid != geteuid() || (st.st_mode & 07777) != 0600 ||\n\t    st.st_nlink != 1 || st.st_size < 0 || st.st_size > 1536 - 128)\n\t\tfail();\n}\n\nstatic void record(const char *stage)\n{\n\tstruct timespec now;\n\tchar line[128];\n\tint length;\n\tif (pthread_mutex_lock(&log_lock))\n\t\tfail();\n\tcheck_log();\n\tif (++records > 12 || clock_gettime(CLOCK_MONOTONIC, &now))\n\t\tfail();\n\tlength = snprintf(line, sizeof(line),\n\t\t\"ROG5_SETTINGS_SYNC phase=%s pid=%ld clock=CLOCK_MONOTONIC seconds=%lld.%09ld\\n\",\n\t\tstage, (long)getpid(), (long long)now.tv_sec, now.tv_nsec);\n\tif (length < 0 || (size_t)length >= sizeof(line) ||\n\t    write(log_fd, line, (size_t)length) != length)\n\t\tfail();\n\tif (pthread_mutex_unlock(&log_lock))\n\t\tfail();\n}\n\n__attribute__((constructor)) static void initialize(void)\n{\n\tint saved_errno = errno;\n\tconst char *path = getenv(\"ROG5_SETTINGS_SYNC_LOG\");\n\tif (!path || !*path)\n\t\tfail();\n\tlog_fd = open(path, O_WRONLY | O_NOFOLLOW | O_NONBLOCK | O_APPEND | O_CLOEXEC);\n\tif (log_fd < 0)\n\t\tfail();\n\tcheck_log();\n\tdlerror();\n\t/* POSIX specifies this dlsym conversion for a function symbol. */\n\treal_sync = (void (*)(void))dlsym(RTLD_NEXT, \"g_settings_sync\");\n\tif (dlerror() || !real_sync) {\n\t\trecord(\"resolve-failed\");\n\t\tfail();\n\t}\n\t/* The launcher admits only our preload. Keep it out of exec'ed helpers,\n\t * which need not link GIO; the current process retains the interposer.\n\t */\n\tif (unsetenv(\"LD_PRELOAD\") || unsetenv(\"ROG5_SETTINGS_SYNC_LOG\"))\n\t\tfail();\n\trecord(\"loaded resolved=true\");\n\terrno = saved_errno;\n}\n\nvoid g_settings_sync(void)\n{\n\tint entry_errno = errno;\n\tint result_errno;\n\tif (!real_sync)\n\t\tfail();\n\trecord(\"BEGIN\");\n\terrno = entry_errno;\n\treal_sync();\n\tresult_errno = errno;\n\trecord(\"END\");\n\terrno = result_errno;\n}\n\n/* Opaque public API types: the probe never inspects or replaces object layout.\n * Resolve these only when an application actually runs, so the sync-only probe\n * remains usable without a GApplication. Signatures and G_CONNECT_AFTER=1 are\n * from the retained GLib 2.88.3 headers. Its shutdown signal is RUN_LAST.\n */\nstruct _GApplication;\n\nstatic void shutdown_before(struct _GApplication *application, void *data)\n{\n\tint saved_errno = errno;\n\t(void)application;\n\t(void)data;\n\trecord(\"SHUTDOWN_BEFORE\");\n\terrno = saved_errno;\n}\n\nstatic void shutdown_after(struct _GApplication *application, void *data)\n{\n\tint saved_errno = errno;\n\t(void)application;\n\t(void)data;\n\trecord(\"SHUTDOWN_AFTER\");\n\terrno = saved_errno;\n}\n\nint g_application_run(struct _GApplication *application, int argc, char **argv)\n{\n\tint entry_errno = errno, result_errno, result;\n\tint (*run)(struct _GApplication *, int, char **);\n\tunsigned long (*connect)(void *, const char *, void (*)(void), void *,\n\t\t\t\t void (*)(void *, void *), int);\n\tvoid (*disconnect)(void *, unsigned long);\n\tunsigned long before, after;\n\n\tdlerror();\n\trun = (int (*)(struct _GApplication *, int, char **))\n\t\tdlsym(RTLD_NEXT, \"g_application_run\");\n\tconnect = (unsigned long (*)(void *, const char *, void (*)(void), void *,\n\t\t\t\t     void (*)(void *, void *), int))\n\t\tdlsym(RTLD_NEXT, \"g_signal_connect_data\");\n\tdisconnect = (void (*)(void *, unsigned long))\n\t\tdlsym(RTLD_NEXT, \"g_signal_handler_disconnect\");\n\tif (dlerror() || !run || !connect || !disconnect) {\n\t\trecord(\"app-resolve-failed\");\n\t\tfail();\n\t}\n\tbefore = connect(application, \"shutdown\", (void (*)(void))shutdown_before,\n\t\t\t NULL, NULL, 0);\n\tafter = connect(application, \"shutdown\", (void (*)(void))shutdown_after,\n\t\t\tNULL, NULL, 1); /* G_CONNECT_AFTER */\n\tif (!before || !after)\n\t\tfail();\n\trecord(\"APP_RUN_BEGIN\");\n\terrno = entry_errno;\n\tresult = run(application, argc, argv);\n\tresult_errno = errno;\n\trecord(\"APP_RUN_END\");\n\t/* Disconnect while the caller still owns the application; no extra ref or\n\t * weak-ref callback changes its lifetime. These are signal-observer bounds,\n\t * not exact subclass instruction boundaries. No main-context iteration.\n\t */\n\tdisconnect(application, before);\n\tdisconnect(application, after);\n\terrno = result_errno;\n\treturn result;\n}\n",
+  "real_arm64_fixture": {
+    "source": "/* Uses the retained ARM64 GLib headers and runtime, not a signal model. */\n#include <gio/gio.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\ntypedef struct { GApplication parent; } ProbeApplication;\ntypedef struct { GApplicationClass parent; } ProbeApplicationClass;\nG_DEFINE_TYPE(ProbeApplication, probe_application, G_TYPE_APPLICATION)\nstatic const char *log_path;\nstatic int bad;\nstatic int has(const char *marker)\n{\n    char bytes[1537];\n    FILE *f = fopen(log_path, \"r\");\n    if (!f) { bad = 1; return 0; }\n    size_t n = fread(bytes, 1, sizeof(bytes)-1, f);\n    bytes[n] = 0;\n    if (ferror(f) || fclose(f)) bad = 1;\n    return strstr(bytes, marker) != NULL;\n}\nstatic void activate(GApplication *app) { g_application_quit(app); }\nstatic void shutdown_app(GApplication *app)\n{\n    if (!has(\"phase=SHUTDOWN_BEFORE \") || has(\"phase=SHUTDOWN_AFTER \")) bad = 1;\n    g_settings_sync();\n    G_APPLICATION_CLASS(probe_application_parent_class)->shutdown(app);\n    if (has(\"phase=SHUTDOWN_AFTER \")) bad = 1;\n}\nstatic void probe_application_class_init(ProbeApplicationClass *klass)\n{\n    GApplicationClass *app = G_APPLICATION_CLASS(klass);\n    app->activate = activate;\n    app->shutdown = shutdown_app;\n}\nstatic void probe_application_init(ProbeApplication *self) { (void)self; }\nint main(int argc, char **argv)\n{\n    if (argc != 2) return 2;\n    log_path = argv[1];\n    GApplication *app = g_object_new(probe_application_get_type(),\n        \"application-id\", \"org.rog5.ShutdownProbe\", \"flags\", G_APPLICATION_NON_UNIQUE, NULL);\n    int result = g_application_run(app, 1, argv);\n    if (!has(\"phase=SHUTDOWN_AFTER \") || !has(\"phase=APP_RUN_END \")) bad = 1;\n    g_object_unref(app);\n    if (result || bad) return 3;\n    puts(\"PASS real ARM64 GApplication RUN_LAST shutdown bracket and run return\");\n    return 0;\n}\n",
+    "runner": "from pathlib import Path\nimport hashlib,json,os,signal,subprocess,time\nE=Path(__file__).resolve().parent;R=E.parent/'rog5-xwayland-runtime-evidence-20260912-r1/materialize/root'\nold=E.parent/'rog5-mousepad-close-20260913-r1/build-r2/settings-sync-diagnostic.so'\nnew=E/'build-r1/settings-sync-diagnostic.so'\ndef sha(p):\n with p.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()\nif sha(old)!='cd9ebf78923abf87de27651c762b82cd7c36e44434ccded4acd94d10bc3f9d4b':raise SystemExit('old probe mismatch')\nrows=[]\nfor label,probe,expected in [('before',old,3),('after',new,0)]:\n out=E/('real-r2-'+label);out.mkdir(mode=0o700);(out/'probe.log').touch(mode=0o600)\n cmd=['bwrap','--unshare-all','--die-with-parent','--new-session','--ro-bind',str(R),'/',\n      '--tmpfs','/opt','--ro-bind','/usr/bin/qemu-aarch64-static','/opt/qemu',\n      '--ro-bind',str(E/'build-r1/application-fixture'),'/opt/fixture',\n      '--ro-bind',str(probe),'/opt/probe.so','--bind',str(out),'/opt/out','--tmpfs','/tmp','--tmpfs','/run',\n      '--proc','/proc','--dev','/dev','--clearenv','--setenv','PATH','/usr/bin','--setenv','HOME','/tmp',\n      '--setenv','LD_PRELOAD','/opt/probe.so','--setenv','ROG5_SETTINGS_SYNC_LOG','/opt/out/probe.log',\n      '--chdir','/tmp','--','/opt/qemu','/opt/fixture','/opt/out/probe.log']\n t=time.monotonic()\n with (out/'command.log').open('x') as log:\n  child=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)\n  try:rc=child.wait(timeout=10)\n  finally:\n   try:os.killpg(child.pid,signal.SIGKILL)\n   except ProcessLookupError:pass\n   child.wait(timeout=5)\n row={'command':cmd,'seconds':time.monotonic()-t,'exit_status':rc,'expected_exit':expected,'probe_sha256':sha(probe),'probe_log':(out/'probe.log').read_text()};rows.append(row)\n (out/'result.json').write_text(json.dumps(row,indent=2)+'\\n')\n if rc!=expected:raise SystemExit('unexpected '+label+' status '+str(rc))\n if label=='after':\n  stages=[l.split()[1].split('=')[1] for l in row['probe_log'].splitlines()]\n  if stages!=['loaded','APP_RUN_BEGIN','SHUTDOWN_BEFORE','BEGIN','END','SHUTDOWN_AFTER','APP_RUN_END']:raise SystemExit('unexpected order')\n(E/'real-result-r2.json').write_text(json.dumps({'status':'PASS_ACTUAL_ARM64_GLIB_API','phone':'NOT RUN','rows':rows},indent=2)+'\\n')\nprint(json.dumps({'status':'PASS_ACTUAL_ARM64_GLIB_API','runs':[{k:r[k] for k in ('seconds','exit_status','expected_exit')} for r in rows]}))\n",
+    "result": {
+      "status": "PASS_ACTUAL_ARM64_GLIB_API",
+      "phone": "NOT RUN",
+      "rows": [
+        {
+          "command": [
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--new-session",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+            "/",
+            "--tmpfs",
+            "/opt",
+            "--ro-bind",
+            "/usr/bin/qemu-aarch64-static",
+            "/opt/qemu",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/application-fixture",
+            "/opt/fixture",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-mousepad-close-20260913-r1/build-r2/settings-sync-diagnostic.so",
+            "/opt/probe.so",
+            "--bind",
+            "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/real-r2-before",
+            "/opt/out",
+            "--tmpfs",
+            "/tmp",
+            "--tmpfs",
+            "/run",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--clearenv",
+            "--setenv",
+            "PATH",
+            "/usr/bin",
+            "--setenv",
+            "HOME",
+            "/tmp",
+            "--setenv",
+            "LD_PRELOAD",
+            "/opt/probe.so",
+            "--setenv",
+            "ROG5_SETTINGS_SYNC_LOG",
+            "/opt/out/probe.log",
+            "--chdir",
+            "/tmp",
+            "--",
+            "/opt/qemu",
+            "/opt/fixture",
+            "/opt/out/probe.log"
+          ],
+          "seconds": 0.16441615798976272,
+          "exit_status": 3,
+          "expected_exit": 3,
+          "probe_sha256": "cd9ebf78923abf87de27651c762b82cd7c36e44434ccded4acd94d10bc3f9d4b",
+          "probe_log": "ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=2 clock=CLOCK_MONOTONIC seconds=357921.433012924\nROG5_SETTINGS_SYNC phase=BEGIN pid=2 clock=CLOCK_MONOTONIC seconds=357921.531962527\nROG5_SETTINGS_SYNC phase=END pid=2 clock=CLOCK_MONOTONIC seconds=357921.532446413\n"
+        },
+        {
+          "command": [
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--new-session",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+            "/",
+            "--tmpfs",
+            "/opt",
+            "--ro-bind",
+            "/usr/bin/qemu-aarch64-static",
+            "/opt/qemu",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/application-fixture",
+            "/opt/fixture",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so",
+            "/opt/probe.so",
+            "--bind",
+            "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/real-r2-after",
+            "/opt/out",
+            "--tmpfs",
+            "/tmp",
+            "--tmpfs",
+            "/run",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--clearenv",
+            "--setenv",
+            "PATH",
+            "/usr/bin",
+            "--setenv",
+            "HOME",
+            "/tmp",
+            "--setenv",
+            "LD_PRELOAD",
+            "/opt/probe.so",
+            "--setenv",
+            "ROG5_SETTINGS_SYNC_LOG",
+            "/opt/out/probe.log",
+            "--chdir",
+            "/tmp",
+            "--",
+            "/opt/qemu",
+            "/opt/fixture",
+            "/opt/out/probe.log"
+          ],
+          "seconds": 0.16454841900849715,
+          "exit_status": 0,
+          "expected_exit": 0,
+          "probe_sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+          "probe_log": "ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=2 clock=CLOCK_MONOTONIC seconds=357921.598498818\nROG5_SETTINGS_SYNC phase=APP_RUN_BEGIN pid=2 clock=CLOCK_MONOTONIC seconds=357921.615349855\nROG5_SETTINGS_SYNC phase=SHUTDOWN_BEFORE pid=2 clock=CLOCK_MONOTONIC seconds=357921.690164813\nROG5_SETTINGS_SYNC phase=BEGIN pid=2 clock=CLOCK_MONOTONIC seconds=357921.692843393\nROG5_SETTINGS_SYNC phase=END pid=2 clock=CLOCK_MONOTONIC seconds=357921.692930686\nROG5_SETTINGS_SYNC phase=SHUTDOWN_AFTER pid=2 clock=CLOCK_MONOTONIC seconds=357921.693234126\nROG5_SETTINGS_SYNC phase=APP_RUN_END pid=2 clock=CLOCK_MONOTONIC seconds=357921.693952510\n"
+        }
+      ]
+    }
+  },
+  "build": {
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-shutdown-probe-build-0",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-o",
+          "/out/settings-sync-diagnostic.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "exit": 0,
+        "seconds": 0.6154593089595437,
+        "container_absent": true
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-shutdown-probe-build-1",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "--sysroot=/runtime",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I/runtime/usr/include/glib-2.0",
+          "-I/runtime/usr/lib/glib-2.0/include",
+          "/out/application-fixture.c",
+          "-o",
+          "/out/application-fixture",
+          "-L/runtime/usr/lib",
+          "-Wl,-rpath-link=/runtime/usr/lib",
+          "-lgio-2.0",
+          "-lgobject-2.0",
+          "-lglib-2.0"
+        ],
+        "exit": 0,
+        "seconds": 0.5651705319760367,
+        "container_absent": true
+      }
+    ],
+    "source_sha256": "2f41cbd173397022628b07d880f30169a638fdc53f79a3dab99c942532131748"
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "ced1f905203a8d34466dd33181c36f3acddf8264",
+    "source_tree": "6ce7c3c00d0567ca0234f69f698de7eb541e4c40",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 173.79264423402492
+  },
+  "active_counts": {
+    "PASS": 108,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subcheck_counts": {
+    "SKIPPED": 3
+  },
+  "settings_probe_records": [
+    {
+      "phase": "loaded",
+      "pid": "966",
+      "seconds": "261.845592784"
+    },
+    {
+      "phase": "APP_RUN_BEGIN",
+      "pid": "966",
+      "seconds": "262.576994176"
+    },
+    {
+      "phase": "SHUTDOWN_BEFORE",
+      "pid": "966",
+      "seconds": "299.531685216"
+    },
+    {
+      "phase": "BEGIN",
+      "pid": "966",
+      "seconds": "299.544903248"
+    },
+    {
+      "phase": "END",
+      "pid": "966",
+      "seconds": "299.545113040"
+    },
+    {
+      "phase": "SHUTDOWN_AFTER",
+      "pid": "966",
+      "seconds": "299.573490304"
+    },
+    {
+      "phase": "APP_RUN_END",
+      "pid": "966",
+      "seconds": "299.615596688"
+    }
+  ],
+  "same_clock_intervals": {
+    "BEGIN__END_ms": "0.209792000",
+    "SHUTDOWN_BEFORE__SHUTDOWN_AFTER_ms": "41.805088000",
+    "SHUTDOWN_AFTER__APP_RUN_END_ms": "42.106384000"
+  },
+  "localization": "real application run returned; later probe/caller cleanup remains",
+  "excerpt": [
+    "OBSERVE launcher app=mousepad owner=949 start=25994",
+    "OBSERVE launcher app=foot owner=1171 start=29136",
+    "OBSERVE authenticated launcher teardown",
+    "DENIAL_DIAGNOSTIC app-close app=foot phase=begin pid=1187 clock=CLOCK_BOOTTIME seconds=297.17",
+    "DENIAL_DIAGNOSTIC app-close app=mousepad phase=begin pid=964 clock=CLOCK_BOOTTIME seconds=297.53",
+    "DENIAL_DIAGNOSTIC app-close app=foot phase=close-returned pid=1187 clock=CLOCK_BOOTTIME seconds=298.55",
+    "OBSERVE launcher-lifecycle app=foot phase=normal-close status=0 child_status=0",
+    "OBSERVE launcher app=foot exit=0",
+    "DENIAL_DIAGNOSTIC app-close app=mousepad phase=close-returned pid=964 clock=CLOCK_BOOTTIME seconds=299.92",
+    "DENIAL_DIAGNOSTIC timeout: sending signal TERM to command \u2018/usr/bin/bash\u2019",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=966 clock=CLOCK_MONOTONIC seconds=261.845592784",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=APP_RUN_BEGIN pid=966 clock=CLOCK_MONOTONIC seconds=262.576994176",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=SHUTDOWN_BEFORE pid=966 clock=CLOCK_MONOTONIC seconds=299.531685216",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=BEGIN pid=966 clock=CLOCK_MONOTONIC seconds=299.544903248",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=END pid=966 clock=CLOCK_MONOTONIC seconds=299.545113040",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=SHUTDOWN_AFTER pid=966 clock=CLOCK_MONOTONIC seconds=299.573490304",
+    "DENIAL_DIAGNOSTIC ROG5_SETTINGS_SYNC phase=APP_RUN_END pid=966 clock=CLOCK_MONOTONIC seconds=299.615596688",
+    "OBSERVE launcher-lifecycle app=mousepad phase=normal-close status=0 child_status=0",
+    "OBSERVE launcher app=mousepad exit=0"
+  ],
+  "vm": {
+    "status": "PASS",
+    "error": null,
+    "duration_seconds": 365.94096229301067,
+    "qemu_seconds": 313.7080452850205,
+    "qemu_exit": 0,
+    "normal_poweroff": true,
+    "kernel_panic": false,
+    "container_absent": true
+  },
+  "apps": {
+    "status": "PASS",
+    "scope": "authenticated VM close-only mapped clients and normal teardown; text entry NOT RUN; no phone proof",
+    "acknowledgement_sent": true,
+    "approved_teardown": true,
+    "clean_client_exits": true,
+    "error": null
+  },
+  "raw_evidence": [
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/before.log",
+      "sha256": "6fa6854795488986aa9dccb28136f09adcbd8112806d169542b36e56417f806c",
+      "bytes": 755
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/after.log",
+      "sha256": "56a32b75663a10292591c6e4343f95e8889285486b1b447645717b363c542449",
+      "bytes": 115
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/optimized.log",
+      "sha256": "8b013fc8aad9154ec6386c407a073881187acc4189d55e1dd4e8260aa6089c2e",
+      "bytes": 115
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/result.json",
+      "sha256": "91e2f69cd190ab2cc1efd0ad933407d2be4c1ec6c8b691b6cf8f3b0a31de22fb",
+      "bytes": 2360
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "bytes": 71000
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/application-fixture",
+      "sha256": "16db426b2cc750dfa279c4448d0f6a9e36242a8513d502496e31fb942bce4c2e",
+      "bytes": 71776
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/real-command.log",
+      "sha256": "d5ecee7191604852ff3ff8b19d9f92114d0d3c30254d23adbfcd074ba5946001",
+      "bytes": 247
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/real-result-r2.json",
+      "sha256": "46eb8cd1a3a54688dfab849234983408a9fe32761a7589cfaf360e457972801e",
+      "bytes": 4083
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/real-command-r2.log",
+      "sha256": "ad413b9a937bc4003509b6754faf3d3f36602c8d25ac74fe94ed3c0ee9e01c14",
+      "bytes": 416
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/active-result.json",
+      "sha256": "289e5b7cd8e6dc7596490a3cf50e69d0e30987a8d0a64cdeca4505de0c25eb33",
+      "bytes": 371
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/active-report/summary.json",
+      "sha256": "e85b2bd6289bd128831494b048acb4c84b218bec6a24128dfb65c7f11fa72fd5",
+      "bytes": 120728
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/run-vm.py",
+      "sha256": "b2a5a99a01621c3c9fe2aaea3b72e8280808105f27238d546bffa65ee9781963",
+      "bytes": 4464
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/diagnostic-result.json",
+      "sha256": "91d85492c893d6cfe55e7d3cc644929f7d4ba62fb6c958e6379a6e0cdd2e26f6",
+      "bytes": 9407
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/result.json",
+      "sha256": "c408d470e39e8204b6030b147e14ba8a0ab0d5a14f74eb31b964ee92d3e1abf7",
+      "bytes": 91414
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/serial.log",
+      "sha256": "2517af959c08c628b9d10aa1885e7733a416dcbe927a7f62659aefb12bd89f67",
+      "bytes": 1220738
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/observe/apps.log",
+      "sha256": "44046fffecd4ccb5d7eae9b034d91ee95a1db02c3742cb92b7634a8af1f52f0e",
+      "bytes": 124713
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/observe/apps-result.json",
+      "sha256": "171592b8eb7674eac3f3d4a97b4607cd6e06aa19b8cb08bdbb42837cf2927bf4",
+      "bytes": 16222
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/interpretation.md",
+      "sha256": "fa27ee1ba2d2a4a8143259b5187831da161ff3bb84c1003310b175277a02ac4c",
+      "bytes": 2846
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/review.json",
+      "sha256": "56d5291177be5ae365cfb76630d13ee00a53a94e7c3e43299c52d331318c34e0",
+      "bytes": 586
+    }
+  ],
+  "inputs": {
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "bytes": 3268
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+      "sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "bytes": 10806
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+      "sha256": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "bytes": 6735
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "bytes": 5719226
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "bytes": 170538
+    },
+    "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+      "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "bytes": 1102
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "sha256": "90190dbe0545a9ee5eeb940df1d92fcb02b3907758acac5554d0f6465cd47d9a",
+      "bytes": 38807
+    },
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587
+    },
+    "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+      "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "bytes": 7574
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py",
+      "sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "bytes": 13931
+    },
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "bytes": 26746087
+    },
+    "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": {
+      "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "sha256": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "bytes": 13602
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "bytes": 41526
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+      "sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "bytes": 8509
+    },
+    "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": {
+      "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "bytes": 650222
+    },
+    "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": {
+      "path": "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+      "sha256": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "bytes": 11042
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+      "sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "bytes": 15214
+    },
+    "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "bytes": 71000
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+      "sha256": "2f41cbd173397022628b07d880f30169a638fdc53f79a3dab99c942532131748",
+      "bytes": 4647
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+      "sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "bytes": 2258
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+      "sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "bytes": 6377
+    },
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+      "sha256": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "bytes": 33473
+    },
+    "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+      "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+      "bytes": 9258
+    }
+  },
+  "post_run_inputs_verified": 37,
+  "outputs": {
+    "logind-seat-probe": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/payload/logind-seat-probe",
+      "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+      "bytes": 552584
+    },
+    "pam-session": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/payload/pam-session",
+      "sha256": "b5135a36064662b916948864736f787ea25b48595a9491164ddb7cc6cd4555bb",
+      "bytes": 564224
+    },
+    "stage/apps-probe": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/apps-probe",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "bytes": 2
+    },
+    "stage/apps-observe-token": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/apps-observe-token",
+      "sha256": "b17101d6ca4508c2c2c72396c5322ffbfb67437a25ef99ac4e36451433d2c876",
+      "bytes": 48
+    },
+    "stage/evidence-writer": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/evidence-writer",
+      "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "bytes": 398104
+    },
+    "stage/linker-cache": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/linker-cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "bytes": 63587
+    },
+    "stage/linker-cache.sha256": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/linker-cache.sha256",
+      "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+      "bytes": 65
+    },
+    "stage/settings-sync-diagnostic.so": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/settings-sync-diagnostic.so",
+      "sha256": "65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71",
+      "bytes": 71000
+    },
+    "initramfs/init": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/init",
+      "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+      "bytes": 3120
+    },
+    "initramfs.gz": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs.gz",
+      "sha256": "d4bf6e1e1d029cfc38e361eec5be79d9f97accd4932ae95c6a507b57160cdd9b",
+      "bytes": 213832
+    },
+    "initramfs/stage/guest.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/guest.sh",
+      "sha256": "15b39241180a602b38ea2968aa00c85e373292e14b84551332a34a19bc20180e",
+      "bytes": 2874
+    },
+    "initramfs/stage/logind-probe.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-probe.sh",
+      "sha256": "fd0678f41756cc9be10d4518c7f35d566b526de18bf362aa8f45185498ed4dd2",
+      "bytes": 7912
+    },
+    "initramfs/stage/logind-user.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-user.sh",
+      "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "bytes": 1267
+    },
+    "initramfs/stage/independent-observer.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/independent-observer.sh",
+      "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "bytes": 3020
+    },
+    "initramfs/stage/logind-linker-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-linker-cache.sh",
+      "sha256": "72a5cf581b6454cd36a7b16ac1221959703abee20eeb2fabc9f7992e9572133a",
+      "bytes": 4395
+    },
+    "initramfs/stage/logind-denial.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-denial.sh",
+      "sha256": "1cdaf551cf1fbc15199fbbc977ae4083904cf7f343902073025c70ee3ff8bd12",
+      "bytes": 16783
+    },
+    "initramfs/stage/logind-denial-prepare.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-denial-prepare.sh",
+      "sha256": "3f0655016c08154aaef7428285dc6b6ba799cf165be8792615dd9de2b7979e07",
+      "bytes": 4186
+    },
+    "initramfs/stage/logind-font-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-font-cache.sh",
+      "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "bytes": 9112
+    },
+    "initramfs/stage/logind-gtk-im-cache.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-gtk-im-cache.sh",
+      "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "bytes": 5633
+    },
+    "initramfs/stage/logind-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/logind-apps.sh",
+      "sha256": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "bytes": 20544
+    },
+    "initramfs/stage/launcher-apps.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/launcher-apps.sh",
+      "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "bytes": 6700
+    },
+    "initramfs/stage/launcher-evidence.sh": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/initramfs/stage/launcher-evidence.sh",
+      "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "bytes": 1596
+    },
+    "serial.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/serial.log",
+      "sha256": "2517af959c08c628b9d10aa1885e7733a416dcbe927a7f62659aefb12bd89f67",
+      "bytes": 1220738
+    },
+    "launcher-evidence.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/launcher-evidence.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "launcher-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/launcher-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/pam-session.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "gzip.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/gzip.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/pam-session.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-font-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-font-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-denial.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-seat-probe.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-seat-probe.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "pam-session.build.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/pam-session.build.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "guest.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/guest.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-denial-prepare.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-denial-prepare.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "independent-observer.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/independent-observer.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-apps.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-apps.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-linker-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-linker-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-gtk-im-cache.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-gtk-im-cache.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-user.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-user.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-probe.sh.syntax.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-probe.sh.syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "logind-seat-probe.build.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/logind-seat-probe.build.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "init.build.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/init.build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.absence.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/serial.absence.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "serial.cleanup.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/serial.cleanup.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "cpio.log": {
+      "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/vm-r1/cpio.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "container_images": {
+    "qemu": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "toolchain": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d"
+  },
+  "host_tools": {
+    "podman": {
+      "path": "/usr/bin/podman",
+      "sha256": "24b289615ccc7ef409861b4931fe9297318485b693d42b2e8ff55e069b314ca0",
+      "bytes": 46750280
+    },
+    "clang": {
+      "path": "/usr/bin/clang-20",
+      "sha256": "466441076b17c1106a17f31c2b782baf12271c2445e19950879b81c0f793c1ba",
+      "bytes": 145400
+    },
+    "bash": {
+      "path": "/usr/bin/bash",
+      "sha256": "66bb45cd80c82ea4c352c774c0f1577ad51707f55749e90dd6b787a9fb3022d1",
+      "bytes": 1162328
+    },
+    "cpio": {
+      "path": "/usr/bin/cpio",
+      "sha256": "7c800f6a2bd806629e3bafe54ef2321f17c88b0ec8049a265fba827f77808c5f",
+      "bytes": 145064
+    },
+    "gzip": {
+      "path": "/usr/bin/gzip",
+      "sha256": "3e0aa8ddb52c009c608d2f1669c195925b0d9208b699f48b45132dc86fd209dd",
+      "bytes": 97344
+    }
+  },
+  "wrapper_source": "\"\"\"One diagnostic VM observation; never standard-deadline qualification.\"\"\"\nimport hashlib, importlib.util, json, pathlib, subprocess, sys, time\nE=pathlib.Path(__file__).resolve().parent\nW=E.parent/'rog5-review-correctness-20260912-r1'\nP=E.parent/'rog5-denial-close-diagnostic-20260919-r1/vm-r1/result.json'\ndef digest(path):\n    with pathlib.Path(path).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()\ndef write(path,value):\n    with path.open('x') as f:json.dump(value,f,indent=2);f.write('\\n')\ndef main():\n    if sys.argv[1:]:raise SystemExit('no arguments accepted')\n    if subprocess.check_output(['git','status','--porcelain'],cwd=W):raise SystemExit('source not frozen')\n    if subprocess.check_output(['podman','ps','-q']).strip():raise SystemExit('another container active')\n    if json.loads((E/'active-result.json').read_text())['exit_status']!=0:raise SystemExit('active tier must pass')\n    prior=json.loads(P.read_text())\n    if prior['status']!='FAIL':raise SystemExit('unexpected predecessor')\n    # Prove the production sources and immutable inputs are the same as the\n    # preceding diagnostic attempt, except the explicitly checked new probe source/DSO.\n    # Retain the same diagnostic420s envelope; standard300s qualification excluded.\n    verified={}\n    for path,row in prior['inputs'].items():\n        got=digest(path)\n        if path==str(W/'tools/qemu-virtio-drm/settings-sync-diagnostic.c'):\n            if got!=digest(E/'build-r1/settings-sync-diagnostic.c'):raise SystemExit('probe source differs from build')\n            if row['sha256']!='5caaf19b529722b9dbfa93ffd49b9604c21bfe0650a1370cd41a67088a9b8bc5':raise SystemExit('unexpected prior source')\n        elif got!=row['sha256']:raise SystemExit('changed prior input: '+path)\n        verified[path]=got\n    args=prior['command'][2:]\n    args[args.index('--output')+1]=str(E/'vm-r1')\n    new_probe=E/'build-r1/settings-sync-diagnostic.so'\n    if digest(new_probe)!='65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71':raise SystemExit('new probe changed')\n    args[args.index('--settings-sync-diagnostic')+1]=str(new_probe)\n    if '--close-only' not in args or '--settings-sync-diagnostic' not in args:raise SystemExit('wrong scope')\n    source=W/'scripts/host/test-qemu-logind.py'\n    spec=importlib.util.spec_from_file_location('production_logind',source)\n    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)\n    original=module.container\n    changes=[]\n    def diagnostic_container(command,name,log,deadline,steps,**kw):\n        if log.name=='serial.log':\n            if deadline!=300 or 'qemu-system-aarch64' not in command or changes:\n                raise RuntimeError('unexpected diagnostic dispatch')\n            changes.append({'container':name,'standard_seconds':300,'diagnostic_seconds':420,\n                            'existing_conditional_cleanup_grace_seconds':module.APPS_CLEANUP_GRACE})\n            deadline=420\n            write(E/'vm-dispatch.json',changes[0])\n        return original(command,name,log,deadline,steps,**kw)\n    module.container=diagnostic_container\n    record={'status':'RUNNING','authority':'none','scope':'diagnostic observation only; standard 300-second qualification excluded',\n            'standard_qualification':'NOT RUN; prior FAIL retained','physical_status':'NOT RUN',\n            'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip(),\n            'source_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=W,text=True).strip(),\n            'wrapper_sha256':digest(__file__),'runner_sha256':digest(source),'verified_prior_inputs':verified,\n            'command':[sys.executable,str(E/'run-vm.py')],'production_arguments':args}\n    write(E/'started.json',record)\n    start=time.monotonic();sys.argv=[str(source),*args]\n    code=module.main()\n    raw=json.loads((E/'vm-r1/result.json').read_text())\n    record.update(status='DIAGNOSTIC_COMPLETED' if code==0 else 'DIAGNOSTIC_FAILED',\n                  internal_check_status=raw['status'],exit_status=code,duration_seconds=time.monotonic()-start,\n                  deadline_changes=changes,raw_result_sha256=digest(E/'vm-r1/result.json'))\n    write(E/'diagnostic-result.json',record)\n    print(json.dumps({k:record[k] for k in ('status','internal_check_status','standard_qualification','duration_seconds')}))\n    return code\nif __name__=='__main__':raise SystemExit(main())\n",
+  "limits": [
+    "Shutdown markers bound signal observers, not exact subclass instructions.",
+    "No universal coverage of internally bound library calls.",
+    "No cross-clock subtraction or subtraction of nominal kill deadline.",
+    "No phone operation, candidate/signing/admission/claim changes."
+  ],
+  "rendering": {
+    "status": "PASS",
+    "scope": "Denial terminal counters; not visual or phone proof",
+    "raster_frames": 80,
+    "output_page_flips": 80,
+    "render_errors": []
+  },
+  "next_probe": {
+    "status": "PREPARED_NOT_RUN",
+    "scope": "bottom caret and automatic keyboard visibility in same VM-only runtime; no phone",
+    "wrapper_source": "\"\"\"One diagnostic VM observation; never standard-deadline qualification.\"\"\"\nimport hashlib, importlib.util, json, pathlib, subprocess, sys, time\nE=pathlib.Path(__file__).resolve().parent\nW=E.parent/'rog5-review-correctness-20260912-r1'\nP=E/'vm-r1/result.json'\ndef digest(path):\n    with pathlib.Path(path).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()\ndef write(path,value):\n    with path.open('x') as f:json.dump(value,f,indent=2);f.write('\\n')\ndef main():\n    if sys.argv[1:]:raise SystemExit('no arguments accepted')\n    if subprocess.check_output(['git','status','--porcelain'],cwd=W):raise SystemExit('source not frozen')\n    if subprocess.check_output(['podman','ps','-q']).strip():raise SystemExit('another container active')\n    if json.loads((E/'active-result.json').read_text())['exit_status']!=0:raise SystemExit('active tier must pass')\n    prior=json.loads(P.read_text())\n    if prior['status']!='PASS':raise SystemExit('unexpected predecessor')\n    # Prove the production sources and immutable inputs are the same as the\n    # preceding passing close-only attempt. New work is the low-caret flow.\n    # Retain the same diagnostic420s envelope; standard300s qualification excluded.\n    verified={}\n    for path,row in prior['inputs'].items():\n        got=digest(path)\n        if got!=row['sha256']:raise SystemExit('changed prior input: '+path)\n        verified[path]=got\n    args=prior['command'][2:]\n    args[args.index('--output')+1]=str(E/'bottom-caret-r1')\n    args.remove('--close-only')\n    args+=['--automatic-caret','--bottom-caret']\n    new_probe=E/'build-r1/settings-sync-diagnostic.so'\n    if digest(new_probe)!='65535e5520368158cfcaf51b2a2c95fe012ed113aaea288a46c79e94df093b71':raise SystemExit('new probe changed')\n    args[args.index('--settings-sync-diagnostic')+1]=str(new_probe)\n    if '--close-only' in args or '--bottom-caret' not in args or '--automatic-caret' not in args or '--settings-sync-diagnostic' not in args:raise SystemExit('wrong scope')\n    source=W/'scripts/host/test-qemu-logind.py'\n    spec=importlib.util.spec_from_file_location('production_logind',source)\n    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)\n    original=module.container\n    changes=[]\n    def diagnostic_container(command,name,log,deadline,steps,**kw):\n        if log.name=='serial.log':\n            if deadline!=300 or 'qemu-system-aarch64' not in command or changes:\n                raise RuntimeError('unexpected diagnostic dispatch')\n            changes.append({'container':name,'standard_seconds':300,'diagnostic_seconds':420,\n                            'existing_conditional_cleanup_grace_seconds':module.APPS_CLEANUP_GRACE})\n            deadline=420\n            write(E/'bottom-caret-dispatch.json',changes[0])\n        return original(command,name,log,deadline,steps,**kw)\n    module.container=diagnostic_container\n    record={'status':'RUNNING','authority':'none','scope':'diagnostic observation only; standard 300-second qualification excluded',\n            'standard_qualification':'NOT RUN; prior FAIL retained','physical_status':'NOT RUN',\n            'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=W,text=True).strip(),\n            'source_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=W,text=True).strip(),\n            'wrapper_sha256':digest(__file__),'runner_sha256':digest(source),'verified_prior_inputs':verified,\n            'command':[sys.executable,str(E/'run-bottom-caret.py')],'production_arguments':args}\n    write(E/'bottom-caret-started.json',record)\n    start=time.monotonic();sys.argv=[str(source),*args]\n    code=module.main()\n    raw=json.loads((E/'bottom-caret-r1/result.json').read_text())\n    record.update(status='DIAGNOSTIC_COMPLETED' if code==0 else 'DIAGNOSTIC_FAILED',\n                  internal_check_status=raw['status'],exit_status=code,duration_seconds=time.monotonic()-start,\n                  deadline_changes=changes,raw_result_sha256=digest(E/'bottom-caret-r1/result.json'))\n    write(E/'bottom-caret-diagnostic-result.json',record)\n    print(json.dumps({k:record[k] for k in ('status','internal_check_status','standard_qualification','duration_seconds')}))\n    return code\nif __name__=='__main__':raise SystemExit(main())\n",
+    "wrapper_sha256": "961aac4d37aaebcbf48b58db4e004bfba3630f61ae681bcd466210e021df657a",
+    "validation": "Python syntax checked; dependent flow NOT RUN"
+  }
+}

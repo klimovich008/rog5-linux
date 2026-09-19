@@ -1750,6 +1750,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; diagnostic420s envelope, not standard300s qualification"
+    },
+    "application_shutdown_probe": {
+      "status": "SHUTDOWN_PROBE_VALIDATED_VM_PASS",
+      "set_id": "private:rog5-app-shutdown-probe-20260919-r1",
+      "source_commit": "ced1f905203a8d34466dd33181c36f3acddf8264",
+      "evidence": {
+        "path": "test-results/2026-09-19-application-shutdown-probe-qualification.json",
+        "sha256": "f4aeb229768271e34d29116a426b923eda45591761e1921471c4c2ad6bbca8c3",
+        "bytes": 64854
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; diagnostic420s; prior137 and standard300s qualification unresolved"
     }
   },
   "denial_phone_linkage": {

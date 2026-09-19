@@ -3247,3 +3247,14 @@ returned call excludes an unfinished sync at termination; it does not locate
 the surrounding shutdown delay. Original DConf had started before close, so do
 not spend another boot or substitute fixture testing cold activation. Next probe
 shutdown callback/run-loop boundaries, preserving exact runtime and deadlines.
+
+### Correction: interposition coverage,2026-09-19
+
+The preceding close observation measured one external settings-sync call only.
+Exact GLib ELF binding shows a later internal call bypasses LD_PRELOAD, so the
+earlier blanket exclusion of unfinished sync was too broad. Preserve its raw
+records, correct the current interpretation, and verify actual-library semantics
+in addition to controlled-callee tests. New shutdown/run-return markers passed
+real ARM64 GLib and one Denial VM close; prior137 failures remain unresolved.
+Use observer intervals precisely and advance the still-unqualified low-caret
+flow without another unchanged close-only loop or heavyweight rebuild.
