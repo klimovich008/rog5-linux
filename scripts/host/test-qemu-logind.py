@@ -676,7 +676,11 @@ def main():
             if observer:
                 current, observer = observer, None
                 result[observation_key] = current.finish(error)
-        container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'],
+        # Full session:180s boot reserve +240s guest fixture (210s PAM and
+        # 30s surrounding work). Keep startup-only/basic limits unchanged.
+        # Existing one-shot approved-cleanup grace remains separately bounded.
+        container(command, name, output / 'serial.log',
+                  (300 if args.startup_only else 420) if combined else 180, result['steps'],
                   poll=observer.tick if observer else None, finalize=finish_observer,
                   cleanup_ready=(lambda: apps_cleanup_ready(observer)) if args.observe_apps else None)
         serial = (output / 'serial.log').read_text(errors='replace')

@@ -320,7 +320,12 @@ logind_tty_unowned || { echo 'FAIL tty1 ownership not proven free'; exit 1; }
 # the PAM command status; setsid supplies the session leader expected by -e.
 [[ $(fgconsole) == 1 ]]
 pam_deadline=45
-[[ ! -f /run/session-sha256 ]] || pam_deadline=145
+if [[ -f /run/session-sha256 ]]; then
+    pam_deadline=145
+    # Full VM session:60s preparation +40s portals +60s app flow +30s
+    # cleanup, with20s scheduling headroom. Every inner check still applies.
+    [[ -f /run/startup-only ]] || pam_deadline=210
+fi
 timeout -k 1 "$pam_deadline" setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh
 [[ $(fgconsole) == 1 ]]
 logind_tty_unowned || { echo 'FAIL tty1 cleanup not proven'; exit 1; }
