@@ -12,6 +12,8 @@ logind_query_scopes --help >/dev/null
 echo 'PASS packaged cleanup query parsers'
 cp -a /etc /run/fixture-etc
 mount --bind /run/fixture-etc /etc
+source /run/logind-linker-cache.sh
+prepare_linker_cache
 date -u -s '2026-09-13 00:00:00' >/dev/null
 awk -F: '$1 == "mobile" || $3 == "1000" {exit 1}' /etc/passwd
 awk -F: '$1 == "mobile" || $3 == "1000" {exit 1}' /etc/group

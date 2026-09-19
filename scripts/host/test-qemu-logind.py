@@ -324,6 +324,13 @@ def stage_settings_sync_diagnostic(source, stage):
     return target
 
 
+def linker_cache_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('linker_cache', REPO/'scripts/host/prepare-qemu-linker-cache.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
 def observation_channel(apps):
     if apps:
         # Host is the sole event-log writer. Duplex channel returns the exact
@@ -369,6 +376,8 @@ def main():
     parser.add_argument('--evidence-writer', type=Path)
     parser.add_argument('--settings-sync-diagnostic', type=Path,
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
+    parser.add_argument('--linker-cache', type=Path,
+                        help='exact-runtime cache directory from prepare-qemu-linker-cache.py; VM-only RAM staging')
     args = parser.parse_args()
     combined = args.session_archive is not None
     if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
@@ -421,6 +430,8 @@ def main():
                 or receipt_data.get('readonly_required') is not True
                 or Path(receipt_data.get('root', '')).resolve() != runtime):
             raise ValueError('runtime receipt does not identify this prepared read-only mapped-file view')
+        if args.linker_cache is not None:
+            result['linker_cache'] = linker_cache_module().validate(args.linker_cache, runtime, receipt)
         if combined:
             session_record = validate_session_archive(regular(args.session_archive), regular(args.session_receipt))
             if args.host_render_node != Path('/dev/dri/renderD128') or not args.host_render_node.is_char_device():
@@ -442,10 +453,14 @@ def main():
         result['source']['dirty'] = bool(result['source']['worktree_status'])
         kernel, libc, libloading = map(regular, (args.kernel, args.libc, args.libloading))
         source_names = ['init.c', 'logind-seat-probe.rs', 'logind-pam-session.rs',
-                        'logind-boot.sh', 'logind-session.sh', 'logind-user.sh', 'logind-observer.sh']
+                        'logind-boot.sh', 'logind-session.sh', 'logind-user.sh', 'logind-observer.sh',
+                        'logind-linker-cache.sh']
         if combined:
             source_names += ['logind-denial.sh', 'logind-denial-prepare.sh', 'logind-font-cache.sh', 'logind-gtk-im-cache.sh']
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
+        if args.linker_cache is not None:
+            input_files += [args.linker_cache/'ld.so.cache', args.linker_cache/'result.json',
+                            REPO/'scripts/host/prepare-qemu-linker-cache.py']
         if combined:
             input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
         if args.observe_apps:
@@ -503,7 +518,8 @@ def main():
                  '-Wl,--build-id=none,--entry=_start', str(SOURCES / 'init.c'), '-o', str(stage / 'init')],
                 output / 'init.build.log', 30, result['steps'])
         scripts = {'logind-boot.sh': 'guest.sh', 'logind-session.sh': 'logind-probe.sh',
-                   'logind-user.sh': 'logind-user.sh', 'logind-observer.sh': 'independent-observer.sh'}
+                   'logind-user.sh': 'logind-user.sh', 'logind-observer.sh': 'independent-observer.sh',
+                   'logind-linker-cache.sh': 'logind-linker-cache.sh'}
         if combined:
             scripts.update({'logind-denial.sh': 'logind-denial.sh', 'logind-denial-prepare.sh': 'logind-denial-prepare.sh',
                             'logind-font-cache.sh': 'logind-font-cache.sh',
@@ -528,6 +544,10 @@ def main():
             if args.bottom_caret:
                 (stage / 'stage/bottom-caret-probe').write_text('1\n')
                 result['outputs']['stage/bottom-caret-probe'] = identity(stage / 'stage/bottom-caret-probe')
+        if args.linker_cache is not None:
+            linker_cache_module().stage(args.linker_cache, runtime, receipt, stage/'stage')
+            for member in ('linker-cache', 'linker-cache.sha256'):
+                result['outputs']['stage/'+member] = identity(stage/'stage'/member)
         if args.settings_sync_diagnostic is not None:
             target = stage_settings_sync_diagnostic(args.settings_sync_diagnostic, stage/'stage')
             result['outputs']['stage/settings-sync-diagnostic.so'] = identity(target)
