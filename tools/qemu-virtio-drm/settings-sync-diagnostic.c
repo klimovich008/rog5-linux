@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -14,6 +15,10 @@ static int log_fd = -1;
 static void (*real_sync)(void);
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int records;
+static _Atomic(void *) pending_unref;
+static _Atomic int application_observed;
+static void (*real_unref)(void *);
+static pthread_once_t unref_once = PTHREAD_ONCE_INIT;
 
 /* Do not report failure through stderr: it may be a stalled evidence FIFO. */
 static void fail(void)
@@ -90,6 +95,46 @@ void g_settings_sync(void)
 	errno = result_errno;
 }
 
+/* Observe only the first direct unref of the exact application after its run
+ * and our disconnects returned. Other references/callees retain their behavior.
+ * Resolving once also covers legitimate unrefs before g_application_run().
+ */
+static void resolve_unref(void)
+{
+	dlerror();
+	real_unref = (void (*)(void *))dlsym(RTLD_NEXT, "g_object_unref");
+	if (dlerror() || !real_unref)
+		fail();
+}
+
+void g_object_unref(void *object)
+{
+	int entry_errno = errno, result_errno;
+	void *expected = object;
+	int observe;
+	if (pthread_once(&unref_once, resolve_unref))
+		fail();
+	observe = object && atomic_compare_exchange_strong(&pending_unref,
+							 &expected, NULL);
+	if (observe)
+		record("APP_UNREF_BEGIN");
+	errno = entry_errno;
+	real_unref(object);
+	result_errno = errno;
+	if (observe)
+		record("APP_UNREF_END");
+	errno = result_errno;
+}
+
+__attribute__((destructor)) static void finalize_probe(void)
+{
+	int saved_errno = errno;
+	/* Reaching this DSO destructor is not proof that process exit completed. */
+	if (atomic_load(&application_observed))
+		record("DSO_FINI");
+	errno = saved_errno;
+}
+
 /* Opaque public API types: the probe never inspects or replaces object layout.
  * Resolve these only when an application actually runs, so the sync-only probe
  * remains usable without a GApplication. Signatures and G_CONNECT_AFTER=1 are
@@ -117,7 +162,7 @@ static void shutdown_after(struct _GApplication *application, void *data)
 
 int g_application_run(struct _GApplication *application, int argc, char **argv)
 {
-	int entry_errno = errno, result_errno, result;
+	int entry_errno = errno, result_errno, result, disconnect_errno;
 	int (*run)(struct _GApplication *, int, char **);
 	unsigned long (*connect)(void *, const char *, void (*)(void), void *,
 				 void (*)(void *, void *), int);
@@ -142,6 +187,7 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 			NULL, NULL, 1); /* G_CONNECT_AFTER */
 	if (!before || !after)
 		fail();
+	atomic_store(&application_observed, 1);
 	record("APP_RUN_BEGIN");
 	errno = entry_errno;
 	result = run(application, argc, argv);
@@ -152,7 +198,12 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 	 * not exact subclass instruction boundaries. No main-context iteration.
 	 */
 	disconnect(application, before);
+	disconnect_errno = errno;
+	record("APP_DISCONNECT_ONE_END");
+	errno = disconnect_errno;
 	disconnect(application, after);
+	record("APP_OBSERVERS_REMOVED");
+	atomic_store(&pending_unref, application);
 	errno = result_errno;
 	return result;
 }

@@ -25,6 +25,16 @@ class SettingsSyncDiagnostic(unittest.TestCase):
 #include <unistd.h>
 #include <string.h>
 int calls, bad_errno;
+char fixture_application, fixture_other;
+int unrefs, unref_bad;
+void g_object_unref(void *object) {
+    if (errno != EBUSY) unref_bad++;
+    if (object != &fixture_application && object != &fixture_other) unref_bad++;
+    unrefs++;
+    if (getenv("FIXTURE_UNREF_BLOCK") && object == &fixture_application && unrefs > 2)
+        for (;;) pause();
+    errno = EILSEQ;
+}
 void g_settings_sync(void) {
     if (errno != E2BIG) bad_errno++;
     calls++;
@@ -35,19 +45,21 @@ static void (*handlers[2])(void *, void *);
 int application_calls, connections, disconnects, app_bad;
 unsigned long g_signal_connect_data(void *app, const char *signal,
         void (*handler)(void), void *data, void (*destroy)(void *, void *), int flags) {
-    if (app != (void *)7 || strcmp(signal, "shutdown") || data || destroy ||
+    if (app != &fixture_application || strcmp(signal, "shutdown") || data || destroy ||
         flags != connections || connections > 1) { app_bad++; return 0; }
     handlers[connections++] = (void (*)(void *, void *))handler;
     return (unsigned long)connections;
 }
 void g_signal_handler_disconnect(void *app, unsigned long id) {
-    if (app != (void *)7 || id != (unsigned long)disconnects+1) app_bad++;
+    if (app != &fixture_application || id != (unsigned long)disconnects+1) app_bad++;
     disconnects++;
+    const char *block = getenv("FIXTURE_DISCONNECT_BLOCK");
+    if (block && atoi(block) == disconnects) for (;;) pause();
     errno = EFAULT;
 }
 int g_application_run(void *app, int argc, char **argv) {
     const char *block = getenv("FIXTURE_APP_BLOCK");
-    if (app != (void *)7 || argc != 2 || strcmp(argv[1], "app")) app_bad++;
+    if (app != &fixture_application || argc != 2 || strcmp(argv[1], "app")) app_bad++;
     if (errno != E2BIG) app_bad++;
     application_calls++;
     if (handlers[0]) handlers[0](app, NULL);
@@ -92,13 +104,28 @@ int main(int argc, char **argv) {
 ''')
         app = cls.build / 'application.c'
         app.write_text('''#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 extern int g_application_run(void *, int, char **);
 extern int application_calls, connections, disconnects, app_bad;
+extern char fixture_application, fixture_other;
+extern int unrefs, unref_bad;
+extern void g_object_unref(void *);
+static int unref_checked(void *object) {
+    errno = EBUSY;
+    g_object_unref(object);
+    return errno != EILSEQ;
+}
 int main(int argc, char **argv) {
+    if (unref_checked(&fixture_application) || unref_checked(&fixture_other)) return 32;
     errno = E2BIG;
-    int result = g_application_run((void *)7, argc, argv);
+    int result = g_application_run(&fixture_application, argc, argv);
     if (result != 37 || errno != ERANGE) return 30;
     if (application_calls != 1 || connections != 2 || disconnects != 2 || app_bad) return 31;
+    if (unref_checked(&fixture_other) || unref_checked(&fixture_application) ||
+        unref_checked(&fixture_application)) return 33;
+    if (unrefs != 5 || unref_bad) return 34;
+    if (getenv("FIXTURE_FINALIZE_BLOCK")) for (;;) pause();
     return 0;
 }
 ''')
@@ -168,7 +195,10 @@ int main(void) {
         result = self.run_caller('app', executable='application')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE',
-                                        'BEGIN', 'END', 'SHUTDOWN_AFTER', 'APP_RUN_END'])
+                                        'BEGIN', 'END', 'SHUTDOWN_AFTER', 'APP_RUN_END',
+                                        'APP_DISCONNECT_ONE_END', 'APP_OBSERVERS_REMOVED',
+                                        'APP_UNREF_BEGIN', 'APP_UNREF_END', 'DSO_FINI'])
+        self.assertLessEqual(self.log.stat().st_size, 1536)
 
     def test_interrupted_application_distinguishes_shutdown_and_post_shutdown(self):
         for where, expected in [('during', ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE']),
@@ -177,6 +207,33 @@ int main(void) {
             with self.subTest(where=where):
                 self.log.write_text('')
                 env = dict(self.env, FIXTURE_APP_BLOCK=where)
+                process = subprocess.Popen([str(self.build / 'application'), 'app'], env=env,
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                           start_new_session=True)
+                try:
+                    deadline = time.monotonic()+2
+                    while len(self.stages()) < len(expected) and time.monotonic() < deadline:
+                        time.sleep(.005)
+                    self.assertEqual(self.stages(), expected)
+                    self.assertIsNone(process.poll())
+                finally:
+                    if process.poll() is None: os.killpg(process.pid, signal.SIGKILL)
+                    process.wait(timeout=2)
+                self.assertEqual(self.stages(), expected)
+
+    def test_blocked_disconnect_unref_and_finalization_have_no_false_end(self):
+        run_end = ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE', 'BEGIN', 'END',
+                   'SHUTDOWN_AFTER', 'APP_RUN_END']
+        disconnected = run_end + ['APP_DISCONNECT_ONE_END', 'APP_OBSERVERS_REMOVED']
+        for variable, value, expected in [
+            ('FIXTURE_DISCONNECT_BLOCK', '1', run_end),
+            ('FIXTURE_DISCONNECT_BLOCK', '2', run_end + ['APP_DISCONNECT_ONE_END']),
+            ('FIXTURE_UNREF_BLOCK', '1', disconnected + ['APP_UNREF_BEGIN']),
+            ('FIXTURE_FINALIZE_BLOCK', '1', disconnected + ['APP_UNREF_BEGIN', 'APP_UNREF_END']),
+        ]:
+            with self.subTest(variable=variable, value=value):
+                self.log.write_text('')
+                env = dict(self.env, **{variable: value})
                 process = subprocess.Popen([str(self.build / 'application'), 'app'], env=env,
                                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                            start_new_session=True)
