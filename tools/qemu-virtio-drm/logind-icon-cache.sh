@@ -1,82 +1,94 @@
 #!/bin/bash
-# Function-only preparation for isolated VM RAM; never changes package backing.
-prepare_icon_tree() (
-    local source=$1 root=$2 temporary= child= theme count=0 status started=$SECONDS
-    [[ $source == /* && $root == /* && -d $source && -d $root &&
-       ! -L $source && ! -L $root ]] || return 1
-    [[ ! -e $root/icons && ! -L $root/icons ]] || return 1
-    # One preparer owns publication; neither existing nor raced output is replaced.
-    mkdir -- "$root/.icons.lock" || return $?
-    cleanup_icon_tree() {
+# Function-only helpers; the production entry below is restricted to VM PID1.
+generate_icon_caches() (
+    local tree=$1 child= theme count=0 status started=$SECONDS
+    [[ $tree == /* && -d $tree && ! -L $tree ]] || return 1
+    stop_icon_query() {
         if [[ -n $child ]]; then
             kill -TERM "$child" 2>/dev/null || :
             wait "$child" 2>/dev/null || :
         fi
-        [[ -z $temporary ]] || rm -rf -- "$temporary"
-        rmdir -- "$root/.icons.lock"
     }
-    trap cleanup_icon_tree EXIT
+    trap stop_icon_query EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    temporary=$(mktemp -d "$root/.icons.XXXXXXXX") || return $?
-    mkdir -- "$temporary/icons" || return $?
-    run_icon_step() {
-        local phase=$1 seconds=$2 began=$SECONDS
-        shift 2
-        timeout -k 1 "$seconds" "$@" & child=$!
-        status=0; wait "$child" || status=$?; child=
-        printf 'OBSERVE icon-cache phase=%s status=%s elapsed_seconds=%s\n' \
-            "$phase" "$status" "$((SECONDS-began))"
-        return "$status"
-    }
-    # Copy assets, not symlinks to an original-path alias which would recurse
-    # after publication. This authenticated package tree is about 27 MB.
-    run_icon_step copy 30 cp -a -- "$source/." "$temporary/icons/" || return $?
-    chmod 755 "$temporary/icons" || return $?
-    for theme in "$temporary/icons"/*; do
+    for theme in "$tree"/*; do
         [[ -d $theme && -f $theme/index.theme ]] || continue
         [[ ! -L $theme && ! -L $theme/index.theme ]] || return 1
         ((count+=1)); ((count<=32)) || return 1
-        # Never follow a copied cache symlink or inherit stale package output.
+        # The caller owns this writable RAM overlay. Never retain stale caches
+        # or follow a copied cache symlink into the immutable lower directory.
         rm -f -- "$theme/icon-theme.cache" || return $?
-        run_icon_step generate 10 gtk-update-icon-cache -q "$theme" || return $?
+        timeout -k 1 10 gtk-update-icon-cache -q "$theme" & child=$!
+        status=0; wait "$child" || status=$?; child=
+        ((status==0)) || return "$status"
         [[ -f $theme/icon-theme.cache && -s $theme/icon-theme.cache &&
            ! -L $theme/icon-theme.cache ]] || return 1
-        run_icon_step validate 10 gtk-update-icon-cache --validate "$theme" || return $?
+        timeout -k 1 10 gtk-update-icon-cache --validate "$theme" & child=$!
+        status=0; wait "$child" || status=$?; child=
+        ((status==0)) || return "$status"
         [[ ! $theme -nt $theme/icon-theme.cache ]] || return 1
     done
     ((count>0)) || return 1
-    # GNU mv -n can return success when refusing a raced destination. Require
-    # the source to disappear too, and never move inside an existing directory.
-    mv -T -n -- "$temporary/icons" "$root/icons" || return $?
-    [[ ! -e $temporary/icons ]] || return 1
-    printf 'PASS icon cache tree prepared themes=%s elapsed_seconds=%s\n' "$count" "$((SECONDS-started))"
+    printf 'PASS icon caches generated themes=%s elapsed_seconds=%s\n' "$count" "$((SECONDS-started))"
 )
 
-stage_icon_cache() (
-    local target=/usr/share/icons root=/run/gtk-runtime status attempted=0 complete=0 options
-    # Production entry is valid only in the isolated VM pre-PID1 fixture.
-    [[ $$ == 1 && $EUID == 0 && -d /sys/bus/virtio/devices ]] || return 1
+prepare_icon_mount() (
+    local target=$1 root=$2 temporary= overlay=0 bound=0 complete=0 status options
+    [[ $target == /* && $root == /* && -d $target && -d $root &&
+       ! -L $target && ! -L $root ]] || return 1
+    # overlay mount option paths must not contain separators or escapes.
+    [[ $target != *[,:\\]* && $root != *[,:\\]* ]] || return 1
     if mountpoint -q -- "$target"; then return 1; else
         status=$?; [[ $status == 32 ]] || return "$status"
     fi
-    prepare_icon_tree "$target" "$root" || return $?
-    for theme in Adwaita AdwaitaLegacy hicolor; do
-        [[ -s $root/icons/$theme/icon-theme.cache ]] || return 1
-    done
+    # Serialize preparation without replacing any existing state.
+    mkdir -- "$root/.icons.lock" || return $?
     cleanup_icon_mount() {
-        if ((attempted && !complete)) && mountpoint -q -- "$target"; then
-            umount -- "$target" || echo 'FAIL icon cache mount cleanup; guest must abort' >&2
+        local safe=1 probe
+        if ((bound && !complete)); then
+            if mountpoint -q -- "$target"; then
+                umount -- "$target" || { safe=0; echo 'FAIL icon bind cleanup; guest must abort' >&2; }
+            else
+                probe=$?; [[ $probe == 32 ]] || safe=0
+            fi
         fi
+        if ((overlay)); then
+            if mountpoint -q -- "$temporary/merged"; then
+                umount -- "$temporary/merged" || { safe=0; echo 'FAIL icon overlay cleanup; guest must abort' >&2; }
+            else
+                probe=$?; [[ $probe == 32 ]] || safe=0
+            fi
+        fi
+        # Never traverse a mount whose ordinary unmount failed.
+        if ((!complete && safe)) && [[ -n $temporary ]]; then rm -rf -- "$temporary"; fi
+        rmdir -- "$root/.icons.lock"
     }
     trap cleanup_icon_mount EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    attempted=1
-    mount --bind "$root/icons" "$target" || return $?
+    temporary=$(mktemp -d "$root/.icons.XXXXXXXX") || return $?
+    mkdir -- "$temporary/upper" "$temporary/work" "$temporary/merged" || return $?
+    # Keep the 27 MB package tree in readonly 9P. Only cache files and parent
+    # metadata copy up into RAM; cp -a of the entire tree exceeded 30 seconds.
+    overlay=1
+    mount -t overlay overlay -o "lowerdir=$target,upperdir=$temporary/upper,workdir=$temporary/work" \
+        "$temporary/merged" || return $?
+    generate_icon_caches "$temporary/merged" || return $?
+    bound=1
+    mount --bind "$temporary/merged" "$target" || return $?
+    # Change VFS bind flags; a filesystem remount triggers overlay reconfigure
+    # and the pinned kernel rejects it with 'No changes allowed'.
     mount -o remount,bind,ro,nodev,nosuid,noexec "$target" || return $?
     options=$(findmnt -n -o OPTIONS --target "$target") || return $?
     [[ ,$options, == *,ro,* ]] || return 1
+    umount -- "$temporary/merged" || return $?
+    overlay=0
     complete=1
     echo 'PASS GTK icon cache mounted read-only in guest RAM; session startup unqualified'
 )
+
+stage_icon_cache() {
+    [[ $$ == 1 && $EUID == 0 && -d /sys/bus/virtio/devices ]] || return 1
+    prepare_icon_mount /usr/share/icons /run/gtk-runtime
+}
