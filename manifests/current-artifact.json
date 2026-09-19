@@ -1965,6 +1965,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; database snapshot not exercised in system VM because wait succeeded"
+    },
+    "session_resume": {
+      "status": "FAIL_RCU_AND_OUTER_VM_DEADLINE_PORTAL_ALLOWANCE_UNQUALIFIED",
+      "set_id": "private:rog5-denial-session-resume-20260919-r1-r2",
+      "source_commit": "bc8918e19920722ef35766afebfde245c173d7e6",
+      "source_tree": "d8609f6db52e315079c9e6e6932e2caac79ad243",
+      "evidence": {
+        "path": "test-results/2026-09-19-denial-session-resume-qualification.json",
+        "sha256": "3f2f999897985ffd5a4c33785bed36efc0a85dc91e57c4fe9e45b3ddb2ad094c",
+        "bytes": 32951
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; generic ARM64 VM only"
     }
   },
   "denial_phone_linkage": {

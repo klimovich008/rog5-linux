@@ -1,0 +1,395 @@
+{
+  "schema": 1,
+  "scope": "Bounded VM portal readiness allowance and authenticated Denial/app observation",
+  "authority": "none",
+  "physical_status": "NOT RUN",
+  "starting_commit": "70ca0c4eed28fb95c9d45dce750f7f6b76f47210",
+  "starting_tree": "46c3a4726e6c27abd02581d9cc95c1467c388d37",
+  "source_commit": "bc8918e19920722ef35766afebfde245c173d7e6",
+  "source_tree": "d8609f6db52e315079c9e6e6932e2caac79ad243",
+  "prior_vm": {
+    "source_commit": "70ca0c4eed28fb95c9d45dce750f7f6b76f47210",
+    "source_tree": "46c3a4726e6c27abd02581d9cc95c1467c388d37",
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-denial-session-resume-20260919-r1/vm-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--close-only",
+      "--settings-sync-diagnostic",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "--linker-cache",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+      "--tcg-thread",
+      "single",
+      "--hwdb-cache",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared"
+    ],
+    "authority": "none; generic ARM64 VM only",
+    "physical": "NOT RUN",
+    "delta": "One close-only authenticated Denial/app VM after independent startup controls. Default max CPU features, single TCG, render auditing off. Compared with the previous full VM, failure diagnostics and host reporting changed; kernel, Denial/Flutter, payload, caches, guest success path, fences, counters, deadlines and resources remain. This is not a MOPS comparison or phone test.",
+    "status": "FAIL",
+    "active_test": {
+      "path": "/home/deck/.local/state/rog5-udev-readiness-20260919-r1/active-result.json",
+      "sha256": "47592c3dec4d6d4b6f5baadd5fda9f999e397727f51defa8e53405414f874c37"
+    },
+    "script": {
+      "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r1/run-vm.py",
+      "sha256": "888f79ca85d79a3f3aac7e412a048598e7615ab6a13c81b5e80ce9d0c8a1c519"
+    },
+    "prior_result": {
+      "path": "/home/deck/.local/state/rog5-rcu-portal-audit-20260919-r1/vm-r1/result.json",
+      "sha256": "9c5c11401a2fa62b70f560976bf33f15c0181d5ad808f3412c4794d05d134042"
+    },
+    "unchanged_input_hashes": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": "663ec9443c532cf2ddfbcc1633104a9297eb22509cb09ab688dbfd114977b9ee",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": "e529566b04666926894eaa4d391d36af61049e4909a7604363c691a808b274d0",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+    },
+    "intentional_changes": {
+      "tools/qemu-virtio-drm/logind-session.sh": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "969dac90d72f8f3d6482d4b693583a4f165f6d86e5d0da7eca402c395e9af2be",
+          "bytes": 14965
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+          "sha256": "11aab3ecda350e4234f094fbc77b99b0f8c93da9bfd660678bf34fe76b0d27f5"
+        }
+      },
+      "scripts/host/test-qemu-logind.py": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "sha256": "9f73d7d9d5e2078dbee6bac56d3880829016129f8fcc30bb16069149147ce1d5",
+          "bytes": 42582
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+          "sha256": "e9391cfdd393494b921a934789accc3340a2259cbc91eed7650991564f34f6e8"
+        }
+      }
+    },
+    "exit_status": 1,
+    "seconds": 332.29312027600827,
+    "runtime_bytes_and_metadata_unchanged": true,
+    "input_hashes_unchanged": true
+  },
+  "prior_decoded": {
+    "serial_sha256": "34d7955bafec05270c5e2b0a57ef3e2b707d0c2e4362b313260dd95828b19fe9",
+    "poweroff_gate": "PASS: existing require_vm_poweroff, including RCU rejection",
+    "selected_lines": [
+      "bash[493]: OBSERVE device-readiness phase=begin deadline_seconds=8 devices=/dev/dri/card0 /dev/input/event0 /dev/tty1 /dev/fuse /dev/input/event1 /dev/vport0p1 boottime=155.60",
+      "Sep 13 00:02:21 rog5-logind-vm bash[493]: OBSERVE device-readiness phase=begin deadline_seconds=8 devices=/dev/dri/card0 /dev/input/event0 /dev/tty1 /dev/fuse /dev/input/event1 /dev/vport0p1 boottime=155.60",
+      "bash[493]: OBSERVE device-readiness phase=end status=0 capture_status=0 boottime=158.75",
+      "bash[937]: OBSERVE service-clock phase=before-start clock=CLOCK_MONOTONIC seconds=221.827817728",
+      "bash[937]: OBSERVE stage=service-start phase=begin deadline_seconds=25",
+      "bash[937]: OBSERVE stage=service-start phase=end status=124 elapsed_seconds=26",
+      "bash[937]: OBSERVE service-clock phase=after-start clock=CLOCK_MONOTONIC seconds=249.062319632",
+      "bash[937]: FAIL combined user session status=124",
+      "bash[937]: 2026-09-13T00:04:04.440025Z  INFO deniald::flutter_event_loop: independently clocked Flutter KMS session complete raster_frames=4 output_page_flips=4 delivered_vsyncs=4 elapsed_ms=39079.568031999996 raster_frames_per_second=0.10235527671965645 finite=false",
+      "[FAILED] Failed unmounting /var.",
+      "reboot: Power down"
+    ],
+    "gtk_ready_monotonic": 255.137549,
+    "portal_ready_monotonic": 257.538722,
+    "before_start_monotonic": 221.827817728,
+    "portal_ready_after_before_start_seconds": 35.71090427199999,
+    "qualification": "FAIL; readiness after the failed25s boundary cannot retroactively pass it",
+    "applications": "NOT RUN: no mapped clients, observer ready signal or approved teardown",
+    "physical": "NOT RUN"
+  },
+  "initial_failing_regression": {
+    "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r2/before.log",
+    "sha256": "2239d5a9ac9c30487b1133fd8e47b760060b19089255193fb925d42add2291cd",
+    "bytes": 2471
+  },
+  "focused": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-qemu-logind-runner.py",
+      "ActivatedServices"
+    ],
+    "seconds": 0.4921591159654781,
+    "exit_status": 0
+  },
+  "vm": {
+    "source_commit": "bc8918e19920722ef35766afebfde245c173d7e6",
+    "source_tree": "d8609f6db52e315079c9e6e6932e2caac79ad243",
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-denial-session-resume-20260919-r2/vm-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--close-only",
+      "--settings-sync-diagnostic",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so",
+      "--linker-cache",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+      "--tcg-thread",
+      "single",
+      "--hwdb-cache",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared"
+    ],
+    "authority": "none; generic ARM64 VM only",
+    "physical": "NOT RUN",
+    "delta": "One close-only VM with service-start allowance40s instead of25s based on observed readiness35.71s after before-start. All outer deadlines, service/FUSE checks, kernel, runtime, payload and CPU/renderer policy unchanged. Timing mitigation only; no phone qualification.",
+    "status": "FAIL",
+    "active_test": {
+      "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r2/active-result.json",
+      "sha256": "ed2f788e0e99643d5ca690c90a9f7e766a4bbc438efdaa6f188cd02d43b1b376"
+    },
+    "script": {
+      "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r2/run-vm.py",
+      "sha256": "f6707e71846cb285af231a0b63242cd421b76cbc56ba5510880311cf905db1a7"
+    },
+    "prior_result": {
+      "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r1/vm-r1/result.json",
+      "sha256": "cf0382d26830a3fabf8f9a0c9ede4a70f3bc9480d9cba05144645745a7769a7d"
+    },
+    "unchanged_input_hashes": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": "54bf669631b81b63f41a4381f399625478b9770be7a8cf97f16ae6c05ebbfdad",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": "663ec9443c532cf2ddfbcc1633104a9297eb22509cb09ab688dbfd114977b9ee",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": "11aab3ecda350e4234f094fbc77b99b0f8c93da9bfd660678bf34fe76b0d27f5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": "e9391cfdd393494b921a934789accc3340a2259cbc91eed7650991564f34f6e8",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": "617d20a51bef4a8a7e4a5101479ab2df59d312931c143a190d31715143bd8b66",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+      "/home/deck/.local/state/rog5-icon-startup-20260919-r1/build-r1/settings-sync-diagnostic.so": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": "182c065cfe25879a9161601bc29d2ff34afda876e6f77d1987dcf698a474b2c5",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+    },
+    "intentional_changes": {
+      "tools/qemu-virtio-drm/logind-denial.sh": {
+        "before": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+          "sha256": "e529566b04666926894eaa4d391d36af61049e4909a7604363c691a808b274d0",
+          "bytes": 17514
+        },
+        "after": {
+          "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+          "sha256": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27"
+        }
+      }
+    },
+    "exit_status": 1,
+    "seconds": 359.3940341520356,
+    "runtime_bytes_and_metadata_unchanged": true,
+    "input_hashes_unchanged": true
+  },
+  "vm_result": {
+    "path": "/home/deck/.local/state/rog5-denial-session-resume-20260919-r2/vm-r1/result.json",
+    "sha256": "74f8faf697e1cd482df0347a5636114ee38f188cdba009c27d8be1086a3d6986",
+    "bytes": 85332
+  },
+  "interpretation": {
+    "qualification_status": "FAIL_RCU_AND_OUTER_VM_DEADLINE_PORTAL_ALLOWANCE_UNQUALIFIED",
+    "phase": "VM portal timing mitigation tested offline; repeated pre-session RCU stall remains open",
+    "next": "Sourcebc8918e1 passes111 active suites. The retained normal-CPU VM reaches portals35.71s after before-start, beyond25s, and renders4frames before orderly guest poweroff; it remains FAIL and reports a /var unmount failure. A40s VM-only allowance passes host fixtures, but its one follow-up repeats the pre-session copy_user_highpage RCU stall, enters service startup at274.18s and ends at the unchanged300s host deadline. No app flow completed. Next discriminate the full-workload MOPS path with the existing --disable-mops control and unchanged runtime/limits, after reviewing the retained comparison; do not infer a workaround from earlier startup-only controls or repeat an unchanged run. Physical NOT RUN; S06/R01 FAIL remain."
+  },
+  "decoded": {
+    "serial_sha256": "1510820156b31baa7029923ccd9a456f6c8869e325cacaba0c97dc42335e7ace",
+    "vmlinux_sha256": "124a102d1bab639579efab1c41f6de62ddd32fb2cdce6f72290f61cfac06975e",
+    "stack": [
+      {
+        "address": "ffff80008001f818",
+        "symbol": "copy_user_highpage",
+        "offset": 56
+      },
+      {
+        "address": "ffff8000800ddb48",
+        "symbol": "handle_mm_fault",
+        "offset": 1548
+      },
+      {
+        "address": "ffff80008001e908",
+        "symbol": "do_page_fault",
+        "offset": 520
+      },
+      {
+        "address": "ffff80008001e6f4",
+        "symbol": "do_translation_fault",
+        "offset": 48
+      },
+      {
+        "address": "ffff80008001e58c",
+        "symbol": "do_mem_abort",
+        "offset": 60
+      },
+      {
+        "address": "ffff8000804cb460",
+        "symbol": "el0_da",
+        "offset": 56
+      },
+      {
+        "address": "ffff8000804cb3a8",
+        "symbol": "el0t_64_sync_handler",
+        "offset": 212
+      },
+      {
+        "address": "ffff800080011558",
+        "symbol": "el0t_64_sync",
+        "offset": 340
+      }
+    ],
+    "pam_snapshots": [
+      "OBSERVE PAM start code=0\nOBSERVE PAM tty code=0\nOBSERVE PAM authenticate code=0\nOBSERVE PAM account code=0\nOBSERVE PAM establish credentials code=0\nOBSERVE PAM open session code=0\nOBSERVE local session\nId=c1\nUser=1000\nVTNr=1\nSeat=seat0\nRemote=no\nScope=session-c1.scope\nType=tty\nClass=user\nActive=yes\nOBSERVE user manager state=running\nLOGIND_SEAT backend=logind name=seat0 enabled=true uid=1000\nLOGIND_DEVICE path=/dev/dri/card0 id=7 fd=7 rdev=57856 matched=true\nLOGIND_DEVICE path=/dev/input/event0 id=8 fd=8 rdev=3392 matched=true\nLOGIND_SEAT_PROBE PASS devices=2 released=true seat_closed=true physical=NOT_RUN\nPASS local active tty1 session, user manager and mediated devices\nPASS GTK cache environment transferred and verified in user manager\nPASS launcher desktop overrides prepared; apps NOT STARTED\nPASS authenticated launcher overrides prepared; apps NOT STARTED\nok  compositor       /run/session/usr/bin/deniald\nok  control client   /run/session/usr/bin/denialctl\nok  session lifecycle systemd user manager (denial-session.target)\nok  Flutter bundle   /run/session/usr/lib/denial/flutter\nok  output config    /run/mobile-home/outputs.conf\nok  DRM device       /dev/dri/card0\nok  render device    /dev/dri/card0\nok  shell profile    mobile\nok  Flutter renderer impeller (default)\nok  Xwayland scale   fractional\nok  Qt platform theme xdgdesktopportal\nok  Xwayland         /usr/bin/Xwayland\n",
+      "OBSERVE PAM start code=0\nOBSERVE PAM tty code=0\nOBSERVE PAM authenticate code=0\nOBSERVE PAM account code=0\nOBSERVE PAM establish credentials code=0\nOBSERVE PAM open session code=0\nOBSERVE local session\nId=c1\nUser=1000\nVTNr=1\nSeat=seat0\nRemote=no\nScope=session-c1.scope\nType=tty\nClass=user\nActive=yes\nOBSERVE user manager state=running\nLOGIND_SEAT backend=logind name=seat0 enabled=true uid=1000\nLOGIND_DEVICE path=/dev/dri/card0 id=7 fd=7 rdev=57856 matched=true\nLOGIND_DEVICE path=/dev/input/event0 id=8 fd=8 rdev=3392 matched=true\nLOGIND_SEAT_PROBE PASS devices=2 released=true seat_closed=true physical=NOT_RUN\nPASS local active tty1 session, user manager and mediated devices\nPASS GTK cache environment transferred and verified in user manager\nPASS launcher desktop overrides prepared; apps NOT STARTED\nPASS authenticated launcher overrides prepared; apps NOT STARTED\nok  compositor       /run/session/usr/bin/deniald\nok  control client   /run/session/usr/bin/denialctl\nok  session lifecycle systemd user manager (denial-session.target)\nok  Flutter bundle   /run/session/usr/lib/denial/flutter\nok  output config    /run/mobile-home/outputs.conf\nok  DRM device       /dev/dri/card0\nok  render device    /dev/dri/card0\nok  shell profile    mobile\nok  Flutter renderer impeller (default)\nok  Xwayland scale   fractional\nok  Qt platform theme xdgdesktopportal\nok  Xwayland         /usr/bin/Xwayland\nOBSERVE activated local Denial wayland=wayland-1 socket=/run/user/1000/denial/control.sock\nOBSERVE service-clock phase=before-start clock=CLOCK_MONOTONIC seconds=274.177686128\nOBSERVE stage=service-start phase=begin deadline_seconds=40\n"
+    ],
+    "device_wait": "PASS:208.96 to210.08;status0",
+    "rcu": "FAIL: self-detected stall before service boundary",
+    "portal": "Entered40s start at274.177686128; no terminal result before300s host deadline",
+    "normal_guest_poweroff": "NOT OBSERVED",
+    "apps": "NOT RUN: no observer-ready flow",
+    "resource_snapshot": {
+      "rog5-logind-vm-d123120bc61440b0": {
+        "pid": 2602172,
+        "cgroup": "0::/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-b7fd9c22efaf25ea7e6006b11fe0a2c20b1362a08addf89df3fa6d29cf1c5696.scope/container\n",
+        "cpu.stat": "usage_usec 309113394\nuser_usec 255628505\nsystem_usec 53484888\nnice_usec 977\ncore_sched.force_idle_usec 0\nnr_periods 2758\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+        "cpu.pressure": "some avg10=0.00 avg60=0.00 avg300=0.00 total=933648\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=925297\n",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+        "memory.peak": "1833091072\n"
+      }
+    }
+  },
+  "final_active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "bc8918e19920722ef35766afebfde245c173d7e6",
+    "source_tree": "d8609f6db52e315079c9e6e6932e2caac79ad243",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 181.4332319929963
+  },
+  "final_active_counts": {
+    "PASS": 111,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "previous_turn": "progress: exact upstream merge comparison and bounded community-source reuse audit",
+  "limits": "VM only. No phone, signing, candidate or claim. S06/R01 remain FAIL; physical NOT RUN. Earlier intermittent RCU/device-readiness and startup-only timing failures remain open.40s is a VM timing mitigation, not performance qualification."
+}

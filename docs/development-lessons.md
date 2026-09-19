@@ -3329,6 +3329,18 @@ identities before repeating that audit or rebuilding: main `cd84b8b7` and dev
 semantics reviewed before reuse; a final successful log command can conceal an
 expired sensor wait even when the underlying service-ordering idea is useful.
 
+Portal timing (2026-09-19): decode the retained monotonic service journal before
+calling startup deadlocked. One failed25s boundary was followed by actual portal
+readiness35.71s after its pre-start sample. The40s VM-only mitigation passes host
+fixtures but remains runtime unqualified: the next VM repeated an earlier RCU
+stall and reached that boundary too late for its unchanged300s outer limit.
+Decode independent PAM snapshots too; their progress can be absent from plain
+serial lines. A recovered guest, late service success or normal poweroff never
+erases an earlier failure. Do not increase all deadlines or repeat unchanged
+full workloads; use the existing bounded CPU-feature comparison to discriminate
+the repeated page-copy sample. Container resource snapshots must be labeled by
+their actual cgroup scope, not inferred from the separate launcher service.
+
 Device diagnostics (2026-09-19): preserve the producer status while capping and draining debug output, and label later snapshots separately. This VM passed the same initialized-device wait; instrumentation and scheduling changed timing, so this does not explain the preceding failure. An aborted qualification can still contain useful compositor counters: inspect retained logs before calling rendering unexecuted. The live service query timed out with no properties despite line buffering; use already captured individual service journal events with monotonic timestamps to distinguish late readiness from a stuck start transaction. Bound new fault-injection tests using measured runtime: 107 runner cases took 23.067s, exceeding the former 20s host-test limit. Raising only that test limit to 30s allowed the active tier to pass; production deadlines remain unchanged.
 
 Failure reporting (2026-09-19): a subshell function with its own EXIT trap can skip the parent ERR trap. An external-command fixture missed this; the actual readiness function reproduces it, and retained ARM64 Bash confirms the semantics. Collect failure evidence in the existing supervisor EXIT path, preserve the original status, and keep ERR only for an available line marker. A control failing before its intended observation can still expose a concrete defect; repair that defect offline before another VM. The partial device snapshot is a later observation and does not identify the exact state at timeout. Reuse the retained validated hardware-database cache only after matching its input/consumer and staging contract; a costly cold rebuild is not proof of the later timeout cause.
