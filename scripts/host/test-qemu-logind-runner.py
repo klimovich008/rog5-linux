@@ -669,6 +669,83 @@ require_fuse_device "$1" "$2"
                 self.assertNotIn('CLIENTS-MAY-START', result.stdout)
 
 
+class DeviceReadiness(unittest.TestCase):
+    BASE = ['/dev/dri/card0', '/dev/input/event0', '/dev/tty1']
+
+    def run_boundary(self, flags=(), missing='', uninitialized='', failure=0):
+        source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh').read_text()
+        # Execute the real supervisor call site; extraction also supports the
+        # old global barrier so its unrelated-queue counterexample is retained.
+        boundary = source.split("echo 'OBSERVE packaged Permit User Sessions removed startup nologin'\n", 1)[1].split('\n# A diagnostic failure', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for flag in flags:
+                (root/flag).touch()
+            tool = root/'udevadm'
+            tool.write_text('''#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+args=sys.argv[1:]
+Path(os.environ['ARGUMENTS']).write_text(json.dumps(args))
+if args == ['settle','--timeout=8']:
+    sys.exit(124)  # unrelated queued event; all requested devices may be ready
+if args[:3] != ['wait','--timeout=8','--initialized=yes']:
+    sys.exit(98)
+if os.environ['MISSING'] in args[3:] or os.environ['UNINITIALIZED'] in args[3:]:
+    sys.exit(42)
+sys.exit(int(os.environ['FAILURE']))
+''')
+            tool.chmod(0o755)
+            # Source-only mode executes functions, never the root supervisor.
+            # Redirect the default /run argument at the call seam, keeping the
+            # function body and fixed /dev consumers unchanged.
+            code = 'set -euo pipefail\nsource "$1"\n' + boundary.replace('logind_wait_devices', 'logind_wait_devices "$2"') + '\necho ADMITTED\n'
+            result = subprocess.run(['bash', '-c', code, 'fixture',
+                                     str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh'), str(root)],
+                                    env={**os.environ, 'PATH': str(root)+':'+os.environ['PATH'],
+                                         'ARGUMENTS': str(root/'args'), 'MISSING': missing,
+                                         'UNINITIALIZED': uninitialized, 'FAILURE': str(failure)},
+                                    capture_output=True, text=True, timeout=3)
+            arguments = json.loads((root/'args').read_text()) if (root/'args').exists() else None
+            return result, arguments
+
+    def test_ready_consumers_do_not_wait_for_unrelated_queue(self):
+        for flags, extra in [((), []), (('session-sha256',), ['/dev/fuse']),
+                             (('session-sha256','startup-only'), ['/dev/fuse']),
+                             (('session-sha256','editor-probe'), ['/dev/fuse','/dev/input/event1','/dev/vport0p1']),
+                             (('session-sha256','apps-probe'), ['/dev/fuse','/dev/input/event1','/dev/vport0p1'])]:
+            with self.subTest(flags=flags):
+                result, arguments = self.run_boundary(flags)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(arguments, ['wait','--timeout=8','--initialized=yes', *self.BASE, *extra])
+                self.assertIn('ADMITTED', result.stdout)
+
+    def test_every_consumed_device_must_exist_and_be_initialized(self):
+        flags = ('session-sha256','apps-probe')
+        for device in [*self.BASE, '/dev/fuse','/dev/input/event1','/dev/vport0p1']:
+            for kind in ['missing','uninitialized']:
+                with self.subTest(device=device, kind=kind):
+                    result, _ = self.run_boundary(flags, **{kind:device})
+                    self.assertEqual(result.returncode, 42, result.stderr)
+                    self.assertNotIn('ADMITTED', result.stdout)
+
+    def test_query_failures_remain_fatal(self):
+        for code in [1, 42, 124, 127]:
+            with self.subTest(code=code):
+                result, _ = self.run_boundary(failure=code)
+                self.assertEqual(result.returncode, code, result.stderr)
+                self.assertNotIn('ADMITTED', result.stdout)
+
+    def test_inconsistent_observation_modes_refuse_before_query(self):
+        for flags in [('editor-probe',), ('apps-probe',),
+                      ('session-sha256','editor-probe','apps-probe')]:
+            with self.subTest(flags=flags):
+                result, arguments = self.run_boundary(flags)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(arguments)
+                self.assertNotIn('ADMITTED', result.stdout)
+
+
 class ServiceSnapshot(unittest.TestCase):
     def test_completed_unit_output_survives_a_later_query_timeout(self):
         # A libc-buffered producer writes a complete small reply then stalls.

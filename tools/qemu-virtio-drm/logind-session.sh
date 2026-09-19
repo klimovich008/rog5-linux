@@ -1,6 +1,32 @@
 #!/usr/bin/bash
 # Offline generic ARM64 VM fixture; never install or run on a phone.
 # Extra arguments are used only for the early real-parser --help preflight.
+logind_wait_devices() {
+    local state=${1:-/run} status=0
+    local -a devices=(/dev/dri/card0 /dev/input/event0 /dev/tty1)
+    if [[ -f $state/editor-probe && -f $state/apps-probe ]]; then
+        echo 'FAIL conflicting virtual observation modes' >&2
+        return 1
+    fi
+    if [[ -f $state/session-sha256 ]]; then
+        # The document portal requires udev's nonroot FUSE permissions.
+        devices+=(/dev/fuse)
+    elif [[ -f $state/editor-probe || -f $state/apps-probe ]]; then
+        echo 'FAIL virtual observation requires a combined session' >&2
+        return 1
+    fi
+    if [[ -f $state/editor-probe || -f $state/apps-probe ]]; then
+        # Keyboard/tablet numbering can swap: both are consumed by this mode.
+        devices+=(/dev/input/event1 /dev/vport0p1)
+    fi
+    # Wait for all consumers in one eight-second budget, not unrelated events
+    # elsewhere in the udev queue. Initialization is stronger than node presence.
+    # Later port identity/ownership, PAM, VT and seat checks remain mandatory.
+    printf 'OBSERVE device-readiness phase=begin deadline_seconds=8 devices=%s\n' "${devices[*]}"
+    udevadm wait --timeout=8 --initialized=yes "${devices[@]}" || status=$?
+    printf 'OBSERVE device-readiness phase=end status=%s\n' "$status"
+    return "$status"
+}
 logind_startup_timings() (
     set -o pipefail
     local temporary status=0 query_status=0 encoded bytes stderr_encoded stderr_bytes
@@ -121,7 +147,7 @@ systemctl start systemd-user-sessions.service
 systemctl is-active systemd-user-sessions.service
 [[ ! -e /run/nologin ]]
 echo 'OBSERVE packaged Permit User Sessions removed startup nologin'
-udevadm settle --timeout=8
+logind_wait_devices
 # A diagnostic failure must not prevent the independent PAM/cleanup probe.
 # Host startup-only qualification still requires a complete timing inventory.
 if [[ -f /run/startup-only ]]; then logind_startup_timings || :; fi
