@@ -8477,6 +8477,32 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-qemu-hwdb-cache.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 15,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/stage-qemu-hwdb-cache.py",
+        "scripts/host/prepare-qemu-linker-cache.py",
+        "scripts/host/test-qemu-logind.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-logind-linker-cache.py",
       "interpreter": "python3",
       "tiers": [
@@ -8503,6 +8529,43 @@
       "exact_source": false,
       "required_inputs": [
         "tools/qemu-virtio-drm/logind-linker-cache.sh"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-logind-hwdb-cache.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 15,
+      "prerequisites": [
+        "python3",
+        "bash",
+        "sha256sum",
+        "stat",
+        "cp",
+        "ln",
+        "mktemp",
+        "timeout",
+        "chmod",
+        "mkdir",
+        "rmdir",
+        "rm",
+        "cat"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-linker-cache.sh",
+        "tools/qemu-virtio-drm/logind-boot.sh"
       ],
       "optional_subchecks": []
     },

@@ -98,8 +98,8 @@ class Admission(unittest.TestCase):
         runner.linker_cache_module().stage(self.out,self.view,self.receipt,dest)
         self.assertEqual(CACHE.digest(dest/'linker-cache'),self.record['cache']['sha256'])
         boot=(Path(__file__).resolve().parents[2]/'tools/qemu-virtio-drm/logind-boot.sh').read_text()
-        self.assertLess(boot.index('mount --bind /run/fixture-etc /etc'),boot.index('prepare_linker_cache'))
-        self.assertLess(boot.index('prepare_linker_cache'),boot.index('exec /usr/lib/systemd/systemd'))
+        self.assertLess(boot.index('mount --bind /run/fixture-etc /etc'),boot.index('prepare_boot_caches'))
+        self.assertLess(boot.index('prepare_boot_caches'),boot.index('exec /usr/lib/systemd/systemd'))
 
     def test_unsafe_names(self):
         for name in ('../escape','/absolute','usr//lib','usr/./lib','.virtfs_metadata/x'):

@@ -197,7 +197,9 @@ active_tests=(
 	scripts/host/test-launcher-diagnostics.py
 	scripts/host/test-settings-sync-diagnostic.py
 	scripts/host/test-qemu-linker-cache.py
+	scripts/host/test-qemu-hwdb-cache.py
 	scripts/host/test-logind-linker-cache.py
+	scripts/host/test-logind-hwdb-cache.py
 	scripts/host/test-review-metadata-checkers.py
 	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py

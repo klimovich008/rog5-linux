@@ -331,6 +331,23 @@ def linker_cache_module():
     return module
 
 
+def hwdb_cache_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('hwdb_cache', REPO/'scripts/host/stage-qemu-hwdb-cache.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
+def stage_hwdb_cache(directory, runtime, receipt, stage, result):
+    # Admit and copy once, before compiler/container work. The copied bytes are
+    # verified by the guest before the generator-suppression marker is published.
+    stage.mkdir(parents=True, exist_ok=True)
+    record = hwdb_cache_module().stage(directory, runtime, receipt, stage)
+    result['hwdb_cache'] = record
+    for member in ('hwdb-cache', 'hwdb-cache.sha256'):
+        result['outputs']['stage/'+member] = identity(stage/member)
+
+
 def observation_channel(apps):
     if apps:
         # Host is the sole event-log writer. Duplex channel returns the exact
@@ -380,6 +397,8 @@ def main():
                         help='observe-apps only: explicit VM settings-sync probe DSO; no phone installation')
     parser.add_argument('--linker-cache', type=Path,
                         help='exact-runtime cache directory from prepare-qemu-linker-cache.py; VM-only RAM staging')
+    parser.add_argument('--hwdb-cache', type=Path,
+                        help='retained exact-runtime ARM64 hardware database; verified VM-only RAM staging')
     args = parser.parse_args()
     combined = args.session_archive is not None
     if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
@@ -410,6 +429,17 @@ def main():
     runtime = Path(args.runtime_view).resolve()
     if output.is_relative_to(runtime):
         parser.error('output may not be inside the immutable runtime view')
+    # Inspect both retained roots before creating any output. Full receipt and
+    # inventory admission still follows; this guard must not modify its inputs.
+    try:
+        original_name = json.loads(regular(args.runtime_receipt).read_text())['runtime']
+        if not isinstance(original_name, str) or not Path(original_name).is_absolute():
+            raise ValueError('receipt requires an absolute original runtime path')
+        original_runtime = Path(original_name).resolve()
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        parser.error('cannot protect original runtime: ' + str(error))
+    if output.is_relative_to(original_runtime):
+        parser.error('output may not be inside the immutable original runtime')
     output.mkdir(mode=0o700)
     result = {'status': 'FAIL', 'authority': 'none', 'physical_status': 'NOT RUN',
               'scope': 'generic ARM64 systemd PID1, original PAM login profile, local logind and mediated virtual devices',
@@ -434,6 +464,9 @@ def main():
             raise ValueError('runtime receipt does not identify this prepared read-only mapped-file view')
         if args.linker_cache is not None:
             result['linker_cache'] = linker_cache_module().validate(args.linker_cache, runtime, receipt)
+        if args.hwdb_cache is not None:
+            stage_hwdb_cache(args.hwdb_cache, runtime, receipt, output/'initramfs/stage', result)
+            result['runtime_limit'] = 'Hardware-database admission reverified complete original/mapped runtime inventories, bytes and metadata before staging.'
         if combined:
             session_record = validate_session_archive(regular(args.session_archive), regular(args.session_receipt))
             if args.host_render_node != Path('/dev/dri/renderD128') or not args.host_render_node.is_char_device():
@@ -462,6 +495,10 @@ def main():
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
         if args.linker_cache is not None:
             input_files += [args.linker_cache/'ld.so.cache', args.linker_cache/'result.json',
+                            REPO/'scripts/host/prepare-qemu-linker-cache.py']
+        if args.hwdb_cache is not None:
+            input_files += [args.hwdb_cache/'hwdb.bin', args.hwdb_cache/'result.json',
+                            REPO/'scripts/host/stage-qemu-hwdb-cache.py',
                             REPO/'scripts/host/prepare-qemu-linker-cache.py']
         if combined:
             input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
