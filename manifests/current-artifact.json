@@ -2121,6 +2121,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; no phone or candidate"
+    },
+    "close_pc_preparation": {
+      "status": "PASS_HOST_PTRACE_AND_ARM64_ABI_VM_NOT_RUN",
+      "set_id": "private:rog5-close-pc-20260920-r1",
+      "source_commit": "4ad368f845b5b16a669d11b028a429668edbbc0f",
+      "source_tree": "9b0696fbc77bf6d4af1ab5069d3169a6cb2111be",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-pc-preparation-qualification.json",
+        "sha256": "e0b59fec7f4a005ebc726eb565902754b2384673ab67c1d0acf1a72a2a1a5d06",
+        "bytes": 10489
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; library not wired into runtime"
     }
   },
   "denial_phone_linkage": {

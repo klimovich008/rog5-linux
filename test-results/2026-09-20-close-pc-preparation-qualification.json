@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "authority": "none; offline component only; no VM/phone execution or candidate",
+  "physical_status": "NOT RUN",
+  "starting_commit": "8c3d5101b827b6c6d19f86a32f89a542753f858b",
+  "starting_tree": "9acbb9abdbf6ba844b7b812faf924b510aa0f9b5",
+  "source": {
+    "commit": "4ad368f845b5b16a669d11b028a429668edbbc0f",
+    "tree": "9b0696fbc77bf6d4af1ab5069d3169a6cb2111be",
+    "module_sha256": "41a9e55b790885c692dad1d15557dd63708e0f27b6a374622c9235c7c095a2de"
+  },
+  "focused": {
+    "status": "PASS",
+    "seconds": 3.45,
+    "ptrace_rust_cases": 9,
+    "existing_proc_rust_cases": 6,
+    "python_wrappers": 2,
+    "entrypoint": "scripts/host/test-app-close-probe.py",
+    "log": {
+      "path": "/home/deck/.local/state/rog5-close-pc-20260920-r1/focused-r3.log",
+      "sha256": "0587f7f5f359abe26ec48cbc2d103666a467203d45a6c1a99e8d3fd5a02f71a4",
+      "bytes": 1481
+    }
+  },
+  "mutations": [
+    {
+      "mutation": "suppress-signal",
+      "compile": [
+        "rustc",
+        "--edition=2024",
+        "-D",
+        "warnings",
+        "--test",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/suppress-signal.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/tmp/suppress-signal"
+      ],
+      "command": [
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/tmp/suppress-signal",
+        "--exact",
+        "tests::pending_term_is_forwarded_not_suppressed",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_status": 101,
+      "seconds": 2.9352342300117016,
+      "status": "PASS_REJECTED_MUTATION"
+    },
+    {
+      "mutation": "exitkill",
+      "compile": [
+        "rustc",
+        "--edition=2024",
+        "-D",
+        "warnings",
+        "--test",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/exitkill.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/tmp/exitkill"
+      ],
+      "command": [
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/tmp/exitkill",
+        "--exact",
+        "tests::thread_exit_and_panic_release_real_tracee",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_status": 101,
+      "seconds": 0.8196884690551087,
+      "status": "PASS_REJECTED_MUTATION"
+    }
+  ],
+  "arm64_builds": [
+    {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-close-pc-build-r1",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1:/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1:rw",
+        "--env",
+        "TMPDIR=/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "/opt/denial-rust/bin/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "--crate-name=app_close_ptrace",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "lto=thin",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "strip=debuginfo",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1=/logind-fixture",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/app-close-ptrace.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/payload/app-close-ptrace.rlib",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--crate-type=lib"
+      ],
+      "seconds": 0.51556657202309,
+      "exit_status": 0,
+      "output": {
+        "path": "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/payload/app-close-ptrace.rlib",
+        "sha256": "0cf370fc2c5e24f0562b1e7fd714bad9de2273497f5168d212f1ca8f4ffee769",
+        "bytes": 89658
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-close-pc-build-r1",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1:/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1:rw",
+        "--env",
+        "TMPDIR=/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "/opt/denial-rust/bin/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "--crate-name=app_close_ptrace",
+        "-Dwarnings",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "lto=thin",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "strip=debuginfo",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1=/logind-fixture",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/app-close-ptrace.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/payload/app-close-ptrace-tests",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--test"
+      ],
+      "seconds": 13.60246973100584,
+      "exit_status": 0,
+      "output": {
+        "path": "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/payload/app-close-ptrace-tests",
+        "sha256": "1c95ce4b79f1d95d0737870337fd30082e25153f63aa3260a7c6f38534121416",
+        "bytes": 1176696
+      }
+    }
+  ],
+  "arm64_abi": {
+    "command": [
+      "timeout",
+      "-k",
+      "1",
+      "15",
+      "qemu-aarch64-static",
+      "-L",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/home/deck/.local/state/rog5-close-pc-20260920-r1/build-r1/payload/app-close-ptrace-tests",
+      "--exact",
+      "tests::abi_size_and_fields_are_explicit",
+      "--nocapture"
+    ],
+    "seconds": 0.07387875398853794,
+    "exit_status": 0,
+    "scope": "ARM64 register-layout test only; actual ARM64 ptrace kernel interaction NOT RUN"
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "4ad368f845b5b16a669d11b028a429668edbbc0f",
+    "source_tree": "9b0696fbc77bf6d4af1ab5069d3169a6cb2111be",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 194.03215825004736
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "active_summary": {
+    "path": "/home/deck/.local/state/rog5-close-pc-20260920-r1/active-report/summary.json",
+    "sha256": "59a020ad0390ba264996c4d576135d67c18366bde19e9aff21bb7ec5edd55980",
+    "bytes": 123281
+  },
+  "host_kernel": "Linux 6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45 #1 SMP PREEMPT_DYNAMIC Wed, 15 Jul 2026 21:48:50 +0000 x86_64",
+  "tool_identities": [
+    {
+      "path": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "sha256": "72f93915dc58456942ed604954928809446a8a69559e66ad3d9069f7e1b21870",
+      "bytes": 315
+    },
+    {
+      "path": "/usr/bin/qemu-aarch64-static",
+      "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+      "bytes": 6348264
+    }
+  ],
+  "source_inputs": [
+    {
+      "path": "tools/qemu-virtio-drm/app-close-ptrace.rs",
+      "sha256": "41a9e55b790885c692dad1d15557dd63708e0f27b6a374622c9235c7c095a2de",
+      "bytes": 13636
+    },
+    {
+      "path": "scripts/host/test-app-close-probe.py",
+      "sha256": "a34c333eb7c00ccbb71b29c08200b1c22f335066a2d8ee62fe036379268cb70d",
+      "bytes": 1997
+    },
+    {
+      "path": "configs/repository-tests.json",
+      "sha256": "6a405b9d0bdea9067dd9b1cf7550697d3d0563afda31128e88af05e62b7dec8b",
+      "bytes": 224138
+    }
+  ],
+  "linux_source_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "reviewed_kernel_paths": [
+    "kernel/exit.c",
+    "kernel/ptrace.c",
+    "kernel/signal.c",
+    "arch/arm64/include/uapi/asm/ptrace.h"
+  ],
+  "limitations": [
+    "Library only; normal read-only sampler and VM runner unchanged.",
+    "ARM64 actual ptrace interaction NOT RUN; qemu-user only runs ABI decode test, eight other cases filtered out.",
+    "75ms wait-poll policy is not a hard syscall/scheduling wall-time bound; outer watchdog required.",
+    "Numeric-PID precheck/seize race remains; stopped identity validation prevents false register attribution but cannot make attach atomic.",
+    "Any future PC snapshot perturbs execution and is not timing-neutral.",
+    "Previous VM Mousepad137 remains; no new app-close result."
+  ],
+  "raw_evidence_policy": "Raw logs retained privately; this public record contains summaries, commands and identities."
+}
