@@ -8175,9 +8175,12 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 20,
+      "deadline_seconds": 30,
       "prerequisites": [
         "bash",
+        "cat",
+        "head",
+        "timeout",
         "cc",
         "mktemp",
         "od",
