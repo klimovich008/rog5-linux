@@ -89,3 +89,70 @@ void g_settings_sync(void)
 	record("END");
 	errno = result_errno;
 }
+
+/* Opaque public API types: the probe never inspects or replaces object layout.
+ * Resolve these only when an application actually runs, so the sync-only probe
+ * remains usable without a GApplication. Signatures and G_CONNECT_AFTER=1 are
+ * from the retained GLib 2.88.3 headers. Its shutdown signal is RUN_LAST.
+ */
+struct _GApplication;
+
+static void shutdown_before(struct _GApplication *application, void *data)
+{
+	int saved_errno = errno;
+	(void)application;
+	(void)data;
+	record("SHUTDOWN_BEFORE");
+	errno = saved_errno;
+}
+
+static void shutdown_after(struct _GApplication *application, void *data)
+{
+	int saved_errno = errno;
+	(void)application;
+	(void)data;
+	record("SHUTDOWN_AFTER");
+	errno = saved_errno;
+}
+
+int g_application_run(struct _GApplication *application, int argc, char **argv)
+{
+	int entry_errno = errno, result_errno, result;
+	int (*run)(struct _GApplication *, int, char **);
+	unsigned long (*connect)(void *, const char *, void (*)(void), void *,
+				 void (*)(void *, void *), int);
+	void (*disconnect)(void *, unsigned long);
+	unsigned long before, after;
+
+	dlerror();
+	run = (int (*)(struct _GApplication *, int, char **))
+		dlsym(RTLD_NEXT, "g_application_run");
+	connect = (unsigned long (*)(void *, const char *, void (*)(void), void *,
+				     void (*)(void *, void *), int))
+		dlsym(RTLD_NEXT, "g_signal_connect_data");
+	disconnect = (void (*)(void *, unsigned long))
+		dlsym(RTLD_NEXT, "g_signal_handler_disconnect");
+	if (dlerror() || !run || !connect || !disconnect) {
+		record("app-resolve-failed");
+		fail();
+	}
+	before = connect(application, "shutdown", (void (*)(void))shutdown_before,
+			 NULL, NULL, 0);
+	after = connect(application, "shutdown", (void (*)(void))shutdown_after,
+			NULL, NULL, 1); /* G_CONNECT_AFTER */
+	if (!before || !after)
+		fail();
+	record("APP_RUN_BEGIN");
+	errno = entry_errno;
+	result = run(application, argc, argv);
+	result_errno = errno;
+	record("APP_RUN_END");
+	/* Disconnect while the caller still owns the application; no extra ref or
+	 * weak-ref callback changes its lifetime. These are signal-observer bounds,
+	 * not exact subclass instruction boundaries. No main-context iteration.
+	 */
+	disconnect(application, before);
+	disconnect(application, after);
+	errno = result_errno;
+	return result;
+}

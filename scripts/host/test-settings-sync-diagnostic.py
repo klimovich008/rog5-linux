@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile and exercise the actual VM-only interposer, without GLib or a VM."""
+"""Exercise the actual VM interposer with controlled callees; real GLib is qualified separately."""
 import os
 from pathlib import Path
 import signal
@@ -23,12 +23,42 @@ class SettingsSyncDiagnostic(unittest.TestCase):
         fake.write_text('''#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 int calls, bad_errno;
 void g_settings_sync(void) {
     if (errno != E2BIG) bad_errno++;
     calls++;
     if (getenv("FIXTURE_BLOCK")) for (;;) pause();
     errno = EDOM;
+}
+static void (*handlers[2])(void *, void *);
+int application_calls, connections, disconnects, app_bad;
+unsigned long g_signal_connect_data(void *app, const char *signal,
+        void (*handler)(void), void *data, void (*destroy)(void *, void *), int flags) {
+    if (app != (void *)7 || strcmp(signal, "shutdown") || data || destroy ||
+        flags != connections || connections > 1) { app_bad++; return 0; }
+    handlers[connections++] = (void (*)(void *, void *))handler;
+    return (unsigned long)connections;
+}
+void g_signal_handler_disconnect(void *app, unsigned long id) {
+    if (app != (void *)7 || id != (unsigned long)disconnects+1) app_bad++;
+    disconnects++;
+    errno = EFAULT;
+}
+int g_application_run(void *app, int argc, char **argv) {
+    const char *block = getenv("FIXTURE_APP_BLOCK");
+    if (app != (void *)7 || argc != 2 || strcmp(argv[1], "app")) app_bad++;
+    if (errno != E2BIG) app_bad++;
+    application_calls++;
+    if (handlers[0]) handlers[0](app, NULL);
+    if (errno != E2BIG) app_bad++;
+    if (block && !strcmp(block, "during")) for (;;) pause();
+    g_settings_sync();
+    if (handlers[1]) handlers[1](app, NULL);
+    if (errno != EDOM) app_bad++;
+    if (block && !strcmp(block, "after")) for (;;) pause();
+    errno = ERANGE;
+    return 37;
 }
 ''')
         caller = cls.build / 'caller.c'
@@ -60,6 +90,18 @@ int main(int argc, char **argv) {
     return 0;
 }
 ''')
+        app = cls.build / 'application.c'
+        app.write_text('''#include <errno.h>
+extern int g_application_run(void *, int, char **);
+extern int application_calls, connections, disconnects, app_bad;
+int main(int argc, char **argv) {
+    errno = E2BIG;
+    int result = g_application_run((void *)7, argc, argv);
+    if (result != 37 || errno != ERANGE) return 30;
+    if (application_calls != 1 || connections != 2 || disconnects != 2 || app_bad) return 31;
+    return 0;
+}
+''')
         empty = cls.build / 'empty.c'
         empty.write_text('''#include <stdlib.h>
 int main(void) {
@@ -76,6 +118,9 @@ int main(void) {
             ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', str(caller),
              '-L' + str(cls.build), '-Wl,-rpath,' + str(cls.build), '-lfake',
              '-o', str(cls.build / 'caller')],
+            ['cc', '-Wall', '-Wextra', '-Werror', str(app),
+             '-L' + str(cls.build), '-Wl,-rpath,' + str(cls.build), '-lfake',
+             '-o', str(cls.build / 'application')],
             ['cc', '-Wall', '-Wextra', '-Werror', str(empty),
              '-o', str(cls.build / 'empty')],
         ]
@@ -118,6 +163,33 @@ int main(void) {
         result = self.run_caller()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.stages(), ['loaded', 'BEGIN', 'END'])
+
+    def test_application_shutdown_order_and_return_errno(self):
+        result = self.run_caller('app', executable='application')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE',
+                                        'BEGIN', 'END', 'SHUTDOWN_AFTER', 'APP_RUN_END'])
+
+    def test_interrupted_application_distinguishes_shutdown_and_post_shutdown(self):
+        for where, expected in [('during', ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE']),
+                                ('after', ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE',
+                                           'BEGIN', 'END', 'SHUTDOWN_AFTER'])]:
+            with self.subTest(where=where):
+                self.log.write_text('')
+                env = dict(self.env, FIXTURE_APP_BLOCK=where)
+                process = subprocess.Popen([str(self.build / 'application'), 'app'], env=env,
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                           start_new_session=True)
+                try:
+                    deadline = time.monotonic()+2
+                    while len(self.stages()) < len(expected) and time.monotonic() < deadline:
+                        time.sleep(.005)
+                    self.assertEqual(self.stages(), expected)
+                    self.assertIsNone(process.poll())
+                finally:
+                    if process.poll() is None: os.killpg(process.pid, signal.SIGKILL)
+                    process.wait(timeout=2)
+                self.assertEqual(self.stages(), expected)
 
     def test_absent_environment_refused(self):
         del self.env['ROG5_SETTINGS_SYNC_LOG']
