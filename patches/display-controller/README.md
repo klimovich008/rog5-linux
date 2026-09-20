@@ -160,5 +160,15 @@ Tests apply the patch to a private temporary copy of the retained source. Real
 pipes and separate processes exercise acknowledgment, interruption, expiry and
 cleanup; an assembled case runs the real loader/endpoint and compiled panel/core
 callbacks under that supervisor, with all device effects explicitly substituted.
-Future qualification must also cover exceptional descendant closure and firmware
-root-transition assumptions before authorizing a real hardware trial.
+The process-closure repair retains each worker with `waitid(WNOWAIT)` until
+all group signaling is finished. It signals the group again at worker exit to
+close a setsid/fork race around an earlier forced stop, then reaps and only
+observes. A retry after interruption must establish direct-child ownership;
+ECHILD refuses all signals. Real inert-process fixtures cover surviving children,
+pre-session termination, interruption before/after reap and observation timeout.
+The fixture acts as an orphan reaper; production still requires init to reap
+orphans within the existing bound. The pinned insertion helper remains in the
+worker's group. This is not containment of arbitrary session escape, nor reversal
+of module effects or a guarantee that uninterruptible kernel work can terminate.
+Outer transport/admission and firmware root-transition assumptions remain
+unqualified before any real hardware trial.

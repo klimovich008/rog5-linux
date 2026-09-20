@@ -82,7 +82,70 @@
  
  
  def spawn(directory, value, cleanup, close_fds):
-@@ -369,6 +327,7 @@
+@@ -294,31 +252,50 @@
+ 
+ 
+ def stop(pid, force):
++    need(type(pid) is int and pid > 1, 'owned child PID required')
+     deadline = time.monotonic()+REAP
+-    # PID is our unreaped child, so cannot have been reused. Kill the helper's
+-    # process group too; a kernel task stuck in uninterruptible sleep may remain.
+-    if force:
+-        for call in (lambda: os.killpg(pid, signal.SIGKILL), lambda: os.kill(pid, signal.SIGKILL)):
+-            try:
+-                call()
+-            except ProcessLookupError:
+-                pass
+     status = None
++    signaled = False
++    # This owner is single-threaded with no SIGCHLD reaper. WNOWAIT reserves
++    # the direct child's PID while the group is signaled. Every call (including
++    # a retry after interruption) must establish that ownership before signaling.
+     while time.monotonic() < deadline:
+         if status is None:
+-            got, child_status = os.waitpid(pid, os.WNOHANG)
+-            if got:
++            try:
++                exited = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
++            except ChildProcessError:
++                return dict(pid=pid, reaped=False, exitcode=None, group_absent=False,
++                            killed=False, group_kill_sent=False, error='child ownership absent')
++            # Repeat at exit even after a forced signal: setsid/fork may
++            # have raced the first group signal. The zombie still anchors it.
++            if (force and not signaled) or exited is not None:
++                try:
++                    os.killpg(pid, signal.SIGKILL)
++                except ProcessLookupError:
++                    pass
++                if force:
++                    # The child may not have reached setsid() yet.
++                    try:
++                        os.kill(pid, signal.SIGKILL)
++                    except ProcessLookupError:
++                        pass
++                signaled = True
++            if exited is not None:
++                got, child_status = os.waitpid(pid, os.WNOHANG)
++                need(got == pid, 'waitable child changed')
+                 status = child_status
+         if status is not None:
++            # Only observe after reap. An interrupt/retry must not signal a
++            # possibly reused numeric PID or process group.
+             try:
+                 os.killpg(pid, 0)
+             except ProcessLookupError:
+                 return dict(pid=pid, reaped=True, exitcode=os.waitstatus_to_exitcode(status),
+-                            group_absent=True, killed=force)
++                            group_absent=True, killed=force, group_kill_sent=signaled)
+         time.sleep(.01)
+     return dict(pid=pid, reaped=status is not None,
+                 exitcode=os.waitstatus_to_exitcode(status) if status is not None else None,
+-                group_absent=False, killed=force)
++                group_absent=False, killed=force and signaled, group_kill_sent=signaled)
+ 
+ 
+ class Supervisor:
+@@ -369,6 +346,7 @@
          pid = channel = result = error = blank = cleanup_proc = None
          process = dict(reaped=False)
          cleanup_errors = []
@@ -90,7 +153,7 @@
          reader = Records(self.input)
          try:
              self.lock = os.open(LOCK, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, 0o600)
-@@ -402,6 +361,10 @@
+@@ -402,6 +380,10 @@
                                      send(channel.fileno(), {'ok':self.alive()})
                                  elif row['kind'] == 'enter':
                                      need(not self.entered and type(row['payload']) is dict, 'repeated module entry')
@@ -101,7 +164,7 @@
                                      self.intent_sha = hashlib.sha256(encoded(row['payload'])).hexdigest()
                                      save(ENTRY, dict(self.identity, intent_sha256=self.intent_sha,
                                                       entered_monotonic=time.monotonic(), intent=row['payload']))
-@@ -427,12 +390,17 @@
+@@ -427,12 +409,17 @@
                  pid = None
              need(process['reaped'] and process['group_absent'] and process['exitcode'] == 0,
                   'module worker did not close successfully')
@@ -122,7 +185,7 @@
              if channel is not None:
                  channel.close()
              if self.entered:
-@@ -440,13 +408,20 @@
+@@ -440,13 +427,20 @@
                  # again by the cleanup worker and every endpoint operation.
                  try:
                      blank, cleanup_proc = self.cleanup()
@@ -146,7 +209,7 @@
                           entered=self.entered, acknowledged=self.acknowledged, component=result,
                           action_process=process, cleanup_process=cleanup_proc,
                           remote_reaped=bool(process['reaped'] and process.get('group_absent')
-@@ -477,20 +452,33 @@
+@@ -477,20 +471,33 @@
                      need(time.monotonic() < deadline, 'zero cleanup deadline')
                      if selector.select(max(0, deadline-time.monotonic())):
                          for row in reader.read():
@@ -188,7 +251,7 @@
              error = exc
          finally:
              if pid is not None:
-@@ -515,7 +503,7 @@
+@@ -515,7 +522,7 @@
      signal.signal(signal.SIGTERM, stopped)
      signal.signal(signal.SIGINT, stopped)
      result = Supervisor(directory, value).run()

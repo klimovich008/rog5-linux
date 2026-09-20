@@ -382,6 +382,213 @@ class Supervisor(unittest.TestCase):
             self.assertEqual(definition(self.source.read_text(),name),definition(OLD.read_text(),name))
 
 
+class ProcessClosure(unittest.TestCase):
+    """Real groups; the test subreaper supplies deterministic orphan reaping.
+
+    The production supervisor relies on its init reaper for orphan zombies.
+    Fixtures never signal by a PID after releasing its direct-child identity.
+    """
+    @classmethod
+    def setUpClass(cls):
+        Supervisor.setUpClass.__func__(cls)
+
+    def setUp(self):
+        self.b=load(self.source,'process_closure')
+        self.b.REAP=.35
+
+    def test_exited_leader_descendant_is_killed_before_reap(self):
+        self.descendant_case(False)
+
+    def test_live_leader_and_descendant_are_killed(self):
+        self.descendant_case(True)
+
+    def test_group_appearing_after_initial_force_signal_is_closed(self):
+        self.descendant_case(True, first_group_missing=True)
+
+    def descendant_case(self, force, first_group_missing=False):
+        import ctypes
+        libc=ctypes.CDLL(None,use_errno=True)
+        previous=ctypes.c_int()
+        self.assertEqual(libc.prctl(37,ctypes.byref(previous),0,0,0),0)
+        self.assertEqual(libc.prctl(36,1,0,0,0),0)
+        read,write=os.pipe()
+        pid=os.fork()
+        if pid==0:
+            os.close(read);os.setsid()
+            descendant=os.fork()
+            if descendant==0:
+                os.close(write)
+                time.sleep(15);os._exit(0)
+            os.write(write,str(descendant).encode());os.close(write)
+            if force:time.sleep(15)
+            os._exit(0)
+        os.close(write)
+        descendant=None;child_reaped=False;descendant_reaped=False
+        real_killpg=os.killpg
+        sent=[]
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(read,selectors.EVENT_READ)
+                self.assertTrue(selector.select(2),'fixture fork deadline')
+            descendant=int(os.read(read,32))
+            deadline=time.monotonic()+2
+            while not force and os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT) is None:
+                self.assertLess(time.monotonic(),deadline);time.sleep(.005)
+            def observe(group,sig):
+                nonlocal descendant_reaped
+                self.assertEqual(group,pid)
+                if sig:
+                    # A zombie is deliberately retained while signaling its group.
+                    held=os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+                    if not force:self.assertIsNotNone(held)
+                    sent.append(sig)
+                    if first_group_missing and len(sent)==1:
+                        # Controlled pre-setsid ESRCH seam; the real group exists
+                        # when the directly killed leader becomes waitable.
+                        raise ProcessLookupError('fixture group not established yet')
+                elif not descendant_reaped:
+                    # Stand in for PID1 reaping the now-orphan child. This uses
+                    # real waitpid, not a fake group-absence answer.
+                    got,_=os.waitpid(descendant,os.WNOHANG)
+                    descendant_reaped=got==descendant
+                return real_killpg(group,sig)
+            with patch.object(self.b.os,'killpg',side_effect=observe):
+                result=self.b.stop(pid,force)
+            child_reaped=result['reaped']
+            self.assertIn(signal.SIGKILL,sent,'exited leader left a live descendant')
+            self.assertTrue(result['group_absent']);self.assertTrue(descendant_reaped)
+            self.assertTrue(child_reaped)
+            self.assertEqual(result['exitcode'],-signal.SIGKILL if force else 0)
+        finally:
+            # Fixture cleanup independently anchors each still-unreaped child.
+            if not child_reaped:
+                try:
+                    os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+                    try:real_killpg(pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                    os.kill(pid,signal.SIGKILL);os.waitpid(pid,0)
+                except ChildProcessError:pass
+            # The subreaper can own the descendant only after leader closure.
+            if descendant is not None and not descendant_reaped:
+                try:
+                    os.waitid(os.P_PID,descendant,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+                    os.kill(descendant,signal.SIGKILL);os.waitpid(descendant,0)
+                except ChildProcessError:pass
+            os.close(read)
+            self.assertEqual(libc.prctl(36,previous.value,0,0,0),0)
+
+    def test_already_reaped_pid_never_signaled(self):
+        pid=os.fork()
+        if pid==0:os._exit(0)
+        os.waitpid(pid,0)
+        with patch.object(self.b.os,'killpg') as group, patch.object(self.b.os,'kill') as direct:
+            try:result=self.b.stop(pid,True)
+            except ChildProcessError:result=None
+        group.assert_not_called();direct.assert_not_called()
+        if result is not None:self.assertFalse(result['group_absent'])
+
+    def test_running_force_stop_retains_exit_status(self):
+        pid=os.fork()
+        if pid==0:
+            os.setsid();time.sleep(15);os._exit(0)
+        try:
+            result=self.b.stop(pid,True)
+            self.assertTrue(result['reaped']);self.assertTrue(result['group_absent'])
+            self.assertEqual(result['exitcode'],-signal.SIGKILL)
+        finally:
+            try:
+                os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+                os.kill(pid,signal.SIGKILL);os.waitpid(pid,0)
+            except ChildProcessError:pass
+
+
+    def owned_child(self, running=False, session=True):
+        read,write=os.pipe()
+        pid=os.fork()
+        if pid==0:
+            os.close(read)
+            if session:os.setsid()
+            os.write(write,b'R');os.close(write)
+            if running:time.sleep(15)
+            os._exit(7)
+        os.close(write)
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(read,selectors.EVENT_READ)
+                self.assertTrue(selector.select(2))
+            self.assertEqual(os.read(read,1),b'R')
+        finally:os.close(read)
+        def clean():
+            try:
+                os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+                os.kill(pid,signal.SIGKILL);os.waitpid(pid,0)
+            except ChildProcessError:pass
+        self.addCleanup(clean)
+        if not running:
+            until=time.monotonic()+2
+            while os.waitid(os.P_PID,pid,os.WEXITED|os.WNOHANG|os.WNOWAIT) is None:
+                self.assertLess(time.monotonic(),until);time.sleep(.005)
+        return pid
+
+    def test_force_before_setsid_uses_owned_direct_child(self):
+        pid=self.owned_child(running=True,session=False)
+        result=self.b.stop(pid,True)
+        self.assertTrue(result['reaped']);self.assertTrue(result['group_absent'])
+        self.assertEqual(result['exitcode'],-signal.SIGKILL)
+
+    def test_normal_deadline_retains_child_for_forced_cleanup(self):
+        pid=self.owned_child(running=True)
+        self.b.REAP=.03
+        with patch.object(self.b.os,'killpg') as group, patch.object(self.b.os,'kill') as direct:
+            result=self.b.stop(pid,False)
+        group.assert_not_called();direct.assert_not_called()
+        self.assertFalse(result['reaped']);self.assertFalse(result['group_absent'])
+        self.b.REAP=.35
+        self.assertTrue(self.b.stop(pid,True)['group_absent'])
+
+    def test_interruption_before_reap_can_retry_owned_child(self):
+        pid=self.owned_child()
+        with patch.object(self.b.os,'waitpid',side_effect=KeyboardInterrupt('before reap')):
+            with self.assertRaises(KeyboardInterrupt):self.b.stop(pid,False)
+        result=self.b.stop(pid,True)
+        self.assertTrue(result['reaped']);self.assertTrue(result['group_absent'])
+        self.assertEqual(result['exitcode'],7)
+
+    def test_interruption_after_reap_retry_never_signals(self):
+        pid=self.owned_child();real_wait=os.waitpid
+        def interrupted(*args):
+            real_wait(*args)
+            raise KeyboardInterrupt('after reap')
+        with patch.object(self.b.os,'waitpid',side_effect=interrupted):
+            with self.assertRaises(KeyboardInterrupt):self.b.stop(pid,False)
+        with patch.object(self.b.os,'killpg') as group, patch.object(self.b.os,'kill') as direct:
+            result=self.b.stop(pid,True)
+        group.assert_not_called();direct.assert_not_called()
+        self.assertFalse(result['reaped']);self.assertFalse(result['group_absent'])
+        self.assertEqual(result['error'],'child ownership absent')
+
+    def test_group_disappearance_timeout_stays_failure(self):
+        pid=self.owned_child();real_group=os.killpg
+        calls=[]
+        def group(group_id,sig):
+            calls.append(sig)
+            if sig:return real_group(group_id,sig)
+            # Simulate an unreaped orphan/D-state group at the observation seam.
+            return None
+        self.b.REAP=.03
+        with patch.object(self.b.os,'killpg',side_effect=group):result=self.b.stop(pid,False)
+        self.assertTrue(result['reaped']);self.assertFalse(result['group_absent'])
+        self.assertEqual(result['exitcode'],7)
+        self.assertEqual(calls[0],signal.SIGKILL);self.assertTrue(all(sig==0 for sig in calls[1:]))
+
+    def test_invalid_or_unowned_pid_never_signaled(self):
+        with patch.object(self.b.os,'killpg') as group, patch.object(self.b.os,'kill') as direct:
+            for pid in (0,-1,True,'123'):
+                with self.assertRaises(ValueError):self.b.stop(pid,True)
+            self.assertFalse(self.b.stop(os.getpid(),True)['group_absent'])
+        group.assert_not_called();direct.assert_not_called()
+
+
 if __name__=='__main__':
     if BEFORE:
         suite=unittest.TestSuite(Supervisor(name) for name in (
