@@ -1,0 +1,36 @@
+{
+  "command": [
+    "python3",
+    "-O",
+    "<private-evidence>/api-identity-counterexample.py"
+  ],
+  "duration_seconds": 0.06730781495571136,
+  "exit_status": 0,
+  "stdout": {
+    "cases": {
+      "six_field_successor": {
+        "error": "target recovery boot changed",
+        "status": "comparison rejected"
+      },
+      "three_field_control": {
+        "status": "comparison accepted"
+      }
+    },
+    "scope": "Conditional successor integration; historical launcher remains oldsession-pinned; no live execution",
+    "source_lines": [
+      344,
+      349,
+      350
+    ],
+    "source_sha256": {
+      "complete-admission/live-admission.py.txt": "7c076f7812ed11b694e4c827c4bbc25fe6f7a370c860cb2c3d8ce4804b92580f",
+      "excerpts/action-callbacks.py.L36-L38.need.txt": "bb3f7ff1e3116562b6f5df3a01682ea54e9a843aa823d6bf4b34b4ed04147281",
+      "excerpts/action-callbacks.py.L58-L65.exact_json.txt": "2931dcaead8d5d7c04b81993d5387cbb79cfad03c5deab120a4b08b12773de3c"
+    },
+    "status": "PASS_SOURCE_COUNTEREXAMPLE"
+  },
+  "stderr": "",
+  "reproduction_sha256": "4fc98ea1f0dcaf1aadf0a8384a3eaf6734806a4258a878681e4b7a8ff566bf48",
+  "phone_operations": 0,
+  "production_source_changed": false
+}

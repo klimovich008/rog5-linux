@@ -177,3 +177,24 @@ identity guard; a source-only optimized-Python reproduction passed in0.0044s.
 Runtime briefing now includes11 sanitized attachments and242 original/extracted
 mappings, with path-sensitive transitive omissions stated explicitly. No new
 seal, input lock, admission or claim was issued.
+
+
+### Additional successor recovery identity counterexample
+
+The historical launcher still pins its old session. The mismatches above concern
+integration with the separately assembled successor; they are not observed
+installed-phone failures. The production runtime remains UNBOUND.
+
+An additional actual-source comparison fails during target recovery: admission
+`discovered_boot()` constructs `{boot_id,bundle,release}` and compares it exactly
+with the prior observation identity. Successor health returns the six-field
+artifact identity, including descriptor hash, board DTB hash and owner. Matching
+shared fields therefore still yields `target recovery boot changed`.
+
+The AST-extracted assignment/conditional and actual `exact_json`/`need` helpers
+accepted the historical three-field control and rejected the six-field successor
+case. The optimized-Python check passed in0.067s; explicit checks remain active
+under `-O`. This qualifies the conditional comparison only, not a full recovery
+flow. [Receipt](2026-09-20-private-recovery-identity-counterexample.json) retains
+source/test hashes and results. No identity fields were discarded to bypass the
+guard, no production code changed, and no hardware operation occurred.
