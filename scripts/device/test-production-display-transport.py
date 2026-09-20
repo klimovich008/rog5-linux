@@ -78,7 +78,7 @@ def peer(directory,scenario,backend_path):
     else:
         mapping={'action-fail':'action-fail','hang':'hang','bad-zero':'bad-zero','wrong-intent':'wrong-scope'}
         component=case.component(directory,mapping.get(scenario,'pass'))
-    b.load_component=lambda _:component
+    b.load_component=lambda _,binding:component
     real_stat=os.fstat
     class Owned:
         def __init__(self,st):self.st=st;self.st_uid=self.st_gid=0
@@ -114,10 +114,13 @@ class Duplex(unittest.TestCase):
         if hashlib.sha256(OLD.read_bytes()).hexdigest()!=OLD_SHA:raise ValueError('historical transport changed')
         cls.source=cls.base/'transport.py';cls.source.write_bytes(OLD.read_bytes())
         cls.before='--before' in sys.argv
-        if not cls.before:subprocess.run(['git','apply',str(PATCH)],cwd=cls.base,check=True,capture_output=True)
+        if not cls.before:
+            subprocess.run(['git','apply',str(PATCH)],cwd=cls.base,check=True,capture_output=True)
+            subprocess.run(['git','apply',str(ROOT/'patches/display-controller/0008-production-staging.patch')],cwd=cls.base,check=True,capture_output=True)
         cls.backend=cls.base/'backend.py'
         cls.backend.write_bytes((ROOT/'scripts/device/fixtures/display-loader/backend-before.py').read_bytes())
         subprocess.run(['git','apply',str(ROOT/'patches/display-controller/0002-production-supervisor.patch')],cwd=cls.base,check=True,capture_output=True)
+        subprocess.run(['git','apply',str(ROOT/'patches/display-controller/0007-production-context.patch')],cwd=cls.base,check=True,capture_output=True)
 
     def setUp(self):
         self.root=Path(tempfile.mkdtemp(dir=self.base));self.out=self.root/'output';self.out.mkdir()
@@ -303,7 +306,7 @@ class Duplex(unittest.TestCase):
         r=self.run_peer();self.assertEqual(r['status'],'COMPONENT_PASS')
         self.assertEqual(self.owner.calls[:2],[143,143])
         original=ast.parse(OLD.read_text());successor=ast.parse(self.source.read_text())
-        for name in ('raw','load','target','sources','stage_plan','stage','ssh_argv','identity'):
+        for name in ('raw','load','ssh_argv','identity'):
             def definition(tree):return ast.dump(next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==name))
             self.assertEqual(definition(original),definition(successor),name)
 

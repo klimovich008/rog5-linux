@@ -299,3 +299,46 @@ Historical private files and input pins are unchanged; this draft cannot be
 substituted into their admitted closure. A future composition must bind all new
 runtime bytes, exact identity and the required busctl JSON interface. No health
 observation, phone contact, candidate or execution authority is produced here.
+
+
+## Production context and source-only staging (offline only)
+
+Apply `0007-production-context.patch` after0002 to the backend, and
+`0008-production-staging.patch` after0003 to the transport. The resulting
+backend is SHA256 `e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098`.
+The fixed cohort is backend, component, endpoint, firmware verifier, provider
+verifier and loader source. The historical initializer/provider/query programs
+are absent; this stage requests no DRM query or separate GPUCC execution.
+The modules, module-once helper and firmware remain independently required
+preexisting payload inputs, verified by the loader before one-use entry.
+
+The initial context keeps the root/tmpfs/namespace and consumed-entry checks.
+Worker/result/cleanup loading uses the retained canonical manifest binding,
+rechecking all six source hashes without treating an already-consumed entry as
+permission to skip cleanup. The checked component bytes execute directly; its
+pinned dependencies use their existing checked-byte reader. This neither grants
+admission nor fabricates observed endpoint identity from manifest fields.
+
+The generated source stager verifies the complete fixed source/manifest input,
+RAM parent and actual endpoint identity before writing a new exclusive namespace.
+It fsyncs files and rechecks context/identity afterward. Caught failures close
+owned descriptors and remove only matching owned inodes; an unknown/replaced
+file is preserved. SIGKILL/crash recovery and malicious privileged mutation are
+not qualified by these caught-exception fixtures. Existing namespace and evidence
+files are never replaced. The caller still owns the host evidence directory.
+
+Host staging preserves the existing worker/SSH credential and source-authority
+checks and reserves40 seconds for the35-second command plus forced closure.
+The receipt explicitly says Python sources only, modules/firmware not staged,
+and no admission granted. The enclosing session supplies its production contract.
+No live source closure, health seal, candidate, claim or deployment is issued.
+The unchanged historical SOURCE/admission pins remain incompatible until a
+separately qualified composition is prepared.
+
+The module archive is3,010,560 bytes; base64 alone would exceed the existing
+3MiB transport request bound. This source-only path does not attempt to sneak
+that payload through the code channel or enlarge the transfer limit. A future
+image/payload composition must bind the already qualified module/firmware inputs.
+`test-production-display-context.py` executes the generated script on a temporary
+filesystem with explicit root/proc/tmpfs/transport fixtures; it never writes to
+actual /run, contacts a phone or loads a kernel module.

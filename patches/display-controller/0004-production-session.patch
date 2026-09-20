@@ -167,7 +167,8 @@
 +        (display_dir/'hardware').mkdir(mode=0o700)
          # Stage code only while no operator window or hardware logger is running.
 -        provider_plan=P.stage(owner,provider_dir/'staging')
-         display_plan=T.stage(owner,display_dir/'staging')
+-        display_plan=T.stage(owner,display_dir/'staging')
++        display_plan=T.stage(owner,display_dir/'staging',contract)
          collect_health(owner,'health-staged')
 -        owner.base(seconds=LOGGER_SECONDS+30)
 -        owner.logger=K.KernelLog(OUTPUT/'kernel-log',target['boot_id'],LOGGER_SECONDS)

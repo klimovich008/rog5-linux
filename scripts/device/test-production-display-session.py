@@ -113,7 +113,8 @@ class Session(unittest.TestCase):
         def provider_stage(*_): self.calls.append('provider-stage'); return {}
         def provider_exchange(*_): raise ValueError('fixture refuses duplicate provider')
         self.s.P = types.SimpleNamespace(stage=provider_stage, ssh_argv=lambda *_: [], exchange=provider_exchange)
-        def stage(*_):
+        def stage(owner,directory,*binding):
+            if not BEFORE:self.assertEqual(binding,(self.contract,))
             self.calls.append('display-stage'); self.offset += self.stage_seconds
             if self.stage_fault: raise self.stage_fault
             return {}

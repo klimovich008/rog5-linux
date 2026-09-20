@@ -8859,6 +8859,8 @@
       "exact_source": false,
       "required_inputs": [
         "patches/display-controller/0002-production-supervisor.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
         "scripts/device/display-component.py",
         "scripts/device/fixtures/display-loader/backend-before.py",
         "scripts/device/load-production-display.py"
@@ -8890,6 +8892,8 @@
       "required_inputs": [
         "patches/display-controller/0001-default-dark-probe-ordering.patch",
         "patches/display-controller/0002-production-supervisor.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
         "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
         "scripts/device/display-component.py",
         "scripts/device/display-endpoint.py",
@@ -8940,6 +8944,8 @@
         "patches/display-controller/0001-default-dark-probe-ordering.patch",
         "patches/display-controller/0002-production-supervisor.patch",
         "patches/display-controller/0003-production-transport.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
         "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
         "scripts/device/display-component.py",
         "scripts/device/display-endpoint.py",
@@ -8996,6 +9002,8 @@
         "patches/display-controller/0004-production-session.patch",
         "patches/display-controller/0005-production-kernel-log.patch",
         "patches/display-controller/0006-production-health.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
         "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
         "scripts/device/display-component.py",
         "scripts/device/display-endpoint.py",
@@ -9057,6 +9065,8 @@
         "patches/display-controller/0002-production-supervisor.patch",
         "patches/display-controller/0003-production-transport.patch",
         "patches/display-controller/0005-production-kernel-log.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
         "scripts/device/display-component.py",
         "scripts/device/display-endpoint.py",
         "scripts/device/fixtures/display-loader/backend-before.py",
@@ -9102,6 +9112,43 @@
         "scripts/host/check-standalone-root.py",
         "scripts/host/isolated-recovery-observation.py",
         "scripts/host/test-check-standalone-root.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-display-context.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/display-controller/0002-production-supervisor.patch",
+        "patches/display-controller/0003-production-transport.patch",
+        "patches/display-controller/0007-production-context.patch",
+        "patches/display-controller/0008-production-staging.patch",
+        "scripts/device/fixtures/display-loader/backend-before.py",
+        "scripts/device/fixtures/display-loader/transport-before.py",
+        "scripts/device/display-component.py",
+        "scripts/device/display-endpoint.py",
+        "scripts/device/display-firmware.py",
+        "scripts/device/display-providers.py",
+        "scripts/device/load-production-display.py",
+        "scripts/device/test-display-endpoint.py"
       ],
       "optional_subchecks": []
     }

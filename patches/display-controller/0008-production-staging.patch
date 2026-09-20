@@ -1,0 +1,92 @@
+--- a/transport.py
++++ b/transport.py
+@@ -13,7 +13,7 @@
+ # + 4 cleanup reap + 1 terminal publication + 2 transport drain = 18.
+ # Admission also reserves two local REAP windows. Bounds are not proof that
+ # uninterruptible kernel work or a detached session has stopped.
+-SOURCE_PINS = {'backend.py': '840ba5ad5c1bfe2059bfc580fb45da4e8f3fef59f8e6627789cfe5ed38904a0d', 'module-io.py': 'c028b4ddd27ed43af9e7eda48c4dd21e5a685a1bda0ee61209eaa12df8f87620', 'load-display.py': '5c298ba05fe7a6f338471cd178a10b49cd9c03914f4a696ad442e7e0dbc1838d', 'endpoint.py': '1c8c173d59a69cc514365844d179813b16d5ae6e7696ecfc9e12ccb999e654ca', 'initialize.py': '373eb2bc855619e19901dd152344407ed3b119c6441e2d57b9716a7423181a38', 'provider-proof.py': 'f73a9c55474fc38645e8b3f83809debc2b5fe1238dd69e291bf3c345e5b294d9', 'provider-backend.py': '38dfdeff0180c9311f721bf76bb15d5b6edbd659dd5ea5466355be64c178faa1', 'provider.py': '3cc937fa611f0a85f75d234f75c8d3123e609735305a601f1077ce7a6a6f8924', 'reprobe.py': 'c2486e2c35ffc180b70d975523431169e338eff3774f14240b2b0353240562a5'}
++SOURCE_PINS = {'backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b'}
+ def need(ok, why):
+     if not ok:
+         raise ValueError(why)
+@@ -46,13 +46,7 @@
+ save=B.save
+ W=load('gpu_transport_worker',D/'oled-startup-live-driver-r1/ssh-worker.py','250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb')
+ SOURCE=dict(clean=True,revision='f02083f40d999bf095670b4c1a937058c7b035f0',worktree_digest='642669b91ba7db4188e039d92d420b25cd666f1b8f7ae4e76dcd35bcb7409e71')
+-QUERY=D/'gpu-query-arm64-r1/a/rog5-gpu-query.deploy'
+-
+-def target(boot):
+-    need(re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',boot) and boot!='946acb59-744e-4bbc-b291-ac6b2e05f3fe','new GPU boot required')
+-    return dict(boot_id=boot,bundle='gpu-136f7-a9b1bc89566205b6',release='7.1.4-g136f75ae869a')
+-
+-STAGE = "\nimport base64,hashlib,importlib.util,json,os,stat\nfrom pathlib import Path\ndef need(ok,why):\n    if not ok: raise ValueError(why)\nneed(os.geteuid()==0,'target root required')\nfiles={n:base64.b64decode(v,validate=True) for n,v in DATA['files'].items()}\nmanifest_raw=base64.b64decode(DATA['manifest'],validate=True)\nmanifest=json.loads(manifest_raw)\nneed(set(files)=={'backend.py', 'provider-proof.py', 'reprobe.py', 'initialize.py', 'provider.py', 'module-io.py', 'endpoint.py', 'load-display.py', 'provider-backend.py'},'fixed staging inventory')\nneed(hashlib.sha256(manifest_raw).hexdigest()==DATA['manifest_sha256'],'manifest input changed')\nneed({n:hashlib.sha256(v).hexdigest() for n,v in files.items()}==manifest['files'],'source input changed')\nneed(sum(map(len,files.values()))<131072,'RAM staging source byte bound')\nquery=base64.b64decode(DATA['query'],validate=True)\nneed(len(query)==542016 and hashlib.sha256(query).hexdigest()==DATA['query_sha256'],'RAM query identity')\nendpoint={'__name__':'staging_endpoint'}\nexec(compile(files['endpoint.py'],'endpoint.py','exec'),endpoint)\nwho=endpoint['identity'](manifest['boot_id'])\ndirectory=Path(DATA['namespace'])\nneed(directory==Path('/run/initramfs')/('rog5-gpu-iommu-display-'+manifest['owner']),'RAM namespace')\nneed(directory.parent.resolve()==directory.parent and directory.parent.stat().st_uid==0\n     and not stat.S_IMODE(directory.parent.stat().st_mode)&0o022,'RAM parent')\nneed(not os.path.lexists('/run/initramfs/rog5-gpu-iommu-display-entered.json') and not os.path.lexists('/run/initramfs/rog5-gpu-iommu-initialize-entered.json'),'prior GPU entry')\nrun_st=Path('/run').lstat();parent_st=directory.parent.lstat()\nneed(stat.S_ISDIR(run_st.st_mode) and run_st.st_uid==run_st.st_gid==0\n     and stat.S_IMODE(run_st.st_mode) in (0o755,0o1777),'RAM root metadata')\nneed(parent_st.st_uid==parent_st.st_gid==0 and stat.S_IMODE(parent_st.st_mode)==0o755\n     and parent_st.st_dev==run_st.st_dev,'RAM parent metadata/device')\ndevice=str(os.major(run_st.st_dev))+':'+str(os.minor(run_st.st_dev))\nmounts=[line.split(' - ',1)[1].split()[0] for line in Path('/proc/self/mountinfo').read_text().splitlines()\n        if line.split()[4]=='/run' and line.split()[2]==device]\nneed(mounts==['tmpfs'],'RAM filesystem')\nneed(type(manifest['owner'])is str and __import__('re').fullmatch('[0-9a-f]{32}',manifest['owner']),'GPU owner')\nneed(manifest['boot_id']!='946acb59-744e-4bbc-b291-ac6b2e05f3fe','source boot refused')\ndirectory.mkdir(mode=0o700)\nfor name,value in dict(files,**{'manifest.json':manifest_raw,'rog5-gpu-query':query}).items():\n    fd=os.open(directory/name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o755 if name=='rog5-gpu-query' else 0o600)\n    try:\n        need(os.write(fd,value)==len(value),'short RAM staging write')\n        os.fsync(fd)\n    finally: os.close(fd)\nfd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)\ntry: os.fsync(fd)\nfinally: os.close(fd)\nspec=importlib.util.spec_from_file_location('staged_backend',directory/'backend.py')\nbackend=importlib.util.module_from_spec(spec);spec.loader.exec_module(backend)\nneed(backend.context(directory,DATA['manifest_sha256'])==manifest,'staged backend context')\nneed(endpoint['identity'](manifest['boot_id'])==who,'identity changed during staging')\nprint(json.dumps(dict(status='PASS_RAM_STAGE',identity=who,namespace=str(directory),\n                     manifest_sha256=DATA['manifest_sha256'],files=manifest['files'],query_sha256=DATA['query_sha256'])))\n"
++STAGE = "PINNED_SOURCES={'backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b'}\n\nimport base64,hashlib,json,os,re,stat\nfrom pathlib import Path\ndef need(ok,why):\n    if not ok:raise ValueError(why)\ndef unique(rows):\n    result={}\n    for key,value in rows:\n        need(key not in result,'duplicate staging key');result[key]=value\n    return result\nneed(type(DATA)is dict and set(DATA)=={'namespace','manifest','manifest_sha256','files'},'stage data schema')\nneed(type(DATA['files'])is dict and set(DATA['files'])==set(PINNED_SOURCES),'fixed staging inventory')\nfiles={}\nfor name,raw in DATA['files'].items():\n    need(type(raw)is str and len(raw)<=87384,'staged source encoding bound')\n    value=base64.b64decode(raw,validate=True)\n    need(0<len(value)<=65536 and hashlib.sha256(value).hexdigest()==PINNED_SOURCES[name],'staged source identity')\n    files[name]=value\nneed(sum(map(len,files.values()))<131072,'RAM staging source byte bound')\nneed(type(DATA['manifest'])is str and len(DATA['manifest'])<=43692,'manifest encoding bound')\nmanifest_raw=base64.b64decode(DATA['manifest'],validate=True)\nneed(0<len(manifest_raw)<=32768 and type(DATA['manifest_sha256'])is str\n     and re.fullmatch('[0-9a-f]{64}',DATA['manifest_sha256'])\n     and hashlib.sha256(manifest_raw).hexdigest()==DATA['manifest_sha256'],'manifest input changed')\nmanifest=json.loads(manifest_raw,object_pairs_hook=unique)\nneed(type(manifest)is dict and set(manifest)=={'format','phase','boot_id','owner','monitor_receipt_sha256','files','artifact_identity'}\n     and manifest['format']=='rog5-gpu-iommu-display-backend-v1' and manifest['phase']=='gpu-iommu-display'\n     and type(manifest['owner'])is str and re.fullmatch('[0-9a-f]{32}',manifest['owner'])\n     and type(manifest['boot_id'])is str and re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',manifest['boot_id'])\n     and manifest['boot_id']!='946acb59-744e-4bbc-b291-ac6b2e05f3fe'\n     and type(manifest['monitor_receipt_sha256'])is str and re.fullmatch('[0-9a-f]{64}',manifest['monitor_receipt_sha256'])\n     and manifest['files']==PINNED_SOURCES,'staging manifest schema/identity')\nneed(manifest_raw==json.dumps(manifest,sort_keys=True,separators=(',',':'),allow_nan=False).encode()+b'\\n','manifest is not canonical')\nartifact=manifest['artifact_identity']\nneed(type(artifact)is dict and set(artifact)=={'boot_id','release','bundle','descriptor_sha256','board_dtb_sha256','owner'}\n     and all(type(v)is str for v in artifact.values()) and artifact['boot_id']==manifest['boot_id']\n     and artifact['owner']==manifest['owner'],'staging artifact identity')\nneed(DATA['namespace']=='/run/initramfs/rog5-gpu-iommu-display-'+manifest['owner'],'RAM namespace')\ndirectory=Path(DATA['namespace'])\nbackend={'__name__':'staging_backend','__file__':str(directory/'backend.py')}\nexec(compile(files['backend.py'],backend['__file__'],'exec'),backend)\nparent=backend['ram_parent']()\nneed(directory.parent==parent,'staging parent differs')\nneed(not os.path.lexists(backend['ENTRY']) and not os.path.lexists(backend['INITIALIZER_ENTRY']),'prior GPU entry')\nendpoint={'__name__':'staging_endpoint','__file__':str(directory/'display-endpoint.py')}\nexec(compile(files['display-endpoint.py'],endpoint['__file__'],'exec'),endpoint)\nreader=endpoint['Endpoint'](lambda boot:dict(artifact))\nwho=reader.identity(manifest['boot_id'])\ncreated=False;held=None;directory_stamp=None;owned=[];stage_error=None\ntry:\n    directory.mkdir(mode=0o700);created=True\n    directory_stamp=directory.lstat()\n    held=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)\n    opened=os.fstat(held)\n    need((opened.st_dev,opened.st_ino)==(directory_stamp.st_dev,directory_stamp.st_ino),'staged directory changed')\n    for name,value in dict(files,**{'manifest.json':manifest_raw}).items():\n        fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=held)\n        recorded=False;file_error=None\n        try:\n            info=os.fstat(fd);owned.append((name,info.st_dev,info.st_ino));recorded=True\n            need(os.write(fd,value)==len(value),'short RAM staging write');os.fsync(fd)\n        except BaseException as failure:\n            file_error=failure\n            if not recorded:\n                # The exclusive file is still held. Recover its identity only\n                # if both descriptor and name agree; never unlink an unknown\n                # replacement when observation itself remains unavailable.\n                try:\n                    info=os.fstat(fd);named=os.stat(name,dir_fd=held,follow_symlinks=False)\n                    if (info.st_dev,info.st_ino)==(named.st_dev,named.st_ino) and stat.S_ISREG(info.st_mode):\n                        owned.append((name,info.st_dev,info.st_ino))\n                except BaseException:pass\n            raise\n        finally:\n            try:os.close(fd)\n            except BaseException:\n                if file_error is None:raise\n    os.fsync(held)\n    need(backend['context'](directory,DATA['manifest_sha256'])==manifest,'staged backend context')\n    need(reader.identity(manifest['boot_id'])==who,'identity changed during staging')\nexcept BaseException as failure:\n    stage_error=failure\n    if created and held is not None:\n        for name,device,inode in reversed(owned):\n            try:\n                current=os.stat(name,dir_fd=held,follow_symlinks=False)\n                if (current.st_dev,current.st_ino)==(device,inode):os.unlink(name,dir_fd=held)\n            except BaseException:pass\n    if created and directory_stamp is not None:\n        try:\n            current=directory.lstat()\n            if (current.st_dev,current.st_ino)==(directory_stamp.st_dev,directory_stamp.st_ino):directory.rmdir()\n        except BaseException:pass\n    raise\nfinally:\n    if held is not None:\n        try:os.close(held)\n        except BaseException:\n            if stage_error is None:raise\nprint(json.dumps(dict(status='PASS_RAM_STAGE',identity=who,namespace=str(directory),\n    manifest_sha256=DATA['manifest_sha256'],files=manifest['files'],scope='python-sources-only',\n    module_payload_staged=False,firmware_staged=False,admission_granted=False)))\n"
+ 
+ def sources():
+     files={name:raw(HERE/name,65536) for name in SOURCE_PINS}
+@@ -64,31 +58,32 @@
+     return dict(phase='gpu-iommu-display',boot_id=owner.admission['boot_id'],owner=owner.admission['owner'],
+                 monitor_receipt_sha256=owner.receipt_sha)
+ 
+-def stage_plan(owner):
++def stage_plan(owner,contract):
+     who=identity(owner)
+     need(re.fullmatch('[0-9a-f]{32}',who['owner']) and re.fullmatch('[0-9a-f]{64}',who['monitor_receipt_sha256']),
+          'staging owner/receipt')
+-    target(who['boot_id'])
++    artifact=contract.expected(who['boot_id'],who['owner'])
++    need(artifact['boot_id']==who['boot_id'] and artifact['owner']==who['owner'],'staging contract differs')
+     files=sources()
+-    query=raw(QUERY,542016)
+-    need(len(query)==542016 and hashlib.sha256(query).hexdigest()==B.QUERY_SHA,'GPU query binary changed')
+-    manifest=dict(who,format='rog5-gpu-iommu-display-backend-v1',files=SOURCE_PINS)
++    manifest=dict(who,format='rog5-gpu-iommu-display-backend-v1',files=SOURCE_PINS,artifact_identity=artifact)
+     manifest_bytes=B.encoded(manifest)
+     manifest_sha=hashlib.sha256(manifest_bytes).hexdigest()
+     namespace='/run/initramfs/rog5-gpu-iommu-display-'+who['owner']
+-    data=dict(query=base64.b64encode(query).decode(),query_sha256=B.QUERY_SHA,namespace=namespace,manifest=base64.b64encode(manifest_bytes).decode(),
++    data=dict(namespace=namespace,manifest=base64.b64encode(manifest_bytes).decode(),
+               manifest_sha256=manifest_sha,files={n:base64.b64encode(v).decode() for n,v in files.items()})
+-    # This payload is generated only from pinned local files, never user code.
+     script='DATA='+repr(data)+'\n'+STAGE
+-    return dict(identity=who,namespace=namespace,manifest_sha256=manifest_sha,script=script,
++    need(len(script.encode())<=3*1024**2,'staging request source bound')
++    return dict(identity=who,artifact_identity=artifact,namespace=namespace,manifest_sha256=manifest_sha,script=script,
+                 script_sha256=hashlib.sha256(script.encode()).hexdigest())
+ 
+-def stage(owner,output):
+-    owner.check()
+-    plan=stage_plan(owner)
++
++def stage(owner,output,contract):
++    owner.check(seconds=40)  # 35-second worker command plus its 5-second forced reap.
++    plan=stage_plan(owner,contract)
+     save(output/'stage-intent.json',{k:v for k,v in plan.items() if k!='script'})
+     request=W.request(json.dumps(dict(format='rog5-one-usb-command-v1',mode='normal',
+                      remote='python3 -I -B -',script=plan['script'],source=SOURCE,timeout=35)).encode())
++    owner.check(seconds=40)
+     reply=W.perform(request,W.load_deployed())
+     save(output/'stage-transport.json',reply)
+     need(reply.get('status')=='PASS_TRANSPORT_COMPLETED' and reply.get('mode')=='normal'
+@@ -96,15 +91,17 @@
+     cmd=reply['command']
+     out=base64.b64decode(cmd['stdout_base64'],validate=True)
+     err=base64.b64decode(cmd['stderr_base64'],validate=True)
+-    need(cmd['returncode']==0 and cmd['timed_out'] is False and cmd['reaped'] is True
++    need(type(cmd['returncode'])is int and cmd['returncode']==0 and cmd['timed_out'] is False and cmd['reaped'] is True
+          and 0<len(out)<=16384 and not err and hashlib.sha256(out).hexdigest()==cmd['stdout_sha256']
+          and hashlib.sha256(err).hexdigest()==cmd['stderr_sha256'],'RAM staging closure/output')
+-    expected=dict(status='PASS_RAM_STAGE',identity=target(owner.admission['boot_id']),
+-                  namespace=plan['namespace'],manifest_sha256=plan['manifest_sha256'],files=SOURCE_PINS,query_sha256=B.QUERY_SHA)
+-    need(B.decode(out)==expected,'RAM staging result differs')
++    expected=dict(status='PASS_RAM_STAGE',identity=contract.expected(owner.admission['boot_id'],owner.admission['owner']),
++                  namespace=plan['namespace'],manifest_sha256=plan['manifest_sha256'],files=SOURCE_PINS,
++                  scope='python-sources-only',module_payload_staged=False,firmware_staged=False,admission_granted=False)
++    need(expected['identity']==plan['artifact_identity'] and B.encoded(B.decode(out))==B.encoded(expected),'RAM staging result differs')
+     owner.check()
+     save(output/'stage-result.json',expected)
+     return plan
++
+ 
+ def ssh_argv(owner,plan):
+     owner.check()

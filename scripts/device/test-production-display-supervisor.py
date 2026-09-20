@@ -86,7 +86,7 @@ class Run:
                 def __getattr__(self, key): return getattr(self.st, key)
             # Only lock ownership is mocked; no actual root authority is granted.
             b.os.fstat = lambda fd: Owned(original_fstat(fd))
-            b.load_component = lambda _: case.component(self.directory, scenario)
+            b.load_component = lambda _, *binding: case.component(self.directory, scenario)
             if scenario == 'entry-interrupt':
                 original_emit = b.Supervisor.emit
                 def emit(supervisor, kind, payload=None):
@@ -165,6 +165,7 @@ class Supervisor(unittest.TestCase):
         cls.source=cls.base/'backend.py';cls.source.write_bytes(OLD.read_bytes())
         if not BEFORE:
             subprocess.run(['git','apply',str(PATCH)],cwd=cls.base,check=True,capture_output=True)
+            subprocess.run(['git','apply',str(ROOT/'patches/display-controller/0007-production-context.patch')],cwd=cls.base,check=True,capture_output=True)
 
     def setUp(self):
         self.b=load(self.source,'bounded_supervisor')
@@ -373,12 +374,12 @@ class Supervisor(unittest.TestCase):
         old=load(OLD,'old_backend')
         self.assertEqual(self.b.LIFETIME,100)
         self.assertGreaterEqual(self.b.LIFETIME-loader.TOTAL_SECONDS,15)
-        for name in ('PINS','ENTRY','INITIALIZER_ENTRY','LOCK','LEASE','CLEANUP','REAP'):
+        for name in ('ENTRY','INITIALIZER_ENTRY','LOCK','LEASE','CLEANUP','REAP'):
             self.assertEqual(getattr(self.b,name),getattr(old,name))
         import ast
         def definition(source,name):
             return ast.dump(next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name==name))
-        for name in ('context','load_component'):
+        for name in ('regular','save'):
             self.assertEqual(definition(self.source.read_text(),name),definition(OLD.read_text(),name))
 
 
