@@ -130,8 +130,18 @@ pub fn capture(pid: i32, sp: u64, fp: u64) -> Result<Trace,String> {
     let mut text=String::new();
     File::open(format!("/proc/{pid}/maps")).map_err(|e| format!("maps-open:{e}"))?
         .take((MAX_MAPS+1) as u64).read_to_string(&mut text).map_err(|e| format!("maps-read:{e}"))?;
-    let mappings=maps(&text)?;
-    walk(&mappings,sp,fp,|address,bytes| read_frame(pid,address,bytes),|| started.elapsed()>=BUDGET)
+    capture_from_maps(&text,sp,fp,|address,bytes| read_frame(pid,address,bytes),|| started.elapsed()>=BUDGET)
+}
+
+fn capture_from_maps(text: &str, sp: u64, fp: u64,
+    read: impl FnMut(u64, &mut [u8;16]) -> io::Result<usize>,
+    mut expired: impl FnMut() -> bool,
+) -> Result<Trace,String> {
+    // The maps read shares the original capture budget. After it expires, no
+    // frame can be admitted; avoid parsing/allocating while the task is stopped.
+    if expired() { return Ok(Trace {frames:Vec::new(),stop:Stop::Deadline}); }
+    let mappings=maps(text)?;
+    walk(&mappings,sp,fp,read,expired)
 }
 
 #[cfg(all(test, not(close_stack)))]
@@ -184,6 +194,45 @@ mod tests {
         let mut m=mapping();m[0].writable=false;assert!(stack_map(&m,0x1000).is_err());
         m=mapping();m.push(m[0].clone());assert!(stack_map(&m,0x1000).is_err());
         assert!(stack_map(&mapping(),0x20000).is_err());
+    }
+    #[test] fn expired_maps_read_stops_before_parsing_or_tracee_read() {
+        // Once the read has spent the budget, even invalid content is irrelevant:
+        // do not spend additional stopped time parsing it or touch tracee memory.
+        let trace=capture_from_maps("malformed",0x1000,0x1010,
+            |_,_|panic!("no late tracee read"),||true).unwrap();
+        assert_eq!(trace,Trace {frames:vec![],stop:Stop::Deadline});
+        let text="1000-20000 rw-p 0 00:00 0 [stack]\n".to_owned()
+            + &"30000-31000 r-xp 0 00:00 0 /fixture.so\n".repeat(1500);
+        assert!(text.len()<=MAX_MAPS);
+        assert!(maps(&text).is_ok());
+        let trace=capture_from_maps(&text,0x1000,0x1010,
+            |_,_|panic!("large expired maps never read"),||true).unwrap();
+        assert_eq!(trace,Trace {frames:vec![],stop:Stop::Deadline});
+    }
+    #[test] fn maps_phase_keeps_validation_and_the_original_deadline() {
+        assert!(capture_from_maps("malformed",0x1000,0x1010,
+            |_,_|panic!("invalid maps never read"),||false).is_err());
+        let text="1000-20000 rw-p 0 00:00 0 [stack]\n";
+        let mut checks=0;
+        let trace=capture_from_maps(text,0x1000,0x1010,
+            |_,_|panic!("expired during parsing never reads"),|| {checks+=1;checks>1}).unwrap();
+        assert_eq!(trace.stop,Stop::Deadline);
+        assert!(trace.frames.is_empty());
+        assert_eq!(checks,2);
+    }
+    #[test] fn unexpired_maps_phase_preserves_frame_and_read_deadline() {
+        let text="1000-20000 rw-p 0 00:00 0 [stack]\n40000-41000 r-xp 1000 00:00 1 /test.so\n";
+        let trace=capture_from_maps(text,0x1000,0x1010,
+            |_,bytes| {record(bytes,0,0x40008);Ok(16)},||false).unwrap();
+        assert_eq!(trace.stop,Stop::End);
+        assert_eq!(trace.frames.len(),1);
+        assert_eq!(trace.frames[0].return_address,0x40008);
+        assert_eq!(trace.frames[0].executable_mapping.as_ref().unwrap().offset,0x1000);
+        let mut checks=0;
+        let trace=capture_from_maps(text,0x1000,0x1010,
+            |_,bytes| {record(bytes,0,0x40008);Ok(16)},|| {checks+=1;checks>2}).unwrap();
+        assert_eq!(trace,Trace {frames:vec![],stop:Stop::Deadline});
+        assert_eq!(checks,3);
     }
     #[test] fn actual_owned_child_stack_and_partial_syscall() {
         use std::{io::{BufRead,BufReader},process::{Command,Stdio}};
