@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "VM last-window removal observed; quit return still unobserved before Mousepad137",
+  "phase": "Guarded VM capture reaches libgobject signal-handler matching; Mousepad137 remains",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "One VM from1b60def8 fails in368.623s: Foot0/Mousepad137. Qualified quit DSO logs WINDOW_REMOVED_ZERO284.890995632 but no APP_QUIT_RETURN or shutdown. No sampling helper was staged. Both apps map/focus, normal VM poweroff and exact input/runtime checks pass; /var unmount still fails. Missing quit return is not proof of call entry or deadlock. Next qualify an explicit last-window gate in the existing bounded PC/stack helper using actual GTK/QEMU-user lifecycle records for selection and the small ARM64 system-VM/API fixture for native ptrace; QEMU-user is not a native ARM64 register target. Arm only after ZERO; invalidate on any later phase, preserve1200ms total/no reset, identity/append-only/detach guards and old sync mode. Do not repeat unchanged VM, widen close grace, rebuild Denial or add another marker. Keep raw diagnostics private. Phone graphics remains independent; physical rows NOT RUN and S06/R01 FAIL unchanged.",
-  "evidence": "test-results/2026-09-20-quit-return-vm.md"
+  "next": "Source2c1f4712: explicit last-window gate qualified,112 active suites PASS203.628s; native ARM64 API PASS3.723s and three retained GTK/Mousepad log replays. One full VM FAIL375.350s Foot0/Mousepad137; capture succeeds300ms after ZERO, PC libgobject+0x31528 strongly attributed to handlers_find by exact binary/source. No quit return/shutdown; stack0 Deadline, caller unknown. Normal poweroff and runtime/input integrity pass; /var unmount FAIL persists. Next measure first-frame read/maps costs in small native ARM64 fixture with realistic mapping volume; preserve64KiB/4frame/15ms stack and1200ms outer bounds. Qualify only a demonstrated scoped improvement before another full VM. Do not infer deadlock, change GLib behavior, widen grace, add markers or rebuild Denial. Raw logs remain private. Phone graphics independent; physical rows NOT RUN, S06/R01 FAIL unchanged.",
+  "evidence": "test-results/2026-09-20-window-gate.md"
 }

@@ -2277,6 +2277,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-quit-return-vm-20260920-r1"
+    },
+    "window_gate_vm": {
+      "status": "Host/native gate PASS; VM FAIL Foot0/Mousepad137; guarded PC in libgobject handlers_find, no caller frame",
+      "source_commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+      "source_tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f",
+      "evidence": {
+        "path": "test-results/2026-09-20-window-gate-qualification.json",
+        "sha256": "3a86c5f79540ac289bbaab4a9fa8cb927b612e66ed2703943a526f5ac467e542",
+        "bytes": 99851
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-window-gate-vm-20260920-r1"
     }
   },
   "denial_phone_linkage": {

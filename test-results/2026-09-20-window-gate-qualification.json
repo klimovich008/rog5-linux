@@ -1,0 +1,2287 @@
+{
+  "schema": 1,
+  "authority": "none; offline host and generic ARM64 VM qualification",
+  "physical_status": "NOT RUN",
+  "starting_commit": "16b7791ee1eac5fc8e6a15b8dd066c6632cd3961",
+  "starting_tree": "3c2d4e721ed2606627ac40d8de527501b3387537",
+  "source": {
+    "commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+    "tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f"
+  },
+  "changed_code": [
+    "scripts/host/test-app-close-probe.py",
+    "scripts/host/test-qemu-logind-runner.py",
+    "scripts/host/test-qemu-logind.py",
+    "tools/qemu-virtio-drm/app-close-probe.rs",
+    "tools/qemu-virtio-drm/app-close-stage.rs"
+  ],
+  "regression_before": {
+    "status": "FAIL",
+    "exit_status": 101,
+    "test": "last_window_prefix_is_ready",
+    "reason": "stage-order-or-unknown-phase",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/before-stage.rs",
+      "sha256": "f5526fd6ad15e584c3b75896dc7df34c78d18433d2ef14a3b613ee645b376eaf",
+      "bytes": 13782
+    },
+    "log": {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/before.log",
+      "sha256": "c5153f690f7643b9b09441a6a94d0a5ac94cc6994cc48e8f845f72c12587344d",
+      "bytes": 629
+    }
+  },
+  "focused": {
+    "probe": {
+      "status": "PASS",
+      "python_cases": 3,
+      "seconds": 15.152
+    },
+    "runner": {
+      "status": "PASS",
+      "cases": 18,
+      "seconds": 0.667
+    },
+    "launcher": {
+      "status": "PASS",
+      "cases": 47,
+      "seconds": 34.125
+    }
+  },
+  "build": {
+    "status": "PASS",
+    "source": {
+      "commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+      "tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f"
+    },
+    "authority": "none; helper builds and retained GTK log replay only",
+    "physical_status": "NOT RUN",
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-window-build-b577a063c4834719",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64:/out:rw",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "--test",
+          "--cfg",
+          "close_ptrace",
+          "--cfg",
+          "close_stack",
+          "--cfg",
+          "close_stage",
+          "--cfg",
+          "close_window",
+          "/out/app-close-probe.rs",
+          "-o",
+          "/out/window-tests"
+        ],
+        "started_utc": "2026-09-20T02:07:16.066611+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 10.447102858975995,
+        "ended_utc": "2026-09-20T02:07:26.513741+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-tests-build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-b577a063c4834719"
+        ],
+        "started_utc": "2026-09-20T02:07:26.514104+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.033926930045709014,
+        "ended_utc": "2026-09-20T02:07:26.548048+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-tests-build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-b577a063c4834719"
+        ],
+        "started_utc": "2026-09-20T02:07:26.548457+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03372823999961838,
+        "ended_utc": "2026-09-20T02:07:26.582199+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-tests-build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-window-build-e1136d46c36341d4",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64:/out:rw",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "--cfg",
+          "close_ptrace",
+          "--cfg",
+          "close_stack",
+          "--cfg",
+          "close_stage",
+          "--cfg",
+          "close_window",
+          "/out/app-close-probe.rs",
+          "-o",
+          "/out/window-release"
+        ],
+        "started_utc": "2026-09-20T02:07:26.588493+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.3226049370132387,
+        "ended_utc": "2026-09-20T02:07:29.911128+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-release-build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-e1136d46c36341d4"
+        ],
+        "started_utc": "2026-09-20T02:07:29.911504+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03397362300893292,
+        "ended_utc": "2026-09-20T02:07:29.945493+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-release-build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-e1136d46c36341d4"
+        ],
+        "started_utc": "2026-09-20T02:07:29.945899+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033839502022601664,
+        "ended_utc": "2026-09-20T02:07:29.979757+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/window-release-build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-window-build-4b5793698a594c7e",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64:/out:rw",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "/out/replay.rs",
+          "-o",
+          "/out/replay"
+        ],
+        "started_utc": "2026-09-20T02:07:29.983828+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 1.0680487339850515,
+        "ended_utc": "2026-09-20T02:07:31.051909+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/replay-build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-4b5793698a594c7e"
+        ],
+        "started_utc": "2026-09-20T02:07:31.052402+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.033874324057251215,
+        "ended_utc": "2026-09-20T02:07:31.086294+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/replay-build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-4b5793698a594c7e"
+        ],
+        "started_utc": "2026-09-20T02:07:31.086701+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03398873400874436,
+        "ended_utc": "2026-09-20T02:07:31.120707+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/replay-build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs",
+        "sha256": "f221f554dc91224d8e94e70855ddfb9c202f2432138386030c21e0e7dc54558e",
+        "bytes": 38158
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs",
+        "sha256": "073fd76496759986a5b6538cd5b3be48f7493cbc17c29fc9b3ebe64fcfdb3338",
+        "bytes": 18056
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs",
+        "sha256": "13c16bf8b9cbad6ff1977b97600dceb58f028d92989542eba8ec2ea95387d37a",
+        "bytes": 10597
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs",
+        "sha256": "7488b4eeb42bad6c3082b4dd22cdfb18de8e6696f47ca132bbc5cba4e101b84c",
+        "bytes": 15860
+      },
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/inside-sync.log": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/inside-sync.log",
+        "sha256": "1f9dd4d6bf10a4a4eb9cb705b76d4c37d25a5de30c314b7a20f1d264ff7b9ed6",
+        "bytes": 1126
+      },
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/hold-sync.log": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/hold-sync.log",
+        "sha256": "99850b34805b99efdde17bbce50009305f881b7e266939da7730577658b5d11f",
+        "bytes": 1138
+      },
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/run/settings-sync.log": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/run/settings-sync.log",
+        "sha256": "f48ecc282535122bc39e9a736cc9be044da5f2497d4909d0d399dc88ab627c8a",
+        "bytes": 1126
+      }
+    },
+    "outputs": {
+      "window-tests": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/window-tests",
+        "sha256": "07242be184f5d882f13f2c2cfba27f461fc1a5218831749efa32915ab1e76a2d",
+        "bytes": 7864336
+      },
+      "window-release": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/window-release",
+        "sha256": "eded8b1659722d306b570e0fff3eac67f94627502183a97074d0b084eff46e33",
+        "bytes": 4763584
+      },
+      "replay": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/replay",
+        "sha256": "d25deac84c5b8772a0b84bfb7f5e5a20eb22a6ab0ed57222a68e44009e53e30a",
+        "bytes": 4657936
+      },
+      "replay.rs": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/replay.rs",
+        "sha256": "618fd861526f10b37fbee897268c312587164a06a7d8d5435a1d30810de050ba",
+        "bytes": 1198
+      }
+    },
+    "seconds": 15.061655003984924,
+    "inputs_unchanged": true
+  },
+  "native_api": {
+    "source": {
+      "commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+      "tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f"
+    },
+    "status": "PASS",
+    "authority": "none; generic ARM64 API fixture only",
+    "physical_status": "NOT RUN",
+    "steps": [
+      {
+        "command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs/init"
+        ],
+        "started_utc": "2026-09-20T02:07:56.152679+00:00",
+        "deadline_seconds": 30,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.1161178500042297,
+        "ended_utc": "2026-09-20T02:07:56.268828+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/init-build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-20T02:07:56.269861+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs",
+        "stdin_sha256": "1ed62c2eaf600c5554e15a4c6837a5cf767cc2a9852503b999877dfdd37bb438",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005949357990175486,
+        "ended_utc": "2026-09-20T02:07:56.275836+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-20T02:07:56.276369+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.004629025992471725,
+        "ended_utc": "2026-09-20T02:07:56.281022+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-window-api-vm-9157c485a1df45b4",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload:/payload:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "1",
+          "-m",
+          "512M",
+          "-accel",
+          "tcg,thread=single",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.stage_api_fixture=1",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "started_utc": "2026-09-20T02:07:56.292028+00:00",
+        "deadline_seconds": 75,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.4736065629986115,
+        "ended_utc": "2026-09-20T02:07:59.765664+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/serial.log",
+          "sha256": "735d06c2c0778d1d081f21c5bf3e8083402e3688c54b964eda423d19eec08eb2",
+          "bytes": 8768
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-api-vm-9157c485a1df45b4"
+        ],
+        "started_utc": "2026-09-20T02:07:59.766169+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03476015699561685,
+        "ended_utc": "2026-09-20T02:07:59.800952+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-api-vm-9157c485a1df45b4"
+        ],
+        "started_utc": "2026-09-20T02:07:59.801401+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.06614810001337901,
+        "ended_utc": "2026-09-20T02:07:59.867574+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "kernel": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+      "bytes": 7049224
+    },
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs",
+        "sha256": "f221f554dc91224d8e94e70855ddfb9c202f2432138386030c21e0e7dc54558e",
+        "bytes": 38158
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs",
+        "sha256": "073fd76496759986a5b6538cd5b3be48f7493cbc17c29fc9b3ebe64fcfdb3338",
+        "bytes": 18056
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs",
+        "sha256": "13c16bf8b9cbad6ff1977b97600dceb58f028d92989542eba8ec2ea95387d37a",
+        "bytes": 10597
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs",
+        "sha256": "7488b4eeb42bad6c3082b4dd22cdfb18de8e6696f47ca132bbc5cba4e101b84c",
+        "bytes": 15860
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+        "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+        "bytes": 3268
+      },
+      "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/window-tests": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/arm64/window-tests",
+        "sha256": "07242be184f5d882f13f2c2cfba27f461fc1a5218831749efa32915ab1e76a2d",
+        "bytes": 7864336
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-app-close-probe.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-app-close-probe.py",
+        "sha256": "eb85e4e7b1c837d0bd46694789d4c74435163e503c95eb33ce36a2e15381565b",
+        "bytes": 6641
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libc.so.6": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libc.so.6",
+        "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+        "bytes": 1853736
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/ld-linux-aarch64.so.1": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/ld-linux-aarch64.so.1",
+        "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d",
+        "bytes": 201832
+      },
+      "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm.py": {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm.py",
+        "sha256": "9a09c8043db7acb3ed07feb06a855d140e0b9a01955341fcf78b1e211151e205",
+        "bytes": 6615
+      }
+    },
+    "build_container": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "qemu_container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload/stage-tests",
+        "sha256": "07242be184f5d882f13f2c2cfba27f461fc1a5218831749efa32915ab1e76a2d",
+        "bytes": 7864336
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload/replay",
+        "sha256": "d25deac84c5b8772a0b84bfb7f5e5a20eb22a6ab0ed57222a68e44009e53e30a",
+        "bytes": 4657936
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload/lifecycle-0.log",
+        "sha256": "1f9dd4d6bf10a4a4eb9cb705b76d4c37d25a5de30c314b7a20f1d264ff7b9ed6",
+        "bytes": 1126
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload/lifecycle-1.log",
+        "sha256": "99850b34805b99efdde17bbce50009305f881b7e266939da7730577658b5d11f",
+        "bytes": 1138
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/payload/lifecycle-2.log",
+        "sha256": "f48ecc282535122bc39e9a736cc9be044da5f2497d4909d0d399dc88ab627c8a",
+        "bytes": 1126
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs/stage/guest.sh",
+        "sha256": "210dd3bf6aa44180a4538bb0d176faa267a2bd0641269ab3c9e7cbba576a3bb2",
+        "bytes": 1022
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs/init",
+        "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+        "bytes": 3352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/initramfs.gz",
+        "sha256": "5c4bea5809a2d24f7a6eca0a36f27707659471449b6f44220454b277d8a77c4e",
+        "bytes": 2307
+      }
+    ],
+    "seconds": 3.722526272002142,
+    "inputs_unchanged": true,
+    "serial": {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm-r1/serial.log",
+      "sha256": "735d06c2c0778d1d081f21c5bf3e8083402e3688c54b964eda423d19eec08eb2",
+      "bytes": 8768
+    }
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+    "source_tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 203.62800030905055
+  },
+  "active_summary": {
+    "counts": {
+      "PASS": 112,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    }
+  },
+  "active_report": {
+    "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/active-report/summary.json",
+    "sha256": "5c27c1b2390a6f4a2aba988a1264420617d47981477da36e742724e09bf072f7",
+    "bytes": 123312
+  },
+  "review": {
+    "agent": "window_gate_review",
+    "result": "No blocking findings in five-file diff; read-only source review, no execution",
+    "limits": "ZERO is public-list observation, not proof of quit-call entry or continuously empty state. One-window mode refuses extra removals."
+  },
+  "scope_limits": [
+    "GTK and Mousepad logs were replayed from previously executed QEMU-user fixtures, not rerun GTK sessions",
+    "Native ptrace tests executed in a small ARM64 system VM against an owned sleep process with fixture identity and lifecycle records",
+    "Native API helper source matches frozen source; full Denial harness separately compiles release helper with LTO flags",
+    "No phone operations, signing, candidate, claims or protected-storage mutations"
+  ],
+  "setup_corrections": [
+    "Initial standalone rustc wrapper needed explicit disk-backed TMPDIR; output also had to reside inside that writable mount. Both initial compile attempts failed before regression execution."
+  ],
+  "files": [
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/checks.py",
+      "sha256": "2fff4831b85d121e2a335ee79cf852793923f4d1286b1c30b19c28d0940b5bef",
+      "bytes": 3884
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/api-vm.py",
+      "sha256": "9a09c8043db7acb3ed07feb06a855d140e0b9a01955341fcf78b1e211151e205",
+      "bytes": 6615
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/active-worker.py",
+      "sha256": "9bc9be62924e018638c347c4765313661024b1797171b0f32b90fd75fce7c945",
+      "bytes": 1004
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/active-command.json",
+      "sha256": "e1e743d6a801680344001c744342d7743776229430cc06ad5f77366b5ac005c3",
+      "bytes": 1384
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/host-probe.log",
+      "sha256": "8757dfb1a7f01ccdb22db51fcff508ac65b6b265d2c1dbe9a79d7b7fd67545c9",
+      "bytes": 9861
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/host-runner.log",
+      "sha256": "f631aa7bcfd7aad59211197dc7a7274f087bd79a90e75e5931087399657be949",
+      "bytes": 117
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-window-gate-20260920-r1/host-launcher.log",
+      "sha256": "ef52b1026ac1ce6fb1524407565b0381ff54431b601cdf7c4d378babf36216a0",
+      "bytes": 147
+    }
+  ],
+  "full_vm": {
+    "source": {
+      "commit": "2c1f47121ba75c4eb74b337bfd52464e621ec043",
+      "tree": "3b42caab497f9f998bee2a83f107b13ee7e2a29f",
+      "worktree_status": "",
+      "dirty": false
+    },
+    "command": [
+      "/usr/bin/python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+      "--runtime-view",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root",
+      "--runtime-receipt",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+      "--qemu-image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--toolchain-image",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "--libc",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "--libloading",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "--output",
+      "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1",
+      "--session-archive",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+      "--session-receipt",
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+      "--host-render-node",
+      "/dev/dri/renderD128",
+      "--observe-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+      "--close-only",
+      "--settings-sync-diagnostic",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "--linker-cache",
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2",
+      "--tcg-thread",
+      "single",
+      "--hwdb-cache",
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared",
+      "--disable-mops",
+      "--device-readiness-20s",
+      "--app-close-probe",
+      "--app-close-ptrace",
+      "--app-close-stack",
+      "--app-close-after-window"
+    ],
+    "status": "FAIL",
+    "seconds": 375.3495744909742,
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-build-e4a8d022fe004345",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:rw",
+          "--env",
+          "TMPDIR=/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "--crate-name=logind_seat_probe",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "-C",
+          "lto=thin",
+          "-C",
+          "codegen-units=1",
+          "-C",
+          "strip=debuginfo",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1=/logind-fixture",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/logind-seat-probe",
+          "--extern",
+          "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--extern",
+          "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "-L",
+          "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+        ],
+        "started_utc": "2026-09-20T02:10:56.882918+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 6.037007256003562,
+        "ended_utc": "2026-09-20T02:11:02.919953+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-build-e4a8d022fe004345"
+        ],
+        "started_utc": "2026-09-20T02:11:02.920384+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.034996560018043965,
+        "ended_utc": "2026-09-20T02:11:02.955401+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-build-e4a8d022fe004345"
+        ],
+        "started_utc": "2026-09-20T02:11:02.955813+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.034861639025621116,
+        "ended_utc": "2026-09-20T02:11:02.990692+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-build-b0a9770117b742f3",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:rw",
+          "--env",
+          "TMPDIR=/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "--crate-name=pam_session",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "-C",
+          "lto=thin",
+          "-C",
+          "codegen-units=1",
+          "-C",
+          "strip=debuginfo",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1=/logind-fixture",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-pam-session.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/pam-session",
+          "--extern",
+          "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--extern",
+          "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "--cfg",
+          "denial_session",
+          "-L",
+          "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+        ],
+        "started_utc": "2026-09-20T02:11:02.991929+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 6.63758354599122,
+        "ended_utc": "2026-09-20T02:11:09.629532+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-build-b0a9770117b742f3"
+        ],
+        "started_utc": "2026-09-20T02:11:09.629951+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03486945299664512,
+        "ended_utc": "2026-09-20T02:11:09.664838+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-build-b0a9770117b742f3"
+        ],
+        "started_utc": "2026-09-20T02:11:09.665244+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.034814532031305134,
+        "ended_utc": "2026-09-20T02:11:09.700091+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-build-c13211c0d6394588",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1:rw",
+          "--env",
+          "TMPDIR=/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "--crate-name=app_close_probe",
+          "-Dwarnings",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-C",
+          "opt-level=2",
+          "-C",
+          "lto=thin",
+          "-C",
+          "codegen-units=1",
+          "-C",
+          "strip=debuginfo",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1=/logind-fixture",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/app-close-probe",
+          "--extern",
+          "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+          "--extern",
+          "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+          "--cfg",
+          "close_ptrace",
+          "--cfg",
+          "close_stack",
+          "--cfg",
+          "close_stage",
+          "--cfg",
+          "close_window",
+          "-L",
+          "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+        ],
+        "started_utc": "2026-09-20T02:11:09.701724+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 7.485229866986629,
+        "ended_utc": "2026-09-20T02:11:17.186974+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-build-c13211c0d6394588"
+        ],
+        "started_utc": "2026-09-20T02:11:17.187402+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.034940777986776084,
+        "ended_utc": "2026-09-20T02:11:17.222360+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-build-c13211c0d6394588"
+        ],
+        "started_utc": "2026-09-20T02:11:17.222773+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03487712697824463,
+        "ended_utc": "2026-09-20T02:11:17.257666+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-DROG5_SYSTEMD_PID1",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/init"
+        ],
+        "started_utc": "2026-09-20T02:11:17.258640+00:00",
+        "deadline_seconds": 30,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.1170142040355131,
+        "ended_utc": "2026-09-20T02:11:17.375683+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/init.build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/guest.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.555490+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006720956007484347,
+        "ended_utc": "2026-09-20T02:11:32.562235+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/guest.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-probe.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.562846+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006597995001357049,
+        "ended_utc": "2026-09-20T02:11:32.569462+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-probe.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-user.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.570072+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0068656959920190275,
+        "ended_utc": "2026-09-20T02:11:32.576956+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-user.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/independent-observer.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.577630+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.007150247984100133,
+        "ended_utc": "2026-09-20T02:11:32.584806+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/independent-observer.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-linker-cache.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.585471+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0073307890561409295,
+        "ended_utc": "2026-09-20T02:11:32.592825+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-linker-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-denial.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.593512+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.007023267040494829,
+        "ended_utc": "2026-09-20T02:11:32.600559+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-denial.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-denial-prepare.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.601202+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.007160487992223352,
+        "ended_utc": "2026-09-20T02:11:32.608383+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-denial-prepare.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-font-cache.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.609003+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006787385966163129,
+        "ended_utc": "2026-09-20T02:11:32.615808+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-font-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-gtk-im-cache.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.616426+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0067016250104643404,
+        "ended_utc": "2026-09-20T02:11:32.623146+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-gtk-im-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-icon-cache.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.623822+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006714994960930198,
+        "ended_utc": "2026-09-20T02:11:32.630557+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-icon-cache.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-apps.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.631182+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0067317060311324894,
+        "ended_utc": "2026-09-20T02:11:32.637932+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-apps.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/launcher-apps.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.638575+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006538355024531484,
+        "ended_utc": "2026-09-20T02:11:32.645134+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/launcher-apps.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/launcher-evidence.sh"
+        ],
+        "started_utc": "2026-09-20T02:11:32.645738+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.006625415000598878,
+        "ended_utc": "2026-09-20T02:11:32.652382+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/launcher-evidence.sh.syntax.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-20T02:11:32.653843+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs",
+        "stdin_sha256": "71bb307508128ddc6e3683cdf41f8deafbe84ac6855bd68e49315f4d3ab8c5b2",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0109117979882285,
+        "ended_utc": "2026-09-20T02:11:32.664780+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-20T02:11:32.665280+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03516806603875011,
+        "ended_utc": "2026-09-20T02:11:32.700471+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-logind-vm-d4a76c348b62492b",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload:/payload:ro",
+          "--security-opt=no-new-privileges",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "-v",
+          "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/observe:/observe:rw",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=single",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-device",
+          "virtio-gpu-gl-device,xres=540,yres=1224",
+          "-device",
+          "virtio-keyboard-device",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.logind_fixture=1 arm64.nomops",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload",
+          "-name",
+          "rog5-logind-vm-d4a76c348b62492b",
+          "-qmp",
+          "unix:/observe/qmp.sock,server=on,wait=off",
+          "-vnc",
+          "unix:/observe/vnc.sock",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-serial-device",
+          "-chardev",
+          "socket,id=apps,path=/observe/apps.sock,server=on,wait=off",
+          "-device",
+          "virtserialport,chardev=apps,name=rog5.apps,nr=1"
+        ],
+        "started_utc": "2026-09-20T02:11:32.730402+00:00",
+        "deadline_seconds": 440,
+        "status": "PASS",
+        "cleanup_eligible_seconds": 287.40013274899684,
+        "exit_status": 0,
+        "duration_seconds": 310.6358585539856,
+        "ended_utc": "2026-09-20T02:16:43.366287+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.log",
+          "sha256": "69c8ad82e58f82368bc2c1df7f3fe7d60c0356302a852260df15d9cf19123abc",
+          "bytes": 169583
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-logind-vm-d4a76c348b62492b"
+        ],
+        "started_utc": "2026-09-20T02:16:43.367844+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03509211802156642,
+        "ended_utc": "2026-09-20T02:16:43.402955+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-logind-vm-d4a76c348b62492b"
+        ],
+        "started_utc": "2026-09-20T02:16:43.403363+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.035278710012789816,
+        "ended_utc": "2026-09-20T02:16:43.438659+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+        "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+        "bytes": 3268
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-seat-probe.rs",
+        "sha256": "77af2a13553348db6b6d998fd722f8b32be525c101100974b3ec1c9ba03625e4",
+        "bytes": 10806
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-pam-session.rs",
+        "sha256": "e17ec76c2960192927a49f9080e5d8d14ed48c7413d3c233d96ae31c82c6ad88",
+        "bytes": 7184
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-boot.sh",
+        "sha256": "5ff58027b3ec331daf016fe4bb0ca98b42022632d46bb0c6d8563324ca7b60b5",
+        "bytes": 3419
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-session.sh",
+        "sha256": "f4f04ad8482e02cdc05061f71a4f292e4e049077ff218fbc7a82e5da658e84d7",
+        "bytes": 23695
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-user.sh",
+        "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+        "bytes": 1267
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-observer.sh",
+        "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+        "bytes": 3020
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-linker-cache.sh",
+        "sha256": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+        "bytes": 5883
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial.sh",
+        "sha256": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+        "bytes": 17580
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-denial-prepare.sh",
+        "sha256": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+        "bytes": 4236
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+        "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+        "bytes": 9112
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+        "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+        "bytes": 5633
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-icon-cache.sh",
+        "sha256": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+        "bytes": 5150
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+        "bytes": 7049224
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+        "bytes": 5719226
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+        "bytes": 170538
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+        "bytes": 1102
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind.py",
+        "sha256": "859230710305ac8cf676c9ca6327c9c9f4643e0e963dead249eb29c06d598680",
+        "bytes": 47852
+      },
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache": {
+        "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+        "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+        "bytes": 63587
+      },
+      "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json": {
+        "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/result.json",
+        "sha256": "b1119c5bc382f48c87c5fc081c3796aef76c90a3db0ec28e632d7b7d8a8b2a36",
+        "bytes": 7574
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/prepare-qemu-linker-cache.py",
+        "sha256": "02b8412c0272696025a95075c56cba8a9bc4be4e6eb3918dc53e88e11b365a09",
+        "bytes": 13931
+      },
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin": {
+        "path": "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/hwdb.bin",
+        "sha256": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+        "bytes": 13996390
+      },
+      "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json": {
+        "path": "/home/deck/.local/state/rog5-vm-startup-stall-20260919-r1/hwdb-prepared/result.json",
+        "sha256": "0223dc427411af1e6767bc808eca88b5cf4b97a6ebd9316f5eaf732a4820951e",
+        "bytes": 5011
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/stage-qemu-hwdb-cache.py",
+        "sha256": "1a0eb15cd520647ec94519986369a456ca5cfdb7ea1acf7c90f6b86e1736961b",
+        "bytes": 8655
+      },
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz": {
+        "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/session.tar.gz",
+        "sha256": "05c9013043ab83bc441f933b71b6ec1a24912fd348a26114fc586a8c78a1bd17",
+        "bytes": 26746087
+      },
+      "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json": {
+        "path": "/home/deck/.local/state/rog5-wayland-debug-20260913-r1/payload-r1/provenance.json",
+        "sha256": "74bcea1f9273cc0315a4d63c46759b579b18af427471b51301a343f166368c5f",
+        "bytes": 13602
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+        "bytes": 41526
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+        "sha256": "d794b12c80c6abce1093af7f23655d3200a56beb0c655ab53d609e589bee2a05",
+        "bytes": 23220
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-evidence.sh",
+        "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+        "bytes": 1596
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/evidence-writer.rs",
+        "sha256": "cea1ea1fac4eca8af222904d1b3015493e37ad0d3550549c529c4afe12c3aedf",
+        "bytes": 8509
+      },
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png": {
+        "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+        "bytes": 650222
+      },
+      "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer": {
+        "path": "/home/deck/.local/state/rog5-icon-diagnostic-20260913-r1/build/evidence-writer",
+        "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+        "bytes": 398104
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-apps.py",
+        "sha256": "bb9af0f2d73502250a73987d955936890907c8e1ac66c25b7add855280e0246c",
+        "bytes": 11042
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-launcher-protocol.py",
+        "sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+        "bytes": 15214
+      },
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+        "sha256": "e6557b7869d3d6f73b20ec25f5239926e178c40fc14c8713712aea046365e002",
+        "bytes": 72368
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+        "sha256": "91bbab86e1b4a81df93c0321d4d3724326c9a604fa5df57817dad56169f65a24",
+        "bytes": 9998
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-probe.rs",
+        "sha256": "f221f554dc91224d8e94e70855ddfb9c202f2432138386030c21e0e7dc54558e",
+        "bytes": 38158
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-ptrace.rs",
+        "sha256": "7488b4eeb42bad6c3082b4dd22cdfb18de8e6696f47ca132bbc5cba4e101b84c",
+        "bytes": 15860
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stage.rs",
+        "sha256": "073fd76496759986a5b6538cd5b3be48f7493cbc17c29fc9b3ebe64fcfdb3338",
+        "bytes": 18056
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/app-close-stack.rs",
+        "sha256": "13c16bf8b9cbad6ff1977b97600dceb58f028d92989542eba8ec2ea95387d37a",
+        "bytes": 10597
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-editor.sh",
+        "sha256": "0547111e66369891dfbebe29d472b5d803bc34031c822c446eb59a87c8be28d2",
+        "bytes": 2258
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-logind-editor.py",
+        "sha256": "242c04d40c80a3152eca2138ecfcac1cc987cbd89bc7e744f9b85b6bd2ef1f9f",
+        "bytes": 6377
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/qemu-mobile-observer.py",
+        "sha256": "c7dc55b7feca6afddf244d687bad6e407b74c96e52ebe3ffeb03ed416d85ad35",
+        "bytes": 33473
+      },
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib": {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+        "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+        "bytes": 9258
+      }
+    },
+    "outputs": {
+      "payload/hwdb-cache": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/hwdb-cache",
+        "sha256": "f08f47c0b7054020ad7671e78d85b4d0633a4a88887f06e61e63085505484655",
+        "bytes": 13996390
+      },
+      "payload/hwdb-cache.sha256": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/hwdb-cache.sha256",
+        "sha256": "cc686b33c45f02948a0cd8591fa3cc995b3c9c687e66e756bb2b63d138a16660",
+        "bytes": 65
+      },
+      "logind-seat-probe": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/logind-seat-probe",
+        "sha256": "13d9cceb8c7e3d1711955eb26de87d8729dee865d2ffc7acd70821ed66078ff1",
+        "bytes": 552584
+      },
+      "pam-session": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/pam-session",
+        "sha256": "bffcf5eaa028c901de437953ad30f4934578097b9b0814c74305895308bcdddd",
+        "bytes": 564224
+      },
+      "app-close-probe": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/payload/app-close-probe",
+        "sha256": "18b74e9eb49db0b7be98e42c0753ac3c22e67883762d9efea3d0fee6989f1f4d",
+        "bytes": 569624
+      },
+      "stage/denial-render-audit": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/denial-render-audit",
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "bytes": 2
+      },
+      "stage/apps-probe": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/apps-probe",
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "bytes": 2
+      },
+      "stage/apps-observe-token": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/apps-observe-token",
+        "sha256": "8be6c1712b8c1617cffd36ec29f931b75382fcf98fce312a6eeded5a271990ff",
+        "bytes": 48
+      },
+      "stage/evidence-writer": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/evidence-writer",
+        "sha256": "873201eb160d83a017ba21a572d2f67029ba010255b956ee45001df6959d1675",
+        "bytes": 398104
+      },
+      "stage/linker-cache": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/linker-cache",
+        "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654",
+        "bytes": 63587
+      },
+      "stage/linker-cache.sha256": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/linker-cache.sha256",
+        "sha256": "9dd46b5d7c811a265eff48c86d13db5aa315bd5047a1b7912007963cddc3a362",
+        "bytes": 65
+      },
+      "stage/settings-sync-diagnostic.so": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/settings-sync-diagnostic.so",
+        "sha256": "e6557b7869d3d6f73b20ec25f5239926e178c40fc14c8713712aea046365e002",
+        "bytes": 72368
+      },
+      "stage/device-readiness-20s": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/device-readiness-20s",
+        "sha256": "5378796307535df3ec8d8b15a2e2dc5641419c3d3060cfe32238c0fa973f7aa3",
+        "bytes": 3
+      },
+      "initramfs/init": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/init",
+        "sha256": "287e739b69349fca58bd5ddead088591d1d48d6773800dfe229b76c33a51d0f1",
+        "bytes": 3120
+      },
+      "initramfs.gz": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs.gz",
+        "sha256": "c05709e001f2894c1e2fa4234fe06f471e7912c265f19dce859c35033649894f",
+        "bytes": 222467
+      },
+      "initramfs/stage/guest.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/guest.sh",
+        "sha256": "5ff58027b3ec331daf016fe4bb0ca98b42022632d46bb0c6d8563324ca7b60b5",
+        "bytes": 3419
+      },
+      "initramfs/stage/logind-probe.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-probe.sh",
+        "sha256": "f4f04ad8482e02cdc05061f71a4f292e4e049077ff218fbc7a82e5da658e84d7",
+        "bytes": 23695
+      },
+      "initramfs/stage/logind-user.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-user.sh",
+        "sha256": "79b7be38e0dd7966fc1e9518b1a5e9ac01630fcd164d856b9bb85c73b2f7c244",
+        "bytes": 1267
+      },
+      "initramfs/stage/independent-observer.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/independent-observer.sh",
+        "sha256": "8a1fcccfc77ee7fcb0a606d4238ffde10e50dbe7f8b29c1cd0240f5a801d8a8c",
+        "bytes": 3020
+      },
+      "initramfs/stage/logind-linker-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-linker-cache.sh",
+        "sha256": "90faea8c773657738e0c65d267c662ae1522e43766988ccd5cbe56179e3126b6",
+        "bytes": 5883
+      },
+      "initramfs/stage/logind-denial.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-denial.sh",
+        "sha256": "b6ba531b4adffcefcfdf0a2fb6d6b54e7664cdac134978f4b9fa16b713fc2b27",
+        "bytes": 17580
+      },
+      "initramfs/stage/logind-denial-prepare.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-denial-prepare.sh",
+        "sha256": "bbd3a435e6d6babffffa9f9187e74602041f78854e75aaa34dac7aa47548629d",
+        "bytes": 4236
+      },
+      "initramfs/stage/logind-font-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-font-cache.sh",
+        "sha256": "74c895afb370ec4c39ea941e40b0d86882edfbebe63551e8b4e6aa7b43aecdc1",
+        "bytes": 9112
+      },
+      "initramfs/stage/logind-gtk-im-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-gtk-im-cache.sh",
+        "sha256": "1344fdb52f91a4cf483fe9c3c4d00fc79c9a2673bd7f1d904e9ff8fc81034c4b",
+        "bytes": 5633
+      },
+      "initramfs/stage/logind-icon-cache.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-icon-cache.sh",
+        "sha256": "16f21dc4779fad1e5fc0cd79b3a3ffe326918a14516fd3a55e9eca7064fc84ea",
+        "bytes": 5150
+      },
+      "initramfs/stage/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/logind-apps.sh",
+        "sha256": "d794b12c80c6abce1093af7f23655d3200a56beb0c655ab53d609e589bee2a05",
+        "bytes": 23220
+      },
+      "initramfs/stage/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "initramfs/stage/launcher-evidence.sh": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/initramfs/stage/launcher-evidence.sh",
+        "sha256": "60589eeb1700cd010f5500b23232900d5aebf8d1d7a94dd360493fba64a0a8a3",
+        "bytes": 1596
+      },
+      "serial.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.log",
+        "sha256": "69c8ad82e58f82368bc2c1df7f3fe7d60c0356302a852260df15d9cf19123abc",
+        "bytes": 169583
+      },
+      "launcher-evidence.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/launcher-evidence.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "launcher-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/launcher-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "gzip.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/gzip.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-icon-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-icon-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-font-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-font-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "app-close-probe.build.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-denial.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "app-close-probe.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "pam-session.build.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/pam-session.build.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "guest.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/guest.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-denial-prepare.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-denial-prepare.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "independent-observer.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/independent-observer.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-apps.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-apps.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-linker-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-linker-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-gtk-im-cache.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-gtk-im-cache.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-user.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-user.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-probe.sh.syntax.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-probe.sh.syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "logind-seat-probe.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/logind-seat-probe.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "init.build.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/init.build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.absence.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "serial.cleanup.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.cleanup.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "cpio.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/cpio.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "app-close-probe.build.absence.log": {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/app-close-probe.build.absence.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "observation": {
+      "status": "FAIL",
+      "seconds": 375.3495744909742,
+      "error": "RuntimeError: requested UI observation incomplete or failed",
+      "physical": "NOT RUN",
+      "lifecycle": [
+        {
+          "phase": "loaded",
+          "pid": 971,
+          "seconds": "257.206818096",
+          "clock": "CLOCK_MONOTONIC"
+        },
+        {
+          "phase": "APP_RUN_BEGIN",
+          "pid": 971,
+          "seconds": "258.294016672",
+          "clock": "CLOCK_MONOTONIC"
+        },
+        {
+          "phase": "WINDOW_REMOVED_ZERO",
+          "pid": 971,
+          "seconds": "289.033403408",
+          "clock": "CLOCK_MONOTONIC"
+        }
+      ],
+      "stage_durations": {},
+      "poweroff": {
+        "status": "PASS"
+      },
+      "apps_exits": [
+        "OBSERVE launcher app=foot exit=0",
+        "OBSERVE launcher app=mousepad exit=137"
+      ],
+      "unmount_failures": [
+        "[\u001b[0;1;31mFAILED\u001b[0m] Failed unmounting \u001b[0;1;39m/var\u001b[0m."
+      ],
+      "runtime_bytes_and_metadata_unchanged": true,
+      "input_hashes_unchanged": true,
+      "evidence": [
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/serial.log",
+          "sha256": "69c8ad82e58f82368bc2c1df7f3fe7d60c0356302a852260df15d9cf19123abc",
+          "bytes": 169583
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/observe/apps.log",
+          "sha256": "930e948d643d85d441a080430668de6197835ca98ce53b49da2e82c79aaf6ae0",
+          "bytes": 128397
+        }
+      ],
+      "limits": [
+        "One VM observation, not a performance comparison",
+        "Public empty window list does not prove no remaining GApplication holds",
+        "Snapshot/stack evidence only if the guarded capture actually succeeded; candidate frames are not a complete backtrace",
+        "BOOTTIME close clocks are not subtracted from MONOTONIC lifecycle markers",
+        "No phone graphics/input qualification"
+      ],
+      "capture": {
+        "status": "PASS observed instruction; overall VM FAIL",
+        "library": "libgobject-2.0.so.0.8800.3",
+        "file_offset": "0x31528",
+        "helper_elapsed_ms": 300,
+        "interrupt_to_detach_us": 34492,
+        "stack_candidates": 0,
+        "stack_stop": "Deadline",
+        "complete_backtrace": false
+      },
+      "application_observation": {
+        "status": "FAIL",
+        "clean_client_exits": false,
+        "stream_bytes": 128397,
+        "diagnostic_bytes": 52287,
+        "error": "incomplete application observation/cleanup",
+        "protocol": {
+          "status": "PASS",
+          "mapped": {
+            "mousepad": true,
+            "foot": true
+          },
+          "ready": {
+            "mousepad": true,
+            "foot": true
+          },
+          "focus_history": [
+            "mousepad",
+            "foot"
+          ],
+          "presentation": "NOT RUN: no attributed client presentation feedback parsed"
+        }
+      }
+    },
+    "pc_attribution": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgobject-2.0.so.0.8800.3",
+      "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+      "bytes": 462680,
+      "build_id": "619c5b221f2987e8632468b9541d1d41a239d94b",
+      "pc_file_offset": "0x31528",
+      "lr_file_offset_if_same_mapping": "0x31610",
+      "pc_instruction": "cbz w23, 0x31578",
+      "exact_function": "handlers_find: binary callgraph/unwind range plus matching-version source attribution; static symbol/debug information absent",
+      "capture_duration_us": 34492,
+      "helper_elapsed_ms": 300,
+      "stack_candidates": 0,
+      "stack_stop": "Deadline",
+      "inference": "One sample only; does not establish an infinite loop, deadlock or responsible library defect",
+      "function_elf_range": [
+        "0x31290",
+        "0x3181c"
+      ],
+      "source_url": "https://raw.githubusercontent.com/GNOME/glib/2.88.3/gobject/gsignal.c",
+      "source_lines": "handlers_find493\u2013572; handler_match_prepend467\u2013480",
+      "verified_callsites": {
+        "g_signal_handler_find": "0x39124",
+        "g_signal_handlers_block_matched": "0x392dc",
+        "g_signal_handlers_unblock_matched": "0x394bc",
+        "g_signal_handlers_disconnect_matched": "0x3969c",
+        "g_signal_has_handler_pending": "0x3985c"
+      },
+      "lr_interpretation": "0x31610 follows indirect g_slice_alloc(24), verified GOT relocation0x7ff58, inside matching routine; not a recovered caller frame",
+      "review": "window_gate_review independent read-only attribution; no runtime execution",
+      "evidence": [
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-pc-disassembly.txt",
+          "sha256": "b0de0083a162d86cbfe4b479959ff5cb4994d352c2824a5f8a295b94691bfe4c",
+          "bytes": 16311
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-headers.txt",
+          "sha256": "96af596cc77f62a2ba3b31e7864ed6119228123db7eb5d678a137404894575ff",
+          "bytes": 1291
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-build-id.txt",
+          "sha256": "c27366ddb075656faf5f0ffda3d4c0e8bda6d00a586b73338cdbcdc8d8b43e9c",
+          "bytes": 226
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-symbols.txt",
+          "sha256": "ffc45da183bc98a094ac58786046aaa681a3ccfd8e5746ea3782ffe5e3ea5142",
+          "bytes": 57620
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-frames.txt",
+          "sha256": "f28088883054bca8bf06f41cebbd21818bac6fc8869cdbb6187eea4abebcdb7f",
+          "bytes": 796101
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/object-relocations.txt",
+          "sha256": "ebde0a3f4b6eebb4b4d1edaf1448bb53b6e3ffe8d6442e0367da4a4d8f2a0188",
+          "bytes": 109393
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/callers-disassembly.txt",
+          "sha256": "23a3ed1b3d4f0eeab0c99a0a346e0d376138ea38c9a38f560aaf7488fa80ebeb",
+          "bytes": 10486
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/gsignal-2.88.3.c",
+          "sha256": "ff1b19a7a4fd29986ded073ddc9ffce074e48b6705a20d7988f40f9c5780a815",
+          "bytes": 133044
+        }
+      ]
+    },
+    "record": {
+      "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/vm-r1/result.json",
+      "sha256": "655a611afde08e595d081562ea69fa97f96f32fc90a05db5b1f660b4c30a6fe9",
+      "bytes": 106462
+    },
+    "terminal_record": {
+      "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/terminal.json",
+      "sha256": "5752e9dd939ff4654dd18ad8db60f137a7d45eff9cb03fccd1d36a3345633461",
+      "bytes": 12981
+    },
+    "private_commands": [
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/run.py",
+        "sha256": "d7ed4005372f924b85e42db2053a681bb0b5692a2e7707ebeac82c7c93184bf5",
+        "bytes": 3743
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/analyze.py",
+        "sha256": "f8ffb174c3aec8782c44251ee98a7fc6292aa9099c83dd22e07ecaba947b330c",
+        "bytes": 3272
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/command.json",
+        "sha256": "2644fbb83e1865df46c2545d13f66b3c346966e01fe59f1adde9288e99ba645b",
+        "bytes": 2090
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-window-gate-vm-20260920-r1/service-command.json",
+        "sha256": "0811f20c1b687bd9dc7e1fb591c9e0ed940310e812d7ddd93fb81a3df7c42a84",
+        "bytes": 527
+      }
+    ]
+  },
+  "next": "Qualify first saved caller frame in the small native ARM64 fixture with realistic mapping volume; measure maps read/parse/PEEK stages under unchanged64KiB/4frame/15ms and1200ms outer bounds. Only optimize a demonstrated cost. No unchanged full VM, new DSO marker or GLib behavior workaround."
+}

@@ -3575,3 +3575,13 @@ Publish selected observations and hashes; retain raw diagnostic payloads private
 Keep emulation scopes separate: actual GTK under QEMU-user validates callback
 behavior and stage logs; native ARM64 register capture belongs in the existing
 ARM64 system-VM/API fixture. Do not ptrace the host emulator as an ARM64 task.
+
+
+Last-window capture (2026-09-20): qualify new stage selection against retained
+actual lifecycle records and native register capture in a small system VM before
+spending another full session. The375.350s run then produced its first guarded PC
+in the observed interval. For stripped binaries, verify ELF load bias, FDE ranges,
+exported callsites and relocations; a nearby exported symbol label can be wrong.
+Treat zero-frame Deadline as missing evidence, not proof of map-reader cost or
+application deadlock. Measure the first-frame path under unchanged bounds before
+optimizing it or rerunning the full compositor. Keep raw captures private.
