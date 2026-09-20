@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Display-loader ordering repaired offline; production controller integration pending",
+  "phase": "Production display module subset reproducible; controller activation pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Draft loader patch now observes default-dark registration and waits for reaped insertions/framebuffer validation before one actual zero command; EPERM/property0 stays FAIL, independent cleanup retained. Old loader and missing post-zero health gate fail new regressions;17 focused checks and113 active suites PASS. Current panel/production artifacts unchanged. Historical two-module controller remains unmodified and incompatible with the14-module production panel/GPU dependency set. Next: bind and qualify a successor for the exact production closure, ownership and insertion order, with independent cleanup/recovery; no live controller, candidate, claim or Ready request. Phone physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-display-loader-ordering.md"
+  "next": "Current REFGEN/GPUCC/panel/MSM symbol closure packaged inertly:14 modules,3.01MB, identical twins and all member hashes verified.25 semantic tests and114 active suites PASS; old two-module controller remains unchanged. Dependency graph is not activation order; empty firmware metadata is not firmware completeness. Current kernel/artifact pointer unchanged. Next: integrate exact archive validation and current board/firmware/endpoint bindings into the successor controller, qualifying provider order, one-use entry and independent cleanup with the default-dark ordering fix offline. No candidate, signing, claim, phone operation or Ready request. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-20-production-display-modules.md"
 }

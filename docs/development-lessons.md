@@ -3668,3 +3668,20 @@ A bounded handshake made the before/after test deterministic without widening
 production deadlines. Exercise the real loader and driver/core return path; mock
 only hardware/identity boundaries and label the successor unadmitted until its
 complete current module closure and outer ownership contracts are qualified.
+
+
+### Package declared module closure without implying activation (2026-09-20)
+
+The production panel/GPU path needs14 modules where the historical loader handles
+two. Reuse the qualified cohort, verify exact ELF bytes and package only the roots'
+declared symbol closure; depmod may add legitimate transitive edges, but unrelated
+edges must not enlarge the subset. Normalize only explicitly supported schema
+values: this cohort's legacy empty firmware string is not permission to accept
+null/false/zero/objects. Executable ELF fixtures caught both gaps before publication.
+
+Empty .modinfo firmware is not runtime firmware completeness (A660 catalog/DT still
+name firmware). REFGEN/GPUCC supplies and MSM-triggered preparation add activation
+constraints outside symbol dependencies. Keep an inert archive free of implicit
+modprobe, helpers or autostart. Qualified bytes can be repackaged in under a second;
+this packaging change required no kernel rebuild. Declare kmod as a CI dependency
+and record its version rather than relying on incidental runner installation.
