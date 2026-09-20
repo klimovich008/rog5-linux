@@ -6,6 +6,7 @@ locks, health transport, staging and kernel logger effects are explicit fixtures
 The logger owns a real inert child; its 300-second lifetime uses a virtual clock.
 """
 import ast
+import base64
 import copy
 import hashlib
 import json
@@ -179,7 +180,8 @@ class Session(unittest.TestCase):
 
     def owner(self):
         self.s.OUTPUT.mkdir(); pin=self.s.save(self.s.OUTPUT/'entered.json', {'fixture': True})
-        return self.s.Owner(self.ad, self.controller, self.credentials, copy.deepcopy(WHO), pin)
+        return self.s.Owner(self.ad, self.controller, self.credentials, copy.deepcopy(WHO), pin,
+                            **({} if BEFORE else dict(contract=self.contract)))
 
     def test_recovery_reserve_on_every_owner_check(self):
         owner=self.owner(); self.expires=self.s.time.monotonic()+1850
@@ -375,9 +377,79 @@ class Session(unittest.TestCase):
 
     def test_historical_authority_functions_unchanged(self):
         old=ast.parse(FIXTURE.read_text()); new=ast.parse(self.source.read_text())
-        for name in ('load','cohort','collect_health','recovery'):
+        for name in ('load','cohort','recovery'):
             def node(tree): return next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==name)
             self.assertEqual(ast.dump(node(old)),ast.dump(node(new)),name)
+
+    def test_health_collection_binds_production_contract_and_owner(self):
+        owner=self.owner(); bindings=[]
+        def script(role,boot,contract,admitted_owner):
+            bindings.append((role,boot,contract,admitted_owner))
+            return '# inert health collection fixture\n'
+        def validate(value,role,boot,contract,admitted_owner):
+            bindings.append((role,boot,contract,admitted_owner))
+            self.assertEqual(value, {'fixture': True})
+            return dict(status='PASS',identity=copy.deepcopy(WHO))
+        self.s.H=types.SimpleNamespace(script=script,validate=validate,
+            sha=lambda b:hashlib.sha256(b).hexdigest(),A=types.SimpleNamespace(decode=json.loads))
+        def perform(request,_):
+            self.assertEqual(request['script'],'# inert health collection fixture\n')
+            self.assertEqual(request['timeout'],35)
+            raw=b'{"fixture":true}';err=b''
+            return dict(status='PASS_TRANSPORT_COMPLETED',mode='normal',source=self.t.SOURCE,
+                command_invoked=True,command=dict(stdout_base64=base64.b64encode(raw).decode(),
+                    stderr_base64='',stdout_sha256=self.s.H.sha(raw),stderr_sha256=self.s.H.sha(err),
+                    returncode=0,reaped=True,timed_out=False))
+        self.t.SOURCE='fixture-transport';self.t.W=types.SimpleNamespace(request=json.loads,
+            perform=perform,load_deployed=lambda:None)
+        result=self.real_collect_health(owner,'health-binding')
+        self.assertEqual(result['identity'],WHO)
+        self.assertEqual(bindings,[('target',D.BOOT,self.contract,D.OWNER)]*2)
+        self.assertIsNotNone(owner.health_at)
+        path=self.s.OUTPUT/'health-binding'
+        self.assertEqual(json.loads((path/'result.json').read_text()),result)
+        self.assertEqual(json.loads((path/'entered.json').read_text())['identity'],WHO)
+
+    def test_health_transport_closure_hash_guards_remain_exact(self):
+        # Normalize only the reviewed API binding additions. All transport,
+        # receipt/hash, timeout and post-collection owner checks stay identical.
+        old=ast.parse(FIXTURE.read_text());new=ast.parse(self.source.read_text())
+        def fn(tree):return next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='collect_health')
+        node=fn(new)
+        if not BEFORE:
+            node.body=[n for n in node.body if not (isinstance(n,ast.Assign) and
+                any(isinstance(t,ast.Name) and t.id=='binding' for t in n.targets))]
+            for call in ast.walk(node):
+                if isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute) and isinstance(call.func.value,ast.Name) and call.func.value.id=='H' and call.func.attr in ('script','validate'):
+                    call.args=call.args[:-2]
+        self.assertEqual(ast.dump(fn(old)),ast.dump(node))
+
+    def test_health_collection_uses_actual_production_validator(self):
+        h=load(ROOT/'scripts/device/test-production-display-health.py','health_fixture')
+        h.Health.setUpClass();self.addCleanup(h.Health.doClassCleanups)
+        fixture=h.Health();fixture.setUp();self.addCleanup(fixture.doCleanups)
+        self.contract=fixture.contract;owner=self.owner();owner.target=fixture.ident.copy()
+        self.s.H=fixture.m;self.s.H.A.decode=json.loads
+        self.t.SOURCE='fixture-transport'
+        def perform(request,_):
+            compile(request['script'],'<actual-health-script>','exec')
+            raw=json.dumps(fixture.value).encode()
+            return dict(status='PASS_TRANSPORT_COMPLETED',mode='normal',source=self.t.SOURCE,
+                command_invoked=True,command=dict(stdout_base64=base64.b64encode(raw).decode(),
+                    stderr_base64='',stdout_sha256=self.s.H.sha(raw),stderr_sha256=self.s.H.sha(b''),
+                    returncode=0,reaped=True,timed_out=False))
+        self.t.W=types.SimpleNamespace(request=json.loads,perform=perform,load_deployed=lambda:None)
+        result=self.real_collect_health(owner,'actual-health')
+        self.assertEqual(result['identity'],fixture.ident)
+        self.assertTrue(result['current_boot_healthy'])
+        self.assertFalse(result['release_qualified'])
+        owner.health_at=None
+        fixture.value['files']['selection']['text']=fixture.state.replace('state=healthy','state=pending')
+        fixture.m.SEAL['healthy_state_sha256']=fixture.m.sha(fixture.value['files']['selection']['text'].encode())
+        with self.assertRaisesRegex(ValueError,'trial identity'):
+            self.real_collect_health(owner,'invalid-health')
+        self.assertIsNone(owner.health_at)
+        self.assertFalse((self.s.OUTPUT/'invalid-health/result.json').exists())
 
     def test_original_source_admission_guard_retained(self):
         self.ad.__file__=str(self.root/'wrong-admission.py')

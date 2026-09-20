@@ -52,7 +52,17 @@
      need(boot_result['target_identity']==target,'GPU target identity')
      health=controller.results.get('post_capture_health',{})
      closed=controller.results.get('close_capture',{})
-@@ -79,7 +98,7 @@
+@@ -71,15 +90,15 @@
+     return value,target
+ 
+ class Owner:
+-    def __init__(self,ad,controller,credentials,target,entry_sha):
++    def __init__(self,ad,controller,credentials,target,entry_sha,*,contract):
+         self.ad,self.controller,self.credentials=ad,controller,credentials
+         self.target=target;self.admission=dict(boot_id=target['boot_id'],owner=controller.context['owner'])
+-        self.receipt_sha=entry_sha;self.phase=None
++        self.receipt_sha=entry_sha;self.phase=None;self.contract=contract
+         self.started=time.monotonic();self.health_at=None;self.logger=None
      def base(self,seconds=0):
          self.credentials.check()
          admitted=self.ad.common(self.controller.context)
@@ -61,8 +71,22 @@
          need(hashlib.sha256(T.raw(OUTPUT/'entered.json',32768)).hexdigest()==self.receipt_sha, 'GPU session entry changed')
          return True
      def check(self,seconds=5):
-@@ -107,26 +126,17 @@
-     value=H.validate(H.A.decode(out),'target',boot);owner.base()
+@@ -91,7 +110,8 @@
+ def collect_health(owner,label):
+     owner.base(35)
+     directory=OUTPUT/label;directory.mkdir(mode=0o700)
+-    boot=owner.target['boot_id'];script=H.script('target',boot)
++    boot=owner.target['boot_id'];binding=owner.admission['owner']
++    script=H.script('target',boot,owner.contract,binding)
+     save(directory/'entered.json',dict(identity=owner.target,read_only=True,script_sha256=H.sha(script.encode())))
+     request=T.W.request(json.dumps(dict(format='rog5-one-usb-command-v1',mode='normal',remote='python3 -I -B -',
+         script=script,source=T.SOURCE,timeout=35)).encode())
+@@ -104,29 +124,20 @@
+          and type(command.get('returncode')) is int and command['returncode']==0
+          and command.get('reaped') is True and command.get('timed_out') is False and not err,
+          'GPU health command closure/hash')
+-    value=H.validate(H.A.decode(out),'target',boot);owner.base()
++    value=H.validate(H.A.decode(out),'target',boot,owner.contract,binding);owner.base()
      save(directory/'result.json',value);owner.health_at=time.monotonic();return value
  
 -def provider_result(value, owner):
@@ -99,7 +123,7 @@
  
  
  def recovery(ad,controller,credentials):
-@@ -143,82 +153,99 @@
+@@ -143,82 +154,99 @@
                      entered=controller.entered[len(before):],error=str(exc)[:1500])
      save(OUTPUT/'recovery.json',result);return result
  
@@ -131,7 +155,8 @@
 -    owner=None;provider=component=after=logger=fallback=handoff=None;error=None;display_dispatched=False
 +    owner=None;component=after=logger=fallback=None;error=None;display_dispatched=False;health_recovery_errors=[]
      try:
-         owner=Owner(ad,controller,credentials,target,pin)
+-        owner=Owner(ad,controller,credentials,target,pin)
++        owner=Owner(ad,controller,credentials,target,pin,contract=contract)
          collect_health(owner,'health-before')
 -        provider_dir=OUTPUT/'provider';provider_dir.mkdir(mode=0o700)
          display_dir=OUTPUT/'display';display_dir.mkdir(mode=0o700)

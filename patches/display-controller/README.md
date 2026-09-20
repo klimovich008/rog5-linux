@@ -265,3 +265,37 @@ substituted proc/descriptor reads, kmsg I/O and time; no host or phone kmsg is r
 The historical SSH/source command guards remain unchanged, so this patch does
 not make a deployable staging/admission composition. Full-health and staging
 integration, firmware-root lifetime and physical qualification remain open.
+
+
+## Successor full-health protocol (offline only)
+
+`0006-production-health.patch` adapts the existing full-health collector to the
+six-field production contract. The inner sealed root/readiness readers retain
+their three-field identities; the exact endpoint source verifies the outer
+identity before and after collection. Descriptor and current-boot acceptance
+receipts must have the same canonical bytes consumed by runtime rollback.
+The persistent selection must explicitly be healthy for this trial and bundle,
+as well as matching the sealed state hash.
+
+The corrected health helper keeps timers armed. The checker therefore requires
+loaded, active waiting/elapsed timers pointing to the guarded rollback services,
+quiescent successful services with no additional command hooks, and typed D-Bus
+ExecStart values naming only `/run/rog5-native-wifi/runtime rollback`. An active
+probe timer running `systemctl reboot` is rejected. This is inspection, not a
+service action or containment of an arbitrary privileged process. A service
+currently executing is conservatively refused; no retry or timer cancellation
+is introduced. The original physical, root, firmware and source-lock guards
+remain. The session supplies the same admitted contract/owner to the script and
+validator, retaining transport byte hashes, deadline and child-closure checks.
+
+The historical health source is represented by a sanitized fixture. Its only
+normalization replaces the private SSH host fingerprint assignment with a
+synthetic value; the original source SHA256 is
+`738f5d0b6bc6aef9f7b46babd7f53a46103696e8ce9624c21f2454d3de9bcb32`,
+and the normalized fixture SHA256 is
+`5d8aa3e5e61ebcffdabd3f5b32d90c3c5c5b378866de1df69bff92d7ce5f5940`.
+The successor reads the fingerprint from a future private, sealed health input.
+Historical private files and input pins are unchanged; this draft cannot be
+substituted into their admitted closure. A future composition must bind all new
+runtime bytes, exact identity and the required busctl JSON interface. No health
+observation, phone contact, candidate or execution authority is produced here.
