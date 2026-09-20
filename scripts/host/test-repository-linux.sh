@@ -173,6 +173,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-production-display-transport.py
 	scripts/device/test-production-display-session.py
 	scripts/device/test-production-display-health.py
+	scripts/device/test-production-display-health-binding.py
 	scripts/device/test-production-display-context.py
 	scripts/device/test-production-kernel-log.py
 	scripts/device/test-rog5-front-touch.py
