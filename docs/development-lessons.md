@@ -3611,3 +3611,17 @@ CONFIG_PROC_CHILDREN is disabled here, just as CROSS_MEMORY_ATTACH is absent.
 An absent children file is not proof that the process has exited. Synchronize
 short contention workers at a ready barrier; otherwise startup can consume their
 work interval before the operation being measured begins.
+
+
+Native close accounting (2026-09-20): asynchronous diagnostic launch is not
+proof of pre-TERM arming. The loaded instruction sample arrived1.686s after
+window removal despite a384ms helper footer. A verified first CPU record before
+starting contention produced comparable idle/loaded controls without widening
+budgets. Use existing per-thread ticks and context switches before adding more
+intrusive snapshots. Idle completed; load reduced measured CPU share and failed
+close. Neither two different GObject cleanup PCs nor a missing caller proves a
+library defect. Inspect kernel accounting options first: SCHEDSTATS is disabled,
+and elapsed time minus CPU is not runnable wait. Preserve inventory truncation
+while identifying complete CPU records. Keep this VM outcome separate from
+phone graphics readiness and stop unchanged captures once they cease to change
+which code can justifiably be fixed.

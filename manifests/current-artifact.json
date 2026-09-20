@@ -2316,6 +2316,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; VM component only",
       "set_id": "private:rog5-native-mousepad-20260920-r1"
+    },
+    "native_close_capture": {
+      "status": "PASS observations; loaded close FAIL137, idle PASS0; phone NOT RUN",
+      "source_commit": "aad76deef55f48db08ac91ca947d56220a4f05ff",
+      "source_tree": "2ab63558fd7d41e406a254f1ca6b36a062259410",
+      "evidence": {
+        "path": "test-results/2026-09-20-native-close-capture-qualification.json",
+        "sha256": "223062393eaf5b4392c434f9ac9acf087731c624fa985631ce7b391e9cf7228c",
+        "bytes": 71149
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM component only",
+      "set_id": "private:rog5-native-close-capture-20260920-r1"
     }
   },
   "denial_phone_linkage": {
