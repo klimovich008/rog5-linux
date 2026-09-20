@@ -2160,6 +2160,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-close-stack-20260920-r1"
+    },
+    "close_stack_observation": {
+      "status": "API fixture PASS by retained-log reanalysis; full Denial VM FAIL, four stack candidates observed",
+      "source_commit": "bcf3c3368f68cf4e3eab2a9acaa0adbbb6fa65cc",
+      "source_tree": "74bccc6a896ab4d4616568433741d0e8da5d23e6",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-stack-peek-qualification.json",
+        "sha256": "d048183b6e41a5dc5780844b3bfec268cff56e79421e9078322ef865ac061541",
+        "bytes": 59713
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-close-stack-peek-20260920-r1"
     }
   },
   "denial_phone_linkage": {

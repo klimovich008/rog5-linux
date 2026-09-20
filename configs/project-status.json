@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Bounded stack component qualified offline; VM Mousepad close FAIL remains",
+  "phase": "ARM64 stack reader qualified; VM Mousepad close still FAIL with GTK lifecycle candidates",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source f9bea083 adds a stopped-task observer with detach and final identity checks, plus a four-frame stack reader that is not yet wired into the VM. All 24 host Rust cases and three Python wrappers pass, as do ARM64 compilation, five traversal fixtures and the ABI check. The active tier passes 112 tests. Real ARM64 stack capture and VM integration remain NOT RUN. The previous VM snapshot points to g_malloc with an inferred datalist_append caller; Mousepad exit 137 remains unexplained. Next add an explicit stack option to the existing single-stop sampler, qualify bounded output and guard wiring, then freeze inputs for one discriminating VM. Do not repeat the unchanged VM or patch GLib from one sample. Phone physical tests remain NOT RUN; S06/R01 FAIL preserved.",
-  "evidence": "test-results/2026-09-20-close-stack-preparation.md"
+  "next": "Source bcf3c336 replaces the unavailable process_vm_readv API with owned PTRACE_PEEKDATA. The old-reader ENOSYS regression fails; corrected host tests, ARM64 builds and the 112-suite active tier pass. A small exact-kernel ARM64 guest confirms real reads, partial handling and detach; its original ANSI-parser FAIL is retained beside successful reanalysis. One full VM still exits Mousepad137 (Foot0), but captures four unclipped frame candidates through GTK/GObject finalization and the diagnostic interposer. This run records APP_RUN_BEGIN only, not the later application-unref boundary of the previous run; do not combine those stages. Normal VM poweroff passes; /var unmount still fails. Exact GTK source/disassembly supports style-context and CSS-widget-node finalization, as an inference rather than debug-symbol proof. Next prepare and qualify a diagnostic variant without g_object_unref interposition, retaining run/shutdown/settings markers, then use a bounded comparison to test instrumentation sensitivity. Preserve the two-second close acceptance; no GTK/GLib fix is justified yet. Phone physical tests remain NOT RUN; S06/R01 FAIL preserved.",
+  "evidence": "test-results/2026-09-20-close-stack-peek.md"
 }

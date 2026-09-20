@@ -3464,3 +3464,15 @@ partial failure and raw PAC addresses rather than inventing a complete backtrace
 The component passed24 host Rust cases and ARM64 pure/ABI checks; integration
 and real ARM64 stack reads remain separate. No full VM was spent before that
 integration can produce the missing higher-level caller evidence.
+
+Stack-read API preflight (2026-09-20): host success did not prove the retained
+guest enabled CONFIG_CROSS_MEMORY_ATTACH. A full-session attempt was stopped
+after276.23s when that mismatch was found. Force ENOSYS in the owned host test
+tree, then use a small guest with the exact kernel and ABI before the full UI.
+The old reader fails; PTRACE_PEEKDATA succeeds without that optional API, including
+all-ones words, partial reads and detach. The six-case ARM64 guest cost3.10s
+including preparation. Its original parser missed colored Rust success output;
+reanalysis of retained bytes resolved that without another VM. Request colorless
+test output or normalize terminal escapes, preserving the original failure.
+Use unique container names and the existing cleanup owner for compiler steps as
+well as VMs. Keep expensive application qualification separate from API proof.
