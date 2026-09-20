@@ -400,3 +400,42 @@ These results cover host-extracted input filtering and handler-delivered batches
 Locking/RCU/timers use explicit serial substitutes; kernel registration,
 evdev/libinput, ARM64 behavior, touch hardware/rails/PM remain **NOT RUN**.
 No VM or phone operation occurred.
+
+
+### Owned publication proposal: local passes and remaining interruption (2026-09-20)
+
+The next Oracle proposal adds an expectation-specific exclusive writer retaining
+creator/parent descriptors, a v2 failed-publication witness, and coordinated
+publication-cancellation handling in admission, controller and launcher. Global
+receipt writing and the existing authority gates remain unchanged. The bundle
+SHA256 is `02dc32a10c0a4eca9afab4ec4f18f10fedc27d3ba4d875003e75c8d076c2c662`;
+all34 internal checksums pass. Incremental patch SHA256:
+`e9e2927f2db28c66e4611113d7e45f12bc6788c00fe20822f4e2da5afdba7f47`.
+Replacement0011 SHA256:
+`02a3113b4a7754b9151bf7ee5a15999851babed0a357784a3c34c87b8d4744a6`.
+Strict application and reverse applicability on exact disposable source copies
+passed in0.008727s; all8 resulting files and the inline patch match the download.
+
+The coordinator personally ran28new and2targeted existing cases: **30 PASS**,
+0FAIL,0BLOCKED, **99.498733s**, five serial ordinary-user Python3.13.5 `-O`
+batches,512MiB process limits,768MiB/no-swap aggregate scope and90-second batch
+deadlines. This includes real default SIGINT in the inert host fixture, owned
+empty/partial publication, tampering refusal and launcher result handling. It
+does not rerun or supersede the preceding53-case implementation's evidence.
+
+A separate Astra reviewer reproduced an additional first-cancellation defect
+in2.108s using the actual new definitions and unchanged inert fixture. After
+the first writer close succeeds, one KeyboardInterrupt at the second close in
+`publish_expectation` finally causes capture closure and propagation of the same
+exception, but **skips fallback and terminal-result recording**. The cancellation
+is not retained; no witness or result receipt exists. Descriptor inventory is
+unchanged. This is not a repeated interruption of outer cleanup. The coordinator
+inspected the full reproducer/result; this independent run is distinct from the
+30 personally executed cases. Full private evidence remains linked from the
+existing coordinator checkpoint.
+
+The proposal remains **unintegrated**. A same-conversation Pro follow-up carries
+the current source and complete failure. Qualified0010, runtime UNBOUND, one-use
+protections, historical results and installed identities remain unchanged.
+No phone, VM, real claim, signing, candidate or protected-storage operation ran.
+Physical results remain **NOT RUN**.
