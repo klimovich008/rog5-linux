@@ -62,3 +62,24 @@ with facts separated from hypotheses. Save and resume the same session for long
 consultations and test-failure follow-ups. Review proposals against actual code
 and test them; Pro's answer alone is never proof. Existing offline/device and
 private-data constraints remain in force.
+
+
+# Adviser efficiency and bounded parallel work
+
+Standing user direction,2026-09-20: avoid repeated model turns merely to poll
+Oracle. Prefer its existing terminal-session wait (filesystem events with internal
+fallback), preserving the exact session/question and validating the returned
+answer before use. A desktop notification is not automatic Codex task resumption;
+do not claim a webhook/wakeup works unless its supported endpoint is available
+and tested. Do not pause the active goal without the user's explicit choice.
+
+Regular GPT-6 Astra may handle bounded independent investigations, source
+inventories and regression preparation. Preserve Oracle6Pro/Pro for complex
+implementation decisions and review of repeated failures. Verify each requested
+model/effort; the browser's Astra alias alone does not prove non-Pro effort.
+Default to at most three adviser jobs total (one Pro and up to two regular Astra),
+plus the integration coordinator. Start only useful independent tasks; stagger
+large browser uploads and memory-heavy work, retaining host resource guards.
+No paid API fallback, duplicate consultation or additional device coordinator.
+Use short self-contained assignments and targeted exact source attachments rather
+than copying the complete task history into every investigation.

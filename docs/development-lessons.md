@@ -3947,3 +3947,15 @@ For adviser artifacts, compare downloaded bytes with declared hashes before
 using inline code; this delivery differed in a deleted source digest and a test
 label. A stale browser tab is not authoritative for server completion; a fresh
 read-only view resolved it without another consultation.
+
+
+Adviser waiting and parallelism (2026-09-20): repeated goal continuations while
+Pro reasoned added no development evidence. The installed Oracle wait function
+already watches session files; its internal one-second fallback uses no model.
+Use that mechanism and one terminal notification, then validate the matching
+question/answer. CLI terminal error can still require browser retrieval and is
+not proof that Pro reasoning failed. The current session exposes no task-wakeup
+tool; a desktop alert must not be described as automatic task resumption.
+Bound independent regular-Astra investigations separately from Pro decisions,
+with one integration owner and no duplicated prompts. Keep three advisers as a
+ceiling, not a target for empty work.
