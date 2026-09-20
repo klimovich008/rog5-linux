@@ -893,3 +893,18 @@ Full admission and target ownership/activation/root transition/physical tests
 remain NOT RUN. Reuse the verified ingredient set in subsequent source
 preparation; do not rerun unchanged builds or keep testing the known historical
 schema mismatch. No phone, signing, claim or protected-storage operation.
+
+
+The proposed next display-trial ingredients were checked separately against the
+current board pointer: Image30851584bytes SHA256
+`0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a`
+matched in0.043068s; composed DTB104996bytes SHA256
+`deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57`
+matched in0.001918s. Reads were streaming and checked stable file metadata.
+These remain unsigned offline ingredients for7.1.4-rog5-production, not a
+candidate or phone result. The older signed candidate explicitly lacks the
+current review fixes. A limited scope question is pending: prepare one isolated
+trial package and allow read-only phone health/identity checks. Signing, new
+claims, booting and flashing are excluded from that question. No Ready request
+or operator countdown is active; no dependent operation occurred while awaiting
+an answer. The original offline-only restriction remains effective meanwhile.
