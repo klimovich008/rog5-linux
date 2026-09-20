@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production display module subset reproducible; controller activation pending",
+  "phase": "Exact module intake verified; successor firmware path and activation pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Current REFGEN/GPUCC/panel/MSM symbol closure packaged inertly:14 modules,3.01MB, identical twins and all member hashes verified.25 semantic tests and114 active suites PASS; old two-module controller remains unchanged. Dependency graph is not activation order; empty firmware metadata is not firmware completeness. Current kernel/artifact pointer unchanged. Next: integrate exact archive validation and current board/firmware/endpoint bindings into the successor controller, qualifying provider order, one-use entry and independent cleanup with the default-dark ordering fix offline. No candidate, signing, claim, phone operation or Ready request. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-production-display-modules.md"
+  "next": "Strict canonical archive intake and atomic host-only staging implemented: 31 semantic checks and 115 active suites PASS; actual 14-module archive materialized in 0.12s with all bytes/modes verified. Existing A660 firmware/license files and twin archives rehash correctly; current source/DT request names match. No download or rebuild needed. Next: bind verified modules plus retained firmware to the successor board/endpoint and qualify firmware search/switch-root path, provider activation order, one-use entry and independent cleanup offline. Current kernel/pointer and historical controller unchanged; no target payload, candidate, signing, claim, phone or Ready request. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-20-display-module-intake.md"
 }

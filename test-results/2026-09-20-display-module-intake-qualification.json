@@ -1,0 +1,2826 @@
+{
+  "schema": 1,
+  "status": "PASS_HOST_INERT_MODULE_INTAKE",
+  "authority": "none",
+  "starting_commit": "c4d516203ec52d6ff9232265ba9a119f7816acbd",
+  "starting_tree": "3af0ade9e5a2e45ff6a3d2f031bd165a3a7aee4e",
+  "source_commit": "345de08ac583fcfb3fb1f1a7fae8016d5a325410",
+  "source_tree": "e7038e623c4a97976e8c5b05c2e2c4ca758a08e8",
+  "materialize": {
+    "command": [
+      "python3",
+      "-O",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/stage-production-display-modules.py",
+      "/home/deck/.local/state/rog5-production-display-modules-20260920-r1/display-modules-a.tar",
+      "--qualification",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/test-results/2026-09-20-production-display-modules-qualification.json",
+      "--qualification-sha256",
+      "6bf0e36e208fc37c13b3ba0c3495a00ea34be540dc6bd7e4bc1d2a0a95b63d3f",
+      "--output",
+      "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged"
+    ],
+    "seconds": 0.1193350669927895,
+    "exit_status": 0,
+    "stdout": "{\"activation\": \"NOT RUN\", \"archive_sha256\": \"37835ca7455c3f654b5f1de432cf91992550ef1767ed89b641bd3b15f26c87a1\", \"authority\": \"none\", \"firmware\": \"NOT PACKAGED\", \"modules\": 14, \"physical\": \"NOT RUN\", \"qualification_sha256\": \"6bf0e36e208fc37c13b3ba0c3495a00ea34be540dc6bd7e4bc1d2a0a95b63d3f\", \"status\": \"PASS_INERT_MODULE_STAGING\"}\n",
+    "stderr": "",
+    "source_commit": "345de08ac583fcfb3fb1f1a7fae8016d5a325410",
+    "source_tree": "e7038e623c4a97976e8c5b05c2e2c4ca758a08e8",
+    "python_version": "Python 3.13.5",
+    "archive_sha256": "37835ca7455c3f654b5f1de432cf91992550ef1767ed89b641bd3b15f26c87a1",
+    "qualification_sha256": "6bf0e36e208fc37c13b3ba0c3495a00ea34be540dc6bd7e4bc1d2a0a95b63d3f",
+    "status": "PASS_HOST_INERT_MODULE_INTAKE",
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/regulator/qcom-refgen-regulator.ko",
+        "sha256": "10b6ab323bde093168d622139c505d77bb197aed45b75c4a2c23fcea9c0788c0",
+        "bytes": 10968,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/clk/qcom/gpucc-sm8350.ko",
+        "sha256": "f6655f793067d2f968e90e3d9e25df00a2c9ab07c4305ade6da87257ff067f94",
+        "bytes": 23680,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_kms_helper.ko",
+        "sha256": "58c42af96596f2d3f8de1872c6fff12ecbee4281dbc08a8c26753fc38a848560",
+        "bytes": 266248,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/media/cec/core/cec.ko",
+        "sha256": "9768836a5ced017d5de6ede06198c2307d7bb8ab1033d3864d6efc329cda85f8",
+        "bytes": 75920,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/display/drm_display_helper.ko",
+        "sha256": "c898ec6877e0cc8f8982d95eda43a1f88f32dee688544a32bebf04fb42680f85",
+        "bytes": 287712,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/panel/panel-asus-rog5-ams678.ko",
+        "sha256": "79dc4d21db7726fd939acd10d35ce0f681fee07a847074734485c11008d72994",
+        "bytes": 23128,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/clients/drm_client_lib.ko",
+        "sha256": "4bb90e10be99f08c26d133d88c503f008aa34e1fa45fa4f4b4a88cf447b46b85",
+        "bytes": 11752,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/display/drm_dp_aux_bus.ko",
+        "sha256": "354572b78d90c289306222dd97361fdfdce30be5743c3048c0ebc5eef27b7932",
+        "bytes": 14256,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_exec.ko",
+        "sha256": "0d229a2ba442285c46c6781c6bd5bd1c51e1b14f160e70d43fde5b43abb3dfb2",
+        "bytes": 11296,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_gpuvm.ko",
+        "sha256": "d0fa46f8efc6da80351850598b618ad5ba2d864d231b461ab3aad00dacc8539c",
+        "bytes": 49896,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/scheduler/gpu-sched.ko",
+        "sha256": "cca61e1ac9bb3f148e4627fdd6a38e9f3d266e181001171aca634f50f30b4ae4",
+        "bytes": 79352,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/soc/qcom/mdt_loader.ko",
+        "sha256": "24c4d100d127a23354751f4e44b1d4cd1af206862627de863a60436ee84f2232",
+        "bytes": 11088,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/soc/qcom/ubwc_config.ko",
+        "sha256": "a34259b12cd3781037f8179c3793eea4956d54f0abbc42eb7dbad43e2e0cec8a",
+        "bytes": 19840,
+        "mode": "0o644"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/staged/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/msm/msm.ko",
+        "sha256": "39980ab3f730c680e493dade37316133cd6d5047a55a49664a9ead39a822e703",
+        "bytes": 2097264,
+        "mode": "0o644"
+      }
+    ],
+    "manifest_sha256": "ec9e258cce646d6f0981adf6e7d08a3b7817260f2563acbc1f326a14c5e1b2f8",
+    "physical": "NOT RUN",
+    "phone_operations": 0
+  },
+  "firmware_recheck": {
+    "scope": "retained byte identities and current DT request only; no GPU execution",
+    "seconds": 0.007849865010939538,
+    "package_record_sha256": "58b7f3134691d33898fe1aae7db462b98bc970e6cb3a069567753c7272c5bc4f",
+    "source_revision": "b2722d241309a1872446c1d00c2e812bad055f89",
+    "verified_inputs": [
+      {
+        "install_path": "usr/lib/firmware/qcom/a660_sqe.fw",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/qcom/a660_sqe.fw",
+        "size": 43292,
+        "sha256": "d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76"
+      },
+      {
+        "install_path": "usr/lib/firmware/qcom/a660_gmu.bin",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/qcom/a660_gmu.bin",
+        "size": 55252,
+        "sha256": "8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7"
+      },
+      {
+        "install_path": "usr/lib/firmware/qcom/sm8350/a660_zap.mbn",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/qcom/sm8350/a660_zap.mbn",
+        "size": 1054648,
+        "sha256": "5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d"
+      },
+      {
+        "install_path": "usr/share/licenses/rog5-a660-firmware/LICENSE.qcom",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/LICENSES/LICENSE.qcom",
+        "size": 13962,
+        "sha256": "be904cd28cb292b80cdb6cf412ab0d9159d431671e987ad433c1f62e0988a9bc"
+      },
+      {
+        "install_path": "usr/share/licenses/rog5-a660-firmware/NOTICE.qcom",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/LICENSES/NOTICE.qcom",
+        "size": 23966,
+        "sha256": "fa43e1b9a13b341a07adca9dbe73d0f9072d7966fdfe811c01f0dd2872d7309a"
+      },
+      {
+        "install_path": "usr/share/licenses/rog5-a660-firmware/WHENCE",
+        "source": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-r1/WHENCE",
+        "size": 449378,
+        "sha256": "855b6592910c87ba6a73c2543436830775dd0f622d4b82c0cfa6f9406bec3f64"
+      }
+    ],
+    "verified_archives": [
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-package-r1/a.tar",
+        "size": 1658880,
+        "sha256": "83fab937d3b02b295ec42ea389fe13f189d8ac619f1c9241b4e674f7e69d1c53"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-firmware-package-r1/b.tar",
+        "size": 1658880,
+        "sha256": "83fab937d3b02b295ec42ea389fe13f189d8ac619f1c9241b4e674f7e69d1c53"
+      }
+    ],
+    "dtb_sha256": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57",
+    "dtb_command": [
+      "fdtget",
+      "-t",
+      "s",
+      "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/composed-2.dtb",
+      "/soc@0/gpu@3d00000/zap-shader",
+      "firmware-name"
+    ],
+    "dtb_result": {
+      "exit_status": 0,
+      "stdout": "qcom/sm8350/a660_zap.mbn\n",
+      "stderr": ""
+    },
+    "firmware_search_path": "NOT QUALIFIED for successor boot/switch-root",
+    "scm_authentication": "NOT RUN",
+    "physical": "NOT RUN",
+    "phone_operations": 0
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "345de08ac583fcfb3fb1f1a7fae8016d5a325410",
+    "source_tree": "e7038e623c4a97976e8c5b05c2e2c4ca758a08e8",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 206.0237123569823
+  },
+  "counts": {
+    "PASS": 115,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "subcheck_counts": {
+    "SKIPPED": 3
+  },
+  "executed_tests": [
+    {
+      "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.26591657899552956,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-qcom-battmgr-charge-units.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-ncm-tx-timer.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.265828336996492,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-ncm-tx-timer.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-startup-observer.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.8686732060159557,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-startup-observer.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-persistent-ssh-key-files.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.386376005015336,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-persistent-ssh-key-files.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-headless-stage-receiver.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.5075768419774249,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-headless-stage-receiver.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-source-teardown-observation.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.24558317998889834,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-source-teardown-observation.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-capture-isolated-recovery.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.24552922003204003,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-capture-isolated-recovery.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-isolated-recovery-observation.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.2266025420394726,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-isolated-recovery-observation.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-isolated-recovery.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.2671603959752247,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-isolated-recovery.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-r01-controller-replay.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 4.1258637239807285,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-r01-controller-replay.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-isolated-recovery-diagnostics.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.12522752600489184,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-isolated-recovery-diagnostics.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-verified-isolated-recovery-boot.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6483150970307179,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-verified-isolated-recovery-boot.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-verified-kernel-hardware-boot.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.34746687597362325,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-verified-kernel-hardware-boot.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-release-acceptance.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 7.24173394596437,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-release-acceptance.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-network-transfer-stream.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.151630499982275,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-network-transfer-stream.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-wifi-restart-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.30815539904870093,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-wifi-restart-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-deployed-server.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.5671093270066194,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-deployed-server.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-standalone-root.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.3062907629646361,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-standalone-root.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-standalone-boot.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.6532951080007479,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-standalone-boot.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-ordinary-boot-smoke.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 2.8802479350124486,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-ordinary-boot-smoke.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-powered-off-start-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 2.799035665986594,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-powered-off-start-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-repeated-boot-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.9697127839899622,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repeated-boot-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-soak-observation.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.14577412803191692,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-soak-observation.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-soak-evidence-rules.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.909082825994119,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-soak-evidence-rules.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-soak-workload-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.1703703490202315,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-soak-workload-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-soak-runtime-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.3259021409903653,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-soak-runtime-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-soak-file-window.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 5.0096815139986575,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-soak-file-window.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-cpu-frequency-cap.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.48786477802786976,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-cpu-frequency-cap.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-headless-cpu-policy.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.629691127978731,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-headless-cpu-policy.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-server-runtime-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.8302028400357813,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-server-runtime-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-rescue-startup.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.30577517702477053,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-rescue-startup.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-rescue-runtime-evidence.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.2657560589723289,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-rescue-runtime-evidence.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-release-rescue-companion.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.9541446919902228,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-release-rescue-companion.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-check-charging-regulation.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.22729732503648847,
+      "source_sections": [
+        "test_exact_sealed_probe (__main__.Tests.test_exact_sealed_probe) ... skipped 'exact sealed archive integration is explicitly selected'"
+      ],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-check-charging-regulation.py",
+        "-v"
+      ],
+      "subchecks": [
+        {
+          "kind": "unittest",
+          "message": "exact sealed archive integration is explicitly selected",
+          "test_id": "Tests.test_exact_sealed_probe",
+          "status": "SKIPPED",
+          "declared_optional": true,
+          "declaration": {
+            "id": "optional-1",
+            "kind": "unittest",
+            "message": "exact sealed archive integration is explicitly selected",
+            "scope": "subcheck",
+            "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+            "inputs": [
+              "ROG5_H03_TEST_ARCHIVE"
+            ],
+            "test_ids": [
+              "Tests.test_exact_sealed_probe"
+            ]
+          }
+        }
+      ],
+      "subcheck_counts": {
+        "SKIPPED": 1
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-rescue-root-composition.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.8306277379742824,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-rescue-root-composition.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-release-composition.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.48685713403392583,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-release-composition.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-owned-vm.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.38887873594649136,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-owned-vm.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-a01-fixture.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.3469493000302464,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-a01-fixture.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-module-edge.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.46685840998543426,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-module-edge.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-slotb-ram-bundle.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.4272610699990764,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-slotb-ram-bundle.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-standalone-rescue-composition.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.4270184459746815,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-standalone-rescue-composition.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-watchdog-artifact.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4719384990166873,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-watchdog-artifact.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-persistent-root-watchdog.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6275356179685332,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-persistent-root-watchdog.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-persistent-trial-state.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 4.26727743196534,
+      "source_sections": [
+        "test_retained_v1_target_can_acknowledge_v2_recovery (__main__.PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery) ... skipped 'requires explicit retained ARM binary replay'"
+      ],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-persistent-trial-state.py",
+        "-v"
+      ],
+      "subchecks": [
+        {
+          "kind": "unittest",
+          "message": "requires explicit retained ARM binary replay",
+          "test_id": "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery",
+          "status": "SKIPPED",
+          "declared_optional": true,
+          "declaration": {
+            "id": "optional-1",
+            "kind": "unittest",
+            "message": "requires explicit retained ARM binary replay",
+            "scope": "subcheck",
+            "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+            "inputs": [
+              "ROG5_TRIAL_TEST_ARM64=1",
+              "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+            ],
+            "test_ids": [
+              "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+            ]
+          }
+        }
+      ],
+      "subcheck_counts": {
+        "SKIPPED": 1
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-build-persistent-wifi-selector.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.8339119640295394,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-build-persistent-wifi-selector.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rpmh-readback.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.1913878650520928,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rpmh-readback.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rpmh-state-reader.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.18528548901667818,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rpmh-state-reader.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-pmic-rail-reader.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.2863202820299193,
+      "source_sections": [
+        "test_exact_arm_binary (__main__.RailReaderTest.test_exact_arm_binary) ... skipped 'optional ARM64 artifact'"
+      ],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-pmic-rail-reader.py",
+        "-v"
+      ],
+      "subchecks": [
+        {
+          "kind": "unittest",
+          "message": "optional ARM64 artifact",
+          "test_id": "RailReaderTest.test_exact_arm_binary",
+          "status": "SKIPPED",
+          "declared_optional": true,
+          "declaration": {
+            "id": "optional-1",
+            "kind": "unittest",
+            "message": "optional ARM64 artifact",
+            "scope": "subcheck",
+            "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+            "inputs": [
+              "ROG5_RAIL_READER_BINARY"
+            ],
+            "test_ids": [
+              "RailReaderTest.test_exact_arm_binary"
+            ]
+          }
+        }
+      ],
+      "subcheck_counts": {
+        "SKIPPED": 1
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-persistent-power-readiness.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.4465765639906749,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-persistent-power-readiness.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-s12-ufs-vote.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6476295450120233,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-s12-ufs-vote.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-asus-s12-oem-point.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6679122130153701,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-asus-s12-oem-point.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-ath11k-hw11.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.20548299595247954,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-ath11k-hw11.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-pcie-trace.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.14517445105593652,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-pcie-trace.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-activation.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.28706725302617997,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-activation.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-wpa-start.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.1458376799710095,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-wpa-start.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-network-restart.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.8887426150031388,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-network-restart.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-boot.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 8.790751249995083,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-boot.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-buttons-indicator-trial-initramfs.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.47189518797677,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-buttons-indicator-trial-initramfs.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-display-trial-initramfs.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4721551130060107,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-display-trial-initramfs.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-front-touch.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.5074665099964477,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-front-touch.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-physical-key-events.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.1670197729836218,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-physical-key-events.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-observe-local-root-physical-key.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.5470795619767159,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-observe-local-root-physical-key.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-optional-display-runtime.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.6124291730229743,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-optional-display-runtime.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-healthy.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 5.049102594028227,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-healthy.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-finalization.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 14.898579660977703,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-finalization.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-native-wifi-radio-refusal.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 7.681626240955666,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-native-wifi-radio-refusal.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-quiesce-native-usb-data.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.18612702400423586,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-quiesce-native-usb-data.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-native-wifi-discovery.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.12522982998052612,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-native-wifi-discovery.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-controller-bindings.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.1250970270484686,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-controller-bindings.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-wifi-pwrctrl-probe.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.22566522500710562,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-wifi-pwrctrl-probe.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-pmic-pon-reader.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.12492281501181424,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-pmic-pon-reader.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-healthd.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.8704902959871106,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-healthd.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-select-repository-test-tier.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.0554877870017663,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-select-repository-test-tier.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-run-sealed-busybox.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.4882158419932239,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-run-sealed-busybox.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "bwrap",
+        "python3",
+        "qemu-aarch64-static"
+      ]
+    },
+    {
+      "path": "scripts/host/test-review-metadata-checkers.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 2.155241856002249,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-review-metadata-checkers.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "git",
+        "gpg",
+        "gpgv",
+        "gpgconf",
+        "bsdtar",
+        "vercmp"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-lifecycle.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 8.116277283988893,
+      "source_sections": [
+        "NOT RUN external kernel-source comparison; pinned extract is compiled",
+        "PASS behavioral: 27 actual-driver cases (13 probe failure stages), 8 mutation controls; elapsed=7.991614s",
+        "NOT RUN module loading, physical IRQ/input, rail behavior or suspend qualification"
+      ],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-touch-lifecycle.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.7897495200159028,
+      "source_sections": [
+        "NOT RUN external source comparison; pinned actual accounting functions compiled",
+        "PASS behavioral: six actual-core/actual-driver regulator cases + two mutations; elapsed=0.661804s",
+        "NOT RUN physical RPMh/GPIO, terminal devres restoration or hardware recovery"
+      ],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-touch-regulator-errors.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/device/test-ams678-regulator-errors.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4031315019819885,
+      "source_sections": [
+        "NOT RUN external regulator-source comparison; pinned accounting functions compiled",
+        "PASS behavioral: rejected mutation assume-retained: FAIL /home/deck/.local/state/rog5-review-correctness-20260912-r1/build/ams678-regulator-k9rf3uk5/unit.c:341 vote_is(f.panel.supply_vote[rail], AMS678_VOTE_UNKNOWN)",
+        "PASS behavioral: rejected mutation blind-retry: FAIL /home/deck/.local/state/rog5-review-correctness-20260912-r1/build/ams678-regulator-k9rf3uk5/unit.c:319 ams678_er2_plus_dsc_power_off(&f->panel) == -EUCLEAN",
+        "PASS behavioral: rejected mutation skip-other-held: FAIL /home/deck/.local/state/rog5-review-correctness-20260912-r1/build/ams678-regulator-k9rf3uk5/unit.c:360 vote_is(f.panel.supply_vote[!rail], AMS678_VOTE_NONE) && !f.consumers[!rail].enable_count && !f.upstream[!rail].enable_count",
+        "PASS behavioral: eight actual panel/core regulator cases + three mutations; elapsed=1.287293s",
+        "NOT RUN full DRM/DSI callbacks, physical power, devres restoration or recovery across reprobe"
+      ],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-ams678-regulator-errors.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/host/test-rog5-touch-module-build.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6881817989633419,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-rog5-touch-module-build.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bwrap"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.16584697499638423,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-rpmh-binding-guards.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-mobile-dt-guards.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.16579682502197102,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-mobile-dt-guards.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-mobile-touch-providers.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.16610477899666876,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-mobile-touch-providers.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-geni-mode.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4327493960154243,
+      "source_sections": [
+        "NOT RUN external kernel-source comparison; pinned extracts compiled",
+        "NOT RUN adapter registration, hardware protocol/FIFO state, firmware loading, DMA, IRQ or touch"
+      ],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-rog5-geni-mode.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/device/test-gles-readback.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 12.953930489951745,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-gles-readback.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "rustc",
+        "cc",
+        "bwrap"
+      ]
+    },
+    {
+      "path": "scripts/host/test-mobile-runtime-materialization.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.0495506909792311,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-mobile-runtime-materialization.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bwrap",
+        "bsdtar",
+        "vercmp"
+      ]
+    },
+    {
+      "path": "scripts/host/test-denial-arm64-engine-args.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.3874802179634571,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-denial-arm64-engine-args.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "git"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-virtio-drm-prerequisites.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.7286992979934439,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm-prerequisites.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-mobile-observer.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 3.4815256579895504,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-mobile-observer.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-native-capture.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.3872212640126236,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-native-capture.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-screencopy.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 5.693482823960949,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-screencopy.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "gcc",
+        "pkg-config",
+        "wayland-scanner"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-launcher-apps.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 2.416452081000898,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-launcher-apps.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "awk",
+        "timeout",
+        "mkfifo",
+        "sleep"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-launcher-protocol.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.16515015700133517,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-launcher-protocol.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-denial-runtime-linkage.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.0701785529963672,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-denial-runtime-linkage.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "rustc",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-runtime-view.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.44742040702840313,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-runtime-view.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bwrap",
+        "bsdtar",
+        "vercmp"
+      ]
+    },
+    {
+      "path": "scripts/host/test-denial-mobile-session.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.5073381020338275,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-denial-mobile-session.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash"
+      ]
+    },
+    {
+      "path": "scripts/host/test-denial-session-payload.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.22584386396920308,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-denial-session-payload.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-logind-runner.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 37.812868228007574,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind-runner.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "bash",
+        "cat",
+        "head",
+        "timeout",
+        "cc",
+        "mktemp",
+        "od",
+        "python3",
+        "rustc",
+        "stat",
+        "stdbuf",
+        "tr"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-font-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.8745539070223458,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-font-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-gtk-im-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4134134810301475,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-gtk-im-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-logind-editor.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.4718128340318799,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind-editor.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-logind-apps.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 4.837390076019801,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-logind-apps.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-apps.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 34.33351969800424,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-apps.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/host/test-launcher-diagnostics.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 12.871566875954159,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-launcher-diagnostics.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "tail",
+        "awk",
+        "timeout",
+        "head",
+        "mktemp",
+        "rm"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-caret-protocol.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.14592908701160923,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-caret-protocol.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-startup-diagnostic.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 4.266130105999764,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-startup-diagnostic.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "tail",
+        "head",
+        "od",
+        "tr",
+        "timeout",
+        "sleep"
+      ]
+    },
+    {
+      "path": "scripts/host/test-settings-sync-diagnostic.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.2108144459780306,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-settings-sync-diagnostic.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc",
+        "nm"
+      ]
+    },
+    {
+      "path": "scripts/host/test-app-close-probe.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 17.109896739013493,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-app-close-probe.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "rustc",
+        "cc"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-linker-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.31863812799565494,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-linker-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3"
+      ]
+    },
+    {
+      "path": "scripts/host/test-qemu-hwdb-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.38728176295990124,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-hwdb-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cpio"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-linker-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.0540745509788394,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-linker-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "sha256sum",
+        "stat",
+        "cp",
+        "ln",
+        "mktemp"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-hwdb-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.11223833396798,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-hwdb-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "bash",
+        "sha256sum",
+        "stat",
+        "cp",
+        "ln",
+        "mktemp",
+        "timeout",
+        "chmod",
+        "mkdir",
+        "rmdir",
+        "rm",
+        "cat"
+      ]
+    },
+    {
+      "path": "scripts/host/test-logind-icon-cache.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.569954278995283,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-logind-icon-cache.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "gtk-update-icon-cache"
+      ]
+    },
+    {
+      "path": "scripts/device/test-display-loader-ordering.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 2.3035538269905373,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-display-loader-ordering.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "cc",
+        "git"
+      ]
+    },
+    {
+      "path": "scripts/device/test-production-display-modules.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.4728375879931264,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-production-display-modules.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "clang",
+        "modinfo"
+      ]
+    },
+    {
+      "path": "scripts/device/test-stage-production-display-modules.py",
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 3.3025736779673025,
+      "source_sections": [],
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/device/test-stage-production-display-modules.py"
+      ],
+      "subchecks": [],
+      "subcheck_counts": {
+        "SKIPPED": 0
+      },
+      "optional_suite_skip": false,
+      "resolved_prerequisites": [
+        "python3",
+        "python3",
+        "clang",
+        "modinfo"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    {
+      "path": "configs/repository-tests.json",
+      "sha256": "7c5e4a27dfe206e8f13501e2095796619f79bbb33de7c4358516df08c1b544f3"
+    },
+    {
+      "path": "patches/display-controller/README.md",
+      "sha256": "1df7e9d584b12eb99c261e237b20226df3a3e63ef181cfca1fa9e93ed64a4519"
+    },
+    {
+      "path": "scripts/device/stage-production-display-modules.py",
+      "sha256": "5421a096fec4551f57b54713ebb3b05988bc3b90d7e65b1829fe74b13c82aa1a"
+    },
+    {
+      "path": "scripts/device/test-stage-production-display-modules.py",
+      "sha256": "26ef12e874677aa49ec761e629c4e536bb2e00a311c7159da640437120200c55"
+    },
+    {
+      "path": "scripts/host/test-repository-linux.sh",
+      "sha256": "31ecb15865a68ece101ca1e84aece2c8cb8ae5e211c2f4c1ee375da605475f4f"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/focused-r1.log",
+      "sha256": "0aaaf9c38b4bec163fd09336aa3cd9e850ec7f8c86ccca4631b0f4a724d9d851",
+      "bytes": 2917
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/focused-r2.log",
+      "sha256": "4e0b17ce09125ad916e275eef1e436e3e01749bbd69df36bc08f60c823ad2cc4",
+      "bytes": 3147
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/growth-before.log",
+      "sha256": "3ef0cf6bb4f100d7e0e33b351ddf8cf9ca6a5e86ddda3d74b4b4801ba2e119b4",
+      "bytes": 884
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/focused-r3.log",
+      "sha256": "f5d5bbc7ff9edbb7b5008c13318f408d335b753d97c3562b987dd608e4f107b6",
+      "bytes": 3256
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/selector.log",
+      "sha256": "085ef8d81947f5696b78dabb948f190bb948a80bff21a14ab5a34e4cc7ff673f",
+      "bytes": 4855
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/materialize.log",
+      "sha256": "352304da28f56aa5859f1b9297de17b8f9bb2042f5b5388279e82eff41429d5e",
+      "bytes": 1827
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/active.log",
+      "sha256": "ef9197f2d238c6b1640d5806291b2d2759aefe59c2067c48cb8919c61971fdcd",
+      "bytes": 110367
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/active-command.json",
+      "sha256": "fdf29f0916f6a6ac5cd5e88cc0ce64a872b164bf6cb2aef18e78a9d627a63f98",
+      "bytes": 1424
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/active-report/summary.json",
+      "sha256": "f7e437e80ac80a996add4e3a8522e48cac0845a7e9276c4513c60ee7cefba648",
+      "bytes": 125166
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-display-module-intake-20260920-r1/active-report/summary.xml",
+      "sha256": "d7e2984be07e448734e1dc41f12c725fa639b701b5efefaa52b6c8d45598d8fa",
+      "bytes": 58466
+    }
+  ],
+  "phone_operations": 0,
+  "physical": "NOT RUN",
+  "target_payload": "NOT STAGED",
+  "firmware_search_path": "NOT QUALIFIED",
+  "hardware_activation_order": "NOT QUALIFIED",
+  "candidate_created": false,
+  "signing": false,
+  "claim_created": false,
+  "claim_consumed": false,
+  "protected_storage_mutation": false,
+  "vm_run": false
+}

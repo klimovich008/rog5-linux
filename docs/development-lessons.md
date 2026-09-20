@@ -3685,3 +3685,20 @@ constraints outside symbol dependencies. Keep an inert archive free of implicit
 modprobe, helpers or autostart. Qualified bytes can be repackaged in under a second;
 this packaging change required no kernel rebuild. Declare kmod as a CI dependency
 and record its version rather than relying on incidental runner installation.
+
+
+### Bound archive reads and separate host staging from activation (2026-09-20)
+
+A size check before hashing does not bound a subsequent read-to-EOF if the file
+can grow. Read only the qualified size plus one EOF byte, validate every canonical
+member before creating staging, and hash copied bytes again. Reject noncanonical
+headers/links/duplicates/trailing archives. Publish complete owned directories
+exclusively; a parent fsync error after rename must preserve the output and the
+original failure. Host umask must not silently change qualified member modes.
+
+Retained A660 firmware bytes/licenses already match current source/DT request
+names. Reuse those inputs; resolve the successor's firmware search and switch-root
+lifetime explicitly. Neither byte/name matching nor a valid host module staging
+directory qualifies target root ownership, firmware authentication or hardware
+activation. The new intake and real 14-module copy took milliseconds; no expensive
+kernel/Denial rebuild was needed for this boundary.
