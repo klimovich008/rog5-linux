@@ -1,0 +1,1257 @@
+--- a/current-callers/live-admission.py.txt
++++ b/current-callers/live-admission.py.txt
+@@ -100,10 +100,494 @@
+ ARTIFACT_FIELDS = {*DISCOVERY_FIELDS, 'descriptor_sha256', 'board_dtb_sha256', 'owner'}
+ 
+ 
++COLD_FORMAT = 'rog5-production-cold-boot-inputs-v1'
++HEALTH_INPUT = 'gpu-iommu-health-r1/health-inputs.json'
++
++
++def cold_schema(spec):
++    """Pure structural producer/consumer check, NOT authentication or issuance."""
++    need(type(spec) is dict and set(spec) == {'source_boot_id','owner','target','trial_id',
++         'ssh_fingerprint','health_inputs_sha256','boot_image_sha256','states'}, 'cold static schema')
++    C.boot_id(spec['source_boot_id'])
++    need(type(spec['owner']) is str and re.fullmatch('[0-9a-f]{32}',spec['owner']), 'cold owner')
++    target=spec['target']; states=spec['states']
++    need(type(target) is dict and set(target)=={'bundle','release','descriptor_sha256','board_dtb_sha256'}
++         and all(type(v) is str for v in target.values())
++         and target['release']=='7.1.4-rog5-production'
++         and re.fullmatch('[a-z0-9][a-z0-9._-]{0,63}',target['bundle'])
++         and '..' not in target['bundle'], 'cold target schema')
++    need(type(states) is dict and set(states)=={'old','pending','healthy'}, 'cold selection states')
++    for value in [target['descriptor_sha256'],target['board_dtb_sha256'],spec['trial_id'],
++                  spec['health_inputs_sha256'],spec['boot_image_sha256'],*states.values()]:
++        need(type(value) is str and re.fullmatch('[0-9a-f]{64}',value), 'cold digest')
++    need(len(set(states.values()))==3, 'cold selection states must differ')
++    need(type(spec['ssh_fingerprint']) is str
++         and re.fullmatch(r'SHA256:[A-Za-z0-9+/]{43}',spec['ssh_fingerprint']), 'cold SSH fingerprint')
++    descriptor=(f'format=rog5-persistent-wifi-health-v1\ntrial_id={spec["trial_id"]}\n'
++                f'primary_bundle={target["bundle"]}\nmode=try-once\n').encode()
++    need(A.sha(descriptor)==target['descriptor_sha256'], 'cold descriptor/trial differs')
++    return A.decode(json.dumps(spec,allow_nan=False))
++
++
++def cold_input_document(files, spec):
++    """Return UNSIGNED data only. No file output, seal replacement or pin update.
++
++    An independently qualified producer must authenticate these exact bytes.
++    The runtime NEVER uses this function to authenticate caller-supplied data.
++    """
++    return input_schema(dict(format=COLD_FORMAT,files=A.decode(json.dumps(files)),
++        production_display_sources=list(PRODUCTION_PATHS),production_cold_boot=cold_schema(spec)))
++
++
++def policy_states(contract=None):
++    if type(contract) is ColdBoot:return contract.check()['states']
++    value=inputs()  # Root fallback has no in-process object; reuse its authenticated lock.
++    if value['format']==COLD_FORMAT:return value['production_cold_boot']['states']
++    return dict(old=C.OLD,pending=C.PENDING,healthy=C.HEALTHY)
++
++
++def binding_record(value):
++    """Validate an expectation, never a target-health or admission proof."""
++    context=receipt(OUTPUT/'context.json',4096)
++    locked=inputs();need(locked['format']==COLD_FORMAT, 'cold binding with legacy inputs')
++    spec=locked['production_cold_boot'];identity=value.get('identity')
++    need(set(value)=={'format','context','inputs_sha256','phase','intent_sha256','identity'}
++         and value['format']=='rog5-production-boot-expectation-v1'
++         and value['inputs_sha256']==INPUTS_SHA and A.exact_json(value['context'],context)
++         and context['owner']==spec['owner'] and value['phase'] in ('observe_target','locate_fallback'),
++         'cold binding receipt schema/context')
++    need(type(identity) is dict and set(identity)==ARTIFACT_FIELDS
++         and A.exact_json(identity,dict(spec['target'],owner=spec['owner'],boot_id=identity['boot_id'])),
++         'cold binding receipt identity')
++    C.boot_id(identity['boot_id']);need(identity['boot_id']!=spec['source_boot_id'], 'cold source boot reused')
++    need(A.sha(R.receipt(OUTPUT/(value['phase']+'-entered.json'),16384))==value['intent_sha256'],
++         'cold binding phase intent changed')
++    return identity['boot_id']
++
++
++def publication_bytes(value):
++    raw=(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
++    need(0<len(raw)<=8192, 'expectation byte bound')
++    return raw
++
++
++def publication_snapshot(fd, path, expected, *, prefix=False):
++    """Read only. A prefix is acceptable ONLY as failed-writer evidence."""
++    before=os.fstat(fd)
++    need(stat.S_ISREG(before.st_mode) and before.st_uid==1000 and before.st_nlink==1
++         and stat.S_IMODE(before.st_mode)==0o600 and 0<=before.st_size<=len(expected),
++         'expectation file metadata')
++    raw=os.pread(fd,len(expected)+1,0)
++    need(len(raw)==before.st_size and raw==expected[:len(raw)]
++         and (prefix or raw==expected), 'expectation bytes differ')
++    need(stamp(before)==stamp(os.fstat(fd))==stamp(path.lstat())
++         and path.resolve(strict=True)==path, 'expectation file changed')
++    return dict(status='present' if raw==expected else 'writer-prefix',
++                stamp=list(stamp(before)),sha256=A.sha(raw))
++
++
++def publication_file(value, *, prefix=False):
++    """Observe exact complete bytes, or recheck an explicitly witnessed prefix."""
++    path=OUTPUT/'production-boot-binding.json'
++    need(OUTPUT.resolve(strict=True)==OUTPUT and OUTPUT.is_dir(), 'publication parent changed')
++    try:before=path.lstat()
++    except FileNotFoundError:return dict(status='absent')
++    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
++    try:
++        need(stamp(before)==stamp(os.fstat(fd)), 'expectation replaced before read')
++        return publication_snapshot(fd,path,publication_bytes(value),prefix=prefix)
++    finally:os.close(fd)
++
++
++class ExpectationWriter:
++    """One exclusive expectation write. Never unlink, truncate, rename or retry.
++
++    Keep the creator FD through inspection of an error. An unknown pathname is
++    never adopted. C.save and its semantics for all other receipts are unchanged.
++    """
++    def __init__(self, value):
++        self.value=value;self.raw=publication_bytes(value)
++        self.path=OUTPUT/'production-boot-binding.json'
++        self.parent=self.fd=None;self.creator=None;self.written=0
++        self.frozen=None;self.closed=False;self.bad=False
++        need(OUTPUT.resolve(strict=True)==OUTPUT, 'publication parent alias')
++        info=OUTPUT.lstat()
++        need(stat.S_ISDIR(info.st_mode) and info.st_uid==1000
++             and stat.S_IMODE(info.st_mode)==0o700, 'publication parent metadata')
++        self.directory=stamp(info)[:5]
++
++    def parent_check(self):
++        need(OUTPUT.resolve(strict=True)==OUTPUT and stamp(OUTPUT.lstat())[:5]==self.directory,
++             'publication parent replaced')
++        if self.parent is not None:
++            need(stamp(os.fstat(self.parent))[:5]==self.directory, 'held publication parent differs')
++
++    def open(self):
++        # A real default SIGINT must not land between kernel creation and saving
++        # its returned FD. No handler is installed; the original mask is restored.
++        import signal
++        mask=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGINT})
++        try:
++            self.parent=os.open(OUTPUT,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
++            self.parent_check()
++            self.fd=os.open(self.path.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,
++                            0o600,dir_fd=self.parent)
++            info=os.fstat(self.fd);self.creator=stamp(info)[:6]
++            need(info.st_size==0 and os.lseek(self.fd,0,os.SEEK_CUR)==0, 'new expectation was not empty')
++        finally:signal.pthread_sigmask(signal.SIG_SETMASK,mask)
++
++    def inspect(self):
++        self.parent_check();need(not self.bad, 'expectation writer closure unproven')
++        if self.closed:
++            need(self.frozen is not None and A.exact_json(
++                 publication_file(self.value,prefix=True),self.frozen), 'closed writer snapshot changed')
++            return self.frozen
++        if self.fd is None:
++            need(self.creator is None and not os.path.lexists(self.path), 'unknown expectation creator')
++            return dict(status='absent')
++        info=os.fstat(self.fd)
++        need(self.creator is not None and stamp(info)[:6]==self.creator
++             and self.written<=os.lseek(self.fd,0,os.SEEK_CUR)==info.st_size<=len(self.raw),
++             'writer identity/offset changed')
++        return publication_snapshot(self.fd,self.path,self.raw,prefix=True)
++
++    def write(self):
++        self.open()
++        while self.written<len(self.raw):
++            self.inspect()
++            need(os.fstat(self.fd).st_size==self.written, 'unexpected write progress')
++            count=os.write(self.fd,self.raw[self.written:])
++            need(type(count) is int and 0<=count<=len(self.raw)-self.written, 'invalid expectation write result')
++            if count==0:raise OSError('expectation write stalled')
++            self.written+=count
++        os.fsync(self.fd);os.fsync(self.parent)
++        need(self.inspect()['status']=='present', 'expectation is incomplete')
++
++    def close(self):
++        if self.closed:return
++        import signal
++        error=None
++        try:self.frozen=self.inspect()
++        except BaseException as exc:error=exc;self.bad=True
++        mask=signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGINT})
++        try:
++            for key in ('fd','parent'):
++                fd=getattr(self,key);setattr(self,key,None)
++                if fd is not None:
++                    try:os.close(fd)
++                    except BaseException as exc:
++                        self.bad=True
++                        if error is None:error=exc
++                        else:error.add_note('Additional writer close error: '+str(exc)[:256])
++            self.closed=True
++        finally:signal.pthread_sigmask(signal.SIG_SETMASK,mask)
++        if error is not None:raise error
++
++
++def publication_failure():
++    """An exclusive failure witness narrows authority to the existing fallback.
++
++    Read by both the owning process and root phase consumers. Its expected boot
++    is exclusion-only. Existing common()/history()/route/physical gates remain
++    mandatory. This function cannot recreate a ColdBoot or authorize a restart.
++    """
++    path=OUTPUT/'production-boot-publication-failure.json'
++    if not os.path.lexists(path):return None
++    value=receipt(path,16384)
++    need(type(value) is dict and set(value)=={'format','expectation','file'}
++         and value['format'] in ('rog5-production-boot-publication-failure-v1',
++                                'rog5-production-boot-publication-failure-v2'), 'publication failure schema')
++    binding_record(value['expectation'])
++    need(A.exact_json(value['file'],publication_file(value['expectation'],
++         prefix=value['format']=='rog5-production-boot-publication-failure-v2')), 'failed publication state changed')
++    return value
++
++
++def unselected_discoveries():
++    """Missing receipts must not erase an already successful target discovery.
++
++    Only a closed empty 255 reply can establish no identity in this absence path.
++    Ambiguous or malformed evidence remains a refusal, not permission to recover.
++    """
++    paths=sorted([*OUTPUT.glob('observe_target-discovery-*-transport.json'),
++                  *OUTPUT.glob('locate_fallback-discovery-*-target-transport.json')])
++    need(len(paths)<=300, 'target discovery inventory bound')
++    entered=sorted([*OUTPUT.glob('observe_target-discovery-*-entered.json'),
++                    *OUTPUT.glob('locate_fallback-discovery-*-target-entered.json')])
++    need(len(entered)<=300 and
++         {p.name.removesuffix('-entered.json') for p in entered}==
++         {p.name.removesuffix('-transport.json') for p in paths},
++         'unfinished target discovery lacks publication disposition')
++    for path in paths:
++        need(re.fullmatch(r'(?:observe_target-discovery-[0-9]{3}|locate_fallback-discovery-[0-9]{3}-target)-transport\.json',path.name),
++             'target discovery filename')
++        value=receipt(path,4*1024**2);command=value.get('command')
++        need(value.get('status')=='PASS_TRANSPORT_COMPLETED' and value.get('command_invoked') is True
++             and value.get('mode')=='normal' and type(command) is dict
++             and A.exact_json(value.get('source'),receipt(OUTPUT/'admission.json')['host_source']),
++             'unclassified target discovery')
++        out=base64.b64decode(command['stdout_base64'],validate=True)
++        err=base64.b64decode(command['stderr_base64'],validate=True)
++        need(type(command.get('returncode')) is int and command['returncode']==255
++             and command.get('timed_out') is False and command.get('reaped') is True and not out
++             and A.sha(out)==command['stdout_sha256'] and A.sha(err)==command['stderr_sha256'],
++             'target discovery lacks publication disposition')
++    need(not os.path.lexists(OUTPUT/'observe_target-result.json'), 'target proof lacks publication disposition')
++
++
++def selected_boot():
++    """Durable EXCLUSION, including a failed save; never target acceptance."""
++    failed=publication_failure()
++    if failed is not None:return failed['expectation']['identity']['boot_id']
++    path=OUTPUT/'production-boot-binding.json'
++    if not os.path.lexists(path):
++        unselected_discoveries()
++        return None
++    return binding_record(receipt(path,8192))
++
++
++def fallback_publication_phase(name):
++    need(name in ('locate_fallback','recovery_capture_start','reboot_installed','observe_fallback',
++                  'stage_fallback','restore_fallback_state','verify_fallback_restoration'),
++         'failed publication permits fallback recovery only')
++
++
++class ColdBoot:
++    """One static lock, one discovered boot, one immutable-by-use HostContract.
++
++    Created by the trusted launcher from ad.inputs(), never from a caller's
++    dictionary/digest pair. This does not authenticate an already executed ad.
++    Discovery selects an EXPECTATION; only the real health validator proves it.
++    """
++    def __init__(self, ad, session, owner):
++        need(ad.ColdBoot is ColdBoot and ad.inputs is inputs, 'cold admission module differs')
++        need(type(owner) is str and owner==A.OWNER, 'cold admitted owner required')
++        need(not os.path.lexists(ad.OUTPUT), 'existing execution cannot recreate cold binding')
++        value=ad.inputs()
++        need(value['format']==COLD_FORMAT, 'authenticated cold-boot inputs absent')
++        spec=cold_schema(value['production_cold_boot'])
++        need(spec['owner']==owner and spec['source_boot_id']==A.SOURCE_BOOT, 'cold source/owner differs')
++        self.ad,self.session,self.core=ad,session,ad.C
++        self._lock=json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
++        self._spec=json.dumps(spec,sort_keys=True,separators=(',',':'),allow_nan=False)
++        self.component=session.bind_sources(ad);self.health=session.H;self.restoration=ad.H.F
++        endpoint=self.component.dependency('display-endpoint.py')
++        need(spec['target']['release']==endpoint.RELEASE and spec['target']['board_dtb_sha256']==endpoint.BOARD,
++             'cold endpoint artifact differs')
++        self._boot=None;self._contract=None;self._proved=False;self._ready=False;self._record=None
++        self._publication='unselected';self._published_file=None
++        self._failure_record=None;self._failure_stamp=None;self._publication_cancellation=None
++        self.check()
++
++    @property
++    def static(self):return A.decode(self._spec)
++    @property
++    def owner(self):return self.static['owner']
++    @property
++    def target(self):return {k:self.static['target'][k] for k in ('bundle','release')}
++    @property
++    def states(self):return self.static['states']
++    @property
++    def selected_boot(self):return self._boot
++    @property
++    def publication_failed(self):return self._publication=='failed'
++    @property
++    def publication_cancellation(self):return self._publication_cancellation
++
++    def check(self):
++        need(self.ad.inputs is inputs and self.ad.C is self.core and self.ad.H.F is self.restoration,
++             'cold private module binding changed')
++        value=self.ad.inputs()
++        need(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)==self._lock,
++             'authenticated cold input changed')
++        need(json.dumps(value['production_cold_boot'],sort_keys=True,separators=(',',':'),allow_nan=False)==self._spec,
++             'retained static binding changed')
++        need(self.owner==A.OWNER and self.static['source_boot_id']==A.SOURCE_BOOT, 'cold source/owner changed')
++        self.session.cohort(self.ad)
++        modules=self.session._SOURCE_MODULES
++        need(modules.get('gpu-iommu-display-r1/display-component.py') is self.component
++             and modules.get('gpu-iommu-health-r1/successor-health.py') is self.health
++             and self.session.H is self.health
++             and self.session.T is modules.get('gpu-iommu-display-r1/transport.py')
++             and self.session.K is modules.get('gpu-iommu-session-r1/kernel-log.py')
++             and self.session.T.B is modules.get('gpu-iommu-display-r1/backend.py'),
++             'cold production module identity differs')
++        if self._boot is not None:
++            if self.publication_failed:
++                need(self._failure_record is not None and self._failure_stamp is not None,
++                     'publication failure has no committed fallback witness')
++                failed=publication_failure()
++                need(json.dumps(failed,sort_keys=True,separators=(',',':'),allow_nan=False)==self._failure_record
++                     and stamp((OUTPUT/'production-boot-publication-failure.json').lstat())==self._failure_stamp
++                     and failed['expectation']['identity']['boot_id']==self._boot,
++                     'retained publication failure witness changed')
++            else:
++                need(self._publication=='committed' and self._record is not None
++                     and not os.path.lexists(OUTPUT/'production-boot-publication-failure.json')
++                     and selected_boot()==self._boot
++                     and A.exact_json(publication_file(A.decode(self._record)),self._published_file),
++                     'retained cold binding record changed')
++        if self._ready:self.check_health_seal()
++        return self.static
++
++    def check_health_seal(self):
++        spec=self.static;seal=self.health.inputs()
++        need(spec['health_inputs_sha256']==self.health.INPUT_SHA
++             and A.exact_json(seal,self.health.SEAL) and self.health.A.OWNER==self.owner
++             and self.health.A.SOURCE_BOOT==spec['source_boot_id'], 'cold health seal binding differs')
++        expected=dict(target=spec['target'],owner=self.owner,source_boot_id=spec['source_boot_id'],
++                      ssh_fingerprint=spec['ssh_fingerprint'],trial_id=spec['trial_id'],
++                      healthy_state_sha256=spec['states']['healthy'])
++        need(all(A.exact_json(seal.get(k),v) for k,v in expected.items()), 'historical or incompatible production health seal')
++
++    def runtime_ready(self):
++        self.check()
++        self.session.initialize(self.ad)  # Unchanged 0009; no exception or fallback.
++        self.check_health_seal()
++        need(self.ad.D.BOOT.IMAGE_SHA==self.static['boot_image_sha256'], 'cold boot image differs')
++        need(self.restoration.OWNER==self.owner and self.restoration.SOURCE_BOOT==self.static['source_boot_id'],
++             'restoration source/owner differs')
++        # Supplied consumers reveal these exact generator contracts. Do not call
++        # an unknown generator or replace its historical values to pass this gate.
++        for guard in (A.G,self.restoration.G):
++            need((guard.OLD_SHA,guard.PENDING_SHA,guard.HEALTHY_SHA)==
++                 tuple(self.states[k] for k in ('old','pending','healthy')), 'unqualified state generator inputs')
++            need(tuple(guard.OPERATIONS['restore-target'][:2])==
++                 tuple(self.target[k] for k in ('bundle','release')), 'unqualified target recovery generator')
++        self._ready=True
++        return self.check()
++
++    def discovery(self, identity):
++        self.core.same_identity(identity,self.target,excluded=(self.static['source_boot_id'],))
++        need(self._boot is None or identity['boot_id']==self._boot, 'cold boot selection changed')
++        return dict(identity)
++
++    def observe_boot(self, phase_name, context, results, pin, identity):
++        self.check();need(self._ready, 'cold runtime is not ready')
++        need(not self.publication_failed, 'failed publication cannot bind a target')
++        self.discovery(identity)
++        self.ad.phase(phase_name,context,results,pin,contract=self,owner=self.owner)
++        boot=self.ad.discovered_boot(phase_name,'target',results,contract=self,owner=self.owner,ready=False)
++        need(boot==identity['boot_id'], 'discovery receipt/binding differs')
++        if self._boot is None:
++            need(phase_name in ('observe_target','locate_fallback'), 'cold boot must bind at first target discovery')
++            self._boot=boot  # Retain selection even if publication/construction fails.
++            record=dict(format='rog5-production-boot-expectation-v1',context=context,
++                inputs_sha256=INPUTS_SHA,phase=phase_name,intent_sha256=pin,
++                identity=dict(self.static['target'],owner=self.owner,boot_id=boot))
++            self._record=json.dumps(record,sort_keys=True,separators=(',',':'),allow_nan=False)
++            need(not os.path.lexists(OUTPUT/'production-boot-binding.json')
++                 and not os.path.lexists(OUTPUT/'production-boot-publication-failure.json'),
++                 'publication path already exists')
++            self.publish_expectation()
++            self._contract=self.session.host_contract(self.ad,dict(self.static['target'],owner=self.owner,boot_id=boot))
++        need(self._contract is not None, 'previous cold binding attempt failed')
++        self.identity(self.expected(boot,self.owner))
++        return self._contract  # Repeated same-boot reads reuse, never re-create.
++
++    def publish_expectation(self):
++        writer=None;primary=None
++        try:
++            self._publication='publishing'
++            # Normal finalization belongs to the same failure boundary as write.
++            # In particular, a first cancellation at the final close still needs
++            # both retention and an exclusion-only witness, not an early raise.
++            try:
++                writer=ExpectationWriter(A.decode(self._record))
++                writer.write()
++                self._published_file=writer.inspect()
++                writer.close()
++            except BaseException as original:
++                primary=original
++                if isinstance(original,(KeyboardInterrupt,SystemExit)):
++                    self._publication_cancellation=original
++                raise
++            finally:
++                try:
++                    if writer is not None:writer.close()
++                except BaseException as close_error:
++                    if self._publication_cancellation is None and isinstance(close_error,(KeyboardInterrupt,SystemExit)):
++                        self._publication_cancellation=close_error
++                    if primary is None:raise
++                    primary.add_note('Writer closure unavailable: '+str(close_error)[:512])
++            self._publication='committed'
++        except (OSError,KeyboardInterrupt,SystemExit) as original:
++            self._publication='failed'
++            if self._publication_cancellation is None and isinstance(original,(KeyboardInterrupt,SystemExit)):
++                self._publication_cancellation=original
++            try:
++                need(not isinstance(original,FileExistsError) and writer is not None, 'publication collision or absent writer')
++                # Finish only the still-owned writer cleanup, never retry an FD
++                # number. A closed writer must validate its frozen snapshot;
++                # cancellation itself supplies no file or recovery authority.
++                if not writer.closed:writer.close()
++                need(writer.closed, 'publication writer closure incomplete')
++                failed=dict(format='rog5-production-boot-publication-failure-v2',
++                    expectation=A.decode(self._record),file=writer.inspect())
++                path=OUTPUT/'production-boot-publication-failure.json'
++                C.save(path,failed)
++                info=stamp(path.lstat())
++                need(A.exact_json(publication_failure(),failed) and stamp(path.lstat())==info,
++                     'publication failure witness changed while recording')
++                self._failure_record=json.dumps(failed,sort_keys=True,separators=(',',':'),allow_nan=False)
++                self._failure_stamp=info
++            except BaseException as witness_error:
++                original.add_note('Fallback witness unavailable: '+str(witness_error)[:512])
++                if self._publication_cancellation is None and isinstance(witness_error,(KeyboardInterrupt,SystemExit)):
++                    self._publication_cancellation=witness_error
++            raise
++
++    def expected(self, boot, owner):
++        need(self._publication=='committed', 'target expectation is not committed')
++        need(self._contract is not None and boot==self._boot and owner==self.owner, 'cold boot is unbound or changed')
++        expected=dict(self.static['target'],owner=owner,boot_id=boot)
++        need(type(self._contract) is self.component.HostContract
++             and A.exact_json(self._contract.expected(boot,owner),expected), 'bound HostContract changed')
++        return expected
++
++    def identity(self, identity, *, proved=False):
++        need(type(identity) is dict and set(identity)==ARTIFACT_FIELDS
++             and all(type(v) is str for v in identity.values()), 'cold identity6 required')
++        expected=self.expected(identity['boot_id'],identity['owner'])
++        need(A.exact_json(identity,expected) and (not proved or self._proved), 'cold full identity proof absent or changed')
++        return dict(identity)
++
++    def script(self, boot, *, restored=False):
++        self.check();need(self._ready, 'cold runtime is not ready')
++        self.expected(boot,self.owner)
++        if restored:
++            self.identity(self.expected(boot,self.owner),proved=True)
++            return self.restoration.build_production(boot,self._contract,self.owner)
++        return self.health.script('target',boot,self._contract,self.owner)
++
++    def validate(self, raw, boot, *, restored=False):
++        self.check();need(self._ready, 'cold runtime is not ready')
++        self.expected(boot,self.owner)
++        if restored:
++            self.identity(self.expected(boot,self.owner),proved=True)
++            proof=self.restoration.parse_production(raw,boot,self._contract,self.owner)
++        else:proof=self.health.validate(A.decode(raw),'target',boot,self._contract,self.owner)
++        self.identity(proof['identity'])
++        if not restored:self._proved=True
++        return proof
++
++    def session_contract(self):
++        self.check();need(self._ready, 'cold runtime is not ready')
++        self.identity(self.expected(self._boot,self.owner),proved=True)
++        return self._contract
++
++
+ def input_schema(value):
+-    need(type(value) is dict and set(value) == {'format', 'files', 'production_display_sources'}
+-         and value['format'] == 'rog5-live-admission-inputs-v1'
+-         and type(value['files']) is dict, 'input lock schema')
++    need(type(value) is dict and type(value.get('files')) is dict, 'input lock schema')
++    cold = value.get('format') == COLD_FORMAT
++    need(value.get('format') in ('rog5-live-admission-inputs-v1', COLD_FORMAT)
++         and set(value) == {'format','files','production_display_sources'} |
++             ({'production_cold_boot'} if cold else set()), 'input lock schema')
++    if cold:
++        spec = cold_schema(value['production_cold_boot'])
++        row = value['files'].get(HEALTH_INPUT)
++        need(type(row) is dict and row.get('sha256') == spec['health_inputs_sha256'],
++             'cold health input is not in authenticated file inventory')
+     names = value['production_display_sources']
+     need(type(names) is list and len(names) == len(PRODUCTION_PATHS)
+          and all(type(name) is str for name in names)
+@@ -268,6 +752,8 @@
+ 
+ def policy(phase, results, entered, *, contract=None, owner=None):
+     """Additional ordering gate; physical evidence remains checked by callbacks."""
++    states = policy_states(contract)
++    if publication_failure() is not None:fallback_publication_phase(phase)
+     required = {
+         'preflight': (), 'arm_state': ('preflight',), 'install_exitrd': ('arm_state',),
+         'request_source_reboot': ('install_exitrd',), 'await_fastboot': ('request_source_reboot',),
+@@ -289,7 +775,7 @@
+         need('request_source_reboot' not in entered, 'source reboot may have been requested')
+     if phase == 'restore_source_state':
+         probe = results['inspect_source_abort']
+-        need(probe.get('state_sha256') == C.PENDING
++        need(probe.get('state_sha256') == states['pending']
+              and (probe.get('shutdown') == 'original' or results.get('restore_source_exitrd', {}).get('shutdown_restored') is True),
+              'source state restoration before exitrd restoration')
+     if phase == 'restore_source_exitrd':
+@@ -311,8 +797,8 @@
+     if phase in ('stage_target_recovery','restore_target_state','verify_target_restoration'):
+         proof=results['locate_fallback']
+         identity = production_identity(proof.get('identity'), contract, owner)
+-        C.same_identity({k: identity[k] for k in DISCOVERY_FIELDS}, C.TARGET, excluded=(A.SOURCE_BOOT,))
+-        need(proof.get('mode')=='target' and proof.get('state_sha256')==C.HEALTHY
++        C.same_identity({k: identity[k] for k in DISCOVERY_FIELDS}, contract.target, excluded=(A.SOURCE_BOOT,))
++        need(proof.get('mode')=='target' and proof.get('state_sha256')==states['healthy']
+              and all(proof.get(k) is True for k in ('authenticated','physical_guards_passed',
+                  'current_boot_healthy','readiness_boot_bound')),'target recovery without full health proof')
+         if 'observe_target' in results:
+@@ -324,14 +810,14 @@
+                  'target recovery helper not staged')
+         if phase=='verify_target_restoration':
+             restored=results['restore_target_state']
+-            need(restored.get('completed') is True and restored.get('before_sha256')==C.HEALTHY
+-                 and restored.get('after_sha256')==C.OLD and A.exact_json(restored.get('identity'),proof['identity']),
++            need(restored.get('completed') is True and restored.get('before_sha256')==states['healthy']
++                 and restored.get('after_sha256')==states['old'] and A.exact_json(restored.get('identity'),proof['identity']),
+                  'target restoration incomplete')
+     if phase in ('stage_fallback', 'restore_fallback_state'):
+         proof = results.get('observe_fallback', results.get('locate_fallback', {}))
+-        C.same_identity(proof.get('identity'), C.FALLBACK, excluded=(A.SOURCE_BOOT,))
++        C.same_identity(proof.get('identity'), C.FALLBACK, excluded=tuple(x for x in (A.SOURCE_BOOT,selected_boot()) if x is not None))
+         need(proof.get('authenticated') is True and proof.get('physical_guards_passed') is True
+-             and proof.get('state_sha256') in (C.PENDING, C.HEALTHY), 'fallback mutation without physical proof')
++             and proof.get('state_sha256') in (states['pending'], states['healthy']), 'fallback mutation without physical proof')
+         if 'recovery_capture_start' in entered:
+             closed = results.get('close_recovery_capture', {})
+             need(closed.get('full_lifetime') is True and closed.get('cleanup_complete') is True
+@@ -340,8 +826,9 @@
+ 
+ def phase(phase_name, context, results, pin=None, admitted=None, envelope=None, *, contract=None, owner=None):
+     if contract is not None or owner is not None:
+-        need(contract is not None and type(context) is dict
++        need(type(contract) is ColdBoot and type(context) is dict
+              and owner == context.get('owner') == A.OWNER, 'production phase owner differs')
++        contract.check()
+     value = common(context, admitted, envelope)
+     history(context, results, phase_name, pin, contract=contract, owner=owner)
+     return value
+@@ -367,7 +854,7 @@
+     return {p: receipt(OUTPUT / (p + '-result.json'), 1048576) for p in prior}
+ 
+ 
+-def discovered_boot(name, role, results, *, contract=None, owner=None):
++def discovered_boot(name, role, results, *, contract=None, owner=None, ready=True):
+     need(role in ('target', 'fallback'), 'health discovery role')
+     if name == 'post_capture_health':
+         need(role == 'target', 'post-capture health role')
+@@ -400,20 +887,22 @@
+          and c['reaped'] is True and not err and len(out) <= 1024
+          and A.sha(out) == c['stdout_sha256'] and A.sha(err) == c['stderr_sha256'], 'health discovery raw evidence')
+     found = A.fields(out)
+-    need(set(found) == {'boot_id', 'bundle', 'release', 'ready'} and found['ready'] == 'ready', 'health discovery readiness')
++    need(type(ready) is bool and set(found) == {'boot_id','bundle','release','ready'}
++         and found['ready'] in (('ready',) if ready else ('ready','wait')), 'health discovery readiness')
+     identity = {k: found[k] for k in ('boot_id', 'bundle', 'release')}
+     excluded = [A.SOURCE_BOOT]
+-    if role == 'fallback' and 'observe_target' in results:
+-        excluded.append(results['observe_target']['identity']['boot_id'])
+-    C.same_identity(identity, C.TARGET if role == 'target' else C.FALLBACK, excluded=excluded)
++    if role == 'fallback':
++        pending=selected_boot()
++        if pending is not None:excluded.append(pending)
++        if 'observe_target' in results:excluded.append(results['observe_target']['identity']['boot_id'])
+     if role == 'target':
+-        need(contract is not None, 'explicit production contract required')
+-        expected = production_identity(contract.expected(found['boot_id'], owner), contract, owner)
+-        need(A.exact_json(identity, {k: expected[k] for k in DISCOVERY_FIELDS}),
+-             'discovery differs from production contract')
++        need(type(contract) is ColdBoot and owner == contract.owner, 'cold discovery binding required')
++        contract.discovery(identity)
+         if name == 'locate_fallback' and 'observe_target' in results:
+-            prior = production_identity(results['observe_target']['identity'], contract, owner)
+-            need(A.exact_json(expected, prior), 'target recovery boot changed')
++            prior = contract.identity(results['observe_target']['identity'], proved=True)
++            need(A.exact_json(identity, {k:prior[k] for k in DISCOVERY_FIELDS}), 'target recovery boot changed')
++    else:
++        C.same_identity(identity, C.FALLBACK, excluded=excluded)
+     # The return value is only the discovered boot ID. Full endpoint/health
+     # verification must still establish identity6; no proof fields are invented.
+     return found['boot_id']
+@@ -422,6 +911,9 @@
+ def command_policy(name, context, results, pin, request, source, *, contract=None, owner=None):
+     req = A.W.request(json.dumps(request, allow_nan=False).encode())
+     need(A.exact_json(req['source'], source), 'command host source changed')
++    if publication_failure() is not None:
++        fallback_publication_phase(name)
++        need(req['mode']=='linklocal', 'failed publication cannot authorize target transport')
+     if name in A.PHASES:
+         need(req['timeout'] == 35, 'mutation command deadline')
+         mode, remote = 'normal', A.SHELL
+@@ -453,18 +945,18 @@
+             else:
+                 role='target' if req['remote']=='python3 -I -B -' else 'fallback'
+         if role == 'target':
+-            need(contract is not None and type(context) is dict
+-                 and owner == context.get('owner') == A.OWNER, 'production health binding required')
+-            production_identity(getattr(contract, '_binding', None), contract, owner)
++            need(type(contract) is ColdBoot and type(context) is dict
++                 and owner == context.get('owner') == contract.owner == A.OWNER, 'production health binding required')
++            contract.check()
+         mode = 'normal' if role == 'target' else 'linklocal'
+         if req['script'] == H.discovery(role):
+             need(1 <= req['timeout'] <= 10 and req['remote'] == A.SHELL, 'discovery command scope')
+             label = 'discovery'
+         else:
+             boot = discovered_boot(name, role, results, contract=contract, owner=owner)
+-            full_target=role=='target' and name!='verify_target_restoration'
++            full_target=role=='target'
+             purpose='verify-restored' if name in ('verify_fallback_restoration','verify_target_restoration') else 'observe'
+-            script = H.H.script('target',boot,contract,owner) if full_target else H.F.build(purpose,boot,role)
++            script = contract.script(boot, restored=name=='verify_target_restoration') if full_target else H.F.build(purpose,boot,role)
+             need(req['script']==script and req['timeout']==35
+                  and req['remote']==('python3 -I -B -' if full_target else A.SHELL),'health command differs from exact generator')
+             label = 'health'
+@@ -531,8 +1023,8 @@
+     The launcher creates the one-use Controller and writes admission.json before
+     calling run(); it must close the returned bridge after terminal cleanup.
+     """
+-    need(contract is not None and owner == A.OWNER, 'production assembly binding required')
+-    production_identity(getattr(contract, '_binding', None), contract, owner)
++    need(type(contract) is ColdBoot and owner == contract.owner == A.OWNER, 'production assembly binding required')
++    contract.runtime_ready()
+     need(os.geteuid() == 1000, 'driver assembly owner')
+     locked = inputs()
+     need(A.exact_json(W.source_identity(), source) and source.get('clean') is True, 'assembly source')
+@@ -556,7 +1048,7 @@
+         return authorize(*args, contract=contract, owner=owner)
+     transport = transport_module.Transport(transport_gate)
+     bridge = modules['capture-bridge.py'].Bridge(capture_launch_authorize)
+-    driver = D.Driver(source, before, enter, bridge, transport=transport.perform)
++    driver = D.Driver(source, before, enter, bridge, transport=transport.perform, production=contract)
+     return driver, bridge
+ 
+ 
+--- a/current-callers/trial-launcher.py.txt
++++ b/current-callers/trial-launcher.py.txt
+@@ -72,27 +72,10 @@
+ 
+ 
+ def production_preflight(contract, owner):
+-    """Consumer only: the trusted bootstrap must supply the admitted binding.
+-
+-    There is no production identity producer in this source correction. A bare
+-    HostContract is not admission; all existing qualification/seal gates remain.
+-    """
+-    need(contract is not None, 'authenticated production contract producer unavailable')
+-    need(type(owner) is str and owner == A.OWNER, 'explicit production owner required')
+-    need(callable(getattr(G, 'bind_sources', None)), 'historical session is not the production API')
+-    component = G.bind_sources(AD)
+-    need(type(contract) is component.HostContract, 'source-bound HostContract required')
+-    identity = AD.production_identity(contract._binding, contract, owner)
+-    expected, _ = G.contract_target(contract, identity['boot_id'], owner)
+-    need(A.exact_json(identity, expected), 'production contract changed')
+-    # Keep 0009's real refusal. Never open a password window and discover this
+-    # missing private dependency only after consuming a claim or booting.
+-    G.initialize(AD)
+-    need(AD.H.H is G.H, 'policy and session health module must share the checked binding')
+-    need(A.exact_json(G.H.inputs(), G.H.SEAL), 'bound health seal changed')
+-    cfg = G.H.configuration('target', identity['boot_id'], contract, owner)
+-    need(A.exact_json(cfg['artifact_identity'], identity), 'production health binding differs')
+-    return identity
++    need(type(contract) is AD.ColdBoot and owner == contract.owner == A.OWNER,
++         'authenticated static cold-boot binding required')
++    need(contract.session is G and contract.ad is AD, 'cold binding module disagreement')
++    return contract.runtime_ready()
+ 
+ 
+ def prepare(*, contract=None, owner=None):
+@@ -127,7 +110,9 @@
+ 
+ class Driver:
+     PHASES=C.PHASES
+-    def __init__(self,inner,credentials):self.inner,self.credentials=inner,credentials
++    def __init__(self,inner,credentials):
++        self.inner,self.credentials=inner,credentials
++        self.production=inner.production
+     def gate(self,*args):
+         self.credentials.check()
+         return self.inner.gate(*args)
+@@ -152,11 +137,12 @@
+ 
+ def _run_once(*,authenticate=False,contract=None,owner=None):
+     need(type(authenticate) is bool,'trial authentication mode')
++    if contract is None:contract=AD.ColdBoot(AD,G,owner)
+     prepared=prepare(contract=contract,owner=owner)  # No effects before all gates.
+     LAUNCH.mkdir(mode=0o700)
+     C.save(LAUNCH/'entered.json',dict(prepared=prepared,controller_pid=os.getpid(),
+         authenticate=authenticate,phone_actions_started=False))
+-    inner=None;bridge=None;trial=None;gpu=None;error=None;cleanup=[];claim_entered=False
++    inner=None;bridge=None;trial=None;gpu=None;error=None;cleanup=[];claim_entered=False;cancellation=None
+     try:
+         if authenticate:P.authenticate(LAUNCH)
+         with K.Credentials(LAUNCH/'credentials') as credentials:
+@@ -180,25 +166,37 @@
+             AD.PREP.verify_ready(preparation_pin,prepared['source'],admitted['created_monotonic'])
+             raw=(json.dumps(admitted,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+             context=dict(source=admitted['source_phone'],owner=A.OWNER,admission_sha256=A.sha(raw))
+-            controller=C.Controller(Driver(inner,credentials),context)
++            controller=C.Controller(Driver(inner,credentials),context,production=contract)
+             need(C.save(AD.OUTPUT/'admission.json',admitted)==context['admission_sha256'],'trial admission encoding')
+             try:
+                 trial=controller.run()
+                 if trial.get('status')=='COMPONENT_PASS':
+                     need(controller.context['owner']==owner
+-                         and A.exact_json(trial.get('target_identity'),prepared['production_identity']),
++                         and A.exact_json(contract.identity(trial.get('target_identity'),proved=True),controller.target_identity),
+                          'trial differs from production binding')
+-                    gpu=G.run(AD,controller,credentials,trial,contract)
++                    gpu=G.run(AD,controller,credentials,trial,contract.session_contract())
+                 credentials.check()
++            except (KeyboardInterrupt,SystemExit) as exc:
++                if exc is not contract.publication_cancellation:raise
++                cancellation=exc;trial=controller.terminal_result
++                error=dict(type=type(exc).__name__,reason=str(exc)[:1000])
+             finally:
+                 cleanup=close_owned(inner,bridge)
+                 inner=None;bridge=None
+-    except Exception as exc:error=dict(type=type(exc).__name__,reason=str(exc)[:1000])
++    except Exception as exc:
++        if cancellation is None:error=dict(type=type(exc).__name__,reason=str(exc)[:1000])
++        else:
++            cancellation.add_note('Launcher cleanup failed: '+str(exc)[:512])
++            cleanup.append(str(exc)[:1000])
+     finally:
+         if inner is not None or bridge is not None:cleanup.extend(close_owned(inner,bridge))
+     result=dict(status='COMPONENT_PASS' if trial and trial.get('status')=='COMPONENT_PASS' and gpu and gpu.get('status')=='PASS_PRODUCTION_DISPLAY_SESSION' and error is None and not cleanup else 'FAIL',
+         trial=trial,gpu_session=gpu,error=error,cleanup_errors=cleanup,claim_consumption_entered=claim_entered,
+         retry_permitted=False,release_qualified=False)
++    if cancellation is not None:
++        try:C.save(LAUNCH/'result.json',result)
++        except BaseException as diagnostic:cancellation.add_note('Launch result unavailable: '+str(diagnostic)[:512])
++        raise cancellation
+     C.save(LAUNCH/'result.json',result)
+     return result
+ 
+@@ -238,6 +236,7 @@
+ def run(*,authenticate=False,contract=None,owner=None):
+     """Keep password attempts separate from the exclusive one-use boot entry."""
+     need(type(authenticate) is bool,'trial authentication mode')
++    if contract is None:contract=AD.ColdBoot(AD,G,owner)
+     prepare(contract=contract,owner=owner)  # Before lock, directory or password.
+     fd=os.open(LOCK,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+     try:
+--- a/downstream/gpu-iommu-controller-r1__controller.py.txt
++++ b/downstream/gpu-iommu-controller-r1__controller.py.txt
+@@ -71,8 +71,33 @@
+     return hashlib.sha256(raw).hexdigest()
+ 
+ 
++def publication_cancel(production, error):
++    """Only the publisher's retained cancellation enters this recovery path."""
++    original=None if production is None else production.publication_cancellation
++    if original is not None:
++        if isinstance(error,(KeyboardInterrupt,SystemExit)) and error is not original:
++            original.add_note('Additional cancellation: '+str(error)[:256])
++        return original
++    if not isinstance(error,Exception):raise error
++    return None
++
++
++def failure_receipt(path, value, error):
++    try:save(path,value)
++    except BaseException as diagnostic:
++        if not isinstance(error,(KeyboardInterrupt,SystemExit)):raise
++        error.add_note('Failure receipt unavailable: '+str(diagnostic)[:512])
++
++
+ class Controller:
+-    def __init__(self, driver, context):
++    def __init__(self, driver, context, *, production=None):
++        if production is not None:
++            need(production.core.Controller is Controller and driver.production is production, 'controller production binding')
++            spec=production.check()
++            need(context.get('owner')==spec['owner'] and context.get('source',{}).get('boot_id')==spec['source_boot_id'],
++                 'controller cold source/owner differs')
++        self.production=production
++        self.states=production.states if production is not None else dict(old=OLD,pending=PENDING,healthy=HEALTHY)
+         need(set(context) == {'source', 'owner', 'admission_sha256'}, 'controller context fields')
+         same_identity(context['source'], SOURCE)
+         need(re.fullmatch('[0-9a-f]{32}', context['owner'])
+@@ -86,6 +111,7 @@
+         self.errors = []
+         self.target_identity = None
+         self.selection_restored = False
++        self.terminal_result = None
+         self.output = OUTPUT
+         need(self.output == ROOT / 'execution' and ROOT.resolve() == ROOT, 'fixed canonical execution path')
+         self.output.mkdir(mode=0o700)  # Any prior attempt refuses before callbacks.
+@@ -108,21 +134,31 @@
+             save(self.output / (phase + '-result.json'), value)
+             self.results[phase] = value
+             return value
+-        except Exception as error:
++        except (Exception,KeyboardInterrupt,SystemExit) as error:
++            interrupted=publication_cancel(self.production,error)
+             failure = dict(phase=phase, reason=str(error)[:1000], type=type(error).__name__, retry_permitted=False)
+             self.errors.append(failure)
+-            save(self.output / (phase + '-failure.json'), failure)
++            failure_receipt(self.output / (phase + '-failure.json'),failure,interrupted or error)
+             raise
+ 
++    def same_target(self, value, expected=None):
++        if self.production is None:
++            same_identity(value, TARGET if expected is None else expected, excluded=(self.context['source']['boot_id'],))
++        else:
++            self.production.identity(value,proved=True)
++            need(expected is None or value==expected, 'target proof changed')
++
+     def require_state(self, value, identity, before, after):
+-        same_identity(value.get('identity'), identity)
++        if self.production is not None and set(identity)=={'boot_id','bundle','release','owner','descriptor_sha256','board_dtb_sha256'}:
++            self.same_target(value.get('identity'),identity)
++        else:same_identity(value.get('identity'), identity)
+         need(value.get('before_sha256') in before and value.get('after_sha256') == after
+              and value.get('completed') is True, 'incomplete state operation proof')
+ 
+     def target_health(self, value):
+         identity = value.get('identity')
+-        same_identity(identity, TARGET, excluded=(self.context['source']['boot_id'],))
+-        need(value.get('state_sha256') == HEALTHY and value.get('current_boot_healthy') is True
++        self.same_target(identity)
++        need(value.get('state_sha256') == self.states['healthy'] and value.get('current_boot_healthy') is True
+              and value.get('readiness_boot_bound') is True and value.get('physical_guards_passed') is True,
+              'target health is absent, stale or incomplete')
+         if self.target_identity is not None:
+@@ -146,18 +182,18 @@
+         same_identity(value.get('identity'), self.context['source'])
+         need(value.get('reboot_intent_absent') is True and value.get('physical_guards_passed') is True
+              and value.get('shutdown') in ('original', 'patched')
+-             and value.get('state_sha256') in (OLD, PENDING), 'source abort is not proven safe')
++             and value.get('state_sha256') in (self.states['old'], self.states['pending']), 'source abort is not proven safe')
+         if value['shutdown'] == 'patched':
+             restored = self.action('restore_source_exitrd')
+             need(restored.get('shutdown_restored') is True and restored.get('reboot_requested') is False,
+                  'source exitrd not restored')
+             same_identity(restored.get('identity'), self.context['source'])
+-        if value['state_sha256'] == PENDING:
++        if value['state_sha256'] == self.states['pending']:
+             restored = self.action('restore_source_state')
+-            self.require_state(restored, self.context['source'], (PENDING,), OLD)
++            self.require_state(restored, self.context['source'], (self.states['pending'],), self.states['old'])
+         proof = self.action('verify_source_abort')
+         same_identity(proof.get('identity'), self.context['source'])
+-        need(proof.get('state_sha256') == OLD and proof.get('shutdown_restored') is True
++        need(proof.get('state_sha256') == self.states['old'] and proof.get('shutdown_restored') is True
+              and proof.get('physical_guards_passed') is True, 'source abort verification incomplete')
+         self.selection_restored = True
+ 
+@@ -172,13 +208,13 @@
+             self.target_health(value)
+             identity = dict(self.target_identity)
+             staged = self.action('stage_target_recovery')
+-            same_identity(staged.get('identity'), identity)
++            self.same_target(staged.get('identity'), identity)
+             need(staged.get('ram_files_verified') is True, 'target recovery RAM staging incomplete')
+             restored = self.action('restore_target_state')
+-            self.require_state(restored, identity, (HEALTHY,), OLD)
++            self.require_state(restored, identity, (self.states['healthy'],), self.states['old'])
+             proof = self.action('verify_target_restoration')
+-            same_identity(proof.get('identity'), identity)
+-            need(proof.get('state_sha256') == OLD and proof.get('physical_guards_passed') is True
++            self.same_target(proof.get('identity'), identity)
++            need(proof.get('state_sha256') == self.states['old'] and proof.get('physical_guards_passed') is True
+                  and proof.get('selection_eligibility_restored') is True,
+                  'target restoration verification incomplete')
+             self.selection_restored = True
+@@ -204,20 +240,22 @@
+                     need(captured, 'fallback full capture/cleanup incomplete')
+             need(captured, 'fallback capture did not close')
+         excluded = [self.context['source']['boot_id']]
++        if self.production is not None and self.production.selected_boot is not None:
++            excluded.append(self.production.selected_boot)
+         if self.target_identity:
+             excluded.append(self.target_identity['boot_id'])
+         identity = value.get('identity')
+         same_identity(identity, FALLBACK, excluded=excluded)
+         need(value.get('authenticated') is True and value.get('physical_guards_passed') is True
+-             and value.get('state_sha256') in (PENDING, HEALTHY), 'fallback is not authenticated')
++             and value.get('state_sha256') in (self.states['pending'], self.states['healthy']), 'fallback is not authenticated')
+         staged = self.action('stage_fallback')
+         same_identity(staged.get('identity'), identity)
+         need(staged.get('ram_files_verified') is True, 'fallback RAM staging incomplete')
+         restored = self.action('restore_fallback_state')
+-        self.require_state(restored, identity, (value['state_sha256'],), OLD)
++        self.require_state(restored, identity, (value['state_sha256'],), self.states['old'])
+         proof = self.action('verify_fallback_restoration')
+         same_identity(proof.get('identity'), identity)
+-        need(proof.get('state_sha256') == OLD and proof.get('physical_guards_passed') is True
++        need(proof.get('state_sha256') == self.states['old'] and proof.get('physical_guards_passed') is True
+              and proof.get('selection_eligibility_restored') is True,
+              'fallback restoration verification incomplete')
+         self.selection_restored = True
+@@ -225,12 +263,13 @@
+     def run(self):
+         trial_passed = False
+         capture_closed = False
++        cancellation = None
+         try:
+             preflight = self.action('preflight')
+             same_identity(preflight.get('identity'), self.context['source'])
+             need(preflight.get('ram_staging_verified') is True, 'source RAM staging absent')
+             armed = self.action('arm_state')
+-            self.require_state(armed, self.context['source'], (OLD,), PENDING)
++            self.require_state(armed, self.context['source'], (self.states['old'],), self.states['pending'])
+             installed = self.action('install_exitrd')
+             same_identity(installed.get('identity'), self.context['source'])
+             need(installed.get('installed') is True and installed.get('reboot_requested') is False,
+@@ -242,8 +281,9 @@
+                  'full receiver not ready')
+             self.action('boot_once')
+             self.target_health(self.action('observe_target'))
+-        except Exception as error:
+-            save(self.output / 'trial-failure.json', dict(reason=str(error)[:1000], retry_permitted=False))
++        except (Exception,KeyboardInterrupt,SystemExit) as error:
++            cancellation=publication_cancel(self.production,error)
++            failure_receipt(self.output / 'trial-failure.json',dict(reason=str(error)[:1000],retry_permitted=False),cancellation or error)
+             if not self.errors:
+                 self.errors.append(dict(phase='trial-validation', reason=str(error)[:1000]))
+         finally:
+@@ -253,7 +293,9 @@
+                     capture_closed = True
+                     if closed.get('capture_status') != 'PASS':
+                         self.errors.append(dict(phase='capture-result', reason='full target capture did not pass'))
+-                except Exception as error:
++                except (Exception,KeyboardInterrupt,SystemExit) as error:
++                    interrupted=publication_cancel(self.production,error)
++                    if interrupted is not None:cancellation=interrupted
+                     if not any(row['phase'] == 'close_capture' for row in self.errors):
+                         self.errors.append(dict(phase='capture-closure', reason=str(error)[:1000]))
+         if not self.errors and self.target_identity and capture_closed:
+@@ -269,8 +311,10 @@
+                     self.abort_source()
+                 elif 'capture_start' not in self.entered or capture_closed:
+                     self.restore_fallback()
+-            except Exception as error:
+-                save(self.output / 'restoration-failure.json', dict(reason=str(error)[:1000], retry_permitted=False))
++            except (Exception,KeyboardInterrupt,SystemExit) as error:
++                interrupted=publication_cancel(self.production,error)
++                if interrupted is not None:cancellation=interrupted
++                failure_receipt(self.output / 'restoration-failure.json',dict(reason=str(error)[:1000],retry_permitted=False),cancellation or error)
+                 if not self.errors:
+                     self.errors.append(dict(phase='restoration', reason=str(error)[:1000]))
+         result = dict(status='COMPONENT_PASS' if trial_passed else 'FAIL',
+@@ -278,6 +322,10 @@
+                       selection_eligibility_restored=self.selection_restored,
+                       phases=list(self.results), entered=self.entered, errors=self.errors,
+                       release_qualified=False, retry_permitted=False)
++        self.terminal_result=result
++        if cancellation is not None:
++            failure_receipt(self.output / 'result.json',result,cancellation)
++            raise cancellation
+         save(self.output / 'result.json', result)
+         return result
+ 
+--- a/downstream/gpu-iommu-live-driver-r1__action-callbacks.py.txt
++++ b/downstream/gpu-iommu-live-driver-r1__action-callbacks.py.txt
+@@ -135,7 +135,9 @@
+ 
+ 
+ class Actions:
+-    def __init__(self, source, authorize, transport=None):
++    def __init__(self, source, authorize, transport=None, *, production=None):
++        need(production is not None, 'action production binding required')
++        production.check();self.production=production
+         need(transport is None or callable(transport), 'transport callback required')
+         self.transport = transport
+         need(callable(authorize), 'complete outer admission gate required')
+@@ -243,7 +245,7 @@
+     def target_recovery_proof(self, results):
+         observed = results.get('locate_fallback', {})
+         identity = observed.get('identity')
+-        C.same_identity(identity, C.TARGET, excluded=(SOURCE_BOOT,))
++        self.production.identity(identity,proved=True)
+         need(observed.get('mode') == 'target' and observed.get('authenticated') is True
+              and observed.get('physical_guards_passed') is True
+              and observed.get('current_boot_healthy') is True
+--- a/downstream/gpu-iommu-live-driver-r1__fallback-observation.py.txt
++++ b/downstream/gpu-iommu-live-driver-r1__fallback-observation.py.txt
+@@ -190,4 +190,52 @@
+                 selection_eligibility_restored=purpose=='verify-restored',release_qualified=False)
+ 
+ 
++def build_production(boot, contract, owner):
++    """Bracket the unchanged restoration observer with actual endpoint reads.
++
++    This is source generation only. The historical G.build/OPERATIONS remain
++    authoritative constraints and must match; do not rewrite shell identities.
++    """
++    expected=contract.expected(boot,owner)
++    need(tuple(G.OPERATIONS['restore-target'][:2])==
++         tuple(expected[k] for k in ('bundle','release')), 'target restoration generator differs')
++    endpoint=contract.identity_source
++    need(type(endpoint) is bytes and sha(endpoint)=='0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee',
++         'restoration endpoint source differs')
++    shell=build('verify-restored',boot,'target')
++    return ('EXPECTED='+repr(expected)+'\nENDPOINT='+repr(endpoint)+'\nSHELL='+repr(shell)+'\n'+r'''
++import base64,json,subprocess
++space={'__name__':'restoration_endpoint','__file__':'<checked-restoration-endpoint>'}
++exec(compile(ENDPOINT,space['__file__'],'exec'),space)
++reader=space['Endpoint'](lambda boot:dict(EXPECTED))
++before=reader.identity(EXPECTED['boot_id'])
++reply=subprocess.run(['/run/initramfs/lib/ld-musl-aarch64.so.1','/run/initramfs/bin/busybox','sh','-s'],
++    input=SHELL.encode(),capture_output=True,timeout=25)
++if reply.returncode!=0 or reply.stderr or not 0<len(reply.stdout)<=32768:
++    raise ValueError('restoration observer failed')
++after=reader.identity(EXPECTED['boot_id'])
++print(json.dumps(dict(artifact_before=before,artifact_after=after,
++    restoration_base64=base64.b64encode(reply.stdout).decode()),sort_keys=True))
++''')
++
++
++def parse_production(raw, boot, contract, owner):
++    need(type(raw) is bytes and 0<len(raw)<=65536, 'production restoration reply bound')
++    def unique(rows):
++        result={}
++        for key,value in rows:
++            need(key not in result,'duplicate restoration key');result[key]=value
++        return result
++    value=json.loads(raw,object_pairs_hook=unique,parse_constant=lambda _:need(False,'nonfinite restoration JSON'))
++    need(type(value) is dict and set(value)=={'artifact_before','artifact_after','restoration_base64'},
++         'production restoration reply schema')
++    expected=contract.expected(boot,owner)
++    need(value['artifact_before']==expected==value['artifact_after'], 'restoration artifact changed')
++    need(type(value['restoration_base64']) is str and len(value['restoration_base64'])<=43692,
++         'restoration encoding bound')
++    proof=parse(base64.b64decode(value['restoration_base64'],validate=True),'verify-restored',boot,'target')
++    need(proof['identity']=={k:expected[k] for k in ('boot_id','bundle','release')}, 'restoration identity projection differs')
++    return dict(proof,identity=expected)
++
++
+ if __name__=='__main__':raise SystemExit('Import-only observer; pinned SSH and complete outer admission required')
+--- a/downstream/gpu-iommu-live-driver-r1__fastboot-callbacks.py.txt
++++ b/downstream/gpu-iommu-live-driver-r1__fastboot-callbacks.py.txt
+@@ -84,14 +84,16 @@
+ 
+ 
+ class Fastboot:
+-    def __init__(self, source, authorize, route_check, capture_check, transport=None):
++    def __init__(self, source, authorize, route_check, capture_check, transport=None, *, production=None):
++        need(production is not None, 'fastboot production binding required')
++        production.check();self.production=production
+         need(type(source) is dict and source.get('clean') is True
+              and all(callable(value) for value in (authorize, route_check, capture_check)),
+              'complete admission/route/capture verifiers required')
+         self.source = A.decode(json.dumps(source))
+         self.authorize, self.route_check, self.capture_check = authorize, route_check, capture_check
+         self.deployed = A.W.load_deployed()
+-        self.health = HEALTH.HealthReads(self.source, authorize, transport=transport)
++        self.health = HEALTH.HealthReads(self.source, authorize, transport=transport, production=production)
+ 
+     def gate(self, phase, context, results, pin):
+         pins()
+--- a/downstream/gpu-iommu-live-driver-r1__health-read-callbacks.py.txt
++++ b/downstream/gpu-iommu-live-driver-r1__health-read-callbacks.py.txt
+@@ -17,11 +17,9 @@
+ OUTPUT = HERE.parent / 'gpu-iommu-controller-r1/execution'
+ PINS = {
+     'receipt-common.py': '50e21650fb00b1babc6eaee9916246688afc401209392483f728666fdc4ddfd4',
+-    'successor-health.py': '738f5d0b6bc6aef9f7b46babd7f53a46103696e8ce9624c21f2454d3de9bcb32',
+     'fallback-observation.py': 'db1f2828fff39d0e7fa1aaa679fef6e44876a00873b1bc235cc3f598fabc4c10',
+ }
+ PATHS = {name: HERE / name for name in PINS}
+-PATHS['successor-health.py'] = HERE.parent / 'gpu-iommu-health-r1/successor-health.py'
+ PHASES = ('observe_target', 'post_capture_health', 'observe_fallback', 'verify_fallback_restoration', 'locate_fallback', 'verify_target_restoration')
+ 
+ 
+@@ -39,7 +37,7 @@
+ 
+ R = load('health_read_common', 'receipt-common.py')
+ A = R.A
+-H = load('health_read_target', 'successor-health.py')
++# Target health is supplied by the checked production cohort, never reimported.
+ F = load('health_read_fallback', 'fallback-observation.py')
+ need = A.need
+ 
+@@ -51,7 +49,6 @@
+              and A.sha(path.read_bytes()) == expected, 'health producer changed')
+     R.pins()
+     A.pinned_sources()
+-    H.inputs()
+ 
+ 
+ DISCOVERY = r'''set -eu
+@@ -82,7 +79,9 @@
+ 
+ 
+ class HealthReads:
+-    def __init__(self, source, authorize, transport=None):
++    def __init__(self, source, authorize, transport=None, *, production=None):
++        need(production is not None, 'health production binding required')
++        production.check();self.production=production;self.health=production.health
+         need(transport is None or callable(transport), 'transport callback required')
+         self.transport = transport
+         need(type(source) is dict and source.get('clean') is True and callable(authorize),
+@@ -92,6 +91,8 @@
+         self.deployed = A.W.load_deployed()
+ 
+     def gate(self, phase, context, results, pin):
++        self.production.check()
++        need(self.health is self.production.health, 'health module changed')
+         pins()
+         need(phase in PHASES and os.geteuid() == 1000, 'health callback phase/owner')
+         need(A.exact_json(context['source'], dict(A.C.SOURCE, boot_id=A.SOURCE_BOOT))
+@@ -152,7 +153,7 @@
+             return results['observe_target']['identity']
+         if phase in ('verify_fallback_restoration', 'verify_target_restoration'):
+             value = results['restore_target_state' if phase=='verify_target_restoration' else 'restore_fallback_state']
+-            need(value.get('completed') is True and value.get('after_sha256') == A.G.OLD_SHA,
++            need(value.get('completed') is True and value.get('after_sha256') == self.production.states['old'],
+                  'fallback restore incomplete')
+             return value['identity']
+         return None
+@@ -160,13 +161,16 @@
+     def observe(self, phase, context, results, pin):
+         intent = self.gate(phase, context, results, pin)
+         role = 'target' if phase in ('observe_target', 'post_capture_health', 'verify_target_restoration') else 'fallback'
+-        expected = A.C.TARGET if role == 'target' else A.C.FALLBACK
++        expected = self.production.target if role == 'target' else A.C.FALLBACK
+         excluded = [A.SOURCE_BOOT]
++        if role=='fallback' and self.production.selected_boot is not None:
++            excluded.append(self.production.selected_boot)
+         if role == 'fallback' and 'observe_target' in results:
+             excluded.append(results['observe_target']['identity']['boot_id'])
+         previous = self.previous_identity(phase, results)
+         if previous is not None:
+-            A.C.same_identity(previous, expected, excluded=excluded)
++            if role == 'target':self.production.identity(previous, proved=True)
++            else:A.C.same_identity(previous, expected, excluded=excluded)
+         A.C.save(OUTPUT / (phase + '-command-entered.json'), dict(intent_sha256=pin, read_only=True))
+         # Bounded readiness polling only for initial observations. A later check
+         # must already be ready on the previously observed boot.
+@@ -206,7 +210,8 @@
+             if phase == 'locate_fallback':
+                 # Probe only authenticated read-only discovery. Full health below
+                 # selects the actual exact kernel, never inferring it from USB.
+-                candidates = (role,) if found is not None else ('target', 'fallback')
++                candidates = (('fallback',) if self.production.publication_failed else
++                              (role,) if found is not None else ('target', 'fallback'))
+                 for route_role in candidates:
+                     remaining = deadline-time.monotonic()
+                     need(remaining>=1, 'initial health observation deadline expired')
+@@ -217,8 +222,11 @@
+                     need(code==0 and not err and 0<len(out)<=1024, 'health discovery failed')
+                     located=A.fields(out)
+                     role=self.location_role(located,results)
+-                    expected=A.C.TARGET if role=='target' else A.C.FALLBACK
++                    need(role==route_role, 'authenticated discovery used wrong route')
++                    expected=self.production.target if role=='target' else A.C.FALLBACK
+                     excluded=[A.SOURCE_BOOT]
++                    if role=='fallback' and self.production.selected_boot is not None:
++                        excluded.append(self.production.selected_boot)
+                     if role=='fallback' and 'observe_target' in results:
+                         excluded.append(results['observe_target']['identity']['boot_id'])
+                     break
+@@ -234,7 +242,10 @@
+                      and value['ready'] in ('ready', 'wait'), 'health discovery schema')
+                 identity = {k: value[k] for k in ('boot_id', 'bundle', 'release')}
+                 A.C.same_identity(identity, expected, excluded=excluded)
+-                need(previous is None or A.exact_json(identity, previous), 'health boot changed after capture/restore')
++                prior = ({k:previous[k] for k in ('boot_id','bundle','release')}
++                         if previous is not None and role=='target' else previous)
++                need(prior is None or A.exact_json(identity, prior), 'health boot changed after capture/restore')
++                if role=='target':self.production.observe_boot(phase,context,results,pin,identity)
+                 need(found is None or A.exact_json(identity, found), 'health boot changed while waiting')
+                 found = identity
+                 if value['ready'] == 'ready':
+@@ -247,13 +258,14 @@
+         need(found is not None, 'health identity absent')
+         boot = found['boot_id']
+         purpose = 'verify-restored' if phase in ('verify_fallback_restoration','verify_target_restoration') else 'observe'
+-        full_target_health = role=='target' and phase!='verify_target_restoration'
+-        script = H.script('target', boot) if full_target_health else F.build(purpose, boot, role)
++        full_target_health = role=='target'
++        script = self.production.script(boot,restored=phase=='verify_target_restoration') if full_target_health else F.build(purpose, boot, role)
+         code, out, err = self.command(phase, 'health', role, script,
+             'python3 -I -B -' if full_target_health else A.SHELL, 35, context, results, pin)
+         need(code == 0 and not err and 0 < len(out) <= 65536, 'health observation command failed')
+-        proof = H.validate(A.decode(out), 'target', boot) if full_target_health else F.parse(out, purpose, boot, role)
+-        need(A.exact_json(proof['identity'], found), 'health proof identity changed')
++        proof = self.production.validate(out,boot,restored=phase=='verify_target_restoration') if full_target_health else F.parse(out, purpose, boot, role)
++        compared = {k:proof['identity'][k] for k in ('boot_id','bundle','release')} if full_target_health else proof['identity']
++        need(A.exact_json(compared, found), 'health proof identity changed')
+         pins()
+         return dict(proof, authenticated=True, read_only=True, **({'mode':role} if phase=='locate_fallback' else {}))
+ 
+@@ -261,14 +273,18 @@
+         need(set(value)=={'boot_id','bundle','release','ready'} and value['ready'] in ('ready','wait'),
+              'health discovery schema')
+         identity={k:value[k] for k in ('boot_id','bundle','release')}
+-        role = 'target' if (value['bundle'],value['release']) == (A.C.TARGET['bundle'],A.C.TARGET['release']) else 'fallback'
+-        expected=A.C.TARGET if role=='target' else A.C.FALLBACK
++        role = 'target' if (value['bundle'],value['release']) == (self.production.target['bundle'],self.production.target['release']) else 'fallback'
++        expected=self.production.target if role=='target' else A.C.FALLBACK
+         excluded=[A.SOURCE_BOOT]
++        if role=='fallback' and self.production.selected_boot is not None:
++            excluded.append(self.production.selected_boot)
+         if role=='fallback' and 'observe_target' in results:
+             excluded.append(results['observe_target']['identity']['boot_id'])
+         A.C.same_identity(identity,expected,excluded=excluded)
++        if role=='target':self.production.discovery(identity)
+         if role=='target' and 'observe_target' in results:
+-            need(A.exact_json(identity,results['observe_target']['identity']), 'target recovery boot changed')
++            prior=self.production.identity(results['observe_target']['identity'],proved=True)
++            need(A.exact_json(identity,{k:prior[k] for k in ('boot_id','bundle','release')}), 'target recovery boot changed')
+         return role
+ 
+     def verify_target_restoration(self, context, results, pin):
+--- a/downstream/gpu-iommu-live-driver-r1__live-driver.py.txt
++++ b/downstream/gpu-iommu-live-driver-r1__live-driver.py.txt
+@@ -40,7 +40,10 @@
+ class Driver:
+     PHASES = C.PHASES
+ 
+-    def __init__(self, source, before_phase, authorize, capture_bridge, transport=None):
++    def __init__(self, source, before_phase, authorize, capture_bridge, transport=None, *, production=None):
++        need(production is not None and production.core is C
++             and HEALTH is FASTBOOT.HEALTH, 'driver production module binding')
++        production.check();self.production=production
+         pins()
+         need(type(source) is dict and source.get('clean') is True
+              and callable(before_phase) and callable(authorize), 'complete driver admission required')
+@@ -49,11 +52,11 @@
+         self.source = A.decode(json.dumps(source))
+         self.before_phase, self.authorize = before_phase, authorize
+         self.route = ROUTE.Route(self.source, authorize)
+-        self.actions = A.Actions(self.source, authorize, transport=transport)
++        self.actions = A.Actions(self.source, authorize, transport=transport, production=production)
+         self.source_reads = R.SourceReads(self.source, authorize)
+         self.captures = CAPTURE.Captures(self.source, authorize, capture_bridge)
+-        self.health = HEALTH.HealthReads(self.source, authorize, transport=transport)
+-        self.fastboot = FASTBOOT.Fastboot(self.source, authorize, self.route.check, self.fallback_capture, transport=transport)
++        self.health = HEALTH.HealthReads(self.source, authorize, transport=transport, production=production)
++        self.fastboot = FASTBOOT.Fastboot(self.source, authorize, self.route.check, self.fallback_capture, transport=transport, production=production)
+         self.boot = BOOT.Boot(self.source, authorize, self.route.check, self.target_capture)
+         self.bindings = {'preflight': self.route.prepare}
+         for provider, phases in (

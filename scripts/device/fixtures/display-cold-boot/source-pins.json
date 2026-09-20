@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "fixtures": {
+    "gpu-iommu-controller-r1__controller.py.txt": "aef9ef27495794e7b96bc8202d56b0bb6369b2c2348049f7d1614c5cd3bc12eb",
+    "gpu-iommu-live-driver-r1__action-callbacks.py.txt": "695668a7c6a374ce6d16560aa59f517a10df98f2a0a3298cc9536f07af23dadf",
+    "gpu-iommu-live-driver-r1__fallback-observation.py.txt": "d895a391ac676c98a081bc703d19baabcfd1145768f8b77fa06b363e0fec97c6",
+    "gpu-iommu-live-driver-r1__fastboot-callbacks.py.txt": "22de83b70a9e9f62c41d228f104a3e53a54daea3d08ea944640113d43df55932",
+    "gpu-iommu-live-driver-r1__health-read-callbacks.py.txt": "070972b6394b44c92e2679cafde685351b5076ab5da7e433aeaeaae16008f96a",
+    "gpu-iommu-live-driver-r1__live-driver.py.txt": "ab087b871715b5124e1a3e6d2ecdd0842b63e0cea3c1f35a6ab87a92e50c324d",
+    "gpu-iommu-live-driver-r1__source-read-callbacks.py.txt": "3bd763f45995447ce44267beb2342123b053b6609d5e924e6a9d58e092ea3509",
+    "integration.py": "55d3a192fa8425c58f35ecc47825964e1d8c5256cc69e58784b9c8b0e9f0dee6",
+    "owned-publication.py": "12165e7bb9735aa4a29a48e1b2f8066bb7ce2008dfa236807b732c3b91db191a",
+    "finalization.py": "27bcb82a7dc7d94be1785a81bf9332727b68aff82f100aacb8a607a1c8ec0635"
+  },
+  "normalizations": [
+    {
+      "file": "gpu-iommu-live-driver-r1__live-driver.py.txt",
+      "change": "Four PATHS private host literals replaced with inert fixture dependency paths; all other AST nodes identical",
+      "original_sha256": "9fc60e92ca1eb5437d634a8a69478fd3fffd53408e2576bed327ced696f08245"
+    }
+  ],
+  "cohort": {
+    "backend.py": "e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098",
+    "display-component.py": "d2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6",
+    "display-endpoint.py": "0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee",
+    "display-firmware.py": "d3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb",
+    "display-providers.py": "c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d",
+    "health.py": "f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892",
+    "kernel-log.py": "a21176ec5d16e7ed2a10467c05001bb5e277b5147ac83284ca66475c3ecac427",
+    "load-production-display.py": "b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b",
+    "session.py": "44868048b5ef3d220c039fa0dc601380533e423fd8d507ab8b5c4aff552e4483",
+    "transport.py": "77ac8cf64e52c580a765a28e9e5c4e26d90983624c14738a1d2f581f2aa05d96"
+  },
+  "callers": {
+    "live-admission.py.txt": "e80ab30bac212bb26dbf914601a215e314fcfa29fa2ec4131c78fc7e1ed03abc",
+    "trial-launcher.py.txt": "a1b18e449379e8330ecbd92d507e9ebb46485926d3f683e250bf832b012468e9"
+  },
+  "patch_sha256": "c5b14ccd51f13082bb991b98d803ded2e7bca0d355f512729d87fb502e6a5eec"
+}

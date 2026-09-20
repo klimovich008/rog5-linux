@@ -1,0 +1,251 @@
+"""Bounded fastboot identity/wait/ordinary reboot; no RAM boot or flashing.
+
+Complete admission, current installed-route proof and owned capture verification
+must be supplied by the outer driver. No standalone live entrypoint exists.
+"""
+import base64
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import re
+import stat
+import time
+
+HERE = Path(__file__).resolve().parent
+OUTPUT = HERE.parent / 'gpu-iommu-controller-r1/execution'
+REPO = HERE.parent / 'oled-startup-controller-worktree-r1'
+PHASES = ('await_fastboot', 'locate_fallback', 'reboot_installed')
+GETVARS = ('product', 'current-slot', 'battery-voltage', 'battery-soc-ok',
+           'slot-unbootable:a', 'slot-unbootable:b', 'version-bootloader', 'max-download-size')
+EXPECTED = {'product': 'lahaina', 'current-slot': 'b', 'battery-soc-ok': 'yes',
+            'slot-unbootable:a': 'no', 'slot-unbootable:b': 'no',
+            'version-bootloader': 'Post-CS10-17-WW-user-AS'}
+BOOT_SHA = 'dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723'
+PINS = {
+    HERE / 'receipt-common.py': '50e21650fb00b1babc6eaee9916246688afc401209392483f728666fdc4ddfd4',
+    HERE / 'health-read-callbacks.py': '070972b6394b44c92e2679cafde685351b5076ab5da7e433aeaeaae16008f96a',
+    REPO / 'scripts/host/verified-fastboot-boot.py': '67b713271dbdc6d6d350ea5545dc42a3ff4bec62c5cdf7298c0beb258e9054f4',
+}
+
+
+def load(name, path):
+    import hashlib
+    if (path.resolve() != path or path.stat().st_size > 65536
+            or hashlib.sha256(path.read_bytes()).hexdigest() != PINS[path]):
+        raise ValueError('fastboot producer changed')
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+R = load('fastboot_receipts', HERE / 'receipt-common.py')
+A = R.A
+BASE = load('fastboot_executable', REPO / 'scripts/host/verified-fastboot-boot.py')
+HEALTH = load('fastboot_fallback_health', HERE / 'health-read-callbacks.py')
+need = A.need
+
+
+def pins():
+    for path, digest in PINS.items():
+        need(path.resolve() == path and path.stat().st_size <= 65536
+             and A.sha(path.read_bytes()) == digest, 'fastboot producer changed')
+    R.pins()
+    A.pinned_sources()
+    BASE.validate_fastboot()
+
+
+def parse_var(raw, name):
+    need(name in GETVARS and type(raw) is bytes and 0 < len(raw) <= 8192, 'fastboot variable bound')
+    values = []
+    for line in raw.decode('ascii').splitlines():
+        if not line:
+            continue
+        found = re.fullmatch(r'(?:\(bootloader\) )?' + re.escape(name) + r':\s*(\S+)', line)
+        if found:
+            values.append(found[1])
+        else:
+            need(re.fullmatch(r'(?:Finished\. Total time:|total time:) [0-9]+\.[0-9]+s', line),
+                 'unexpected fastboot variable response')
+    need(len(values) == 1, 'ambiguous fastboot variable')
+    value = values[0]
+    if name in EXPECTED:
+        need(value == EXPECTED[name], 'fastboot mismatch: ' + name)
+    elif name == 'battery-voltage':
+        need(re.fullmatch('[0-9]{4}', value) and 8400 <= int(value) <= 8800, 'unsafe fastboot voltage')
+    else:
+        need(re.fullmatch(r'0x[0-9a-fA-F]{1,8}|[0-9]{1,10}', value), 'fastboot capacity encoding')
+        maximum = int(value, 16 if value.startswith('0x') else 10)
+        need(134217728 <= maximum <= 1073741824, 'insufficient or unreviewed download capacity')
+        return maximum
+    return value
+
+
+class Fastboot:
+    def __init__(self, source, authorize, route_check, capture_check, transport=None):
+        need(type(source) is dict and source.get('clean') is True
+             and all(callable(value) for value in (authorize, route_check, capture_check)),
+             'complete admission/route/capture verifiers required')
+        self.source = A.decode(json.dumps(source))
+        self.authorize, self.route_check, self.capture_check = authorize, route_check, capture_check
+        self.deployed = A.W.load_deployed()
+        self.health = HEALTH.HealthReads(self.source, authorize, transport=transport)
+
+    def gate(self, phase, context, results, pin):
+        pins()
+        need(phase in PHASES and os.geteuid() == 1000, 'fastboot phase/owner')
+        need(A.exact_json(context['source'], dict(A.C.SOURCE, boot_id=A.SOURCE_BOOT))
+             and context['owner'] == A.OWNER, 'fastboot source/custody changed')
+        need(self.deployed.CAPTURE.ACCEPTANCE.source_identity() == self.source, 'host source changed')
+        need(self.authorize(phase, context, results, pin) is True, 'fastboot admission refused')
+        need(OUTPUT.resolve() == OUTPUT and OUTPUT.is_dir() and OUTPUT.stat().st_uid == 1000
+             and stat.S_IMODE(OUTPUT.stat().st_mode) == 0o700, 'fastboot receipt directory')
+        need(A.exact_json(A.decode(R.receipt(OUTPUT / 'context.json', 4096)), context), 'fastboot context')
+        raw = R.receipt(OUTPUT / (phase + '-entered.json'), 16384)
+        need(A.sha(raw) == pin, 'fastboot intent hash')
+        intent = A.decode(raw)
+        need(set(intent) == {'phase', 'mutation', 'admission_sha256', 'owner', 'monotonic', 'prior'}
+             and intent['phase'] == phase and intent['mutation'] is (phase == 'reboot_installed')
+             and intent['owner'] == context['owner']
+             and intent['admission_sha256'] == context['admission_sha256']
+             and A.exact_json(intent['prior'], list(results)), 'fastboot intent binding')
+        need(type(intent['monotonic']) in (int, float) and math.isfinite(intent['monotonic'])
+             and 0 < intent['monotonic'] <= time.monotonic(), 'fastboot intent time')
+        for name, value in results.items():
+            need(name in A.C.PHASES and A.exact_json(
+                A.decode(R.receipt(OUTPUT / (name + '-result.json'), 1048576)), value),
+                'fastboot prior receipt changed')
+        return intent
+
+    def usb(self):
+        cap = self.deployed.CAPTURE
+        try:
+            mode = cap.usb_mode(A.W.SERIAL)
+        except cap.UsbReadDisappeared:
+            return ('enumerating', None)
+        need(mode[0] != 'mismatch', 'fastboot USB identity mismatch')
+        return mode
+
+    def command(self, phase, label, arguments, deadline, context, results, pin):
+        self.gate(phase, context, results, pin)
+        read = arguments == ('devices', '-l') or arguments in {
+            ('-s', A.W.SERIAL, 'getvar', name) for name in GETVARS}
+        reboot = phase == 'reboot_installed' and arguments == ('-s', A.W.SERIAL, 'reboot')
+        need(read or reboot, 'unsupported fastboot command')
+        need(self.usb() == ('fastboot', None), 'device left fastboot')
+        remaining = deadline - time.monotonic()
+        need(remaining >= 1, 'fastboot command deadline expired')
+        prefix = OUTPUT / (phase + '-' + label)
+        A.C.save(prefix.with_name(prefix.name + '-entered.json'), dict(intent_sha256=pin,
+            argv=[str(BASE.FASTBOOT), *arguments], mutation=reboot))
+        # The exact bounded worker primitive owns, kills and reaps this child
+        # process group, with disk-backed output and no descendants left behind.
+        result = A.W.execute([str(BASE.FASTBOOT), *arguments], '', min(10, int(remaining)))
+        A.save_transport(prefix.with_name(prefix.name + '-transport.json'), result)
+        out = base64.b64decode(result['stdout_base64'], validate=True)
+        err = base64.b64decode(result['stderr_base64'], validate=True)
+        need(A.sha(out) == result['stdout_sha256'] and A.sha(err) == result['stderr_sha256'],
+             'fastboot raw hashes')
+        need(type(result['returncode']) is int and result['returncode'] == 0
+             and result['timed_out'] is False and result['reaped'] is True
+             and len(out) + len(err) <= 8192, 'fastboot command failed or unbounded')
+        self.gate(phase, context, results, pin)
+        if read:
+            need(self.usb() == ('fastboot', None), 'device changed during fastboot read')
+        return out, err
+
+    def identity(self, phase, deadline, context, results, pin):
+        out, err = self.command(phase, 'devices', ('devices', '-l'), deadline, context, results, pin)
+        need(not err and out.decode('ascii').split() == [A.W.SERIAL, 'fastboot', 'usb:1-1.2'],
+             'ambiguous fastboot device list')
+        facts = {}
+        for name in GETVARS:
+            out, err = self.command(phase, 'getvar-' + name.replace(':', '-'),
+                ('-s', A.W.SERIAL, 'getvar', name), deadline, context, results, pin)
+            facts[name] = parse_var(out + b'\n' + err, name)
+        return dict(status='PASS', serial=A.W.SERIAL, usb_path='1-1.2', facts=facts, read_only=True)
+
+    def await_fastboot(self, context, results, pin):
+        intent = self.gate('await_fastboot', context, results, pin)
+        need('request_source_reboot' in results, 'source reboot acknowledgment absent')
+        A.C.save(OUTPUT / 'await_fastboot-command-entered.json', dict(intent_sha256=pin, read_only=True))
+        deadline = intent['monotonic'] + 180
+        for attempt in range(360):
+            self.gate('await_fastboot', context, results, pin)
+            need(deadline - time.monotonic() >= 1, 'source-to-fastboot deadline expired; no retry')
+            mode = self.usb()
+            A.C.save(OUTPUT / f'await_fastboot-usb-{attempt:03}.json', dict(mode=mode[0], interface=mode[1]))
+            if mode == ('fastboot', None):
+                return dict(self.identity('await_fastboot', deadline, context, results, pin), device_matches=True)
+            need(mode in (('absent', None), ('enumerating', None), ('recovery', None),
+                          ('target', self.deployed.CAPTURE.INTERFACE)), 'unexpected USB state while awaiting fastboot')
+            time.sleep(.5)
+        raise ValueError('source-to-fastboot attempt bound; no retry')
+
+    def route(self, phase, context, results):
+        route = self.route_check(context, results)
+        expected = dict(status='PASS', identity=context['source'], boot_b_sha256=BOOT_SHA,
+            installed_inventory_verified=True, selector_behavior_verified=True, read_only=True)
+        need(A.exact_json(route, expected), 'installed fallback route not verified')
+        A.C.save(OUTPUT / (phase + '-route.json'), route)
+        return route
+
+    def locate_fallback(self, context, results, pin):
+        intent = self.gate('locate_fallback', context, results, pin)
+        need(HEALTH.OUTPUT == OUTPUT, 'fallback health output differs')
+        # This separate intent prevents relaunch even if the subsequent health
+        # callback fails before creating its command intent. No target-stage
+        # event is required to authenticate an early V11 return.
+        A.C.save(OUTPUT / 'locate_fallback-location-entered.json', dict(intent_sha256=pin, read_only=True))
+        deadline = intent['monotonic'] + 180
+        for attempt in range(90):
+            self.gate('locate_fallback', context, results, pin)
+            need(deadline - time.monotonic() >= 1, 'fallback location deadline expired')
+            mode = self.usb()
+            A.C.save(OUTPUT / f'locate_fallback-location-usb-{attempt:03}.json', dict(mode=mode[0], interface=mode[1]))
+            if mode == ('fastboot', None):
+                device = self.identity('locate_fallback', deadline, context, results, pin)
+                self.route('locate_fallback', context, results)
+                return dict(status='PASS', mode='fastboot', device=device, device_matches=True,
+                            installed_fallback_route_verified=True, read_only=True,
+                            release_qualified=False)
+            if mode == ('target', self.deployed.CAPTURE.INTERFACE):
+                proof=self.health.locate_fallback(context, results, pin)
+                need(proof.get('mode') in ('target','fallback'),'authenticated recovery mode absent')
+                return proof
+            need(mode in (('absent', None), ('enumerating', None), ('recovery', None)),
+                 'unexpected USB state while locating fallback')
+            time.sleep(2)
+        raise ValueError('fallback location attempt bound')
+
+    def reboot_installed(self, context, results, pin):
+        intent = self.gate('reboot_installed', context, results, pin)
+        located = results.get('locate_fallback', {})
+        need(located.get('mode') == 'fastboot' and located.get('device_matches') is True
+             and located.get('installed_fallback_route_verified') is True, 'fallback location/route absent')
+        ready = results.get('recovery_capture_start', {})
+        need(ready.get('live') is True and ready.get('remaining_lifetime_valid') is True,
+             'fallback capture absent')
+        A.C.save(OUTPUT / 'reboot_installed-command-entered.json', dict(intent_sha256=pin, mutation=True))
+        facts = self.identity('reboot_installed', intent['monotonic'] + 180, context, results, pin)
+        self.route('reboot_installed', context, results)
+        # Revalidate live ownership after all identity queries, immediately
+        # before the one ordinary reboot. The capture provider must enforce its
+        # original deadline and full remaining lifetime; this callback cannot.
+        capture = self.capture_check(context, results)
+        need(type(capture) is dict and capture.get('status') == 'PASS'
+             and capture.get('owner') == context['owner'] and capture.get('live') is True
+             and capture.get('remaining_lifetime_valid') is True
+             and capture.get('phase') == 'recovery_capture_start', 'owned fallback capture not live')
+        A.C.save(OUTPUT / 'reboot_installed-capture.json', capture)
+        out, err = self.command('reboot_installed', 'ordinary-reboot',
+            ('-s', A.W.SERIAL, 'reboot'), time.monotonic() + 10, context, results, pin)
+        return dict(status='PASS', reboot_requested=True, command_completed=True,
+                    device=facts, stdout_sha256=A.sha(out), stderr_sha256=A.sha(err),
+                    boot_success_proven=False, release_qualified=False, retry_permitted=False)
+
+
+if __name__ == '__main__':
+    raise SystemExit('Import-only fastboot callbacks; complete route/capture/admission required')
