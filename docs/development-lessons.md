@@ -3650,3 +3650,21 @@ stdout/stderr but omitted the evidence FIFO stream, so the controller phase
 cannot be recovered from that output. Preserve the failure; do not infer a
 transport, timing or panel cause from cleanup143. Any further reproduction
 should retain that stream before fixture cleanup rather than repeat blindly.
+
+
+### Display registration is not preparation (2026-09-20)
+
+A panel can register its backlight before attach/initialization, and fbdev can
+publish fb0 before fbcon performs its modeset. Even successful module insertion
+can coexist with a failed or deferred prepare. With a qualified default-dark
+panel, observe the zero property during insertion and defer the single startup
+zero command until insertion closure and endpoint validation. Require its actual
+success; a zero property after EPERM is not a completed command. Keep independent
+cleanup and a final caller health check; cleanup success cannot erase failure.
+
+For the regression, synchronize registration with an observer acknowledgement.
+An80ms sleep plus50ms polling can miss the old ordering defect under CPU pressure.
+A bounded handshake made the before/after test deterministic without widening
+production deadlines. Exercise the real loader and driver/core return path; mock
+only hardware/identity boundaries and label the successor unadmitted until its
+complete current module closure and outer ownership contracts are qualified.
