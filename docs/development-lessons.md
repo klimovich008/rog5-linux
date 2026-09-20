@@ -3873,3 +3873,13 @@ hashes. The local preceding patches applied normally even though the adviser
 needed recount on its flattened text packet; do not repair historical files
 from a transport representation. Verify the recorded model/effort and, when a
 follow-up skips model selection, the bound tab's visible model too.
+
+
+Inline recovery returned the exact55620-byte patch after12m08s; its SHA-256
+matched before application. Remove packet-only compatibility modes from local
+regressions. A malformed pyc can fall back to source and miss the defect: use
+valid cache metadata, demonstrate the old loader executes the differing bytes,
+then verify the checked-byte loader ignores them. Also test a cached dependency
+after another cohort source changes. The final33 source-boundary cases retain
+private admission as an explicit fixture; successful binding is not permission
+to enter the unreviewed private runtime.

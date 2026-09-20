@@ -1,0 +1,303 @@
+{
+  "status": "PASS_OFFLINE_SOURCE_COHORT",
+  "authority": "none",
+  "physical": "NOT RUN",
+  "private_runtime": "UNBOUND",
+  "source_commit": "e9534b65d1fd35473f276cd02c8f7862dc09a163",
+  "source_tree": "f4139e69ab35a51c69ced159edaaeeb67cf46196",
+  "starting_commit": "d22cdc9d1738acde491589e4ed5372aa0181194e",
+  "oracle": {
+    "engine": "browser",
+    "model": "gpt-6-pro",
+    "thinking": "pro",
+    "session": "rog5-production-cohort-admission",
+    "same_conversation_followup": "rog5-cohort-inline-delivery",
+    "visible_model": "6Pro",
+    "response_sha256": "500d7efcf05b78cf6ba99e0ea0b07d50f373806ee812be466f42045094e8c587",
+    "inline_response_sha256": "e9ee4cf12eb23406b420f6dd9c49037db94878ec7520818d5d34f59c172b97f0",
+    "proposal_patch_sha256": "6c438eab7dee2755585842f8143b8f1f3805760e093e5a2afb668f27b946563b",
+    "scope": "advice reviewed then independently tested; no API"
+  },
+  "negative_control": {
+    "result": "EXPECTED_ATTRIBUTE_ERROR_QUERY",
+    "scope": "actual preceding cohort with actual successor transport",
+    "evidence_sha256": "70dbf664c125a062f44049d8600362a8434376807f8ba3a39bca0e136155fc70"
+  },
+  "focused": {
+    "original_proposal_32": {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/device/test-production-display-cohort.py"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 2.6723519999650307
+    },
+    "final_32": {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/device/test-production-display-cohort.py"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 2.5700185649911873
+    },
+    "additional": [
+      {
+        "name": "cached-module",
+        "command": [
+          "python3",
+          "-O",
+          "scripts/device/test-production-display-cohort.py",
+          "Cohort.test_cached_module_still_revalidates_the_whole_cohort"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.3652005170006305
+      },
+      {
+        "name": "selector",
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-select-repository-test-tier.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.8160553789930418
+      }
+    ],
+    "unique_cohort_cases": 33,
+    "selector_cases": 37
+  },
+  "integrated": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "e9534b65d1fd35473f276cd02c8f7862dc09a163",
+    "source_tree": "f4139e69ab35a51c69ced159edaaeeb67cf46196",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 226.3758064879803,
+    "counts": {
+      "PASS": 128,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary_sha256": "223bf80b819e1c3061ef1bde0c13f3ae2e6678f6875c733afc2990162cfcdff5",
+    "junit_sha256": "15537ec6945f11f4d5aed476e01097ca9fe3be5ebb852f7e275203a1b4bc48b7",
+    "optional_subchecks": [
+      {
+        "path": "scripts/host/test-check-charging-regulation.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "exact sealed archive integration is explicitly selected",
+            "test_id": "Tests.test_exact_sealed_probe",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "exact sealed archive integration is explicitly selected",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_H03_TEST_ARCHIVE"
+              ],
+              "test_ids": [
+                "Tests.test_exact_sealed_probe"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "path": "scripts/host/test-persistent-trial-state.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "requires explicit retained ARM binary replay",
+            "test_id": "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "requires explicit retained ARM binary replay",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_TRIAL_TEST_ARM64=1",
+                "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+              ],
+              "test_ids": [
+                "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "path": "scripts/device/test-pmic-rail-reader.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "optional ARM64 artifact",
+            "test_id": "RailReaderTest.test_exact_arm_binary",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "optional ARM64 artifact",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_RAIL_READER_BINARY"
+              ],
+              "test_ids": [
+                "RailReaderTest.test_exact_arm_binary"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "memory_peak_reported": "831.1MiB",
+    "swap_peak_bytes": 0
+  },
+  "assembled_sources": {
+    "backend.py": {
+      "bytes": 28925,
+      "sha256": "e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098",
+      "before_sha256": "e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098",
+      "unchanged": true
+    },
+    "display-component.py": {
+      "bytes": 9860,
+      "sha256": "d2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6",
+      "before_sha256": "d2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6",
+      "unchanged": true
+    },
+    "display-endpoint.py": {
+      "bytes": 9833,
+      "sha256": "0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee",
+      "before_sha256": "0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee",
+      "unchanged": true
+    },
+    "display-firmware.py": {
+      "bytes": 7462,
+      "sha256": "d3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb",
+      "before_sha256": "d3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb",
+      "unchanged": true
+    },
+    "display-providers.py": {
+      "bytes": 7209,
+      "sha256": "c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d",
+      "before_sha256": "c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d",
+      "unchanged": true
+    },
+    "health.py": {
+      "bytes": 19104,
+      "sha256": "f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892",
+      "before_sha256": "6a7ba1ea12a362088115b7343d8375e8a56fe44b60cd08928b1197b1b798e4ce",
+      "unchanged": false
+    },
+    "kernel-log.py": {
+      "bytes": 12621,
+      "sha256": "a21176ec5d16e7ed2a10467c05001bb5e277b5147ac83284ca66475c3ecac427",
+      "before_sha256": "ce96fc627703b5c46568615ad04c83bbf65ad65b383748ef6ccb2aa52a82453f",
+      "unchanged": false
+    },
+    "load-production-display.py": {
+      "bytes": 19279,
+      "sha256": "b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b",
+      "before_sha256": "b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b",
+      "unchanged": true
+    },
+    "session.py": {
+      "bytes": 25742,
+      "sha256": "44868048b5ef3d220c039fa0dc601380533e423fd8d507ab8b5c4aff552e4483",
+      "before_sha256": "2e49116d5327b346919638bd4487dc22c2baab3249906ff504c3241aa1178f8b",
+      "unchanged": false
+    },
+    "transport.py": {
+      "bytes": 26752,
+      "sha256": "77ac8cf64e52c580a765a28e9e5c4e26d90983624c14738a1d2f581f2aa05d96",
+      "before_sha256": "edaae9503f51ed7932fb9157d5191afb9f7418d171b6aabd073bb8f4eac640ca",
+      "unchanged": false
+    }
+  },
+  "changed_files": {
+    "patches/display-controller/0009-production-session-source-binding.patch": "7bb70c124f84c632d06b0bf9f09f6902279b8e4a2d80d93ecf613f30182dbf4f",
+    "scripts/device/test-production-display-cohort.py": "66cb5239367025bef534f310f78b43dcb2e86d9a2f35cfe454bbe9e7e04833bc",
+    "configs/repository-tests.json": "c6e87a25da18debbf6c3792babe47e680fad292b22313b04edfa4ca2c1a8d2fc",
+    "scripts/host/test-repository-linux.sh": "ea8c92db49418ef1c9cac08dda7dfe8074e5438b9d9878742a8817ccc862003d"
+  },
+  "limitations": [
+    "external bootstrap and private worker/health/admission transitive closure not qualified",
+    "historical raw input-lock decoder and successor producer not covered by fixture authority",
+    "private command_policy still uses obsolete health API; no SOURCE or seal repinned",
+    "firmware-root consultation upload failed twice before submission; packet prepared, no qualification",
+    "no VM, phone, staging, signing, candidate or claim operation; installed identity NOT VERIFIED"
+  ],
+  "private_evidence_directory": "rog5-display-cohort-20260920-r1",
+  "post_publication": {
+    "tests": [
+      {
+        "name": "status",
+        "command": [
+          "python3",
+          "scripts/host/check-mobile-status.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.04298290703445673
+      },
+      {
+        "name": "status-tests",
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-mobile-status.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.08628337900154293
+      },
+      {
+        "name": "diff",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.014983589993789792
+      }
+    ],
+    "preserved": {
+      "configs/release-acceptance.json": "c1cb49c1e6bd38dc4dcdf7230c66ca4651833fa01ef0fb3a6283b74cbc4ed191",
+      "configs/mobile/acceptance.json": "beff05c037b6e82deebfd46cc8f40ba403e637e62a12fb31ecc2abe4a4aed08b",
+      "manifests/current-artifact.json": "5d168da495a9af5af842f24ad67631c58967f0b5c9bc8a148fab17c507ebd279",
+      "historical_current_state_body": "b2f99acbaa465b6c832378be4a6eb4ccf65c14f60eb4953c407ef4c565f8cf3d"
+    },
+    "artifact_inventory": {
+      "command": [
+        "python3",
+        "scripts/host/check-artifact-inventory.py",
+        "--help"
+      ],
+      "exit_status": 0,
+      "sets": 595,
+      "registered_files": 827,
+      "tracked_files": 177,
+      "small_hashes": 68,
+      "scope": "default inventory check executed; script ignores CLI arguments",
+      "large_private_admission_physical": "NOT RUN"
+    }
+  }
+}
