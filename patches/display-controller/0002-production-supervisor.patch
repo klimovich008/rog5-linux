@@ -1,0 +1,199 @@
+--- a/backend.py
++++ b/backend.py
+@@ -22,7 +22,7 @@
+ QUERY_SHA = '9f7bf87f99987cb96030489e1dd995e1eaba13c532731bb24c6229d94387fbb6'
+ LINE = 32768
+ LEASE = 3.0
+-LIFETIME = 60.0
++LIFETIME = 100.0  # 85-second loader plus bounded entry/action-closure reserve.
+ REAP = 2.0
+ CLEANUP = 4.0
+ ENTRY = Path('/run/initramfs/rog5-gpu-iommu-display-entered.json')
+@@ -204,63 +204,21 @@
+         def ownership():
+             return module.identity(boot)['boot_id'] == boot
+         if cleanup:
+-            result = module.DL.E.blank(boot, ownership)
++            result = module.endpoint.blank(boot, ownership)
+         else:
+             ownership()
+             need(rpc('authorize'), 'GPU host/logging lease absent')
+-            need(rpc('enter', intent(value)), 'GPU entry was not acknowledged')
+-            def record(event, **fields):
+-                need(rpc('progress', dict(event=event, **fields)), 'GPU progress not recorded')
+-            result = module.run(boot, value['owner'], lambda: rpc('authorize'), ownership, record)
++            # Loader preflight precedes the durable one-use request. Insertion
++            # starts only after Supervisor.save() and matching host enter-ack.
++            result = module.loader.load_once(boot, lambda: rpc('authorize'),
++                lambda intent: rpc('enter', intent), ownership)
+         send(channel.fileno(), dict(kind='result', payload=result))
+ 
+ 
+-def intent(value):
+-    return dict(identity=dict(boot_id=value['boot_id'], release='7.1.4-g136f75ae869a',
+-                              bundle='gpu-136f7-a9b1bc89566205b6'),
+-                sources=PINS, query_sha256=QUERY_SHA, maximum_module_insertions=2,
+-                maximum_query_opens=1, maximum_query_ioctls=4, submit_calls=0,
+-                cleanup_brightness=0, retry_allowed=False)
+-
+-
+-def proof_reader():
+-    path=Path(__file__).resolve().parent/'provider-proof.py'
+-    need(path.resolve()==path and path.stat().st_size<16384 and hashlib.sha256(path.read_bytes()).hexdigest()==PINS['provider-proof.py'],'provider proof source changed')
+-    spec=importlib.util.spec_from_file_location('backend_provider_proof',path)
+-    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+-
+-def validate_component(value, boot, owner):
+-    need(type(value) is dict and value.get('status') == 'PASS_GPU_INITIALIZATION_ONLY'
+-         and all(value.get(k) is True for k in ('entered','module_attempted','query_attempted'))
+-         and value.get('retry_allowed') is False and value.get('hardware_acceleration_verified') is False,
+-         'GPU component failed')
+-    need(type(value.get('gpucc_insertions')) is int and value['gpucc_insertions']==0
+-         and type(value.get('driver_probes')) is int and value['driver_probes']==0
+-         and type(value.get('maximum_module_insertions')) is int and value['maximum_module_insertions']==2,
+-         'display/query hardware scope differs')
+-    proof_reader().validate_observation(value.get('provider'),boot,owner)
+-    display=value.get('display',{})
+-    need(display.get('status') == 'PASS_MODULES_AND_BLANK' and display.get('entered') is True
+-         and display.get('panel_attempted') is True and display.get('cleanup_errors') == [],
+-         'GPU display prerequisite failed')
+-    rows=display.get('insertions',[])
+-    need(type(rows) is list and len(rows) == 2 and all(
+-        r.get('filename') == name and r.get('status') == 'PASS_INSERTION' and r.get('reaped') is True
+-        and type(r.get('returncode')) is int and r['returncode'] == 0
+-        for r,name in zip(rows,('qcom-refgen-regulator.ko','panel-asus-rog5-ams678.ko'))),
+-        'GPU display insertion proof absent')
+-    query=value.get('query',{})
+-    need(query.get('error') is None and query.get('reaped') is True
+-         and type(query.get('returncode')) is int and query['returncode'] == 0
+-         and query.get('stderr') == '' and type(query.get('stdout')) is str, 'GPU query closure absent')
+-    expected=dict(status='PASS',stage='complete',errno=None,open_attempts=1,opened=True,
+-        ioctl_attempts=4,close_attempted=True,closed=True,close_errno=None,
+-        values_gpu_chip_gmem=[660,0x06060001,1572864],submit_calls=0,admission_authority=False)
+-    rows=[decode(line.encode()) for line in query['stdout'].splitlines()]
+-    need(encoded({'rows':rows}) == encoded({'rows':[dict(event='OPERATIONAL_OPEN_ENTERING',
+-        admission_authority=False),expected]}) and encoded(value.get('parameters')) == encoded(expected),
+-        'GPU query proof mismatch')
+-    return value
++def validate_component(value, boot, owner, directory):
++    # Draft composition seam. Historical context/PINS deliberately still refuse
++    # this successor; an exact endpoint/admission composition is not issued.
++    return load_component(directory).validate_result(value, boot, owner)
+ 
+ 
+ def spawn(directory, value, cleanup, close_fds):
+@@ -369,6 +327,7 @@
+         pid = channel = result = error = blank = cleanup_proc = None
+         process = dict(reaped=False)
+         cleanup_errors = []
++        component_valid = False
+         reader = Records(self.input)
+         try:
+             self.lock = os.open(LOCK, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, 0o600)
+@@ -402,6 +361,10 @@
+                                     send(channel.fileno(), {'ok':self.alive()})
+                                 elif row['kind'] == 'enter':
+                                     need(not self.entered and type(row['payload']) is dict, 'repeated module entry')
++                                    expected = load_component(self.directory).entry_intent(
++                                        self.value['boot_id'], self.value['owner'])
++                                    need(encoded(row['payload']) == encoded(expected),
++                                         'production entry scope differs')
+                                     self.intent_sha = hashlib.sha256(encoded(row['payload'])).hexdigest()
+                                     save(ENTRY, dict(self.identity, intent_sha256=self.intent_sha,
+                                                      entered_monotonic=time.monotonic(), intent=row['payload']))
+@@ -427,12 +390,17 @@
+                 pid = None
+             need(process['reaped'] and process['group_absent'] and process['exitcode'] == 0,
+                  'module worker did not close successfully')
+-            validate_component(result, self.value['boot_id'], self.value['owner'])
+-        except Exception as exc:
++            need(validate_component(result, self.value['boot_id'], self.value['owner'],
++                                    self.directory) is result, 'production component validation failed')
++            component_valid = True
++        except BaseException as exc:
+             error = dict(type=type(exc).__name__, reason=str(exc)[:2500])
+         finally:
+             if pid is not None:
+-                process = stop(pid, True)
++                try:
++                    process = stop(pid, True)
++                except BaseException as exc:
++                    cleanup_errors.append(dict(stage='action-stop', type=type(exc).__name__, reason=str(exc)[:512]))
+             if channel is not None:
+                 channel.close()
+             if self.entered:
+@@ -440,13 +408,20 @@
+                 # again by the cleanup worker and every endpoint operation.
+                 try:
+                     blank, cleanup_proc = self.cleanup()
+-                except Exception as exc:
++                except BaseException as exc:
+                     cleanup_proc = getattr(exc, 'process', None)
+-                    cleanup_errors.append(dict(stage='independent-zero', reason=str(exc)[:1000]))
++                    cleanup_errors.append(dict(stage='independent-zero', type=type(exc).__name__,
++                        reason=str(exc)[:1000], worker_error=getattr(exc, 'worker_error', None)))
+             if not (process['reaped'] and process.get('group_absent')) and self.started:
+                 cleanup_errors.append(dict(stage='action-reap', reason='worker remains unreaped'))
+             final = dict(self.identity, format='rog5-gpu-iommu-display-backend-result-v1',
+-                         status='PASS_GPU_INITIALIZATION_AND_CLEANUP' if error is None and not cleanup_errors else 'FAIL',
++                         status='PASS_PRODUCTION_DISPLAY_AND_CLEANUP' if (error is None and not cleanup_errors
++                             and self.entered and self.acknowledged and component_valid
++                             and process.get('reaped') is True and process.get('group_absent') is True
++                             and process.get('exitcode') == 0 and blank is not None
++                             and cleanup_proc and cleanup_proc.get('reaped') is True
++                             and cleanup_proc.get('group_absent') is True
++                             and cleanup_proc.get('exitcode') == 0) else 'FAIL',
+                          entered=self.entered, acknowledged=self.acknowledged, component=result,
+                          action_process=process, cleanup_process=cleanup_proc,
+                          remote_reaped=bool(process['reaped'] and process.get('group_absent')
+@@ -477,20 +452,33 @@
+                     need(time.monotonic() < deadline, 'zero cleanup deadline')
+                     if selector.select(max(0, deadline-time.monotonic())):
+                         for row in reader.read():
+-                            need(set(row) == {'kind','payload'} and row['kind'] == 'result'
+-                                 and result is None, 'zero cleanup worker failure')
++                            need(set(row) == {'kind','payload'} and result is None,
++                                 'zero cleanup worker shape')
++                            if row['kind'] == 'error':
++                                failure = ValueError('zero cleanup worker failed')
++                                need(type(row['payload']) is dict, 'zero cleanup error payload')
++                                # Records/decode already bound each message; retain structured
++                                # details rather than replacing EPERM with a generic error.
++                                detail = row['payload']
++                                need(type(detail.get('type')) is str and type(detail.get('reason')) is str,
++                                     'zero cleanup error fields')
++                                if len(encoded(detail)) <= 8192:
++                                    failure.worker_error = detail
++                                else:
++                                    failure.worker_error = dict(type=detail['type'][:128],
++                                        reason=detail['reason'][:1000], component_omitted=True,
++                                        payload_sha256=hashlib.sha256(encoded(detail)).hexdigest())
++                                raise failure
++                            need(row['kind'] == 'result', 'zero cleanup worker failure')
+                             result = row['payload']
+             process = stop(pid, False)
+             if process['reaped']:
+                 pid = None
+             need(process['reaped'] and process['group_absent'] and process['exitcode'] == 0, 'zero worker closure')
+-            who = dict(boot_id=self.value['boot_id'], release='7.1.4-g136f75ae869a', bundle='gpu-136f7-a9b1bc89566205b6')
+-            need(type(result) is dict and result.get('status') == 'PASS_ZERO_BRIGHTNESS_COMMAND'
+-                 and type(result.get('brightness_readback')) is int and result['brightness_readback'] == 0
+-                 and result.get('after', {}).get('identity') == who
+-                 and type(result['after'].get('brightness')) is int and result['after']['brightness'] == 0,
++            need(load_component(self.directory).validate_blank(result, self.value['boot_id'],
++                                                              self.value['owner']) is result,
+                  'independent zero readback differs')
+-        except Exception as exc:
++        except BaseException as exc:
+             error = exc
+         finally:
+             if pid is not None:
+@@ -515,7 +503,7 @@
+     signal.signal(signal.SIGTERM, stopped)
+     signal.signal(signal.SIGINT, stopped)
+     result = Supervisor(directory, value).run()
+-    return 0 if result['status'] == 'PASS_GPU_INITIALIZATION_AND_CLEANUP' else 1
++    return 0 if result['status'] == 'PASS_PRODUCTION_DISPLAY_AND_CLEANUP' else 1
+ 
+ 
+ if __name__ == '__main__':

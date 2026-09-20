@@ -51,7 +51,7 @@ The manifest binds builder/checker hashes and the exact board inputs. No helper,
 service, aliases, modprobe index, firmware or boot image is added. Future archive
 consumers must verify the archive hash and its exact members before staging it.
 
-Its order is only a symbol dependency order. REFGEN's DSI-PHY supply and GPUCC's
+Its order is only a symbol dependency order. REFGEN's DSI-host supply and GPUCC's
 GMU/SMMU clock/power relationships come from DT, and MSM can trigger fbcon/panel
 preparation automatically. Those activation edges require review in the successor
 controller; no insertion commands are generated. Inserting GPUCC can program PLLs,
@@ -125,3 +125,40 @@ The executable tests use owned inert children and the actual panel/DRM/backlight
 callback extracts. Provider/sysfs/ownership/identity effects are explicit host
 fixtures. They include firmware-reader integration, early-panel ordering failure,
 provider failure, uncertain entry, missing receipts and interruption cleanup.
+
+## Bound endpoint and supervisor draft
+
+`display-endpoint.py` supplies the production endpoint. Its admitted identity
+callback must provide boot ID, release, bundle, descriptor hash, current composed
+DT hash and owner. The endpoint checks local root/boot/release, exactly one matching
+bundle token and the stable protected descriptor, then binds that identity for its
+lifetime. The caller still owns exact device/signature/health/recovery admission.
+Framebuffer discovery now requires the exact DPU device, driver, DT node and
+reciprocal links, not merely a matching-looking fb0 beneath MDSS. Metadata and a
+successful zero write do not establish active scanout or physical darkness.
+
+`display-component.py` assembles the four hash-pinned source components, executes
+only the verified source bytes and validates all 14 insertion receipts, provider
+checkpoints, endpoint identity and zero-command proof. Its entry scope comes from
+the same pure `entry_intent()` used by the loader, avoiding a second scope definition.
+Importing it performs no device operation; its constructor is not admission.
+
+`0002-production-supervisor.patch` applies to the exact historical backend fixture
+SHA256 `840ba5ad5c1bfe2059bfc580fb45da4e8f3fef59f8e6627789cfe5ed38904a0d`.
+It routes the worker through the production loader and preserves exclusive durable
+entry, matching host acknowledgment and independent cleanup. It validates entry
+scope before saving it. Interruption cannot publish a successful terminal result;
+cleanup error details survive, with bounded summaries for large payloads.
+The draft lifetime is 100 seconds around the 85-second loader; cleanup/reaping
+remain separately bounded. Existing 60/78-second host transport contracts are
+incompatible and must be adapted and tested before any live composition.
+
+The patch deliberately retains historical source/context pins and entry barriers.
+It cannot form a deployable production backend by itself. No candidate, claim or
+admission is issued. The legacy entry paths are not renamed to evade consumption.
+Tests apply the patch to a private temporary copy of the retained source. Real
+pipes and separate processes exercise acknowledgment, interruption, expiry and
+cleanup; an assembled case runs the real loader/endpoint and compiled panel/core
+callbacks under that supervisor, with all device effects explicitly substituted.
+Future qualification must also cover exceptional descendant closure and firmware
+root-transition assumptions before authorizing a real hardware trial.

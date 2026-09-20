@@ -165,6 +165,16 @@ class LoadError(ValueError):
         super().__init__('OLED module load failed: '+str(evidence))
         self.evidence = evidence
 
+def entry_intent(identity):
+    """Exact one-use scope shared with the supervisor; never grants authority."""
+    return dict(identity=identity,
+                modules=[dict(module=name, filename=Path(path).name, path=path,
+                              bytes=size, sha256=pin) for name,path,size,pin in MODULES],
+                helper_sha256=HELPER[2], maximum_insertions=len(MODULES),
+                per_module_seconds=INSERT_SECONDS, total_seconds=TOTAL_SECONDS,
+                cleanup_brightness=0, retries=0, driver_reprobes=0, drm_opens=0)
+
+
 class Loader:
     """One bounded attempt; callbacks never confer admission by themselves.
 
@@ -242,12 +252,7 @@ class Loader:
                                       sha256=pin, directory=directory, descriptor=fd, metadata=metadata))
             gate()
             self.attempted = True
-            intent = dict(identity=identity,
-                          modules=[{k:v for k,v in row.items() if k not in ('directory','descriptor','metadata')}
-                                   for row in inventory], helper_sha256=HELPER[2],
-                          maximum_insertions=len(inventory), per_module_seconds=INSERT_SECONDS,
-                          total_seconds=TOTAL_SECONDS, cleanup_brightness=0, retries=0,
-                          driver_reprobes=0, drm_opens=0)
+            intent = entry_intent(identity)
             need(enter(intent) is True, 'durable production entry not acknowledged')
             entered = True
             for row in inventory:
