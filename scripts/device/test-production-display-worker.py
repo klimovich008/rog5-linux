@@ -31,7 +31,10 @@ def prepare_loader(work, sources, after, pins):
             ('0010-private-display-api.patch', callers, admission.name),
             ('0011-production-cold-boot.patch', loader, 'current-callers/' + admission.name)):
         for options in (['--check'], []):
-            subprocess.run(['git', 'apply', *options, '--include=' + include,
+            # git apply matches --include after adding its repository prefix.
+            # Scratch lives inside ROOT/build, so an unprefixed name skips it.
+            selected = str(directory.relative_to(ROOT) / include)
+            subprocess.run(['git', 'apply', *options, '--include=' + selected,
                             str(ROOT / 'patches/display-controller' / filename)],
                            cwd=directory, check=True, capture_output=True, timeout=10)
     expected = pins['checked_loader']
