@@ -606,3 +606,63 @@ binding remains independently unqualified. The private checkpoint retains exact
 commands, logs, proposed bytes, all hashes and the existing consultation handles.
 No phone/VM/root/signing/claim/candidate/protected-storage operation occurred.
 Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.
+
+
+### Actual source identity and stable group handles; final-close gap (2026-09-20)
+
+The same Pro follow-up completed in1858.310614s. Its final answer matched the
+submitted question and verified6Pro/Pro selection. Downloaded bundle SHA256
+`c3aecb5102e2985ff638a92eb5788ac0705ba98a39cabd9012cb0c0d6a75121a` and all27
+internal entries pass. An initial checksum command used the parent directory
+and could not open relative entries; rerunning in the extracted bundle resolved
+that command error, without any changed bytes. Incremental patch SHA256:
+`996d48af451734645fdb3e1a1c83e2ab72799c17d910e0a4718f79cba1233fe1`.
+Cumulative runtime-source patch SHA256:
+`0803471c209ca9947d16baa0f95a59b4df9016cace9eabd63dd55df5c6807059`.
+
+The coordinator applied/reversed/reapplied isolated source copies and verified
+exact before/after bytes in0.015583s. Proposed worker SHA256:
+`44382acd27a4a5da05d933dd4779496d8a49b7e135900202d8931bb20998ea69`;
+acceptance SHA256:
+`a373cdd00cbfe727b57dc6e5f6680370379ba615cbb19434600f6b62941c772e`.
+No retained runtime, historical pin, input authority or health seal was replaced.
+
+**Personal local execution:42PASS,0FAIL in21.471257s**, four serial batches of
+22updated binding and20focused cases (8.373490,4.698631,5.343664,3.054824s).
+Host kernel was `6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45`, UID1000,
+Python-O,512MiB process address space,768MiB/no-swap aggregate,64tasks,
+90-second batch deadlines. This verifies actual process-group pidfd behavior
+on the Deck, including same-group descendants after leader reap, cancellation,
+unsupported-feature refusal before payload release, and ordinary threaded
+callers. The actual acceptance function now runs against disposable Git repos;
+its recipe is compared with the original function. Private input authentication
+remains a fixture. Adviser-side42passes in15.741705s on6.18.44 are separate.
+
+Commands use `test-worker-deployed-binding.py` and
+`test-worker-source-lifetime.py --binding-test test-worker-deployed-binding.py`,
+with `--packet <previous-packet> --patch <cumulative-patch>
+--acceptance <exact-original-acceptance> --sources <exact-ten-source-assembly>`
+and the recorded per-batch case selection. Test SHA256s are
+`35483c011c51347ad5622af75f246f8dcddb0de698f5361637dd1a999a2c06d1` and
+`f086d2772398cff4b18e9d17fd44b4f2d901c534711bd3e0aaf76f4d4b291ac7`.
+No unchanged70/130suite, board tier or kernel build was repeated.
+
+A bounded independent review then demonstrated two final-close counterexamples
+outside those42cases, executing the actual proposed `execute()` with inert
+process/socket/signal adapters and an owned real descriptor. After otherwise
+successful group closure, first KeyboardInterrupt immediately after
+`parent.close()` skips later closers and leaves the raw descriptor open
+(2baseline/counterexample cases,0.003252s). After a handled TimeoutExpired,
+the same first cancellation is instead added only to the internal timeout notes;
+`execute()` returns `timed_out=True` normally (1case,0.001840s). The latter
+closes descriptors but loses cancellation. These are confirmed descriptor-leak/
+cancellation-loss results, not surviving descendants or unintended signals.
+The fixtures restore their descriptor inventories; no process or signal is used.
+The coordinator inspected the complete reproducers/results without rerunning.
+
+The proposal remains unintegrated. Both precise failures, current source and
+local42-case logs were submitted to the same Pro conversation for a correction
+limited to finalization/error priority. Runtime remains UNBOUND; the actual
+public session still refuses the private worker before health. No phone, VM,
+root, signing, claim, candidate or protected-storage operation occurred.
+Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.

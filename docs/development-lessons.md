@@ -3989,3 +3989,12 @@ and development headers: reconstructing it dropped ROG5_WAYLAND_INCLUDE and
 caused a9-second early failure. The unchanged source then passed130suites.
 Package only consumed source fixtures, preserving reviewed test bytes and the
 existing assembler, rather than committing full adviser packets or private logs.
+
+
+Worker finalization (2026-09-20): test first cancellation after successful
+cleanup and after a handled timeout separately. A timeout retained for diagnostic
+notes is not an exception that will necessarily propagate. Raising immediately
+from one descriptor closer can skip the remaining owned descriptors; attaching
+cancellation only to a handled timeout can lose it on normal return. The42local
+pidfd/identity cases passed before separate inert fixtures exposed both gaps.
+Keep those failure results explicit until the finalization repair is verified.
