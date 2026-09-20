@@ -3902,3 +3902,18 @@ The35 actual-source cases qualify control flow/root arguments only; keep real VF
 request timing, successor startup and payload lifetime separate. Do not rebuild or
 change the firmware path without a demonstrated defect. Preserve a correctly
 rejected historical seal while repairing independent caller/API mismatches.
+
+
+Bound adviser delivery separately from reasoning (2026-09-20): two large inline
+source requests exhausted browser CPU without reaching the conversation. A
+smaller inline retry still consumed909.77 renderer CPU seconds before its owned
+tab was closed. Metadata `promptSubmitted=false` alone is inconclusive because
+Oracle records it after the awaited send action; inspect a fresh conversation
+view after terminal failure before resubmitting. Never duplicate an active turn.
+For the same API review, one118131-byte plaintext file uploaded through the
+supported `--browser-attachments always` path; submission, visible6Pro and Pro's
+acknowledgment of the complete caller files were verified within123.699s of
+launch. This demonstrates a usable delivery path, not the cause of earlier
+upload/editor failures. Keep verbose delivery evidence private, bound resource
+use per owned tab, and distinguish confirmed file access from a completed review
+or locally tested solution. Close owned read-only diagnostic tabs after capture.
