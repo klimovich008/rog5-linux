@@ -3959,3 +3959,11 @@ tool; a desktop alert must not be described as automatic task resumption.
 Bound independent regular-Astra investigations separately from Pro decisions,
 with one integration owner and no duplicated prompts. Keep three advisers as a
 ceiling, not a target for empty work.
+
+Oracle upload recovery (2026-09-20): an upload timeout occurred before any user
+turn; assigning files to the generic DOM input also produced no attachment.
+Opening the actual file chooser in the same owned tab produced both attachment
+chips. Submit once only after checking them and the empty conversation, then
+retain the matching user ID, visible6Pro and source-specific acknowledgement.
+Use the existing session's live reader for retrieval; its earlier error metadata
+and terminal notification remain historical, not the new answer's status.
