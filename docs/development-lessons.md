@@ -3491,3 +3491,19 @@ Pre-arm the stage waiter asynchronously: waiting synchronously for shutdown
 markers before issuing TERM deadlocks preparation. Preserve ordered same-PID
 markers and refuse capture after completed shutdown/exit. Missing/late markers
 must not extend kill grace; startup-relative samples are not TERM-relative.
+
+
+### Stage capture preparation,2026-09-20
+
+Check syscall constants against the exact target ABI and test the operation
+directly: ARM64 O_NOFOLLOW is0100000, unlike x86-64's0400000. The metadata
+guard could hide the wrong flag; a direct symlink-open mutation failed on the
+old ARM64 constant and passed with the correction. Keep log-size limits separate
+from compiler output sizes: applying an8MiB RLIMIT_FSIZE to rust-lld caused
+SIGXFSZ, not memory exhaustion. Bounded log capture plus process-group cleanup
+preserved compiler resource limits without capping legitimate test binaries.
+The13-case API guest took3.032s and qualified the actual marker/ptrace boundary
+before another expensive UI run. Its success does not capture the unresolved
+Mousepad shutdown stage. Never extend the observation budget to force a late
+marker into a successful result. Reuse the existing community audit when live
+upstream identities have not changed; inspect the delta before new builds.

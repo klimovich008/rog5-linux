@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Unref-free diagnostic control qualified; VM Mousepad close still FAIL",
+  "phase": "Stage-triggered close capture prepared; prior VM Mousepad close still FAIL",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source b9da8f71 adds an explicit diagnostic control without g_object_unref interposition. Default DSO is byte-identical to the prior artifact; 19 focused tests in normal/-O modes, actual ARM64 GLib fixtures and 112-suite frozen active tier pass. One bounded control VM still exits Mousepad137 (Foot0); normal guest poweroff and post-run input/runtime identity checks pass, /var unmount still fails. This run reaches SHUTDOWN_BEFORE and external settings-sync BEGIN/END, but not SHUTDOWN_AFTER or APP_RUN_END. The earlier PC sample precedes those markers by0.815433s and returns no stack frames (Deadline), so it cannot locate the unfinished shutdown stage. Removal of per-object interception alone is insufficient; no GTK/GLib fix or overhead estimate is established. Next qualify a single stage-triggered bounded observation after external-sync END, with missing-marker refusal, identity/exit races and cleanup fixtures; retain the two-second close limit and no-unref control. Do not repeat an unchanged full VM. Phone physical rows stay NOT RUN and S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-20-no-unref-control.md"
+  "next": "Source0e39b4d6 adds bounded stage-triggered capture after the owned external-sync END marker, with completion/identity/deadline revalidation and unchanged1200ms helper/two-second close limits. Focused host checks, ARM64 syscall regressions,112-suite active tier and13 API guest cases pass. The API guest verifies real owned-child ptrace capture/cancellation/detach and normal poweroff; it does not run Denial or reproduce the UI failure. Next prepare one bounded no-unref UI observation using this mode; accept missing/late-marker NOT RUN without increasing grace. Prior Mousepad137, unfinished shutdown and unmount failures remain. Upstream main cd84b8b7/dev5ab4004a are unchanged; community leads do not qualify ASUS hardware. Phone physical rows remain NOT RUN and S06/R01 remain FAIL.",
+  "evidence": "test-results/2026-09-20-close-stage-preparation.md"
 }

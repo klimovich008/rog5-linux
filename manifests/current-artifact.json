@@ -2186,6 +2186,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-no-unref-control-20260920-r1"
+    },
+    "close_stage_preparation": {
+      "status": "Stage-triggered capture qualified in host/ARM64 API fixtures; full UI capture NOT RUN; prior Mousepad close FAIL remains",
+      "source_commit": "0e39b4d6f1639cd208e09134923c98785e109adb",
+      "source_tree": "e983687c7eac485d836d6c074a7daedf9bbcd62c",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-stage-preparation-qualification.json",
+        "sha256": "124fda44b9b952a6630c2f0198af284e1ba9084c5c6055209ce1a68940083b27",
+        "bytes": 36482
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-close-stage-20260920-r1"
     }
   },
   "denial_phone_linkage": {
