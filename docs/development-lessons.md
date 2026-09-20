@@ -3744,3 +3744,21 @@ Keep successful brightness writes separate from the zero property: the backlight
 core may update that property before a failing callback. Match the framebuffer
 to the exact DRM master, not merely a common ancestor. Source hashes must cover
 the bytes actually executed; importing the path a second time reopens a race.
+
+
+### Reserve child identity until group signaling finishes (2026-09-20)
+
+Reaping a leader before group cleanup loses the safe signaling anchor. Use
+WNOWAIT, finish group signals before reap, and establish ownership again on a
+cleanup retry; ECHILD must never trigger numeric-PID signals. Test interruption
+on both sides of waitpid, since caller bookkeeping may not have completed.
+Repeat group cleanup at leader exit after a forced stop: setsid or an in-flight
+fork can race the first signal. A controlled ESRCH seam with a real descendant
+demonstrated this gap without relying on probabilistic timing.
+
+An inert fixture must clean its own failure paths: close its anchored leader
+before attempting to reap an adopted descendant. Separate PID1/zombie reaping
+from live-child termination, and keep disappearance timeout a failure. The two
+focused suites took 6.59 seconds wall time; no kernel rebuild or phone trial was
+needed to qualify this userspace boundary. Same-group coverage does not prove
+session-escape containment or reversal of kernel side effects.

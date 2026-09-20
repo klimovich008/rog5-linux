@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production display endpoint and supervised assembly pass offline; live composition pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Display worker group cleanup repaired offline; transport/admission composition pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Production endpoint, hash-pinned component assembly and supervisor adaptation implemented. Exact identity/topology and zero-command receipts are validated; durable entry precedes ACK and 14 inert insertions in the assembled host test. 64 new focused cases and 121 active suites PASS. Next: qualify outer transport/admission timing, exceptional descendant closure and firmware root transitions offline. Historical transport is too short for the draft 100-second supervisor. No live composition, candidate, signing, claim, target staging or phone/VM operation. Current board/artifact pointer and sealed controller unchanged. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-endpoint.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Production supervisor now retains direct-child ownership through group signaling and refuses signals after reaping. Real descendant, interruption and pre-setsid race regressions pass: 31 supervisor cases, 10 assembled component cases and 121 active suites. Next: qualify outer transport/admission timing and result contracts, then firmware root transitions offline. Same-group pinned helpers are covered; arbitrary session escape and uninterruptible kernel work are not. No live composition, candidate, signing, claim, target staging or phone/VM operation. Current artifacts and sealed controller unchanged. Physical NOT RUN; S06/R01 and historical Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-display-process-closure.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
