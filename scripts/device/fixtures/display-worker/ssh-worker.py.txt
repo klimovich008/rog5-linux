@@ -1,0 +1,201 @@
+"""Scoped host-network worker for one authenticated USB SSH command.
+
+Runs on the host; new network setup requires sudo, while existing routes can be
+used by deck without privilege. V11 executes shell only. The admitted outer driver
+owns mutation intents. No retries, fastboot commands, or phone discovery writes.
+"""
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent / 'oled-startup-controller-worktree-r1'
+KEY = '<REDACTED_KEY>'  # private binding value omitted; not runnable
+HOSTS = '<REDACTED_HOSTS>'  # private binding value omitted; not runnable
+HOSTS_SHA = '<REDACTED_HOSTS_SHA>'  # private binding value omitted; not runnable
+SERIAL = '<REDACTED_SERIAL>'  # private binding value omitted; not runnable
+MAX_INPUT = 3 * 1024**2
+MAX_OUTPUT = 1024**2
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_deployed():
+    # Isolated Python deliberately omits script directories. These repository
+    # tools import generated siblings, so use the fixed producer directory.
+    host = REPO / 'scripts/host'
+    sys.path.insert(0, str(host))
+    try:
+        return load('usb_worker_deployed', host / 'check-deployed-server.py')
+    finally:
+        sys.path.pop(0)
+
+
+def need(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def unique(rows):
+    result = {}
+    for key, value in rows:
+        need(key not in result, 'duplicate request key')
+        result[key] = value
+    return result
+
+
+def request(raw):
+    need(0 < len(raw) <= MAX_INPUT, 'request bound')
+    value = json.loads(raw, object_pairs_hook=unique)
+    need(type(value) is dict and set(value) == {'format', 'mode', 'remote', 'script', 'source', 'timeout'}, 'request fields')
+    need(value['format'] == 'rog5-one-usb-command-v1' and value['mode'] in ('normal', 'linklocal'), 'request mode')
+    need(value['remote'] in ('sh -s', 'python3 -I -B -',
+         '/run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox sh -s'), 'remote interpreter')
+    need(value['mode'] != 'linklocal' or value['remote'] != 'python3 -I -B -', 'V11 has no Python')
+    need(type(value['script']) is str and 0 < len(value['script'].encode()) <= MAX_INPUT, 'script bound')
+    need(type(value['timeout']) is int and 1 <= value['timeout'] <= 35, 'command timeout')
+    return value
+
+
+def credentials():
+    for path, modes in ((KEY, {0o400, 0o600}), (HOSTS, {0o400, 0o600, 0o644})):
+        info = path.lstat()
+        need(path.resolve() == path and stat.S_ISREG(info.st_mode) and info.st_uid == 1000
+             and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) in modes, 'credential metadata')
+    with HOSTS.open('rb') as stream:
+        need(hashlib.file_digest(stream, 'sha256').hexdigest() == HOSTS_SHA, 'host key pin changed')
+
+
+def child_limits():
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_OUTPUT, MAX_OUTPUT))
+
+
+def execute(argv, script, timeout):
+    """Disk-backed bounded output; kill/reap only this command's owned group."""
+    with tempfile.TemporaryFile(dir=HERE) as out, tempfile.TemporaryFile(dir=HERE) as err:
+        # This worker also runs under the root guardian's monitoring thread.
+        # Apply limits after exec, without Python callbacks between fork/exec.
+        limited = ['/usr/bin/prlimit', '--core=0:0', f'--fsize={MAX_OUTPUT}:{MAX_OUTPUT}', '--', *argv]
+        process = subprocess.Popen(limited, stdin=subprocess.PIPE, stdout=out, stderr=err,
+                                   start_new_session=True,
+                                   env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LC_ALL': 'C'})
+        timed_out = False
+        def terminate():
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate(timeout=5)
+        try:
+            process.communicate(script.encode(), timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            terminate()
+        except BaseException:
+            terminate()
+            raise
+        out.seek(0); err.seek(0)
+        stdout, stderr = out.read(MAX_OUTPUT + 1), err.read(MAX_OUTPUT + 1)
+        need(len(stdout) <= MAX_OUTPUT and len(stderr) <= MAX_OUTPUT, 'output bound')
+        return dict(returncode=process.returncode, timed_out=timed_out,
+                    stdout_base64=base64.b64encode(stdout).decode(), stderr_base64=base64.b64encode(stderr).decode(),
+                    stdout_sha256=hashlib.sha256(stdout).hexdigest(), stderr_sha256=hashlib.sha256(stderr).hexdigest(),
+                    owned_pid=process.pid, reaped=True, output_limit_bytes=MAX_OUTPUT)
+
+
+def perform(value, deployed):
+    cap = deployed.CAPTURE
+    network = cap.NETWORK
+    events = []
+    result = dict(status='FAIL', mode=value['mode'], network_owned=False, command_invoked=False,
+                  command=None, events=events, source=value['source'])
+    started = time.monotonic()
+
+    def source():
+        need(cap.ACCEPTANCE.source_identity() == value['source'] and value['source'].get('clean') is True,
+             'host source changed')
+
+    def usb():
+        need(cap.usb_mode(SERIAL) == ('target', cap.INTERFACE), 'wrong USB identity/topology')
+
+    def link_ready():
+        code, out = network.command(['ip', '-j', 'route', 'get', '<IPV4_5>'], acceptable=(0, 2))
+        if code:
+            return False
+        rows = json.loads(out)
+        return (len(rows) == 1 and rows[0].get('dev') == cap.INTERFACE
+                and rows[0].get('prefsrc') == '<IPV4_4>')
+
+    def run():
+        source(); usb(); credentials()
+        if value['mode'] == 'normal':
+            deployed.host_gate(dict(serial=SERIAL))
+        else:
+            need(link_ready(), 'wrong pinned link-local route')
+        argv = deployed.ssh_command(KEY, HOSTS)
+        need(argv[-1] == 'root@<IPV4_2>', 'SSH argument schema changed')
+        if value['mode'] == 'linklocal':
+            argv[-1] = 'root@<IPV4_5>'
+        result['command_invoked'] = True
+        prefix = ['/usr/bin/runuser', '-u', 'deck', '--'] if os.geteuid() == 0 else []
+        result['command'] = execute([*prefix, *argv, value['remote']],
+                                    value['script'], value['timeout'])
+        source()
+        # A mutation may intentionally disconnect. Its one-use outer phase
+        # interprets the exact command response; this worker never retries it.
+
+    try:
+        source(); usb(); credentials()
+        if value['mode'] == 'normal' or link_ready():
+            run()
+        else:
+            # A pre-existing exact route is borrowed read-only. Otherwise this
+            # context owns and closes only the resources it actually prepares.
+            need(os.geteuid() == 0, 'new link-local setup requires scoped host network privileges')
+            result['network_owned'] = True
+            with network.prepared(60, events.append, lambda: cap.usb_mode(SERIAL)[0] == 'target') as prepared:
+                _, ensure_route = prepared
+                need(ensure_route() is True, 'link-local route not ready')
+                run()
+            cleanup = [event for event in events if event.get('event') == 'host-cleanup']
+            need([event['item'] for event in cleanup] == ['route', 'firewall', 'profile', 'address']
+                 and all(event['status'] == 'PASS' for event in cleanup), 'owned network cleanup incomplete')
+        need(result['command'] is not None and result['command']['reaped'], 'command did not close')
+        result['status'] = 'PASS_TRANSPORT_COMPLETED'
+    except Exception as error:
+        result['reason'] = str(error)[:1000]
+    result['seconds'] = time.monotonic() - started
+    return result
+
+
+def main():
+    need(os.geteuid() in (0, 1000), 'host worker must run as deck or scoped root')
+    def cancelled(*_):
+        raise RuntimeError('host SSH worker cancelled; do not retry')
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, cancelled)
+    value = request(sys.stdin.buffer.read(MAX_INPUT + 1))
+    deployed = load_deployed()
+    result = perform(value, deployed)
+    print(json.dumps(result, allow_nan=False), flush=True)
+    return 0 if result['status'] == 'PASS_TRANSPORT_COMPLETED' else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

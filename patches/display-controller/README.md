@@ -403,3 +403,25 @@ This is source integration only. The original runtime, signatures, input locks,
 health seals and claims remain untouched. Initialization still refuses the
 unqualified private SSH worker before any health or credential operation;
 adding a source pin alone cannot qualify its transitive imports.
+
+
+## Worker source binding and process lifetime
+
+`0012-worker-source-lifetime.patch` composes the reviewed worker/deployed-source
+binding, bounded actual Git source-identity observation and pidfd finalization
+correction. It applies to the exact sanitized worker fixtures and the existing
+assembled session plus public acceptance source. The clean-checkout wrapper is
+`scripts/device/test-production-display-worker.py`; its 58 cases and explicit
+host prerequisites are described in `scripts/device/fixtures/display-worker/README.md`.
+
+This removes eager unqualified imports from the proposed worker closure, binds
+its source reader explicitly and retains a stable group pidfd after leader reap.
+The first final-close cancellation propagates after remaining close attempts,
+including when the preceding timeout was handled. Uncertain raw descriptor close
+is never retried against a reused number. Acceptance compares two bounded actual
+Git observations; this is neither an atomic repository snapshot nor a sandbox
+for hostile Git repositories.
+
+This remains an offline successor patch. The original source pins, runtime
+refusal, signed artifacts, credentials, health seals and claims are unchanged.
+Actual private admission and downstream health/capture binding remain UNBOUND.

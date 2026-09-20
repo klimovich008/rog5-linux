@@ -1,0 +1,176 @@
+--- a/ssh-worker.py.txt
++++ b/ssh-worker.py.txt
+@@ -218,36 +218,40 @@
+     need(type(timeout) is int and 1<=timeout<=35, 'command time bound')
+     need(hasattr(os,'pidfd_open') and hasattr(signal,'pidfd_send_signal'), 'pidfd APIs required')
+     deadline=time.monotonic()+timeout
+-    with tempfile.TemporaryFile(dir=HERE) as out, tempfile.TemporaryFile(dir=HERE) as err:
++    out=err=parent=child=process=pidfd=None
++    received=[];failure=None;handled_timeout=None;result=None;diagnostics=[]
++    timed_out=False;released=False;cleanup_deadline=None
++    def left():
++        value=deadline-time.monotonic()
++        if value<=0:raise subprocess.TimeoutExpired(argv,timeout)
++        return value
++    def group(sig):
++        need(pidfd is not None, 'command pidfd absent')
++        try:signal.pidfd_send_signal(pidfd,sig,None,PIDFD_SIGNAL_PROCESS_GROUP)
++        except ProcessLookupError:return False
++        return True
++    def close_group():
++        # This is also used on ordinary leader exit, not only timeout/error:
++        # remaining same-group descendants are never silently abandoned.
++        nonlocal cleanup_deadline
++        if cleanup_deadline is None:cleanup_deadline=time.monotonic()+5
++        until=cleanup_deadline
++        if not released:
++            # A failed group-feature probe must still reap its inert starter.
++            try:signal.pidfd_send_signal(pidfd,signal.SIGKILL,None,0)
++            except ProcessLookupError:pass
++            process.wait(timeout=max(.001,until-time.monotonic()))
++            return
++        group(signal.SIGKILL)
++        process.wait(timeout=max(.001,until-time.monotonic()))
++        while group(0):
++            if time.monotonic()>=until:raise RuntimeError('owned command group closure unproven')
++            time.sleep(.01)
++    try:
++        out=tempfile.TemporaryFile(dir=HERE)
++        err=tempfile.TemporaryFile(dir=HERE)
+         limited=['/usr/bin/prlimit','--core=0:0',f'--fsize={MAX_OUTPUT}:{MAX_OUTPUT}','--',*argv]
+         parent,child=socket.socketpair()
+-        process=None;pidfd=None;primary=None;timed_out=False;released=False;cleanup_deadline=None
+-        def left():
+-            value=deadline-time.monotonic()
+-            if value<=0:raise subprocess.TimeoutExpired(argv,timeout)
+-            return value
+-        def group(sig):
+-            need(pidfd is not None, 'command pidfd absent')
+-            try:signal.pidfd_send_signal(pidfd,sig,None,PIDFD_SIGNAL_PROCESS_GROUP)
+-            except ProcessLookupError:return False
+-            return True
+-        def close_group():
+-            # This is also used on ordinary leader exit, not only timeout/error:
+-            # remaining same-group descendants are never silently abandoned.
+-            nonlocal cleanup_deadline
+-            if cleanup_deadline is None:cleanup_deadline=time.monotonic()+5
+-            until=cleanup_deadline
+-            if not released:
+-                # A failed group-feature probe must still reap its inert starter.
+-                try:signal.pidfd_send_signal(pidfd,signal.SIGKILL,None,0)
+-                except ProcessLookupError:pass
+-                process.wait(timeout=max(.001,until-time.monotonic()))
+-                return
+-            group(signal.SIGKILL)
+-            process.wait(timeout=max(.001,until-time.monotonic()))
+-            while group(0):
+-                if time.monotonic()>=until:raise RuntimeError('owned command group closure unproven')
+-                time.sleep(.01)
+         try:
+             parent.settimeout(min(3,left()))
+             process=subprocess.Popen([sys.executable,'-I','-S','-c',_PIDFD_START,str(child.fileno()),*limited],
+@@ -255,12 +259,11 @@
+                 pass_fds=(child.fileno(),),env={'PATH':'/usr/sbin:/usr/bin:/sbin:/bin','LC_ALL':'C'})
+             child.close()
+             data,ancillary,flags,_=parent.recvmsg(1,socket.CMSG_SPACE(array.array('i').itemsize),socket.MSG_CMSG_CLOEXEC)
+-            received=[]
+             for level,kind,raw in ancillary:
+                 if level==socket.SOL_SOCKET and kind==socket.SCM_RIGHTS:
+                     fds=array.array('i');fds.frombytes(raw[:len(raw)//fds.itemsize*fds.itemsize]);received.extend(fds)
+             if received:pidfd=received.pop(0)
+-            for fd in received:os.close(fd)
++            # Unexpected received descriptors remain owned until finalization.
+             need(data==b'P' and not flags & (socket.MSG_CTRUNC|socket.MSG_TRUNC)
+                  and len(ancillary)==1 and not received and pidfd is not None, 'command pidfd handoff')
+             # Feature/identity check before releasing any requested command.
+@@ -269,44 +272,57 @@
+             need(parent.send(b'G')==1,'command authorization write')
+             process.communicate(script.encode(),timeout=left())
+             close_group()
+-            out.seek(0);err.seek(0)
+-            stdout,stderr=out.read(MAX_OUTPUT+1),err.read(MAX_OUTPUT+1)
+-            need(len(stdout)<=MAX_OUTPUT and len(stderr)<=MAX_OUTPUT,'output bound')
+         except subprocess.TimeoutExpired as error:
+-            primary=error;timed_out=True
++            # This timeout may become a result, not a propagating exception.
++            # Any failure while closing or reading that result must still escape.
+             if process is None:raise
+-            try:
+-                if pidfd is not None:close_group()
+-                else:
+-                    parent.close()  # Never release payload without a pidfd.
+-                    if process is not None:process.wait(timeout=5)
+-            except BaseException as cleanup:
+-                error.add_note('Command cleanup: '+str(cleanup)[:1000]);raise error
+-            out.seek(0);err.seek(0)
+-            stdout,stderr=out.read(MAX_OUTPUT+1),err.read(MAX_OUTPUT+1)
+-            need(len(stdout)<=MAX_OUTPUT and len(stderr)<=MAX_OUTPUT,'output bound')
+-        except BaseException as error:
+-            primary=error
+-            try:
+-                if pidfd is not None:close_group()
+-                else:
+-                    parent.close()
+-                    if process is not None:process.wait(timeout=5)
+-            except BaseException as cleanup:error.add_note('Command cleanup: '+str(cleanup)[:1000])
+-            raise
+-        finally:
+-            # No group signal, numeric or otherwise, occurs after releasing pidfd.
+-            for closer in (parent.close,child.close,
+-                           (process.stdin.close if process is not None and process.stdin is not None else lambda:None),
+-                           (lambda:os.close(pidfd)) if pidfd is not None else lambda:None):
+-                try:closer()
+-                except BaseException as error:
+-                    if primary is None:raise
+-                    primary.add_note('Command descriptor closure: '+str(error)[:1000])
+-        return dict(returncode=process.returncode,timed_out=timed_out,
++            handled_timeout=error;timed_out=True
++            if pidfd is not None:close_group()
++            else:
++                parent.close()  # Never release payload without a pidfd.
++                process.wait(timeout=5)
++        out.seek(0);err.seek(0)
++        stdout,stderr=out.read(MAX_OUTPUT+1),err.read(MAX_OUTPUT+1)
++        need(len(stdout)<=MAX_OUTPUT and len(stderr)<=MAX_OUTPUT,'output bound')
++        result=dict(returncode=process.returncode,timed_out=timed_out,
+             stdout_base64=base64.b64encode(stdout).decode(),stderr_base64=base64.b64encode(stderr).decode(),
+             stdout_sha256=hashlib.sha256(stdout).hexdigest(),stderr_sha256=hashlib.sha256(stderr).hexdigest(),
+             owned_pid=process.pid,reaped=True,output_limit_bytes=MAX_OUTPUT)
++    except BaseException as error:
++        failure=error  # Unlike handled_timeout, this exception WILL propagate.
++        try:
++            if pidfd is not None:close_group()
++            elif process is not None:
++                parent.close()
++                process.wait(timeout=5)
++        except BaseException as cleanup:
++            if cleanup is not failure:
++                diagnostics.append(('Command cleanup',cleanup))
++    finally:
++        # Attempt each remaining closer before raising. Retire raw descriptors
++        # before their one close attempt; an exception may follow a real close
++        # and reuse of that number. No signaling occurs after this boundary.
++        closers=[('parent',parent),('child',child),
++                 ('stdin',process.stdin if process is not None else None),
++                 ('pidfd',pidfd),*[('pidfd',fd) for fd in received],
++                 ('stderr',err),('stdout',out)]
++        pidfd=None;received=[]
++        for label,resource in closers:
++            if resource is None:continue
++            try:
++                if label=='pidfd':os.close(resource)
++                else:resource.close()
++            except BaseException as error:
++                if failure is None:failure=error
++                elif error is not failure:
++                    diagnostics.append(('Command descriptor closure ('+label+')',error))
++    if failure is not None:
++        for label,error in diagnostics:
++            failure.add_note(label+': '+type(error).__name__+': '+str(error)[:1000])
++        if handled_timeout is not None and failure is not handled_timeout:
++            failure.add_note('Handled command timeout before failure: '+str(handled_timeout)[:1000])
++        raise failure
++    return result
+ 
+ 
+ def perform(value, deployed):
