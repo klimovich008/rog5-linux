@@ -1,0 +1,91 @@
+{
+  "status": "CONFIRMED_SOURCE_COUNTEREXAMPLES",
+  "source_commit": "409e5f4d495e8c9b01e64b88bb67daf7c01861ee",
+  "source_tree": "91d28210ec7d9b744b161af605ad000d8599d3e7",
+  "scope": "actual extracted call expressions, producer function signatures, pure result expression and actual JSON/input-schema helpers; no private runtime import",
+  "command": [
+    "python3",
+    "-O",
+    "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/reproduce-interfaces.py"
+  ],
+  "exit_status": 0,
+  "counterexamples": [
+    {
+      "case": "actual health policy call vs current generator",
+      "result": "EXPECTED_FAILURE",
+      "exception": "TypeError",
+      "message": "script() missing 2 required positional arguments: 'contract' and 'owner'",
+      "duration_seconds": 0.003390365978702903
+    },
+    {
+      "case": "actual launcher call vs current session",
+      "result": "EXPECTED_FAILURE",
+      "exception": "TypeError",
+      "message": "run() missing 1 required positional argument: 'contract'",
+      "duration_seconds": 0.0018466510227881372
+    },
+    {
+      "case": "actual launcher status with production result",
+      "result": "EXPECTED_FAILURE",
+      "actual": "FAIL"
+    },
+    {
+      "case": "actual old input schema vs new source projection",
+      "result": "EXPECTED_FAILURE",
+      "exception": "ValueError",
+      "message": "input lock schema",
+      "duration_seconds": 0.0005495990044437349
+    }
+  ],
+  "decoder_checks": [
+    {
+      "case": "decoder top-level duplicate",
+      "result": "EXPECTED_FAILURE",
+      "exception": "ValueError",
+      "message": "duplicate reply key",
+      "duration_seconds": 0.00113197899190709,
+      "status": "PASS_EXPECTED_DECODER_BEHAVIOR"
+    },
+    {
+      "case": "decoder nested duplicate",
+      "result": "EXPECTED_FAILURE",
+      "exception": "ValueError",
+      "message": "duplicate reply key",
+      "duration_seconds": 0.0007747330237179995,
+      "status": "PASS_EXPECTED_DECODER_BEHAVIOR"
+    },
+    {
+      "case": "decoder explicit nonfinite",
+      "result": "EXPECTED_FAILURE",
+      "exception": "ValueError",
+      "message": "nonfinite JSON",
+      "duration_seconds": 0.0008086230373010039,
+      "status": "PASS_EXPECTED_DECODER_BEHAVIOR"
+    },
+    {
+      "case": "actual decoder accepts ordinary JSON",
+      "result": "PASS",
+      "status": "PASS_EXPECTED_DECODER_BEHAVIOR"
+    }
+  ],
+  "private_source_hashes": {
+    "live-admission.py": "7c076f7812ed11b694e4c827c4bbc25fe6f7a370c860cb2c3d8ce4804b92580f",
+    "trial-launcher.py": "f8894e240bd32ca7c2081994c1a933df6825e69d0ad82bf5a66b8427af6c1aa1",
+    "action-callbacks.py": "f655b7a39ff599d593393cff41fbad33198486d550bf000f82dd15577cde314e",
+    "live-driver.py": "9fc60e92ca1eb5437d634a8a69478fd3fffd53408e2576bed327ced696f08245",
+    "route-checks.py": "9eaa453c108d8c16cad504c32f75f1278a8bab0578823af6cc4c3c16b63bd761",
+    "source-read-callbacks.py": "3bd763f45995447ce44267beb2342123b053b6609d5e924e6a9d58e092ea3509"
+  },
+  "excerpts_manifest_sha256": "5e2a44fce3fa5d7f8ad847b293b73f2dc6a984ddf8f23b0b3ad837c66674ff8f",
+  "reproduction_sha256": "395323b5163c527b14fa39fa8055c45a76e4c18a13502aa697cdaf76acd7d555",
+  "log_sha256": "b149c033151a7c974f75f18e3fd055fef5cd9f745b38008768466c6ac77bb191",
+  "authority": "none",
+  "physical": "NOT RUN",
+  "phone_operations": 0,
+  "private_sources_unchanged": true,
+  "limitations": [
+    "No claim the complete private launcher/admission can execute",
+    "JSON duplicate keys and explicit NaN are covered; arbitrary float finiteness is not claimed",
+    "No decoder rewrite justified by these results"
+  ]
+}

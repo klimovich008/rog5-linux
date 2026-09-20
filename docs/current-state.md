@@ -3,7 +3,7 @@
 <!-- generated mobile status: begin -->
 Current structured status: **Production source cohort passes offline; private runtime remains unbound**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Oracle Pro advice was reviewed and implemented as patch0009.33 cohort cases,37 selector cases and 128 active suites PASS;3 declared optional historical replays SKIPPED. Ten sources validate before loading; six target-staged sources unchanged. Private worker/health/admission closure and firmware-root qualification remain unresolved; firmware Oracle upload failed before submission. No candidate,signing,claim,VM or phone operation; physical NOT RUN. S06/R01 and prior VM failures retain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Qualified source cohort unchanged. Four private integration mismatches reproduced: missing health contract/owner, missing session contract, historical success-status gate and old input schema. Existing duplicate-key decoder passes; no rewrite needed. Firmware Oracle session rog5-firmware-root-inline is submitted and verified live in6Pro/Pro via inline delivery; await existing session. No candidate,signing,claim,VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

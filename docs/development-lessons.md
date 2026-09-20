@@ -3883,3 +3883,13 @@ then verify the checked-byte loader ignores them. Also test a cached dependency
 after another cohort source changes. The final33 source-boundary cases retain
 private admission as an explicit fixture; successful binding is not permission
 to enter the unreviewed private runtime.
+
+
+For text-only adviser packets, Oracle's supported --browser-attachments never
+mode delivered the same verified source excerpts after both text-bundle and ZIP
+uploads failed before submission. Remove repeated unrelated provenance metadata
+from the prompt, retaining source hashes and every relevant function. Preserve
+failed attempts and verify submitted state plus the live selected Pro model; a
+running CLI alone does not prove the adviser received the question. Extracting
+actual call expressions can demonstrate an API arity failure before any private
+function body or authority-bearing launcher executes.

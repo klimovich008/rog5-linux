@@ -108,3 +108,43 @@ docs/current-state.md (generated header only), docs/development-lessons.md,
 test-results/2026-09-20-production-display-payload.md (earlier delivery checkpoint),
 and this report with its sibling qualification JSON. Private checkpoint-end/end
 records retain final commit/tree without introducing a tracked self-hash cycle.
+
+
+## Next-boundary source counterexamples (2026-09-20 continuation)
+
+Starting checkout409e5f4d was clean. Exact private source excerpts were selected
+without importing their modules, and original source/excerpt hashes revalidated.
+The offline reproduction evaluates the actual retained health/launcher call
+expressions against actual successor function definitions. Argument binding
+fails before either function body can execute: health lacks contract/owner;
+session lacks contract. The launcher's pure result expression also maps a
+PASS_PRODUCTION_DISPLAY_SESSION to FAIL. The actual old inputs() schema refuses
+the new production_display_sources field using an explicitly synthetic receipt.
+These four mismatches are confirmed; no fix or new admission is claimed.
+
+The actual action-callbacks JSON helpers reject top-level and nested duplicate
+keys and explicit NaN, and accept ordinary valid JSON. Those four checks pass;
+a duplicate-key decoder rewrite is unnecessary. Default float overflow behavior
+is not qualified by these checks.
+
+[Counterexample receipt](2026-09-20-private-admission-counterexamples.json) records
+source/reproduction/log hashes and exact exception messages. Private source,
+code excerpts and full tracebacks remain under rog5-display-private-admission-20260920-r1.
+No private profile values, credentials or device evidence were published.
+
+Firmware review delivery recovered using Oracle's documented inline-files mode,
+with all40 verified source excerpts and existing verifier tests supplied directly.
+The reduced packet omits repeated unrelated download metadata, preserving full
+source hashes and reconstruction limitations. Session rog5-firmware-root-inline
+records promptSubmitted=true, selectedgpt-6-pro/Latest and loggedPro thinking;
+the bound tab independently shows6Pro and a live response. The consultation is
+running, not completed or qualified. Retain and poll its existing handle56228.
+Do not repeat the two failed pre-submission upload attempts or restart this live
+consultation because an observation times out. No implementation depends on an
+unreceived answer. No new builds/integrated tests, VM, phone or protected-storage
+operation occurred in this continuation.
+
+Continuation metadata validation: generated status PASS0.041s, optimized status
+8 cases PASS0.110s, git diff --check PASS. Headless/mobile contracts, current
+artifact pointer and historical status body hashes are unchanged. The prior
+128-suite result is retained for its frozen implementation, not rerun or relabeled.
