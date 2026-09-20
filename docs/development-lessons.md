@@ -3893,3 +3893,12 @@ failed attempts and verify submitted state plus the live selected Pro model; a
 running CLI alone does not prove the adviser received the question. Extracting
 actual call expressions can demonstrate an API arity failure before any private
 function body or authority-bearing launcher executes.
+
+
+Firmware-root source qualification (2026-09-20): distinguish exec's `unshare_files`
+from filesystem-context unsharing. `/proc/1/root` equality alone does not prove
+`init_task.fs` lookup, and a post-chroot fs split initially retains the same root.
+The35 actual-source cases qualify control flow/root arguments only; keep real VFS,
+request timing, successor startup and payload lifetime separate. Do not rebuild or
+change the firmware path without a demonstrated defect. Preserve a correctly
+rejected historical seal while repairing independent caller/API mismatches.

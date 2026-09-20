@@ -1,0 +1,80 @@
+{
+  "format": "rog5-firmware-root-source-fixture-v1",
+  "observed_at": "2026-09-20T09:31:04.061244+00:00",
+  "source_commit": "9880bbd48b368045a0396b24cb10763422b478b7",
+  "source_tree": "199b814983a66e9f69b853424e9d10eeac5439bd",
+  "oracle_session": "rog5-firmware-root-inline",
+  "oracle_response_sha256": "e8101b53ca50e01cacdd478654a54e8ce5e53694c313aff14ec9c69d50e67dcf",
+  "source_files": {
+    "test-root-lifetime.py": "945418422cccf1acb98a52f11b4a2d027ed64600e49e94ad85f19ead0b0930be",
+    "root-lifetime-driver.c.in": "221cbff303116c2fd8468d2fc38b65c3aa7d8289cb98537710d6bb3bbbd9a146"
+  },
+  "execution": {
+    "command": [
+      "python3",
+      "-O",
+      "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/test-root-lifetime.py",
+      "--kernel",
+      "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/prepare-r2/source",
+      "--busybox",
+      "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source",
+      "--repo",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1"
+    ],
+    "environment": {
+      "TMPDIR": "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/tmp"
+    },
+    "exit_status": 0,
+    "duration_seconds": 0.20593986,
+    "c_cases_pass": 12,
+    "shell_cases_pass": 23
+  },
+  "mutations": [
+    {
+      "name": "caller-root",
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/caller-root/test-root-lifetime.py",
+        "--kernel",
+        "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/prepare-r2/source",
+        "--busybox",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source",
+        "--repo",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1"
+      ],
+      "duration_seconds": 0.6754794800071977,
+      "exit_status": 1,
+      "result": "PASS_EXPECTED_MUTANT_REJECTION",
+      "stderr": "driver: /home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/tmp/rog5-root-source-jnc85xbn/driver.c:447: read_from: Assertion `same(opened_root, expected)' failed.\nERROR: Command '['/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/tmp/rog5-root-source-jnc85xbn/driver']' died with <Signals.SIGABRT: 6>.\n"
+    },
+    {
+      "name": "missing-root-assignment",
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/missing-root-assignment/test-root-lifetime.py",
+        "--kernel",
+        "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/prepare-r2/source",
+        "--busybox",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source",
+        "--repo",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1"
+      ],
+      "duration_seconds": 0.6245515750488266,
+      "exit_status": 1,
+      "result": "PASS_EXPECTED_MUTANT_REJECTION",
+      "stderr": "driver: /home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/tmp/rog5-root-source-zg8dmn4e/driver.c:465: main: Assertion `pid1.fs == init_task.fs && same(initial.root, new_root)' failed.\nERROR: Command '['/home/deck/.local/state/rog5-display-cohort-20260920-r1/firmware-review/source-fixture/tmp/rog5-root-source-zg8dmn4e/driver']' died with <Signals.SIGABRT: 6>.\n"
+    }
+  ],
+  "conclusion": "Actual extracted source supports conditional root-sharing and handoff ordering; no production firmware-path change justified. End-to-end startup/VFS/payload lifetime NOT QUALIFIED.",
+  "not_run": [
+    "real VFS mount/chroot",
+    "kernel firmware request",
+    "VM",
+    "phone"
+  ],
+  "production_diff": null,
+  "phone_operations": 0,
+  "protected_storage_mutations": 0
+}

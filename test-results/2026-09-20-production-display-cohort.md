@@ -148,3 +148,32 @@ Continuation metadata validation: generated status PASS0.041s, optimized status
 8 cases PASS0.110s, git diff --check PASS. Headless/mobile contracts, current
 artifact pointer and historical status body hashes are unchanged. The prior
 128-suite result is retained for its frozen implementation, not rerun or relabeled.
+
+
+### Firmware-root adviser result and executor verification
+
+Oracle session `rog5-firmware-root-inline` completed in verified browser6Pro/Pro;
+CLI exit0. No production firmware/kernel/initramfs change was justified. In the
+supplied code normal exec does not automatically split `fs_struct`; successful
+BusyBox chroot updates the init-task root if sharing persists until that point.
+A prior split changes this outcome; a later split initially copies the same root.
+Moving `/run` last does not establish uninterrupted lookup during the handoff.
+
+The executor verified the two delivered test-file hashes, reviewed their inert
+adapters, then ran the actual source extracts against the pinned Linux, verified
+BusyBox source and current repository:12 C cases and23 shell ordering/rollback
+cases PASS under Python -O in0.206s. Two local mutations, caller-root lookup and
+missing root assignment, were rejected in0.675s and0.625s. These are actual-function
+control-flow/root-argument tests, not a VFS model or physical firmware evidence.
+Exact commands, hashes, outputs for negative controls and scope are in
+[the qualification receipt](2026-09-20-firmware-root-source-qualification.json).
+The source fixture and full Pro answer remain in private disk-backed evidence.
+
+Full startup/wrapper/successor and future mount/payload lifetime remain unqualified.
+No real mount/chroot, firmware request, VM or phone run occurred. Existing128-test
+source qualification is unchanged and was not repeated. Historical health seal
+02e007b5 remains untouched and correctly fails the successor configuration's target
+identity guard; a source-only optimized-Python reproduction passed in0.0044s.
+Runtime briefing now includes11 sanitized attachments and242 original/extracted
+mappings, with path-sensitive transitive omissions stated explicitly. No new
+seal, input lock, admission or claim was issued.

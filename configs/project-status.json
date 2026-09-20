@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Qualified source cohort unchanged. Four private integration mismatches reproduced: missing health contract/owner, missing session contract, historical success-status gate and old input schema. Existing duplicate-key decoder passes; no rewrite needed. Firmware Oracle session rog5-firmware-root-inline is submitted and verified live in6Pro/Pro via inline delivery; await existing session. No candidate,signing,claim,VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
+  "next": "Qualified source cohort unchanged. Pro firmware review completed: no production fix justified; locally12 C and23 shell source-extract cases passed, and two injected defects were caught. Full startup/VFS/payload lifetime remains unqualified. Historical health seal is correctly rejected; four private API/schema mismatches remain. Continue the existing cohort Pro conversation with collected actual runtime sources for source-only integration repair. No candidate, signing, claim, VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }
