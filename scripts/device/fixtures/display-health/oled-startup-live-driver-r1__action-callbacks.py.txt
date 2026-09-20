@@ -1,0 +1,279 @@
+"""Concrete SSH bindings for seven controller mutations; no live admission/CLI.
+
+A complete outer driver must supply its independently qualified admission gate.
+The controller's durable entered receipt and custody are checked here again.
+No retry path exists, including after a failed/lost mutation response.
+"""
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sys
+
+HERE = Path(__file__).resolve().parent
+STATE = HERE.parent
+OUTPUT = STATE / 'oled-startup-controller-r1/execution'
+PHASES = ('arm_state', 'install_exitrd', 'request_source_reboot',
+          'restore_source_exitrd', 'restore_source_state',
+          'stage_fallback', 'restore_fallback_state')
+PINS = {
+    'oled-startup-controller-r1/controller.py': 'b2d27ea82ac1dbc0060ca95c1e415392c22ae69094b248c51e0258f1582848d0',
+    'oled-startup-state-guards-r1/guarded-state.py': '3e52169bd9427123320e51b73ec5c476b5918cc6d0f68d0278be604e0bd489c7',
+    'oled-startup-source-actions-r1/generate.py': '1a89ff2d840d8f2ba404b4dff2efc114b5a3717ddb02990021230c2f5ff1ff91',
+    'oled-startup-live-driver-r1/ssh-worker.py': '250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb',
+    'oled-startup-live-driver-r1/fallback-stage.py': '37d5787e0a642a2e97ce479b55aebbd83402feaa9c1508e255376b462a4da769',
+}
+SHELL = '/run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox sh -s'
+OWNER = '<REDACTED_OWNER_1>'
+SOURCE_BOOT = '<REDACTED_SOURCE_BOOT_1>'
+RECEIPT_SHA = '<REDACTED_RECEIPT_SHA_1>'
+CUSTODY_SHA = '<REDACTED_CUSTODY_SHA_1>'
+
+
+def need(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def unique(rows):
+    value = {}
+    for key, item in rows:
+        need(key not in value, 'duplicate reply key')
+        value[key] = item
+    return value
+
+
+def decode(raw):
+    return json.loads(raw, object_pairs_hook=unique,
+                      parse_constant=lambda _: need(False, 'nonfinite JSON'))
+
+
+def exact_json(actual, expected):
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return set(actual) == set(expected) and all(exact_json(actual[k], expected[k]) for k in expected)
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(exact_json(a, e) for a, e in zip(actual, expected))
+    return actual == expected
+
+
+def pinned_sources():
+    for name, digest in PINS.items():
+        path = STATE / name
+        need(path.resolve() == path and path.is_file() and path.stat().st_size <= 131072,
+             'producer path/bound')
+        need(sha(path.read_bytes()) == digest, 'producer changed: ' + name)
+
+
+def load(name, relative):
+    path = STATE / relative
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def save_transport(path, reply):
+    # Two bounded 1 MiB streams expand to about 2.7 MiB in base64. The
+    # controller's small receipt writer cannot preserve that complete reply.
+    raw = (json.dumps(reply, sort_keys=True, allow_nan=False) + '\n').encode()
+    need(len(raw) <= 4 * 1024**2, 'transport receipt bound')
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        view = memoryview(raw)
+        while view:
+            count = os.write(fd, view)
+            need(count > 0, 'transport receipt write stopped')
+            view = view[count:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    parent = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        os.fsync(parent)
+    finally:
+        os.close(parent)
+
+
+def fields(raw):
+    need(type(raw) is bytes and 0 < len(raw) <= 16384 and raw.endswith(b'\n'), 'reply framing')
+    rows = [line.split('=', 1) for line in raw.decode('ascii').splitlines()]
+    need(all(len(row) == 2 and row[0] for row in rows), 'reply fields')
+    return unique(rows)
+
+
+def state_reply(raw, operation, identity, before):
+    value = fields(raw)
+    action = 'stage' if operation == 'stage' else 'restore'
+    after = G.PENDING_SHA if action == 'stage' else G.OLD_SHA
+    expected = dict(format='rog5-kernel-state-operation-v1', operation=operation,
+                    entered='true', boot_id=identity['boot_id'], before_sha256=before,
+                    helper_returncode='0', helper_stdout_sha256=sha(('completed='+action+'\n').encode()),
+                    helper_stderr_sha256=sha(b''), completed='true', after_sha256=after,
+                    selection_eligibility_restored='false' if action == 'stage' else 'true',
+                    release_qualified='false')
+    need(value == expected, 'state operation proof mismatch')
+    return dict(status='PASS', identity=identity, before_sha256=before,
+                after_sha256=after, completed=True)
+
+
+pinned_sources()
+C = load('action_callback_core', 'oled-startup-controller-r1/controller.py')
+G = load('action_callback_guard', 'oled-startup-state-guards-r1/guarded-state.py')
+A = load('action_callback_source', 'oled-startup-source-actions-r1/generate.py')
+F = load('action_callback_fallback', 'oled-startup-live-driver-r1/fallback-stage.py')
+W = load('action_callback_worker', 'oled-startup-live-driver-r1/ssh-worker.py')
+
+
+class Actions:
+    def __init__(self, source, authorize, transport=None):
+        need(transport is None or callable(transport), 'transport callback required')
+        self.transport = transport
+        need(callable(authorize), 'complete outer admission gate required')
+        need(type(source) is dict and source.get('clean') is True, 'clean host producer required')
+        self.source = decode(json.dumps(source))
+        self.authorize = authorize
+        self.deployed = W.load_deployed()
+
+    def prepare(self, phase, context, results, pin):
+        need(phase in PHASES, 'unsupported callback')
+        pinned_sources()
+        need(context['owner'] == OWNER and context['source'] == dict(C.SOURCE, boot_id=SOURCE_BOOT),
+             'staged source/custody identity changed')
+        need(self.deployed.CAPTURE.ACCEPTANCE.source_identity() == self.source, 'host source changed')
+        need(self.authorize(phase, context, results, pin) is True, 'outer admission refused')
+        # Read through the same no-follow, bounded file reader used for custody.
+        # This adapter runs as deck; the privileged worker is a separate boundary.
+        need(os.geteuid() == 1000, 'callback custody owner must be deck')
+        import stat
+        def metadata(st):
+            return (st.st_dev, st.st_ino, st.st_uid, st.st_gid, st.st_mode,
+                    st.st_nlink, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+        def regular(path, mode, limit):
+            need(path.resolve() == path, 'canonical evidence path')
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            try:
+                st = os.fstat(fd)
+                need(stat.S_ISREG(st.st_mode) and st.st_uid == 1000 and st.st_nlink == 1
+                     and stat.S_IMODE(st.st_mode) == mode and 0 < st.st_size <= limit, 'evidence metadata')
+                raw = os.read(fd, limit+1)
+                need(len(raw) == st.st_size and not os.read(fd, 1)
+                     and metadata(os.fstat(fd)) == metadata(st) == metadata(path.lstat()), 'evidence changed')
+                return raw
+            finally:
+                os.close(fd)
+        need(OUTPUT.resolve() == OUTPUT and stat.S_IMODE(OUTPUT.stat().st_mode) == 0o700
+             and OUTPUT.stat().st_uid == 1000, 'controller output owner')
+        need(decode(regular(OUTPUT/'context.json', 0o600, 4096)) == context, 'controller context mismatch')
+        raw = regular(OUTPUT/(phase+'-entered.json'), 0o600, 16384)
+        need(sha(raw) == pin, 'entered receipt digest')
+        intent = decode(raw)
+        need(set(intent) == {'phase','mutation','admission_sha256','owner','monotonic','prior'}
+             and intent['phase'] == phase and intent['mutation'] is True
+             and intent['admission_sha256'] == context['admission_sha256']
+             and intent['owner'] == OWNER and intent['prior'] == list(results), 'entered receipt binding')
+        custody = STATE/'oled-startup-state-guards-r1'/('custody-'+OWNER)
+        need(sha(regular(custody/'old-v9-record', 0o400, 512)) == G.OLD_SHA
+             and sha(regular(custody/'receipt.json', 0o400, 16384)) == RECEIPT_SHA
+             and sha(regular(custody/'custody', 0o400, 1024)) == CUSTODY_SHA, 'durable custody changed')
+        return dict(context['source'])
+
+    def invoke(self, phase, context, results, pin, request):
+        # The command intent is additional one-use protection even if a caller
+        # invokes a callback twice with the same controller entered receipt.
+        self.prepare(phase, context, results, pin)
+        request = W.request(json.dumps(dict(request, format='rog5-one-usb-command-v1',
+                                            source=self.source, timeout=35)).encode())
+        C.save(OUTPUT/(phase+'-command-entered.json'), dict(intent_sha256=pin,
+               script_sha256=sha(request['script'].encode()), mode=request['mode'], remote=request['remote']))
+        reply = (self.transport(phase, context, results, pin, request, self.deployed)
+                 if self.transport is not None else W.perform(request, self.deployed))
+        save_transport(OUTPUT/(phase+'-transport.json'), reply)  # Preserve before parsing.
+        need(reply.get('status') == 'PASS_TRANSPORT_COMPLETED', 'transport did not complete; never retry')
+        command = reply.get('command')
+        need(type(command) is dict, 'missing command result')
+        out = base64.b64decode(command['stdout_base64'], validate=True)
+        err = base64.b64decode(command['stderr_base64'], validate=True)
+        need(sha(out) == command['stdout_sha256'] and sha(err) == command['stderr_sha256'], 'raw command digest')
+        need(type(command['returncode']) is int and command['returncode'] == 0
+             and command['timed_out'] is False and command['reaped'] is True and not err,
+             'remote command failed or ambiguous; never retry')
+        pinned_sources()
+        return out
+
+    def state(self, phase, operation, context, results, pin):
+        identity = self.prepare(phase, context, results, pin)
+        before = G.OLD_SHA if operation == 'stage' else G.PENDING_SHA
+        if operation == 'restore-v11':
+            observed = results.get('observe_fallback', results.get('locate_fallback', {}))
+            identity = observed.get('identity')
+            C.same_identity(identity, C.FALLBACK, excluded=(SOURCE_BOOT,))
+            need(observed.get('authenticated') is True and observed.get('physical_guards_passed') is True,
+                 'fresh fallback proof required')
+            before = observed.get('state_sha256')
+            need(before in (G.PENDING_SHA, G.HEALTHY_SHA), 'fallback state')
+        request = dict(mode='linklocal' if operation == 'restore-v11' else 'normal', remote=SHELL,
+                       script=G.build(operation, identity['boot_id'], SOURCE_BOOT, OWNER, RECEIPT_SHA))
+        return state_reply(self.invoke(phase, context, results, pin, request), operation, identity, before)
+
+    def arm_state(self, context, results, pin):
+        return self.state('arm_state', 'stage', context, results, pin)
+
+    def restore_source_state(self, context, results, pin):
+        return self.state('restore_source_state', 'restore-source', context, results, pin)
+
+    def restore_fallback_state(self, context, results, pin):
+        return self.state('restore_fallback_state', 'restore-v11', context, results, pin)
+
+    def exitrd(self, phase, action, status, context, results, pin):
+        identity = self.prepare(phase, context, results, pin)
+        script = A.build(action, SOURCE_BOOT, SOURCE_BOOT, OWNER, RECEIPT_SHA)
+        raw = self.invoke(phase, context, results, pin, dict(mode='normal', remote=SHELL, script=script))
+        actual = fields(raw)
+        reboot = action == 'request-reboot'
+        expected = dict(status=status, reboot_requested='true' if reboot else 'false')
+        if reboot:
+            expected.update(event='reboot-entered', boot_id=SOURCE_BOOT, owner=OWNER,
+                            clean_teardown_proven='false')
+        need(actual == expected, 'source action proof mismatch')
+        value = dict(status='PASS', identity=identity, reboot_requested=reboot)
+        if action == 'install-exitrd': value['installed'] = True
+        if action == 'restore-exitrd': value['shutdown_restored'] = True
+        if reboot: value['clean_teardown_proven'] = False
+        return value
+
+    def install_exitrd(self, context, results, pin):
+        return self.exitrd('install_exitrd', 'install-exitrd', 'PASS_EXITRD_INSTALLED', context, results, pin)
+
+    def request_source_reboot(self, context, results, pin):
+        return self.exitrd('request_source_reboot', 'request-reboot', 'PASS_REBOOT_REQUESTED', context, results, pin)
+
+    def restore_source_exitrd(self, context, results, pin):
+        return self.exitrd('restore_source_exitrd', 'restore-exitrd', 'PASS_EXITRD_RESTORED', context, results, pin)
+
+    def stage_fallback(self, context, results, pin):
+        self.prepare('stage_fallback', context, results, pin)
+        observed = results.get('observe_fallback', results.get('locate_fallback', {}))
+        identity = observed.get('identity')
+        C.same_identity(identity, C.FALLBACK, excluded=(SOURCE_BOOT,))
+        need(observed.get('authenticated') is True and observed.get('physical_guards_passed') is True
+             and observed.get('state_sha256') in (G.PENDING_SHA, G.HEALTHY_SHA), 'fallback staging proof')
+        script = F.build(identity['boot_id'], SOURCE_BOOT, OWNER, RECEIPT_SHA)
+        raw = self.invoke('stage_fallback', context, results, pin, dict(mode='linklocal', remote=SHELL, script=script))
+        expected = dict(format='rog5-kernel-ram-stage-v1', role='fallback', boot_id=identity['boot_id'],
+                        owner=OWNER, helper_sha256=G.HELPER_SHA, custody_sha256=CUSTODY_SHA,
+                        state_sha256=observed['state_sha256'], completed='true', persistent_writes='false')
+        need(fields(raw) == expected, 'fallback RAM staging proof mismatch')
+        return dict(status='PASS', identity=identity, ram_files_verified=True)
+
+
+if __name__ == '__main__':
+    raise SystemExit('No live entrypoint: complete driver and admission gate remain required')

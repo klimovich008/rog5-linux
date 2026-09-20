@@ -1,0 +1,565 @@
+--- a/production-cohort/session.py
++++ b/production-cohort/session.py
+@@ -17,7 +17,7 @@
+ LOGGER_CLOSE_SECONDS = 20
+ # Only the nine non-self Python sources are pinned here. The existing outer
+ # admission input lock must pin session.py; there is no self-hash or new authority.
+-PINS = {'gpu-iommu-display-r1/backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'gpu-iommu-display-r1/display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'gpu-iommu-display-r1/display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'gpu-iommu-display-r1/display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'gpu-iommu-display-r1/display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'gpu-iommu-display-r1/load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b', 'gpu-iommu-display-r1/transport.py': '77ac8cf64e52c580a765a28e9e5c4e26d90983624c14738a1d2f581f2aa05d96', 'gpu-iommu-health-r1/successor-health.py': 'f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892', 'gpu-iommu-session-r1/kernel-log.py': 'a21176ec5d16e7ed2a10467c05001bb5e277b5147ac83284ca66475c3ecac427'}
++PINS = {'gpu-iommu-display-r1/backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'gpu-iommu-display-r1/display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'gpu-iommu-display-r1/display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'gpu-iommu-display-r1/display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'gpu-iommu-display-r1/display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'gpu-iommu-display-r1/load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b', 'gpu-iommu-display-r1/transport.py': '77ac8cf64e52c580a765a28e9e5c4e26d90983624c14738a1d2f581f2aa05d96', 'gpu-iommu-health-r1/successor-health.py': '844a9333b1b61dbdbe9f5cc9d997658cb97512a60492e25b53f5c1f4423ce974', 'gpu-iommu-session-r1/kernel-log.py': 'a21176ec5d16e7ed2a10467c05001bb5e277b5147ac83284ca66475c3ecac427'}
+ SESSION_PATH = 'gpu-iommu-session-r1/session.py'
+ PATHS = tuple(sorted((*PINS, SESSION_PATH)))
+ HEALTH = STATE/'gpu-iommu-health-r1/successor-health.py'
+@@ -492,6 +492,265 @@
+         return T.W.bind_deployed(load,ad.inputs()['files'],T,K)
+ 
+ 
++# A separate, fixed health projection. This never extends WORKER_PATHS or load().
++HEALTH_SOURCE_PATHS = (
++    ('root','oled-startup-controller-worktree-r1/scripts/host/check-standalone-root.py'),
++    ('observation','oled-startup-controller-worktree-r1/scripts/host/isolated-recovery-observation.py'),
++    ('common','gpu-capture-r1/capture-common.py'),
++    ('controller','gpu-controller-r1/controller.py'),
++    ('guard','gpu-state-guards-r1/guarded-state.py'),
++)
++HEALTH_DATA_PATHS = (
++    'gpu-iommu-health-r1/health-inputs.json',
++    'gpu-state-guards-r1/legacy-restore.py',
++    'oled-startup-controller-worktree-r1/configs/storage/rog5-dedicated-linux-v1.json',
++)
++_HEALTH_STDLIB = frozenset(('argparse','ast','hashlib','json','math','os','pathlib','re','shlex','subprocess','time'))
++_HEALTH_SOURCES = None
++_HEALTH_ATTEMPTED = False
++
++
++def bind_health_sources(ad, *, authenticated_inputs, profile):
++    """Trusted bootstrap consumer. No seal/profile producer or authentication.
++
++    profile is the existing canonical private profile path, not profile data.
++    The independently authenticated input document must contain every fixed
++    source/data row. The capture source must declare that same PROFILE and hash.
++    The already-reviewed worker handle supplies the authority/lifetime checks.
++    """
++    global _HEALTH_SOURCES,_HEALTH_ATTEMPTED
++    with _WORKER_LOCK:
++        need(_WORKER_SOURCES is not None and ad is _WORKER_SOURCES.ad
++             and authenticated_inputs is _WORKER_SOURCES.reader, 'checked worker authority required for health')
++        if _HEALTH_SOURCES is not None:
++            need(profile==_HEALTH_SOURCES.profile_path, 'health profile binding cannot change')
++            _HEALTH_SOURCES.check();return _HEALTH_SOURCES
++        need(not _HEALTH_ATTEMPTED, 'previous health source preparation failed')
++        _HEALTH_ATTEMPTED=True
++        bind_sources(ad)  # Existing checked public modules only; no new health sources.
++        candidate=_HealthSources(_WORKER_SOURCES,profile)
++        _HEALTH_SOURCES=candidate
++        return candidate
++
++
++class _HealthSources:
++    """Five inert modules, three JSON inputs and a parsed-only legacy guard source.
++
++    Reuse source_read and the worker handle's retained authenticated document.
++    No broad private importer, CLI, commands, source-identity query or claim.
++    The original GPU controller is used verbatim, not replaced with ad.C.
++    """
++    def __init__(self, worker_sources, profile):
++        need(isinstance(profile,Path) and profile.is_absolute() and profile.is_relative_to(STATE)
++             and profile.resolve(strict=True)==profile, 'canonical authenticated health profile required')
++        self.worker_sources=worker_sources;self.health=H;self.profile_path=profile
++        self.scope=HEALTH_SOURCE_PATHS;self.data=(*HEALTH_DATA_PATHS,str(profile.relative_to(STATE)))
++        self._failed=False;self._checking=False;self._loading=None
++        self._rows=None;self._blobs=None;self._stamps=None;self._seal=None
++        self._modules={};self._records={};self._links=[];self._runtime=None
++        self._checker=self.check;self._importer=self._import;self._deployed=None;self._worker_links=[];self._worker_constants=[]
++        self._health_constants=self.constants(H)
++        self._health_source=H.__source__
++        self._health_functions=tuple((k,v,v.__code__) for k,v in vars(H).items()
++            if type(v) is types.FunctionType and v.__globals__ is H.__dict__)
++        self.check()  # Whole health/data + public/worker closure before new execution.
++        self._code={}
++        for _,key in self.scope:
++            tree=ast.parse(self._blobs[key],filename=str(STATE/key))
++            for node in ast.walk(tree):
++                if isinstance(node,ast.Import):
++                    need(all(n.name in _HEALTH_STDLIB for n in node.names), 'health project import forbidden')
++                elif isinstance(node,ast.ImportFrom):
++                    need(node.level==0 and node.module in _HEALTH_STDLIB, 'health relative/project import forbidden')
++            self._code[key]=compile(tree,str(STATE/key),'exec')
++        self._code=types.MappingProxyType(self._code)
++        self._stdlib=types.MappingProxyType({name:__import__(name) for name in _HEALTH_STDLIB})
++        # legacy-restore.py is DATA: inspect BODY only, never its eager imports.
++        source_literal(self._blobs[HEALTH_DATA_PATHS[1]],'BODY')
++        layout=json.loads(self._blobs[HEALTH_DATA_PATHS[2]])['proposal']['arch_root_a']
++        need(type(layout) is dict and all(k in layout for k in ('number','first_lba','size_lba','name')),
++             'root layout input incomplete')
++        self.check()
++
++    @staticmethod
++    def constants(module):
++        # Retain actual source constants, including nested policy dictionaries.
++        return repr([(k,repr(v)) for k,v in sorted(vars(module).items())
++                     if k.isupper() and not k.startswith('_') and k not in ('C','G','W','D','A','SEAL','OBS') and not isinstance(v,types.ModuleType) and v is not None])
++
++    def fail(self):
++        self._failed=True
++
++    def _module_check(self):
++        need(H is self.health and self.constants(H)==self._health_constants
++             and H.__source__ is self._health_source, 'health module/constants changed')
++        for name,function,code in self._health_functions:
++            need(getattr(H,name,None) is function and function.__code__ is code, 'public health function changed')
++        need(set(self._modules)==set(self._records), 'health module cache changed')
++        for key,(module,constants,functions,builtin_map) in self._records.items():
++            need(self._modules[key] is module and module.__file__==str(STATE/key)
++                 and module.__source__ is self._blobs[key] and self.constants(module)==constants
++                 and module.__builtins__ is builtin_map and builtin_map['__import__'] is self._importer,
++                 'health source/module identity changed: '+key)
++            for name,function,code in functions:
++                need(getattr(module,name,None) is function and function.__code__ is code,
++                     'health function changed: '+key+':'+name)
++        for module,key,value in self._links:
++            need(getattr(module,key,None) is value, 'health dependency binding changed: '+key)
++        if self._runtime is not None:
++            seal,root,obs,common,deployed,_=self._runtime
++            need((C is None and save is None) or (C is common.C and save is common.C.save),
++                 'session health controller/save binding changed')
++            need(common.exact_json(common.profile,common.decode(self._blobs[self.data[-1]])), 'retained profile changed')
++            if H._RUNTIME_STATE=='bound':
++                need(H._RUNTIME is self._runtime and H.SEAL is seal and H.ROOT is root
++                     and H.OBS is obs and H.A is common and H.D is deployed, 'published health binding changed')
++                need(common.exact_json(seal,json.loads(self._blobs[self.data[0]])), 'published health seal changed')
++            else:need(H._RUNTIME_STATE in ('unbound','binding'), 'health runtime failed')
++        for module,key,value in self._worker_links:
++            need(getattr(module,key,None) is value, 'health shared worker/deployed binding changed: '+key)
++        for module,values in self._worker_constants:
++            need(self.constants(module)==values, 'health shared worker/deployed constants changed')
++
++    def check(self):
++        with _WORKER_LOCK:
++            need(not self._failed, 'health source handle failed')
++            if self._checking:
++                self._failed=True;raise ValueError('health preflight recursion')
++            self._checking=True
++            try:
++                need(self.worker_sources is _WORKER_SOURCES and self.scope==HEALTH_SOURCE_PATHS
++                     and self.data[:3]==HEALTH_DATA_PATHS, 'health source scope changed')
++                self._module_check()
++                names=tuple(key for _,key in self.scope)+self.data
++                need(len(set(names))==len(names) and not set(names)&(set(PATHS)|{k for _,k in WORKER_PATHS}),
++                     'health source/data alias')
++                before={key:source_stamp((STATE/key).lstat()) for key in names}
++                self.worker_sources.check()  # Actual provider and entire input snapshot.
++                document=json.loads(self.worker_sources._snapshot)
++                rows={};blobs={};stamps={};inodes={s[:2] for s in self.worker_sources._stamps.values()}
++                for key in names:
++                    row=document['files'].get(key)
++                    limit=262144 if key==self.data[-1] else 16384 if key==self.data[0] else MAX_SOURCE
++                    need(type(row) is dict and set(row)=={'size','uid','mode','sha256'}
++                         and type(row['size']) is int and 0<row['size']<=limit
++                         and type(row['uid']) is int and row['uid']==1000
++                         and type(row['mode']) is int and 0<=row['mode']<=0o777 and not row['mode']&0o022
++                         and type(row['sha256']) is str and re.fullmatch('[0-9a-f]{64}',row['sha256']),
++                         'health input row invalid or absent: '+key)
++                    self.worker_sources.ad.digest_file(STATE/key,row['size'],row['uid'],row['mode'],row['sha256'])
++                    blobs[key],stamps[key]=source_read(key,row);rows[key]=dict(row)
++                    need(stamps[key]==before[key] and stamps[key][:2] not in inodes, 'health input replaced/aliased: '+key)
++                    inodes.add(stamps[key][:2])
++                seal=json.loads(blobs[self.data[0]])
++                need(rows[self.data[0]]['sha256']==H.INPUT_SHA, 'health input seal changed')
++                producers=seal.get('producers')
++                prefix='oled-startup-controller-worktree-r1/'
++                allowed={k.removeprefix(prefix):k for k in (*names,*(k for _,k in WORKER_PATHS))
++                         if k.startswith(prefix) and k.endswith('.py')}
++                need(type(producers) is dict and {'scripts/host/check-standalone-root.py',
++                     'scripts/host/isolated-recovery-observation.py'}<=set(producers)<=set(allowed),
++                     'health producer source closure differs')
++                for name,digest in producers.items():
++                    need(type(digest) is str and digest==document['files'][allowed[name]]['sha256'],
++                         'health producer/admission pins differ: '+name)
++                # Never infer a new target/owner from profile, source names or discovery.
++                target=seal.get('target')
++                need(type(target) is dict and set(target)=={'bundle','release','descriptor_sha256','board_dtb_sha256'}
++                     and seal.get('owner')==self.worker_sources.ad.A.OWNER
++                     and seal.get('source_boot_id')==self.worker_sources.ad.A.SOURCE_BOOT,
++                     'historical or incompatible health seal identity')
++                self.worker_sources.check()
++                for key,stamp in stamps.items():
++                    need((STATE/key).resolve(strict=True)==STATE/key and source_stamp((STATE/key).lstat())==stamp,
++                         'health input changed across preflight: '+key)
++                if self._blobs is None:
++                    self._rows=types.MappingProxyType(rows);self._blobs=types.MappingProxyType(blobs)
++                    self._stamps=types.MappingProxyType(stamps);self._seal=seal
++                else:need(rows==self._rows and blobs==self._blobs and stamps==self._stamps, 'retained health input replaced')
++                self._module_check()
++                return True
++            except BaseException:
++                self.fail();raise
++            finally:self._checking=False
++
++    def _import(self,name,globals=None,locals=None,fromlist=(),level=0):
++        need(level==0 and name in self._stdlib, 'import outside checked health stdlib')
++        return self._stdlib[name]
++
++    def _load(self,role):
++        self.check()
++        key=next(key for name,key in self.scope if name==role)
++        if key not in self._modules:
++            need(self._loading is None, 'recursive health source execution')
++            self._loading=key
++            module=types.ModuleType('rog5_health_'+role);module.__file__=str(STATE/key)
++            module.__source__=self._blobs[key]
++            builtin_map=dict(vars(__import__('builtins')));builtin_map['__import__']=self._importer
++            module.__builtins__=builtin_map
++            try:
++                exec(self._code[key],module.__dict__)
++                self.check()
++                functions=tuple((k,v,v.__code__) for k,v in vars(module).items()
++                                if type(v) is types.FunctionType and v.__globals__ is module.__dict__)
++                self._modules[key]=module
++                self._records[key]=(module,self.constants(module),functions,builtin_map)
++            except BaseException:
++                self.fail();raise
++            finally:self._loading=None
++        return self._modules[key]
++
++    def data_bytes(self,key):
++        self.check();need(key in self.data, 'outside health data scope')
++        return self._blobs[key]
++
++    def runtime(self):
++        with _WORKER_LOCK:
++            try:
++                self.check()
++                if self._runtime is not None:return self._runtime
++                deployed=initialize_worker(self.worker_sources.ad);self._deployed=deployed
++                worker=T.W;capture=deployed.CAPTURE
++                self._worker_links=[(T,'W',worker),(K,'W',worker),(worker,'_BINDING',worker._BINDING),
++                    (deployed,'CAPTURE',capture),(deployed,'_CAPTURE_BINDING',deployed._CAPTURE_BINDING),
++                    (capture,'NETWORK',capture.NETWORK),(capture,'ACCEPTANCE',capture.ACCEPTANCE),
++                    (capture,'_TRANSPORT',capture._TRANSPORT),
++                    (capture.ACCEPTANCE,'_SOURCE_READER',capture.ACCEPTANCE._SOURCE_READER)]
++                self._worker_constants=[(m,self.constants(m)) for m in
++                    (worker,deployed,capture,capture.NETWORK,capture.ACCEPTANCE)]
++                root=self._load('root');obs=self._load('observation');common=self._load('common')
++                controller=self._load('controller');guard=self._load('guard')
++                need(common.PROFILE==self.profile_path and common.PROFILE_SHA==self._rows[self.data[-1]]['sha256'],
++                     'declared private profile/path differs')
++                need(common.OWNER==self._seal['owner'] and common.SOURCE_BOOT==self._seal['source_boot_id'],
++                     'capture owner/source differs from health seal')
++                profile=common.decode(self._blobs[self.data[-1]])
++                need(controller.TARGET==dict(bundle=profile['bundle'],release=profile['release'])
++                     and controller.TARGET=={k:self._seal['target'][k] for k in ('bundle','release')},
++                     'GPU controller/profile/health target differs')
++                need((controller.OLD,controller.PENDING,controller.HEALTHY)==
++                     (guard.OLD_SHA,guard.PENDING_SHA,guard.HEALTHY_SHA)
++                     and controller.HEALTHY==self._seal['healthy_state_sha256']
++                     and guard.TRIAL==self._seal['trial_id'] and guard.BUNDLE==controller.TARGET['bundle'],
++                     'GPU controller/guard/health state differs')
++                need(controller.FALLBACK==dict(zip(('bundle','release'),guard.OPERATIONS['restore-v11'][:2])),
++                     'GPU fallback guard identity differs')
++                guard.bind_retained_source(self._blobs[self.data[1]],self._checker)
++                layout_reader=lambda:self.data_bytes(self.data[2])
++                root.bind_deployed(deployed,layout_reader,self._checker)
++                obs.bind_deployed(deployed,self._checker)
++                common.bind_health(controller,guard,T.W,self._blobs[self.data[-1]],self._checker)
++                self._links=[(root,'D',deployed),(root,'_DEPLOYED',root._DEPLOYED),
++                    (obs,'D',deployed),(obs,'_DEPLOYED',obs._DEPLOYED),
++                    (common,'C',controller),(common,'G',guard),(common,'W',T.W),(common,'_HEALTH',common._HEALTH),
++                    (guard,'_RETAINED',guard._RETAINED)]
++                self._runtime=(self._seal,root,obs,common,deployed,self._checker)
++                self.check()
++                return self._runtime
++            except BaseException:
++                self.fail();raise
++
++
+ def initialize(ad):
+     """All source stages remain required before session effects.
+ 
+@@ -501,8 +760,20 @@
+     """
+     global C, save
+     initialize_worker(ad)
+-    H.bind_runtime(load)
+-    C, save = H.A.C, H.A.C.save
++    if _HEALTH_SOURCES is None:
++        need(not _HEALTH_ATTEMPTED, 'previous health source preparation failed')
++        H.bind_runtime(load)  # Original unqualified health seal/private-pin refusal.
++        C, save = H.A.C, H.A.C.save
++        return
++    try:
++        need(ad is _HEALTH_SOURCES.worker_sources.ad, 'health admission differs')
++        H.bind_runtime(load,checked=_HEALTH_SOURCES)
++        C,save=H.A.C,H.A.C.save
++        _HEALTH_SOURCES.check()
++    except BaseException:
++        C=save=None
++        H.fail_runtime();_HEALTH_SOURCES.fail()
++        raise
+ 
+ 
+ def contract_target(contract,boot,owner):
+--- a/production-cohort/health.py
++++ b/production-cohort/health.py
+@@ -36,6 +36,9 @@
+ 
+ 
+ def inputs():
++    if _RUNTIME_STATE != 'unbound':
++        need(_RUNTIME_STATE=='bound' and _RUNTIME is not None, 'health runtime binding incomplete or failed')
++        _RUNTIME[-1]()
+     need(INPUTS.resolve()==INPUTS and INPUTS.stat().st_size<=16384,'health inputs path/bound')
+     raw=INPUTS.read_bytes();need(sha(raw)==INPUT_SHA,'health input seal changed');value=json.loads(raw)
+     for name,digest in value['producers'].items():
+@@ -46,9 +49,35 @@
+ 
+ # These private dependencies are deliberately NOT opened or imported here.
+ SEAL = ROOT = OBS = A = D = None
+-
+-def bind_runtime(load):
+-    global SEAL, ROOT, OBS, A, D
++_RUNTIME_STATE = 'unbound'
++_RUNTIME = None
++
++
++def fail_runtime():
++    global SEAL,ROOT,OBS,A,D,_RUNTIME_STATE,_RUNTIME
++    _RUNTIME_STATE='failed';_RUNTIME=None
++    SEAL=ROOT=OBS=A=D=None
++
++def bind_runtime(load, *, checked=None):
++    global SEAL, ROOT, OBS, A, D, _RUNTIME_STATE, _RUNTIME
++    if checked is not None:
++        need(checked.health.__dict__ is globals(), 'checked health module differs')
++        if _RUNTIME_STATE=='bound':
++            need(_RUNTIME is checked.runtime(), 'health runtime cannot be rebound')
++            inputs();return
++        need(_RUNTIME_STATE=='unbound' and all(v is None for v in (SEAL,ROOT,OBS,A,D)),
++             'health runtime already attempted')
++        _RUNTIME_STATE='binding'
++        try:
++            runtime=checked.runtime()
++            SEAL,ROOT,OBS,A,D=runtime[:5]
++            _RUNTIME=runtime
++            _RUNTIME_STATE='bound'
++            checked.check()
++            return
++        except BaseException:
++            fail_runtime();checked.fail()
++            raise
+     seal = inputs()  # Existing private seal and producer checks are unchanged.
+     root_name = 'scripts/host/check-standalone-root.py'
+     obs_name = 'scripts/host/isolated-recovery-observation.py'
+--- a/health-private/gpu-capture-r1__capture-common.py.txt
++++ b/health-private/gpu-capture-r1__capture-common.py.txt
+@@ -1,27 +1,80 @@
+-"""Fixed GPU capture identities and retained read-only utilities; no action API."""
+-import hashlib, importlib.util, json
++"""Fixed GPU health/capture identities. No legacy action imports or action API.
++
++The explicit checked binding supplies the original GPU controller and guard
++sources. This does not substitute the IOMMU controller or create a profile.
++"""
++import hashlib,json
+ from pathlib import Path
+ HERE=Path(__file__).resolve().parent
+ STATE=HERE.parent
+ PROFILE = '<REDACTED_PROFILE>'  # private binding value omitted; not runnable
+ PROFILE_SHA = '<REDACTED_PROFILE_SHA>'  # private binding value omitted; not runnable
+-LEGACY=STATE/'oled-startup-live-driver-r1'
+-def load(name,path,pin):
+-    if path.resolve()!=path or path.stat().st_size>262144 or hashlib.sha256(path.read_bytes()).hexdigest()!=pin:
+-        raise ValueError('retained capture input changed: '+path.name)
+-    spec=importlib.util.spec_from_file_location(name,path)
+-    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+-OLD=load('gpu_capture_retained_utilities',LEGACY/'action-callbacks.py','e5e21a065745b22c2f78f86ee8127519b4b70f93664ade15df4a2cc006d545ab')
+-need,sha,decode,exact_json=OLD.need,OLD.sha,OLD.decode,OLD.exact_json
+-W=OLD.W
+ OWNER = '<REDACTED_OWNER>'  # private binding value omitted; not runnable
+ SOURCE_BOOT = '<REDACTED_SOURCE_BOOT>'  # private binding value omitted; not runnable
++C = G = W = profile = None
++_HEALTH = None
++_FAILED = False
++
++def need(ok, message):
++    if not ok:
++        raise ValueError(message)
++
++def sha(raw):
++    return hashlib.sha256(raw).hexdigest()
++
++def unique(rows):
++    value = {}
++    for key, item in rows:
++        need(key not in value, 'duplicate reply key')
++        value[key] = item
++    return value
++
++def decode(raw):
++    return json.loads(raw, object_pairs_hook=unique,
++                      parse_constant=lambda _: need(False, 'nonfinite JSON'))
++
++def exact_json(actual, expected):
++    if type(actual) is not type(expected):
++        return False
++    if isinstance(expected, dict):
++        return set(actual) == set(expected) and all(exact_json(actual[k], expected[k]) for k in expected)
++    if isinstance(expected, list):
++        return len(actual) == len(expected) and all(exact_json(a, e) for a, e in zip(actual, expected))
++    return actual == expected
++
++
++def bind_health(controller, guard, worker, profile_bytes, check):
++    global C,G,W,profile,_HEALTH,_FAILED
++    need(not _FAILED and callable(check), 'capture health binding failed or absent')
++    if _HEALTH is not None:
++        need(controller is C and guard is G and worker is W and check is _HEALTH[0]
++             and profile_bytes == _HEALTH[1], 'capture health binding cannot change')
++        pinned_sources();return
++    try:
++        check()
++        need(type(profile_bytes) is bytes and 0<len(profile_bytes)<=262144
++             and sha(profile_bytes)==PROFILE_SHA, 'GPU capture profile changed')
++        value=decode(profile_bytes)
++        need(type(value) is dict and controller.TARGET==dict(bundle=value['bundle'],release=value['release']),
++             'GPU controller profile identity')
++        need((controller.OLD,controller.PENDING,controller.HEALTHY)==
++             (guard.OLD_SHA,guard.PENDING_SHA,guard.HEALTHY_SHA), 'GPU controller state records')
++        C,G,W,profile=controller,guard,worker,value
++        _HEALTH=(check,profile_bytes,controller,guard,worker,OWNER,SOURCE_BOOT,PROFILE,PROFILE_SHA)
++        pinned_sources()
++    except BaseException:
++        _FAILED=True;C=G=W=profile=_HEALTH=None
++        raise
++
++
+ def pinned_sources():
+-    OLD.pinned_sources()
+-    need(PROFILE.resolve()==PROFILE and PROFILE.stat().st_size<=262144 and sha(PROFILE.read_bytes())==PROFILE_SHA,'GPU capture profile changed')
+-pinned_sources()
+-profile=decode(PROFILE.read_bytes())
+-C=load('gpu_controller_engine',STATE/'gpu-controller-r1/controller.py','138568019de1330708cf367df5c8ad8617f3affe223543385e13e53a9556ed4e')
+-G=load('gpu_capture_state_records',STATE/'gpu-state-guards-r1/guarded-state.py','85b13a2c2d0af1a4a211e558a7cb6f584aa7efa930fdd09469c593689614d8ef')
+-need(C.TARGET==dict(bundle=profile['bundle'],release=profile['release']), 'GPU controller profile identity')
+-need((C.OLD,C.PENDING,C.HEALTHY)==(G.OLD_SHA,G.PENDING_SHA,G.HEALTHY_SHA), 'GPU controller state records')
++    need(not _FAILED and _HEALTH is not None, 'checked capture health sources absent')
++    check,raw,controller,guard,worker,owner,boot,path,pin=_HEALTH
++    check()  # Actual fixed health closure, not the unrelated legacy mutation graph.
++    need(C is controller and G is guard and W is worker
++         and (OWNER,SOURCE_BOOT,PROFILE,PROFILE_SHA)==(owner,boot,path,pin), 'capture health binding changed')
++    need(PROFILE.resolve()==PROFILE and PROFILE.stat().st_size<=262144
++         and sha(raw)==PROFILE_SHA, 'GPU capture profile changed')
++    need(exact_json(profile,decode(raw)) and C.TARGET==dict(bundle=profile['bundle'],release=profile['release']),
++         'GPU controller profile identity')
++    need((C.OLD,C.PENDING,C.HEALTHY)==(G.OLD_SHA,G.PENDING_SHA,G.HEALTHY_SHA), 'GPU controller state records')
+--- a/health-private/gpu-state-guards-r1__guarded-state.py.txt
++++ b/health-private/gpu-state-guards-r1__guarded-state.py.txt
+@@ -37,8 +37,26 @@
+             f'old_record_sha256={OLD_SHA}\ntarget_bundle={BUNDLE}\ntrial_id={TRIAL}\n'
+             f'host_receipt_sha256={host_receipt_sha}\n').encode('ascii')
+ 
++_RETAINED = None
++
++
++def bind_retained_source(raw, check):
++    global _RETAINED
++    need(type(raw) is bytes and sha(raw)==LEGACY_SHA and callable(check), 'retained guard source binding')
++    if _RETAINED is not None:
++        need(raw is _RETAINED[0] and check is _RETAINED[1], 'retained guard cannot be rebound')
++        check();return
++    check();_RETAINED=(raw,check)
++
++
++def retained_source():
++    if _RETAINED is None:return (HERE/'legacy-restore.py').read_bytes()
++    _RETAINED[1]()
++    return _RETAINED[0]
++
++
+ def retained_guard():
+-    raw=(HERE/'legacy-restore.py').read_bytes();need(sha(raw)==LEGACY_SHA,'legacy guard changed')
++    raw=retained_source();need(sha(raw)==LEGACY_SHA,'legacy guard changed')
+     tree=ast.parse(raw)
+     bodies=[ast.literal_eval(node.value) for node in tree.body if isinstance(node,ast.Assign)
+             and any(isinstance(target,ast.Name) and target.id=='BODY' for target in node.targets)]
+--- a/health-private/oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt
++++ b/health-private/oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt
+@@ -2,7 +2,6 @@
+ """Read-only local-root component for S01; not ordinary-boot qualification."""
+ import argparse
+ import hashlib
+-import importlib.util
+ import json
+ import os
+ from pathlib import Path
+@@ -11,8 +10,27 @@
+ import subprocess
+ import time
+ 
+-spec=importlib.util.spec_from_file_location('standalone_deployed',Path(__file__).with_name('check-deployed-server.py'))
+-D=importlib.util.module_from_spec(spec);spec.loader.exec_module(D)
++D = None
++_DEPLOYED = None
++
++
++def bind_deployed(deployed, layout_reader, check):
++    global D,_DEPLOYED
++    require(callable(check) and callable(layout_reader), 'checked root observer binding required')
++    if _DEPLOYED is not None:
++        require(deployed is D and _DEPLOYED[0] is deployed and _DEPLOYED[1] is layout_reader
++                and _DEPLOYED[2] is check, 'root observer cannot be rebound')
++        check();return
++    check();deployed.require_transport()
++    D=deployed;_DEPLOYED=(deployed,layout_reader,check)
++
++
++def checked_layout():
++    require(_DEPLOYED is not None and D is _DEPLOYED[0], 'root observer is not source-bound')
++    _DEPLOYED[2]()
++    # Same JSON and arch_root_a interpretation, now from authenticated captured
++    # bytes rather than a fresh unchecked path read during validation.
++    return json.loads(_DEPLOYED[1]())['proposal']['arch_root_a']
+ 
+ PROBE=r'''
+ import json,os,subprocess
+@@ -87,7 +105,7 @@
+     require({'lowerdir=/mnt/root-ro','upperdir=/mnt/state/upper','workdir=/mnt/state/work'}<=root['super_options'],
+             'wrong root overlay composition')
+     require(value['root_device']=='/dev/sda24','wrong native partition label')
+-    layout=json.loads((D.REPO/'configs/storage/rog5-dedicated-linux-v1.json').read_text())['proposal']['arch_root_a']
++    layout=checked_layout()
+     geometry=value['geometry']
+     require(geometry['partition']==str(layout['number']) and geometry['start']==str(layout['first_lba']*8)
+         and geometry['size']==str(layout['size_lba']*8) and geometry['ro']=='1'
+--- a/health-private/oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt
++++ b/health-private/oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt
+@@ -5,7 +5,6 @@
+ No helper execution, service action, acknowledgment or rollback change occurs.
+ """
+ import hashlib
+-import importlib.util
+ import json
+ import math
+ import os
+@@ -14,8 +13,20 @@
+ import shlex
+ import subprocess
+ 
+-SPEC=importlib.util.spec_from_file_location('negative_deployed',Path(__file__).with_name('check-deployed-server.py'))
+-D=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(D)
++D = None
++_DEPLOYED = None
++
++
++def bind_deployed(deployed, check):
++    global D,_DEPLOYED
++    need(callable(check), 'checked recovery observer binding required')
++    if _DEPLOYED is not None:
++        need(D is deployed and _DEPLOYED[0] is deployed and _DEPLOYED[1] is check,
++             'recovery observer cannot be rebound')
++        check();return
++    check();deployed.require_transport()
++    D=deployed;_DEPLOYED=(deployed,check)
++
+ ROOT='/run/rog5-native-wifi/'
+ # Accepted userdata partition; sysfs geometry uses 512-byte sectors. Linux may
+ # allocate an extended device minor, independently of partition number 23.

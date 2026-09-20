@@ -439,3 +439,17 @@ The existing worker test wrapper now runs 91 cases, including 33 loader cases.
 The fixture README documents the synthetic authority boundary and limitations.
 Bootstrap authentication and the separate health/capture graph remain required;
 this patch issues no runtime authority, input lock, seal or claim.
+
+## Checked health source binding
+
+`0014-checked-health-sources.patch` follows 0013. Five inert health dependencies
+bind explicitly to the existing checked worker and deployed helper. Profile,
+seal, parsed legacy guard and storage-layout bytes belong to the authenticated
+input inventory; the old GPU controller and all health predicates remain.
+Failed or interrupted publication leaves the optional binding unusable.
+
+`scripts/device/test-production-display-health-binding.py` composes the actual
+sources and exercises 32 methods with explicit synthetic authority and data.
+Its fixture README distinguishes local binding proof from the still-missing
+bootstrap authentication and compatible private inputs. Historical pins, seals,
+artifacts, claims and physical results are unchanged.

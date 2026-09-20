@@ -1,0 +1,116 @@
+"""Generate exact source/V11 storage wrappers; no transport or execution API."""
+import ast
+import hashlib
+from pathlib import Path
+import re
+import shlex
+
+HERE=Path(__file__).resolve().parent
+LEGACY_SHA='<REDACTED_LEGACY_SHA_1>'
+HELPER_SHA='<REDACTED_HELPER_SHA_1>'
+OLD_SHA='<REDACTED_OLD_SHA_1>'
+PENDING_SHA='<REDACTED_PENDING_SHA_1>'
+HEALTHY_SHA='<REDACTED_HEALTHY_SHA_1>'
+LOADER_SHA='<REDACTED_LOADER_SHA_1>'
+BUSYBOX_SHA='<REDACTED_BUSYBOX_SHA_1>'
+TRIAL='<REDACTED_TRIAL_1>'
+BUNDLE='<REDACTED_BUNDLE_1>'
+OPERATIONS={'stage':('oled-log-05941-c371bcc38a6a73fe','7.1.4-g05941d04803f','stage'),
+            'restore-source':('oled-log-05941-c371bcc38a6a73fe','7.1.4-g05941d04803f','restore'),
+            'restore-v11':('persistent-native-root-v11','7.1.4-g359318de534f','restore')}
+
+def need(ok,why):
+    if not ok:raise ValueError(why)
+
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+
+def boot_id(value):
+    need(type(value) is str and re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',value)
+         and value!='<BOOT_ID_1>','boot identity')
+
+def custody(owner,source_boot,host_receipt_sha):
+    need(type(owner) is str and re.fullmatch('[0-9a-f]{32}',owner),'owner')
+    boot_id(source_boot)
+    need(type(host_receipt_sha) is str and re.fullmatch('[0-9a-f]{64}',host_receipt_sha)
+         and host_receipt_sha!='0'*64,'host custody receipt hash')
+    return (f'format=rog5-gpu-state-custody-v1\nowner={owner}\nsource_boot_id={source_boot}\n'
+            f'old_record_sha256={OLD_SHA}\ntarget_bundle={BUNDLE}\ntrial_id={TRIAL}\n'
+            f'host_receipt_sha256={host_receipt_sha}\n').encode('ascii')
+
+def retained_guard():
+    raw=(HERE/'legacy-restore.py').read_bytes();need(sha(raw)==LEGACY_SHA,'legacy guard changed')
+    tree=ast.parse(raw)
+    bodies=[ast.literal_eval(node.value) for node in tree.body if isinstance(node,ast.Assign)
+            and any(isinstance(target,ast.Name) and target.id=='BODY' for target in node.targets)]
+    need(len(bodies)==1,'legacy guard declaration')
+    body=bodies[0].split('run_helper() {',1)[0]
+    for before,after in (
+        ('FAIL R01 restore:', 'FAIL kernel state operation:'),
+        ('[ "$(bb uname -r)" = 7.1.4-g359318de534f ]', '[ "$(bb uname -r)" = "$expected_release" ]'),
+        ('[ "$word" = rog5.bundle=persistent-native-root-v11 ]','[ "$word" = "rog5.bundle=$expected_bundle" ]')):
+        need(body.count(before)==1,'legacy guard replacement boundary');body=body.replace(before,after)
+    need(body.count('guard() {')==1,'physical guard boundary')
+    return body.replace('guard() {','physical_guard() {')+'\nguard() {\n physical_guard\n prior=/.rog5/userdata-rw/rog5/boot/.kernel-05941-transition\n [ -d "$prior" ] && [ ! -L "$prior" ] && [ "$(bb stat -c \'%u:%g:%a\' "$prior")" = 0:0:700 ] || fail \'prior kernel transaction directory\'\n [ "$(bb ls -A "$prior" | bb sort)" = \'exchange\nold-backup\nrestore-completed\nrestore-intent\nstage-completed\nstage-intent\' ] || fail \'prior kernel transaction inventory\'\n regular "$prior/stage-intent" 600 512;hash_is "$prior/stage-intent" "cd76ed3d569952c1387164a655a4899a9f00d7c1e68c0b9428dcb6acff270b43"\n regular "$prior/stage-completed" 600 512;hash_is "$prior/stage-completed" "cd76ed3d569952c1387164a655a4899a9f00d7c1e68c0b9428dcb6acff270b43"\n regular "$prior/restore-intent" 600 512;hash_is "$prior/restore-intent" "c19a2025caea9935b099289860d84d8062c236f619b60e2362583e51f405fa4c"\n regular "$prior/restore-completed" 600 512;hash_is "$prior/restore-completed" "c19a2025caea9935b099289860d84d8062c236f619b60e2362583e51f405fa4c"\n regular "$prior/old-backup" 600 512;hash_is "$prior/old-backup" "ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75"\n regular "$prior/exchange" 600 512;hash_is "$prior/exchange" "b62099312b8f43c6ea75778ecd6fa736463ada5aed1d0f5e51369d23b46a30d2"\n}\n'
+
+
+def predecessor_guard():
+    body=retained_guard()
+    need(body.endswith('}\n'),'retained guard boundary')
+    return body[:-2]+' [ -d /run ] && [ ! -L /run ] && [ -d /run/initramfs ] && [ ! -L /run/initramfs ] || fail \'RAM parent path\'\n [ "$(bb stat -c \'%u:%g:%a\' /run/initramfs)" = 0:0:755 ] || fail \'RAM parent metadata\'\n [ "$(bb stat -f -c %T /run/initramfs)" = tmpfs ] || fail \'RAM parent filesystem\'\n prior=/.rog5/userdata-rw/rog5/boot/.oled-05941-transition\n [ -d "$prior" ] && [ ! -L "$prior" ] && [ "$(bb stat -c \'%u:%g:%a\' "$prior")" = 0:0:700 ] || fail \'prior OLED transaction directory\'\n [ "$(bb ls -A "$prior" | bb sort)" = \'exchange\nold-backup\nrestore-completed\nrestore-intent\nstage-completed\nstage-intent\' ] || fail \'prior OLED transaction inventory\'\n regular "$prior/exchange" 600 512;hash_is "$prior/exchange" "e77c2e20caa69e07421c3164539ff5b89f43d5bfa6cd1c0e7c08c3a8099b94b3"\n regular "$prior/old-backup" 600 512;hash_is "$prior/old-backup" "ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75"\n regular "$prior/restore-completed" 600 512;hash_is "$prior/restore-completed" "8172f42548e2593ffd95cf51022be6417dc9a91f3dca970bdc2bff66859821a0"\n regular "$prior/restore-intent" 600 512;hash_is "$prior/restore-intent" "8172f42548e2593ffd95cf51022be6417dc9a91f3dca970bdc2bff66859821a0"\n regular "$prior/stage-completed" 600 512;hash_is "$prior/stage-completed" "aadea945046e3b73f3b48bb0d1cca8eb5e8bd1cdb27a8531afa01ea240070673"\n regular "$prior/stage-intent" 600 512;hash_is "$prior/stage-intent" "aadea945046e3b73f3b48bb0d1cca8eb5e8bd1cdb27a8531afa01ea240070673"\n'+'}\n'
+
+BODY=r'''
+run_helper() { ROG5_KERNEL_STATE_CONTROLLER=1 bb timeout -s KILL 10 "$helper" "$helper_action"; }
+guard
+helper_parent=${helper%/*}
+[ -d "$helper_parent" ] && [ ! -L "$helper_parent" ] && [ "$(bb stat -c '%u:%g:%a' "$helper_parent")" = 0:0:700 ] || fail 'owned helper directory'
+regular "$helper" 755 2097152;hash_is "$helper" "$helper_hash"
+regular "$custody_file" 400 1024;hash_is "$custody_file" "$custody_hash"
+regular "$record" 600 512
+before_hash=$(bb sha256sum "$record" | bb cut -d ' ' -f 1)
+case $operation:$before_hash in
+ stage:$old_hash|restore-source:$pending_hash|restore-source:$healthy_hash|restore-v11:$pending_hash|restore-v11:$healthy_hash) ;;
+ *) fail 'wrong operation record';;
+esac
+entry=$helper_parent/.$operation-entered
+[ ! -e "$entry" ] && [ ! -L "$entry" ] || fail 'operation already entered'
+bb mkdir -m 700 "$entry" || fail 'cannot enter operation'
+printf 'format=rog5-kernel-state-operation-v1\noperation=%s\nentered=true\nboot_id=%s\nbefore_sha256=%s\n' "$operation" "$expected_boot" "$before_hash"
+out=$helper_parent/$operation.stdout
+err=$helper_parent/$operation.stderr
+set -C
+if run_helper >"$out" 2>"$err"; then helper_status=0; else helper_status=$?; fi
+set +C
+regular "$out" 600 4096;regular "$err" 600 4096
+printf 'helper_returncode=%s\nhelper_stdout_sha256=%s\nhelper_stderr_sha256=%s\n' "$helper_status" "$(bb sha256sum "$out" | bb cut -d ' ' -f 1)" "$(bb sha256sum "$err" | bb cut -d ' ' -f 1)"
+[ "$helper_status" = 0 ] && [ "$(bb stat -c %s "$err")" = 0 ] || fail 'helper failed; preserve state and do not retry'
+reply=$(bb cat "$out")
+[ "$reply" = "completed=$helper_action" ] && [ "$(bb stat -c %s "$out")" = "$reply_size" ] || fail 'ambiguous helper reply'
+regular "$record" 600 512;hash_is "$record" "$after_hash"
+regular "$helper" 755 2097152;hash_is "$helper" "$helper_hash"
+regular "$custody_file" 400 1024;hash_is "$custody_file" "$custody_hash"
+guard
+printf 'completed=true\nafter_sha256=%s\nselection_eligibility_restored=%s\nrelease_qualified=false\n' "$after_hash" "$restored"
+'''
+
+def build(operation,boot,source_boot,owner,host_receipt_sha):
+    need(operation in OPERATIONS,'operation');boot_id(boot)
+    bundle,release,action=OPERATIONS[operation]
+    need((boot==source_boot)==(operation!='restore-v11'),'source/return boot continuity')
+    evidence=custody(owner,source_boot,host_receipt_sha)
+    parent='/run/initramfs/rog5-gpu-05941-'+owner
+    fields=dict(state_start='18821440',state_size='408997568',state_uuid='<BOOT_ID_3>',
+        expected_boot=boot,expected_bundle=bundle,expected_release=release,operation=operation,helper_action=action,
+        helper=parent+'/state-exchange',helper_hash=HELPER_SHA,custody_file=parent+'/custody',custody_hash=sha(evidence),
+        old_hash=OLD_SHA,pending_hash=PENDING_SHA,healthy_hash=HEALTHY_SHA,
+        after_hash=PENDING_SHA if action=='stage' else OLD_SHA,restored='false' if action=='stage' else 'true',
+        reply_size=str(len('completed='+action+'\n')),
+        loader='/run/initramfs/lib/ld-musl-aarch64.so.1',busybox='/run/initramfs/bin/busybox',
+        loader_hash=LOADER_SHA,busybox_hash=BUSYBOX_SHA)
+    return ''.join(key+'='+shlex.quote(value)+'\n' for key,value in fields.items())+inherited_guard()+BODY
+
+if __name__=='__main__':raise SystemExit('Generator only; admitted outer custody and device controller required')
+
+def inherited_guard():
+    body=predecessor_guard()
+    need(body.endswith('}\n'),'predecessor guard boundary')
+    return body[:-2]+' prior=/.rog5/userdata-rw/rog5/boot/.oled-startup-05941-transition\n [ -d "$prior" ] && [ ! -L "$prior" ] && [ "$(bb stat -c \'%u:%g:%a\' "$prior")" = 0:0:700 ] || fail \'prior startup transaction directory\'\n [ "$(bb ls -A "$prior" | bb sort)" = \'exchange\nold-backup\nstage-completed\nstage-intent\' ] || fail \'prior startup transaction inventory\'\n regular "$prior/exchange" 600 512;hash_is "$prior/exchange" "ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75"\n regular "$prior/old-backup" 600 512;hash_is "$prior/old-backup" "ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75"\n regular "$prior/stage-completed" 600 512;hash_is "$prior/stage-completed" "a31dea6381ab0f9529a21f3bc87332813b35841b2b850685f5224335e9bad58a"\n regular "$prior/stage-intent" 600 512;hash_is "$prior/stage-intent" "a31dea6381ab0f9529a21f3bc87332813b35841b2b850685f5224335e9bad58a"\n'+'}\n'

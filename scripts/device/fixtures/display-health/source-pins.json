@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "authority": "none",
+  "runtime": "UNBOUND",
+  "physical": "NOT RUN",
+  "patch_sha256": "3a0669f104eb85cf262be4b418f84d3f996a3c632dd879149a539b11f58b7e88",
+  "fixtures": {
+    "binding.py": "71e61840eb93d056592d08724187bc3097d2115d2bee7f95503e7ebd0e503058",
+    "gpu-capture-r1__capture-common.py.txt": "bbfdf17d32dd5beafc8f91f7520da0f860dd56e4e5b16e7ca6af8565c87fb997",
+    "gpu-controller-r1__controller.py.txt": "1a15aabad0bac9fa6323da6407e14ce0a5d38f2fb3425cf43f2dfab3fada7cdf",
+    "gpu-state-guards-r1__guarded-state.py.txt": "a7369d2f5a37acc33c2b797cfc3ad93aa371f9ce54711e92a3f3933cde1962da",
+    "gpu-state-guards-r1__legacy-restore.py.txt": "5a403df8508897ed3dc69e77a9e0c24c48403a318c891ee6598c6ffe237535d7",
+    "oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt": "086a9257924aae57da15b8f641c3d935fe2e704d268ace92037e7bcaab8cb6c3",
+    "oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt": "a8896afc4c3be61560ad32bc4a17eef279c95c4263a23c0b294509a52db9dc90",
+    "oled-startup-live-driver-r1__action-callbacks.py.txt": "6a62d27cde39afa95b3b3b5dbe31b18ad48becbd064fe2b2bf3018376c5b0a43"
+  },
+  "transitions": {
+    "health-private/gpu-capture-r1__capture-common.py.txt": {
+      "after_bytes": 3635,
+      "after_sha256": "1485b734ad20531098bd198f51efca4d7d047e7f218dbef3405218d56cd76161",
+      "before_bytes": 1897,
+      "before_sha256": "bbfdf17d32dd5beafc8f91f7520da0f860dd56e4e5b16e7ca6af8565c87fb997"
+    },
+    "health-private/gpu-state-guards-r1__guarded-state.py.txt": {
+      "after_bytes": 10360,
+      "after_sha256": "52f531d36abf0a31ddddc2a455ae78fabd7fafebecd27ddc96f90b1baac2bc29",
+      "before_bytes": 9872,
+      "before_sha256": "a7369d2f5a37acc33c2b797cfc3ad93aa371f9ce54711e92a3f3933cde1962da"
+    },
+    "health-private/oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt": {
+      "after_bytes": 9491,
+      "after_sha256": "e6af86f779109276c017fd0d7eb1a0c78a0bf46bad3c839aa88500437ab790dd",
+      "before_bytes": 8915,
+      "before_sha256": "086a9257924aae57da15b8f641c3d935fe2e704d268ace92037e7bcaab8cb6c3"
+    },
+    "health-private/oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt": {
+      "after_bytes": 18059,
+      "after_sha256": "18eaa598b384bd51c37eeb8d826491efec5e0232c3cb410d416329283312cf4c",
+      "before_bytes": 17835,
+      "before_sha256": "a8896afc4c3be61560ad32bc4a17eef279c95c4263a23c0b294509a52db9dc90"
+    },
+    "production-cohort/health.py": {
+      "after_bytes": 20227,
+      "after_sha256": "844a9333b1b61dbdbe9f5cc9d997658cb97512a60492e25b53f5c1f4423ce974",
+      "before_bytes": 19104,
+      "before_sha256": "f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892"
+    },
+    "production-cohort/session.py": {
+      "after_bytes": 58477,
+      "after_sha256": "0d034266300f5cf5b30c4f92de354a57b1e835b15d2abedd2c7eb96c5688e6ad",
+      "before_bytes": 41480,
+      "before_sha256": "03cbc1cf437a95a10ebb35caa4f180ac59e05ea1f4e8c532bd6f0ad02795fde5"
+    }
+  },
+  "batches": [
+    [
+      "test_actual_capture_negative_control_has_eager_private_load",
+      "test_actual_validation_and_guard_generation_unchanged",
+      "test_cache_probe_profile_and_data_metadata_mutations_refuse"
+    ],
+    [
+      "test_changed_seal_after_binding_refuses_without_repin",
+      "test_default_worker_and_default_health_refusals_remain",
+      "test_each_retained_health_source_change_refuses"
+    ],
+    [
+      "test_failed_partial_dependency_binding_is_not_retried",
+      "test_guard_state_trial_and_fallback_mismatch",
+      "test_historical_and_owner_boot_seal_refusals"
+    ],
+    [
+      "test_interruption_after_session_alias_publication_clears_both_stages",
+      "test_late_replacement_during_final_preflight_refuses",
+      "test_layout_path_reopen_negative_control_and_checked_refusal"
+    ],
+    [
+      "test_missing_import_and_syntax_fail_entire_preflight",
+      "test_missing_layout_and_profile_rows_refuse",
+      "test_missing_or_changed_capture_profile_semantics"
+    ],
+    [
+      "test_missing_seal_and_legacy_data_are_not_opened_as_modules",
+      "test_missing_source_or_data_refuses_before_new_execution",
+      "test_observer_or_guard_links_cannot_be_rebound"
+    ],
+    [
+      "test_old_observer_imports_are_eager_new_imports_are_inert",
+      "test_preflight_executes_no_new_health_source_and_shared_binding",
+      "test_probes_validators_helpers_and_worker_are_preserved"
+    ],
+    [
+      "test_profile_hash_or_capture_owner_mismatch"
+    ],
+    [
+      "test_publication_interruptions_clear_every_runtime_alias"
+    ],
+    [
+      "test_real_predicates_reject_storage_power_markers_and_artifact_drift",
+      "test_retained_guard_digest_still_required",
+      "test_same_byte_replacement_and_metadata_change_refuse"
+    ],
+    [
+      "test_seal_digest_and_producer_mismatch_precede_new_execution",
+      "test_syntax_failure_is_found_before_any_new_source_execution",
+      "test_unauthenticated_or_changed_provider_refuses"
+    ],
+    [
+      "test_worker_mismatch_and_observer_deployed_change_refuse"
+    ],
+    [
+      "test_complete_seal_artifact_drift_fails_actual_configuration"
+    ],
+    [
+      "test_deep_shared_dependency_replacement_poisoning"
+    ]
+  ]
+}

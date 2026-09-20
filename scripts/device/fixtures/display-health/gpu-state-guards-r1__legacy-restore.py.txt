@@ -1,0 +1,91 @@
+"""Generate an exact V11 shell restoration primitive; does not connect or execute."""
+import hashlib,importlib.util,re,shlex
+from pathlib import Path
+P=Path(__file__).with_name('r01-trial-state-operation-r1.py')
+spec=importlib.util.spec_from_file_location('r01_state_constants',P);M=importlib.util.module_from_spec(spec);spec.loader.exec_module(M)
+BODY=r'''
+set -eu
+export LC_ALL=C
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+umask 077
+bb() { "$loader" "$busybox" "$@"; }
+fail() { printf 'FAIL R01 restore: %s\n' "$*" >&2; exit 1; }
+regular() {
+ [ -f "$1" ] && [ ! -L "$1" ] &&
+ [ "$(bb stat -c '%u:%g:%a:%h' "$1")" = "0:0:$2:1" ] &&
+ [ "$(bb stat -c %s "$1")" -le "$3" ] || fail 'file metadata'
+}
+hash_is() { [ "$(bb sha256sum "$1" | bb cut -d ' ' -f 1)" = "$2" ] || fail 'file hash'; }
+[ -f "$loader" ] && [ ! -L "$loader" ] && [ -f "$busybox" ] && [ ! -L "$busybox" ] || fail 'sealed tools'
+regular "$loader" 755 1048576;hash_is "$loader" "$loader_hash"
+regular "$busybox" 755 2097152;hash_is "$busybox" "$busybox_hash"
+[ "$(bb id -u)" = 0 ] && [ "$(bb id -g)" = 0 ] || fail 'root required'
+state=/.rog5/userdata-rw
+record=$state/rog5/boot/wifi-trial-state
+guard() {
+ [ "$(bb cat /proc/sys/kernel/random/boot_id)" = "$expected_boot" ] || fail 'wrong boot'
+ [ "$(bb uname -r)" = 7.1.4-g359318de534f ] || fail 'wrong fallback kernel'
+ count=0;set -f
+ for word in $(bb cat /proc/cmdline); do
+  case $word in rog5.bundle=*) [ "$word" = rog5.bundle=persistent-native-root-v11 ] || fail 'wrong fallback';count=$((count+1));; esac
+ done
+ set +f
+ [ "$count" = 1 ] || fail 'ambiguous bundle'
+ battery=/sys/class/power_supply/qcom-battmgr-bat
+ [ "$(bb cat "$battery/health")" = Good ] && [ "$(bb cat /sys/class/power_supply/qcom-battmgr-usb/online)" = 1 ] || fail 'power health'
+ temp=$(bb cat "$battery/temp");voltage=$(bb cat "$battery/voltage_now")
+ case $temp:$voltage in *[!0-9:]*|:*|*:) fail 'power framing';; esac
+ [ "$temp" -lt 400 ] && [ "$voltage" -ge 8400000 ] && [ "$voltage" -le 8800000 ] || fail 'power threshold'
+ zones=0
+ for path in /sys/class/thermal/thermal_zone*/temp; do
+  [ -f "$path" ] || fail 'missing thermal observation'
+  value=$(bb cat "$path");case $value in ''|*[!0-9]*) fail 'thermal framing';; esac
+  [ "$value" -lt 60000 ] || fail 'thermal threshold';zones=$((zones+1))
+ done
+ [ "$zones" -gt 0 ] || fail 'no thermal observations'
+ count=0;writable=0
+ for path in /sys/class/block/sd*/ro; do
+  [ -f "$path" ] || fail 'missing storage observation';count=$((count+1))
+  value=$(bb cat "$path");case $value in 0|1) ;; *) fail 'storage framing';; esac
+  case $path in /sys/class/block/sda/ro|/sys/class/block/sda23/ro) [ "$value" = 0 ] || fail 'state not writable';writable=$((writable+1));; *) [ "$value" = 1 ] || fail 'protected writable node';; esac
+ done
+ [ "$count:$writable" = 117:2 ] || fail 'storage write scope'
+ device=$(bb cat /sys/class/block/sda23/dev)
+ printf '%s\n' "$device" | bb grep -Eq '^[1-9][0-9]{0,3}:(0|[1-9][0-9]{0,6})$' || fail 'device framing'
+ major=${device%:*};minor=${device#*:}
+ [ "$major" -le 4095 ] && [ "$minor" -le 1048575 ] || fail 'device bounds'
+ device_number=$(( (major << 8) | (minor & 255) | ((minor & 1048320) << 12) ))
+ [ "$(bb cat /sys/class/block/sda23/partition)" = 23 ] &&
+ [ "$(bb cat /sys/class/block/sda23/start)" = "$state_start" ] &&
+ [ "$(bb cat /sys/class/block/sda23/size)" = "$state_size" ] || fail 'state geometry'
+ bb awk -F= -v major="$major" -v minor="$minor" -v uuid="$state_uuid" '
+ BEGIN { want["MAJOR"]=major;want["MINOR"]=minor;want["DEVNAME"]="sda23";want["DEVTYPE"]="partition";want["PARTN"]="23";want["PARTNAME"]="userdata";want["PARTUUID"]=uuid }
+ { if (NF!=2 || seen[$1]++) exit 1; if (($1 in want) && $2!=want[$1]) exit 1 }
+ END { for (key in want) if (seen[key]!=1) exit 1 }' /sys/class/block/sda23/uevent || fail 'state partition identity'
+ bb awk -v device="$device" '$5 == "/.rog5/userdata-rw" { n++; if ($3 != device || $4 != "/" || $6 !~ /(^|,)rw(,|$)/ || $6 ~ /(^|,)ro(,|$)/) exit 1; for (i=7;i<=NF;i++) if ($i=="-") { if ($(i+1)!="ext4" || $(i+2)!="/dev/sda23") exit 1; found++ } } END { if (n!=1 || found!=1) exit 1 }' /proc/self/mountinfo || fail 'state mount'
+ [ "$(bb stat -c %d "$state")" = "$device_number" ] || fail 'state device'
+ for path in /.rog5 "$state" "$state/rog5" "$state/rog5/boot"; do [ -d "$path" ] && [ ! -L "$path" ] || fail 'state path'; done
+ [ "$(bb stat -c '%u:%g:%a' "$state")" = 0:0:755 ] && [ "$(bb stat -c '%u:%g:%a' "$state/rog5")" = 0:0:700 ] && [ "$(bb stat -c '%u:%g:%a' "$state/rog5/boot")" = 0:0:700 ] || fail 'state directories'
+ [ ! -e "$state/rog5/boot/.wifi-trial-state.next" ] && [ ! -L "$state/rog5/boot/.wifi-trial-state.next" ] || fail 'partial publication'
+}
+run_helper() { bb timeout -s KILL 10 "$helper" healthy "$trial" "$primary"; }
+guard
+helper_parent=${helper%/*}
+[ -d "$helper_parent" ] && [ ! -L "$helper_parent" ] && [ "$(bb stat -c '%u:%g:%a' "$helper_parent")" = 0:0:700 ] || fail 'owned helper directory'
+regular "$helper" 755 131072;hash_is "$helper" "$helper_hash"
+regular "$record" 600 512;hash_is "$record" "$pending_hash"
+printf 'format=rog5-r01-selection-restoration-v1\nentered=true\nboot_id=%s\nbefore_sha256=%s\n' "$expected_boot" "$pending_hash"
+reply=$(run_helper) || fail 'helper failed; preserve state and do not retry'
+[ "$reply" = healthy ] || fail 'ambiguous helper reply'
+regular "$record" 600 512;hash_is "$record" "$healthy_hash"
+regular "$helper" 755 131072;hash_is "$helper" "$helper_hash"
+guard
+printf 'completed=true\nafter_sha256=%s\nselection_eligibility_restored=true\nrelease_qualified=false\n' "$healthy_hash"
+'''
+def build(boot,helper,loader_hash,busybox_hash):
+    M.need(type(boot) is str and re.fullmatch('[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',boot),'invalid restoration boot')
+    M.need(re.fullmatch('/run/rog5-r01-[0-9a-f]{32}/trial-state',helper),'owned restore helper required')
+    M.need(all(re.fullmatch('[0-9a-f]{64}',v) for v in (loader_hash,busybox_hash)),'sealed tool hashes')
+    fields=dict(state_start=M.STATE_START,state_size=M.STATE_SIZE,state_uuid=M.STATE_UUID,expected_boot=boot,helper=helper,helper_hash=M.HELPER_HASH,trial=M.TRIAL,primary=M.PRIMARY,pending_hash=M.sha(M.expected('pending')),healthy_hash=M.sha(M.expected('healthy')),loader='/run/initramfs/lib/ld-musl-aarch64.so.1',busybox='/run/initramfs/bin/busybox',loader_hash=loader_hash,busybox_hash=busybox_hash)
+    return ''.join(k+'='+shlex.quote(v)+'\n' for k,v in fields.items())+BODY
+if __name__=='__main__':raise SystemExit('Generator only; requires the separate reviewed controller')
