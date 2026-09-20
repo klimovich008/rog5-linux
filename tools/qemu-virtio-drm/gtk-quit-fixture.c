@@ -72,7 +72,11 @@ int main(int argc, char **argv)
 	g_action_map_add_action(G_ACTION_MAP(app), G_ACTION(action));
 	g_object_unref(action);
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-	g_signal_connect(app, "shutdown", G_CALLBACK(shutdown_app), NULL);
+	/* The probe adds its ordinary BEFORE and later AFTER handlers in run().
+	 * Keep our explicit sync between those markers without replacing GTK's
+	 * class closure; this fixture uses an after-handler, unlike Mousepad.
+	 */
+	g_signal_connect_after(app, "shutdown", G_CALLBACK(shutdown_app), NULL);
 	int result = g_application_run(G_APPLICATION(app), 1, argv);
 	mark("RUN_RETURN");
 	g_object_unref(app);
