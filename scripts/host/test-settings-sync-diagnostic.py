@@ -370,5 +370,159 @@ int main(void) {
         self.assertNotIn('END', self.stages())
 
 
+FAKE = r'''
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+char application, window;
+int calls, bad, getters, disconnects;
+static int remaining = 1;
+static void (*handlers[3])(void);
+void g_settings_sync(void) { errno = EIO; }
+#ifndef OMIT_GETTER
+void *gtk_application_get_windows(void *app) {
+    if (app != &application) bad++;
+    getters++;
+    errno = ERANGE;
+    return remaining ? &window : NULL;
+}
+#endif
+unsigned long g_signal_connect_data(void *app, const char *signal,
+        void (*callback)(void), void *data, void (*destroy)(void *, void *), int flags) {
+    int slot;
+    if (app != &application || data || destroy || !callback) bad++;
+    if (!strcmp(signal, "window-removed")) {
+        if (flags != 1) bad++;
+        if (getenv("FAIL_WINDOW_CONNECT")) return 0;
+        slot = 2;
+    } else if (!strcmp(signal, "shutdown") && (flags == 0 || flags == 1)) slot = flags;
+    else { bad++; return 0; }
+    if (handlers[slot]) bad++;
+    handlers[slot] = callback;
+    return (unsigned long)slot + 1;
+}
+void g_signal_handler_disconnect(void *app, unsigned long id) {
+    char bytes[1537];
+    FILE *log = fopen(getenv("FIXTURE_LOG"), "r");
+    if (!log) { bad++; return; }
+    size_t size = fread(bytes, 1, sizeof(bytes)-1, log);
+    bytes[size] = 0;
+    fclose(log);
+    if (strstr(bytes, "phase=APP_OBSERVERS_REMOVED")) bad++;
+    if (app != &application || id < 1 || id > 3 || !handlers[id-1]) { bad++; return; }
+    handlers[id-1] = NULL;
+    disconnects++;
+    errno = ENOSPC;
+}
+int g_application_run(void *app, int argc, char **argv) {
+    calls++;
+    if (app != &application || argc != 2 || strcmp(argv[1], "run") || errno != EBUSY) bad++;
+    /* GTK window-removed is RUN_FIRST: its class closure updates the public
+     * window list before the observer connected with G_CONNECT_AFTER runs. */
+    remaining = getenv("KEEP_WINDOW") != NULL;
+    errno = EDOM;
+    if (handlers[2]) ((void (*)(void *, void *, void *))handlers[2])(app, &window, NULL);
+    if (errno != EDOM) bad++;
+    errno = EAGAIN;
+    if (handlers[0]) ((void (*)(void *, void *))handlers[0])(app, NULL);
+    if (errno != EAGAIN) bad++;
+    g_settings_sync();
+    if (errno != EIO) bad++;
+    if (handlers[1]) ((void (*)(void *, void *))handlers[1])(app, NULL);
+    if (errno != EIO) bad++;
+    errno = ENOTTY;
+    return 23;
+}
+int fixture_clean(void) {
+    /* An emission after run must have no observer left to call. */
+    if (handlers[2]) ((void (*)(void *, void *, void *))handlers[2])(&application, &window, NULL);
+    return !bad && calls == 1 && getters == 1 && disconnects == 3 &&
+        !handlers[0] && !handlers[1] && !handlers[2];
+}
+'''
+
+CALLER = r'''
+#include <errno.h>
+extern char application;
+int g_application_run(void *, int, char **);
+int fixture_clean(void);
+int main(int argc, char **argv) {
+    errno = EBUSY;
+    int result = g_application_run(&application, argc, argv);
+    if (result != 23 || errno != ENOTTY) return 31;
+    return fixture_clean() ? 0 : 32;
+}
+'''
+
+
+class GtkWindowDiagnostic(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary = tempfile.TemporaryDirectory(prefix='rog5-window-probe-')
+        cls.addClassCleanup(cls.temporary.cleanup)
+        cls.build = Path(cls.temporary.name)
+        (cls.build / 'fake.c').write_text(FAKE)
+        (cls.build / 'caller.c').write_text(CALLER)
+        cls.probe = cls.build / 'probe.so'
+        cls.flags = ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror']
+        cls.probe_command = cls.flags + ['-fPIC', '-shared', '-DROG5_WINDOW_PROBE',
+            '-DROG5_NO_UNREF_PROBE', str(SOURCE), '-o', str(cls.probe), '-ldl', '-pthread']
+        subprocess.run(cls.probe_command, check=True, capture_output=True, timeout=15)
+        for name, flags in [('fake', []), ('missing', ['-DOMIT_GETTER'])]:
+            subprocess.run(cls.flags + ['-fPIC', '-shared', *flags, str(cls.build/'fake.c'),
+                '-o', str(cls.build/f'lib{name}.so')], check=True, capture_output=True, timeout=15)
+            subprocess.run(cls.flags + [str(cls.build/'caller.c'), '-L'+str(cls.build),
+                '-Wl,-rpath,'+str(cls.build), '-l'+name, '-o', str(cls.build/name)],
+                check=True, capture_output=True, timeout=15)
+
+    def setUp(self):
+        self.log = self.build / (self.id().split('.')[-1]+'.log')
+        self.log.touch(mode=0o600)
+        self.env = dict(os.environ, LD_PRELOAD=str(self.probe),
+                        ROG5_SETTINGS_SYNC_LOG=str(self.log), FIXTURE_LOG=str(self.log))
+        for key in ('KEEP_WINDOW', 'FAIL_WINDOW_CONNECT'):
+            self.env.pop(key, None)
+
+    def run_fixture(self, executable='fake'):
+        return subprocess.run([str(self.build/executable), 'run'], env=self.env,
+                              capture_output=True, timeout=2)
+
+    def stages(self):
+        return [line.split()[1].split('=')[1] for line in self.log.read_text().splitlines()]
+
+    def check_window(self, marker):
+        result = self.run_fixture()
+        self.assertEqual(result.returncode, 0, (result.stderr, self.stages()))
+        self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', marker, 'SHUTDOWN_BEFORE',
+            'BEGIN', 'END', 'SHUTDOWN_AFTER', 'APP_RUN_END', 'APP_DISCONNECT_ONE_END',
+            'APP_OBSERVERS_REMOVED', 'DSO_FINI'])
+        self.assertLessEqual(self.log.stat().st_size, 1536)
+        self.assertEqual(result.stdout, b'')
+        self.assertEqual(result.stderr, b'')
+
+    def test_last_window_after_class_closure_errno_and_disconnection(self):
+        self.check_window('WINDOW_REMOVED_ZERO')
+
+    def test_remaining_window_is_not_reported_as_last(self):
+        self.env['KEEP_WINDOW'] = '1'
+        self.check_window('WINDOW_REMOVED_NONZERO')
+
+    def test_missing_public_getter_refuses_before_run(self):
+        self.assertEqual(self.run_fixture('missing').returncode, 125)
+        self.assertNotIn('APP_RUN_BEGIN', self.stages())
+
+    def test_failed_window_connection_refuses_before_run(self):
+        self.env['FAIL_WINDOW_CONNECT'] = '1'
+        self.assertEqual(self.run_fixture().returncode, 125)
+        self.assertNotIn('APP_RUN_BEGIN', self.stages())
+
+    def test_window_probe_requires_explicit_no_unref_variant(self):
+        command = [arg for arg in self.probe_command if arg != '-DROG5_NO_UNREF_PROBE']
+        command[command.index('-o')+1] = str(self.build/'forbidden.so')
+        result = subprocess.run(command, capture_output=True, timeout=15)
+        self.assertNotEqual(result.returncode, 0, 'window+unref variant unexpectedly compiled')
+
+
 if __name__ == '__main__':
     unittest.main()

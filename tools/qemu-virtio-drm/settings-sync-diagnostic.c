@@ -11,6 +11,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#if defined(ROG5_WINDOW_PROBE) && !defined(ROG5_NO_UNREF_PROBE)
+#error "window observation requires the no-unref control to retain record limits"
+#endif
+
 static int log_fd = -1;
 static void (*real_sync)(void);
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -152,6 +156,24 @@ __attribute__((destructor)) static void finalize_probe(void)
  */
 struct _GApplication;
 
+#ifdef ROG5_WINDOW_PROBE
+static void *(*window_list)(void *);
+
+/* GtkApplication::window-removed is RUN_FIRST in the retained GTK3 source.
+ * This AFTER handler observes the public list after the default handler and
+ * ordinary handlers; it does not bracket removal or inspect private use_count.
+ * The explicit one-window diagnostic retains the existing record/byte limits.
+ */
+static void window_removed(void *application, void *window, void *data)
+{
+	int saved_errno = errno;
+	(void)window;
+	(void)data;
+	record(window_list(application) ? "WINDOW_REMOVED_NONZERO" : "WINDOW_REMOVED_ZERO");
+	errno = saved_errno;
+}
+#endif
+
 static void shutdown_before(struct _GApplication *application, void *data)
 {
 	int saved_errno = errno;
@@ -178,6 +200,9 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 				 void (*)(void *, void *), int);
 	void (*disconnect)(void *, unsigned long);
 	unsigned long before, after;
+#ifdef ROG5_WINDOW_PROBE
+	unsigned long removed;
+#endif
 
 	dlerror();
 	run = (int (*)(struct _GApplication *, int, char **))
@@ -197,6 +222,18 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 			NULL, NULL, 1); /* G_CONNECT_AFTER */
 	if (!before || !after)
 		fail();
+#ifdef ROG5_WINDOW_PROBE
+	dlerror();
+	window_list = (void *(*)(void *))dlsym(RTLD_NEXT, "gtk_application_get_windows");
+	if (dlerror() || !window_list) {
+		record("window-resolve-failed");
+		fail();
+	}
+	removed = connect(application, "window-removed", (void (*)(void))window_removed,
+			  NULL, NULL, 1); /* G_CONNECT_AFTER; no extra application ref */
+	if (!removed)
+		fail();
+#endif
 	atomic_store(&application_observed, 1);
 	record("APP_RUN_BEGIN");
 	errno = entry_errno;
@@ -212,6 +249,9 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 	record("APP_DISCONNECT_ONE_END");
 	errno = disconnect_errno;
 	disconnect(application, after);
+#ifdef ROG5_WINDOW_PROBE
+	disconnect(application, removed);
+#endif
 	record("APP_OBSERVERS_REMOVED");
 #ifndef ROG5_NO_UNREF_PROBE
 	atomic_store(&pending_unref, application);
