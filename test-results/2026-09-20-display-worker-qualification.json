@@ -1,0 +1,4887 @@
+{
+  "schema": 1,
+  "scope": "offline source/test integration, not admission or hardware qualification",
+  "authority": "none",
+  "runtime": "UNBOUND",
+  "physical": "NOT RUN",
+  "starting_commit": "88d985eda07989b806f317ab6a93f011f7bcf74c",
+  "implementation_commit": "8fc77f1611d0a8013174000a0f08e7b690e3242e",
+  "implementation_tree": "20e7d141b3f1d5e58abaafcd44dad621f73e7404",
+  "changed_implementation_files": [
+    "configs/repository-tests.json",
+    "patches/display-controller/0012-worker-source-lifetime.patch",
+    "patches/display-controller/README.md",
+    "scripts/device/fixtures/display-worker/README.md",
+    "scripts/device/fixtures/display-worker/binding.py",
+    "scripts/device/fixtures/display-worker/check-deployed-server.py.txt",
+    "scripts/device/fixtures/display-worker/finalization.patch",
+    "scripts/device/fixtures/display-worker/finalization.py",
+    "scripts/device/fixtures/display-worker/headless-stage-receiver.py.txt",
+    "scripts/device/fixtures/display-worker/lifetime.py",
+    "scripts/device/fixtures/display-worker/rescue-capture-network.py.txt",
+    "scripts/device/fixtures/display-worker/source-pins.json",
+    "scripts/device/fixtures/display-worker/ssh-worker.py.txt",
+    "scripts/device/test-production-display-worker.py",
+    "scripts/host/test-repository-linux.sh"
+  ],
+  "implementation_file_sha256": {
+    "configs/repository-tests.json": "4979a2f73629e72996252ab561e20f57a655f4eb5d790769bfb031fe475fa478",
+    "patches/display-controller/0012-worker-source-lifetime.patch": "872eb6c7cb681da8f87d6ddc44aaeb96c894b2e4682aefdcc4851e6c1214457a",
+    "patches/display-controller/README.md": "31082377f2ede319584dbeb9b21d2a099f10d6db4bb478da6f4136018289334b",
+    "scripts/device/fixtures/display-worker/README.md": "806afe9578bc1f967bad41d100dfdb425dcb20412a87d475d108ffb00e948a79",
+    "scripts/device/fixtures/display-worker/binding.py": "35483c011c51347ad5622af75f246f8dcddb0de698f5361637dd1a999a2c06d1",
+    "scripts/device/fixtures/display-worker/check-deployed-server.py.txt": "aa73faf8843bc84bf52c8afeaf7e099874cc73266c36f2c463e912ff05cce405",
+    "scripts/device/fixtures/display-worker/finalization.patch": "c64ee4648bd31969a88b1a6d6e9cc382c63d142ec9d7fc80848507dcbc9da279",
+    "scripts/device/fixtures/display-worker/finalization.py": "ed862c6f53fb40f7859bcf63d9155e151189f2eba4bdb47692815358461b05cb",
+    "scripts/device/fixtures/display-worker/headless-stage-receiver.py.txt": "6eea9eb46b627008651fe9be40945d5e72947439ef865f1201440af0f0bf74a2",
+    "scripts/device/fixtures/display-worker/lifetime.py": "f086d2772398cff4b18e9d17fd44b4f2d901c534711bd3e0aaf76f4d4b291ac7",
+    "scripts/device/fixtures/display-worker/rescue-capture-network.py.txt": "462e94231328363f4cc8fc9ae75165f8d5de6fd15f49dde4b95b13f4cf407d3b",
+    "scripts/device/fixtures/display-worker/source-pins.json": "ab35c31ff866333b1e32d37bd7faddd154607817cf5a7acdb498ff6ac8e7fda8",
+    "scripts/device/fixtures/display-worker/ssh-worker.py.txt": "e0f734b13896e1bcc107f9aa3092625ab62daf6d04b3313279d35dfc3c9efb7f",
+    "scripts/device/test-production-display-worker.py": "0fc648c92a8ea408ebdc54735540330acd46dd957c6fdd623d3300985ff43b74",
+    "scripts/host/test-repository-linux.sh": "73b6c7e1c6ec6399641f7558d76ca63e8e1048d3b207797843f45a891879d6a2"
+  },
+  "finalizer": {
+    "command": [
+      "/usr/bin/timeout",
+      "--signal=TERM",
+      "--kill-after=5",
+      "90",
+      "/usr/bin/prlimit",
+      "--as=536870912",
+      "--core=0",
+      "--",
+      "/usr/bin/python3",
+      "-O",
+      "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/test-worker-execute-finalization.py",
+      "--before",
+      "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/before/ssh-worker.py.txt",
+      "--after",
+      "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/local-review/applied/ssh-worker.py.txt"
+    ],
+    "seconds": 2.044366924033966,
+    "exit_status": 0,
+    "uid": 1000,
+    "host_kernel": "6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45",
+    "test_sha256": "ed862c6f53fb40f7859bcf63d9155e151189f2eba4bdb47692815358461b05cb",
+    "source_sha256": "faedbbc0c1010bc88f5837c31c8b2714b76c8305abf826cb67ee43958c55b851",
+    "runtime": "UNBOUND",
+    "physical": "NOT RUN"
+  },
+  "strict_application": {
+    "commands": [
+      [
+        "git",
+        "apply",
+        "--check",
+        "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/rog5-worker-execute-finalization.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/rog5-worker-execute-finalization.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "--reverse",
+        "--check",
+        "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/rog5-worker-execute-finalization.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "--reverse",
+        "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/rog5-worker-execute-finalization.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/received/rog5-worker-execute-finalization.patch"
+      ]
+    ],
+    "seconds": 0.012041251000482589,
+    "before_sha256": "44382acd27a4a5da05d933dd4779496d8a49b7e135900202d8931bb20998ea69",
+    "after_sha256": "faedbbc0c1010bc88f5837c31c8b2714b76c8305abf826cb67ee43958c55b851",
+    "patch_sha256": "c64ee4648bd31969a88b1a6d6e9cc382c63d142ec9d7fc80848507dcbc9da279",
+    "status": "PASS"
+  },
+  "integrated_execution": {
+    "command": [
+      "bash",
+      "scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "cwd": "$ROG5_CHECKOUT",
+    "source_commit": "8fc77f1611d0a8013174000a0f08e7b690e3242e",
+    "source_tree": "20e7d141b3f1d5e58abaafcd44dad621f73e7404",
+    "env": {
+      "PATH": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0DGpt4Q:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_WAYLAND_INCLUDE": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+      "ROG5_TEST_WORKERS": "2",
+      "ROG5_TEST_REPORT_DIR": "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/integrated-active-r1/reports",
+      "TMPDIR": "$ROG5_PRIVATE_EVIDENCE/worker-boundary-review-r1/acceptance-cleanup-review-r1/final-close-review-r1/integrated-active-r1/tmp"
+    },
+    "host_kernel": "6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45",
+    "uid": 1000,
+    "start_utc": "2026-09-20T17:36:18Z",
+    "memory_max_bytes": 1073741824,
+    "swap_max_bytes": 0,
+    "tasks_max": 256,
+    "physical": "NOT RUN",
+    "runtime": "UNBOUND",
+    "exit_status": 0,
+    "duration_seconds": 444.91348786704475,
+    "end_utc": "2026-09-20T17:43:43Z"
+  },
+  "suite_summary": {
+    "schema": 1,
+    "tier": "active",
+    "counts": {
+      "PASS": 131,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 257
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "tests": [
+      {
+        "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.2655932300258428,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-qcom-battmgr-charge-units.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-ncm-tx-timer.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.24546115205157548,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-ncm-tx-timer.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-startup-observer.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.8483577410224825,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-startup-observer.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-persistent-ssh-key-files.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.38591355603421107,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-persistent-ssh-key-files.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-headless-stage-receiver.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.4864331900025718,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-headless-stage-receiver.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-source-teardown-observation.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.24509774497710168,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-source-teardown-observation.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-capture-isolated-recovery.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.2459148570196703,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-capture-isolated-recovery.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-isolated-recovery-observation.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.22688503697281703,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-isolated-recovery-observation.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-isolated-recovery.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.2668569769593887,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-isolated-recovery.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-r01-controller-replay.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 4.1649395899730735,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-r01-controller-replay.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-isolated-recovery-diagnostics.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.12481264601228759,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-isolated-recovery-diagnostics.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-verified-isolated-recovery-boot.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6497977169929072,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-verified-isolated-recovery-boot.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-verified-kernel-hardware-boot.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3468976740259677,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-verified-kernel-hardware-boot.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-release-acceptance.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 7.320265940041281,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-release-acceptance.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-network-transfer-stream.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.15011978399707,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-network-transfer-stream.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-wifi-restart-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3056514179916121,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-wifi-restart-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-deployed-server.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5665485810022801,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-deployed-server.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-standalone-root.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3056123770074919,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-standalone-root.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-standalone-boot.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.693332697963342,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-standalone-boot.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-ordinary-boot-smoke.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 2.89981438399991,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-ordinary-boot-smoke.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-powered-off-start-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 2.838951766025275,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-powered-off-start-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-repeated-boot-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.9894276320119388,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-repeated-boot-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-soak-observation.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.14536122302524745,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-soak-observation.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-soak-evidence-rules.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.9093603609944694,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-soak-evidence-rules.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-soak-workload-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.1910083910333924,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-soak-workload-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-soak-runtime-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3466466129757464,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-soak-runtime-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-soak-file-window.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 7.546360477979761,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-soak-file-window.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-cpu-frequency-cap.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.48775366897461936,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-cpu-frequency-cap.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-headless-cpu-policy.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6272223339765333,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-headless-cpu-policy.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-server-runtime-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.828763653000351,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-server-runtime-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-rescue-startup.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3263854969991371,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-rescue-startup.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-rescue-runtime-evidence.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.2654018999892287,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-rescue-runtime-evidence.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-release-rescue-companion.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.9549760289955884,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-release-rescue-companion.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-check-charging-regulation.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.2050709740142338,
+        "source_sections": [
+          "test_exact_sealed_probe (__main__.Tests.test_exact_sealed_probe) ... skipped 'exact sealed archive integration is explicitly selected'"
+        ],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-check-charging-regulation.py",
+          "-v"
+        ],
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "exact sealed archive integration is explicitly selected",
+            "test_id": "Tests.test_exact_sealed_probe",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "exact sealed archive integration is explicitly selected",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_H03_TEST_ARCHIVE"
+              ],
+              "test_ids": [
+                "Tests.test_exact_sealed_probe"
+              ]
+            }
+          }
+        ],
+        "subcheck_counts": {
+          "SKIPPED": 1
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-rescue-root-composition.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.8485817769542336,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-rescue-root-composition.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-release-composition.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.4863253600196913,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-release-composition.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-owned-vm.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.40700672595994547,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-owned-vm.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-a01-fixture.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.32576282299123704,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-a01-fixture.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-module-edge.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.4678641390055418,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-module-edge.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-slotb-ram-bundle.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.42619975499110296,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-slotb-ram-bundle.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-standalone-rescue-composition.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.42655192996608093,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-standalone-rescue-composition.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-watchdog-artifact.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.4715131729608402,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-watchdog-artifact.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-persistent-root-watchdog.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6069262429955415,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-persistent-root-watchdog.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-persistent-trial-state.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 4.307275072962511,
+        "source_sections": [
+          "test_retained_v1_target_can_acknowledge_v2_recovery (__main__.PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery) ... skipped 'requires explicit retained ARM binary replay'"
+        ],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-persistent-trial-state.py",
+          "-v"
+        ],
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "requires explicit retained ARM binary replay",
+            "test_id": "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "requires explicit retained ARM binary replay",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_TRIAL_TEST_ARM64=1",
+                "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+              ],
+              "test_ids": [
+                "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+              ]
+            }
+          }
+        ],
+        "subcheck_counts": {
+          "SKIPPED": 1
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-build-persistent-wifi-selector.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.8341430720174685,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-build-persistent-wifi-selector.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rpmh-readback.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.1706302990205586,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-rpmh-readback.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rpmh-state-reader.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.18499702302506194,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-rpmh-state-reader.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-pmic-rail-reader.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.28561627701856196,
+        "source_sections": [
+          "test_exact_arm_binary (__main__.RailReaderTest.test_exact_arm_binary) ... skipped 'optional ARM64 artifact'"
+        ],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-pmic-rail-reader.py",
+          "-v"
+        ],
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "optional ARM64 artifact",
+            "test_id": "RailReaderTest.test_exact_arm_binary",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "optional ARM64 artifact",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_RAIL_READER_BINARY"
+              ],
+              "test_ids": [
+                "RailReaderTest.test_exact_arm_binary"
+              ]
+            }
+          }
+        ],
+        "subcheck_counts": {
+          "SKIPPED": 1
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-persistent-power-readiness.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.44643592002103105,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-persistent-power-readiness.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-s12-ufs-vote.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6274700309731998,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-s12-ufs-vote.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-asus-s12-oem-point.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6676522580091842,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-asus-s12-oem-point.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-ath11k-hw11.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.20543635200010613,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-ath11k-hw11.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-pcie-trace.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.144725831982214,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-pcie-trace.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-activation.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.30600623303325847,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-activation.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-wpa-start.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.14531012199586257,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-wpa-start.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-network-restart.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.8686140259960666,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-network-restart.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-boot.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 8.831484419992194,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-boot.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-buttons-indicator-trial-initramfs.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.4718261719681323,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-buttons-indicator-trial-initramfs.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-trial-initramfs.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.471773146011401,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-display-trial-initramfs.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-front-touch.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5267299379920587,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-front-touch.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-physical-key-events.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.1447705440223217,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-physical-key-events.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-observe-local-root-physical-key.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5464155569789,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-observe-local-root-physical-key.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-optional-display-runtime.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.654186716012191,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-optional-display-runtime.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-healthy.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 5.129261669993866,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-healthy.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-finalization.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 15.50485688803019,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-finalization.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-native-wifi-radio-refusal.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 7.521877494989894,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-native-wifi-radio-refusal.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-quiesce-native-usb-data.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.18446590099483728,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-quiesce-native-usb-data.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-native-wifi-discovery.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.12463819200638682,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-native-wifi-discovery.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-controller-bindings.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.12441432802006602,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-controller-bindings.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-wifi-pwrctrl-probe.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.22527022002032027,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-wifi-pwrctrl-probe.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-pmic-pon-reader.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.14475526800379157,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-pmic-pon-reader.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-healthd.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.8732447540387511,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-healthd.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-select-repository-test-tier.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.9290858389576897,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-select-repository-test-tier.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-run-sealed-busybox.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.48643420200096443,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "$ROG5_CHECKOUT/scripts/host/test-run-sealed-busybox.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "bwrap",
+          "python3",
+          "qemu-aarch64-static"
+        ]
+      },
+      {
+        "path": "scripts/device/test-observe-early-mainline-power.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-probe-network-root-battery-telemetry.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-build-early-target-diag.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-early-target-diagnostics.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-collect-early-target-diagnostics.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-network-root-init.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-generate-power-usb-active.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-repository-test-report.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-mobile-power-policy.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-ufs-storage-trust-boundary.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-durability-file-ops.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-durability-target.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-durability-phase.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-storage-durability-evidence.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-repository-linux-runner-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-inspect-local-image-partial.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-benchmark-local-image-write.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-stage-local-image-direct.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-inspect-native-clone-progress.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-power-usb-active-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-power-usb-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-power-usb-composition.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-network-root-pdr-override.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-slotb-loader.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-slotb-recovery-loader.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-stage-persistent-service-state.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-overlay-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-service-state-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-tailscale-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-tailscale-netfilter-kernel.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-standalone-module-refresh.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-native-wifi-module-kit.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-native-wifi-dtb.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-ams678-panel-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-display-60hz-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-screen-toggle.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-power-buttond.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-status-screen.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-display-post-switch-report.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-display-post-switch-report.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-load-native-ram-bundle.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-native-kexec-shutdown.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-runtime-closure.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-ufs-module-profile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-observe-persistent-usb-liveness.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/check-power-usb-active-closure.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-rog5-host-doctor.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-power-usb-deployment-receipt.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-power-usb-real-output-replay.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-persistent-trial-state-aarch64.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-reusable-recovery-claim-design.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-wait-stock-android-fallback.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verify-headless-ssh-v2-key-admission.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verify-minimal-headless-runtime.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-qemu-system-smoke-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-qemu-network-root-nfs-hostile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-qemu-systemd-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-kernel-builder-bootstrap-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-import-asus-source-volume-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-steam-deck-builder-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-kernel-rebuild-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-kernel-builder-acceleration.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-thermal-pmic-candidate.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-dual-cell-readonly-candidate.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-suspend-pm-test-source-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-suspend-pm-test-candidate.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-run-network-root-suspend-pm-test-devices.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-reconstruct-recovery-base-v18r-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-reconstruct-network-root-v3-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-restore-stable-recovery-inputs-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-post-wipe-restoration-bundle-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-recovery-retained-preflight-dedup.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-fetch-android-boot-tools-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-canonical-boot-v3-template-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-asus-kexec-stage-successor-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-private-arm64-binfmt-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-steam-deck-recovery-builders-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verify-asus-source-tree.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-corrected-successor-live-gate-offline.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-headless-core-candidate-offline-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-deployment-checkpoint-inputs.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stage-recovery-deployment-signing-inputs.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-preflight-headless-ssh-successor-candidate.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-recovery-candidate-dtb-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-ufs-rmtfs-reserved-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-ufs-phy-disabled-control-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-buttons-indicator-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-headless-display-isolation-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-headless-display-isolation-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-buttons-indicator-source-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-vcnl36866-port-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-run-network-root-physical-keys.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-core-compatibility-oracle.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-core-source-dtb-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-pin-minimal-headless-host-key.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-minimal-headless-runtime-acceptance.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-prepare-headless-ssh-deployment-candidate.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-install-headless-ssh-deployment-export.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-headless-ssh-deployment-export-install.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-headless-battery-series.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-dual-cell-readonly-snapshot.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-dual-cell-readonly-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-fallback-acm-control.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retired-legacy-acm-entrypoints.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-minimal-headless-live-cycle.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-persistent-root-storage-live-cycle.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-consume-generation11-boot-claim.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-consume-generation12-boot-claim.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-consume-exact-boot-claim.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-sequence-reference.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-transaction.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-adapter.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-retention-cycle-live.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-executor-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-executor-boundary.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-retention-cycle-descriptor-execution.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-control-reference.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-control-native.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-progress-collector.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-progress-runtime.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-recovery-control.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verified-fastboot-boot.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-run-stable-recovery-live-gate.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-current-production-recovery-profile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-current-core-recovery-profile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-current-persistent-root-storage-profile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-current-observation-recovery-profile.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-bundle-native.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-prepare-recovery-runtime-bundle.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-prepare-recovery-candidate.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-candidate-integration.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-headless-network-root.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-compare-root-archives.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-normalize-headless-core-archive-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-kernel-source-seal.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-observation-recovery-wrapper.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-control-build-record.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verify-retention-cycle-admission.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-recovery-wrapper-cache.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-recovery-wrapper-cache-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-issue-stable-recovery-avb-generation.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-wrapper-slim-config.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-stable-wrapper-slim-config-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-arch-headless-rootfs-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-headless-package-closure.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-key-indicatord.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-arch-headless-core-rootfs-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-claude-readonly-review.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-github-exact-head-workflow.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-collect-readonly-storage-inventory.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-storage-resolution.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-handoff.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-initramfs.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-stage-local-arch-image.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-initramfs.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-clone-local-image-to-arch-root.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-inspect-native-arch-root.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-repair-native-arch-root-ssh.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qcom-wdt-candidate-dtb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-build-qcom-wdt-module.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qcom-wdt-observer.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-preusb-diagnostic.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-configfs-beacon.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-udc-inventory.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-timing.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-address.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-configfs-udc.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-bind-error.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-local-image-stage-ufs-baseline.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-power-usb-v9.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-power-usb-v10.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-probe-writer-v11.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-any-prior-v12.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-any-prior-v13.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-any-prior-v14.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-restart2-v15.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-local-image-reboot-mode-v16.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-sparse-diagnostic-v17.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-mainline-persistent-root-build.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-mainline-local-image-stage-power-usb.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-backup-readonly-storage-inventory.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-verify-dedicated-linux-layout.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-storage-preflight-initramfs-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-build-storage-layout-gpt-regions.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-storage-layout-stage1-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-userdata-ext4-reset-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-disarm-recovery-layout-watchdog.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-collect-storage-layout-stage1.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-observe-storage-layout-stage1-prewrite.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-storage-layout-stage2-contract.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-collect-storage-layout-stage2.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-storage-layout-stage2-runtime.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-rog5-charging-firmware-resolution.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-alpine-charging-rescue-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-build-direct-charging-rescue.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-build-stock-charging-successor-initramfs.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-load-stock-charging-recovery.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-collect-storage-preflight-report.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-storage-preflight-candidate.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-kernel-build-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-asus-kexec-stage-slim-build-contract.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-generate-artifact-prune-plan.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-generate-host-storage-cleanup-plan.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-cleanup-podman-volumes.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-fetch-native.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-timeout-lattice.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-bundle-server.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-host-controller.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-host-socket.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-init-policy.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-reboot-fallback-to-fastboot.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-clock-provider-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-fixed-clocks-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-first-fixed-clock-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-allocation-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-first-clock-name-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-clk-orphan-runtime-pm-lock-model.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-second-clock-runtime-pm-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-probe-third-clock-runtime-pm-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-clock-provider-cleanup-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-phy-creation-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-qmp-ufs-phy-provider-stage-patch.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-recovery-linux.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-a660-acceptance.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-a660-runtime-root.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-persistent-root-verifier.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-acm.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-persistent-root-acm.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-persistent-root-entry-acm.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-gpucc-atomic-confirmation.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-network-root-host.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-capture-vendor-kernel-log.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-sync-network-root-time.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-rog5-remote-tunnel-service.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-linux-rootfs-tools.sh",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-mobile-status.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-production-kernel-build.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-production-build-diagnostics.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/host/test-review-metadata-checkers.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 2.1346080119838007,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-review-metadata-checkers.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git",
+          "gpg",
+          "gpgv",
+          "gpgconf",
+          "bsdtar",
+          "vercmp"
+        ]
+      },
+      {
+        "path": "scripts/host/test-ams678-compile-location.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-lifecycle.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 7.185055262001697,
+        "source_sections": [
+          "NOT RUN external kernel-source comparison; pinned extract is compiled",
+          "PASS behavioral: 27 actual-driver cases (13 probe failure stages), 8 mutation controls; elapsed=7.064698s",
+          "NOT RUN module loading, physical IRQ/input, rail behavior or suspend qualification"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-touch-lifecycle.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.7889940179884434,
+        "source_sections": [
+          "NOT RUN external source comparison; pinned actual accounting functions compiled",
+          "PASS behavioral: six actual-core/actual-driver regulator cases + two mutations; elapsed=0.662717s",
+          "NOT RUN physical RPMh/GPIO, terminal devres restoration or hardware recovery"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-touch-regulator-errors.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-ams678-regulator-errors.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.2112108689616434,
+        "source_sections": [
+          "NOT RUN external regulator-source comparison; pinned accounting functions compiled",
+          "PASS behavioral: rejected mutation assume-retained: FAIL $ROG5_CHECKOUT/build/ams678-regulator-wfiei9y6/unit.c:341 vote_is(f.panel.supply_vote[rail], AMS678_VOTE_UNKNOWN)",
+          "PASS behavioral: rejected mutation blind-retry: FAIL $ROG5_CHECKOUT/build/ams678-regulator-wfiei9y6/unit.c:319 ams678_er2_plus_dsc_power_off(&f->panel) == -EUCLEAN",
+          "PASS behavioral: rejected mutation skip-other-held: FAIL $ROG5_CHECKOUT/build/ams678-regulator-wfiei9y6/unit.c:360 vote_is(f.panel.supply_vote[!rail], AMS678_VOTE_NONE) && !f.consumers[!rail].enable_count && !f.upstream[!rail].enable_count",
+          "PASS behavioral: eight actual panel/core regulator cases + three mutations; elapsed=1.084390s",
+          "NOT RUN full DRM/DSI callbacks, physical power, devres restoration or recovery across reprobe"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-ams678-regulator-errors.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/host/test-rog5-touch-module-build.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.687798420956824,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-rog5-touch-module-build.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bwrap"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-rpmh-binding.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.1652695230441168,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-rpmh-binding-guards.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-mobile-dt-guards.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.17243962897919118,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-mobile-dt-guards.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-mobile-touch-providers.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.14535378204891458,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-mobile-touch-providers.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-geni-mode.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.3923774690483697,
+        "source_sections": [
+          "NOT RUN external kernel-source comparison; pinned extracts compiled",
+          "NOT RUN adapter registration, hardware protocol/FIFO state, firmware loading, DMA, IRQ or touch"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-rog5-geni-mode.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-binding.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-gles-readback.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 12.471996715001296,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-gles-readback.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "rustc",
+          "cc",
+          "bwrap"
+        ]
+      },
+      {
+        "path": "scripts/host/test-mobile-runtime-materialization.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.0086751339840703,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-mobile-runtime-materialization.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bwrap",
+          "bsdtar",
+          "vercmp"
+        ]
+      },
+      {
+        "path": "scripts/host/test-denial-arm64-engine-args.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3867311179637909,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-denial-arm64-engine-args.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-virtio-drm-prerequisites.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.7277948239934631,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-virtio-drm-prerequisites.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-mobile-observer.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.160102800000459,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-mobile-observer.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-native-capture.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.36598307196982205,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-native-capture.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-screencopy.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 5.672471206984483,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-screencopy.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "gcc",
+          "pkg-config",
+          "wayland-scanner"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-launcher-apps.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 2.416121538961306,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-launcher-apps.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "awk",
+          "timeout",
+          "mkfifo",
+          "sleep"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-launcher-protocol.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.1645378969842568,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-launcher-protocol.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-denial-runtime-linkage.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.049292943032924,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-denial-runtime-linkage.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "rustc",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-runtime-view.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.4060148610151373,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-runtime-view.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bwrap",
+          "bsdtar",
+          "vercmp"
+        ]
+      },
+      {
+        "path": "scripts/host/test-denial-mobile-session.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5062957139452919,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-denial-mobile-session.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash"
+        ]
+      },
+      {
+        "path": "scripts/host/test-denial-session-payload.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.22520253201946616,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-denial-session-payload.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-runner.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 35.888602465973236,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-logind-runner.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "bash",
+          "cat",
+          "head",
+          "timeout",
+          "cc",
+          "mktemp",
+          "od",
+          "python3",
+          "rustc",
+          "stat",
+          "stdbuf",
+          "tr"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-font-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.5516103359987028,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-font-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-gtk-im-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.2698283910285681,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-gtk-im-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-editor.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.4147672249819152,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-logind-editor.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-apps.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 4.205439520010259,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-logind-apps.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-apps.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 34.31534523202572,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-apps.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/host/test-launcher-diagnostics.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 12.787537368945777,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-launcher-diagnostics.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "tail",
+          "awk",
+          "timeout",
+          "head",
+          "mktemp",
+          "rm"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-caret-protocol.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.1451284650247544,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-caret-protocol.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-startup-diagnostic.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 4.266120592015795,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-startup-diagnostic.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "tail",
+          "head",
+          "od",
+          "tr",
+          "timeout",
+          "sleep"
+        ]
+      },
+      {
+        "path": "scripts/host/test-settings-sync-diagnostic.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.25316564302193,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-settings-sync-diagnostic.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc",
+          "nm"
+        ]
+      },
+      {
+        "path": "scripts/host/test-app-close-probe.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 17.16940627899021,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-app-close-probe.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "rustc",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-linker-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.3058634049957618,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-linker-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/host/test-qemu-hwdb-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.38718934898497537,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-qemu-hwdb-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cpio"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-linker-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.013437347020954,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-linker-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "sha256sum",
+          "stat",
+          "cp",
+          "ln",
+          "mktemp"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-hwdb-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.0917407110100612,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-hwdb-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "bash",
+          "sha256sum",
+          "stat",
+          "cp",
+          "ln",
+          "mktemp",
+          "timeout",
+          "chmod",
+          "mkdir",
+          "rmdir",
+          "rm",
+          "cat"
+        ]
+      },
+      {
+        "path": "scripts/host/test-logind-icon-cache.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5273704889696091,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/host/test-logind-icon-cache.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "gtk-update-icon-cache"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-loader-ordering.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 2.2978865079930983,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-display-loader-ordering.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-modules.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 1.5139031760045327,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-modules.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "clang",
+          "modinfo"
+        ]
+      },
+      {
+        "path": "scripts/device/test-stage-production-display-modules.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.182614143996034,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-stage-production-display-modules.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "clang",
+          "modinfo"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-cohort.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.221011626010295,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-cohort.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-private-display-api.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 14.557498743990436,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-private-display-api.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-cold-boot.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 188.666690877988,
+        "source_sections": [
+          "PASS behavioral: Integration 1: 4 cases",
+          "PASS behavioral: Integration 2: 4 cases",
+          "PASS behavioral: Integration 3: 4 cases",
+          "PASS behavioral: Integration 4: 4 cases",
+          "PASS behavioral: Integration 5: 4 cases",
+          "PASS behavioral: Integration 6: 4 cases",
+          "PASS behavioral: Integration 7: 4 cases",
+          "PASS behavioral: Owned 1: 4 cases",
+          "PASS behavioral: Owned 2: 4 cases",
+          "PASS behavioral: Owned 3: 4 cases",
+          "PASS behavioral: Owned 4: 4 cases",
+          "PASS behavioral: Owned 5: 4 cases",
+          "PASS behavioral: Owned 6: 4 cases",
+          "PASS behavioral: Owned 7: 4 cases",
+          "PASS behavioral: Finalization 1: 4 cases",
+          "PASS behavioral: Finalization 2: 4 cases",
+          "PASS behavioral: Finalization 3: 4 cases",
+          "PASS behavioral: Finalization 4: 2 cases",
+          "PASS behavioral: 70 actual cold-boot/controller/launcher regressions",
+          "PASS applicability: exact composed cohort/callers and strict 0011 application",
+          "NOT RUN private runtime authority, real credentials/claims, VM or phone operation"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-cold-boot.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-worker.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 25.16403533599805,
+        "source_sections": [
+          "PASS behavioral: binding.py: 6 cases",
+          "PASS behavioral: binding.py: 6 cases",
+          "PASS behavioral: binding.py: 6 cases",
+          "PASS behavioral: binding.py: 4 cases",
+          "PASS behavioral: lifetime.py: 6 cases",
+          "PASS behavioral: lifetime.py: 6 cases",
+          "PASS behavioral: lifetime.py: 6 cases",
+          "PASS behavioral: lifetime.py: 2 cases",
+          "PASS behavioral: finalization.py: 6 cases",
+          "PASS behavioral: finalization.py: 6 cases",
+          "PASS behavioral: finalization.py: 4 cases",
+          "PASS behavioral: 58 actual worker/source-identity/finalization regressions",
+          "PASS applicability: exact source composition and strict forward/reverse patch application",
+          "NOT RUN private admission, installed runtime, real credentials, VM or phone operation"
+        ],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-worker.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git",
+          "prlimit"
+        ]
+      },
+      {
+        "path": "scripts/device/test-stage-production-display-payload.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.3412716980092227,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-stage-production-display-payload.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "clang",
+          "modinfo"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-firmware.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.346932499029208,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-display-firmware.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-providers.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.5685285869985819,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-display-providers.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-load-production-display.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 6.920135029999074,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-load-production-display.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "cc",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-endpoint.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6080282919574529,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-display-endpoint.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-supervisor.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.5621786270057783,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-supervisor.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-display-component.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.1002477849833667,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-display-component.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-transport.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 6.899752850004006,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-transport.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-session.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 4.870488470012788,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-session.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git",
+          "cc"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-kernel-log.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 3.4818140440038405,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-kernel-log.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-health.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.6079860330210067,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-health.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-production-display-context.py",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.8149195569567382,
+        "source_sections": [],
+        "command": [
+          "python3",
+          "-O",
+          "$ROG5_CHECKOUT/scripts/device/test-production-display-context.py"
+        ],
+        "subchecks": [],
+        "subcheck_counts": {
+          "SKIPPED": 0
+        },
+        "optional_suite_skip": false,
+        "resolved_prerequisites": [
+          "python3",
+          "python3",
+          "git"
+        ]
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-input-core.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-input-core-runner.py",
+        "status": "NOT_SELECTED",
+        "reason": "outside selected tier",
+        "duration_seconds": 0,
+        "source_sections": []
+      }
+    ]
+  },
+  "report_sha256": {
+    "reports/summary.json": "48510eaf3a786b9dc6eed8787cd23c7a489fe60e7af617a367ede683891f4edf",
+    "reports/summary.xml": "cb78a33c0b21acbd5620d681ab1eabf51a2457ce32375288a7e8404827a843cc",
+    "runner.log": "cc7ad6452a135ef97c499407d28783e51fb628e4082459be5a34e9720502e5bc"
+  },
+  "worker_after_sha256": "faedbbc0c1010bc88f5837c31c8b2714b76c8305abf826cb67ee43958c55b851",
+  "worker_cases": 58,
+  "negative_controls": "historical numeric-PGID attempt and both intermediate final-close failures remain explicit",
+  "remaining": [
+    "No authenticated private-source loader has been qualified; default public PINS/refusal remain unchanged.",
+    "Old freezer produces an incompatible schema and is not run or repinned.",
+    "Health/capture seal and eager dependency bindings require separate qualification.",
+    "Host must support pidfd process-group signaling; absent capability is failure, never a silent skip.",
+    "All current physical rows remain NOT RUN; S06/R01 and previous VM failures remain unchanged."
+  ],
+  "phone_operations": 0,
+  "vm_operations": 0,
+  "root_operations": 0,
+  "claims_issued_or_consumed": 0,
+  "signing_operations": 0,
+  "candidate_operations": 0
+}

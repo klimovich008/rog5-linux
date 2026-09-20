@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Worker lifetime and actual identity tests pass; final-close cancellation repair pending",
+  "phase": "Worker source and finalization regressions integrated; private loader unqualified",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Qualified source f461c41a retains its130-suite active PASS; touch source1f936857 retains its8-suite board PASS. Isolated proposed worker/acceptance sources pass42updated tests locally in21.471s on the Deck6.16 kernel, including real process-group pidfd cleanup and real Git identity observations. Two additional inert counterexamples remain: first final-close cancellation can leak the retained descriptor after success, or be swallowed after a handled timeout. Both are supplied to the same Pro conversation for a focused correction. The proposal is not integrated; runtime remains UNBOUND and the original worker refusal is preserved. No unchanged integrated tier was repeated. No phone, VM, root, signing, claim or candidate operation. Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
+  "next": "Source8fc77f16 passes all131 active suites locally in444.913s, including58 worker/source-identity/finalizer cases in25.231s. The16 focused finalizer tests also pass in2.044s; old-code failures remain as negative controls. Touch source1f936857 retains its8-suite board PASS. The default session still refuses the unqualified private worker. A focused Pro review now covers the checked private-source loader interface to authenticated admission inputs; no input lock, pin, seal or claim is issued. Runtime remains UNBOUND. No phone, VM, root, signing or candidate operation. Physical NOT RUN; S06/R01 and previous VM failures remain FAIL.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }

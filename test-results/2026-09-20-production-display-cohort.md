@@ -666,3 +666,57 @@ limited to finalization/error priority. Runtime remains UNBOUND; the actual
 public session still refuses the private worker before health. No phone, VM,
 root, signing, claim, candidate or protected-storage operation occurred.
 Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.
+
+
+### Worker correction integrated and qualified offline (2026-09-20)
+
+Implementation commit `8fc77f1611d0a8013174000a0f08e7b690e3242e`, tree
+`20e7d141b3f1d5e58abaafcd44dad621f73e7404`, composes the reviewed source binding,
+actual acceptance reader and finalizer repair in patch0012. Corrected worker
+SHA256 `faedbbc0c1010bc88f5837c31c8b2714b76c8305abf826cb67ee43958c55b851`;
+cumulative patch SHA256
+`872eb6c7cb681da8f87d6ddc44aaeb96c894b2e4682aefdcc4851e6c1214457a`.
+
+The matching final Pro answer was verified as6Pro/Pro, completed in1315.613s,
+and delivered bundle SHA256
+`24aaed49f5ce7a925bc92b54d3400f8fad93f8dbd93a8cb5bbddc4187b7d744e`.
+All13 internal checksums pass. The coordinator strictly applied, reversed and
+reapplied the incremental correction with exact byte comparisons in0.012s.
+All16 focused tests passed locally in2.044s, including two real inert-child
+cases and both original final-close failure controls. An independent regular
+Astra investigator also executed both inert counterexamples against the fixed
+source:2PASS in0.003860s. Adviser-side16PASS in3.412s remains separate evidence.
+
+The finalizer distinguishes a handled timeout from an already-propagating error,
+attempts all remaining owned closes before raising, and closes temporary outputs
+under the same error-priority rule. It never retries uncertain raw descriptor
+closes against potentially reused numbers. Group helpers and pidfd starter are
+unchanged. These operation-boundary tests do not prove arbitrary bytecode-level
+interruption, resource-acquisition, escaped-group or host-power-loss safety.
+
+The clean-checkout wrapper reuses the existing source assembler and public
+acceptance module. Four sanitized baseline source fixtures and three reviewed
+test files are retained; private packets, credentials and locks are omitted.
+The intermediate finalizer source is reconstructed with the exact incremental
+reverse patch. Source authentication remains a fixture, distinct from real Git
+identity, pidfd lifetime and captured-byte reader behavior.
+
+**Frozen active tier:131PASS,0FAIL,0BLOCKED,0suiteSKIPPED,257NOT_SELECTED in
+444.913s.** Three declared optional historical subchecks are SKIPPED. The new
+58-case worker suite passes in25.231s. The ordinary UID1000 run used a1GiB,
+no-swap aggregate scope,256tasks and two configured workers; shared-state and
+high-memory suites remained serialized. Individual cases ran with Python-O and
+90-second batch deadlines; the worker suite has a240-second outer deadline.
+The unchanged board tier and full kernel were not rebuilt. Exact command,
+per-suite timings, identities and report hashes are in
+[worker qualification](2026-09-20-display-worker-qualification.json).
+
+The default session still rejects the private worker outside its ten-source
+PINS. This is deliberate missing qualification. The old freezer's two-field
+output is incompatible with the current admission schema and was not executed.
+A same-conversation Pro follow-up now covers only the checked private-source
+loader interface to already authenticated inputs. It must preserve the default
+refusal and issue no replacement authority. Health/capture binding remains a
+later separate boundary. Runtime UNBOUND; no phone, VM, root, signing, claim,
+candidate or protected-storage operation. Physical NOT RUN; S06/R01 and all
+historical failures remain unchanged.

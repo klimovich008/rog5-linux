@@ -3998,3 +3998,11 @@ from one descriptor closer can skip the remaining owned descriptors; attaching
 cancellation only to a handled timeout can lose it on normal return. The42local
 pidfd/identity cases passed before separate inert fixtures exposed both gaps.
 Keep those failure results explicit until the finalization repair is verified.
+
+The final correction now passes16 focused cases and the composed58-case suite.
+Complete remaining close attempts before selecting the propagated error, including
+output-file closure; never retry a raw close after its number might be reused.
+Keep the old failure controls. Clean-CI packaging reused the public acceptance
+source and reconstructed the intermediate worker, avoiding duplicate full source
+copies and private consultation packets. One frozen active run passed131suites
+in444.913s; no unrelated board/kernel rerun was needed.
