@@ -2251,6 +2251,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-gtk-window-vm-20260920-r1"
+    },
+    "quit_return_probe": {
+      "status": "Quit-return probe qualified: real GTK delay discrimination and ARM64 Mousepad close PASS; full Denial failure unresolved",
+      "source_commit": "7168017877a04a83ab196a88119c0b72c961c498",
+      "source_tree": "ea46ccae908d91afdf7d10d1992524c59ba4a330",
+      "evidence": {
+        "path": "test-results/2026-09-20-quit-return-probe-qualification.json",
+        "sha256": "136dcf486fdccf9311ce051173a4c838eb38211837a64eef0d840798514c8f06",
+        "bytes": 60542
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-quit-return-20260920-r1"
     }
   },
   "denial_phone_linkage": {

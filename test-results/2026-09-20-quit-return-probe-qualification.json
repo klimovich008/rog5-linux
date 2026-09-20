@@ -1,0 +1,1821 @@
+{
+  "schema": 1,
+  "authority": "none; host-only ARM64 qualification",
+  "physical_status": "NOT RUN",
+  "full_denial_vm": "NOT RUN",
+  "starting_source": {
+    "commit": "08165029307d4eee4b4782f121ca758830e4c660",
+    "tree": "58f24c512c7ec262662ffe6f2913021b7036fbce"
+  },
+  "source": {
+    "commit": "7168017877a04a83ab196a88119c0b72c961c498",
+    "tree": "ea46ccae908d91afdf7d10d1992524c59ba4a330"
+  },
+  "initial_source": {
+    "commit": "bbfb4a691b0be964e459ed9b96d496e22c4bd79f",
+    "tree": "b9e2f355d13a76032bd53d27f98efb89bf65a125"
+  },
+  "focused_tests": [
+    {
+      "name": "normal",
+      "command": [
+        "python3",
+        "scripts/host/test-settings-sync-diagnostic.py"
+      ],
+      "exit_status": 0,
+      "seconds": 1.1166133279912174
+    },
+    {
+      "name": "optimized",
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-settings-sync-diagnostic.py"
+      ],
+      "exit_status": 0,
+      "seconds": 1.1169214030378498
+    },
+    {
+      "name": "harness",
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-quit-return-20260920-r1/test-run-app.py"
+      ],
+      "exit_status": 0,
+      "seconds": 0.11480316403321922
+    }
+  ],
+  "regressions": {
+    "old_source_sha256": "16d56848ec63723d9a203a02263bd5ae642dd5c9386fcdab9ae6bfdce47e2b19",
+    "tests": [
+      {
+        "name": "quit-before",
+        "command": [
+          "/usr/bin/python",
+          "-c",
+          "import importlib.util,unittest\nfrom pathlib import Path\ns=importlib.util.spec_from_file_location(\"probe_tests\",\"scripts/host/test-settings-sync-diagnostic.py\")\nm=importlib.util.module_from_spec(s);s.loader.exec_module(m)\nm.SOURCE=Path(\"/home/deck/.local/state/rog5-quit-return-20260920-r1/before-quit-probe.c\")\nr=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(m.QuitReturnDiagnostic))\nraise SystemExit(not r.wasSuccessful())\n"
+        ],
+        "exit": 1,
+        "expected_exit": 1,
+        "seconds": 0.41494649002561346
+      },
+      {
+        "name": "quit-after",
+        "command": [
+          "/usr/bin/python",
+          "scripts/host/test-settings-sync-diagnostic.py",
+          "QuitReturnDiagnostic",
+          "-v"
+        ],
+        "exit": 0,
+        "expected_exit": 0,
+        "seconds": 0.41502652096096426
+      },
+      {
+        "name": "quit-after-optimized",
+        "command": [
+          "/usr/bin/python",
+          "-O",
+          "scripts/host/test-settings-sync-diagnostic.py",
+          "QuitReturnDiagnostic",
+          "-v"
+        ],
+        "exit": 0,
+        "expected_exit": 0,
+        "seconds": 0.41513975302223116
+      }
+    ]
+  },
+  "probe_build": {
+    "status": "PASS",
+    "authority": "none; ARM64 diagnostic helper build",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+      "sha256": "91bbab86e1b4a81df93c0321d4d3724326c9a604fa5df57817dad56169f65a24",
+      "bytes": 9998
+    },
+    "image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-quit-build-1ffdf73eddaa4e47",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-o",
+          "/out/settings-sync-diagnostic.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:34:33.339915+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.5175708049791865,
+        "ended_utc": "2026-09-20T01:34:33.857517+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-0.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-quit-build-1ffdf73eddaa4e47"
+        ],
+        "started_utc": "2026-09-20T01:34:33.858019+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03381114098010585,
+        "ended_utc": "2026-09-20T01:34:33.891845+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-0.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-quit-build-1ffdf73eddaa4e47"
+        ],
+        "started_utc": "2026-09-20T01:34:33.892266+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03373165999073535,
+        "ended_utc": "2026-09-20T01:34:33.926016+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-0.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-quit-build-0d330a48041a450d",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-DROG5_NO_UNREF_PROBE",
+          "-o",
+          "/out/settings-sync-no-unref.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:34:33.926483+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.46678520704153925,
+        "ended_utc": "2026-09-20T01:34:34.393286+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-quit-build-0d330a48041a450d"
+        ],
+        "started_utc": "2026-09-20T01:34:34.393744+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03425603697542101,
+        "ended_utc": "2026-09-20T01:34:34.428017+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-1.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-quit-build-0d330a48041a450d"
+        ],
+        "started_utc": "2026-09-20T01:34:34.428452+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03391957300482318,
+        "ended_utc": "2026-09-20T01:34:34.462394+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-1.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-quit-build-5f5b8803dacc4943",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-DROG5_NO_UNREF_PROBE",
+          "-DROG5_WINDOW_PROBE",
+          "-o",
+          "/out/settings-sync-window.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:34:34.462893+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.4168974930071272,
+        "ended_utc": "2026-09-20T01:34:34.879807+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-2.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-quit-build-5f5b8803dacc4943"
+        ],
+        "started_utc": "2026-09-20T01:34:34.880221+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03383672202471644,
+        "ended_utc": "2026-09-20T01:34:34.914075+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-2.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-quit-build-5f5b8803dacc4943"
+        ],
+        "started_utc": "2026-09-20T01:34:34.914488+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033716119010932744,
+        "ended_utc": "2026-09-20T01:34:34.948220+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-2.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-quit-build-2c55b533b8e749d8",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-DROG5_NO_UNREF_PROBE",
+          "-DROG5_WINDOW_PROBE",
+          "-DROG5_QUIT_PROBE",
+          "-o",
+          "/out/settings-sync-quit.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:34:34.948688+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.46698024997022003,
+        "ended_utc": "2026-09-20T01:34:35.415686+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-3.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-quit-build-2c55b533b8e749d8"
+        ],
+        "started_utc": "2026-09-20T01:34:35.416205+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.034431690990459174,
+        "ended_utc": "2026-09-20T01:34:35.450653+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-3.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-quit-build-2c55b533b8e749d8"
+        ],
+        "started_utc": "2026-09-20T01:34:35.451055+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03375601000152528,
+        "ended_utc": "2026-09-20T01:34:35.484827+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/build-3.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "outputs": {
+      "settings-sync-diagnostic.so": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-diagnostic.so",
+        "sha256": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+        "bytes": 71784
+      },
+      "settings-sync-no-unref.so": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-no-unref.so",
+        "sha256": "fcf35e0285b79c14223bb89737939d86b7c0940a18e30fd303e374739b113e5f",
+        "bytes": 71136
+      },
+      "settings-sync-window.so": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-window.so",
+        "sha256": "4d9817c6bba700a8d2ea4b73b79ca53a0e58317571939e7b5f7b426529b86614",
+        "bytes": 71208
+      },
+      "settings-sync-quit.so": {
+        "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+        "sha256": "e6557b7869d3d6f73b20ec25f5239926e178c40fc14c8713712aea046365e002",
+        "bytes": 72368
+      }
+    },
+    "default_identical_to_previous": true
+  },
+  "fixture_build": {
+    "status": "PASS",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/gtk-quit-fixture.c",
+      "sha256": "456904ef6b1a1f022d7e6ffd5087a93761e19bf533c228520ee5cd0257fc0132",
+      "bytes": 2487
+    },
+    "image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-gtk-quit-build-8523203955f94cea",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "-e",
+          "PKG_CONFIG_SYSROOT_DIR=/runtime",
+          "-e",
+          "PKG_CONFIG_LIBDIR=/runtime/usr/lib/pkgconfig:/runtime/usr/share/pkgconfig",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "bash",
+          "-c",
+          "set -euo pipefail; aarch64-linux-gnu-gcc --sysroot=/runtime -std=c11 -O2 -Wall -Wextra -Werror /out/gtk-quit-fixture.c -o /out/gtk-quit-fixture $(pkg-config --cflags --libs gtk+-3.0) -Wl,-rpath-link=/runtime/usr/lib"
+        ],
+        "started_utc": "2026-09-20T01:38:51.111698+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.917849107994698,
+        "ended_utc": "2026-09-20T01:38:52.029576+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-gtk-quit-build-8523203955f94cea"
+        ],
+        "started_utc": "2026-09-20T01:38:52.030100+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.033913592051249,
+        "ended_utc": "2026-09-20T01:38:52.064029+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-gtk-quit-build-8523203955f94cea"
+        ],
+        "started_utc": "2026-09-20T01:38:52.064462+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03384361101780087,
+        "ended_utc": "2026-09-20T01:38:52.098321+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "output": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/gtk-quit-fixture",
+      "sha256": "2b6bb8bb7f6ea834a0188582bea715b1ddbd334de4986cbc6d3507bc847063dc",
+      "bytes": 71456
+    }
+  },
+  "initial_fixture_build": {
+    "status": "PASS",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/gtk-quit-fixture.c",
+      "sha256": "3624fc31723aa145deed9c6e59cb61f50471103940175b23511f389a524fe850",
+      "bytes": 2257
+    },
+    "image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-gtk-quit-build-348c1148ab7a485b",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "-e",
+          "PKG_CONFIG_SYSROOT_DIR=/runtime",
+          "-e",
+          "PKG_CONFIG_LIBDIR=/runtime/usr/lib/pkgconfig:/runtime/usr/share/pkgconfig",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "bash",
+          "-c",
+          "set -euo pipefail; aarch64-linux-gnu-gcc --sysroot=/runtime -std=c11 -O2 -Wall -Wextra -Werror /out/gtk-quit-fixture.c -o /out/gtk-quit-fixture $(pkg-config --cflags --libs gtk+-3.0) -Wl,-rpath-link=/runtime/usr/lib"
+        ],
+        "started_utc": "2026-09-20T01:35:04.587215+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.9178922949940898,
+        "ended_utc": "2026-09-20T01:35:05.505134+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-gtk-quit-build-348c1148ab7a485b"
+        ],
+        "started_utc": "2026-09-20T01:35:05.505664+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03381195099791512,
+        "ended_utc": "2026-09-20T01:35:05.539492+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-gtk-quit-build-348c1148ab7a485b"
+        ],
+        "started_utc": "2026-09-20T01:35:05.539911+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033799280994571745,
+        "ended_utc": "2026-09-20T01:35:05.573727+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "output": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/gtk-quit-fixture",
+      "sha256": "538923eac5adba9118cdb9c9d7cbd5eb77cb275c6ab6288b7e10810a4527cc9d",
+      "bytes": 71456
+    }
+  },
+  "initial_fixture": {
+    "status": "PASS",
+    "authority": "none; actual ARM64 GTK on host-only Weston",
+    "physical": "NOT RUN",
+    "steps": [
+      {
+        "command": [
+          "/usr/bin/bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--new-session",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--tmpfs",
+          "/opt",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/opt/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+          "/opt/entry.sh",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/etc",
+          "/etc",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run",
+          "/run",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/var",
+          "/var",
+          "--tmpfs",
+          "/tmp",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+          "/opt/logind-font-cache.sh",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+          "/opt/logind-gtk-im-cache.sh",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+          "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+          "/usr/lib/libwayland-client.so.0.26.0",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+          "/opt/settings-sync-diagnostic.so",
+          "--clearenv",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-fixture.sh",
+          "/opt/session-app.sh",
+          "--setenv",
+          "PATH",
+          "/usr/bin",
+          "--setenv",
+          "HOME",
+          "/run/mobile-home",
+          "--setenv",
+          "USER",
+          "mobile",
+          "--setenv",
+          "LOGNAME",
+          "mobile",
+          "--setenv",
+          "LANG",
+          "C.UTF-8",
+          "--setenv",
+          "LC_ALL",
+          "C.UTF-8",
+          "--setenv",
+          "GSETTINGS_SCHEMA_DIR",
+          "/run/gtk-runtime/schemas",
+          "--setenv",
+          "XDG_DATA_DIRS",
+          "/run/gtk-runtime:/usr/local/share:/usr/share",
+          "--setenv",
+          "XDG_CACHE_HOME",
+          "/run/mobile-home/.cache",
+          "--setenv",
+          "XDG_CONFIG_HOME",
+          "/run/mobile-home/.config",
+          "--setenv",
+          "GTK_IM_MODULE_FILE",
+          "/run/gtk-runtime/immodules.cache",
+          "--setenv",
+          "XDG_RUNTIME_DIR",
+          "/run/user/1000",
+          "--setenv",
+          "WAYLAND_DISPLAY",
+          "wayland-app",
+          "--setenv",
+          "GDK_BACKEND",
+          "wayland",
+          "--chdir",
+          "/run/mobile-home",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/gtk-quit-fixture",
+          "/opt/gtk-quit-fixture",
+          "--",
+          "/opt/qemu",
+          "/usr/bin/bash",
+          "--noprofile",
+          "--norc",
+          "/opt/entry.sh"
+        ],
+        "started_utc": "2026-09-20T01:37:18.785245+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 7.78462455898989,
+        "ended_utc": "2026-09-20T01:37:26.569924+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/session.log",
+          "sha256": "a788ae701d1e62918a832369a3e4fbc32843ee7ebc7745c5f96376720bb9bce0",
+          "bytes": 4688
+        }
+      }
+    ],
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/gtk-quit-fixture.c",
+      "sha256": "3624fc31723aa145deed9c6e59cb61f50471103940175b23511f389a524fe850",
+      "bytes": 2257
+    },
+    "probe": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "sha256": "e6557b7869d3d6f73b20ec25f5239926e178c40fc14c8713712aea046365e002",
+      "bytes": 72368
+    },
+    "fixture": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/gtk-quit-fixture",
+      "sha256": "538923eac5adba9118cdb9c9d7cbd5eb77cb275c6ab6288b7e10810a4527cc9d",
+      "bytes": 71456
+    },
+    "weston_command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-quit-fixture-weston-r1",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--userns=keep-id",
+      "--user=1000:1000",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "-v",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run/user/1000:/run/user/1000:rw",
+      "-e",
+      "XDG_RUNTIME_DIR=/run/user/1000",
+      "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+      "weston",
+      "--backend=headless",
+      "--renderer=pixman",
+      "--shell=kiosk-shell.so",
+      "--width=540",
+      "--height=1224",
+      "--socket=wayland-app",
+      "--idle-time=0",
+      "--no-config"
+    ],
+    "command": [
+      "/usr/bin/bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--new-session",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/",
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/opt/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+      "/opt/entry.sh",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/etc",
+      "/etc",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run",
+      "/run",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/var",
+      "/var",
+      "--tmpfs",
+      "/tmp",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/opt/logind-font-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/opt/logind-gtk-im-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+      "/usr/lib/libwayland-client.so.0.26.0",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "/opt/settings-sync-diagnostic.so",
+      "--clearenv",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-fixture.sh",
+      "/opt/session-app.sh",
+      "--setenv",
+      "PATH",
+      "/usr/bin",
+      "--setenv",
+      "HOME",
+      "/run/mobile-home",
+      "--setenv",
+      "USER",
+      "mobile",
+      "--setenv",
+      "LOGNAME",
+      "mobile",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "GSETTINGS_SCHEMA_DIR",
+      "/run/gtk-runtime/schemas",
+      "--setenv",
+      "XDG_DATA_DIRS",
+      "/run/gtk-runtime:/usr/local/share:/usr/share",
+      "--setenv",
+      "XDG_CACHE_HOME",
+      "/run/mobile-home/.cache",
+      "--setenv",
+      "XDG_CONFIG_HOME",
+      "/run/mobile-home/.config",
+      "--setenv",
+      "GTK_IM_MODULE_FILE",
+      "/run/gtk-runtime/immodules.cache",
+      "--setenv",
+      "XDG_RUNTIME_DIR",
+      "/run/user/1000",
+      "--setenv",
+      "WAYLAND_DISPLAY",
+      "wayland-app",
+      "--setenv",
+      "GDK_BACKEND",
+      "wayland",
+      "--chdir",
+      "/run/mobile-home",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r1/gtk-quit-fixture",
+      "/opt/gtk-quit-fixture",
+      "--",
+      "/opt/qemu",
+      "/usr/bin/bash",
+      "--noprofile",
+      "--norc",
+      "/opt/entry.sh"
+    ],
+    "modes": {
+      "inside": {
+        "phases": [
+          [
+            "loaded",
+            "411947.796554978"
+          ],
+          [
+            "APP_RUN_BEGIN",
+            "411947.820776924"
+          ],
+          [
+            "WINDOW_REMOVED_ZERO",
+            "411952.343332703"
+          ],
+          [
+            "APP_QUIT_RETURN",
+            "411952.599080406"
+          ],
+          [
+            "BEGIN",
+            "411952.599415201"
+          ],
+          [
+            "END",
+            "411952.599644304"
+          ],
+          [
+            "SHUTDOWN_BEFORE",
+            "411952.599700265"
+          ],
+          [
+            "SHUTDOWN_AFTER",
+            "411952.603958119"
+          ],
+          [
+            "APP_RUN_END",
+            "411952.608051111"
+          ],
+          [
+            "APP_DISCONNECT_ONE_END",
+            "411952.608131012"
+          ],
+          [
+            "APP_OBSERVERS_REMOVED",
+            "411952.608291405"
+          ],
+          [
+            "DSO_FINI",
+            "411952.610457037"
+          ]
+        ],
+        "fixture_points": {
+          "DESTROY_RETURN": 411952.347883,
+          "QUIT_HANDLER_RETURN": 411952.598704,
+          "QUIT_CALL_RETURN": 411952.59914,
+          "SHUTDOWN": 411952.599338,
+          "RUN_RETURN": 411952.608327
+        },
+        "window_to_quit": 0.2557477030204609,
+        "quit_to_shutdown": 0.0006198589690029621,
+        "sync": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run/inside-sync.log",
+          "sha256": "88062b8a8502dbff5dee49c22e4d6b45db035438ca660ded60ebb32daa089643",
+          "bytes": 1126
+        },
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run/inside-fixture.log",
+          "sha256": "8932d7348084e1840bc35e1ed4dfbb56a36dc8ae65e76e8fdaa640063990aa71",
+          "bytes": 590
+        }
+      },
+      "hold": {
+        "phases": [
+          [
+            "loaded",
+            "411952.811089308"
+          ],
+          [
+            "APP_RUN_BEGIN",
+            "411952.835154521"
+          ],
+          [
+            "WINDOW_REMOVED_ZERO",
+            "411954.792382663"
+          ],
+          [
+            "APP_QUIT_RETURN",
+            "411954.797254847"
+          ],
+          [
+            "BEGIN",
+            "411955.048049194"
+          ],
+          [
+            "END",
+            "411955.048389389"
+          ],
+          [
+            "SHUTDOWN_BEFORE",
+            "411955.048443740"
+          ],
+          [
+            "SHUTDOWN_AFTER",
+            "411955.051152571"
+          ],
+          [
+            "APP_RUN_END",
+            "411955.055231242"
+          ],
+          [
+            "APP_DISCONNECT_ONE_END",
+            "411955.055307154"
+          ],
+          [
+            "APP_OBSERVERS_REMOVED",
+            "411955.055465396"
+          ],
+          [
+            "DSO_FINI",
+            "411955.057570778"
+          ]
+        ],
+        "fixture_points": {
+          "DESTROY_RETURN": 411954.79662,
+          "QUIT_HANDLER_RETURN": 411954.797093,
+          "QUIT_CALL_RETURN": 411954.797296,
+          "RELEASE_HOLD": 411955.047581,
+          "SHUTDOWN": 411955.047938,
+          "RUN_RETURN": 411955.055501
+        },
+        "window_to_quit": 0.0048721840139478445,
+        "quit_to_shutdown": 0.25118889298755676,
+        "sync": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run/hold-sync.log",
+          "sha256": "273df235a147c25eb13008cd49ff446cd8fd5b33d316f843994d09a693ef733c",
+          "bytes": 1138
+        },
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r1/run/hold-fixture.log",
+          "sha256": "d8696c682d276cd45142083a7b54fcf9b21fbd7801c57276559753222a77f347",
+          "bytes": 654
+        }
+      }
+    },
+    "cleanup_status": 0,
+    "container_absent": true,
+    "seconds": 8.579692948027514
+  },
+  "fixture": {
+    "status": "PASS",
+    "authority": "none; actual ARM64 GTK on host-only Weston",
+    "physical": "NOT RUN",
+    "steps": [
+      {
+        "command": [
+          "/usr/bin/bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--new-session",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--tmpfs",
+          "/opt",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/opt/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+          "/opt/entry.sh",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/etc",
+          "/etc",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run",
+          "/run",
+          "--bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/var",
+          "/var",
+          "--tmpfs",
+          "/tmp",
+          "--proc",
+          "/proc",
+          "--dev",
+          "/dev",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+          "/opt/logind-font-cache.sh",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+          "/opt/logind-gtk-im-cache.sh",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+          "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+          "/usr/lib/libwayland-client.so.0.26.0",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+          "/opt/settings-sync-diagnostic.so",
+          "--clearenv",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-fixture.sh",
+          "/opt/session-app.sh",
+          "--setenv",
+          "PATH",
+          "/usr/bin",
+          "--setenv",
+          "HOME",
+          "/run/mobile-home",
+          "--setenv",
+          "USER",
+          "mobile",
+          "--setenv",
+          "LOGNAME",
+          "mobile",
+          "--setenv",
+          "LANG",
+          "C.UTF-8",
+          "--setenv",
+          "LC_ALL",
+          "C.UTF-8",
+          "--setenv",
+          "GSETTINGS_SCHEMA_DIR",
+          "/run/gtk-runtime/schemas",
+          "--setenv",
+          "XDG_DATA_DIRS",
+          "/run/gtk-runtime:/usr/local/share:/usr/share",
+          "--setenv",
+          "XDG_CACHE_HOME",
+          "/run/mobile-home/.cache",
+          "--setenv",
+          "XDG_CONFIG_HOME",
+          "/run/mobile-home/.config",
+          "--setenv",
+          "GTK_IM_MODULE_FILE",
+          "/run/gtk-runtime/immodules.cache",
+          "--setenv",
+          "XDG_RUNTIME_DIR",
+          "/run/user/1000",
+          "--setenv",
+          "WAYLAND_DISPLAY",
+          "wayland-app",
+          "--setenv",
+          "GDK_BACKEND",
+          "wayland",
+          "--chdir",
+          "/run/mobile-home",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/gtk-quit-fixture",
+          "/opt/gtk-quit-fixture",
+          "--",
+          "/opt/qemu",
+          "/usr/bin/bash",
+          "--noprofile",
+          "--norc",
+          "/opt/entry.sh"
+        ],
+        "started_utc": "2026-09-20T01:39:14.462123+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 7.838750937022269,
+        "ended_utc": "2026-09-20T01:39:22.300914+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/session.log",
+          "sha256": "5027836bed25dc093438f7b7f044f8326b246cb8584bc732a4886fa80a87ab71",
+          "bytes": 4688
+        }
+      }
+    ],
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/gtk-quit-fixture.c",
+      "sha256": "456904ef6b1a1f022d7e6ffd5087a93761e19bf533c228520ee5cd0257fc0132",
+      "bytes": 2487
+    },
+    "probe": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "sha256": "e6557b7869d3d6f73b20ec25f5239926e178c40fc14c8713712aea046365e002",
+      "bytes": 72368
+    },
+    "fixture": {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/gtk-quit-fixture",
+      "sha256": "2b6bb8bb7f6ea834a0188582bea715b1ddbd334de4986cbc6d3507bc847063dc",
+      "bytes": 71456
+    },
+    "weston_command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-quit-fixture-weston-r2",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--userns=keep-id",
+      "--user=1000:1000",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "-v",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/user/1000:/run/user/1000:rw",
+      "-e",
+      "XDG_RUNTIME_DIR=/run/user/1000",
+      "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+      "weston",
+      "--backend=headless",
+      "--renderer=pixman",
+      "--shell=kiosk-shell.so",
+      "--width=540",
+      "--height=1224",
+      "--socket=wayland-app",
+      "--idle-time=0",
+      "--no-config"
+    ],
+    "command": [
+      "/usr/bin/bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--new-session",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/",
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/opt/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+      "/opt/entry.sh",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/etc",
+      "/etc",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run",
+      "/run",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/var",
+      "/var",
+      "--tmpfs",
+      "/tmp",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/opt/logind-font-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/opt/logind-gtk-im-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+      "/usr/lib/libwayland-client.so.0.26.0",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "/opt/settings-sync-diagnostic.so",
+      "--clearenv",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-fixture.sh",
+      "/opt/session-app.sh",
+      "--setenv",
+      "PATH",
+      "/usr/bin",
+      "--setenv",
+      "HOME",
+      "/run/mobile-home",
+      "--setenv",
+      "USER",
+      "mobile",
+      "--setenv",
+      "LOGNAME",
+      "mobile",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "GSETTINGS_SCHEMA_DIR",
+      "/run/gtk-runtime/schemas",
+      "--setenv",
+      "XDG_DATA_DIRS",
+      "/run/gtk-runtime:/usr/local/share:/usr/share",
+      "--setenv",
+      "XDG_CACHE_HOME",
+      "/run/mobile-home/.cache",
+      "--setenv",
+      "XDG_CONFIG_HOME",
+      "/run/mobile-home/.config",
+      "--setenv",
+      "GTK_IM_MODULE_FILE",
+      "/run/gtk-runtime/immodules.cache",
+      "--setenv",
+      "XDG_RUNTIME_DIR",
+      "/run/user/1000",
+      "--setenv",
+      "WAYLAND_DISPLAY",
+      "wayland-app",
+      "--setenv",
+      "GDK_BACKEND",
+      "wayland",
+      "--chdir",
+      "/run/mobile-home",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-build-r2/gtk-quit-fixture",
+      "/opt/gtk-quit-fixture",
+      "--",
+      "/opt/qemu",
+      "/usr/bin/bash",
+      "--noprofile",
+      "--norc",
+      "/opt/entry.sh"
+    ],
+    "modes": {
+      "inside": {
+        "phases": [
+          [
+            "loaded",
+            "412063.480836495"
+          ],
+          [
+            "APP_RUN_BEGIN",
+            "412063.505031890"
+          ],
+          [
+            "WINDOW_REMOVED_ZERO",
+            "412067.980137368"
+          ],
+          [
+            "APP_QUIT_RETURN",
+            "412068.235698386"
+          ],
+          [
+            "SHUTDOWN_BEFORE",
+            "412068.235979251"
+          ],
+          [
+            "BEGIN",
+            "412068.239980251"
+          ],
+          [
+            "END",
+            "412068.240207214"
+          ],
+          [
+            "SHUTDOWN_AFTER",
+            "412068.240297136"
+          ],
+          [
+            "APP_RUN_END",
+            "412068.245882640"
+          ],
+          [
+            "APP_DISCONNECT_ONE_END",
+            "412068.245954951"
+          ],
+          [
+            "APP_OBSERVERS_REMOVED",
+            "412068.246130674"
+          ],
+          [
+            "DSO_FINI",
+            "412068.248215275"
+          ]
+        ],
+        "fixture_points": {
+          "DESTROY_RETURN": 412067.984496,
+          "QUIT_HANDLER_RETURN": 412068.235316,
+          "QUIT_CALL_RETURN": 412068.235763,
+          "SHUTDOWN": 412068.239777,
+          "RUN_RETURN": 412068.246168
+        },
+        "window_to_quit": 0.2555610179551877,
+        "quit_to_shutdown": 0.00028086500242352486,
+        "sync": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/inside-sync.log",
+          "sha256": "1f9dd4d6bf10a4a4eb9cb705b76d4c37d25a5de30c314b7a20f1d264ff7b9ed6",
+          "bytes": 1126
+        },
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/inside-fixture.log",
+          "sha256": "23f78e233d9eca044052da2dc8b571151905e86e357d2cef2ff720871e63f72c",
+          "bytes": 590
+        }
+      },
+      "hold": {
+        "phases": [
+          [
+            "loaded",
+            "412068.447798378"
+          ],
+          [
+            "APP_RUN_BEGIN",
+            "412068.472091055"
+          ],
+          [
+            "WINDOW_REMOVED_ZERO",
+            "412070.524152304"
+          ],
+          [
+            "APP_QUIT_RETURN",
+            "412070.529152899"
+          ],
+          [
+            "SHUTDOWN_BEFORE",
+            "412070.779856233"
+          ],
+          [
+            "BEGIN",
+            "412070.782715807"
+          ],
+          [
+            "END",
+            "412070.782894469"
+          ],
+          [
+            "SHUTDOWN_AFTER",
+            "412070.782975201"
+          ],
+          [
+            "APP_RUN_END",
+            "412070.788011516"
+          ],
+          [
+            "APP_DISCONNECT_ONE_END",
+            "412070.788090178"
+          ],
+          [
+            "APP_OBSERVERS_REMOVED",
+            "412070.788245530"
+          ],
+          [
+            "DSO_FINI",
+            "412070.790355762"
+          ]
+        ],
+        "fixture_points": {
+          "DESTROY_RETURN": 412070.528516,
+          "QUIT_HANDLER_RETURN": 412070.528972,
+          "QUIT_CALL_RETURN": 412070.529193,
+          "RELEASE_HOLD": 412070.779459,
+          "SHUTDOWN": 412070.782584,
+          "RUN_RETURN": 412070.788281
+        },
+        "window_to_quit": 0.00500059500336647,
+        "quit_to_shutdown": 0.25070333399344236,
+        "sync": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/hold-sync.log",
+          "sha256": "99850b34805b99efdde17bbce50009305f881b7e266939da7730577658b5d11f",
+          "bytes": 1138
+        },
+        "log": {
+          "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-run-r2/run/hold-fixture.log",
+          "sha256": "cbe62b3c9cec11a0640791c1df368cd20194898180ef38d079d48b8581a5e35e",
+          "bytes": 654
+        }
+      }
+    },
+    "cleanup_status": 0,
+    "container_absent": true,
+    "seconds": 8.68325405602809
+  },
+  "mousepad": {
+    "status": "PASS_FOCUSED_APP_CLOSE",
+    "scope": "Exact ARM64 Mousepad shutdown under QEMU user and Weston Pixman",
+    "physical": "NOT RUN",
+    "denial_session": "NOT RUN",
+    "focus": "NOT RUN",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source_head": "bbfb4a691b0be964e459ed9b96d496e22c4bd79f",
+    "image": "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+    "weston_command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-quit-return-20260920-r1",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--userns=keep-id",
+      "--user=1000:1000",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "-v",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/run/user/1000:/run/user/1000:rw",
+      "-e",
+      "XDG_RUNTIME_DIR=/run/user/1000",
+      "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+      "weston",
+      "--backend=headless",
+      "--renderer=pixman",
+      "--shell=kiosk-shell.so",
+      "--width=540",
+      "--height=1224",
+      "--socket=wayland-app",
+      "--idle-time=0",
+      "--no-config"
+    ],
+    "weston_ready_seconds": 0.4115885559585877,
+    "app_command": [
+      "/usr/bin/bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--new-session",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/",
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/opt/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+      "/opt/entry.sh",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/etc",
+      "/etc",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/run",
+      "/run",
+      "--bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-r1/var",
+      "/var",
+      "--tmpfs",
+      "/tmp",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/opt/logind-font-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/opt/logind-gtk-im-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+      "/usr/lib/libwayland-client.so.0.26.0",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/build-r1/settings-sync-quit.so",
+      "/opt/settings-sync-diagnostic.so",
+      "--clearenv",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-app.sh",
+      "/opt/session-app.sh",
+      "--setenv",
+      "PATH",
+      "/usr/bin",
+      "--setenv",
+      "HOME",
+      "/run/mobile-home",
+      "--setenv",
+      "USER",
+      "mobile",
+      "--setenv",
+      "LOGNAME",
+      "mobile",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "GSETTINGS_SCHEMA_DIR",
+      "/run/gtk-runtime/schemas",
+      "--setenv",
+      "XDG_DATA_DIRS",
+      "/run/gtk-runtime:/usr/local/share:/usr/share",
+      "--setenv",
+      "XDG_CACHE_HOME",
+      "/run/mobile-home/.cache",
+      "--setenv",
+      "XDG_CONFIG_HOME",
+      "/run/mobile-home/.config",
+      "--setenv",
+      "GTK_IM_MODULE_FILE",
+      "/run/gtk-runtime/immodules.cache",
+      "--setenv",
+      "XDG_RUNTIME_DIR",
+      "/run/user/1000",
+      "--setenv",
+      "WAYLAND_DISPLAY",
+      "wayland-app",
+      "--setenv",
+      "GDK_BACKEND",
+      "wayland",
+      "--chdir",
+      "/run/mobile-home",
+      "--",
+      "/opt/qemu",
+      "/usr/bin/bash",
+      "--noprofile",
+      "--norc",
+      "/opt/entry.sh"
+    ],
+    "protocol_parser_sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+    "mapped_frame_seconds": 7.345154059003107,
+    "mapped_surfaces": {
+      "13": {
+        "surface": "7",
+        "title": true,
+        "configured": true,
+        "serial": "1",
+        "ack": true,
+        "pending_attach": null,
+        "committed": true
+      }
+    },
+    "frame_callback_observed": true,
+    "app_session_exit": 0,
+    "app_session_seconds": 8.561404396023136,
+    "settings_sync_log": "ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=24 clock=CLOCK_MONOTONIC seconds=411992.033903090\nROG5_SETTINGS_SYNC phase=APP_RUN_BEGIN pid=24 clock=CLOCK_MONOTONIC seconds=411992.217523733\nROG5_SETTINGS_SYNC phase=WINDOW_REMOVED_ZERO pid=24 clock=CLOCK_MONOTONIC seconds=411999.232135061\nROG5_SETTINGS_SYNC phase=APP_QUIT_RETURN pid=24 clock=CLOCK_MONOTONIC seconds=411999.726271502\nROG5_SETTINGS_SYNC phase=SHUTDOWN_BEFORE pid=24 clock=CLOCK_MONOTONIC seconds=411999.726434935\nROG5_SETTINGS_SYNC phase=BEGIN pid=24 clock=CLOCK_MONOTONIC seconds=411999.730274773\nROG5_SETTINGS_SYNC phase=END pid=24 clock=CLOCK_MONOTONIC seconds=411999.730433405\nROG5_SETTINGS_SYNC phase=SHUTDOWN_AFTER pid=24 clock=CLOCK_MONOTONIC seconds=411999.742244804\nROG5_SETTINGS_SYNC phase=APP_RUN_END pid=24 clock=CLOCK_MONOTONIC seconds=411999.747647025\nROG5_SETTINGS_SYNC phase=APP_DISCONNECT_ONE_END pid=24 clock=CLOCK_MONOTONIC seconds=411999.747714476\nROG5_SETTINGS_SYNC phase=APP_OBSERVERS_REMOVED pid=24 clock=CLOCK_MONOTONIC seconds=411999.747746007\nROG5_SETTINGS_SYNC phase=DSO_FINI pid=24 clock=CLOCK_MONOTONIC seconds=411999.751019556\n",
+    "dconf_backend_mapped": true,
+    "dconf_owner_before": true,
+    "dconf_owner_after": true,
+    "actual_app_emulator_sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+    "mousepad_exit": "0",
+    "document_unchanged": true,
+    "app_process_exit": 0,
+    "container_cleanup_exit": 0,
+    "container_cleanup_stderr": "",
+    "container_absent": true,
+    "weston_process_exit": 0,
+    "mousepad_exit_observed": "0",
+    "cgroup_metrics": {
+      "pids.max": "256",
+      "pids.peak": "98",
+      "pids.events": "max 0",
+      "memory.max": "536870912",
+      "memory.peak": "445935616",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+    },
+    "seconds": 9.133696807955857,
+    "diagnostic_hashes": {
+      "weston.log": "586fb8b2ac125fadba03b5bc00fcaf703279c2cfcc8c38ab8c00dba7789f27d9",
+      "session.log": "7b795bb22e51ca3f4cea03ca8ca93d3d40b9ce8cdcec4f8aff2d15b5b9871b53"
+    }
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "7168017877a04a83ab196a88119c0b72c961c498",
+    "source_tree": "ea46ccae908d91afdf7d10d1992524c59ba4a330",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 202.30402335198596
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "review": {
+    "reviewer": "signal_boundary_review",
+    "scope": "read-only C review and independent host regressions",
+    "finding": "Initial fixture normal shutdown handler ran before probe BEFORE; corrected to after-handler, exact phase order rerun",
+    "limits": "One-window/main-context diagnostic. No private use count or whole callback-stack return inferred. Quit-action return is the observed public boundary."
+  },
+  "files": [
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-fixture.py",
+      "sha256": "90ad4a423dcf57f4b49818341ae4c840970f6b866fb97698fa97d86ec968005d",
+      "bytes": 4131
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-fixture-r2.py",
+      "sha256": "dc7754592a77965501ce5197592b9c76afc2b44f08c780532bd54b6d31f65daa",
+      "bytes": 4274
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-fixture.sh",
+      "sha256": "acb2ffa7bec01e5a937477542b07dbfb414606c79d42f76ae74a95ea2e2ba396",
+      "bytes": 414
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/run-app.py",
+      "sha256": "5962ad63ed762e4f348a714eb9a9cc5da779d362315a9ede47e34ec87eadffb1",
+      "bytes": 10938
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-app.sh",
+      "sha256": "a1c5a5c616b62b35943350a3c69f46e35ca20bfcac7e58f298e180d5aec81876",
+      "bytes": 3492
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/session-entry.sh",
+      "sha256": "51c9d23d1c6a1b6b89f9e7f00b88ca4b52917174ce208ebe6888ec9f00f1677b",
+      "bytes": 293
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/bwrap_command.py",
+      "sha256": "e4e31110b901a46cd4dcda092fc766a44559b41f89819488940f70fc0b0e4ef2",
+      "bytes": 2052
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-command.json",
+      "sha256": "474f1db4a7a72710113c8a87ffcda0c10f75a6717e092ec43022f2dd76dd10df",
+      "bytes": 458
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-r2-command.json",
+      "sha256": "a713e3b45763ae5605e7897d86531cba4883a2a35e733d9d17e30634947b30dd",
+      "bytes": 461
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/mousepad-command.json",
+      "sha256": "2c501c53c4602441150f04ad0373c286eaa7d5529ffbed7ad4de66eb9bca4a1f",
+      "bytes": 463
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/active-command.json",
+      "sha256": "694e89ae7dd7761c6099f1c52de4dfe371471ac3d1ce1894da0d6cf223d6b99d",
+      "bytes": 1384
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-service.log",
+      "sha256": "9788bab2e5fee5278f664cf2ea1dcd2d9378812d5bb284ca9ed158736390f223",
+      "bytes": 276
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/fixture-r2-service.log",
+      "sha256": "c70be170d1a7866df907e5d39cee5846104fb84c169bc8b5b90f853e5d4d6c80",
+      "bytes": 275
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/mousepad-service.log",
+      "sha256": "e362c09d5c6f9ac3896d7f3067fc807c71d96144918a57890a56ab69eab8c207",
+      "bytes": 361
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-quit-return-20260920-r1/active-report/summary.json",
+      "sha256": "dcfa780dd38b155c748a38925716ba9e54db3034c89baea89104872727fac2a6",
+      "bytes": 123314
+    }
+  ],
+  "limitations": [
+    "GTK fixture uses shutdown after-handler, not Mousepad class vfunc placement",
+    "The packaged Mousepad/Weston pass does not resolve the full Denial VM137",
+    "Normal twelve-record path leaves no spare log records; explicit one-window mode only",
+    "Strict stage-after-sync reader remains incompatible with new markers",
+    "No phone, candidate, signing, admission, claim, protected storage or full Denial build"
+  ]
+}

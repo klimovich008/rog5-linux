@@ -3550,3 +3550,13 @@ small Mousepad executable delegates implementation to libmousepad, which carries
 the action-function import. Dynamic import is still weaker than runtime path
 qualification. Preserve stage differences between runs instead of treating every
 missing marker as the same settings-sync failure or widening close deadlines.
+
+
+Quit-return qualification (2026-09-20): use contrasting actual GTK fixtures to
+prove what a new marker separates. A250ms delay inside quit delays its return;
+a250ms hold after destruction delays shutdown instead. Confirm the real packaged
+application traverses the symbol too. Signal-handler connection order matters:
+a fixture's earlier ordinary shutdown callback precedes a later BEFORE observer.
+Use explicit after-handler ordering and require the complete phase sequence;
+keep this distinction from a real subclass vfunc. The final8.683s GTK and9.134s
+Mousepad checks qualify the seam without another394s full VM or compositor build.
