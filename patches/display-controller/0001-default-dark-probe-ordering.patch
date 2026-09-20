@@ -1,0 +1,88 @@
+--- a/load-display.py
++++ b/load-display.py
+@@ -1,8 +1,11 @@
+-"""Fixed REFGEN/panel load and early blank; import-only, admitted target owner.
++"""Draft REFGEN/panel load and post-insertion blank; import-only, admitted target owner.
+ 
+ The caller supplies current full health/monitor authorization, durable one-use
+ entry, and independent same-boot cleanup ownership. No unload or insertion retry.
+-Successful insertion is not successful probing, scanout or physical darkness.
++Requires a separately qualified default-dark panel and reviewed module closure.
++This successor ordering patch is NOT an admitted controller or current payload.
++The historical input pins are intentionally not upgraded here.
++Successful insertion and fb0 are not proof of preparation, scanout or darkness.
+ """
+ import hashlib
+ import importlib.util
+@@ -192,7 +195,7 @@
+         fds = []
+         rows = []
+         entered = panel_attempted = False
+-        blank = cleanup_blank = binding = endpoint = error = None
++        blank = cleanup_blank = binding = endpoint = error = registration = None
+         cleanup_errors = []
+         try:
+             need(not self.attempted, 'module load object already attempted')
+@@ -231,18 +234,23 @@
+                     binding = refgen(boot)
+                     panel_attempted = True
+                 def observe_panel():
+-                    nonlocal blank
+-                    if blank is None and os.path.lexists(E.SYS/'class/backlight'/E.NAME):
+-                        blank = E.blank(boot, cleanup_authorize)
++                    nonlocal registration
++                    if os.path.lexists(E.SYS/'class/backlight'/E.NAME):
++                        # Registration precedes initialization. Observe the
++                        # qualified default only; an early write would EPERM.
++                        # A zero property is NOT a completed zero command.
++                        need(cleanup_authorize() is True, 'module cleanup ownership lost')
++                        registration = E.backlight(boot)
++                        need(registration['brightness'] == 0, 'panel did not register default-dark')
+                 result = insert(helper, modules, row['filename'], authorize,
+                                 observe_panel if index else None)
+                 rows.append(result)
+                 # Cleanup runs even if a panel insertion has uncertain outcome.
+                 if index:
+                     deadline = clock()+DISCOVERY_SECONDS
+-                    while blank is None:
++                    while registration is None:
+                         observe_panel()
+-                        if blank is not None:
++                        if registration is not None:
+                             break
+                         E.identity(boot)
+                         need(cleanup_authorize() is True, 'module cleanup ownership lost')
+@@ -256,9 +264,14 @@
+             while not os.path.lexists(E.SYS/'class/graphics/fb0'):
+                 E.identity(boot)
+                 need(authorize() is True and clock() < deadline, 'framebuffer discovery deadline/health')
+-                need(E.backlight(boot)['brightness'] == 0, 'post-load blank state changed')
++                need(E.backlight(boot)['brightness'] == 0, 'post-load default brightness changed')
+                 pause(.05)
++            # Both owned insertions are complete/reaped before the command.
++            # fb0 may still precede deferred preparation: EPERM remains a
++            # failure, even if the core updated the property to zero. No retry.
+             endpoint = E.framebuffer(boot)
++            blank = E.blank(boot, cleanup_authorize)
++            need(authorize() is True, 'module post-blank health/monitor lost')
+         except Exception as exc:
+             error = dict(type=type(exc).__name__, reason=str(exc)[:1000])
+         finally:
+@@ -266,7 +279,7 @@
+                 try:
+                     cleanup_blank = E.blank(boot, cleanup_authorize)
+                 except Exception as exc:
+-                    cleanup_errors.append(dict(stage='early-blank', type=type(exc).__name__, reason=str(exc)[:512]))
++                    cleanup_errors.append(dict(stage='independent-zero', type=type(exc).__name__, reason=str(exc)[:512]))
+             for fd in reversed(fds):
+                 try:
+                     os.close(fd)
+@@ -274,7 +287,7 @@
+                     cleanup_errors.append(dict(stage='close', reason=str(exc)[:512]))
+         result = dict(status='PASS_MODULES_AND_BLANK' if error is None and not cleanup_errors else 'FAIL_MODULE_LOAD',
+                       seconds=clock()-start, entered=entered, panel_attempted=panel_attempted,
+-                      insertions=rows, refgen=binding, blank=blank, cleanup_blank=cleanup_blank, endpoint=endpoint,
++                      insertions=rows, refgen=binding, registration=registration, blank=blank, cleanup_blank=cleanup_blank, endpoint=endpoint,
+                       error=error, cleanup_errors=cleanup_errors, retry_allowed=False,
+                       physical_scanout_verified=False, physical_darkness_verified=False,
+                       full_health_verified=False, admission_granted=False)

@@ -8625,6 +8625,41 @@
         "tools/qemu-virtio-drm/logind-icon-cache.sh"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-display-loader-ordering.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc",
+        "git"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/display-controller/0001-default-dark-probe-ordering.patch",
+        "scripts/device/fixtures/display-loader/load-display-before.py",
+        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "scripts/device/test-ams678-lifecycle.py",
+        "scripts/device/fixtures/ams678/backlight-v7.1.4.c",
+        "scripts/device/fixtures/ams678/cases.c",
+        "scripts/device/fixtures/ams678/drm-brightness-v7.1.4.c",
+        "scripts/device/fixtures/ams678/drm-panel-v7.1.4.c",
+        "scripts/device/fixtures/ams678/stubs.h"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
