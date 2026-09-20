@@ -268,3 +268,78 @@ verified ROG5-compatible kernel implementation; no skill or kernel code was
 installed. Same-SoC SM8350 comparisons remain the first kernel lead. Wvkbd
 remains a protocol-test candidate and Pocketblue/mobile-config-firefox a mobile
 browser reference. This bounded recheck added no build, VM, or phone operation.
+
+
+## MU-QCOM / Project Silicium source follow-up — September 20
+
+Read-only comparison against local source
+`fae352776af651ec7d120480fd93f5581edc8246`. The old MU-QCOM URL redirects to
+[Mu-Silicium](https://github.com/Project-Silicium/Mu-Silicium/tree/9f38468360ddcddc73d36649301db25e6858ec98),
+pinned here at `9f38468360ddcddc73d36649301db25e6858ec98` (September 19).
+The [guides](https://github.com/Project-Silicium/Guides/tree/512f83009c4bd2ddf5c7248663e909d3e9f0a6a4)
+are pinned at `512f83009c4bd2ddf5c7248663e909d3e9f0a6a4` (June 14, 2025).
+Live GitHub commit/tree API reads supplied these pins; cached search summaries
+were not used as revision authority.
+
+The [ROG5 status](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Status.md#asus-rog-phone-5)
+identifies i005d as inactive. It reports UEFI display, internal storage, buttons
+and USB device mode working, Linux boot and USB host/power delivery unsupported,
+and unstable mass storage on large transfers. These are upstream claims, not
+results reproduced here. The
+[Arch guide](https://github.com/Project-Silicium/Guides/blob/512f83009c4bd2ddf5c7248663e909d3e9f0a6a4/General/OS/Arch-Linux/README.md)
+labels itself outdated and describes a UEFI/rEFInd/ACPI installation with a
+remaining framebuffer desktop TODO. Its partition/format instructions were not
+executed and do not apply to our preserved rescue/accepted-image layout.
+
+Concrete reuse: the
+[device-porting guide](https://github.com/Project-Silicium/Guides/blob/512f83009c4bd2ddf5c7248663e909d3e9f0a6a4/Silicium/Porting/Snapdragon/Device/README.md)
+explains deriving configuration and memory maps from extracted firmware. This
+is a reference method for offline comparison of retained firmware, not a reason
+to collect new phone dumps. The
+[i005d DTS](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Resources/DTBs/i005d.dts)
+corroborates our FocalTech address 0x38, reset GPIO22, IRQ GPIO23, IO GPIO131,
+10 contacts, nominal 1080x2448 coordinates, L3C at 3.008V and always-on L8C at
+1.8V. Compare with [our inert overlay](../dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso).
+Its nominal coordinates do not supersede our vendor-protocol 1/16-pixel units;
+its downstream IRQ flags are not a mainline binding to copy verbatim. This dump
+may share vendor provenance with our references and is not independent hardware
+qualification. It also contains unit-specific boot arguments: retain source
+links and selected findings, not a wholesale tracked copy.
+
+No demonstrated defect or ready-made Linux driver replacement resulted from
+this comparison. Physical tests remain NOT RUN; no VM, build, phone, storage,
+claim, signing or candidate operation occurred. Retrieve small pinned files
+before considering the roughly 5GB recursive build checkout advertised upstream.
+Per-file licenses and vendor-binary redistribution rights need checking before
+any source import; the project's top-level license is not blanket permission
+for all firmware. Any boot-architecture change needs a separate Pro-reviewed
+proposal and remains outside this source check.
+
+
+Additional pinned source leads, without changing hardware settings:
+
+- [AMS678 ER2 XML](https://github.com/Project-Silicium/Device-Binaries/blob/203fb36bf7bf560989ca6b6848bfa07c79a5a04a/i005d/RawFiles/Panel_ams678_er2_fhd_plus_dsc_cmd.xml)
+  contains DSI commands and 540x48 DSC geometry. The ER2 refresh declaration
+  and commands differ from our 60Hz path; its reset tuple requires the matching
+  parser semantics before interpreting it. It does not resolve our 28ms TODO.
+- The default i005d build selects
+  [SimpleFbDxe](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Silicon/Silicium/SiliciumPkg/Drivers/SimpleFbDxe/SimpleFb.c),
+  which exposes inherited framebuffer memory, not Linux DRM panel lifecycle.
+  Its [memory map](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Platforms/Asus/i005dPkg/Library/MemoryMapLib/MemoryMapLib.c)
+  reserves display memory at 0xe5000000, size 0x02400000; our board DTS uses
+  splash size 0x02300000 and separate DFPS at 0xe7400000. Compare retained
+  stock maps before proposing any reservation change.
+- [Lahaina initialization](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Silicon/Qualcomm/LahainaPkg/Library/PlatformSecLib/PlatformSec.c)
+  passes MDP streams 0x820, 0x821 and 0xc21 to
+  [ArmSmmuDetach](https://github.com/Project-Silicium/Mu-Silicium/blob/9f38468360ddcddc73d36649301db25e6858ec98/Silicon/Qualcomm/QcomPkg/Library/ArmSmmuDetachLib/ArmSmmuDetachLib.c).
+  Inspection of the callee corrects the initial caller-only interpretation:
+  these are SkipStreams. Matching stream mappings and their tracked context
+  banks are preserved while other mappings are invalidated and other context
+  banks cleared. This is a bootloader-display handoff reference, not evidence
+  Linux should copy its cleanup operation. Compare exact Linux behavior first.
+
+The pinned binary submodule is `203fb36bf7bf560989ca6b6848bfa07c79a5a04a`;
+ACPI is `94896d455b758765f9cef0dc60e1bc447f53bee5`. The inspected i005d DXE
+manifest relies on firmware binaries for several devices; i005d ACPI is disabled
+and no matching device subtree was found in that pinned ACPI tree. Firmware
+availability does not establish native Linux driver support.
