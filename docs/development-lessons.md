@@ -3595,3 +3595,19 @@ and stop parsing once an already-completed maps read has exhausted it. A small
 native fixture qualifies this correction without another375s compositor run.
 Use the existing test wrapper to supply ROG5_STACK_FIXTURE; standalone whole-test
 execution without its fixture is setup failure, not a stack-reader regression.
+
+
+Native component preparation (2026-09-20): preserve UID access when copying
+private /etc into a guest; rootless9P security_model=none does not preserve host
+readability of guest UID1000 mode0600 captures. Use mapped-file capture, atomic
+close-token publication and retain pre-close diagnostics even on failure.
+Reuse the full VM's portal-preparation requirement; a typed Settings.ReadAll
+reply is stronger than service-name ownership. Measure application availability
+from application start, retaining the outer VM watchdog; counting boot/preparation
+against a second startup clock can discard a valid later frame. Preserve such
+failures separately from close results and avoid unchanged compositor rebuilds.
+Inspect pinned kernel proc APIs before carrying a host fixture into native ARM64:
+CONFIG_PROC_CHILDREN is disabled here, just as CROSS_MEMORY_ATTACH is absent.
+An absent children file is not proof that the process has exited. Synchronize
+short contention workers at a ready barrier; otherwise startup can consume their
+work interval before the operation being measured begins.

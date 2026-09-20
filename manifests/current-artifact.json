@@ -2303,6 +2303,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-first-frame-20260920-r1"
+    },
+    "native_mousepad_component": {
+      "status": "Idle native close PASS; synchronized CPU contention reproduces exit137 outside Denial",
+      "source_commit": "d2d346429ed2a09e8e6f51fd95dfbea3b9747ee5",
+      "source_tree": "ae343b3abef4f3b8882dfa135df41dc90f9a095d",
+      "evidence": {
+        "path": "test-results/2026-09-20-native-mousepad-qualification.json",
+        "sha256": "09b473f4998eaf039bd2b3578b90d9f5b3149e9a999d717a543cc93941bd2a69",
+        "bytes": 79183
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM component only",
+      "set_id": "private:rog5-native-mousepad-20260920-r1"
     }
   },
   "denial_phone_linkage": {

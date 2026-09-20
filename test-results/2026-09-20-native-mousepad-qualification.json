@@ -1,0 +1,2194 @@
+{
+  "schema": 1,
+  "source": {
+    "commit": "d2d346429ed2a09e8e6f51fd95dfbea3b9747ee5",
+    "tree": "ae343b3abef4f3b8882dfa135df41dc90f9a095d"
+  },
+  "authority": "none; generic native ARM64 component fixture only; no candidate",
+  "physical": "NOT RUN",
+  "package": {
+    "package": {
+      "name": "weston",
+      "version": "15.0.1-3",
+      "architecture": "aarch64",
+      "archive": "weston-15.0.1-3-aarch64.pkg.tar.xz",
+      "size": 1404596,
+      "sha256": "2da79ea9f1059b5e068debbf6c5b4f650c59c9b6725d98479c5c99753d878f36",
+      "signature_sha256": "8c9ebba381aa0bee1b59aaff78e982401ede6f0d6c44c0864659db835661152a",
+      "depends": [
+        "fontconfig",
+        "glibc",
+        "wayland",
+        "libxkbcommon",
+        "libinput",
+        "libunwind",
+        "pixman",
+        "libdrm",
+        "pam",
+        "systemd-libs",
+        "cairo",
+        "libpng",
+        "libjpeg-turbo",
+        "libwebp",
+        "mesa",
+        "libegl",
+        "libevdev",
+        "libgles",
+        "glib2",
+        "pango",
+        "lcms2",
+        "mtdev",
+        "libx11",
+        "libxcb",
+        "dbus",
+        "libva",
+        "libxcursor",
+        "colord",
+        "seatd",
+        "libdisplay-info",
+        "gstreamer",
+        "gst-plugins-base-libs"
+      ],
+      "provides": []
+    },
+    "verification": {
+      "sha256": "2da79ea9f1059b5e068debbf6c5b4f650c59c9b6725d98479c5c99753d878f36",
+      "signature_sha256": "8c9ebba381aa0bee1b59aaff78e982401ede6f0d6c44c0864659db835661152a",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS"
+    },
+    "keyring_sha256": "9403f923eed777ba0896a0b225e1522d3a7625234694c753ae26b27c29672aae"
+  },
+  "fixture_inputs": {
+    "run.py": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/run.py",
+      "sha256": "42b8b84b19d1bf2e351d7cb8e9c65834055c63483551b4f5c815fb1f37d9f972",
+      "bytes": 6927
+    },
+    "guest.sh": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/guest.sh",
+      "sha256": "cded7c8f8a6501a91754688e9f001b898f7e5b3e1be2e612588cce11c9f9be5d",
+      "bytes": 1940
+    },
+    "payload/session-app.sh": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload/session-app.sh",
+      "sha256": "77d0c644c3e1a3b67f54c48c8aa054710c88423dd3f62ffa93bab5914963584b",
+      "bytes": 5625
+    },
+    "verify-summary.py": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/verify-summary.py",
+      "sha256": "e3a4b223eb54e6ca1ddfb17f653ebf0beaafad32523ddd0921fc4876f31ea1c5",
+      "bytes": 1777
+    },
+    "build-burner/busy.c": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/build-burner/busy.c",
+      "sha256": "781f5969fd770152ea3218868d1e01effabe73072dfc94721c8f3a965171c7ec",
+      "bytes": 712
+    },
+    "build-burner/busy": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/build-burner/busy",
+      "sha256": "a94f5306a11ce9b0d11fc848e72fba8cc22b43dc23d5c2d2684b48504ceacf9f",
+      "bytes": 70736
+    },
+    "analyze-loaded.py": {
+      "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/analyze-loaded.py",
+      "sha256": "d0421d614b37feee8a34bbbc664f0fb7f4d2f11aedab1d4e29d9da323a0f29c4",
+      "bytes": 2399
+    }
+  },
+  "runs": [
+    {
+      "status": "FAIL",
+      "mode": "idle",
+      "seconds": 19.051852601987775,
+      "error": "AssertionError()",
+      "control": {
+        "status": "STOPPED_BEFORE_FRAME"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-idle",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/result.json",
+        "sha256": "c16783600bf3c760f8b6daa3fb8aed5c60b72ef5319d14c58b97c0945fa9d223",
+        "bytes": 496231
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/serial.log",
+        "sha256": "36f73072185555116b721e3e36065027a1ac8e21a3810e926356317a16999521",
+        "bytes": 7040
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T02:49:37.360376+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11633568099932745,
+          "ended_utc": "2026-09-20T02:49:37.476748+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T02:49:37.477909+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006510487990453839,
+          "ended_utc": "2026-09-20T02:49:37.484446+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T02:49:37.484922+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.0034777469700202346,
+          "ended_utc": "2026-09-20T02:49:37.488416+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-63830531451d4043",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=none",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T02:49:37.492216+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 18.654074552992824,
+          "ended_utc": "2026-09-20T02:49:56.146315+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/serial.log",
+            "sha256": "36f73072185555116b721e3e36065027a1ac8e21a3810e926356317a16999521",
+            "bytes": 7040
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-63830531451d4043"
+          ],
+          "started_utc": "2026-09-20T02:49:56.146673+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03401715902145952,
+          "ended_utc": "2026-09-20T02:49:56.180709+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-63830531451d4043"
+          ],
+          "started_utc": "2026-09-20T02:49:56.181123+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.033995738020166755,
+          "ended_utc": "2026-09-20T02:49:56.215138+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs/stage/guest.sh",
+          "sha256": "91ab8b43d7caa69db4b9ac3c59ded8cf0e599c08eeda1a98d33c7af675a25e7b",
+          "bytes": 1960
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle/initramfs.gz",
+          "sha256": "c0c1d706f5cf0c6ce0a2bb73455543c7822805990e6f4fce472ef40b49799da6",
+          "bytes": 2860
+        }
+      ]
+    },
+    {
+      "run": "vm-idle-r2",
+      "status": "FAIL recorder permissions; no close conclusion",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r2/recovered-output-hashes.json",
+        "sha256": "3dbb3a5997b7b6748949b9a41ba8a773d1cdddcdc96107f6b5e1531106b37ad9",
+        "bytes": 416
+      }
+    },
+    {
+      "status": "FAIL",
+      "mode": "idle",
+      "seconds": 61.90443294699071,
+      "error": "AssertionError()",
+      "control": {
+        "status": "STOPPED_BEFORE_FRAME"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-idle-r3",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/result.json",
+        "sha256": "23cfb59e0f750b6852b5ebfad4627dabb9550f31b0338e53407ddfb28c958fbf",
+        "bytes": 499583
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/serial.log",
+        "sha256": "5673600bd4ec12ad7c29d905e9730fcad5f2979fcfbf1cae2cc35d16f39183d7",
+        "bytes": 9464
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T02:52:16.592099+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11628285801270977,
+          "ended_utc": "2026-09-20T02:52:16.708419+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T02:52:16.709656+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006420310994144529,
+          "ended_utc": "2026-09-20T02:52:16.716105+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T02:52:16.716759+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.004067963978741318,
+          "ended_utc": "2026-09-20T02:52:16.720846+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-50a835c49c4a49bf",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T02:52:16.724909+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 61.49602118803887,
+          "ended_utc": "2026-09-20T02:53:18.220956+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/serial.log",
+            "sha256": "5673600bd4ec12ad7c29d905e9730fcad5f2979fcfbf1cae2cc35d16f39183d7",
+            "bytes": 9464
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-50a835c49c4a49bf"
+          ],
+          "started_utc": "2026-09-20T02:53:18.221365+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.034024849999696016,
+          "ended_utc": "2026-09-20T02:53:18.255407+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-50a835c49c4a49bf"
+          ],
+          "started_utc": "2026-09-20T02:53:18.255778+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03382340702228248,
+          "ended_utc": "2026-09-20T02:53:18.289620+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs/stage/guest.sh",
+          "sha256": "127860648fef43eeb601e05b0e7d33408ffe1927dd6f2a2b2dc3d5ca9d772f90",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r3/initramfs.gz",
+          "sha256": "00f8f1cbbb7c3ac6e62e5649e4384fb84ac3456cb9840e53d7a247a28c0b63fb",
+          "bytes": 2868
+        }
+      ]
+    },
+    {
+      "status": "FAIL",
+      "mode": "idle",
+      "seconds": 41.85388387495186,
+      "error": "AssertionError()",
+      "control": {
+        "status": "STOPPED_BEFORE_FRAME"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-idle-r4",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/result.json",
+        "sha256": "9aa6bb45121a5d80f5b0c12995a1f76dcec5cd7212c360b2528fce9f9d9e4273",
+        "bytes": 499141
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/serial.log",
+        "sha256": "1a09304120b4a66531bd868e16b9c3ed1cc9509b6da9cff55ed3393f8d5d3a4a",
+        "bytes": 11840
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T02:55:32.147777+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11677374399732798,
+          "ended_utc": "2026-09-20T02:55:32.264586+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T02:55:32.265796+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006338027014862746,
+          "ended_utc": "2026-09-20T02:55:32.272165+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T02:55:32.272884+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.005417841952294111,
+          "ended_utc": "2026-09-20T02:55:32.278320+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-355621d69b3f4923",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T02:55:32.282227+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 41.45359962101793,
+          "ended_utc": "2026-09-20T02:56:13.735851+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/serial.log",
+            "sha256": "1a09304120b4a66531bd868e16b9c3ed1cc9509b6da9cff55ed3393f8d5d3a4a",
+            "bytes": 11840
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-355621d69b3f4923"
+          ],
+          "started_utc": "2026-09-20T02:56:13.736248+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03403011296177283,
+          "ended_utc": "2026-09-20T02:56:13.770316+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-355621d69b3f4923"
+          ],
+          "started_utc": "2026-09-20T02:56:13.770687+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03395872301189229,
+          "ended_utc": "2026-09-20T02:56:13.804663+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs/stage/guest.sh",
+          "sha256": "127860648fef43eeb601e05b0e7d33408ffe1927dd6f2a2b2dc3d5ca9d772f90",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r4/initramfs.gz",
+          "sha256": "3618f24b362c093360fb0f04c681f4975161a2b4c7afdb9a6c46589a168489bc",
+          "bytes": 2867
+        }
+      ]
+    },
+    {
+      "status": "FAIL",
+      "mode": "idle",
+      "seconds": 85.70343538501766,
+      "error": "AssertionError()",
+      "control": {
+        "status": "FAIL",
+        "error": "ValueError('mapped-frame deadline')"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-idle-r5",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/result.json",
+        "sha256": "e7a153cb63fed67ec47861a8002cbfec082188435069de5bbec42cedf1a64d63",
+        "bytes": 500305
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/serial.log",
+        "sha256": "3c541aebe0c9c18766258b58318860a920f05f38ee6fb48e00444423bca79349",
+        "bytes": 12278
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T02:56:42.561860+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11621980601921678,
+          "ended_utc": "2026-09-20T02:56:42.678114+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T02:56:42.679388+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006765842030290514,
+          "ended_utc": "2026-09-20T02:56:42.686182+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T02:56:42.686797+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.004154881986323744,
+          "ended_utc": "2026-09-20T02:56:42.690971+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-ff3b6c9ae9d948fe",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T02:56:42.695243+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 85.2955549909966,
+          "ended_utc": "2026-09-20T02:58:07.990844+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/serial.log",
+            "sha256": "3c541aebe0c9c18766258b58318860a920f05f38ee6fb48e00444423bca79349",
+            "bytes": 12278
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-ff3b6c9ae9d948fe"
+          ],
+          "started_utc": "2026-09-20T02:58:07.991584+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03390024299733341,
+          "ended_utc": "2026-09-20T02:58:08.025503+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-ff3b6c9ae9d948fe"
+          ],
+          "started_utc": "2026-09-20T02:58:08.025912+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03398079500766471,
+          "ended_utc": "2026-09-20T02:58:08.059909+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs/stage/guest.sh",
+          "sha256": "127860648fef43eeb601e05b0e7d33408ffe1927dd6f2a2b2dc3d5ca9d772f90",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r5/initramfs.gz",
+          "sha256": "6e642e3689859754976485e6f896802c9c640d4c94f3543904b2f512366f6a05",
+          "bytes": 2868
+        }
+      ]
+    },
+    {
+      "status": "FAIL",
+      "mode": "idle",
+      "seconds": 79.5407689709682,
+      "error": "AssertionError()",
+      "control": {
+        "mapped_frame_seconds": 77.65773169195745,
+        "mapped_surfaces": {
+          "13": {
+            "surface": "7",
+            "title": true,
+            "configured": true,
+            "serial": "1",
+            "ack": true,
+            "pending_attach": null,
+            "committed": true
+          }
+        },
+        "status": "PASS"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-idle-r6",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/result.json",
+        "sha256": "40e4ae856a9ea99854df91d43c1f3a091edc1588b9cd03186aa3914acaa22c5b",
+        "bytes": 500746
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/serial.log",
+        "sha256": "c12607deb135e1a6310cd6b4c0248e8b1f353541540aa054e4abbf547373a462",
+        "bytes": 12301
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T02:58:39.031786+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.16849460097728297,
+          "ended_utc": "2026-09-20T02:58:39.200317+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T02:58:39.201515+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.008366084017325193,
+          "ended_utc": "2026-09-20T02:58:39.209912+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T02:58:39.210536+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006284803035669029,
+          "ended_utc": "2026-09-20T02:58:39.216843+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-bfeaa9b30b1340f7",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T02:58:39.220868+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 79.0833117760485,
+          "ended_utc": "2026-09-20T02:59:58.304203+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/serial.log",
+            "sha256": "c12607deb135e1a6310cd6b4c0248e8b1f353541540aa054e4abbf547373a462",
+            "bytes": 12301
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-bfeaa9b30b1340f7"
+          ],
+          "started_utc": "2026-09-20T02:59:58.304632+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03406840900424868,
+          "ended_utc": "2026-09-20T02:59:58.338719+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-bfeaa9b30b1340f7"
+          ],
+          "started_utc": "2026-09-20T02:59:58.339133+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.034141911019105464,
+          "ended_utc": "2026-09-20T02:59:58.373295+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs/stage/guest.sh",
+          "sha256": "127860648fef43eeb601e05b0e7d33408ffe1927dd6f2a2b2dc3d5ca9d772f90",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r6/initramfs.gz",
+          "sha256": "9f6248e70d565f7d6a89e803ff0208322135ce4eb6e60ec184159a6989139794",
+          "bytes": 2871
+        }
+      ]
+    },
+    {
+      "status": "PASS",
+      "mode": "idle",
+      "seconds": 81.29115648096194,
+      "error": null,
+      "control": {
+        "mapped_frame_seconds": 78.0100706180092,
+        "mapped_surfaces": {
+          "13": {
+            "surface": "7",
+            "title": true,
+            "configured": true,
+            "serial": "1",
+            "ack": true,
+            "pending_attach": null,
+            "committed": true
+          }
+        },
+        "status": "PASS"
+      },
+      "phases": [
+        [
+          "loaded",
+          "40.351046944"
+        ],
+        [
+          "APP_RUN_BEGIN",
+          "41.340239600"
+        ],
+        [
+          "WINDOW_REMOVED_ZERO",
+          "78.835207296"
+        ],
+        [
+          "APP_QUIT_RETURN",
+          "79.530217504"
+        ],
+        [
+          "SHUTDOWN_BEFORE",
+          "79.531357392"
+        ],
+        [
+          "BEGIN",
+          "79.541407232"
+        ],
+        [
+          "END",
+          "79.542473280"
+        ],
+        [
+          "SHUTDOWN_AFTER",
+          "79.560519360"
+        ],
+        [
+          "APP_RUN_END",
+          "79.607555072"
+        ],
+        [
+          "APP_DISCONNECT_ONE_END",
+          "79.610512624"
+        ],
+        [
+          "APP_OBSERVERS_REMOVED",
+          "79.613830496"
+        ],
+        [
+          "DSO_FINI",
+          "79.622742288"
+        ]
+      ],
+      "inputs_unchanged": true,
+      "run": "vm-idle-r7",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/result.json",
+        "sha256": "907e111c70d748987ecf1c7edae430386e4501a6779fd6caa31f07a9f2ab35fb",
+        "bytes": 502846
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/serial.log",
+        "sha256": "7ae88dbb5137e94300629952fd52584c9b0608caf60a2f34d979fa5743233dfb",
+        "bytes": 12471
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T03:03:08.934695+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11621396499685943,
+          "ended_utc": "2026-09-20T03:03:09.050940+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T03:03:09.051960+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.005847994005307555,
+          "ended_utc": "2026-09-20T03:03:09.057831+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T03:03:09.058343+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.0034478699672035873,
+          "ended_utc": "2026-09-20T03:03:09.061804+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-8147ea08e2204d54",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T03:03:09.065601+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 80.88508053502301,
+          "ended_utc": "2026-09-20T03:04:29.950707+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/serial.log",
+            "sha256": "7ae88dbb5137e94300629952fd52584c9b0608caf60a2f34d979fa5743233dfb",
+            "bytes": 12471
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-8147ea08e2204d54"
+          ],
+          "started_utc": "2026-09-20T03:04:29.951100+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03403623797930777,
+          "ended_utc": "2026-09-20T03:04:29.985154+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-8147ea08e2204d54"
+          ],
+          "started_utc": "2026-09-20T03:04:29.985584+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03400009800679982,
+          "ended_utc": "2026-09-20T03:04:30.019600+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs/stage/guest.sh",
+          "sha256": "127860648fef43eeb601e05b0e7d33408ffe1927dd6f2a2b2dc3d5ca9d772f90",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-idle-r7/initramfs.gz",
+          "sha256": "81dbe1d97db920d76bc2a4877eb0225f4e6949bb01af4f70d1ffd08baa09efad",
+          "bytes": 2866
+        }
+      ],
+      "summary": {
+        "status": "PASS",
+        "source": {
+          "commit": "d2d346429ed2a09e8e6f51fd95dfbea3b9747ee5",
+          "tree": "ae343b3abef4f3b8882dfa135df41dc90f9a095d"
+        },
+        "mode": "idle",
+        "seconds": 81.29115648096194,
+        "mapped_frame_seconds": 78.0100706180092,
+        "close_signal_to_end": 0.9500000000000028,
+        "window_to_quit": 0.6950102080000136,
+        "quit_to_shutdown": 0.0011398879999973133,
+        "mousepad_sha256": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab",
+        "document_unchanged": true,
+        "physical": "NOT RUN"
+      }
+    },
+    {
+      "status": "FAIL",
+      "mode": "loaded",
+      "seconds": 83.316339107987,
+      "error": "AssertionError()",
+      "control": {
+        "mapped_frame_seconds": 76.53845657798229,
+        "mapped_surfaces": {
+          "13": {
+            "surface": "7",
+            "title": true,
+            "configured": true,
+            "serial": "1",
+            "ack": true,
+            "pending_attach": null,
+            "committed": true
+          }
+        },
+        "status": "PASS"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-loaded-r7",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/result.json",
+        "sha256": "2bc8e3a72e1ec1b72b2bbfc86a595b7b719997bc4d86218a967f2e0c98c51895",
+        "bytes": 501773
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/serial.log",
+        "sha256": "32b1699bd17d9f695f3be984f4fd10990f8e880e2c7aa7a1ef42d09de049e62a",
+        "bytes": 12340
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T03:04:43.383675+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.11624413501704112,
+          "ended_utc": "2026-09-20T03:04:43.499955+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T03:04:43.501176+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006423282029572874,
+          "ended_utc": "2026-09-20T03:04:43.507634+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T03:04:43.508209+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.003916446003131568,
+          "ended_utc": "2026-09-20T03:04:43.512140+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-e33b9bf534da4f8b",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T03:04:43.515861+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 82.92518554104026,
+          "ended_utc": "2026-09-20T03:06:06.441069+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/serial.log",
+            "sha256": "32b1699bd17d9f695f3be984f4fd10990f8e880e2c7aa7a1ef42d09de049e62a",
+            "bytes": 12340
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-e33b9bf534da4f8b"
+          ],
+          "started_utc": "2026-09-20T03:06:06.441421+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.03394899400882423,
+          "ended_utc": "2026-09-20T03:06:06.475384+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-e33b9bf534da4f8b"
+          ],
+          "started_utc": "2026-09-20T03:06:06.475787+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03391444298904389,
+          "ended_utc": "2026-09-20T03:06:06.509718+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs/stage/guest.sh",
+          "sha256": "3d02d86acad278543e62955966f27039065c58a7d10374824a2907b7a73798f1",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r7/initramfs.gz",
+          "sha256": "2a5b1a151240eb0619e3041043cbfc2d7c05d3b592f4d8f73d76582e87501f5a",
+          "bytes": 2866
+        }
+      ]
+    },
+    {
+      "status": "FAIL",
+      "mode": "loaded",
+      "seconds": 86.09550198598299,
+      "error": "AssertionError()",
+      "control": {
+        "mapped_frame_seconds": 79.75857744098175,
+        "mapped_surfaces": {
+          "13": {
+            "surface": "7",
+            "title": true,
+            "configured": true,
+            "serial": "1",
+            "ack": true,
+            "pending_attach": null,
+            "committed": true
+          }
+        },
+        "status": "PASS"
+      },
+      "phases": null,
+      "inputs_unchanged": true,
+      "run": "vm-loaded-r8",
+      "record": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/result.json",
+        "sha256": "f8872dcdb152f31678feb8ab3e4d0b69983ed25360396df906f4635174653411",
+        "bytes": 502690
+      },
+      "serial": {
+        "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/serial.log",
+        "sha256": "c6ddcb6b31664188733d0b2204cc302b57201c8696f6dacc94eabbb91a17761d",
+        "bytes": 12948
+      },
+      "steps": [
+        {
+          "command": [
+            "clang",
+            "--target=aarch64-none-elf",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            "-static",
+            "-fno-pic",
+            "-fno-stack-protector",
+            "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wl,--build-id=none,--entry=_start",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+            "-o",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs/init"
+          ],
+          "started_utc": "2026-09-20T03:07:36.633342+00:00",
+          "deadline_seconds": 30,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.116316250001546,
+          "ended_utc": "2026-09-20T03:07:36.749692+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/init-build.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "cpio",
+            "--null",
+            "-o",
+            "--quiet",
+            "--format=newc",
+            "--owner=0:0"
+          ],
+          "started_utc": "2026-09-20T03:07:36.750893+00:00",
+          "deadline_seconds": 10,
+          "cwd": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs",
+          "stdin_sha256": "ae4935f5b6f2eb8ea5ef415081a0dd86abc27e600be003aeb8e1f5e3df894f3e",
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.006473132001701742,
+          "ended_utc": "2026-09-20T03:07:36.757397+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/cpio.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "gzip",
+            "-n",
+            "-c",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs.cpio"
+          ],
+          "started_utc": "2026-09-20T03:07:36.757998+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.004102669015992433,
+          "ended_utc": "2026-09-20T03:07:36.762118+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/gzip.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-native-mousepad-9987544a75234b9c",
+            "--pull=never",
+            "--network=none",
+            "--read-only",
+            "--memory=1536m",
+            "--memory-swap=1536m",
+            "--cpus=2",
+            "--pids-limit=64",
+            "-v",
+            "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs.gz:/initramfs.gz:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/payload:/payload:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/capture:/capture:rw",
+            "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+            "qemu-system-aarch64",
+            "-M",
+            "virt",
+            "-cpu",
+            "max",
+            "-smp",
+            "2",
+            "-m",
+            "1024M",
+            "-accel",
+            "tcg,thread=single",
+            "-global",
+            "virtio-mmio.force-legacy=false",
+            "-display",
+            "none",
+            "-monitor",
+            "none",
+            "-nic",
+            "none",
+            "-serial",
+            "stdio",
+            "-no-reboot",
+            "-kernel",
+            "/Image",
+            "-initrd",
+            "/initramfs.gz",
+            "-append",
+            "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.native_mousepad_fixture=1",
+            "-fsdev",
+            "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+            "-fsdev",
+            "local,id=payload,path=/payload,security_model=none,readonly=on",
+            "-device",
+            "virtio-9p-device,fsdev=payload,mount_tag=payload",
+            "-fsdev",
+            "local,id=capture,path=/capture,security_model=mapped-file",
+            "-device",
+            "virtio-9p-device,fsdev=capture,mount_tag=capture"
+          ],
+          "started_utc": "2026-09-20T03:07:36.765967+00:00",
+          "deadline_seconds": 95,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 85.69973840296734,
+          "ended_utc": "2026-09-20T03:09:02.465730+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/serial.log",
+            "sha256": "c6ddcb6b31664188733d0b2204cc302b57201c8696f6dacc94eabbb91a17761d",
+            "bytes": 12948
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "rm",
+            "--force",
+            "--ignore",
+            "rog5-native-mousepad-9987544a75234b9c"
+          ],
+          "started_utc": "2026-09-20T03:09:02.466124+00:00",
+          "deadline_seconds": 15,
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 0.034240543958730996,
+          "ended_utc": "2026-09-20T03:09:02.500385+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/serial.cleanup.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "container",
+            "exists",
+            "rog5-native-mousepad-9987544a75234b9c"
+          ],
+          "started_utc": "2026-09-20T03:09:02.500800+00:00",
+          "deadline_seconds": 10,
+          "status": "PASS",
+          "exit_status": 1,
+          "duration_seconds": 0.03398097102763131,
+          "ended_utc": "2026-09-20T03:09:02.534798+00:00",
+          "log": {
+            "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/serial.absence.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "interpretation": "exit 1 proves named container absent"
+        }
+      ],
+      "generated": [
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs/init",
+          "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+          "bytes": 3352
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs/stage/guest.sh",
+          "sha256": "3d02d86acad278543e62955966f27039065c58a7d10374824a2907b7a73798f1",
+          "bytes": 1965
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-native-mousepad-20260920-r1/vm-loaded-r8/initramfs.gz",
+          "sha256": "1bedd5f0643ce0ea891015eb0a0a6b8a2ea7fcbd35173a66771ab3f6674344f1",
+          "bytes": 2867
+        }
+      ],
+      "summary": {
+        "status": "FAIL controlled native close; reproduced WINDOW_REMOVED_ZERO/no quit-return/exit137 under measured CPU contention",
+        "seconds": 86.09550198598299,
+        "mapped_frame_seconds": 79.75857744098175,
+        "mousepad_exit": 137,
+        "mousepad_sha256": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab",
+        "phases": [
+          [
+            "loaded",
+            "42.276649232"
+          ],
+          [
+            "APP_RUN_BEGIN",
+            "43.415577888"
+          ],
+          [
+            "WINDOW_REMOVED_ZERO",
+            "81.378695136"
+          ]
+        ],
+        "close_points": {
+          "BEGIN": 80.48,
+          "SIGNAL": 81.23,
+          "END": 83.38
+        },
+        "close_seconds": 2.1499999999999915,
+        "burner_cpu_ticks": {
+          "330": 163,
+          "331": 179
+        },
+        "timeout_actions": [
+          "TERM",
+          "KILL"
+        ],
+        "inputs_unchanged": true,
+        "post_close_document_hash": "NOT COMPLETE: outer session timeout interrupted checksum after exit137 was recorded",
+        "scope": "native ARM64 Weston Pixman; no Denial or phone",
+        "inference": "CPU contention is sufficient for this symptom in this fixture; original Denial cause and instruction location remain unproven"
+      }
+    }
+  ],
+  "replay": {
+    "status": "PASS replay only; runtime r5 remains FAIL",
+    "first_mapped_frame": "[00:01:19.579492] {Default Queue} wl_callback#19.done(79475)",
+    "frames": 2,
+    "source_commit": "d2d346429ed2a09e8e6f51fd95dfbea3b9747ee5"
+  },
+  "cleanup_close": {
+    "status": "Observed cleanup teardown; controlled-close fixture FAIL",
+    "cause": "Pinned CONFIG_PROC_CHILDREN is disabled; children lookup failure invokes cleanup, which signals owned timeout wrapper",
+    "config_line": "# CONFIG_PROC_CHILDREN is not set",
+    "config_sha256": "23af1f7083bb5607f65904ab6d46a101c5d67fd73a6ae10dd868877db16870af",
+    "proc_source_sha256": "f4d49dadcfff3d9bd934553a32ee19fea70919444d7fa0291db1822125654001",
+    "phases": [
+      [
+        "loaded",
+        "41.020591376"
+      ],
+      [
+        "APP_RUN_BEGIN",
+        "42.111118400"
+      ],
+      [
+        "WINDOW_REMOVED_ZERO",
+        "77.198473536"
+      ],
+      [
+        "APP_QUIT_RETURN",
+        "77.965317472"
+      ],
+      [
+        "SHUTDOWN_BEFORE",
+        "77.966533152"
+      ],
+      [
+        "BEGIN",
+        "77.976217488"
+      ],
+      [
+        "END",
+        "77.978043536"
+      ],
+      [
+        "SHUTDOWN_AFTER",
+        "78.005731504"
+      ],
+      [
+        "APP_RUN_END",
+        "78.025546496"
+      ],
+      [
+        "APP_DISCONNECT_ONE_END",
+        "78.026833968"
+      ],
+      [
+        "APP_OBSERVERS_REMOVED",
+        "78.028015440"
+      ],
+      [
+        "DSO_FINI",
+        "78.033620832"
+      ]
+    ],
+    "not_proven": [
+      "controlled close",
+      "exit0",
+      "CPU contention",
+      "Denial or phone"
+    ]
+  },
+  "limits": {
+    "vm_seconds": 95,
+    "session_seconds": 70,
+    "app_start_seconds": 45,
+    "term_kill_seconds": 2,
+    "memory_mib": 1536,
+    "swap_mib": 0,
+    "guest_memory_mib": 1024,
+    "cpus": 2,
+    "network": false
+  },
+  "physical_operations": "NONE",
+  "prior_full_denial_vm": "FAIL Foot0/Mousepad137 unchanged",
+  "limitations": [
+    "Weston Pixman, not Denial or hardware GPU",
+    "No seat/input focus; no document FUSE mount, same known limitations as previous QEMU-user control",
+    "dbus-daemon, not full logind/user-manager/dbus-broker",
+    "Matched GTK/Mousepad/diagnostic bytes, added separate verified Weston15.0.1-3",
+    "No phone kernel, hardware or installed session qualification",
+    "Raw private result files retain full input hashes, commands and captures; their hashes are recorded here"
+  ]
+}
