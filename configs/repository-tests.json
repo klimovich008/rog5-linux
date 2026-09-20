@@ -8720,6 +8720,39 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-stage-production-display-payload.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "clang",
+        "modinfo"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/build-production-display-modules.py",
+        "scripts/host/check-production-build-diagnostics.py",
+        "scripts/device/test-production-display-modules.py",
+        "scripts/device/stage-production-display-modules.py",
+        "scripts/device/stage-production-display-payload.py",
+        "scripts/device/load-production-display.py",
+        "scripts/device/display-firmware.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-display-firmware.py",
       "interpreter": "python3",
       "tiers": [

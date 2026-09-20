@@ -159,6 +159,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-display-loader-ordering.py
 	scripts/device/test-production-display-modules.py
 	scripts/device/test-stage-production-display-modules.py
+	scripts/device/test-stage-production-display-payload.py
 	scripts/device/test-display-firmware.py
 	scripts/device/test-display-providers.py
 	scripts/device/test-load-production-display.py
