@@ -343,3 +343,21 @@ ACPI is `94896d455b758765f9cef0dc60e1bc447f53bee5`. The inspected i005d DXE
 manifest relies on firmware binaries for several devices; i005d ACPI is disabled
 and no matching device subtree was found in that pinned ACPI tree. Firmware
 availability does not establish native Linux driver support.
+
+
+The follow-up exact prepared Linux7.1.4 source comparison found existing Qualcomm
+handoff handling in `qcom_smmu_cfg_probe()` / `qcom_smmu_write_s2cr()` and
+`arm_smmu_device_reset()`. Linux retains valid firmware stream ID/masks and
+initializes bypass mappings, with a firmware-specific bypass workaround; it does
+not retain bootloader translation tables in the same manner as Mu. Current
+production patches do not replace those functions. The inherited SM8350 MDSS
+specifier is SID/mask `0x820/0x402`; its second cell is a mask, not another SID.
+It does not match Mu's additional `0x821` or `0xc21` values. Differing policies
+and descriptions are established, but active phone stream IDs and translation
+requirements were not observed. No missing Linux detach fix is demonstrated.
+
+Inspected prepared-source SHA256s (no kernel rebuild):
+
+- `arm-smmu-qcom.c`: `a8ba34c18e75740495d64a15ad6ff94fec4265814f96d7068b9f4c5e45eb3663`;
+- `arm-smmu.c`: `580bcc9326837da0607e45843f4906694c28a0a5b68ca9297bc516747704d55f`;
+- `sm8350.dtsi`: `58d28a520a21e21f55703ae968d6e45c6b7750e6a2d3138dcb6cafe2bc6d0a3c`.

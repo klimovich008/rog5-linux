@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Checked health-source binding integrated; bootstrap and private inputs unqualified",
+  "phase": "Health binding qualified; retained input lock incompatible with production schema",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source 82679758 passes all 132 active suites locally in 724.770s, including 32 health-binding methods in 249.115s and 91 worker methods in 65.875s. Focused health runs passed 30 methods in 219.091s plus two added artifact/dependency regressions; the selector-registration preflight failure is retained. Explicit binding shares checked dependencies and preserves health/storage/power predicates and default refusal. Actual bootstrap authentication and compatible private profile/seal/layout inputs remain unqualified. Touch source 1f936857 retains its board PASS. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. No phone, VM, root, input lock, seal, claim, signing or candidate operation.",
+  "next": "Source 82679758 retains 132 active suites PASS in 724.770s; no implementation changed or expensive suite repeated. Pro review and local source inspection found no requirement for an additional bootstrap wrapper under the trusted-coordinator premise. Read-only checks passed the exact 16-row history index (0.043s) and historical host-boot match (0.045s). Actual current input_schema rejected the exact retained 129-file lock (0.057s): its trusted hash matches, but production_display_sources is absent. This is a scoped schema refusal, not execution of full admission or evidence of a consumer defect. Preserve the historical lock; successor input preparation is under review. Touch source 1f936857 retains its board PASS. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. No phone, VM, root, input lock, seal, claim, signing or candidate operation.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }

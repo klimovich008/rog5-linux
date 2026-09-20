@@ -814,3 +814,51 @@ Private profile/seal/layout inputs and existing admission authority were synthet
 in tests. No private runtime data was opened or new authority issued. Runtime
 UNBOUND; physical NOT RUN. S06/R01, V11, ASUS rescue and prior VM evidence remain
 unchanged.
+
+
+## Bootstrap premise and retained-input compatibility
+
+Follow-up to source `fae352776af651ec7d120480fd93f5581edc8246`, implementation
+unchanged from `82679758`. Pro's exact completed answer was matched to the
+submitted question and checked against actual source. The binding API requires
+a trusted caller selecting the reviewed implementation and intended anchor;
+it does not require another launcher wrapper. This corrects the earlier
+hypothesis without weakening input, dependency, qualification or claim checks.
+The old launcher/current-admission pin mismatch remains historical, not a new
+runtime regression.
+
+Three local, serial, read-only diagnostics used Python `-I -B -O`, 512MiB address
+space and a 90s timeout with 2s termination grace:
+
+| Check | Result | Seconds |
+| --- | --- | ---: |
+| Exact history index and existing reader fields | PASS: pinned 2658-byte index, 16 rows, projection/fields valid | 0.042770 |
+| Indexed historical admission metadata/hash and host-boot comparison | PASS: prior host boot matches current host | 0.045442 |
+| Actual current `input_schema` against retained pinned input lock | EXPECTED REFUSAL: `ValueError('input lock schema')` | 0.056616 |
+
+The last check executed the exact `need`/`input_schema` function ASTs and literal
+constants extracted from reviewed admission SHA256
+`cfa51919a4b5bdfc456621c5531ac2bc706642664029b0821d6e1729ceb4393e`.
+The retained lock matches embedded anchor
+`702fad9f926d1466d70a1ebb3b14c22b289a1a99cd9b80c5543d32bb1eaf78a4`,
+but has 129 files and lacks `production_display_sources`. No production cold-boot
+input was constructed. The actual schema correctly rejects this historical
+input; source identity alone cannot make it current. This is not a demonstration
+of the first full preparation failure: eager imports, kernel relay, full
+`inputs()`, custody, qualification and `prior_and_staging()` were NOT RUN.
+No claim or credential file was opened. Private records and identifiers were
+not exported; only small redacted diagnostic results are retained for review.
+
+The Pro download did not materialize after two bounded browser attempts. The
+executed diagnostic is explicitly a local implementation of the proposed check,
+not the adviser's unexecuted downloadable script. Local diagnostic SHA256s:
+
+- index: `2d9fce708e3d56af3f2ff4d60cc6b4d47ee3a7f22d63aa5a31998168e7612035`;
+- host boot: `019462aa0b3c19a94f2c202c39d3873147e03f474e7d75784ff09d8b0c97eef5`;
+- actual schema: `206dd27fbd32a734aee7372f6222b325a3f6eb242a7985b664dc5fe9d88f7fc8`.
+
+The same Pro conversation now has a follow-up prepared with exact diagnostics
+and the new refusal, asking for the smallest justified offline successor-input
+preparation step. No historical pin, input lock, seal, claim or qualified image
+was replaced. Runtime remains UNBOUND and physical tests NOT RUN. No expensive
+unchanged integration/build suite was repeated.

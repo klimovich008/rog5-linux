@@ -4027,3 +4027,13 @@ locally under the 90s deadline. Pro-side PASS is separate from local execution.
 An Oracle recovery command returned a previous answer with exit0; verify the
 exact submitted question and final answer, including empty completion markers,
 before treating notification or CLI termination as successful review retrieval.
+
+
+Retained-input diagnosis (2026-09-20): distinguish the trusted coordinator's
+source-selection premise from missing runtime evidence. Do not infer a required
+new authentication wrapper from a loader's trusted-caller precondition. A pinned
+historical input can still fail a newer schema: the actual extracted pure schema
+refused the retained lock in0.057s, while history identity and host continuity
+passed. Keep the old lock intact and qualify any successor separately. Follow
+external helpers through their callees before borrowing behavior: Mu's
+ArmSmmuDetach argument is a skip list preserving the named display streams.
