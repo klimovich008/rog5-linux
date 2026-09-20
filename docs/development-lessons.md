@@ -3828,3 +3828,20 @@ API, including identity changes after observation. Keep physical guard execution
 and target tool availability distinct from host fixtures. The20 health cases ran
 in under half a second; no rebuild was needed. Live upstream refs were unchanged,
 so the existing audit was reused rather than beginning another broad review.
+
+
+### Separate initial entry checks from cleanup source binding (2026-09-20)
+
+Initial context must reject consumed attempts, but cleanup must still reload
+verified code after entry. Carry the immutable manifest binding into workers
+and cleanup; recheck source bytes without reapplying initial entry absence.
+Test actual generated staging and host receipt validation together, with explicit
+filesystem/root/transport substitutions. Model the caller's existing directory
+ownership before attributing a missing-directory fixture failure to production.
+
+Protect FD closure immediately after open, before metadata calls that may fail.
+Retain an inode only when observation proves it belongs to the opened file, and
+never delete a replacement during cleanup. The22 staging/context cases took
+under a second. Source-only transfer stays within existing transport bounds;
+module/firmware payload packaging is a separate prerequisite, not a reason to
+weaken that bound or claim unperformed staging.

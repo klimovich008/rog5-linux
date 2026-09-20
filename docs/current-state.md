@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production display full-health and session pass offline; exact staging/admission pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production source staging/context pass offline; private admission and payload composition pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Full-health now brackets collection with the production identity, requires canonical current-boot and persistent healthy receipts, and verifies armed rollback timers call only the guarded runtime. Original physical/root/firmware/source checks remain. 20 health,28 session,37 selector cases and 125 active suites PASS; four old-health controls and one old-session API control fail as expected. Next: exact private health inputs, target staging/source admission and firmware root-transition qualification. Historical pins remain incompatible; no live composition,candidate,signing,claim,target staging or phone/VM operation. Artifacts unchanged. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-health.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Production backend now binds six exact source files and revalidates worker/cleanup identity after one-use entry without permitting another attempt. Source-only staging checks RAM and identity before/after exclusive copying, preserves replaced files and closes partial failures. 22 staging/context,31 supervisor,23 transport,28 session,25 logger,37 selector cases and 126 active suites PASS. Next: exact private health/admission closure, existing module/helper/firmware payload binding and firmware-root transition. Historical seals unchanged; no live composition,candidate,signing,claim,target staging or phone/VM operation. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-staging.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
