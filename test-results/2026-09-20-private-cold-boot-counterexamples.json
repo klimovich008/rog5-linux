@@ -1,0 +1,129 @@
+{
+  "status": "PASS_COUNTEREXAMPLE_REPRODUCTION",
+  "authority": "none",
+  "physical": "NOT RUN",
+  "private_runtime": "UNBOUND",
+  "source_commit": "59928cce2e01585ea51f3d9cf391abc4635f2f7d",
+  "source_tree": "db9cfb39fd337484c7334cb77aa4cd70cd904417",
+  "cases": 7,
+  "optimized": 1,
+  "command": [
+    "python3",
+    "-O",
+    "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/next-integration-sources/counterexamples-r1/reproduce.py"
+  ],
+  "executor": "bounded source-review agent; coordinator reviewed fixture and results",
+  "duration_seconds": null,
+  "duration_note": "Not recorded for this standalone reproduction; no timing inferred.",
+  "cases_detail": [
+    {
+      "case": "actual_same_identity_rejects_identity6",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "ValueError",
+      "error": "identity fields",
+      "fixture": "Actual comparator; synthetic six-field value with matching historical bundle/release.",
+      "inert_events": []
+    },
+    {
+      "case": "controller_target_health_rejects_identity6",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "ValueError",
+      "error": "identity fields",
+      "fixture": "Complete actual target_health and comparator; synthetic complete healthy proof.",
+      "inert_events": []
+    },
+    {
+      "case": "location_role_compares_discovery3_to_prior6",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "ValueError",
+      "error": "target recovery boot changed",
+      "fixture": "Complete actual location_role, comparator, exact_json; matching three projected fields.",
+      "inert_events": []
+    },
+    {
+      "case": "observe_old_script_call_rejects_successor_signature",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "TypeError",
+      "error": "script() missing 2 required positional arguments: 'contract' and 'owner'",
+      "fixture": "Complete actual observe; gate/USB/command/receipt/clock are inert; actual successor script definition has no executable globals.",
+      "inert_events": [
+        "inert receipt save",
+        "inert receipt save",
+        "inert discovery-000"
+      ]
+    },
+    {
+      "case": "observe_old_validate_call_rejects_successor_signature",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "TypeError",
+      "error": "validate() missing 2 required positional arguments: 'contract' and 'owner'",
+      "fixture": "Same actual observe; only script generator is replaced by an explicitly compatible inert fixture to expose the next call.",
+      "inert_events": [
+        "inert receipt save",
+        "inert receipt save",
+        "inert discovery-000",
+        "inert health"
+      ]
+    },
+    {
+      "case": "observe_compares_successor_proof6_to_discovery3",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "ValueError",
+      "error": "health proof identity changed",
+      "fixture": "Actual observe and exact_json; both prior arity boundaries use inert compatible fixtures; synthetic proof models successor identity6 return shape only.",
+      "inert_events": [
+        "inert receipt save",
+        "inert receipt save",
+        "inert discovery-000",
+        "inert health"
+      ]
+    },
+    {
+      "case": "post_capture_observe_rejects_previous_identity6",
+      "result": "EXPECTED_INTERFACE_FAILURE",
+      "exception_type": "ValueError",
+      "error": "identity fields",
+      "fixture": "Complete actual observe/previous_identity/comparator; stops before receipt/discovery/health calls.",
+      "inert_events": []
+    }
+  ],
+  "sources": [
+    {
+      "label": "controller",
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-iommu-controller-r1/controller.py",
+      "sha256": "aef9ef27495794e7b96bc8202d56b0bb6369b2c2348049f7d1614c5cd3bc12eb",
+      "bytes": 15879
+    },
+    {
+      "label": "wrapper",
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-iommu-live-driver-r1/health-read-callbacks.py",
+      "sha256": "070972b6394b44c92e2679cafde685351b5076ab5da7e433aeaeaae16008f96a",
+      "bytes": 16226
+    },
+    {
+      "label": "actions",
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-iommu-live-driver-r1/action-callbacks.py",
+      "sha256": "f655b7a39ff599d593393cff41fbad33198486d550bf000f82dd15577cde314e",
+      "bytes": 17022
+    },
+    {
+      "label": "successor",
+      "path": "/home/deck/.local/state/rog5-display-cohort-20260920-r1/assembled-after/health.py",
+      "sha256": "f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892",
+      "bytes": 19104
+    }
+  ],
+  "reproduction_sha256": "6525e89f7767312bdf82b170fa250a59e10a2d7b98805d258efc42dd6f609958",
+  "result_sha256": "e0a39ca35fca69360d0f1f0d3655a1aec69ec9e91d7e29d98f20ac620746dc7e",
+  "full_errors_sha256": "2feb9090b27a29e1cb5c0c07c32c15e935a69ebc897375524393319e7c79ec81",
+  "scope": "These are conditional source-interface counterexamples, not runtime execution or integration qualification.",
+  "limitations": [
+    "Actual functions extracted through AST; all private top-level imports and effects excluded.",
+    "Synthetic identity6 deliberately uses historical matching bundle/release to isolate interface shape; not an authenticated production identity.",
+    "Successor health function bodies do not execute; wrong call arity fails first. Later shape comparisons use explicit compatible inert fixtures.",
+    "Source fixture confirms seven conditional integration failures; no production fix or installed-phone failure inferred."
+  ],
+  "phone_operations": 0,
+  "producer_executions": 0,
+  "private_imports": 0
+}

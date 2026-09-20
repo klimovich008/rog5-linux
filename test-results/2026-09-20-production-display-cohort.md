@@ -240,3 +240,26 @@ from the inspected boundary. Do not guess a future boot UUID or reuse a historic
 seal. Continue the same Pro conversation with these actual sources before further
 integration changes. Runtime UNBOUND; installed qualification unchanged; physical
 NOT RUN; S06/R01 and prior VM failures remain FAIL.
+
+
+### Downstream cold-boot counterexamples
+
+At source59928cce, the collected actual IOMMU controller and health wrapper
+reproduce seven conditional failures under Python -O: identity6 is rejected by
+the controller comparator, target-health and post-capture paths; discovery3
+conflicts with prior/provided identity6; target health generator and validator
+call sites omit contract/owner. The complete actual function definitions execute
+with inert private effects, and the actual successor definitions demonstrate
+arity errors before their bodies. These are interface failures, not phone results.
+
+[Counterexample receipt](2026-09-20-private-cold-boot-counterexamples.json) records
+exact source, fixture and error hashes. The coordinator reviewed the bounded
+agent's executed fixture and results; standalone duration was not recorded.
+No production code, seal, claim or private runtime changed. Current129-suite
+qualification remains scoped to its frozen caller implementation.
+
+The same Oracle conversation is receiving the actual downstream sources, complete
+current ten-file production cohort, patched callers, tests and full counterexample
+tracebacks. Browser-only6Pro/Pro is requested; follow the retained session
+`rog5-cold-boot-integratio` rather than submit a duplicate. A live consultation
+is neither a completed proposal nor qualification. No phone or VM operation.
