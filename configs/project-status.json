@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production display session passes offline; matched health/logger/staging composition pending",
+  "phase": "Production display logger and session pass offline; full-health/staging composition pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Integrated session now owns one production 14-module display dispatch, continuously reserves 1800 seconds for fallback, closes the logger before final health, and preserves failures through cleanup. 23 session cases, 23 transport cases, 37 selector cases and 123 active suites PASS. Four historical regressions and isolated stale-health control fail as expected. Next: bind and qualify existing full-health/logger/staging/source admission to the production cohort; qualify firmware root transitions. No live composition, candidate, signing, claim, target staging or phone/VM operation. Artifacts and sealed controller unchanged. Physical NOT RUN; S06/R01 and historical Denial VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-production-display-session.md"
+  "next": "Kernel logger now binds the exact production identity/source, preserves interruption failures and requires complete local process-group closure. Actual logger/session connection and remote read-only identity loop pass host fixtures. 25 logger,25 session,10 component,37 selector cases and 124 active suites PASS; three historical cleanup controls fail as expected. Next: qualify existing full-health checker against production identity/trial state, then exact staging/source admission; qualify firmware root transitions. No live composition,candidate,signing,claim,target staging or phone/VM operation. Artifacts and sealed controller unchanged. Physical NOT RUN; S06/R01 and historical Denial VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-20-production-kernel-logger.md"
 }

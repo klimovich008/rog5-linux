@@ -3795,3 +3795,20 @@ to their real callers before interpreting failures. The 23 session cases took
 no rebuild or phone trial was necessary. Isolate old health ordering in a working
 successor when incompatible legacy phases would otherwise fail first. Repeated
 unchanged upstream research is not a substitute for this integration work.
+
+
+### Close logger ownership before releasing identifiers (2026-09-20)
+
+A logger needs the same process-group proof as an action transport. Retain its
+leader until group cleanup, then publish closure; direct-child exit alone misses
+surviving descendants. Detach pidfd ownership before close and clean each stream
+independently so an fsync failure cannot turn a retry into a reused-FD close.
+Preserve the original startup exception even if cleanup or evidence publication
+fails. Check trailing output after child closure.
+
+Embedding the exact verified identity reader avoids another divergent copy, but
+expands stdin beyond small-pipe assumptions. Use bounded nonblocking transfer
+inside readiness time. Execute the generated program against inert I/O, not only
+its builder. The25 logger cases took3.27 seconds; real child ownership and virtual
+remote elapsed time remain separate evidence. A new module fixture is unnecessary
+for this userspace repair; reuse the proven stop function and existing build.
