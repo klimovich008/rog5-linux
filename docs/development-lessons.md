@@ -3560,3 +3560,18 @@ a fixture's earlier ordinary shutdown callback precedes a later BEFORE observer.
 Use explicit after-handler ordering and require the complete phase sequence;
 keep this distinction from a real subclass vfunc. The final8.683s GTK and9.134s
 Mousepad checks qualify the seam without another394s full VM or compositor build.
+
+
+Window-to-quit capture selection (2026-09-20): a368.623s VM reached an empty GTK
+window list but never logged the qualified quit-return marker. Presence of that
+marker in a component run does not prove call entry in another run. Prefer one
+bounded instruction snapshot in the observed interval over another marker or
+unchanged full VM. Reuse the established reader and capture guards; an explicitly
+selected window mode must stop admitting samples when any later phase appears,
+including shutdown without quit return. Qualify inside-action delay versus a
+post-return hold in the small actual GTK fixture before spending another full VM.
+Publish selected observations and hashes; retain raw diagnostic payloads privately.
+
+Keep emulation scopes separate: actual GTK under QEMU-user validates callback
+behavior and stage logs; native ARM64 register capture belongs in the existing
+ARM64 system-VM/API fixture. Do not ptrace the host emulator as an ARM64 task.

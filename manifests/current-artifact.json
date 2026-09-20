@@ -2264,6 +2264,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-quit-return-20260920-r1"
+    },
+    "quit_return_vm": {
+      "status": "VM FAIL Foot0/Mousepad137; empty GTK window list observed, outer quit return and shutdown not observed",
+      "source_commit": "1b60def8afa1cf075c11a3b6a5f1e4e257640c15",
+      "source_tree": "1c814ae8f25fb30421bfa9e582f7f3378a7613d9",
+      "evidence": {
+        "path": "test-results/2026-09-20-quit-return-vm-qualification.json",
+        "sha256": "fc0f0ccff8819c7a280dc802a97ac212477fc7386e51fcc47ffc08edf1196c26",
+        "bytes": 74414
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-quit-return-vm-20260920-r1"
     }
   },
   "denial_phone_linkage": {

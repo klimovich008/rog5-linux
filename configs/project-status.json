@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Quit-return observer qualified; full Denial Mousepad close remains FAIL",
+  "phase": "VM last-window removal observed; quit return still unobserved before Mousepad137",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Final source71680178 qualifies optional APP_QUIT_RETURN with9 host cases (5 fail on old source),33 total normal/-O cases, actual ARM64 GTK delay/hold discrimination and packaged Mousepad/Weston close0. Corrected GTK fixture8.683s puts internal250ms delay before quit return and held250ms delay after it. Mousepad9.134s records ZERO\u2192QUIT_RETURN\u2192SHUTDOWN_BEFORE; normal path stays within12records/1536bytes. Prior three probe binaries are unchanged. Initial fixture callback-order issue was corrected and retained separately. Next use the qualified quit variant in one bounded Denial VM with no incompatible stage/ptrace helper, unchanged close limits and no new compositor build; distinguish missing quit return from returned quit with later holds/dispatch. Prior393.923s VM FAIL remains; no phone result inferred or independent graphics gate added. Phone rows remain NOT RUN; S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-20-quit-return-probe.md"
+  "next": "One VM from1b60def8 fails in368.623s: Foot0/Mousepad137. Qualified quit DSO logs WINDOW_REMOVED_ZERO284.890995632 but no APP_QUIT_RETURN or shutdown. No sampling helper was staged. Both apps map/focus, normal VM poweroff and exact input/runtime checks pass; /var unmount still fails. Missing quit return is not proof of call entry or deadlock. Next qualify an explicit last-window gate in the existing bounded PC/stack helper using actual GTK/QEMU-user lifecycle records for selection and the small ARM64 system-VM/API fixture for native ptrace; QEMU-user is not a native ARM64 register target. Arm only after ZERO; invalidate on any later phase, preserve1200ms total/no reset, identity/append-only/detach guards and old sync mode. Do not repeat unchanged VM, widen close grace, rebuild Denial or add another marker. Keep raw diagnostics private. Phone graphics remains independent; physical rows NOT RUN and S06/R01 FAIL unchanged.",
+  "evidence": "test-results/2026-09-20-quit-return-vm.md"
 }
