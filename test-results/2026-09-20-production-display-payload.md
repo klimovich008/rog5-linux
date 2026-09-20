@@ -112,3 +112,46 @@ Post-publication validation: mobile-status8 cases PASS; artifact inventory595
 sets PASS (large/private byte and physical verification explicitly NOT RUN);
 nine baseline/source/historical-body hashes unchanged; git diff --check PASS.
 Metadata-only publication does not trigger a second unchanged integrated run.
+
+
+## Adviser retrieval update (source remains unchanged)
+
+Oracle's original browser review completed in41m30s. Its response proposes an
+import-free source-cohort preflight and checked-byte dependency loading across
+session/transport/health/logger. The actual private input reader enforces an
+exact format/files schema, so the proposed authenticated source-projection field
+needs a separately reviewed successor producer. Historical input locks are not
+repinned. No proposed code has been applied; the adviser's32 scratch tests are
+not local verification. The current QUERY counterexample remains unresolved.
+
+The response's patch and ZIP were not captured as artifacts. Retrieval from the
+authenticated bound conversation returned404 for both. Session
+`rog5-cohort-inline-delivery` follows the same conversation and requests the
+already-prepared diff inline, without repeating the review. Original Oracle
+metadata verified selected Latest/gpt-6-pro and Pro thinking; the follow-up
+skipped model reselection, so the bound tab was independently checked as6Pro,
+with Pro thinking logged. No paid API or weaker mode was used.
+
+Independent firmware-root work obtained all75 SHA-512-verified inputs at Alpine
+aports c3ef5d10e6ef6528852c51f0564963e2f8c1be19 for BusyBox1.37.0-r31. All44
+patches were inventoried. switch_root.c and direct filesystem helpers match
+upstream bytes; applicable ash changes were applied. Strict whole-tree source
+reconstruction stopped after36 patches on an unrelated awk.tests hunk. This is
+partial source reconstruction, not a build or binary reproducibility proof.
+Forty relevant kernel/repository/BusyBox excerpts retain exact source hashes.
+The retained payload init differs from current tracked init, explicitly recorded.
+No APKBUILD, switch_root, namespace, firmware request, VM or phone was executed.
+
+The separate firmware briefing's text and ZIP upload attempts both failed before
+prompt submission (sessions rog5-firmware-root-lifetime and
+rog5-firmware-root-lifetime-r2). Further unchanged upload retries were stopped.
+The packet remains private at rog5-display-cohort-20260920-r1/firmware-review.
+Firmware-root qualification remains NOT RUN; no firmware fix is proposed here.
+This update changes status/lessons only; prior127-suite qualification is retained
+for its exact implementation and is not described as a newly executed check.
+
+Checkpoint validation personally executed: check-mobile-status.py PASS0.041s;
+optimized test-mobile-status.py8 cases PASS0.130s wall; git diff --check PASS.
+Headless contract, mobile contract, current artifact pointer and historical
+current-state body retain their preceding SHA-256 identities. No unchanged
+integrated suite or kernel/Denial build was rerun.

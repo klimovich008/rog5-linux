@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Exact display payload passes offline; production admission closure pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Oracle Pro review received; source-cohort repair awaits code delivery**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Two exact14-module/helper/firmware payloads match with notices and no authority.95 focused cases and 127 active suites PASS. Actual source-cohort counterexample still dereferences removed QUERY; Oracle Pro browser session rog5-production-cohort-admission is pending with verified Pro selection. Next: production source/admission binding and firmware-root transition. Historical seals/current board pointer unchanged; no candidate,signing,claim,VM,target staging or phone operation. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-payload.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Qualified display payload is unchanged. Oracle Pro identifies stale source closure and proposes checked import-free binding; no proposed code applied or local repair PASS. Original review completed; same-conversation inline delivery session rog5-cohort-inline-delivery is pending after patch/ZIP404. Firmware-root source packet is prepared; two upload attempts failed before submission. Preserve private seals, current board pointer and consumed claims. No phone/VM/candidate/signing/claim operation; physical NOT RUN, S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-payload.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

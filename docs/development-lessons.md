@@ -3860,3 +3860,16 @@ Exercise source-cohort validation separately from session fixtures that substitu
 admission. The direct production-cohort reproduction caught a removed QUERY
 reference hidden by that substitution. Oracle Pro now advises complex fixes;
 retain session IDs and verify selected Pro effort before accepting a proposal.
+
+
+### Verify adviser output delivery before relying on its tests (2026-09-20)
+
+The first Oracle Pro review took41m30s, but its proposed patch/ZIP returned404
+and were absent from the saved artifacts. Its scratch-test claim is therefore
+adviser evidence only, not a local result. Preserve the response and resume the
+same conversation for inline code; do not claim implementation or repeat the
+review. Request inline patches up front and attach exact source bytes with
+hashes. The local preceding patches applied normally even though the adviser
+needed recount on its flattened text packet; do not repair historical files
+from a transport representation. Verify the recorded model/effort and, when a
+follow-up skips model selection, the bound tab's visible model too.
