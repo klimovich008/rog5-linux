@@ -3967,3 +3967,14 @@ chips. Submit once only after checking them and the empty conversation, then
 retain the matching user ID, visible6Pro and source-specific acknowledgement.
 Use the existing session's live reader for retrieval; its earlier error metadata
 and terminal notification remain historical, not the new answer's status.
+
+
+Touch runner qualification (2026-09-20): test cancellation during handler
+restoration as well as command execution. A latched first SIGINT can otherwise
+become a successful return; check after restoration while preserving an existing
+exception. The actual before/after regression and bounded process-tree tests
+cover this boundary. Preserve the disk-backed negative control and reap owned
+children before removing scratch. Before the integrated board tier, restore the
+retained schema-tool PATH: the missing prerequisite stopped the first run after
+23.364s; the unchanged source then passed all8suites in146.160s. Do not repeat
+the unaffected129-suite active tier or full kernel build for these test additions.

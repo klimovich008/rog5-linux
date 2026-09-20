@@ -439,3 +439,47 @@ the current source and complete failure. Qualified0010, runtime UNBOUND, one-use
 protections, historical results and installed identities remain unchanged.
 No phone, VM, real claim, signing, candidate or protected-storage operation ran.
 Physical results remain **NOT RUN**.
+
+
+### Touch input-core and cancellation runner integrated qualification (2026-09-20)
+
+Source `1f936857dd6fdd97e2135ec250abba0546dc9b88`, tree
+`73f2b9222ccc75bc0f958a5b7259dfe18a2d256e`, now commits the companion
+fixture and two mandatory board-tier entries. Production touch/DT code is
+unchanged. The [qualification receipt](2026-09-20-touch-input-core-qualification.json)
+records commands, bounds, every changed source file, suite timings and raw
+JSON/JUnit/log hashes. Private paths remain in the coordinator checkpoint.
+
+The first integrated run stopped after23.364s:4PASS,4BLOCKED,0FAIL,0SKIPPED.
+DT-schema commands were absent from PATH. Supplying the retained schema-tools-r2
+environment resolved that prerequisite without source changes. The complete
+rerun passed **8suites,0FAIL,0BLOCKED,0SKIPPED,378NOT_SELECTED in146.160s**
+under1GiB/no-swap/64-task aggregate limits and existing suite deadlines. This
+includes the13delivered-event/18mutant/32exact-source checks,20runner scenarios
+plus the late-SIGINT regression, and the existing lifecycle, regulator, GENI and
+binding suites. The old27/8 lifecycle fixture was executed as its separate suite;
+the new input-core test itself does not execute it. No full kernel rebuild ran.
+
+The Pro cleanup bundle passed all434 internal checksums. Independent review
+then demonstrated a remaining first SIGINT during handler restoration: the
+original helper latched it but returned success (0.053277s negative result).
+A final checkpoint after restoring handlers fixes this narrow return boundary;
+the coordinator ran the same regression against corrected code (PASS,0.047420s).
+The public runner passed20scenarios plus that late signal in10.641694s, and
+30race-stress scenarios plus an ordering negative control passed in9.803864s.
+These focused results preceded the integrated run. An independent Astra reviewer
+found no blocking issue in the correction or wiring. Exact code and results were
+sent back to the same6Pro/Pro conversation; its final feedback remains pending.
+
+The separate recovery second-close proposal arrived after960.473s through the
+existing event watcher. Incremental patch SHA256:
+`ff60e8ef36d5c0a863a8992a93cfcc21d2c86ffc1767f9071701f5f19cbdbadc`.
+Focused test SHA256:
+`27bcb82a7dc7d94be1785a81bf9332727b68aff82f100aacb8a607a1c8ec0635`.
+Both match the response. Its14adviser-side passes in49.609542s are **not local
+qualification**; apply/test on disposable source copies next. It remains
+unintegrated and the demonstrated historical failure remains recorded.
+
+All phone, VM, signing, candidate, claim and protected-storage operations remain
+absent. Physical touch/rails/PM and evdev/libinput remain NOT RUN. The new fixture
+uses serial kernel lock/RCU/timer substitutes; it does not prove hardware behavior.

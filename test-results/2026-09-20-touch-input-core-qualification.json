@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "scope": "offline host exact-source extracted tests; not a kernel build or physical qualification",
+  "status": "PASS",
+  "source_commit": "1f936857dd6fdd97e2135ec250abba0546dc9b88",
+  "source_tree": "73f2b9222ccc75bc0f958a5b7259dfe18a2d256e",
+  "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "command": "PATH=\"$RETAINED_SCHEMA_TOOLS/bin:$PATH\" ROG5_LINUX_SOURCE=\"$EXACT_LINUX_SOURCE\" ROG5_TEST_REPORT_DIR=\"$NEW_REPORT_DIRECTORY\" bash scripts/host/test-repository-linux.sh board",
+  "bounds": {
+    "memory_max_bytes": 1073741824,
+    "swap_max_bytes": 0,
+    "tasks_max": 64,
+    "deadlines": "per-suite configs/repository-tests.json"
+  },
+  "duration_seconds": 146.1604759399779,
+  "counts": {
+    "PASS": 8,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 378
+  },
+  "tests": [
+    {
+      "path": "scripts/device/test-rog5-touch-lifecycle.py",
+      "status": "PASS",
+      "duration_seconds": 7.3992468870128505
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+      "status": "PASS",
+      "duration_seconds": 0.7866133520146832
+    },
+    {
+      "path": "scripts/device/test-ams678-regulator-errors.py",
+      "status": "PASS",
+      "duration_seconds": 1.3546918840147555
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding.py",
+      "status": "PASS",
+      "duration_seconds": 83.70441202796064
+    },
+    {
+      "path": "scripts/device/test-rog5-geni-mode.py",
+      "status": "PASS",
+      "duration_seconds": 1.4300558009999804
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-binding.py",
+      "status": "PASS",
+      "duration_seconds": 5.107887636986561
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core.py",
+      "status": "PASS",
+      "duration_seconds": 21.474453800008632
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core-runner.py",
+      "status": "PASS",
+      "duration_seconds": 10.897976670996286
+    }
+  ],
+  "report_sha256": "175cc9cb0279a21d54fd7c598aa5a9e508a4cb09bc66223a89a71ba26e5365d8",
+  "junit_sha256": "e94e0b9f30c67a6708217ba01d5dec1c1e2319a1e0cf98957a41d27bbb8a8b7c",
+  "full_log_sha256": "4607a34f90d2fd46c89e77991f0da6af90ecdbd997b3f6be11716aa546f344a4",
+  "prior_attempt": {
+    "counts": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 4,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 378
+    },
+    "duration_seconds": 23.364229583006818,
+    "reason": "DT-schema commands absent from PATH; retained existing schema-tools-r2 environment then supplied explicitly; source unchanged"
+  },
+  "focused_runner": {
+    "scenarios_pass": 20,
+    "late_sigint_pass": 1,
+    "duration_seconds": 10.64169427799061,
+    "race_stress_pass": 30,
+    "stress_seconds": 9.803864051995333,
+    "ordering_negative_rejected": true
+  },
+  "source_identities": {
+    "driver_sha256": "d2ff4063df516a316b3716c841b99d82643474bfc07c63a946cdb8bed706c59f",
+    "composed_unit_sha256": "9a4aff51520f8ace82384a26711608dab245250c79c35e97f6ad525c1a5061ad"
+  },
+  "changed_source_files": [
+    "configs/repository-tests.json",
+    "scripts/device/fixtures/fts3658u-input-core/README.md",
+    "scripts/device/fixtures/fts3658u-input-core/boundary.h",
+    "scripts/device/fixtures/fts3658u-input-core/cases.c",
+    "scripts/device/fixtures/fts3658u-input-core/original-runner.py",
+    "scripts/device/fixtures/fts3658u-input-core/owned_process.py",
+    "scripts/device/fixtures/fts3658u-input-core/runner-regression.py",
+    "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
+    "scripts/device/fixtures/fts3658u-input-core/types.h.in",
+    "scripts/device/test-rog5-touch-input-core-runner.py",
+    "scripts/device/test-rog5-touch-input-core.py",
+    "scripts/host/test-repository-linux.sh"
+  ],
+  "phone_operations": 0,
+  "vm_operations": 0,
+  "physical": "NOT RUN",
+  "limitations": [
+    "Serial substitutes for kernel locking/RCU/timers",
+    "No kernel registration, evdev/libinput, ARM64 or physical touch/rail/PM validation",
+    "Catchable cancellation tested; SIGKILL, process death and uninterruptible I/O excluded",
+    "Outer repository reporter TERM-to-KILL grace unchanged"
+  ]
+}
