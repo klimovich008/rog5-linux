@@ -2380,5 +2380,19 @@
     "physical_status": "NOT RUN",
     "authority": "none; host permission fixture",
     "candidate": null
+  },
+  "touch_input_semantics": {
+    "status": "PASS offline touch input API semantics; physical NOT RUN",
+    "source_commit": "d75378a638a26b09ccc26c030112b53ed5d228d8",
+    "source_tree": "6c1a1ca7bdada4888b303a65c2f7abc0a791f930",
+    "evidence": {
+      "path": "test-results/2026-09-20-touch-input-semantics-qualification.json",
+      "sha256": "99a7d755bd4f987292b7ed9138b7e32a68d27ac90f9b29b0377ee079698d0a4b",
+      "bytes": 151823
+    },
+    "driver_unchanged": true,
+    "module_rebuilt": false,
+    "physical": "NOT RUN",
+    "candidate": null
   }
 }

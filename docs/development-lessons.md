@@ -3625,3 +3625,11 @@ and elapsed time minus CPU is not runnable wait. Preserve inventory truncation
 while identifying complete CPU records. Keep this VM outcome separate from
 phone graphics readiness and stop unchanged captures once they cease to change
 which code can justifiably be fixed.
+
+Touch input semantics (2026-09-20): a no-op pointer-emulation stub can hide a
+missing contact path even while slot-state tests pass. Couple the actual driver
+to the pinned kernel MT initialization, pointer emulation and tracking-ID helpers;
+exercise wraparound and release with semantic mutations. Distinguish observed
+input API requests from input.c filtering, evdev/libinput delivery and physical
+calibration. Reuse unchanged qualified driver/module bytes: the final focused
+check took6.72s, while no phone kernel rebuild was needed.

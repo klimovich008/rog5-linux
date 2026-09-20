@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Native close contention measured; resume ROG5 graphics prerequisites",
+  "phase": "Touch input API semantics covered; retained graphics artifacts match",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Three native ARM64 component runs: guarded PC differs from prior Denial routine; loaded non-ptrace close FAIL137 in2.14s, matched idle PASS0 in1.17s. Six CPU samples each show loaded0.45s CPU/1.008s wall versus idle0.88s/1.002s; post-window loaded main thread executes and is preempted. No shared stuck instruction, GLib defect or original Denial scheduling cause established. Stack caller unavailable; task/FD inventory truncation retained. No deadline widening or product-source change. Stop unchanged PC captures and full Denial repeats. Resume kernel-first work: inspect current unsigned board, corrected panel and disabled touch artifact closures against latest qualification and trial prerequisites; fix only a demonstrated missing offline prerequisite for60Hz scanout/blank, touch or A660. Reuse matching builds. Historical signed136f lacks current fixes. No candidate, signing, phone operation or Ready request is authorized. Prior full Denial VM Foot0/Mousepad137 and /var unmount FAIL remain. Phone physical NOT RUN, S06/R01 FAIL unchanged.",
-  "evidence": "test-results/2026-09-20-native-close-capture.md"
+  "next": "Retained production Image, composed DT, corrected panel, touch module and relevant dependencies matched recorded bytes; no driver or module rebuild. Frozen touch harness passes27 cases,8 mutation controls and14 exact Linux function comparisons; active host tier passes112 tests. Coverage is capability-filtered input API requests, not input.c/evdev/libinput or physical touch. Touch providers remain disabled; I2C FIFO/DMA, rail parents and physical cleanup remain unknown. Next kernel-first step: reconcile the exact corrected display artifact closure with the existing bounded 60Hz scanout/blank recording and recovery controller before any separately authorized composition/trial. Preserve historical signed136f; it lacks current fixes. No candidate, signing, phone operation or Ready request authorized. Prior Denial VM close/unmount failures and phone S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-20-touch-input-semantics.md"
 }
