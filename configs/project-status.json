@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production controller components pass offline; endpoint and admission composition pending",
+  "phase": "Production display endpoint and supervised assembly pass offline; live composition pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Production 14-module loader, retained firmware verifier and exact provider checkpoints implemented. Panel loads after MSM/Adreno; providers are rechecked immediately before consumers. 86 focused component checks and 118 active suites PASS. No automatic reprobe/DRM open. Next: bind the production endpoint and outer lifetime/one-use/recovery contracts, and qualify firmware root-transition assumptions offline. No live composition, candidate, signing, claim, target staging or phone operation. Current board/artifact pointer and sealed controller unchanged. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-production-display-controller.md"
+  "next": "Production endpoint, hash-pinned component assembly and supervisor adaptation implemented. Exact identity/topology and zero-command receipts are validated; durable entry precedes ACK and 14 inert insertions in the assembled host test. 64 new focused cases and 121 active suites PASS. Next: qualify outer transport/admission timing, exceptional descendant closure and firmware root transitions offline. Historical transport is too short for the draft 100-second supervisor. No live composition, candidate, signing, claim, target staging or phone/VM operation. Current board/artifact pointer and sealed controller unchanged. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-20-production-display-endpoint.md"
 }

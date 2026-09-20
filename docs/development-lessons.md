@@ -3723,3 +3723,24 @@ The firmware kernel reader uses init_task.fs. Matching PID1/caller roots and mou
 namespaces rules out common mismatches but cannot certify arbitrary future
 switch-root/unshare. Preserve that unresolved root-lifetime boundary instead of
 calling a successful userspace hash check firmware execution proof.
+
+
+### Exercise the assembled owner before issuing transport scope (2026-09-20)
+
+Share the loader's pure entry intent with its supervisor; compare it before
+durable one-use entry and host ACK. Test the real assembly with inert children
+and actual driver/core callbacks. The new endpoint/supervisor/component suites
+finished in about 6.46 seconds wall time and exposed identity/topology gaps and
+terminal-result errors without another kernel build or physical trial.
+
+Require explicit valid action and independent-cleanup receipts before PASS,
+including process closure. A BaseException can bypass an Exception catch while
+finally still publishes a result; preserve interruption as failure. Keep cleanup
+worker diagnostics within the existing record bound. Tests using shortened
+lifetimes need scheduling slack, while production budget arithmetic needs its
+own assertion. Increasing a component lifetime does not update outer transports.
+
+Keep successful brightness writes separate from the zero property: the backlight
+core may update that property before a failing callback. Match the framebuffer
+to the exact DRM master, not merely a common ancestor. Source hashes must cover
+the bytes actually executed; importing the path a second time reopens a race.
