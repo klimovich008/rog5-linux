@@ -325,3 +325,37 @@ owned-resource cleanup, but its full interruption path was not executed here.
 The existing Pro correction consultation already requests interruption coverage;
 retain these exact cases for local review of its answer. No proposal was applied,
 no running consultation was duplicated, and no phone operation occurred.
+
+
+### Narrow receipt-error correction evaluated locally (2026-09-20)
+
+Oracle returned replacement0011 SHA256
+`fd3e3f881708265f6d7caa9be09c6109123ace2b1d46992f53e93baccb114b31`.
+The complete ZIP SHA256
+`cb2d586bdb974a186ad2201e2def816cd7cf09075932b6ccc76f5158e2b9653e`
+matched its declaration; all33 contained checksum entries verified. Inline patch
+and test bytes also matched their declared hashes. Strict incremental application
+and reverse applicability passed on disposable exact source copies in0.00855s.
+
+Personally executed all28 original and25 added cases: **53 PASS**,0FAIL,0BLOCKED,
+120.616532s, serial Python3.13.5 `-O`,512MiB address-space ceiling and90-second
+batch deadlines. Two negative-control cases reproduced the original defect in
+4.976400s. These results are local offline source-fixture evidence, distinct from
+Pro's own logs. The correction permits authenticated fallback following an absent
+expectation or exact-complete expectation write error, after publishing a checked
+exclusion-only witness. It does not grant target health or retry authority.
+
+Partial/empty writes intentionally remain refused. Repeating the three direct
+controller interruption probes on corrected source took5.476919s; all preserved
+selection and denied a contract, but skipped fallback after capture closure.
+The actual outer launcher was also exercised with the existing inert credentials,
+claims and external-effects fixture in2.070354s: owned cleanup ran, interruption
+propagated, fallback was skipped and final launch result was absent. These four
+characterization passes reproduce unresolved recovery, not acceptance. Real OS
+signals/process death and root custody remain NOT RUN.
+
+The proposal is **not integrated**. A same-conversation Pro follow-up carries all
+eight current source files, full tests and new probe results, requesting a scoped
+writer-owned partial-publication and catchable-interruption solution. Historical
+failure evidence and qualified0010 remain intact; no phone/candidate/claim or
+signing operation occurred.
