@@ -425,3 +425,17 @@ for hostile Git repositories.
 This remains an offline successor patch. The original source pins, runtime
 refusal, signed artifacts, credentials, health seals and claims are unchanged.
 Actual private admission and downstream health/capture binding remain UNBOUND.
+
+## Checked private worker loader
+
+`0013-checked-worker-sources.patch` applies after 0012 to the assembled session.
+It supplies the worker's existing checked-loader interface for five fixed source
+paths, using an already-authenticated admission reader. It checks the complete
+public/private source set before executing captured code and before publishing
+cached modules. Changed inputs, source identity or consumer bindings refuse
+reuse. Public pins and the default private-worker refusal remain unchanged.
+
+The existing worker test wrapper now runs 91 cases, including 33 loader cases.
+The fixture README documents the synthetic authority boundary and limitations.
+Bootstrap authentication and the separate health/capture graph remain required;
+this patch issues no runtime authority, input lock, seal or claim.

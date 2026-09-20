@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Worker source and finalization regressions integrated; private loader unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Checked private worker loader integrated; bootstrap and health binding unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Source8fc77f16 passes all131 active suites locally in444.913s, including58 worker/source-identity/finalizer cases in25.231s. The16 focused finalizer tests also pass in2.044s; old-code failures remain as negative controls. Touch source1f936857 retains its8-suite board PASS. The default session still refuses the unqualified private worker. A focused Pro review now covers the checked private-source loader interface to authenticated admission inputs; no input lock, pin, seal or claim is issued. Runtime remains UNBOUND. No phone, VM, root, signing or candidate operation. Physical NOT RUN; S06/R01 and previous VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Source d3b4891e passes all 131 active suites locally in 476.291s, including 91 worker/source/finalization/loader cases in 66.467s. The 33 focused loader cases passed in 44.179s; both integration setup failures remain recorded. The fixed loader preserves authenticated input checks and default refusal; it does not authenticate the bootstrap or qualify the next health/capture binding. Touch source 1f936857 retains its 8-suite board PASS. Runtime UNBOUND. No phone, VM, root, signing, input lock, seal, claim or candidate operation. Physical NOT RUN; S06/R01 and previous VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

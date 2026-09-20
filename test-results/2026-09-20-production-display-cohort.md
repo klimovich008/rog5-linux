@@ -720,3 +720,56 @@ refusal and issue no replacement authority. Health/capture binding remains a
 later separate boundary. Runtime UNBOUND; no phone, VM, root, signing, claim,
 candidate or protected-storage operation. Physical NOT RUN; S06/R01 and all
 historical failures remain unchanged.
+
+## Checked private worker loader, offline integration
+
+Starting source: `caedd961ad606ff3b7ab5b42808d9ef8efb70ee6`, tree
+`47963a2f1cf68685d37274af27104b2874224dd5`. Frozen tested source:
+`d3b4891e7065981c0f938f3c10c27fa306b1361d`, tree
+`c7a10fc72d8cf1297b9a5ddd620e94f97b7e57d7`. The implementation is patch 0013
+and the existing mandatory worker suite's source assembly. Exact commands,
+file identities, timings and all 388 suite rows are retained in
+[loader qualification](2026-09-20-display-loader-qualification.json).
+
+The Pro proposal was retrieved from the matching completed 6Pro/Pro session;
+all 13 bundle checksums passed. Adviser-side 33 PASS in 31.929s is separate from
+the coordinator's 33 local PASS in 44.179s. Strict application/reverse/reapplication
+passed in 0.012s. The public patch and test retain those reviewed bytes:
+patch SHA256 `78961bddbe79c745df0838acc8064ba2288481aa9df6d600c83bf86aec377a59`,
+test SHA256 `45754db264fb325868534655d1dc0e5e25a881f5ef1a443ef74afd2ae2aef297`.
+The resulting session SHA256 is
+`03cbc1cf437a95a10ebb35caa4f180ac59e05ea1f4e8c532bd6f0ad02795fde5`.
+Independent regular-Astra source/packaging review found no blocking defect;
+it was static, without independent test execution.
+
+The fixed five-source loader retains the caller's already-authenticated input
+reader, anchor, owner and source identity. It preflights the complete graph,
+executes captured compiled bytes, rechecks before cache publication and refuses
+reuse after failure. One worker is shared by transport and logger. It does not
+authenticate an arbitrary provider or sandbox hostile Python. Tests fixture the
+input anchor, omitted preloaded graph, decoder and historical custody; actual
+input/schema/digest functions and source modules execute. Failed partial attach
+detaches its own references. Failure at the first check of an already attached
+handle can retain references, while guarded reuse still refuses the failed handle.
+
+Two coordinator packaging failures remain recorded. The first report launch
+stopped before suites in 0.071s because its output directory already existed.
+The next run completed 117 PASS, 1 FAIL, 13 BLOCKED in 377.607s: unprefixed
+`git apply --include` filters skipped admission patches inside repository scratch.
+The unchanged expected hash correctly refused those bytes. The corrected filter
+reproduced the reviewed admission and session bytes in 0.026s.
+
+**Final active tier: 131 PASS, 0 FAIL, 0 BLOCKED, 0 suite SKIPPED, 257 NOT_SELECTED in
+476.291s.** Three declared optional historical subchecks remain SKIPPED. All 91
+worker/source/finalization/loader cases passed in 66.467s; the unchanged 70-case
+cold-boot suite passed in 182.785s. The run used ordinary UID1000, 1GiB aggregate
+memory, no swap, 256 tasks and two configured workers; high-memory/shared-state
+suites remained serialized. No board or full kernel rebuild was performed.
+
+Default initialization still refuses the private worker. With the optional
+synthetically authenticated worker binding, full initialization reaches and
+refuses the unchanged health boundary. Health's sealed observer/capture imports
+and bootstrap authentication are the next unqualified source dependencies.
+No private lock, seal, pin, claim, signed candidate or installed image changed.
+No phone, VM, root or protected-storage operation occurred. Runtime UNBOUND;
+physical NOT RUN; headless S06/R01 and historical failures remain unchanged.

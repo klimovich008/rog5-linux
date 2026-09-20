@@ -4006,3 +4006,14 @@ Keep the old failure controls. Clean-CI packaging reused the public acceptance
 source and reconstructed the intermediate worker, avoiding duplicate full source
 copies and private consultation packets. One frozen active run passed131suites
 in444.913s; no unrelated board/kernel rerun was needed.
+
+Checked-loader packaging (2026-09-20): run cheap source assembly from the same
+repository scratch directory used by CI before the integrated tier. `git apply
+--include` matches the repository-prefixed path; an unprefixed filter silently
+skipped both admission patches inside `build/`, although the same command worked
+outside the repository. The exact output hash caught this before loader tests.
+The corrected assembly passed in0.026s. Also leave the report directory absent:
+the runner creates it exclusively. Preserve both setup failures. The unchanged
+Pro patch/tests then passed in the91-case suite, with131active suites passing
+in476.291s. Reuse existing fixtures and apply only required source sections;
+static review and a zero `git apply` exit status do not prove a selected hunk ran.
