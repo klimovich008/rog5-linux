@@ -10,6 +10,8 @@ compile_error!("stack capture requires ptrace capture");
 mod stack;
 #[cfg(all(close_stage, not(close_ptrace)))]
 compile_error!("stage capture requires ptrace capture");
+#[cfg(all(close_window, not(close_stage)))]
+compile_error!("window capture requires stage capture");
 #[cfg(close_stage)]
 #[path = "app-close-stage.rs"]
 mod stage;
@@ -297,7 +299,7 @@ fn publish_pc<W: Write>(out: &mut Records<W>, pid: u32, result: Result<(String, 
     }
 }
 // The wait shares the existing total probe budget. It never resets sampling
-// time at END and cannot hold up the caller's asynchronous TERM/kill path.
+// time at the selected stage and cannot hold up the caller's asynchronous TERM/kill path.
 #[cfg(close_stage)]
 fn await_stage(mut elapsed: impl FnMut() -> Duration,
     mut poll: impl FnMut() -> Result<stage::State, String>,
@@ -319,7 +321,8 @@ fn await_stage(mut elapsed: impl FnMut() -> Duration,
 fn stage_observation(root: &Path, timeout: Target, app: Target, uid: u32,
     path: &Path, start: Instant,
 ) -> Result<(String, Vec<u8>, Vec<String>), String> {
-    let gate = std::sync::Arc::new(stage::Gate::open(path, app.pid, uid)?);
+    let gate = std::sync::Arc::new(stage::Gate::open(path, app.pid, uid,
+        if cfg!(close_window) { stage::Mode::AfterWindow } else { stage::Mode::AfterSync })?);
     await_stage(|| start.elapsed(), || {
         check(root, timeout, uid, None, None)?;
         check(root, app, uid, Some(timeout.pid), Some("mousepad"))?;
@@ -354,7 +357,9 @@ fn run() -> Result<(), String> {
         let path = args.get(4).filter(|s| Path::new(s).is_absolute())
             .ok_or("stage build requires absolute lifecycle-log argument")?;
         out.reserved = SNAPSHOT_RESERVE;
-        out.add("stage-armed", 0, app.pid, b"trigger=shutdown-external-sync-END total_budget_ms=1200")
+        out.add("stage-armed", 0, app.pid, if cfg!(close_window) {
+            b"trigger=WINDOW_REMOVED_ZERO total_budget_ms=1200"
+        } else { b"trigger=shutdown-external-sync-END total_budget_ms=1200" })
             .map_err(|e| e.to_string())?;
         let result = stage_observation(Path::new("/proc"), timeout, app, 1000, Path::new(path), start);
         let captured = publish_pc(&mut out, app.pid, result).map_err(|e| e.to_string())?;
@@ -449,10 +454,13 @@ mod tests {
             let log=|phases:&[&str]|phases.iter().enumerate().map(|(i,p)|format!(
                 "ROG5_SETTINGS_SYNC phase={p}{} pid={} clock=CLOCK_MONOTONIC seconds={}.000000000\n",
                 if *p=="loaded" {" resolved=true"} else {""},app.pid,i+1)).collect::<String>();
-            let phases=["loaded","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END"];
-            fs::write(&path,log(&phases)).unwrap();fs::set_permissions(&path,fs::Permissions::from_mode(0o600)).unwrap();
+            let phases: &[&str]=if cfg!(close_window) { &["loaded","APP_RUN_BEGIN","WINDOW_REMOVED_ZERO"] }
+                else { &["loaded","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END"] };
+            fs::write(&path,log(phases)).unwrap();fs::set_permissions(&path,fs::Permissions::from_mode(0o600)).unwrap();
             assert!(stage_observation(root,timeout,app,uid,&path,Instant::now()).is_ok());
-            fs::write(&path,log(&["loaded","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END","SHUTDOWN_AFTER"])).unwrap();
+            let mut completed=phases.to_vec();
+            completed.push(if cfg!(close_window) { "APP_QUIT_RETURN" } else { "SHUTDOWN_AFTER" });
+            fs::write(&path,log(&completed)).unwrap();
             assert_eq!(stage_observation(root,timeout,app,uid,&path,Instant::now()).unwrap_err(),"stage-already-complete");
             assert!(stage_observation(root,timeout,Target{start:app.start+1,..app},uid,&path,Instant::now()).is_err());
             // Production validation is repeated after attach. Simulate stage

@@ -6,6 +6,9 @@ use std::{fs::{self, File, Metadata, OpenOptions}, os::unix::{fs::{FileExt, Meta
 #[derive(Debug, Eq, PartialEq)]
 pub enum State { Waiting, Ready, Complete }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Mode { AfterSync, AfterWindow }
+
 // Linux ARM64 overrides the asm-generic O_NOFOLLOW value for AArch32
 // compatibility (arch/arm64/include/uapi/asm/fcntl.h in the pinned source).
 // Reject other targets rather than silently applying another ABI's flags.
@@ -22,18 +25,19 @@ pub struct Gate {
     path: PathBuf,
     file: File,
     pid: u32,
+    mode: Mode,
     uid: u32,
     device: u64,
     inode: u64,
     prefix: Mutex<Vec<u8>>,
 }
 impl Gate {
-    pub fn open(path: &Path, pid: u32, uid: u32) -> Result<Self,String> {
+    pub fn open(path: &Path, pid: u32, uid: u32, mode: Mode) -> Result<Self,String> {
         if pid == 0 { return Err("stage-invalid-pid".into()); }
         let file=OpenOptions::new().read(true).custom_flags(NOFOLLOW | NONBLOCK)
             .open(path).map_err(|e| format!("stage-open: {e}"))?;
         let m=file.metadata().map_err(|e| format!("stage-stat: {e}"))?;
-        let gate=Self { path:path.into(),file,pid,uid,device:m.dev(),inode:m.ino(),prefix:Mutex::new(Vec::new()) };
+        let gate=Self { path:path.into(),file,pid,mode,uid,device:m.dev(),inode:m.ino(),prefix:Mutex::new(Vec::new()) };
         // Pin existing bytes now, before the first caller poll. Completed logs
         // remain Complete; opening one must never turn a stale END into Ready.
         gate.state()?;
@@ -60,7 +64,7 @@ impl Gate {
         if count!=bytes.len() || !bytes.starts_with(&prefix) {
             return Err("stage-log-shrunk-or-rewritten".into());
         }
-        let state=parse(&bytes,self.pid)?;
+        let state=parse(&bytes,self.pid,self.mode)?;
         *prefix=bytes;
         // An append can advance through the target phase while read_at runs.
         // Retry on the next bounded poll; never publish a stale Ready snapshot.
@@ -73,15 +77,22 @@ impl Gate {
     }
 }
 
-fn parse(bytes: &[u8], pid: u32) -> Result<State,String> {
+fn parse(bytes: &[u8], pid: u32, mode: Mode) -> Result<State,String> {
     if bytes.len()>MAX_BYTES || !bytes.is_ascii() { return Err("stage-log-encoding-or-limit".into()); }
     let text=std::str::from_utf8(bytes).map_err(|_| "stage-log-encoding")?;
     let complete=text.rfind('\n').map_or(0,|i|i+1);
     let tail=&text[complete..];
     if tail.len()>=127 || tail.bytes().any(|b| b<32 || b==127) { return Err("stage-line-limit-or-control".into()); }
-    let stages=["loaded resolved=true","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END",
+    let sync_stages=["loaded resolved=true","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END",
         "SHUTDOWN_AFTER","APP_RUN_END","APP_DISCONNECT_ONE_END","APP_OBSERVERS_REMOVED",
         "APP_UNREF_BEGIN","APP_UNREF_END","DSO_FINI"];
+    // This is a one-window diagnostic. NONZERO and repeated ZERO refuse the
+    // sample rather than guessing which removal belongs to the close request.
+    let window_stages=["loaded resolved=true","APP_RUN_BEGIN","WINDOW_REMOVED_ZERO",
+        "APP_QUIT_RETURN","SHUTDOWN_BEFORE","BEGIN","END","SHUTDOWN_AFTER",
+        "APP_RUN_END","APP_DISCONNECT_ONE_END","APP_OBSERVERS_REMOVED","DSO_FINI"];
+    let stages: &[&str]=match mode { Mode::AfterSync => &sync_stages, Mode::AfterWindow => &window_stages };
+    let ready_step=match mode { Mode::AfterSync => 5, Mode::AfterWindow => 3 };
     let mut step=0;
     let mut previous=None;
     for line in text[..complete].split_terminator('\n') {
@@ -98,12 +109,15 @@ fn parse(bytes: &[u8], pid: u32) -> Result<State,String> {
         if previous.is_some_and(|old|now<old) { return Err("stage-time-reversed".into()); }
         previous=Some(now);
         // The explicitly built no-unref control omits these two records.
-        if step==9 && phase=="DSO_FINI" { step=11; }
+        if mode==Mode::AfterSync && step==9 && phase=="DSO_FINI" { step=11; }
+        // Shutdown is sufficient to invalidate the interval even if the action
+        // interposer did not observe a quit return on this execution path.
+        if mode==Mode::AfterWindow && step==3 && phase=="SHUTDOWN_BEFORE" { step=4; }
         if phase!=stages[step] { return Err("stage-order-or-unknown-phase".into()); }
         step+=1;
     }
     if !tail.is_empty() { return Ok(State::Waiting); }
-    Ok(if step<5 { State::Waiting } else if step==5 { State::Ready } else { State::Complete })
+    Ok(if step<ready_step { State::Waiting } else if step==ready_step { State::Ready } else { State::Complete })
 }
 
 #[cfg(test)]
@@ -122,7 +136,7 @@ mod tests {
             let uid=writer.metadata().unwrap().uid();
             Self {dir,path,writer,uid}
         }
-        fn open(&self) -> Gate { Gate::open(&self.path,PID,self.uid).unwrap() }
+        fn open(&self) -> Gate { Gate::open(&self.path,PID,self.uid,Mode::AfterSync).unwrap() }
         fn append(&mut self, bytes: &[u8]) { self.writer.write_all(bytes).unwrap(); }
         fn stage(&mut self, phase: &str, tick: u32) { self.append(line(phase,tick).as_bytes()); }
         fn ready(&mut self) { for (i,p) in ["loaded resolved=true","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END"].iter().enumerate() { self.stage(p,i as u32); } }
@@ -165,11 +179,11 @@ mod tests {
     #[test]
     fn rejects_links_modes_ownership_and_nonregular() {
         let f=Fixture::new(); let link=f.dir.join("link"); symlink(&f.path,&link).unwrap();
-        assert!(Gate::open(&link,PID,f.uid).is_err());
-        assert!(Gate::open(&f.path,PID,f.uid+1).is_err());
-        assert!(Gate::open(&f.dir,PID,f.uid).is_err());
-        fs::hard_link(&f.path,f.dir.join("hard")).unwrap(); assert!(Gate::open(&f.path,PID,f.uid).is_err());
-        fs::remove_file(f.dir.join("hard")).unwrap(); fs::set_permissions(&f.path,fs::Permissions::from_mode(0o640)).unwrap(); assert!(Gate::open(&f.path,PID,f.uid).is_err());
+        assert!(Gate::open(&link,PID,f.uid,Mode::AfterSync).is_err());
+        assert!(Gate::open(&f.path,PID,f.uid+1,Mode::AfterSync).is_err());
+        assert!(Gate::open(&f.dir,PID,f.uid,Mode::AfterSync).is_err());
+        fs::hard_link(&f.path,f.dir.join("hard")).unwrap(); assert!(Gate::open(&f.path,PID,f.uid,Mode::AfterSync).is_err());
+        fs::remove_file(f.dir.join("hard")).unwrap(); fs::set_permissions(&f.path,fs::Permissions::from_mode(0o640)).unwrap(); assert!(Gate::open(&f.path,PID,f.uid,Mode::AfterSync).is_err());
     }
     #[test]
     fn refuses_replacement_truncate_rewrite_and_oversize() {
@@ -210,12 +224,12 @@ mod tests {
         // Owned fixture path, NUL-terminated bytes, no writer: without NONBLOCK
         // open would stall, so the enclosing test runner deadline is essential.
         assert_eq!(unsafe { mkfifo(name.as_ptr(),0o600) },0);
-        assert!(Gate::open(&path,PID,f.uid).is_err());
+        assert!(Gate::open(&path,PID,f.uid,Mode::AfterSync).is_err());
     }
     #[test]
     fn rejects_encoding_record_limits_and_incomplete_oversized_lines() {
         for bytes in [vec![255],vec![b'x';128],vec![b'x';1537],b"\n".to_vec()] {
-            assert!(parse(&bytes,PID).is_err());
+            assert!(parse(&bytes,PID,Mode::AfterSync).is_err());
         }
         let mut f=Fixture::new(); f.ready();
         for (i,p) in ["SHUTDOWN_AFTER","APP_RUN_END","APP_DISCONNECT_ONE_END","APP_OBSERVERS_REMOVED","APP_UNREF_BEGIN","APP_UNREF_END","DSO_FINI"].iter().enumerate() { f.stage(p,i as u32+5); }
@@ -234,4 +248,70 @@ mod tests {
         let mut f=Fixture::new(); f.ready(); let g=f.open();
         f.writer.set_len(0).unwrap(); assert!(g.state().is_err());
     }
+    fn window_log(phases: &[&str]) -> String {
+        phases.iter().enumerate().map(|(i,p)|line(p,i as u32)).collect()
+    }
+    const WINDOW: &[&str]=&["loaded resolved=true","APP_RUN_BEGIN","WINDOW_REMOVED_ZERO"];
+    #[test]
+    fn window_mode_readies_only_after_complete_zero_record() {
+        let mut f=Fixture::new();
+        let g=Gate::open(&f.path,PID,f.uid,Mode::AfterWindow).unwrap();
+        for (i,p) in WINDOW.iter().enumerate() {
+            let record=line(p,i as u32);
+            f.append(&record.as_bytes()[..record.len()-1]);
+            assert_eq!(g.state().unwrap(),State::Waiting);
+            f.append(b"\n");
+            assert_eq!(g.state().unwrap(),if i==2 {State::Ready} else {State::Waiting});
+        }
+        // A partial later record also revokes permission to capture.
+        let later=line("APP_QUIT_RETURN",3);
+        f.append(&later.as_bytes()[..20]); assert_eq!(g.state().unwrap(),State::Waiting);
+        f.append(&later.as_bytes()[20..]); assert_eq!(g.state().unwrap(),State::Complete);
+    }
+    #[test]
+    fn window_mode_invalidates_on_quit_or_shutdown_without_quit() {
+        for quit in [false,true] {
+            let mut phases=WINDOW.to_vec();
+            if quit { phases.push("APP_QUIT_RETURN"); }
+            for p in ["SHUTDOWN_BEFORE","BEGIN","END","SHUTDOWN_AFTER","APP_RUN_END",
+                "APP_DISCONNECT_ONE_END","APP_OBSERVERS_REMOVED","DSO_FINI"] {
+                phases.push(p);
+                let mut f=Fixture::new(); f.append(window_log(&phases).as_bytes());
+                assert_eq!(Gate::open(&f.path,PID,f.uid,Mode::AfterWindow).unwrap().state().unwrap(),State::Complete);
+            }
+        }
+    }
+    #[test]
+    fn window_mode_refuses_nonzero_duplicates_wrong_pid_and_reversed_time() {
+        for phases in [vec![WINDOW[0],WINDOW[1],"WINDOW_REMOVED_NONZERO"],
+            vec![WINDOW[0],WINDOW[1],"WINDOW_REMOVED_NONZERO",WINDOW[2]],
+            vec![WINDOW[0],WINDOW[1],WINDOW[2],WINDOW[2]],
+            vec![WINDOW[0],WINDOW[2]],vec![WINDOW[0],WINDOW[1],"APP_QUIT_RETURN"]] {
+            assert!(parse(window_log(&phases).as_bytes(),PID,Mode::AfterWindow).is_err());
+        }
+        let valid=window_log(WINDOW);
+        assert!(parse(valid.as_bytes(),PID+1,Mode::AfterWindow).is_err());
+        let bad=valid.replace("seconds=1.000000002","seconds=0.000000002");
+        assert!(parse(bad.as_bytes(),PID,Mode::AfterWindow).is_err());
+        assert!(parse(valid.as_bytes(),PID,Mode::AfterSync).is_err());
+    }
+    #[test]
+    fn window_mode_retains_append_only_and_file_identity_guards() {
+        for change in ["replace","truncate","rewrite","oversize","mode","link"] {
+            let mut f=Fixture::new(); f.append(window_log(WINDOW).as_bytes());
+            let g=Gate::open(&f.path,PID,f.uid,Mode::AfterWindow).unwrap();
+            assert_eq!(g.state().unwrap(),State::Ready);
+            match change {
+                "replace" => { fs::rename(&f.path,f.dir.join("old")).unwrap(); File::create(&f.path).unwrap(); }
+                "truncate" => f.writer.set_len(0).unwrap(),
+                "rewrite" => { f.writer.write_at(b"X",0).unwrap(); }
+                "oversize" => f.writer.set_len(1537).unwrap(),
+                "mode" => fs::set_permissions(&f.path,fs::Permissions::from_mode(0o644)).unwrap(),
+                "link" => fs::hard_link(&f.path,f.dir.join("hard")).unwrap(),
+                _ => unreachable!()
+            }
+            assert!(g.state().is_err(),"{change}");
+        }
+    }
+
 }

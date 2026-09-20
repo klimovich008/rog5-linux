@@ -87,7 +87,9 @@ int main(int argc, char **argv) {
                                 ('stack-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack']),
                                 ('stack-release', ['--cfg','close_ptrace','--cfg','close_stack']),
                                 ('stage-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage']),
-                                ('stage-release', ['--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage'])]:
+                                ('stage-release', ['--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage']),
+                                ('window-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage','--cfg','close_window']),
+                                ('window-release', ['--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage','--cfg','close_window'])]:
                 subprocess.run(['rustc', '--edition=2024', '-D', 'warnings', *flags,
                                 str(SOURCE), '-o', str(target / kind)], check=True, timeout=30)
             subprocess.run([str(target / 'tests'), '--nocapture', '--test-threads=1'], check=True, timeout=15)
@@ -95,7 +97,13 @@ int main(int argc, char **argv) {
                             'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
             subprocess.run([str(target / 'stage-tests'), '--test-threads=1', '--skip',
                             'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
-            for kind in ['release','intrusive','stack-release','stage-release']:
+            subprocess.run([str(target / 'window-tests'), '--test-threads=1', '--skip',
+                            'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
+            invalid = subprocess.run(['rustc', '--edition=2024', '--cfg', 'close_window', str(SOURCE),
+                                      '-o', str(target/'invalid')], capture_output=True, timeout=30)
+            self.assertNotEqual(invalid.returncode, 0)
+            self.assertIn(b'window capture requires stage capture', invalid.stderr)
+            for kind in ['release','intrusive','stack-release','stage-release','window-release']:
                 result = subprocess.run([str(target / kind), '1', '1', '2', '1'],
                                     capture_output=True, timeout=3)
                 self.assertEqual(result.returncode, 125)
