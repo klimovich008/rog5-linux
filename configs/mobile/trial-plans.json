@@ -130,7 +130,7 @@
         },
         {
           "path": "scripts/device/test-rog5-touch-lifecycle.py",
-          "sha256": "b51eb095f03827a80b1b676d8260dd01473b88f41008c0150350e0eb97fb93ad"
+          "sha256": "df5169af6694e545dcd56dd181e64cea2f546870988fd19e5f9807f865cb68bc"
         },
         {
           "path": "scripts/host/test-rog5-touch-module-build.py",
@@ -286,7 +286,7 @@
         },
         {
           "path": "scripts/device/test-rog5-touch-lifecycle.py",
-          "sha256": "b51eb095f03827a80b1b676d8260dd01473b88f41008c0150350e0eb97fb93ad"
+          "sha256": "df5169af6694e545dcd56dd181e64cea2f546870988fd19e5f9807f865cb68bc"
         }
       ],
       "physical_actions": [

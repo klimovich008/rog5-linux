@@ -43,6 +43,14 @@ must fail. `ROG5_LINUX_SOURCE` enables comparison of the retained IRQ
 and input core extracts with the exact supplied kernel. This is host behavior
 coverage; it does not establish physical IRQ or rail behavior.
 
+The event checks couple the real driver to the pinned kernel's slot allocation,
+pointer emulation and frame functions. They check direct-touch capabilities,
+tracking IDs, coordinates and contact releases at the input API boundary. The
+bounded event sink remains a fixture: it does not implement input.c's complete
+filtering/packetization, evdev delivery or libinput classification. Those and
+physical coordinate calibration require separate qualification. Do not infer
+an emitted userspace event stream from recorded API requests alone.
+
 A separately scoped builder uses the retained production kernel kit read-only:
 
 ```sh

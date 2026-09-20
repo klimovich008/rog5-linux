@@ -7,6 +7,7 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <linux/input-event-codes.h>
 #include "rog5_fts_protocol.h"
 #define CHECK(x)                                                      \
 	do {                                                          \
@@ -31,18 +32,17 @@ typedef int irqreturn_t;
 #define GPIOD_OUT_HIGH 1
 #define GPIOD_OUT_LOW 0
 #define BUS_I2C 1
-#define INPUT_MT_DIRECT 1
-#define INPUT_MT_DROP_UNUSED 2
-#define INPUT_MT_POINTER 4
-#define INPUT_MT_SEMI_MT 8
+#define INPUT_MT_POINTER 0x0001
+#define INPUT_MT_DIRECT 0x0002
+#define INPUT_MT_DROP_UNUSED 0x0004
+#define INPUT_MT_TRACK 0x0008
+#define INPUT_MT_SEMI_MT 0x0010
+#define INPUT_MT_TOTAL_FORCE 0x0020
+#define TRKID_MAX 0xffff
+#define TRKID_SGN ((TRKID_MAX + 1) >> 1)
 #define MT_TOOL_FINGER 0
-#define ABS_MT_POSITION_X 0
-#define ABS_MT_POSITION_Y 1
-#define ABS_MT_TOUCH_MAJOR 2
-#define ABS_MT_TRACKING_ID 3
-#define ABS_MT_TOOL_TYPE 4
-#define ABS_MT_SLOT 5
-#define EV_ABS 3
+#define ABS_MT_FIRST ABS_MT_TOUCH_MAJOR
+#define ABS_MT_LAST ABS_MT_TOOL_Y
 #define IS_ERR(p) ((intptr_t)(p) < 0 && (intptr_t)(p) > -4096)
 #define PTR_ERR(p) ((int)(intptr_t)(p))
 #define ERR_PTR(e) ((void *)(intptr_t)(e))
@@ -90,14 +90,21 @@ struct regulator {
 	unsigned enable_calls, disable_calls;
 };
 struct input_mt_slot {
-	int id, x, y, area;
+	int abs[ABS_MT_LAST - ABS_MT_FIRST + 1];
 	unsigned frame;
 };
 struct input_mt {
 	unsigned frame, flags, slot;
 	int num_slots;
 	int trkid;
+	int *red;
 	struct input_mt_slot slots[10];
+};
+struct fixture_absinfo {
+	int minimum, maximum, fuzz, flat, value;
+};
+struct fixture_event {
+	int type, code, value, slot;
 };
 struct input_dev {
 	const char *name;
@@ -108,6 +115,12 @@ struct input_dev {
 	int event_lock;
 	bool valid, registered;
 	unsigned syncs;
+	unsigned long evbit[1], keybit[12], propbit[1], absbit[1];
+	struct fixture_absinfo *absinfo;
+	struct fixture_absinfo axes[ABS_CNT];
+	int touch;
+	struct fixture_event events[4096];
+	unsigned event_count;
 };
 struct action {
 	void (*fn)(void *);
@@ -276,62 +289,92 @@ static void synchronize_irq(unsigned irq)
 		pthread_cond_wait(&irq_cond, &irq_lock);
 	pthread_mutex_unlock(&irq_lock);
 }
-static void input_mt_slot(struct input_dev *dev, unsigned slot)
+/* Definitions below come from the exact pinned include/linux/input/mt.h. */
+static inline int input_mt_get_value(const struct input_mt_slot *slot, unsigned code);
+static inline void input_mt_set_value(struct input_mt_slot *slot, unsigned code, int value);
+static inline int input_mt_new_trkid(struct input_mt *mt);
+static inline bool input_mt_is_active(const struct input_mt_slot *slot);
+static inline bool input_mt_is_used(const struct input_mt *mt, const struct input_mt_slot *slot);
+static inline void input_mt_slot(struct input_dev *dev, int slot);
+/* Controlled input boundary: capability-filtered API calls and SYN markers.
+ * This is not input.c event suppression/packetization, evdev, or libinput.
+ * The MT allocation, pointer emulation and slot/frame algorithms are exact
+ * extracts; locks and memory ownership remain bounded host fixtures. */
+static bool test_bit(unsigned bit, const unsigned long *bits)
 {
-	CHECK(dev->valid && dev->registered && slot < 10);
-	dev->mt->slot = slot;
+	return bits[bit / (8 * sizeof(*bits))] & (1UL << (bit % (8 * sizeof(*bits))));
 }
-static int input_mt_get_value(struct input_mt_slot *slot, int axis)
+static void __set_bit(unsigned bit, unsigned long *bits)
 {
-	CHECK(axis == ABS_MT_TRACKING_ID);
-	return slot->id;
+	bits[bit / (8 * sizeof(*bits))] |= 1UL << (bit % (8 * sizeof(*bits)));
 }
-static int input_mt_new_trkid(struct input_mt *m)
+
+
+
+static int input_abs_get_val(struct input_dev *dev, int axis)
 {
-	return ++m->trkid;
-}
-static bool input_mt_is_active(struct input_mt_slot *slot)
-{
-	return slot->id >= 0;
-}
-static bool input_mt_is_used(struct input_mt *m, struct input_mt_slot *slot)
-{
-	return slot->frame == m->frame;
+	return dev->absinfo[axis].value;
 }
 static void input_event(struct input_dev *dev, int type, int axis, int value)
 {
-	CHECK(dev->valid && dev->registered && type == EV_ABS);
-	if (axis == ABS_MT_SLOT) {
-		input_mt_slot(dev, value);
-		return;
+	CHECK(dev->valid && dev->registered);
+	if (type == EV_ABS) {
+		CHECK(axis >= 0 && axis < ABS_CNT);
+		if (!test_bit(axis, dev->absbit))
+			return;
+		if (axis == ABS_MT_SLOT) {
+			CHECK(value >= 0 && value < dev->mt->num_slots);
+			dev->mt->slot = value;
+		} else if (axis >= ABS_MT_TOUCH_MAJOR) {
+			input_mt_set_value(&dev->mt->slots[dev->mt->slot], axis, value);
+		} else {
+			dev->absinfo[axis].value = value;
+		}
+	} else if (type == EV_KEY) {
+		CHECK(axis >= 0 && axis < KEY_CNT);
+		if (!test_bit(type, dev->evbit) || !test_bit(axis, dev->keybit))
+			return;
+		CHECK(axis == BTN_TOUCH);
+		dev->touch = value;
+	} else {
+		CHECK(type == EV_SYN && axis == SYN_REPORT);
 	}
-	struct input_mt_slot *slot = &dev->mt->slots[dev->mt->slot];
-	if (axis == ABS_MT_TRACKING_ID)
-		slot->id = value;
-	else if (axis == ABS_MT_POSITION_X)
-		slot->x = value;
-	else if (axis == ABS_MT_POSITION_Y)
-		slot->y = value;
-	else if (axis == ABS_MT_TOUCH_MAJOR)
-		slot->area = value;
-	else
-		CHECK(axis == ABS_MT_TOOL_TYPE);
+	CHECK(dev->event_count < ARRAY_SIZE(dev->events));
+	dev->events[dev->event_count++] =
+		(struct fixture_event){ type, axis, value, dev->mt->slot };
 }
+
 #define input_handle_event input_event
 static void input_report_abs(struct input_dev *dev, int axis, int value)
 {
 	input_event(dev, EV_ABS, axis, value);
 }
-static void input_mt_report_pointer_emulation(struct input_dev *dev, bool count)
-{
-	(void)dev;
-	(void)count;
-}
 static void input_sync(struct input_dev *dev)
 {
-	CHECK(dev->valid && dev->registered);
+	input_event(dev, EV_SYN, SYN_REPORT, 0);
 	dev->syncs++;
 }
+static void input_set_abs_params(struct input_dev *dev, int axis, int min,
+				 int max, int fuzz, int flat)
+{
+	CHECK(axis >= 0 && axis < ABS_CNT);
+	__set_bit(EV_ABS, dev->evbit);
+	__set_bit(axis, dev->absbit);
+	dev->absinfo[axis] = (struct fixture_absinfo){ min, max, fuzz, flat, 0 };
+}
+static struct input_mt *fixture_alloc_mt(unsigned count)
+{
+	CHECK(count == ARRAY_SIZE(mt.slots));
+	if (fail("input-slots"))
+		return NULL;
+	return &mt;
+}
+/* Only the driver's bounded DIRECT|DROP_UNUSED allocation is exercised.
+ * Unsupported tracking allocation fails closed instead of faking that path. */
+#define __free(fn)
+#define no_free_ptr(p) (p)
+#define kzalloc_flex(object, member, count) fixture_alloc_mt(count)
+#define kzalloc_objs(object, count) ((void)(count), NULL)
 static int device_property_read_u32(struct device *dev, const char *key,
 				    u32 *value)
 {
@@ -413,31 +456,9 @@ static struct input_dev *devm_input_allocate_device(struct device *dev)
 	if (fail("input-allocate"))
 		return NULL;
 	input.valid = true;
+	input.absinfo = input.axes;
 	push(input_free, &input);
 	return &input;
-}
-static void input_set_abs_params(struct input_dev *dev, int axis, int min,
-				 int max, int fuzz, int flat)
-{
-	(void)dev;
-	CHECK(min == 0 && fuzz == 0 && flat == 0);
-	CHECK(max == (axis == ABS_MT_POSITION_X ? ROG5_FTS_SIZE_X - 1 :
-		      axis == ABS_MT_POSITION_Y ? ROG5_FTS_SIZE_Y - 1 :
-						  15));
-}
-static int input_mt_init_slots(struct input_dev *dev, unsigned count,
-			       unsigned flags)
-{
-	CHECK(count == 10 && flags == (INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED));
-	if (fail("input-slots"))
-		return -ENOMEM;
-	dev->mt = &mt;
-	mt.num_slots = count;
-	mt.flags = flags;
-	mt.frame = 1;
-	for (unsigned i = 0; i < count; i++)
-		mt.slots[i].id = -1;
-	return 0;
 }
 static int input_register_device(struct input_dev *dev)
 {

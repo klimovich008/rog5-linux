@@ -77,7 +77,7 @@ static unsigned active(void)
 {
 	unsigned value = 0;
 	for (unsigned i = 0; i < 10; i++)
-		if (mt.slots[i].id >= 0)
+		if (input_mt_get_value(&mt.slots[i], ABS_MT_TRACKING_ID) >= 0)
 			value |= BIT(i);
 	return value;
 }
@@ -92,8 +92,8 @@ static void contact(void)
 	put_point(0, 4, 0, 17279, 39167);
 	invoke_irq();
 	CHECK(active() == BIT(4));
-	CHECK(mt.slots[4].x == 17279 && mt.slots[4].y == 39167 &&
-	      mt.slots[4].area == 10);
+	CHECK(input_mt_get_value(&mt.slots[4], ABS_MT_POSITION_X) == 17279 && input_mt_get_value(&mt.slots[4], ABS_MT_POSITION_Y) == 39167 &&
+	      input_mt_get_value(&mt.slots[4], ABS_MT_TOUCH_MAJOR) == 10);
 }
 static void probe_failures(void)
 {
@@ -404,10 +404,132 @@ static void sleep_case(const char *name)
 	}
 	CHECK(!"unknown sleep case");
 }
+/* Inspect capability-filtered API requests, not Linux input.c/evdev packets. */
+static unsigned requested(int type, int code, int value, int slot)
+{
+	unsigned found = 0;
+	for (unsigned i = 0; i < input.event_count; i++) {
+		const struct fixture_event *e = &input.events[i];
+		if (e->type == type && e->code == code && e->value == value &&
+		    (slot < 0 || e->slot == slot))
+			found++;
+	}
+	return found;
+}
+static void event_frame(unsigned count)
+{
+	input.event_count = 0;
+	memset(frame_bytes, 0xff, sizeof(frame_bytes));
+	frame_bytes[0] = 0;
+	frame_bytes[1] = count;
+}
+static void pointer_requests(bool down, int x, int y)
+{
+	CHECK(input.touch == down);
+	CHECK(requested(EV_KEY, BTN_TOUCH, down, -1) == 1);
+	CHECK(input.event_count &&
+	      input.events[input.event_count - 1].type == EV_SYN &&
+	      input.events[input.event_count - 1].code == SYN_REPORT);
+	CHECK(requested(EV_SYN, SYN_REPORT, 0, -1) == 1);
+	if (down) {
+		CHECK(input.axes[ABS_X].value == x && input.axes[ABS_Y].value == y);
+		CHECK(requested(EV_ABS, ABS_X, x, -1) == 1);
+		CHECK(requested(EV_ABS, ABS_Y, y, -1) == 1);
+	} else {
+		for (unsigned i = 0; i < input.event_count; i++)
+			CHECK(input.events[i].type != EV_ABS ||
+			      (input.events[i].code != ABS_X && input.events[i].code != ABS_Y));
+	}
+}
+static void input_event_case(const char *name)
+{
+	setup();
+	start();
+	CHECK(test_bit(INPUT_PROP_DIRECT, input.propbit));
+	CHECK(!test_bit(INPUT_PROP_POINTER, input.propbit));
+	CHECK(test_bit(EV_KEY, input.evbit) && test_bit(BTN_TOUCH, input.keybit));
+	CHECK(!test_bit(BTN_TOOL_FINGER, input.keybit));
+	CHECK(test_bit(ABS_X, input.absbit) && test_bit(ABS_Y, input.absbit));
+	CHECK(test_bit(ABS_MT_SLOT, input.absbit) &&
+	      test_bit(ABS_MT_TRACKING_ID, input.absbit));
+	CHECK(!test_bit(ABS_PRESSURE, input.absbit));
+	CHECK(input.axes[ABS_X].minimum == 0 && input.axes[ABS_X].maximum == 17279 &&
+	      input.axes[ABS_Y].minimum == 0 && input.axes[ABS_Y].maximum == 39167);
+	CHECK(input.axes[ABS_MT_SLOT].maximum == 9 &&
+	      input.axes[ABS_MT_TRACKING_ID].maximum == TRKID_MAX);
+	if (!strcmp(name, "input-oldest-contact"))
+		mt.trkid = TRKID_MAX; /* Exercise oldest selection across ID wrap. */
+	event_frame(1);
+	put_point(0, 7, 0, 17279, 39167);
+	invoke_irq();
+	int first_id = input_mt_get_value(&mt.slots[7], ABS_MT_TRACKING_ID);
+	CHECK(first_id >= 0);
+	CHECK(requested(EV_ABS, ABS_MT_SLOT, 7, 7) == 1);
+	CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, first_id, 7) == 1);
+	CHECK(requested(EV_ABS, ABS_MT_POSITION_X, 17279, 7) == 1 &&
+	      requested(EV_ABS, ABS_MT_POSITION_Y, 39167, 7) == 1 &&
+	      requested(EV_ABS, ABS_MT_TOUCH_MAJOR, 10, 7) == 1);
+	pointer_requests(true, 17279, 39167);
+	if (!strcmp(name, "input-initial-move")) {
+		event_frame(1);
+		put_point(0, 7, 2, 0, 1);
+		invoke_irq();
+		CHECK(input_mt_get_value(&mt.slots[7], ABS_MT_TRACKING_ID) == first_id && active() == BIT(7));
+		CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, first_id, 7) == 1);
+		pointer_requests(true, 0, 1);
+	} else if (!strcmp(name, "input-oldest-contact")) {
+		/* New contact has lower slot index and precedes the old record. */
+		event_frame(2);
+		put_point(0, 1, 0, 100, 200);
+		put_point(1, 7, 2, 300, 400);
+		invoke_irq();
+		int second_id = input_mt_get_value(&mt.slots[1], ABS_MT_TRACKING_ID);
+		CHECK(first_id == TRKID_MAX && second_id == 0 && mt.trkid == TRKID_MAX + 2);
+		CHECK(second_id != first_id && input_mt_get_value(&mt.slots[7], ABS_MT_TRACKING_ID) == first_id);
+		CHECK(active() == (BIT(1) | BIT(7)));
+		pointer_requests(true, 300, 400);
+		event_frame(1);
+		put_point(0, 7, 1, 65535, 65535); /* UP coordinates unused. */
+		put_point(1, 1, 2, 101, 201);
+		invoke_irq();
+		CHECK(active() == BIT(1) && input_mt_get_value(&mt.slots[1], ABS_MT_TRACKING_ID) == second_id);
+		CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, -1, 7) == 1);
+		pointer_requests(true, 101, 201);
+		event_frame(0);
+		invoke_irq(); /* DROP_UNUSED releases the remaining contact. */
+		CHECK(!active());
+		CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, -1, 1) == 1);
+		pointer_requests(false, 0, 0);
+	} else if (!strcmp(name, "input-error-suspend-release")) {
+		event_frame(1);
+		put_point(0, 7, 3, 100, 200);
+		invoke_irq();
+		CHECK(!active());
+		CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, -1, 7) == 1);
+		pointer_requests(false, 0, 0);
+		event_frame(1);
+		put_point(0, 7, 0, 500, 600);
+		invoke_irq();
+		CHECK(input_mt_get_value(&mt.slots[7], ABS_MT_TRACKING_ID) != first_id);
+		pointer_requests(true, 500, 600);
+		input.event_count = 0;
+		CHECK(!rog5_fts_suspend(&client.dev));
+		CHECK(!active());
+		CHECK(requested(EV_ABS, ABS_MT_TRACKING_ID, -1, 7) == 1);
+		pointer_requests(false, 0, 0);
+	} else {
+		CHECK(!"unknown input event case");
+	}
+	finish();
+}
 int main(int argc, char **argv)
 {
 	CHECK(argc == 2);
 	const char *name = argv[1];
+	if (!strncmp(name, "input-", 6)) {
+		input_event_case(name);
+		return 0;
+	}
 	if (!strncmp(name, "sleep-", 6) || !strncmp(name, "resume-", 7) ||
 	    !strcmp(name, "shutdown-asleep")) {
 		sleep_case(name);
