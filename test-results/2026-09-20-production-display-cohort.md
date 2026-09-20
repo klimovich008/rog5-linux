@@ -558,3 +558,51 @@ The coordinator separately verified the three newly attached deployed/receiver/
 network sources against their originals: only the documented string constants
 changed; all other AST data and numeric limits match (0.076819s). No module body
 was executed. The qualified130-suite source remains unchanged.
+
+
+### Worker/deployed binding source copies qualified; remaining lifetime boundary (2026-09-20)
+
+The existing Pro consultation completed in1588.462999s. Its final answer was
+matched to the original user turn and verified6Pro/Pro selection. The delivered
+bundle SHA256 is `aada589807869f8a85853548b5c7cdb79160ff97f066ee1b671932ac1cddfa82`;
+all30internal checksum entries pass. Patch SHA256 is
+`515706704d7185527591b9a3b690d2edce6dc460d2cdfc9fd475a38bde7a0053` and test SHA256
+is `2c70db996474d71934a5b743e28fd794fe57f76354720e4585a10faa1bd2a6fc`.
+
+The coordinator applied the patch on isolated source copies, compared every
+result to the delivered after bytes, reversed it to the exact originals, then
+retained the proposed copies (0.022767s). The patch removes implicit worker/
+deployed/receiver loading and binds shared transport/logger identity. It does
+not modify the retained runtime or expand the public session's source pins.
+The original private-worker refusal remains mandatory.
+
+The coordinator personally ran all22delivered semantic regressions: **22PASS,
+0FAIL in8.043251s** including harness overhead (unittest7.927s). Command:
+`python3 -O test-worker-deployed-binding.py --packet <original-packet>
+--patch <verified-patch> --sources <existing-exact-ten-source-assembly>`.
+Execution used ordinary UID1000, a512MiB address-space limit,768MiB/no-swap
+aggregate scope,64tasks,90-second deadline and disk-backed scratch. Actual source
+replacement, shared identity, credential refusal, inert network ownership/
+cleanup and a real local child timeout were exercised. Authentication and
+acceptance policy remain explicit synthetic fixtures. Adviser-side22passes
+in7.041988s are separate evidence. No unchanged70/130suite was rerun.
+
+The proposed `execute()` AST is unchanged and therefore retains the earlier
+stale numeric-PGID signal-attempt counterexample. No actual PID reuse or harm
+has been demonstrated. A same-conversation follow-up now includes exact
+proposed sources, test/logs, counterexample and the complete real acceptance
+source (39,603bytes, SHA256
+`7eab4bb7cabfc618771e60d1d7a8b64d3ed43a5e92d375fbc7aafd4e227992d2`).
+An independent static audit verified that acceptance attachment byte/AST-matches
+its original. Its `source_identity()` uses same-file `sha_file()` and four Git
+queries, with no other project Python dependency. Git configuration/environment,
+repository contents, untracked-file reads, time/output bounds and snapshot
+consistency remain separate runtime concerns. No source policy was executed
+by that audit. Synthetic acceptance results do not qualify it.
+
+The next review must repair the demonstrated cleanup lifetime and exercise the
+actual identity policy without inventing live admission. Later health/capture
+binding remains independently unqualified. The private checkpoint retains exact
+commands, logs, proposed bytes, all hashes and the existing consultation handles.
+No phone/VM/root/signing/claim/candidate/protected-storage operation occurred.
+Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.

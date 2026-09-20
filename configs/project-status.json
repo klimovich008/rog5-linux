@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Cold-boot recovery source qualified; private worker initialization remains unbound",
+  "phase": "Worker source-binding proposal passes offline; cleanup and identity policy under review",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source f461c41a integrates the cold-boot caller patch: all 130 active suites PASS in 409.353s, including 70 actual caller/controller/launcher cases in 183.037s. The initial missing-Wayland-header failure is retained; restoring the previously qualified environment resolved it without source changes. The finalization correction passes 14 focused cases and two old-source failure controls. Touch source1f936857 retains its 8-suite board PASS. Next: source-bound worker/deployed loading review; initialize still refuses the unqualified SSH worker before health. An independent inert fixture also confirms a worker cleanup signal attempt after the leader was reaped; no actual signal, PID reuse or harm was demonstrated. The same-conversation follow-up is staged while Pro finishes its current review. No candidate, signing, claim, VM or phone operation. Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
+  "next": "Qualified source f461c41a retains its 130-suite active PASS (409.353s), including 70 cold-boot cases; touch source1f936857 retains its 8-suite board PASS. On isolated proposed source copies, all22worker/deployed binding regressions PASS locally in8.043s; strict application/reversal also passes. These use a synthetic loader and acceptance policy, so runtime remains UNBOUND and the original worker refusal is preserved. The complete real source_identity policy and demonstrated stale-PGID cleanup counterexample are now supplied to the same Pro conversation for a concrete correction. No unchanged integrated suite was repeated. No candidate, signing, claim, VM or phone operation. Physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }
