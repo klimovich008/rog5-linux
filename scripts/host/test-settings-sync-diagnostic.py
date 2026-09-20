@@ -19,6 +19,7 @@ class SettingsSyncDiagnostic(unittest.TestCase):
         cls.addClassCleanup(cls.build_temp.cleanup)
         cls.build = Path(cls.build_temp.name)
         cls.probe = cls.build / 'probe.so'
+        cls.without_unref = cls.build / 'without-unref.so'
         fake = cls.build / 'fake.c'
         fake.write_text('''#include <errno.h>
 #include <stdlib.h>
@@ -141,6 +142,9 @@ int main(void) {
             ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-fPIC', '-shared',
              str(SOURCE), '-o', str(cls.probe), '-ldl', '-pthread'],
             ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-fPIC', '-shared',
+             '-DROG5_NO_UNREF_PROBE', str(SOURCE), '-o', str(cls.without_unref),
+             '-ldl', '-pthread'],
+            ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-fPIC', '-shared',
              str(fake), '-o', str(cls.build / 'libfake.so')],
             ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', str(caller),
              '-L' + str(cls.build), '-Wl,-rpath,' + str(cls.build), '-lfake',
@@ -199,6 +203,49 @@ int main(void) {
                                         'APP_DISCONNECT_ONE_END', 'APP_OBSERVERS_REMOVED',
                                         'APP_UNREF_BEGIN', 'APP_UNREF_END', 'DSO_FINI'])
         self.assertLessEqual(self.log.stat().st_size, 1536)
+
+    def test_no_unref_control_preserves_lifecycle_and_forwarding(self):
+        symbols = subprocess.check_output(['nm', '-D', '--defined-only',
+                                          str(self.without_unref)], text=True, timeout=2)
+        exports = {line.split()[-1] for line in symbols.splitlines()}
+        self.assertNotIn('g_object_unref', exports)
+        self.assertTrue({'g_application_run', 'g_settings_sync'} <= exports)
+        self.env['LD_PRELOAD'] = str(self.without_unref)
+        result = self.run_caller('app', executable='application')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The actual fixture also verifies all five direct unrefs, errno,
+        # arguments, signal handlers and the application return value.
+        self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE',
+                                        'BEGIN', 'END', 'SHUTDOWN_AFTER', 'APP_RUN_END',
+                                        'APP_DISCONNECT_ONE_END', 'APP_OBSERVERS_REMOVED',
+                                        'DSO_FINI'])
+        self.log.write_text('')
+        self.env['FIXTURE_EXEC_CHILD'] = str(self.build / 'empty')
+        self.assertEqual(self.run_caller().returncode, 0)
+        self.assertEqual(self.stages(), ['loaded', 'BEGIN', 'END'])
+        self.log.write_text('')
+        self.log.chmod(0o644)
+        self.assertEqual(self.run_caller().returncode, 125)
+        self.assertEqual(self.log.read_bytes(), b'')
+
+    def test_no_unref_control_does_not_claim_blocked_call_completion(self):
+        self.env.update(LD_PRELOAD=str(self.without_unref), FIXTURE_UNREF_BLOCK='1')
+        expected = ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE', 'BEGIN', 'END',
+                    'SHUTDOWN_AFTER', 'APP_RUN_END', 'APP_DISCONNECT_ONE_END',
+                    'APP_OBSERVERS_REMOVED']
+        process = subprocess.Popen([str(self.build / 'application'), 'app'], env=self.env,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   start_new_session=True)
+        try:
+            deadline = time.monotonic()+2
+            while len(self.stages()) < len(expected) and time.monotonic() < deadline:
+                time.sleep(.005)
+            self.assertEqual(self.stages(), expected)
+            self.assertIsNone(process.poll())
+        finally:
+            if process.poll() is None: os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=2)
+        self.assertEqual(self.stages(), expected)
 
     def test_interrupted_application_distinguishes_shutdown_and_post_shutdown(self):
         for where, expected in [('during', ['loaded', 'APP_RUN_BEGIN', 'SHUTDOWN_BEFORE']),

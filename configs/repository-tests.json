@@ -8442,7 +8442,8 @@
       "deadline_seconds": 15,
       "prerequisites": [
         "python3",
-        "cc"
+        "cc",
+        "nm"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",

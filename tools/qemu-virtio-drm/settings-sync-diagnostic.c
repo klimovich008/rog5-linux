@@ -15,10 +15,18 @@ static int log_fd = -1;
 static void (*real_sync)(void);
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int records;
+#ifndef ROG5_NO_UNREF_PROBE
+/* Explicit experimental control: omit the symbol entirely, rather than
+ * forwarding through a supposedly cheap wrapper on every object release.
+ * Run/shutdown/settings observation and all log guards remain available.
+ */
 static _Atomic(void *) pending_unref;
+#endif
 static _Atomic int application_observed;
+#ifndef ROG5_NO_UNREF_PROBE
 static void (*real_unref)(void *);
 static pthread_once_t unref_once = PTHREAD_ONCE_INIT;
+#endif
 
 /* Do not report failure through stderr: it may be a stalled evidence FIFO. */
 static void fail(void)
@@ -99,6 +107,7 @@ void g_settings_sync(void)
  * and our disconnects returned. Other references/callees retain their behavior.
  * Resolving once also covers legitimate unrefs before g_application_run().
  */
+#ifndef ROG5_NO_UNREF_PROBE
 static void resolve_unref(void)
 {
 	dlerror();
@@ -125,6 +134,7 @@ void g_object_unref(void *object)
 		record("APP_UNREF_END");
 	errno = result_errno;
 }
+#endif
 
 __attribute__((destructor)) static void finalize_probe(void)
 {
@@ -203,7 +213,9 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 	errno = disconnect_errno;
 	disconnect(application, after);
 	record("APP_OBSERVERS_REMOVED");
+#ifndef ROG5_NO_UNREF_PROBE
 	atomic_store(&pending_unref, application);
+#endif
 	errno = result_errno;
 	return result;
 }
