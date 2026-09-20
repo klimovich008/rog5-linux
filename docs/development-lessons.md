@@ -3927,3 +3927,11 @@ wrapper and controller consumers as well as the launcher; the25-case caller suit
 and129-suite active run leave those legacy consumers explicitly unbound. Bind a
 future boot only after authenticated discovery; never construct its UUID in an
 offline contract. Preserve historical pins and seals while testing source copies.
+
+
+Oracle follow-up retrieval (2026-09-20): prompt-commit timeout can disagree with
+a captured matching new user turn and source-readable assistant acknowledgement.
+Treat that as a retrieval failure, not evidence to resubmit. Resume the exact
+conversation and verify live model/stop state. An in-progress harvest may still
+return the previous completed answer; compare its question/turn and response
+hash before extraction or application. Keep the new question's outcome pending.

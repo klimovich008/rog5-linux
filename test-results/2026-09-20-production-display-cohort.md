@@ -263,3 +263,13 @@ current ten-file production cohort, patched callers, tests and full counterexamp
 tracebacks. Browser-only6Pro/Pro is requested; follow the retained session
 `rog5-cold-boot-integratio` rather than submit a duplicate. A live consultation
 is neither a completed proposal nor qualification. No phone or VM operation.
+
+Oracle delivery observation: the initial CLI exited1 after226.263s on its
+prompt-commit check, while its captured DOM already contained the matching new
+user turn and Pro's acknowledgement of the actual wrapper/controller sources.
+Exact-target retrieval confirms running6Pro with stop visible. Follow the same
+conversation through live retrieval75786; do not resubmit. An early harvest
+returned the preceding caller response (SHA02c8a669...), so it is explicitly
+excluded as a new cold-boot answer. No proposal from this question is applied.
+Metadata8 cases PASS0.024s; historical status body and three baseline/artifact
+files remain byte-identical. No unchanged integrated tier was repeated.
