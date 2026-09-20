@@ -1,0 +1,374 @@
+--- a/transport.py
++++ b/transport.py
+@@ -36,15 +36,20 @@
+     finally:
+         os.close(fd)
+ 
+-def load(name,path,pin):
+-    need(hashlib.sha256(raw(path)).hexdigest()==pin,'qualified source changed: '+str(path))
+-    spec=importlib.util.spec_from_file_location(name,path)
+-    module=importlib.util.module_from_spec(spec)
+-    spec.loader.exec_module(module)
+-    return module
+-B=load('gpu_backend',HERE/'backend.py',SOURCE_PINS['backend.py'])
+-save=B.save
+-W=load('gpu_transport_worker',D/'oled-startup-live-driver-r1/ssh-worker.py','250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb')
++# Source binding is explicit; importing this module does not load private code.
++B = W = None
++save = None
++
++def bind_sources(load):
++    global B, save
++    backend = load('gpu_backend', HERE/'backend.py', SOURCE_PINS['backend.py'])
++    B, save = backend, backend.save
++
++def bind_worker(load):
++    global W
++    W = load('gpu_transport_worker', D/'oled-startup-live-driver-r1/ssh-worker.py',
++             '250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb')
++
+ SOURCE=dict(clean=True,revision='f02083f40d999bf095670b4c1a937058c7b035f0',worktree_digest='642669b91ba7db4188e039d92d420b25cd666f1b8f7ae4e76dcd35bcb7409e71')
+ STAGE = "PINNED_SOURCES={'backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b'}\n\nimport base64,hashlib,json,os,re,stat\nfrom pathlib import Path\ndef need(ok,why):\n    if not ok:raise ValueError(why)\ndef unique(rows):\n    result={}\n    for key,value in rows:\n        need(key not in result,'duplicate staging key');result[key]=value\n    return result\nneed(type(DATA)is dict and set(DATA)=={'namespace','manifest','manifest_sha256','files'},'stage data schema')\nneed(type(DATA['files'])is dict and set(DATA['files'])==set(PINNED_SOURCES),'fixed staging inventory')\nfiles={}\nfor name,raw in DATA['files'].items():\n    need(type(raw)is str and len(raw)<=87384,'staged source encoding bound')\n    value=base64.b64decode(raw,validate=True)\n    need(0<len(value)<=65536 and hashlib.sha256(value).hexdigest()==PINNED_SOURCES[name],'staged source identity')\n    files[name]=value\nneed(sum(map(len,files.values()))<131072,'RAM staging source byte bound')\nneed(type(DATA['manifest'])is str and len(DATA['manifest'])<=43692,'manifest encoding bound')\nmanifest_raw=base64.b64decode(DATA['manifest'],validate=True)\nneed(0<len(manifest_raw)<=32768 and type(DATA['manifest_sha256'])is str\n     and re.fullmatch('[0-9a-f]{64}',DATA['manifest_sha256'])\n     and hashlib.sha256(manifest_raw).hexdigest()==DATA['manifest_sha256'],'manifest input changed')\nmanifest=json.loads(manifest_raw,object_pairs_hook=unique)\nneed(type(manifest)is dict and set(manifest)=={'format','phase','boot_id','owner','monitor_receipt_sha256','files','artifact_identity'}\n     and manifest['format']=='rog5-gpu-iommu-display-backend-v1' and manifest['phase']=='gpu-iommu-display'\n     and type(manifest['owner'])is str and re.fullmatch('[0-9a-f]{32}',manifest['owner'])\n     and type(manifest['boot_id'])is str and re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',manifest['boot_id'])\n     and manifest['boot_id']!='946acb59-744e-4bbc-b291-ac6b2e05f3fe'\n     and type(manifest['monitor_receipt_sha256'])is str and re.fullmatch('[0-9a-f]{64}',manifest['monitor_receipt_sha256'])\n     and manifest['files']==PINNED_SOURCES,'staging manifest schema/identity')\nneed(manifest_raw==json.dumps(manifest,sort_keys=True,separators=(',',':'),allow_nan=False).encode()+b'\\n','manifest is not canonical')\nartifact=manifest['artifact_identity']\nneed(type(artifact)is dict and set(artifact)=={'boot_id','release','bundle','descriptor_sha256','board_dtb_sha256','owner'}\n     and all(type(v)is str for v in artifact.values()) and artifact['boot_id']==manifest['boot_id']\n     and artifact['owner']==manifest['owner'],'staging artifact identity')\nneed(DATA['namespace']=='/run/initramfs/rog5-gpu-iommu-display-'+manifest['owner'],'RAM namespace')\ndirectory=Path(DATA['namespace'])\nbackend={'__name__':'staging_backend','__file__':str(directory/'backend.py')}\nexec(compile(files['backend.py'],backend['__file__'],'exec'),backend)\nparent=backend['ram_parent']()\nneed(directory.parent==parent,'staging parent differs')\nneed(not os.path.lexists(backend['ENTRY']) and not os.path.lexists(backend['INITIALIZER_ENTRY']),'prior GPU entry')\nendpoint={'__name__':'staging_endpoint','__file__':str(directory/'display-endpoint.py')}\nexec(compile(files['display-endpoint.py'],endpoint['__file__'],'exec'),endpoint)\nreader=endpoint['Endpoint'](lambda boot:dict(artifact))\nwho=reader.identity(manifest['boot_id'])\ncreated=False;held=None;directory_stamp=None;owned=[];stage_error=None\ntry:\n    directory.mkdir(mode=0o700);created=True\n    directory_stamp=directory.lstat()\n    held=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)\n    opened=os.fstat(held)\n    need((opened.st_dev,opened.st_ino)==(directory_stamp.st_dev,directory_stamp.st_ino),'staged directory changed')\n    for name,value in dict(files,**{'manifest.json':manifest_raw}).items():\n        fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=held)\n        recorded=False;file_error=None\n        try:\n            info=os.fstat(fd);owned.append((name,info.st_dev,info.st_ino));recorded=True\n            need(os.write(fd,value)==len(value),'short RAM staging write');os.fsync(fd)\n        except BaseException as failure:\n            file_error=failure\n            if not recorded:\n                # The exclusive file is still held. Recover its identity only\n                # if both descriptor and name agree; never unlink an unknown\n                # replacement when observation itself remains unavailable.\n                try:\n                    info=os.fstat(fd);named=os.stat(name,dir_fd=held,follow_symlinks=False)\n                    if (info.st_dev,info.st_ino)==(named.st_dev,named.st_ino) and stat.S_ISREG(info.st_mode):\n                        owned.append((name,info.st_dev,info.st_ino))\n                except BaseException:pass\n            raise\n        finally:\n            try:os.close(fd)\n            except BaseException:\n                if file_error is None:raise\n    os.fsync(held)\n    need(backend['context'](directory,DATA['manifest_sha256'])==manifest,'staged backend context')\n    need(reader.identity(manifest['boot_id'])==who,'identity changed during staging')\nexcept BaseException as failure:\n    stage_error=failure\n    if created and held is not None:\n        for name,device,inode in reversed(owned):\n            try:\n                current=os.stat(name,dir_fd=held,follow_symlinks=False)\n                if (current.st_dev,current.st_ino)==(device,inode):os.unlink(name,dir_fd=held)\n            except BaseException:pass\n    if created and directory_stamp is not None:\n        try:\n            current=directory.lstat()\n            if (current.st_dev,current.st_ino)==(directory_stamp.st_dev,directory_stamp.st_ino):directory.rmdir()\n        except BaseException:pass\n    raise\nfinally:\n    if held is not None:\n        try:os.close(held)\n        except BaseException:\n            if stage_error is None:raise\nprint(json.dumps(dict(status='PASS_RAM_STAGE',identity=who,namespace=str(directory),\n    manifest_sha256=DATA['manifest_sha256'],files=manifest['files'],scope='python-sources-only',\n    module_payload_staged=False,firmware_staged=False,admission_granted=False)))\n"
+ 
+--- a/health.py
++++ b/health.py
+@@ -35,10 +35,6 @@
+ def sha(raw):return hashlib.sha256(raw).hexdigest()
+ 
+ 
+-def load(name,path):
+-    s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+-
+-
+ def inputs():
+     need(INPUTS.resolve()==INPUTS and INPUTS.stat().st_size<=16384,'health inputs path/bound')
+     raw=INPUTS.read_bytes();need(sha(raw)==INPUT_SHA,'health input seal changed');value=json.loads(raw)
+@@ -48,15 +44,21 @@
+     return value
+ 
+ 
+-SEAL=inputs()
+-sys.path.insert(0,str(REPO/'scripts/host'))
+-try:
+-    ROOT=load('successor_health_root',REPO/'scripts/host/check-standalone-root.py')
+-    OBS=load('successor_health_readers',REPO/'scripts/host/isolated-recovery-observation.py')
+-finally:sys.path.pop(0)
+-need(sha((STATE/'gpu-capture-r1/capture-common.py').read_bytes())=='cd51574835b3c8e397382d577aad76d168ffa280a922dda0f81ac844d6824f14','action common changed')
+-A=load('successor_health_action_common',STATE/'gpu-capture-r1/capture-common.py')
+-D=ROOT.D
++# These private dependencies are deliberately NOT opened or imported here.
++SEAL = ROOT = OBS = A = D = None
++
++def bind_runtime(load):
++    global SEAL, ROOT, OBS, A, D
++    seal = inputs()  # Existing private seal and producer checks are unchanged.
++    root_name = 'scripts/host/check-standalone-root.py'
++    obs_name = 'scripts/host/isolated-recovery-observation.py'
++    root = load('successor_health_root', REPO/root_name, seal['producers'][root_name])
++    obs = load('successor_health_readers', REPO/obs_name, seal['producers'][obs_name])
++    action = load('successor_health_action_common', STATE/'gpu-capture-r1/capture-common.py',
++                  'cd51574835b3c8e397382d577aad76d168ffa280a922dda0f81ac844d6824f14')
++    # Publish only after all dependencies have been bound. No sys.path fallback.
++    SEAL, ROOT, OBS, A, D = seal, root, obs, action, root.D
++
+ 
+ 
+ def configuration(role,boot,contract,owner):
+--- a/kernel-log.py
++++ b/kernel-log.py
+@@ -49,10 +49,13 @@
+ def save(path,value):
+  raw=(json.dumps(value,sort_keys=True,indent=2)+'\n').encode()
+  with path.open('xb') as f:f.write(raw);f.flush();os.fsync(f.fileno())
++W = None
++def bind_worker(load):
++ global W
++ W = load('module_log_ssh', LIVE/'ssh-worker.py',
++          '250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb')
+ def command():
+- path=LIVE/'ssh-worker.py'
+- need(hashlib.sha256(path.read_bytes()).hexdigest()=='250647044223f7aa91ef174487e2c7318cf3c435b62f3154d0f4568f04afbefb','SSH worker changed')
+- s=importlib.util.spec_from_file_location('module_log_ssh',path);W=importlib.util.module_from_spec(s);s.loader.exec_module(W)
++ need(W is not None, 'logger private worker is not source-bound')
+  deployed=W.load_deployed();source=deployed.CAPTURE.ACCEPTANCE.source_identity()
+  need(source==dict(revision='f02083f40d999bf095670b4c1a937058c7b035f0',worktree_digest='642669b91ba7db4188e039d92d420b25cd666f1b8f7ae4e76dcd35bcb7409e71',clean=True),'logger source identity')
+  W.credentials();deployed.host_gate(dict(serial=W.SERIAL))
+--- a/session.py
++++ b/session.py
+@@ -4,7 +4,7 @@
+ credentials/bridges. Independent hardware receipts never rewrite boot evidence.
+ No retry, module unload, forced reboot, or physical/acceleration PASS.
+ """
+-import base64,copy,hashlib,importlib.util,json,math,os,stat,time
++import ast,base64,copy,hashlib,json,math,os,re,stat,time,types
+ from pathlib import Path
+ HERE=Path(__file__).resolve().parent;STATE=HERE.parent
+ OUTPUT=HERE/'session-r1'
+@@ -15,40 +15,223 @@
+ DISPLAY_SECONDS = 143  # transport normal120 + failure18 + two reaps4 + margin1
+ HEALTH_SECONDS = 35
+ LOGGER_CLOSE_SECONDS = 20
+-PINS = {'gpu-iommu-session-r1/kernel-log.py': 'b690ae15bfced9c5cc3c9ab905209dc12dccb909678c31975fe6a32282a18d14', 'gpu-iommu-provider-r1/transport.py': 'a893eb01d60dd5a9d767a8d218397c6b338deba57f6c957dcc5b1f5aff633310', 'gpu-iommu-provider-r1/backend.py': '38dfdeff0180c9311f721bf76bb15d5b6edbd659dd5ea5466355be64c178faa1', 'gpu-iommu-provider-r1/module-io.py': 'c028b4ddd27ed43af9e7eda48c4dd21e5a685a1bda0ee61209eaa12df8f87620', 'gpu-iommu-provider-r1/provider.py': '3cc937fa611f0a85f75d234f75c8d3123e609735305a601f1077ce7a6a6f8924', 'gpu-iommu-provider-r1/reprobe.py': 'c2486e2c35ffc180b70d975523431169e338eff3774f14240b2b0353240562a5', 'gpu-iommu-display-r1/transport.py': '3d6f76bb421bf8f40967ac354d49e152248636b2272a1cf2653f8702e2a1a573', 'gpu-iommu-display-r1/backend.py': '840ba5ad5c1bfe2059bfc580fb45da4e8f3fef59f8e6627789cfe5ed38904a0d', 'gpu-iommu-display-r1/module-io.py': 'c028b4ddd27ed43af9e7eda48c4dd21e5a685a1bda0ee61209eaa12df8f87620', 'gpu-iommu-display-r1/load-display.py': '5c298ba05fe7a6f338471cd178a10b49cd9c03914f4a696ad442e7e0dbc1838d', 'gpu-iommu-display-r1/endpoint.py': '1c8c173d59a69cc514365844d179813b16d5ae6e7696ecfc9e12ccb999e654ca', 'gpu-iommu-display-r1/initialize.py': '373eb2bc855619e19901dd152344407ed3b119c6441e2d57b9716a7423181a38', 'gpu-iommu-display-r1/provider-proof.py': 'f73a9c55474fc38645e8b3f83809debc2b5fe1238dd69e291bf3c345e5b294d9', 'gpu-iommu-display-r1/provider-backend.py': '38dfdeff0180c9311f721bf76bb15d5b6edbd659dd5ea5466355be64c178faa1', 'gpu-iommu-display-r1/provider.py': '3cc937fa611f0a85f75d234f75c8d3123e609735305a601f1077ce7a6a6f8924', 'gpu-iommu-display-r1/reprobe.py': 'c2486e2c35ffc180b70d975523431169e338eff3774f14240b2b0353240562a5'}
+-HEALTH=STATE/'gpu-iommu-health-r1/successor-health.py'
+-HEALTH_SHA = '738f5d0b6bc6aef9f7b46babd7f53a46103696e8ce9624c21f2454d3de9bcb32'
++# Only the nine non-self Python sources are pinned here. The existing outer
++# admission input lock must pin session.py; there is no self-hash or new authority.
++PINS = {'gpu-iommu-display-r1/backend.py': 'e8354b4591d5110224ed5bd4579a82995071d7c98c846567dd387396e2a1a098', 'gpu-iommu-display-r1/display-component.py': 'd2d80309c27ad525945c077e6170b95bbfca93ce347edd7ba5a831e86a6313f6', 'gpu-iommu-display-r1/display-endpoint.py': '0d0eb43a7be8525eef8f38d5a895749eb2c0f764a472c75beb76b3aad859b6ee', 'gpu-iommu-display-r1/display-firmware.py': 'd3bfdbe1249f7651263291954f94ad9c1e5c81c78ce967eed5da9663f387dafb', 'gpu-iommu-display-r1/display-providers.py': 'c9f9753083ed4f5806ad8caff67f588ab990f665d2e4ec86c9c2e2492a84c62d', 'gpu-iommu-display-r1/load-production-display.py': 'b3a69a53ff31fdadfdc78226568099c3474c1df05ae18e9a0ad5e890621cf77b', 'gpu-iommu-display-r1/transport.py': '77ac8cf64e52c580a765a28e9e5c4e26d90983624c14738a1d2f581f2aa05d96', 'gpu-iommu-health-r1/successor-health.py': 'f88f6cf1e418a3c90ab59b18c796cbff57188996229a0b8e4fd98ba9ccc62892', 'gpu-iommu-session-r1/kernel-log.py': 'a21176ec5d16e7ed2a10467c05001bb5e277b5147ac83284ca66475c3ecac427'}
++SESSION_PATH = 'gpu-iommu-session-r1/session.py'
++PATHS = tuple(sorted((*PINS, SESSION_PATH)))
++HEALTH = STATE/'gpu-iommu-health-r1/successor-health.py'
++HEALTH_SHA = PINS['gpu-iommu-health-r1/successor-health.py']
++MAX_SOURCE = 131072
++_SOURCE_BINDING = None
++_SOURCE_MODULES = {}
++T = K = H = C = save = None
+ 
+ def need(ok,why):
+     if not ok:raise ValueError(why)
+ 
+-def load(name,path,pin):
+-    need(path.resolve()==path and path.stat().st_size<131072
+-         and hashlib.sha256(path.read_bytes()).hexdigest()==pin,'GPU session dependency changed')
+-    spec=importlib.util.spec_from_file_location(name,path)
+-    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+-
+-T=load('gpu_session_transport',STATE/'gpu-iommu-display-r1/transport.py',PINS['gpu-iommu-display-r1/transport.py'])
+-P=load('gpu_session_provider',STATE/'gpu-iommu-provider-r1/transport.py',PINS['gpu-iommu-provider-r1/transport.py'])
+-K=load('gpu_session_log',HERE/'kernel-log.py',PINS['gpu-iommu-session-r1/kernel-log.py'])
+-H=load('gpu_session_health',HEALTH,HEALTH_SHA)
+-C=H.A.C
+-save=C.save
++
++def source_stamp(st):
++    return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_gid,
++            st.st_nlink, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
++
++
++def source_lock(ad):
++    """Read an authenticated projection of the existing external input lock.
++
++    ad.inputs() retains responsibility for authenticating its immutable full lock
++    and rejecting duplicate JSON keys. A new scope list is mandatory: an old
++    unscoped/historical admission cannot silently become a production admission.
++    """
++    path = Path(ad.__file__)
++    need(path.is_absolute() and path.resolve() == path
++         and path == STATE/'gpu-iommu-live-driver-r1/live-admission.py',
++         'GPU admission provider')
++    need(Path(__file__) == STATE/SESSION_PATH and Path(__file__).resolve() == Path(__file__),
++         'fixed session source path')
++    value = ad.inputs()
++    need(type(value) is dict and type(value.get('files')) is dict,
++         'external source input lock required')
++    names = value.get('production_display_sources')
++    need(type(names) is list and len(names) == len(PATHS)
++         and all(type(name) is str for name in names)
++         and len(set(names)) == len(names) and set(names) == set(PATHS),
++         'exact production display source scope required')
++    files = value['files']
++    rows = {}
++    for name in PATHS:
++        need(name in files and type(files[name]) is dict, 'source missing from input lock: '+name)
++        required = ('size','uid','mode','sha256')
++        need(all(k in files[name] for k in required), 'source lock metadata missing: '+name)
++        # Consume the same four fields as the existing digest_file API. Other
++        # admission metadata remains the external reader's responsibility.
++        row = {k:files[name][k] for k in required}
++        need(type(row['size']) is int and 0 < row['size'] <= MAX_SOURCE
++             and type(row['uid']) is int and row['uid'] == 1000
++             and type(row['mode']) is int and 0 <= row['mode'] <= 0o777
++             and not row['mode'] & 0o022
++             and type(row['sha256']) is str and re.fullmatch('[0-9a-f]{64}', row['sha256']),
++             'source lock metadata invalid: '+name)
++        need(name == SESSION_PATH or row['sha256'] == PINS[name],
++             'external lock differs from reviewed source pin: '+name)
++        rows[name] = row
++    # Never build expected hashes from the candidate files. The authority and
++    # values above came from the caller's separately authenticated admission.
++    encoded = json.dumps(rows, sort_keys=True, separators=(',',':'), allow_nan=False).encode()
++    return rows, encoded
++
++
++def source_read(name, row):
++    """Bounded no-pyc source read, with inode/metadata checks across the read."""
++    path = STATE/name
++    need(path.is_absolute() and path.resolve(strict=True) == path, 'source path alias: '+name)
++    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
++    try:
++        before = os.fstat(fd)
++        need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1
++             and before.st_size == row['size'] and before.st_uid == row['uid']
++             and stat.S_IMODE(before.st_mode) == row['mode'], 'source metadata differs: '+name)
++        data = bytearray()
++        while len(data) <= row['size']:
++            block = os.read(fd, min(65536, row['size'] + 1 - len(data)))
++            if not block:break
++            data.extend(block)
++        need(len(data) == row['size'] and hashlib.sha256(data).hexdigest() == row['sha256'],
++             'source bytes differ: '+name)
++        stamp = source_stamp(before)
++        need(stamp == source_stamp(os.fstat(fd)) == source_stamp(path.lstat())
++             and path.resolve(strict=True) == path, 'source replaced during read: '+name)
++        return bytes(data), stamp
++    finally:
++        os.close(fd)
++
++
++def source_literal(raw, name):
++    """Inspect reviewed source constants without executing any candidate module."""
++    tree = ast.parse(raw)
++    found = [n.value for n in tree.body if isinstance(n, ast.Assign)
++             and any(isinstance(t, ast.Name) and t.id == name for t in n.targets)]
++    need(len(found) == 1, 'unique source constant required: '+name)
++    for node in ast.walk(found[0]):
++        if isinstance(node, ast.Dict):
++            need(all(k is not None for k in node.keys), 'expanded source constant: '+name)
++            keys = [ast.literal_eval(k) for k in node.keys]
++            need(all(type(k) is str for k in keys) and len(keys) == len(set(keys)),
++                 'duplicate source constant key: '+name)
++    return ast.literal_eval(found[0])
++
++
++def source_graph(sources):
++    """The existing six-file context, transport and embedded stager must agree."""
++    prefix = 'gpu-iommu-display-r1/'
++    stage_names = {'backend.py','display-component.py','display-endpoint.py',
++                   'display-firmware.py','display-providers.py','load-production-display.py'}
++    expected = {name:PINS[prefix+name] for name in stage_names}
++    transport = sources[prefix+'transport.py']
++    need(source_literal(transport, 'SOURCE_PINS') == expected, 'transport source closure differs')
++    need(source_literal(sources[prefix+'backend.py'], 'PINS') ==
++         {k:v for k,v in expected.items() if k != 'backend.py'}, 'backend source closure differs')
++    need(source_literal(sources[prefix+'display-component.py'], 'SOURCE_PINS') ==
++         {k:v for k,v in expected.items() if k not in ('backend.py','display-component.py')},
++         'component source closure differs')
++    stage = source_literal(transport, 'STAGE')
++    need(type(stage) is str and source_literal(stage, 'PINNED_SOURCES') == expected,
++         'embedded staging source closure differs')
++    for name in ('gpu-iommu-health-r1/successor-health.py','gpu-iommu-session-r1/kernel-log.py'):
++        need(source_literal(sources[name], 'IDENTITY_SHA') == expected['display-endpoint.py'],
++             'health/logger endpoint source differs')
++
+ 
+ def cohort(ad):
+-    """Final boot admission must seal this complete session before any boot."""
+-    need(Path(ad.__file__).resolve()==STATE/'gpu-iommu-live-driver-r1/live-admission.py', 'GPU admission provider')
+-    locked=ad.inputs()['files']
+-    paths=[STATE/name for name in PINS]+[Path(__file__).resolve(),HEALTH,T.QUERY]
+-    for path in paths:
+-        key=str(path.relative_to(STATE));need(key in locked,'GPU session not in boot input lock: '+key)
+-        row=locked[key]
+-        ad.digest_file(path,row['size'],row['uid'],row['mode'],row['sha256'])
+-    for name,pin in PINS.items():
+-        need(hashlib.sha256(T.raw(STATE/name,131072)).hexdigest()==pin,'GPU session source changed')
+-    need(locked[str(HEALTH.relative_to(STATE))]['sha256']==HEALTH_SHA
+-         and locked[str(T.QUERY.relative_to(STATE))]['sha256']==T.B.QUERY_SHA,'GPU health/query lock differs')
+-    return {str(path.relative_to(STATE)):locked[str(path.relative_to(STATE))]['sha256'] for path in paths}
++    """Validate the exact display-owned source closure; no imports or authority.
++
++    Other boot/admission inputs remain under ad.inputs()/ad.common(). This
++    function neither expands its scope from disk nor rewrites any input lock.
++    """
++    global _SOURCE_BINDING
++    rows, locked = source_lock(ad)
++    if _SOURCE_BINDING is not None:
++        need(_SOURCE_BINDING['ad'] is ad and _SOURCE_BINDING['lock'] == locked,
++             'retained external source lock changed')
++    sources = {}; stamps = {}; inodes = set()
++    for name in PATHS:
++        row = rows[name]
++        # Preserve the existing admission provider's own file checks as well.
++        before = source_stamp((STATE/name).lstat())
++        ad.digest_file(STATE/name, row['size'], row['uid'], row['mode'], row['sha256'])
++        data, stamp = source_read(name, row)
++        need(stamp == before, 'source replaced across admission check: '+name)
++        need(stamp[:2] not in inodes, 'duplicate source inode: '+name)
++        inodes.add(stamp[:2]); sources[name] = data; stamps[name] = stamp
++        if _SOURCE_BINDING is not None:
++            need(stamp == _SOURCE_BINDING['stamps'][name], 'retained source replaced: '+name)
++    source_graph(sources)
++    for name, stamp in stamps.items():
++        path = STATE/name
++        need(path.resolve(strict=True) == path and source_stamp(path.lstat()) == stamp,
++             'source changed before cohort completion: '+name)
++    need(source_lock(ad)[1] == locked, 'external source lock changed during validation')
++    if _SOURCE_BINDING is None:
++        _SOURCE_BINDING = types.MappingProxyType(dict(ad=ad, lock=locked,
++            sources=types.MappingProxyType(sources), stamps=types.MappingProxyType(stamps)))
++    return {name:rows[name]['sha256'] for name in PATHS}
++
++
++def load(name, path, pin):
++    """Load only retained, verified bytes from this fixed source cohort."""
++    need(_SOURCE_BINDING is not None, 'source cohort must precede dependency loading')
++    need(path.is_absolute() and path.is_relative_to(STATE), 'source dependency outside state')
++    key = str(path.relative_to(STATE))
++    need(key in PINS and pin == PINS[key], 'unresolved source dependency: '+key)
++    cohort(_SOURCE_BINDING['ad'])
++    if key not in _SOURCE_MODULES:
++        module = types.ModuleType(name)
++        module.__file__ = str(path)
++        module.__source__ = _SOURCE_BINDING['sources'][key]
++        exec(compile(module.__source__, str(path), 'exec'), module.__dict__)
++        _SOURCE_MODULES[key] = module
++    return _SOURCE_MODULES[key]
++
++
++def bind_sources(ad):
++    """Bind actual inert successor modules; never load private runtime adapters."""
++    global T, K, H
++    cohort(ad)
++    transport_key = 'gpu-iommu-display-r1/transport.py'
++    logger_key = 'gpu-iommu-session-r1/kernel-log.py'
++    health_key = 'gpu-iommu-health-r1/successor-health.py'
++    component_key = 'gpu-iommu-display-r1/display-component.py'
++    transport = load('gpu_session_transport', STATE/transport_key, PINS[transport_key])
++    transport.bind_sources(load)
++    logger = load('gpu_session_log', STATE/logger_key, PINS[logger_key])
++    health = load('gpu_session_health', STATE/health_key, PINS[health_key])
++    component = load('gpu_session_component', STATE/component_key, PINS[component_key])
++    T, K, H = transport, logger, health
++    return component
++
++
++def host_contract(ad, identity):
++    """Pure construction from this cohort; the supplied identity is not admission."""
++    component = bind_sources(ad)
++    contract = component.HostContract(identity)
++    cohort(ad)  # Detect source replacement across the component's pinned reads.
++    return contract
++
++
++def initialize(ad):
++    """No session entry until every runtime dependency has a reviewed binding.
++
++    In this source-only successor the worker is intentionally outside PATHS:
++    load() fails before opening/executing it. Extending private runtime closure
++    requires its exact source/lock review, not a source-lock edit or an override.
++    """
++    global C, save
++    bind_sources(ad)
++    T.bind_worker(load)
++    H.bind_runtime(load)
++    K.bind_worker(load)
++    C, save = H.A.C, H.A.C.save
++
+ 
+ def contract_target(contract,boot,owner):
+     target=contract.expected(boot,owner)
+@@ -157,9 +340,13 @@
+ def run(ad,controller,credentials,boot_result,contract):
+     """One integrated production module cohort under the original admission.
+ 
+-    Historical cohort/source/staging pins intentionally remain incompatible
+-    with deployment. This adaptation grants no new admission or staging scope.
++    Public sources are checked before binding. The closed source reader refuses
++    unresolved private worker/health dependencies before any session entry.
++    This source-only composition grants no admission or staging authority.
+     """
++    initialize(ad)
++    need(type(contract) is _SOURCE_MODULES['gpu-iommu-display-r1/display-component.py'].HostContract,
++         'session requires its source-bound HostContract')
+     _,target=admission(ad,controller,credentials,boot_result,contract)
+     expected,intent=contract_target(contract,target['boot_id'],controller.context['owner'])
+     need(expected==target, 'production contract changed before entry')
