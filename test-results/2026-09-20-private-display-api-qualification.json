@@ -1,0 +1,252 @@
+{
+  "status": "PASS_OFFLINE_CALLER_API",
+  "authority": "none",
+  "physical": "NOT RUN",
+  "private_runtime": "UNBOUND",
+  "starting_commit": "966222c561d30b7b80cfa600bfb687e13a42777e",
+  "source_commit": "4c99767a734dc530e605068582f0dfca929d655b",
+  "source_tree": "1e03fb162b372337c6955298ba33a76f177b557e",
+  "oracle": {
+    "engine": "browser",
+    "model": "gpt-6-pro",
+    "thinking": "pro",
+    "visible_model": "6Pro",
+    "session": "rog5-private-api-upload",
+    "same_conversation": "rog5-production-cohort-admission",
+    "response_sha256": "02c8a6692abbbe29701632265ca0f8ee2d640f28b8325e8e68b671562ae33465",
+    "scope": "proposal locally reviewed and tested; browser CLI fallback; no API"
+  },
+  "changed_files": {
+    "configs/repository-tests.json": "1ff36bf080aa42f78499e9a350303c8a273592051ea7119fd2994b547331316c",
+    "patches/display-controller/0010-private-display-api.patch": "e8e14ca5d4382ba30beb90c2169b7b6c0404544f731fdb3e31dc71e0aaaabab8",
+    "patches/display-controller/README.md": "fa0b2fbdc6176a54d5553aa1ce2d674ab917084998e160af87f8d83758ad94f8",
+    "scripts/device/fixtures/display-loader/live-admission-before.py.txt": "7c076f7812ed11b694e4c827c4bbc25fe6f7a370c860cb2c3d8ce4804b92580f",
+    "scripts/device/fixtures/display-loader/trial-launcher-before.py.txt": "f8894e240bd32ca7c2081994c1a933df6825e69d0ad82bf5a66b8427af6c1aa1",
+    "scripts/device/test-private-display-api.py": "82cb72a10c5617a3769d6d5215182f58beb256a227ef44e53198cd84a6d19cef",
+    "scripts/host/test-repository-linux.sh": "e5b307927c0af2a5b233aed66346adb07d99a9c765e321adc2aa11d16e17aa66"
+  },
+  "focused": {
+    "proposal_23_cases": {
+      "command": [
+        "python3",
+        "-O",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/implementation-r1/test-private-display-api.py",
+        "--callers",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/implementation-r1/after",
+        "--before",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/implementation-r1/before",
+        "--sources",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/assembled-after"
+      ],
+      "duration_seconds": 11.549821604974568,
+      "exit_status": 0,
+      "address_space_limit_bytes": 536870912,
+      "scope": "Actual source functions with explicit inert external effects; no phone or real admission"
+    },
+    "registered_25_cases": {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/device/test-private-display-api.py"
+      ],
+      "duration_seconds": 12.559966811037157,
+      "exit_status": 0
+    },
+    "selector_37_cases": {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-select-repository-test-tier.py"
+      ],
+      "duration_seconds": 0.8598877399927005,
+      "exit_status": 0
+    }
+  },
+  "integrated": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "4c99767a734dc530e605068582f0dfca929d655b",
+    "source_tree": "1e03fb162b372337c6955298ba33a76f177b557e",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 234.08874107000884,
+    "counts": {
+      "PASS": 129,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary_sha256": "c8c3144ea3081c5390b93e3d00fb5308ca8bae7abace79f2f7292dadb3c12daa",
+    "junit_sha256": "60ca875286efdd2a96832e8597b2e3604f84a446636e7c98d811bc13c1b04cef",
+    "log_sha256": "40e51ae6e19dff81e91f2c2c3c8471b85b456344b21a356032a6ee41733f2203",
+    "optional_subchecks": [
+      {
+        "path": "scripts/host/test-check-charging-regulation.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "exact sealed archive integration is explicitly selected",
+            "test_id": "Tests.test_exact_sealed_probe",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "exact sealed archive integration is explicitly selected",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_H03_TEST_ARCHIVE"
+              ],
+              "test_ids": [
+                "Tests.test_exact_sealed_probe"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "path": "scripts/host/test-persistent-trial-state.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "requires explicit retained ARM binary replay",
+            "test_id": "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "requires explicit retained ARM binary replay",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_TRIAL_TEST_ARM64=1",
+                "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+              ],
+              "test_ids": [
+                "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "path": "scripts/device/test-pmic-rail-reader.py",
+        "subchecks": [
+          {
+            "kind": "unittest",
+            "message": "optional ARM64 artifact",
+            "test_id": "RailReaderTest.test_exact_arm_binary",
+            "status": "SKIPPED",
+            "declared_optional": true,
+            "declaration": {
+              "id": "optional-1",
+              "kind": "unittest",
+              "message": "optional ARM64 artifact",
+              "scope": "subcheck",
+              "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+              "inputs": [
+                "ROG5_RAIL_READER_BINARY"
+              ],
+              "test_ids": [
+                "RailReaderTest.test_exact_arm_binary"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "resource_limits": {
+      "memory_bytes": 1073741824,
+      "swap_bytes": 0,
+      "cpu_percent": 200,
+      "workers": 2,
+      "tasks": 256,
+      "deadline_seconds": 600
+    },
+    "memory_peak_reported": "721.9M",
+    "swap_peak_bytes": 0
+  },
+  "rollback": {
+    "status": "PASS",
+    "duration_seconds": 0.005353214044589549,
+    "restored": {
+      "live-admission.py.txt": "7c076f7812ed11b694e4c827c4bbc25fe6f7a370c860cb2c3d8ce4804b92580f",
+      "trial-launcher.py.txt": "f8894e240bd32ca7c2081994c1a933df6825e69d0ad82bf5a66b8427af6c1aa1"
+    },
+    "scope": "review copies only; originals unchanged"
+  },
+  "assembled_caller_hashes": {
+    "live-admission.py.txt": "e80ab30bac212bb26dbf914601a215e314fcfa29fa2ec4131c78fc7e1ed03abc",
+    "trial-launcher.py.txt": "a1b18e449379e8330ecbd92d507e9ebb46485926d3f683e250bf832b012468e9"
+  },
+  "negative_controls": [
+    "old authenticated inputs schema rejects production source projection",
+    "old health script call lacks contract/owner",
+    "old session call lacks contract",
+    "old launcher result mapping rejects production success",
+    "old recovery compares discovery identity3 to full identity6"
+  ],
+  "limitations": [
+    "Caller patch applies to source fixtures, not historical private launcher/runtime; no pins or seals replaced.",
+    "Actual initialization retains unknown private worker refusal before credentials, entry or claims.",
+    "No authenticated production cold-boot input producer/binding; do not guess future boot UUID.",
+    "Historical boot-health wrapper and actual controller still use identity3 and obsolete health API; their integration is not qualified.",
+    "Tests use explicit inert custody, producer, transport and selected initialization fixtures; these are not runtime authority.",
+    "No kernel/module/Denial build or VM run in this change; installed bytes not inspected; all physical rows NOT RUN."
+  ],
+  "next_source_collection": {
+    "status": "PASS_COLLECTION_INTEGRITY",
+    "files": 12,
+    "segments": 285,
+    "verified_pinned_source_identities": 11,
+    "source_executions": 0,
+    "phone_operations": 0,
+    "manifest_sha256": "1751346442773f7385103273ce92c5eaa0ce181b197512c50dfa99a72f416287"
+  },
+  "private_evidence_directory": "rog5-display-private-admission-20260920-r1",
+  "post_publication": {
+    "tests": [
+      {
+        "command": [
+          "python3",
+          "scripts/host/check-mobile-status.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.042701356986071914
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-mobile-status.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.08542890299577266
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.013182757014874369
+      }
+    ],
+    "preserved": {
+      "configs/release-acceptance.json": "c1cb49c1e6bd38dc4dcdf7230c66ca4651833fa01ef0fb3a6283b74cbc4ed191",
+      "configs/mobile/acceptance.json": "beff05c037b6e82deebfd46cc8f40ba403e637e62a12fb31ecc2abe4a4aed08b",
+      "manifests/current-artifact.json": "5d168da495a9af5af842f24ad67631c58967f0b5c9bc8a148fab17c507ebd279"
+    },
+    "historical_body_sha256": "7b9a960db656434d8336be177cad513f771950e7004e1e118e75a1143f467292",
+    "historical_body_byte_identical_to": "4c99767a734dc530e605068582f0dfca929d655b"
+  }
+}

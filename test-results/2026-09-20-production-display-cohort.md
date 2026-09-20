@@ -198,3 +198,45 @@ under `-O`. This qualifies the conditional comparison only, not a full recovery
 flow. [Receipt](2026-09-20-private-recovery-identity-counterexample.json) retains
 source/test hashes and results. No identity fields were discarded to bypass the
 guard, no production code changed, and no hardware operation occurred.
+
+
+### Private caller API repair qualified offline
+
+Oracle browser session `rog5-private-api-upload` completed in verified6Pro/Pro,
+continuing the existing cohort conversation with the complete caller source
+attachment. The returned patch was reviewed locally, applied to exact source
+copies, and independently tested. Implementation commit
+`4c99767a734dc530e605068582f0dfca929d655b`, tree
+`1e03fb162b372337c6955298ba33a76f177b557e`, follows `966222c5`.
+
+Patch0010 propagates explicit contract/owner through caller closures and session
+execution, accepts the exact authenticated ten-source projection, recognizes
+production session success, and compares recovery discovery against the contract
+projection while retaining full six-field health identity checks. Actual
+initialization precedes credentials, launch entry and claim consumption and still
+refuses the unbound private worker. Historical source pins, seals, root phase
+whitelist and claims are unchanged. The patch is not installed in private runtime.
+
+The original Pro23-case proposal passed locally in11.550s. The registered suite
+extends it to25 cases, passing in12.560s; all five historical conditional defects
+have before/after controls using actual caller definitions. Selector37 cases
+passed in0.860s. Strict patch apply and reverse checks succeeded; reversal restored
+the two exact original fixture hashes in0.005s. The frozen active tier then passed
+129 suites in234.089s:0FAIL,0BLOCKED,0suite SKIPPED,255NOT_SELECTED. Three declared
+optional historical artifact subchecks remained SKIPPED. Peak memory721.9M, swap0B.
+These are host fixtures/source checks; external custody/transport and selected
+initialization branches use explicit inert fixtures. They do not qualify authority.
+
+[Qualification receipt](2026-09-20-private-display-api-qualification.json) contains
+all seven changed implementation paths/hashes, exact test commands, source/tree,
+Pro response, test-summary and JUnit hashes, rollback and limits. No unchanged
+kernel/module/Denial build was repeated. No VM or phone operation occurred.
+
+The next source-only collection resolves the actual health-wrapper/controller
+chain and historical input producers:12 sanitized attachments,11 verified source
+pins,285 fragments. Those consumers still use identity3/old health signatures.
+An authenticated production cold-boot producer and boot binding remain missing
+from the inspected boundary. Do not guess a future boot UUID or reuse a historical
+seal. Continue the same Pro conversation with these actual sources before further
+integration changes. Runtime UNBOUND; installed qualification unchanged; physical
+NOT RUN; S06/R01 and prior VM failures remain FAIL.

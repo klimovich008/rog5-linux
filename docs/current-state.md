@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production source cohort passes offline; private runtime remains unbound**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production caller repair passes offline; private runtime remains unbound**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Qualified source cohort unchanged. Pro firmware review completed: no production fix justified; locally12 C and23 shell source-extract cases passed, and two injected defects were caught. Full startup/VFS/payload lifetime remains unqualified. Historical health seal is correctly rejected; five conditional private successor API/schema/identity mismatches remain; the historical launcher still pins the old session. Continue the existing cohort Pro conversation with collected actual runtime sources for source-only integration repair. No candidate, signing, claim, VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Caller patch 0010 qualified at 4c99767a: five conditional successor API/schema/identity defects covered by before/after controls; 25 focused cases and 129 active suites PASS. Historical pins, seals and source cohort unchanged. Next: review the collected actual boot-health wrapper/controller and authenticated production input/binding design in the same Pro conversation. Those downstream consumers still use identity3; no cold-boot producer is qualified and no future boot UUID may be guessed. Firmware startup/VFS/payload lifetime remains unqualified. No candidate, signing, claim, VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

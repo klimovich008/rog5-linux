@@ -3917,3 +3917,13 @@ launch. This demonstrates a usable delivery path, not the cause of earlier
 upload/editor failures. Keep verbose delivery evidence private, bound resource
 use per owned tab, and distinguish confirmed file access from a completed review
 or locally tested solution. Close owned read-only diagnostic tabs after capture.
+
+
+Caller integration qualification (2026-09-20): carry the source-bound contract
+through every ordinary callback and verify initialization before credentials or
+claim entry. An identity3 discovery record can locate a boot but cannot replace
+the full artifact/owner health proof. Before qualifying cold boot, inspect actual
+wrapper and controller consumers as well as the launcher; the25-case caller suite
+and129-suite active run leave those legacy consumers explicitly unbound. Bind a
+future boot only after authenticated discovery; never construct its UUID in an
+offline contract. Preserve historical pins and seals while testing source copies.
