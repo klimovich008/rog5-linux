@@ -524,5 +524,171 @@ class GtkWindowDiagnostic(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, 'window+unref variant unexpectedly compiled')
 
 
+# Reuse the public-API window fixture, moving removal inside the real action
+# callee. This does not model the interposer's selection state.
+QUIT_FAKE = FAKE.replace('char application, window;',
+    'char application, window, other;\nvoid fixture_dispatch(void);')
+QUIT_FAKE = QUIT_FAKE.replace('''    remaining = getenv("KEEP_WINDOW") != NULL;
+    errno = EDOM;
+    if (handlers[2]) ((void (*)(void *, void *, void *))handlers[2])(app, &window, NULL);
+    if (errno != EDOM) bad++;''', '    fixture_dispatch();')
+QUIT_FAKE += r'''
+#include <dlfcn.h>
+#include <unistd.h>
+static int action_calls;
+static void invoke(void *group, const char *name) {
+    void (*action)(void *, const char *, void *) = dlsym(RTLD_DEFAULT, "g_action_group_activate_action");
+    if (!action) _exit(41);
+    errno = EBUSY;
+    action(group, name, &window);
+    if (errno != ENOTTY) bad++;
+}
+#ifndef OMIT_ACTION
+static int nested, emitted;
+void g_action_group_activate_action(void *group, const char *name, void *parameter) {
+    const char *mode = getenv("ACTION_MODE");
+    if (errno != EBUSY || parameter != &window) bad++;
+    action_calls++;
+    if (handlers[2]) {
+        if (!strcmp(mode, "nested") && !nested && !emitted) {
+            nested++;
+            invoke(group, name);
+            nested--;
+            char bytes[1537];
+            FILE *log = fopen(getenv("FIXTURE_LOG"), "r");
+            if (!log) _exit(42);
+            size_t length = fread(bytes, 1, sizeof(bytes)-1, log);
+            bytes[length] = 0;
+            fclose(log);
+            if (strstr(bytes, "phase=APP_QUIT_RETURN")) bad++;
+        } else if (!emitted) {
+            emitted = 1;
+            remaining = !strcmp(mode, "nonzero");
+            errno = EDOM;
+            ((void (*)(void *, void *, void *))handlers[2])(&application, &window, NULL);
+            if (errno != EDOM) bad++;
+            if (!strcmp(mode, "blocked")) for (;;) pause();
+        }
+    }
+    errno = ENOTTY;
+}
+#endif
+void fixture_dispatch(void) {
+    const char *mode = getenv("ACTION_MODE");
+    if (!strcmp(mode, "wrong-app")) invoke(&other, "quit");
+    else if (!strcmp(mode, "wrong-name")) invoke(&application, "noop");
+    invoke(&application, "quit");
+    if (!strcmp(mode, "duplicate")) invoke(&application, "quit");
+}
+void fixture_outside_action(void) { invoke(&application, "quit"); }
+int fixture_action_clean(void) {
+    const char *mode = getenv("ACTION_MODE");
+    int expected = 3 + (!strcmp(mode, "nested") || !strcmp(mode, "duplicate") ||
+                       !strcmp(mode, "wrong-app") || !strcmp(mode, "wrong-name"));
+    return !bad && action_calls == expected;
+}
+'''
+QUIT_CALLER = CALLER.replace('int fixture_clean(void);',
+    'int fixture_clean(void);\nvoid fixture_outside_action(void);\nint fixture_action_clean(void);')
+QUIT_CALLER = QUIT_CALLER.replace('    errno = EBUSY;',
+    '    fixture_outside_action();\n    errno = EBUSY;')
+QUIT_CALLER = QUIT_CALLER.replace('    return fixture_clean() ? 0 : 32;',
+    '    fixture_outside_action();\n    return fixture_clean() && fixture_action_clean() ? 0 : 32;')
+
+
+class QuitReturnDiagnostic(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary = tempfile.TemporaryDirectory(prefix='rog5-quit-probe-')
+        cls.addClassCleanup(cls.temporary.cleanup)
+        cls.build = Path(cls.temporary.name)
+        (cls.build/'fake.c').write_text(QUIT_FAKE)
+        (cls.build/'caller.c').write_text(QUIT_CALLER)
+        cls.probe = cls.build/'probe.so'
+        cls.flags = ['cc', '-std=c11', '-Wall', '-Wextra', '-Werror']
+        cls.probe_command = cls.flags + ['-fPIC', '-shared', '-DROG5_QUIT_PROBE',
+            '-DROG5_WINDOW_PROBE', '-DROG5_NO_UNREF_PROBE', str(SOURCE),
+            '-o', str(cls.probe), '-ldl', '-pthread']
+        subprocess.run(cls.probe_command, check=True, capture_output=True, timeout=15)
+        for name, flags in [('fake', []), ('missing', ['-DOMIT_ACTION'])]:
+            subprocess.run(cls.flags + ['-fPIC', '-shared', *flags, str(cls.build/'fake.c'),
+                '-o', str(cls.build/f'lib{name}.so'), '-ldl'], check=True, capture_output=True, timeout=15)
+            subprocess.run(cls.flags + [str(cls.build/'caller.c'), '-L'+str(cls.build),
+                '-Wl,-rpath,'+str(cls.build), '-l'+name, '-ldl', '-o', str(cls.build/name)],
+                check=True, capture_output=True, timeout=15)
+
+    def setUp(self):
+        self.log = self.build/(self.id().split('.')[-1]+'.log')
+        self.log.touch(mode=0o600)
+        self.env = dict(os.environ, LD_PRELOAD=str(self.probe), ROG5_SETTINGS_SYNC_LOG=str(self.log),
+                        FIXTURE_LOG=str(self.log), ACTION_MODE='normal')
+        for key in ('KEEP_WINDOW', 'FAIL_WINDOW_CONNECT'):
+            self.env.pop(key, None)
+
+    def stages(self):
+        return [line.split()[1].split('=')[1] for line in self.log.read_text().splitlines()]
+
+    def check_action(self, mode, observed):
+        self.env['ACTION_MODE'] = mode
+        result = subprocess.run([str(self.build/'fake'), 'run'], env=self.env,
+                                capture_output=True, timeout=2)
+        self.assertEqual(result.returncode, 0, (result.stderr, self.stages()))
+        window = 'WINDOW_REMOVED_NONZERO' if mode == 'nonzero' else 'WINDOW_REMOVED_ZERO'
+        self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', window] +
+            (['APP_QUIT_RETURN'] if observed else []) + ['SHUTDOWN_BEFORE', 'BEGIN', 'END',
+            'SHUTDOWN_AFTER', 'APP_RUN_END', 'APP_DISCONNECT_ONE_END', 'APP_OBSERVERS_REMOVED', 'DSO_FINI'])
+        self.assertLessEqual(self.log.stat().st_size, 1536)
+        self.assertEqual(result.stdout, b'')
+        self.assertEqual(result.stderr, b'')
+
+    def test_selected_quit_return_errno_and_before_after_run_forwarding(self):
+        self.check_action('normal', True)
+
+    def test_wrong_application_zero_does_not_arm_later_matching_quit(self):
+        self.check_action('wrong-app', False)
+
+    def test_wrong_action_zero_does_not_arm_later_matching_quit(self):
+        self.check_action('wrong-name', False)
+
+    def test_nonzero_windows_do_not_emit_quit_return(self):
+        self.check_action('nonzero', False)
+
+    def test_duplicate_quits_emit_once(self):
+        self.check_action('duplicate', True)
+
+    def test_nested_matching_quit_emits_only_after_outer_callee_returns(self):
+        self.check_action('nested', True)
+
+    def test_blocked_callee_after_zero_has_no_return_marker(self):
+        self.env['ACTION_MODE'] = 'blocked'
+        process = subprocess.Popen([str(self.build/'fake'), 'run'], env=self.env,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        try:
+            deadline = time.monotonic()+2
+            while 'WINDOW_REMOVED_ZERO' not in self.stages() and time.monotonic()<deadline:
+                if process.poll() is not None:
+                    break
+                time.sleep(.005)
+            self.assertEqual(self.stages(), ['loaded', 'APP_RUN_BEGIN', 'WINDOW_REMOVED_ZERO'])
+            self.assertIsNone(process.poll())
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=2)
+        self.assertNotIn('APP_QUIT_RETURN', self.stages())
+
+    def test_absent_action_symbol_fails_closed(self):
+        result = subprocess.run([str(self.build/'missing'), 'run'], env=self.env,
+                                capture_output=True, timeout=2)
+        self.assertEqual(result.returncode, 125)
+        self.assertNotIn('APP_QUIT_RETURN', self.stages())
+
+    def test_quit_probe_requires_window_variant(self):
+        command = [arg for arg in self.probe_command if arg != '-DROG5_WINDOW_PROBE']
+        command[command.index('-o')+1] = str(self.build/'forbidden.so')
+        result = subprocess.run(command, capture_output=True, timeout=15)
+        self.assertNotEqual(result.returncode, 0, 'quit without window observer unexpectedly compiled')
+
+
 if __name__ == '__main__':
     unittest.main()

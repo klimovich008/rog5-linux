@@ -11,6 +11,13 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef ROG5_QUIT_PROBE
+#include <string.h>
+#ifndef ROG5_WINDOW_PROBE
+#error "quit observation requires the window observation mode"
+#endif
+#endif
+
 #if defined(ROG5_WINDOW_PROBE) && !defined(ROG5_NO_UNREF_PROBE)
 #error "window observation requires the no-unref control to retain record limits"
 #endif
@@ -27,6 +34,14 @@ static unsigned int records;
 static _Atomic(void *) pending_unref;
 #endif
 static _Atomic int application_observed;
+#ifdef ROG5_QUIT_PROBE
+static _Atomic(void *) quit_application;
+static _Atomic unsigned int empty_window_generation;
+static _Atomic int quit_reported;
+static _Thread_local unsigned int quit_depth;
+static void (*real_activate)(void *, const char *, void *);
+static pthread_once_t activate_once = PTHREAD_ONCE_INIT;
+#endif
 #ifndef ROG5_NO_UNREF_PROBE
 static void (*real_unref)(void *);
 static pthread_once_t unref_once = PTHREAD_ONCE_INIT;
@@ -107,6 +122,46 @@ void g_settings_sync(void)
 	errno = result_errno;
 }
 
+#ifdef ROG5_QUIT_PROBE
+static void resolve_activate(void)
+{
+	dlerror();
+	real_activate = (void (*)(void *, const char *, void *))
+		dlsym(RTLD_NEXT, "g_action_group_activate_action");
+	if (dlerror() || !real_activate)
+		fail();
+}
+
+/* Observe return of the outer matching action, not a nested quit or a future
+ * action after an unrelated empty-list notification. No object refs or private
+ * application state are inspected. The normal one-window path gains one record.
+ */
+void g_action_group_activate_action(void *group, const char *name, void *parameter)
+{
+	int entry_errno = errno, result_errno, expected = 0;
+	int matching, outer = 0;
+	unsigned int generation = 0;
+	if (pthread_once(&activate_once, resolve_activate))
+		fail();
+	matching = group && group == atomic_load(&quit_application) &&
+		name && !strcmp(name, "quit");
+	if (matching) {
+		outer = quit_depth++ == 0;
+		generation = atomic_load(&empty_window_generation);
+	}
+	errno = entry_errno;
+	real_activate(group, name, parameter);
+	result_errno = errno;
+	if (matching)
+		quit_depth--;
+	if (outer && group == atomic_load(&quit_application) &&
+	    generation != atomic_load(&empty_window_generation) &&
+	    atomic_compare_exchange_strong(&quit_reported, &expected, 1))
+		record("APP_QUIT_RETURN");
+	errno = result_errno;
+}
+#endif
+
 /* Observe only the first direct unref of the exact application after its run
  * and our disconnects returned. Other references/callees retain their behavior.
  * Resolving once also covers legitimate unrefs before g_application_run().
@@ -169,7 +224,16 @@ static void window_removed(void *application, void *window, void *data)
 	int saved_errno = errno;
 	(void)window;
 	(void)data;
+#ifdef ROG5_QUIT_PROBE
+	if (window_list(application)) {
+		record("WINDOW_REMOVED_NONZERO");
+	} else {
+		record("WINDOW_REMOVED_ZERO");
+		atomic_fetch_add(&empty_window_generation, 1);
+	}
+#else
 	record(window_list(application) ? "WINDOW_REMOVED_NONZERO" : "WINDOW_REMOVED_ZERO");
+#endif
 	errno = saved_errno;
 }
 #endif
@@ -235,10 +299,18 @@ int g_application_run(struct _GApplication *application, int argc, char **argv)
 		fail();
 #endif
 	atomic_store(&application_observed, 1);
+#ifdef ROG5_QUIT_PROBE
+	atomic_store(&empty_window_generation, 0);
+	atomic_store(&quit_reported, 0);
+	atomic_store(&quit_application, application);
+#endif
 	record("APP_RUN_BEGIN");
 	errno = entry_errno;
 	result = run(application, argc, argv);
 	result_errno = errno;
+#ifdef ROG5_QUIT_PROBE
+	atomic_store(&quit_application, NULL);
+#endif
 	record("APP_RUN_END");
 	/* Disconnect while the caller still owns the application; no extra ref or
 	 * weak-ref callback changes its lifetime. These are signal-observer bounds,
