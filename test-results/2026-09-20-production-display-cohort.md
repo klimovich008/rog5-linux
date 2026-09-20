@@ -273,3 +273,10 @@ returned the preceding caller response (SHA02c8a669...), so it is explicitly
 excluded as a new cold-boot answer. No proposal from this question is applied.
 Metadata8 cases PASS0.024s; historical status body and three baseline/artifact
 files remain byte-identical. No unchanged integrated tier was repeated.
+
+The CLI live reader later ended on its unchanged-text stall threshold while the
+exact tab still showed stop=true and the new source acknowledgement in6Pro.
+That is not a terminal adviser result. The installed Oracle live-read function
+is now observing the same exact tab with a30-minute stall window and no recovery
+or submission; private checkpoint holds the current handle. Do not treat the
+old answer returned by either early reader as the new proposal.
