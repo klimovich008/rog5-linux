@@ -3762,3 +3762,19 @@ from live-child termination, and keep disappearance timeout a failure. The two
 focused suites took 6.59 seconds wall time; no kernel rebuild or phone trial was
 needed to qualify this userspace boundary. Same-group coverage does not prove
 session-escape containment or reversal of kernel side effects.
+
+
+### Give failure collection its own bounded window (2026-09-20)
+
+Changing a target lifetime requires coordinated readiness, entry, result and
+outer-session contracts, not just a host timeout. Taking min(old deadline,
+now+cleanup) grants no collection time when failure occurs at the old deadline.
+Close the lease and reserve one independent bounded failure window; later errors
+or positive cleanup must neither reset that window nor erase the original failure.
+
+Use the actual duplex loop with an inert peer, and controlled clock/syscall seams
+for timing races. The full host/supervisor/loader/endpoint fixture catches contracts
+that component-only tests cannot. Keep local children unreaped until group cleanup
+and require that proof even after target success. The focused transport suite
+took6.35 seconds; no new kernel or live candidate was needed. A session that ran
+a separate GPUCC provider cannot prepend it to a loader that now owns GPUCC.
