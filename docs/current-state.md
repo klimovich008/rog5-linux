@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Touch input-core and runner qualified offline; recovery finalization proposal awaits local tests**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Cold-boot recovery source qualified; private worker initialization remains unbound**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Touch regression source1f936857 is committed: all8board suites PASS in146.160s, including13delivered-event cases/18mutation controls/32source comparisons and cancellation cleanup. Initial missing-schema-tool BLOCKED is retained; explicit retained tool PATH resolved it without source changes. Caller0010 remains qualified at4c99767a (25focused/129active PASS). The latest unintegrated0011 passes30local checks but has a demonstrated second-close interruption failure; Pro’s scoped follow-up has arrived with verified patch/test hashes, not yet locally qualified. Runtime UNBOUND. No candidate, signing, claim, VM or phone operation. Physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Source f461c41a integrates the cold-boot caller patch: all 130 active suites PASS in 409.353s, including 70 actual caller/controller/launcher cases in 183.037s. The initial missing-Wayland-header failure is retained; restoring the previously qualified environment resolved it without source changes. The finalization correction passes 14 focused cases and two old-source failure controls. Touch source1f936857 retains its 8-suite board PASS. Next: source-bound worker/deployed loading review; initialize still refuses the unqualified SSH worker before health. No candidate, signing, claim, VM or phone operation. Physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

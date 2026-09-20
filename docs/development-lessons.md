@@ -3978,3 +3978,14 @@ children before removing scratch. Before the integrated board tier, restore the
 retained schema-tool PATH: the missing prerequisite stopped the first run after
 23.364s; the unchanged source then passed all8suites in146.160s. Do not repeat
 the unaffected129-suite active tier or full kernel build for these test additions.
+
+
+Cold-boot finalization (2026-09-20): keep the last normal writer close inside
+the same exception boundary as publication. Retaining cancellation without its
+validated exclusion witness cannot authorize fallback. The14focused positives
+and2old-source controls established this distinction before clean-CI integration.
+Reuse a prior passing integrated command's environment, including tool wrappers
+and development headers: reconstructing it dropped ROG5_WAYLAND_INCLUDE and
+caused a9-second early failure. The unchanged source then passed130suites.
+Package only consumed source fixtures, preserving reviewed test bytes and the
+existing assembler, rather than committing full adviser packets or private logs.

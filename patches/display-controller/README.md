@@ -379,3 +379,27 @@ initialization fixtures inspect downstream API checks; separate tests execute
 the real private-dependency refusal before credentials or claims. The suite is
 mandatory in the existing active/CI tiers, with bounded runtime and input checks.
 Physical results remain NOT RUN, and the private runtime remains UNBOUND.
+
+
+## Cold-boot caller and owned publication repair
+
+`0011-production-cold-boot.patch` follows the 0010 caller output and seven
+retained downstream source fixtures. The clean-checkout composition and
+70-case regression are in `scripts/device/test-production-cold-boot.py`; fixture
+normalization and scope are documented in its `fixtures/display-cold-boot/README.md`.
+The existing source-cohort assembler remains authoritative.
+
+One static authenticated-input projection binds only after actual discovery of
+the intended boot. Discovery is an expectation, not health acceptance. An
+exclusive expectation writer retains creation ownership and validates its
+closed snapshot. Failed publication can produce an exclusion-only witness for
+guarded fallback, never target acceptance. Normal finalization stays inside the
+same failure boundary; first cancellation during the final close no longer
+escapes before witness/cancellation handling. Original failure and cancellation
+remain visible after permitted cleanup/recovery. Uncertain closure, tampering
+and consumed recovery phases remain refusals.
+
+This is source integration only. The original runtime, signatures, input locks,
+health seals and claims remain untouched. Initialization still refuses the
+unqualified private SSH worker before any health or credential operation;
+adding a source pin alone cannot qualify its transitive imports.

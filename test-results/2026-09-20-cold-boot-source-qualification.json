@@ -1,0 +1,752 @@
+{
+  "schema": 1,
+  "status": "PASS_OFFLINE_COLD_BOOT_SOURCE",
+  "authority": "none",
+  "physical": "NOT RUN",
+  "private_runtime": "UNBOUND",
+  "starting_commit": "2cae594d1fe734708f84cbd68451c04bd4118537",
+  "source_commit": "f461c41a704d59a3432b5b15d148e00437ef2083",
+  "source_tree": "f272a75d07ce97565321a4f4d50660032e4172a6",
+  "changed_files": {
+    "configs/repository-tests.json": "8758c1c107ca7f5105b3037e3f22791d1dc5381370d2ff63ed6931ab3497c7e5",
+    "patches/display-controller/0011-production-cold-boot.patch": "c5b14ccd51f13082bb991b98d803ded2e7bca0d355f512729d87fb502e6a5eec",
+    "scripts/device/fixtures/display-cold-boot/README.md": "dee9bdfd9a22793ee3830ec9a548f739fae223936baaec705a8d23e3314959d7",
+    "scripts/device/fixtures/display-cold-boot/finalization.py": "27bcb82a7dc7d94be1785a81bf9332727b68aff82f100aacb8a607a1c8ec0635",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-controller-r1__controller.py.txt": "aef9ef27495794e7b96bc8202d56b0bb6369b2c2348049f7d1614c5cd3bc12eb",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__action-callbacks.py.txt": "695668a7c6a374ce6d16560aa59f517a10df98f2a0a3298cc9536f07af23dadf",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__fallback-observation.py.txt": "d895a391ac676c98a081bc703d19baabcfd1145768f8b77fa06b363e0fec97c6",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__fastboot-callbacks.py.txt": "22de83b70a9e9f62c41d228f104a3e53a54daea3d08ea944640113d43df55932",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__health-read-callbacks.py.txt": "070972b6394b44c92e2679cafde685351b5076ab5da7e433aeaeaae16008f96a",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__live-driver.py.txt": "ab087b871715b5124e1a3e6d2ecdd0842b63e0cea3c1f35a6ab87a92e50c324d",
+    "scripts/device/fixtures/display-cold-boot/gpu-iommu-live-driver-r1__source-read-callbacks.py.txt": "3bd763f45995447ce44267beb2342123b053b6609d5e924e6a9d58e092ea3509",
+    "scripts/device/fixtures/display-cold-boot/integration.py": "55d3a192fa8425c58f35ecc47825964e1d8c5256cc69e58784b9c8b0e9f0dee6",
+    "scripts/device/fixtures/display-cold-boot/owned-publication.py": "12165e7bb9735aa4a29a48e1b2f8066bb7ce2008dfa236807b732c3b91db191a",
+    "scripts/device/fixtures/display-cold-boot/source-pins.json": "f542d8748e8b1a82121f56fa99c1a243b899b27ebb36f1a4598b9e6a06d0c190",
+    "scripts/device/test-production-cold-boot.py": "69be8e717e2e655837b1a1561982e68b975d6e49f2f76f1e66cae08175136ab7",
+    "scripts/host/test-repository-linux.sh": "b7f2065430f77b10e4bac14e2ac8a9233c81eae2ec807642d6c59916fd4b282d"
+  },
+  "focused": {
+    "status": "PASS",
+    "corrected_cases": 14,
+    "old_source_failure_controls": 2,
+    "corrected_seconds": 44.21252678101882,
+    "negative_seconds": 3.6736067419988103,
+    "total_seconds": 47.886133523017634,
+    "admission_sha256": "cfa51919a4b5bdfc456621c5531ac2bc706642664029b0821d6e1729ceb4393e",
+    "replacement_patch_sha256": "c5b14ccd51f13082bb991b98d803ded2e7bca0d355f512729d87fb502e6a5eec",
+    "incremental_patch_sha256": "ff60e8ef36d5c0a863a8992a93cfcc21d2c86ffc1767f9071701f5f19cbdbadc",
+    "test_sha256": "27bcb82a7dc7d94be1785a81bf9332727b68aff82f100aacb8a607a1c8ec0635",
+    "result_sha256": "2f1a526c2e00a82aee21f935759f6b006ad480148fb253765dbb69e681bfe637",
+    "logs": {
+      "batch-1.log": "6d0d2f7291de089200b3954fc45a25049d343181473bd359139c6b9eeee494a7",
+      "batch-2.log": "d3e499b39f7c89d23e8a8ce2c3f555987b8e87eabd836404c34fbe0fc84cf5d1",
+      "batch-3.log": "873e2830378b60c86d7df834f9a2de2a243506383f895e721429c59b4ab05164",
+      "batch-4.log": "f30e5809da1681f7198e3775b8c8ebf020497df7cefcbbc8b57eb4fdae5d3b0e",
+      "negative-control.log": "4f868b5fbfae9665b334791057a030c8fb9a21bb66b7c274632f9620dbf3f60c"
+    },
+    "scope": "ordinary-user actual source definitions; external effects inert; injected exceptions not additional OS signal experiments",
+    "runtime": "UNBOUND",
+    "phone_operations": 0,
+    "physical": "NOT RUN"
+  },
+  "application": {
+    "seconds": 0.07037373800994828,
+    "scope": "Strict apply/reverse check; onlyColdBoot.publish_expectation AST changed in incremental fix; sevenother files unchanged"
+  },
+  "integrated": {
+    "command": "PATH=\"$RETAINED_GBM_TOOLS:$PATH\" ROG5_WAYLAND_INCLUDE=\"$RETAINED_WAYLAND_INCLUDE\" ROG5_TEST_WORKERS=2 ROG5_TEST_REPORT_DIR=\"$NEW_REPORT\" bash scripts/host/test-repository-linux.sh active",
+    "counts": {
+      "PASS": 130,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 257
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "duration_seconds": 409.3532145229983,
+    "exit_status": 0,
+    "memory_max_bytes": 1073741824,
+    "swap_max_bytes": 0,
+    "tasks_max": 256,
+    "suite_results": [
+      {
+        "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+        "status": "PASS",
+        "duration_seconds": 0.2665690529975109
+      },
+      {
+        "path": "scripts/device/test-ncm-tx-timer.py",
+        "status": "PASS",
+        "duration_seconds": 0.2656114870333113
+      },
+      {
+        "path": "scripts/device/test-startup-observer.py",
+        "status": "PASS",
+        "duration_seconds": 0.8485162429860793
+      },
+      {
+        "path": "scripts/device/test-persistent-ssh-key-files.py",
+        "status": "PASS",
+        "duration_seconds": 0.38652190001448616
+      },
+      {
+        "path": "scripts/host/test-headless-stage-receiver.py",
+        "status": "PASS",
+        "duration_seconds": 0.5079080510186031
+      },
+      {
+        "path": "scripts/host/test-source-teardown-observation.py",
+        "status": "PASS",
+        "duration_seconds": 0.2454101829789579
+      },
+      {
+        "path": "scripts/host/test-capture-isolated-recovery.py",
+        "status": "PASS",
+        "duration_seconds": 0.24534280196530744
+      },
+      {
+        "path": "scripts/host/test-isolated-recovery-observation.py",
+        "status": "PASS",
+        "duration_seconds": 0.22629871597746387
+      },
+      {
+        "path": "scripts/host/test-check-isolated-recovery.py",
+        "status": "PASS",
+        "duration_seconds": 0.26558020699303597
+      },
+      {
+        "path": "scripts/host/test-r01-controller-replay.py",
+        "status": "PASS",
+        "duration_seconds": 4.188058134051971
+      },
+      {
+        "path": "scripts/host/test-isolated-recovery-diagnostics.py",
+        "status": "PASS",
+        "duration_seconds": 0.12470816296990961
+      },
+      {
+        "path": "scripts/host/test-verified-isolated-recovery-boot.py",
+        "status": "PASS",
+        "duration_seconds": 0.6477734270156361
+      },
+      {
+        "path": "scripts/host/test-verified-kernel-hardware-boot.py",
+        "status": "PASS",
+        "duration_seconds": 0.3458532859804109
+      },
+      {
+        "path": "scripts/host/test-release-acceptance.py",
+        "status": "PASS",
+        "duration_seconds": 7.281559121038299
+      },
+      {
+        "path": "scripts/host/test-network-transfer-stream.py",
+        "status": "PASS",
+        "duration_seconds": 1.1701655859942548
+      },
+      {
+        "path": "scripts/host/test-wifi-restart-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 0.32577240298269317
+      },
+      {
+        "path": "scripts/host/test-check-deployed-server.py",
+        "status": "PASS",
+        "duration_seconds": 0.547015375981573
+      },
+      {
+        "path": "scripts/host/test-check-standalone-root.py",
+        "status": "PASS",
+        "duration_seconds": 0.3055737480171956
+      },
+      {
+        "path": "scripts/host/test-check-standalone-boot.py",
+        "status": "PASS",
+        "duration_seconds": 1.6527593969949521
+      },
+      {
+        "path": "scripts/host/test-ordinary-boot-smoke.py",
+        "status": "PASS",
+        "duration_seconds": 2.859548708947841
+      },
+      {
+        "path": "scripts/host/test-powered-off-start-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 2.7787950899801217
+      },
+      {
+        "path": "scripts/host/test-repeated-boot-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 0.9491673639859073
+      },
+      {
+        "path": "scripts/host/test-soak-observation.py",
+        "status": "PASS",
+        "duration_seconds": 0.14501200802624226
+      },
+      {
+        "path": "scripts/host/test-soak-evidence-rules.py",
+        "status": "PASS",
+        "duration_seconds": 0.9091327610076405
+      },
+      {
+        "path": "scripts/host/test-soak-workload-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 1.1710242059780285
+      },
+      {
+        "path": "scripts/host/test-soak-runtime-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 0.3258750129607506
+      },
+      {
+        "path": "scripts/device/test-soak-file-window.py",
+        "status": "PASS",
+        "duration_seconds": 5.090209414018318
+      },
+      {
+        "path": "scripts/device/test-cpu-frequency-cap.py",
+        "status": "PASS",
+        "duration_seconds": 0.4872390949749388
+      },
+      {
+        "path": "scripts/device/test-headless-cpu-policy.py",
+        "status": "PASS",
+        "duration_seconds": 0.6270443990360945
+      },
+      {
+        "path": "scripts/host/test-server-runtime-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 0.8282646290026605
+      },
+      {
+        "path": "scripts/host/test-check-rescue-startup.py",
+        "status": "PASS",
+        "duration_seconds": 0.30612088000634685
+      },
+      {
+        "path": "scripts/host/test-rescue-runtime-evidence.py",
+        "status": "PASS",
+        "duration_seconds": 0.26695748802740127
+      },
+      {
+        "path": "scripts/host/test-release-rescue-companion.py",
+        "status": "PASS",
+        "duration_seconds": 1.9545960720279254
+      },
+      {
+        "path": "scripts/host/test-check-charging-regulation.py",
+        "status": "PASS",
+        "duration_seconds": 0.20551203697687015
+      },
+      {
+        "path": "scripts/host/test-rescue-root-composition.py",
+        "status": "PASS",
+        "duration_seconds": 0.8286275209975429
+      },
+      {
+        "path": "scripts/host/test-release-composition.py",
+        "status": "PASS",
+        "duration_seconds": 0.46649965998949483
+      },
+      {
+        "path": "scripts/host/test-owned-vm.py",
+        "status": "PASS",
+        "duration_seconds": 0.3862920109531842
+      },
+      {
+        "path": "scripts/host/test-a01-fixture.py",
+        "status": "PASS",
+        "duration_seconds": 0.3462733870255761
+      },
+      {
+        "path": "scripts/host/test-module-edge.py",
+        "status": "PASS",
+        "duration_seconds": 0.46747046697419137
+      },
+      {
+        "path": "scripts/device/test-slotb-ram-bundle.py",
+        "status": "PASS",
+        "duration_seconds": 0.4262482550111599
+      },
+      {
+        "path": "scripts/device/test-standalone-rescue-composition.py",
+        "status": "PASS",
+        "duration_seconds": 0.4261768570286222
+      },
+      {
+        "path": "scripts/host/test-qemu-watchdog-artifact.py",
+        "status": "PASS",
+        "duration_seconds": 1.4708594129770063
+      },
+      {
+        "path": "scripts/device/test-persistent-root-watchdog.py",
+        "status": "PASS",
+        "duration_seconds": 0.6070845149806701
+      },
+      {
+        "path": "scripts/host/test-persistent-trial-state.py",
+        "status": "PASS",
+        "duration_seconds": 4.286933230992872
+      },
+      {
+        "path": "scripts/host/test-build-persistent-wifi-selector.py",
+        "status": "PASS",
+        "duration_seconds": 1.7934789559803903
+      },
+      {
+        "path": "scripts/device/test-rpmh-readback.py",
+        "status": "PASS",
+        "duration_seconds": 1.170176224957686
+      },
+      {
+        "path": "scripts/device/test-rpmh-state-reader.py",
+        "status": "PASS",
+        "duration_seconds": 0.18511243496323004
+      },
+      {
+        "path": "scripts/device/test-pmic-rail-reader.py",
+        "status": "PASS",
+        "duration_seconds": 0.2859919809852727
+      },
+      {
+        "path": "scripts/device/test-persistent-power-readiness.py",
+        "status": "PASS",
+        "duration_seconds": 0.44654272304615006
+      },
+      {
+        "path": "scripts/device/test-s12-ufs-vote.py",
+        "status": "PASS",
+        "duration_seconds": 0.6274904999881983
+      },
+      {
+        "path": "scripts/device/test-asus-s12-oem-point.py",
+        "status": "PASS",
+        "duration_seconds": 0.6478162289713509
+      },
+      {
+        "path": "scripts/device/test-native-ath11k-hw11.py",
+        "status": "PASS",
+        "duration_seconds": 0.20543323998572305
+      },
+      {
+        "path": "scripts/device/test-native-wifi-pcie-trace.py",
+        "status": "PASS",
+        "duration_seconds": 0.14508769602980465
+      },
+      {
+        "path": "scripts/device/test-native-wifi-activation.py",
+        "status": "PASS",
+        "duration_seconds": 0.2856905270018615
+      },
+      {
+        "path": "scripts/device/test-native-wifi-wpa-start.py",
+        "status": "PASS",
+        "duration_seconds": 0.14538863999769092
+      },
+      {
+        "path": "scripts/device/test-native-wifi-network-restart.py",
+        "status": "PASS",
+        "duration_seconds": 0.8883479319629259
+      },
+      {
+        "path": "scripts/device/test-native-wifi-boot.py",
+        "status": "PASS",
+        "duration_seconds": 8.810214879049454
+      },
+      {
+        "path": "scripts/device/test-buttons-indicator-trial-initramfs.py",
+        "status": "PASS",
+        "duration_seconds": 1.472118808014784
+      },
+      {
+        "path": "scripts/device/test-display-trial-initramfs.py",
+        "status": "PASS",
+        "duration_seconds": 1.492248109949287
+      },
+      {
+        "path": "scripts/device/test-rog5-front-touch.py",
+        "status": "PASS",
+        "duration_seconds": 0.5069470619782805
+      },
+      {
+        "path": "scripts/device/test-rog5-physical-key-events.py",
+        "status": "PASS",
+        "duration_seconds": 0.14485208201222122
+      },
+      {
+        "path": "scripts/device/test-observe-local-root-physical-key.py",
+        "status": "PASS",
+        "duration_seconds": 0.5264937200117856
+      },
+      {
+        "path": "scripts/device/test-optional-display-runtime.py",
+        "status": "PASS",
+        "duration_seconds": 1.552024247997906
+      },
+      {
+        "path": "scripts/device/test-native-wifi-healthy.py",
+        "status": "PASS",
+        "duration_seconds": 4.968584363989066
+      },
+      {
+        "path": "scripts/device/test-native-wifi-finalization.py",
+        "status": "PASS",
+        "duration_seconds": 14.577678114001174
+      },
+      {
+        "path": "scripts/device/test-native-wifi-radio-refusal.py",
+        "status": "PASS",
+        "duration_seconds": 7.441836298967246
+      },
+      {
+        "path": "scripts/host/test-quiesce-native-usb-data.py",
+        "status": "PASS",
+        "duration_seconds": 0.18509066296974197
+      },
+      {
+        "path": "scripts/host/test-native-wifi-discovery.py",
+        "status": "PASS",
+        "duration_seconds": 0.1458816030062735
+      },
+      {
+        "path": "scripts/host/test-controller-bindings.py",
+        "status": "PASS",
+        "duration_seconds": 0.12511662498582155
+      },
+      {
+        "path": "scripts/device/test-wifi-pwrctrl-probe.py",
+        "status": "PASS",
+        "duration_seconds": 0.22546553297434002
+      },
+      {
+        "path": "scripts/device/test-pmic-pon-reader.py",
+        "status": "PASS",
+        "duration_seconds": 0.12509843695443124
+      },
+      {
+        "path": "scripts/device/test-rog5-healthd.py",
+        "status": "PASS",
+        "duration_seconds": 0.8690273269894533
+      },
+      {
+        "path": "scripts/host/test-select-repository-test-tier.py",
+        "status": "PASS",
+        "duration_seconds": 0.9292540839524008
+      },
+      {
+        "path": "scripts/host/test-run-sealed-busybox.py",
+        "status": "PASS",
+        "duration_seconds": 0.48695028497604653
+      },
+      {
+        "path": "scripts/host/test-review-metadata-checkers.py",
+        "status": "PASS",
+        "duration_seconds": 2.1749951249803416
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-lifecycle.py",
+        "status": "PASS",
+        "duration_seconds": 7.1815632749930955
+      },
+      {
+        "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+        "status": "PASS",
+        "duration_seconds": 0.7884371459949762
+      },
+      {
+        "path": "scripts/device/test-ams678-regulator-errors.py",
+        "status": "PASS",
+        "duration_seconds": 1.2109174780198373
+      },
+      {
+        "path": "scripts/host/test-rog5-touch-module-build.py",
+        "status": "PASS",
+        "duration_seconds": 0.6879414729773998
+      },
+      {
+        "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+        "status": "PASS",
+        "duration_seconds": 0.14541640103561804
+      },
+      {
+        "path": "scripts/device/test-mobile-dt-guards.py",
+        "status": "PASS",
+        "duration_seconds": 0.14576450700405985
+      },
+      {
+        "path": "scripts/device/test-mobile-touch-providers.py",
+        "status": "PASS",
+        "duration_seconds": 0.16544848401099443
+      },
+      {
+        "path": "scripts/device/test-rog5-geni-mode.py",
+        "status": "PASS",
+        "duration_seconds": 1.2711561670294032
+      },
+      {
+        "path": "scripts/device/test-gles-readback.py",
+        "status": "PASS",
+        "duration_seconds": 12.470043143024668
+      },
+      {
+        "path": "scripts/host/test-mobile-runtime-materialization.py",
+        "status": "PASS",
+        "duration_seconds": 1.029150701011531
+      },
+      {
+        "path": "scripts/host/test-denial-arm64-engine-args.py",
+        "status": "PASS",
+        "duration_seconds": 0.386320349003654
+      },
+      {
+        "path": "scripts/host/test-qemu-virtio-drm-prerequisites.py",
+        "status": "PASS",
+        "duration_seconds": 0.7281181319849566
+      },
+      {
+        "path": "scripts/host/test-qemu-mobile-observer.py",
+        "status": "PASS",
+        "duration_seconds": 3.141916295979172
+      },
+      {
+        "path": "scripts/host/test-qemu-native-capture.py",
+        "status": "PASS",
+        "duration_seconds": 0.3661514159757644
+      },
+      {
+        "path": "scripts/host/test-qemu-screencopy.py",
+        "status": "PASS",
+        "duration_seconds": 5.673816715017892
+      },
+      {
+        "path": "scripts/host/test-qemu-launcher-apps.py",
+        "status": "PASS",
+        "duration_seconds": 2.396265369025059
+      },
+      {
+        "path": "scripts/host/test-qemu-launcher-protocol.py",
+        "status": "PASS",
+        "duration_seconds": 0.16506474697962403
+      },
+      {
+        "path": "scripts/host/test-denial-runtime-linkage.py",
+        "status": "PASS",
+        "duration_seconds": 1.0693380270386115
+      },
+      {
+        "path": "scripts/host/test-qemu-runtime-view.py",
+        "status": "PASS",
+        "duration_seconds": 0.42657056596362963
+      },
+      {
+        "path": "scripts/host/test-denial-mobile-session.py",
+        "status": "PASS",
+        "duration_seconds": 0.5268684719922021
+      },
+      {
+        "path": "scripts/host/test-denial-session-payload.py",
+        "status": "PASS",
+        "duration_seconds": 0.22548724996158853
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-runner.py",
+        "status": "PASS",
+        "duration_seconds": 35.72468437603675
+      },
+      {
+        "path": "scripts/host/test-logind-font-cache.py",
+        "status": "PASS",
+        "duration_seconds": 1.5316052659763955
+      },
+      {
+        "path": "scripts/host/test-logind-gtk-im-cache.py",
+        "status": "PASS",
+        "duration_seconds": 1.2297530460054986
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-editor.py",
+        "status": "PASS",
+        "duration_seconds": 0.42728019796777517
+      },
+      {
+        "path": "scripts/host/test-qemu-logind-apps.py",
+        "status": "PASS",
+        "duration_seconds": 4.185663814947475
+      },
+      {
+        "path": "scripts/host/test-logind-apps.py",
+        "status": "PASS",
+        "duration_seconds": 33.37040697701741
+      },
+      {
+        "path": "scripts/host/test-launcher-diagnostics.py",
+        "status": "PASS",
+        "duration_seconds": 12.770432124962099
+      },
+      {
+        "path": "scripts/host/test-qemu-caret-protocol.py",
+        "status": "PASS",
+        "duration_seconds": 0.1453520490322262
+      },
+      {
+        "path": "scripts/host/test-logind-startup-diagnostic.py",
+        "status": "PASS",
+        "duration_seconds": 4.265774754981976
+      },
+      {
+        "path": "scripts/host/test-settings-sync-diagnostic.py",
+        "status": "PASS",
+        "duration_seconds": 1.1926774440216832
+      },
+      {
+        "path": "scripts/host/test-app-close-probe.py",
+        "status": "PASS",
+        "duration_seconds": 17.094366044038907
+      },
+      {
+        "path": "scripts/host/test-qemu-linker-cache.py",
+        "status": "PASS",
+        "duration_seconds": 0.3065602810238488
+      },
+      {
+        "path": "scripts/host/test-qemu-hwdb-cache.py",
+        "status": "PASS",
+        "duration_seconds": 0.38904003700008616
+      },
+      {
+        "path": "scripts/host/test-logind-linker-cache.py",
+        "status": "PASS",
+        "duration_seconds": 1.0322235510102473
+      },
+      {
+        "path": "scripts/host/test-logind-hwdb-cache.py",
+        "status": "PASS",
+        "duration_seconds": 1.0718792689731345
+      },
+      {
+        "path": "scripts/host/test-logind-icon-cache.py",
+        "status": "PASS",
+        "duration_seconds": 0.527946850983426
+      },
+      {
+        "path": "scripts/device/test-display-loader-ordering.py",
+        "status": "PASS",
+        "duration_seconds": 2.2766024140291847
+      },
+      {
+        "path": "scripts/device/test-production-display-modules.py",
+        "status": "PASS",
+        "duration_seconds": 1.517467563971877
+      },
+      {
+        "path": "scripts/device/test-stage-production-display-modules.py",
+        "status": "PASS",
+        "duration_seconds": 3.2455514619941823
+      },
+      {
+        "path": "scripts/device/test-production-display-cohort.py",
+        "status": "PASS",
+        "duration_seconds": 3.2443084589904174
+      },
+      {
+        "path": "scripts/device/test-private-display-api.py",
+        "status": "PASS",
+        "duration_seconds": 14.658244780963287
+      },
+      {
+        "path": "scripts/device/test-production-cold-boot.py",
+        "status": "PASS",
+        "duration_seconds": 183.03654195397394
+      },
+      {
+        "path": "scripts/device/test-stage-production-display-payload.py",
+        "status": "PASS",
+        "duration_seconds": 3.3615889100474305
+      },
+      {
+        "path": "scripts/device/test-display-firmware.py",
+        "status": "PASS",
+        "duration_seconds": 0.34665516298264265
+      },
+      {
+        "path": "scripts/device/test-display-providers.py",
+        "status": "PASS",
+        "duration_seconds": 0.5551882369909436
+      },
+      {
+        "path": "scripts/device/test-load-production-display.py",
+        "status": "PASS",
+        "duration_seconds": 6.858702875964809
+      },
+      {
+        "path": "scripts/device/test-display-endpoint.py",
+        "status": "PASS",
+        "duration_seconds": 0.6476061110151932
+      },
+      {
+        "path": "scripts/device/test-production-display-supervisor.py",
+        "status": "PASS",
+        "duration_seconds": 3.5625313490163535
+      },
+      {
+        "path": "scripts/device/test-display-component.py",
+        "status": "PASS",
+        "duration_seconds": 3.1000339739839546
+      },
+      {
+        "path": "scripts/device/test-production-display-transport.py",
+        "status": "PASS",
+        "duration_seconds": 6.8826763809775
+      },
+      {
+        "path": "scripts/device/test-production-display-session.py",
+        "status": "PASS",
+        "duration_seconds": 4.870297705987468
+      },
+      {
+        "path": "scripts/device/test-production-kernel-log.py",
+        "status": "PASS",
+        "duration_seconds": 3.3610844319919124
+      },
+      {
+        "path": "scripts/device/test-production-display-health.py",
+        "status": "PASS",
+        "duration_seconds": 0.5868482820224017
+      },
+      {
+        "path": "scripts/device/test-production-display-context.py",
+        "status": "PASS",
+        "duration_seconds": 0.809179455973208
+      }
+    ],
+    "summary_sha256": "737a1fba108ebd9f637bc18142b19fd2d81e554ea02e0b4c840e18168000d8bb",
+    "junit_sha256": "f73174e0d86de1f89ef9034346152dd11e32da4932c3e47d530dbcbcf23d314e",
+    "log_sha256": "985017376f0ef0b04b199690935aaf72ae5d45ca326808f64fad5291e1a20c5a"
+  },
+  "initial_environment_failure": {
+    "duration_seconds": 9.022134093975183,
+    "counts": {
+      "PASS": 10,
+      "FAIL": 2,
+      "BLOCKED": 118,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 257
+    },
+    "cause": "Wayland development include path absent; another concurrent suite terminated by runner after failure",
+    "correction": "Retained passing active-tier PATH/header/workers restored; source unchanged"
+  },
+  "source_normalization": "Four private PATHS literals normalized only in new inert live-driver fixture; no other operational AST change; original private source/evidence retained",
+  "review": "Independent regular Astra found no concrete packaging issue; Pro correction locally tested, not accepted on adviser assertion",
+  "limitations": [
+    "Runtime initialization intentionally refuses unresolved SSH worker before health",
+    "No new health seal, claim, credentials, image or candidate",
+    "Actual source definitions with inert external effects; synthetic authority remains synthetic",
+    "Focused14tests inject exceptions; integrated70also includes real defaultSIGINT fixtures",
+    "No process-death, power-loss or physical recovery qualification"
+  ],
+  "phone_operations": 0,
+  "vm_operations": 0
+}

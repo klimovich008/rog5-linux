@@ -483,3 +483,50 @@ unintegrated and the demonstrated historical failure remains recorded.
 All phone, VM, signing, candidate, claim and protected-storage operations remain
 absent. Physical touch/rails/PM and evdev/libinput remain NOT RUN. The new fixture
 uses serial kernel lock/RCU/timer substitutes; it does not prove hardware behavior.
+
+
+### Cold-boot finalization and clean-CI integration (2026-09-20)
+
+The final incremental correction passed strict application/reversal in0.070374s.
+Only `ColdBoot.publish_expectation` changed; the seven other source files are
+byte-identical to the preceding owned-publication proposal. The coordinator ran
+14corrected cases in44.212527s and two old-source failure controls in3.673607s.
+Original trial FAIL, guarded fallback, terminal result and original cancellation
+are asserted separately. These focused cases inject exceptions; they do not add
+a physical or process-death qualification.
+
+Committed source `f461c41a704d59a3432b5b15d148e00437ef2083`, tree
+`f272a75d07ce97565321a4f4d50660032e4172a6`, integrates the exact75,693-byte
+replacement0011 plus minimal clean-CI fixtures. The wrapper reuses existing
+caller/cohort assembly and the three unchanged reviewed tests, running exactly
+28base,28owned-publication and14finalization cases in bounded serial batches.
+Seven required downstream fixtures replace the476,032-byte review packet; four private
+PATHS literals are normalized only in the new fixture. Original evidence is
+unchanged. Independent Astra static review found no concrete packaging issue.
+
+The frozen integrated active run passes **130suites,0FAIL,0BLOCKED,0suiteSKIPPED,
+257NOT_SELECTED in409.353215s**. Three declared optional historical subchecks
+remain SKIPPED. The new70-case suite passed in183.036542s and includes real
+defaultSIGINT fixtures. The run used1GiB/no-swap/256-task aggregate bounds and
+existing per-suite deadlines. An initial9.022134s attempt failed because the
+retained Wayland header environment was omitted; its counts10PASS/2FAIL/118BLOCKED
+remain retained. One concurrent suite was terminated after the other failed.
+Restoring the known passing tool/header environment fixed this without a source
+change. The [qualification receipt](2026-09-20-cold-boot-source-qualification.json)
+records exact source/changed-file hashes, commands, timings and raw report hashes.
+
+The separate touch follow-up completed in241.367677s:6Pro/Pro found no blocking
+issue in the local four-line checkpoint and real-SIGINT regression. It performed
+read-only comparison/review, not additional local execution. The prior eight-suite
+board qualification remains unchanged; it was not rerun for this caller change.
+
+Next unresolved source boundary is the SSH worker: its unpinned deployed-server
+loader changes sys.path and reaches an eager legacy claim/stages graph. A bounded
+source inventory identifies shared worker use by transport/logger and later
+health consumers. The next Pro consultation includes full sanitized worker,
+deployed-server, receiver and network sources plus actual public consumers;
+omitted transitive bodies remain explicitly unqualified. No initializer bypass,
+new health seal or claim is produced. Runtime remains UNBOUND.
+
+No phone, VM, signing, candidate or protected-storage operation occurred. Physical
+results remain NOT RUN; S06/R01 and historical VM failures remain FAIL.
