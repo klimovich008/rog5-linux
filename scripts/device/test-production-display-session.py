@@ -127,7 +127,7 @@ class Session(unittest.TestCase):
         self.s.collect_health = health
         case = self
         class Logger:
-            def __init__(self, directory, boot, duration):
+            def __init__(self, directory, boot, duration, **binding):
                 self.closed=False; self.started=None; self.p=None; self.duration=duration
                 case.logs.append(self)
             def start(self):
@@ -152,7 +152,8 @@ class Session(unittest.TestCase):
                 if not cancel: case.offset += max(0, self.started+self.duration-case.s.time.monotonic())
                 self.dispose(); self.closed=True
                 if case.log_fault == 'close': raise ValueError('fixture logger close')
-                return dict(status='FAIL' if case.log_fault == 'terminal' else 'PASS', child_reaped=True)
+                return dict(status='FAIL' if case.log_fault == 'terminal' else 'PASS', child_reaped=True,
+                            group_absent=case.log_fault != 'group')
         self.s.K = types.SimpleNamespace(KernelLog=Logger)
 
     def write_boot(self):
@@ -241,6 +242,38 @@ class Session(unittest.TestCase):
                 self.log_fault=fault; result=self.run_session()
                 self.assertEqual(result['status'],'FAIL'); self.assertTrue(self.logs[0].closed)
                 self.assertIsNotNone(self.logs[0].p.returncode)
+
+    def test_missing_logger_group_proof_refuses_session(self):
+        self.log_fault='group'; result=self.run_session()
+        self.assertEqual(result['status'],'FAIL');self.assertFalse(result['healthy_target_with_cleanup'])
+
+    def test_session_uses_actual_production_logger(self):
+        path=self.root/'kernel-log.py'
+        path.write_bytes((ROOT/'scripts/device/fixtures/display-loader/kernel-log-before.py').read_bytes())
+        subprocess.run(['git','apply',str(ROOT/'patches/display-controller/0005-production-kernel-log.patch')],
+                       cwd=self.root,check=True,capture_output=True)
+        logger=load(path,'actual_session_logger')
+        fixture=load(ROOT/'scripts/device/test-production-kernel-log.py','logger_peer_fixture')
+        self.s.K=logger
+        release=self.root/'release-logger'
+        code="CASE='normal'\nDESCENDANT=''\n"+fixture.PEER.replace('time.sleep(.12)',
+            'while not Path('+repr(str(release))+').exists():time.sleep(.01)')
+        collect=self.s.collect_health
+        def health(owner,label):
+            if label=='health-after':release.write_text('done')
+            return collect(owner,label)
+        self.s.collect_health=health
+        instances=[];original=logger.KernelLog
+        def construct(*args,**kwargs):
+            obj=original(*args,**kwargs);instances.append(obj)
+            self.addCleanup(lambda:obj.close(cancel=True) if not obj.closed else None)
+            return obj
+        with patch.object(logger,'command',return_value=[sys.executable,'-I','-B','-c',code]), \
+             patch.object(logger,'KernelLog',side_effect=construct):
+            result=self.run_session()
+        self.assertEqual(result['status'],'PASS_PRODUCTION_DISPLAY_SESSION',result['error'])
+        self.assertTrue(result['logger']['group_absent']);self.assertTrue(instances[0].closed)
+        self.assertEqual(result['logger']['identity'],WHO)
 
     def test_logger_closure_failure_cannot_claim_session_cleanup(self):
         self.log_fault='close'; result=self.run_session()

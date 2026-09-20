@@ -236,3 +236,32 @@ The old source pins, health validator, logger and admission closure remain
 unchanged and deliberately prevent deployment of this source adaptation.
 A matched composition must first qualify those boundaries and firmware-root
 lifetime. No new candidate, claim, staging authority or physical PASS is added.
+
+
+## Production kernel logger (offline only)
+
+`0005-production-kernel-log.patch` applies to the historical `kernel-log.py`
+fixture SHA256 `b690ae15bfced9c5cc3c9ab905209dc12dccb909678c31975fe6a32282a18d14`.
+The logger snapshots the session's production identity and embeds the exact
+verified endpoint source bytes. It calls only the read-only identity method,
+then reads `/dev/kmsg`; no display endpoint or device mutation is requested.
+Boot, release, a single bundle token and descriptor bytes are checked remotely.
+Owner and board hash remain admitted bindings, not newly observed hardware proof.
+
+Input transfer is nonblocking within the existing eight-second readiness budget;
+the expanded script is bounded to 32 KiB. Output retains the four-MiB, 64-KiB
+frame and 128 kernel-record bounds. Short frame writes fail explicitly.
+The local leader stays waitable until the existing supervisor group-stop callback
+finishes. PASS requires leader reap and process-group absence, valid complete
+logs and no cleanup/publication error. Partial-start interruption cleans owned
+resources; each FD is detached before close and each output file is cleaned
+independently. Closure retries cannot signal a reaped leader or close a reused
+pidfd number. This does not contain descendants that escape their process group.
+
+The session supplies the contract, owner and actual transport stop function and
+requires the logger's group proof. Tests execute this connection with local
+pipe peers. The remote script's real control flow also runs with explicitly
+substituted proc/descriptor reads, kmsg I/O and time; no host or phone kmsg is read.
+The historical SSH/source command guards remain unchanged, so this patch does
+not make a deployable staging/admission composition. Full-health and staging
+integration, firmware-root lifetime and physical qualification remain open.

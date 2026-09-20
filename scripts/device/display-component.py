@@ -116,6 +116,7 @@ def dependency(name):
     import types
     result = types.ModuleType('production_'+name.replace('-','_').replace('.','_'))
     result.__file__ = str(path)
+    result.__source__ = raw  # Same bytes verified above; consumers must not reopen the path.
     exec(compile(raw,str(path),'exec'),result.__dict__)
     return result
 
@@ -136,6 +137,7 @@ class HostContract:
              and re.fullmatch('[0-9a-f]{64}', identity['descriptor_sha256']),
              'host production identity differs')
         self._binding = copy.deepcopy(identity)
+        self.identity_source = endpoint.__source__
         self.modules = dependency('load-production-display.py')
 
     def expected(self, boot, owner):

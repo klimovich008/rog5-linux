@@ -99,7 +99,7 @@
  
  
  def recovery(ad,controller,credentials):
-@@ -143,82 +153,98 @@
+@@ -143,82 +153,99 @@
                      entered=controller.entered[len(before):],error=str(exc)[:1500])
      save(OUTPUT/'recovery.json',result);return result
  
@@ -145,8 +145,10 @@
          display_plan=T.stage(owner,display_dir/'staging')
          collect_health(owner,'health-staged')
 -        owner.base(seconds=LOGGER_SECONDS+30)
+-        owner.logger=K.KernelLog(OUTPUT/'kernel-log',target['boot_id'],LOGGER_SECONDS)
 +        owner.base(seconds=LOGGER_SECONDS+65)
-         owner.logger=K.KernelLog(OUTPUT/'kernel-log',target['boot_id'],LOGGER_SECONDS)
++        owner.logger=K.KernelLog(OUTPUT/'kernel-log',target['boot_id'],LOGGER_SECONDS,
++                                 contract=contract,owner=target['owner'],stop=T.B.stop)
          save(OUTPUT/'logger-ready.json',owner.logger.start())
 -        owner.check(seconds=260)
 -        owner.phase=provider_dir/'hardware'
@@ -175,7 +177,8 @@
 +        owner.base(seconds=max(0,owner.logger.started+LOGGER_SECONDS-time.monotonic())+LOGGER_CLOSE_SECONDS+HEALTH_SECONDS)
          logger=owner.logger.close()
          owner.base()
-         need(logger and logger.get('status')=='PASS' and logger.get('child_reaped') is True,
+-        need(logger and logger.get('status')=='PASS' and logger.get('child_reaped') is True,
++        need(logger and logger.get('status')=='PASS' and logger.get('child_reaped') is True and logger.get('group_absent')is True,
               'GPU logger closure failed')
 -    except Exception as exc:
 +        after=collect_health(owner,'health-final')
@@ -222,7 +225,7 @@
 +        except BaseException as exc:
 +            if error is None:
 +                error=dict(type=type(exc).__name__,reason='terminal revalidation: '+str(exc)[:1500])
-+    safe_target=bool(after and display_safe and logger and logger.get('child_reaped')is True
++    safe_target=bool(after and display_safe and logger and logger.get('child_reaped')is True and logger.get('group_absent')is True
 +                     and owner.logger.closed)
      final=dict(format='rog5-gpu-iommu-session-result-v1',
 -        status='PASS_GPU_INITIALIZATION_SESSION' if error is None else 'FAIL',identity=target,
