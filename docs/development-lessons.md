@@ -3702,3 +3702,24 @@ lifetime explicitly. Neither byte/name matching nor a valid host module staging
 directory qualifies target root ownership, firmware authentication or hardware
 activation. The new intake and real 14-module copy took milliseconds; no expensive
 kernel/Denial rebuild was needed for this boundary.
+
+
+### Module symbol order is not activation order (2026-09-20)
+
+With MSM=m, the historical provider cannot require Adreno before MSM insertion.
+Observe REFGEN/GPUCC/SMMU first, load helper closure and MSM, observe Adreno, then
+allow panel attachment under cleanup ownership. Panel registration can complete
+component binding and initialize GMU/display state before a DRM open. Recheck
+providers immediately before consumers; an earlier snapshot is not a lease.
+
+Test construction-time interruption as well as in-flight child interruption:
+a copied directory helper leaked its opened child on KeyboardInterrupt. Validate
+explicit zero/framebuffer receipts so a missing callback result cannot become
+success. Integrating the real readers with the loader caught stale provider
+readiness without a kernel rebuild. Reuse compiled callback fixtures and existing
+qualified bytes; do not rerun inherited suites through test subclass discovery.
+
+The firmware kernel reader uses init_task.fs. Matching PID1/caller roots and mount
+namespaces rules out common mismatches but cannot certify arbitrary future
+switch-root/unshare. Preserve that unresolved root-lifetime boundary instead of
+calling a successful userspace hash check firmware execution proof.

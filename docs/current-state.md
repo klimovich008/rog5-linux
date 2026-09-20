@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Exact module intake verified; successor firmware path and activation pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production controller components pass offline; endpoint and admission composition pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Strict canonical archive intake and atomic host-only staging implemented: 31 semantic checks and 115 active suites PASS; actual 14-module archive materialized in 0.12s with all bytes/modes verified. Existing A660 firmware/license files and twin archives rehash correctly; current source/DT request names match. No download or rebuild needed. Next: bind verified modules plus retained firmware to the successor board/endpoint and qualify firmware search/switch-root path, provider activation order, one-use entry and independent cleanup offline. Current kernel/pointer and historical controller unchanged; no target payload, candidate, signing, claim, phone or Ready request. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-display-module-intake.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Production 14-module loader, retained firmware verifier and exact provider checkpoints implemented. Panel loads after MSM/Adreno; providers are rechecked immediately before consumers. 86 focused component checks and 118 active suites PASS. No automatic reprobe/DRM open. Next: bind the production endpoint and outer lifetime/one-use/recovery contracts, and qualify firmware root-transition assumptions offline. No live composition, candidate, signing, claim, target staging or phone operation. Current board/artifact pointer and sealed controller unchanged. Physical NOT RUN; S06/R01 and earlier Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-controller.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
