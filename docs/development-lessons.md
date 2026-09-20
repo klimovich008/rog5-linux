@@ -3778,3 +3778,20 @@ that component-only tests cannot. Keep local children unreaped until group clean
 and require that proof even after target success. The focused transport suite
 took6.35 seconds; no new kernel or live candidate was needed. A session that ran
 a separate GPUCC provider cannot prepend it to a loader that now owns GPUCC.
+
+
+### Validate health after the last bounded wait (2026-09-20)
+
+A logger that closes after its full observation lifetime can outlast an earlier
+health snapshot. Collect fresh health after closure and keep fallback time
+reserved on every owner check, not only initial admission. A failed diagnostic
+write must not skip recovery; retain secondary evidence errors without replacing
+the original action failure. Session cleanup claims also need logger closure.
+
+Exercise the full chain with the actual session entry digest: a hardcoded peer
+receipt masks the enclosing identity contract. Match fixture writer return values
+to their real callers before interpreting failures. The 23 session cases took
+3.57 seconds wall time with real inert children and virtual logger duration;
+no rebuild or phone trial was necessary. Isolate old health ordering in a working
+successor when incompatible legacy phases would otherwise fail first. Repeated
+unchanged upstream research is not a substitute for this integration work.
