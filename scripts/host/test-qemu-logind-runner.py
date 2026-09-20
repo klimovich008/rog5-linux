@@ -2096,6 +2096,28 @@ class AppsPreflight(unittest.TestCase):
             self.assertEqual((output/'app-close-stack.rs').read_bytes(),b'actual-stack-module')
             with self.assertRaises(FileExistsError):self.runner.stage_close_stack(True,source,output)
 
+    def test_stage_requires_ptrace_and_exact_module_staging(self):
+        required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
+                  'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]
+        combined=['--session-archive','/unused','--session-receipt','/unused','--host-render-node','/unused']
+        apps=['--observe-apps','--launcher-reference','/unused','--evidence-writer','/unused',
+              '--close-only','--settings-sync-diagnostic','/unused','--app-close-probe']
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--app-close-after-sync']), \
+                patch.object(self.runner,'install_handlers') as effects,patch('sys.stderr',new_callable=io.StringIO):
+            with self.assertRaises(SystemExit) as result:self.runner.main()
+            self.assertEqual(result.exception.code,2);effects.assert_not_called()
+        with patch.object(sys,'argv',[str(RUNNER),*required,*combined,*apps,'--app-close-ptrace','--app-close-after-sync']), \
+                patch.object(self.runner,'install_handlers',side_effect=RuntimeError('accepted stage probe')):
+            with self.assertRaisesRegex(RuntimeError,'accepted stage probe'):self.runner.main()
+        with tempfile.TemporaryDirectory() as directory:
+            d=Path(directory);source=d/'source';output=d/'output';source.mkdir();output.mkdir()
+            self.assertEqual(self.runner.stage_close_after_sync(False,source,output),[])
+            self.assertEqual(list(output.iterdir()),[])
+            (source/'app-close-stage.rs').write_bytes(b'actual-stage-module')
+            self.assertEqual(self.runner.stage_close_after_sync(True,source,output),['--cfg','close_stage'])
+            self.assertEqual((output/'app-close-stage.rs').read_bytes(),b'actual-stage-module')
+            with self.assertRaises(FileExistsError):self.runner.stage_close_after_sync(True,source,output)
+
     def test_close_probe_requires_explicit_close_and_sync_probe_before_effects(self):
         required=[v for n in ['runtime-view','runtime-receipt','kernel','qemu-image',
                   'toolchain-image','libc','libloading','output'] for v in ['--'+n,'/unused']]

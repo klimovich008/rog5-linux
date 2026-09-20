@@ -8465,10 +8465,11 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 20,
+      "deadline_seconds": 30,
       "prerequisites": [
         "python3",
-        "rustc"
+        "rustc",
+        "cc"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",
@@ -8476,7 +8477,9 @@
       "exact_source": false,
       "required_inputs": [
         "tools/qemu-virtio-drm/app-close-probe.rs",
-        "tools/qemu-virtio-drm/app-close-ptrace.rs"
+        "tools/qemu-virtio-drm/app-close-ptrace.rs",
+        "tools/qemu-virtio-drm/app-close-stack.rs",
+        "tools/qemu-virtio-drm/app-close-stage.rs"
       ],
       "optional_subchecks": []
     },

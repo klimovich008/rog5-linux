@@ -85,13 +85,17 @@ int main(int argc, char **argv) {
             for kind, flags in [('tests', ['--test','--cfg','close_ptrace']), ('release', []),
                                 ('intrusive', ['--cfg','close_ptrace']),
                                 ('stack-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack']),
-                                ('stack-release', ['--cfg','close_ptrace','--cfg','close_stack'])]:
+                                ('stack-release', ['--cfg','close_ptrace','--cfg','close_stack']),
+                                ('stage-tests', ['--test','--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage']),
+                                ('stage-release', ['--cfg','close_ptrace','--cfg','close_stack','--cfg','close_stage'])]:
                 subprocess.run(['rustc', '--edition=2024', '-D', 'warnings', *flags,
                                 str(SOURCE), '-o', str(target / kind)], check=True, timeout=30)
             subprocess.run([str(target / 'tests'), '--nocapture', '--test-threads=1'], check=True, timeout=15)
             subprocess.run([str(target / 'stack-tests'), '--test-threads=1', '--skip',
                             'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
-            for kind in ['release','intrusive','stack-release']:
+            subprocess.run([str(target / 'stage-tests'), '--test-threads=1', '--skip',
+                            'stack::tests::actual_owned_child_stack_and_partial_syscall'], check=True, timeout=15)
+            for kind in ['release','intrusive','stack-release','stage-release']:
                 result = subprocess.run([str(target / kind), '1', '1', '2', '1'],
                                     capture_output=True, timeout=3)
                 self.assertEqual(result.returncode, 125)

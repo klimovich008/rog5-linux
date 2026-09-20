@@ -171,8 +171,11 @@ logind_apps_start_close_probe() {
     target_start=$(launcher_identity "$target") || return 1
     # The Rust reader rechecks PPid/UID/starttime before every sample. Never
     # open target descriptors or send it a signal. Keep output off the FIFO.
+    # Fifth argument supplies the pinned lifecycle log only to explicitly
+    # stage-enabled builds; defaults retain startup-relative sampling. This
+    # child starts asynchronously so waiting for END cannot delay sending TERM.
     (umask 077; set -C; exec timeout -k 1 2 "$helper" \
-        "$timeout_pid" "$parent_start" "$target" "$target_start" > "$output" 2>&1) &
+        "$timeout_pid" "$parent_start" "$target" "$target_start" "$sync_log" > "$output" 2>&1) &
     close_probe_pid=$!
     close_probe_log=$output
 }

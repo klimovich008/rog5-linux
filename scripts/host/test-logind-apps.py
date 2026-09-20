@@ -225,8 +225,9 @@ while :; do sleep .1; done
 
     def close_probe_fixture(self, mode='success'):
         self.settings_sync_fixture()
-        self.command('proc-probe', r'''[[ $# == 4 && $1 =~ ^[1-9][0-9]*$ && $2 =~ ^[0-9]+$ &&
-   $3 =~ ^[1-9][0-9]*$ && $4 =~ ^[0-9]+$ && $1 != $3 ]]
+        self.command('proc-probe', r'''[[ $# == 5 && $1 =~ ^[1-9][0-9]*$ && $2 =~ ^[0-9]+$ &&
+   $3 =~ ^[1-9][0-9]*$ && $4 =~ ^[0-9]+$ && $1 != $3 && -f $5 && ! -L $5 ]]
+[[ $(stat -c '%a %h' "$5") == '600 1' ]]
 [[ -z ${LD_PRELOAD:-} && -z ${ROG5_SETTINGS_SYNC_LOG:-} ]]
 [[ $(stat -L -c '%a %h' /proc/self/fd/1) == '600 1' ]]
 printf 'sample marker=fixture\nPASS forged probe\n'

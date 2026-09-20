@@ -8,10 +8,17 @@ compile_error!("stack capture requires ptrace capture");
 #[cfg(close_stack)]
 #[path = "app-close-stack.rs"]
 mod stack;
-use std::{fs::{self, OpenOptions}, io::{self, Read, Write}, os::unix::{fs::{MetadataExt, OpenOptionsExt}, ffi::OsStrExt}, path::Path, time::{Duration, Instant}};
+#[cfg(all(close_stage, not(close_ptrace)))]
+compile_error!("stage capture requires ptrace capture");
+#[cfg(close_stage)]
+#[path = "app-close-stage.rs"]
+mod stage;
+#[cfg(any(not(close_stage), test))]
+use std::os::unix::ffi::OsStrExt;
+use std::{fs::{self, OpenOptions}, io::{self, Read, Write}, os::unix::{fs::{MetadataExt, OpenOptionsExt}}, path::Path, time::{Duration, Instant}};
 #[repr(C)]
 struct Timespec { seconds: i64, nanos: i64 }
-unsafe extern "C" { fn getuid() -> u32; fn geteuid() -> u32; fn clock_gettime(clock: i32, value: *mut Timespec) -> i32; fn sysconf(name: i32) -> std::ffi::c_long; }
+unsafe extern "C" { fn getuid() -> u32; fn geteuid() -> u32; fn clock_gettime(clock: i32, value: *mut Timespec) -> i32; #[cfg(any(not(close_stage), test))] fn sysconf(name: i32) -> std::ffi::c_long; }
 // Exact Linux7.1.4 UAPI: ARM64 asm/fcntl.h overrides asm-generic.
 #[cfg(target_arch = "aarch64")]
 const NOFOLLOW: i32 = 0o100000;
@@ -22,9 +29,9 @@ compile_error!("unsupported proc fixture architecture");
 const NONBLOCK: i32 = 0o4000;
 const MAX_BYTES: usize = 8192;
 const MAX_RECORDS: usize = 64;
-#[cfg(not(close_stack))]
+#[cfg(all(not(close_stack), any(not(close_stage), test)))]
 const ROUND_RESERVE: usize = 1024;
-#[cfg(close_stack)]
+#[cfg(all(close_stack, any(not(close_stage), test)))]
 const ROUND_RESERVE: usize = 768;
 #[cfg(all(close_ptrace, not(close_stack)))]
 const SNAPSHOT_RESERVE: usize = 1536;
@@ -54,6 +61,7 @@ fn identity(bytes: &[u8]) -> Result<Identity, String> {
 }
 #[derive(Clone, Copy)]
 struct Target { pid: u32, start: u64 }
+#[cfg(any(not(close_stage), test))]
 fn cpu_ticks(bytes: &[u8], target: Target) -> Result<(u64,u64), String> {
     let id=identity(bytes)?;
     if id.pid!=target.pid || id.start!=target.start { return Err("identity-reused".into()); }
@@ -62,6 +70,7 @@ fn cpu_ticks(bytes: &[u8], target: Target) -> Result<(u64,u64), String> {
     // Tail starts at stat field3: utime/stime are fields14/15; not child times.
     Ok((fields[11].parse().map_err(|_| "utime-parse")?,fields[12].parse().map_err(|_| "stime-parse")?))
 }
+#[cfg(any(not(close_stage), test))]
 fn context_switches(bytes: &[u8]) -> Result<(u64,u64), String> {
     let status=std::str::from_utf8(bytes).map_err(|_| "status-utf8")?;
     let counter=|key:&str| -> Result<u64,String> {
@@ -105,6 +114,7 @@ impl<W: Write> Records<W> {
         self.writer.write_all(line.as_bytes())?; self.writer.flush()
     }
 }
+#[cfg(any(not(close_stage), test))]
 fn observation(result: Result<Vec<u8>, String>) -> Vec<u8> { match result { Ok(v) => v, Err(e) => format!("unavailable:{e}").into_bytes() } }
 // No whole map dump: retain only the mapping containing the sampled PC.
 // A missing/truncated maps file is explicitly unavailable, not guessed.
@@ -123,6 +133,7 @@ fn pc_map(root: &Path, pid: u32, syscall: &[u8]) -> Vec<u8> {
     }
     b"unavailable:no-matching-map-within-bound".to_vec()
 }
+#[cfg(any(not(close_stage), test))]
 fn sample<W: Write>(root: &Path, timeout: Target, app: Target, uid: u32, round: usize, out: &mut Records<W>) -> io::Result<bool> {
     // Reserve later clock/CPU records; stack mode gives optional task data less room.
     // Extra workers/FD/maps may be omitted with an explicit truncation footer.
@@ -203,9 +214,18 @@ fn valid_stdout(meta: &fs::Metadata, uid: u32) -> bool {
     meta.is_file() && meta.uid() == uid && meta.mode() & 0o7777 == 0o600 && meta.nlink() == 1 && meta.len() == 0
 }
 #[cfg(close_ptrace)]
+#[cfg(any(not(close_stage), test))]
 fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result<(String, Vec<u8>, Vec<String>), String> {
+    pc_observation_guarded(root, timeout, app, uid, || Ok(()))
+}
+#[cfg(close_ptrace)]
+fn pc_observation_guarded(root: &Path, timeout: Target, app: Target, uid: u32,
+    guard: impl Fn() -> Result<(), String> + Clone + Send + 'static,
+) -> Result<(String, Vec<u8>, Vec<String>), String> {
     let owned_root = root.to_owned();
+    let inside_guard = guard.clone();
     let validate = move || {
+        inside_guard()?;
         check(&owned_root, timeout, uid, None, None)?;
         check(&owned_root, app, uid, Some(timeout.pid), Some("mousepad"))?;
         Ok(())
@@ -224,6 +244,7 @@ fn pc_observation(root: &Path, timeout: Target, app: Target, uid: u32) -> Result
     // either identity changed before that bounded read finished.
     check(root, timeout, uid, None, None)?;
     check(root, app, uid, Some(timeout.pid), Some("mousepad"))?;
+    guard()?;
     let mut now = Timespec { seconds: 0, nanos: 0 };
     // SAFETY: writable timespec, Linux CLOCK_MONOTONIC.
     if unsafe { clock_gettime(1, &mut now) } != 0 { return Err(io::Error::last_os_error().to_string()); }
@@ -275,10 +296,49 @@ fn publish_pc<W: Write>(out: &mut Records<W>, pid: u32, result: Result<(String, 
         Err(e) => { out.add("ptrace-unavailable", 1, pid, e.as_bytes())?; Ok(false) }
     }
 }
+// The wait shares the existing total probe budget. It never resets sampling
+// time at END and cannot hold up the caller's asynchronous TERM/kill path.
+#[cfg(close_stage)]
+fn await_stage(mut elapsed: impl FnMut() -> Duration,
+    mut poll: impl FnMut() -> Result<stage::State, String>,
+    mut sleep: impl FnMut(Duration),
+) -> Result<(), String> {
+    loop {
+        let used = elapsed();
+        if used >= Duration::from_millis(1200) { return Err("stage-deadline".into()); }
+        let state = poll()?;
+        if elapsed() >= Duration::from_millis(1200) { return Err("stage-deadline".into()); }
+        match state {
+            stage::State::Ready => return Ok(()),
+            stage::State::Complete => return Err("stage-already-complete".into()),
+            stage::State::Waiting => sleep(Duration::from_millis(5).min(Duration::from_millis(1200).saturating_sub(elapsed()))),
+        }
+    }
+}
+#[cfg(close_stage)]
+fn stage_observation(root: &Path, timeout: Target, app: Target, uid: u32,
+    path: &Path, start: Instant,
+) -> Result<(String, Vec<u8>, Vec<String>), String> {
+    let gate = std::sync::Arc::new(stage::Gate::open(path, app.pid, uid)?);
+    await_stage(|| start.elapsed(), || {
+        check(root, timeout, uid, None, None)?;
+        check(root, app, uid, Some(timeout.pid), Some("mousepad"))?;
+        gate.state()
+    }, std::thread::sleep)?;
+    pc_observation_guarded(root, timeout, app, uid, move || {
+        before_snapshot_deadline(start, || {
+            let state = gate.state()?;
+            before_snapshot_deadline(start, || match state {
+                stage::State::Ready => Ok(()),
+                _ => Err("stage-no-longer-ready".into()),
+            })
+        })
+    })
+}
 fn run() -> Result<(), String> {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    if args.len() != 4 || args.iter().any(|s| s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit())) { return Err("four positive identity arguments required".into()); }
-    let values = args.iter().map(|s| s.parse::<u64>()).collect::<Result<Vec<_>,_>>().map_err(|_| "identity-range")?;
+    if !(4..=5).contains(&args.len()) || args[..4].iter().any(|s| s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit())) { return Err("four positive identity arguments required".into()); }
+    let values = args[..4].iter().map(|s| s.parse::<u64>()).collect::<Result<Vec<_>,_>>().map_err(|_| "identity-range")?;
     if values.contains(&0) || values[0] > i32::MAX as u64 || values[2] > i32::MAX as u64 { return Err("identity-range".into()); }
     // SAFETY: read-only process credential queries.
     if unsafe { getuid() != 1000 || geteuid() != 1000 } || !markers(&read(Path::new("/proc/cmdline"), 8192)?) { return Err("requires non-root isolated VM".into()); }
@@ -289,6 +349,20 @@ fn run() -> Result<(), String> {
     let start = Instant::now();
     let timeout = Target {pid: values[0] as u32, start: values[1]};
     let app = Target {pid: values[2] as u32, start: values[3]};
+    #[cfg(close_stage)]
+    {
+        let path = args.get(4).filter(|s| Path::new(s).is_absolute())
+            .ok_or("stage build requires absolute lifecycle-log argument")?;
+        out.reserved = SNAPSHOT_RESERVE;
+        out.add("stage-armed", 0, app.pid, b"trigger=shutdown-external-sync-END total_budget_ms=1200")
+            .map_err(|e| e.to_string())?;
+        let result = stage_observation(Path::new("/proc"), timeout, app, 1000, Path::new(path), start);
+        let captured = publish_pc(&mut out, app.pid, result).map_err(|e| e.to_string())?;
+        out.finish(start.elapsed()).map_err(|e| e.to_string())?;
+        return if captured { Ok(()) } else { Err("stage snapshot NOT_RUN or unavailable".into()) };
+    }
+    #[cfg(not(close_stage))]
+    {
     #[cfg(close_ptrace)]
     let mut snapshot_done = false;
     for round in 0..6 {
@@ -309,6 +383,7 @@ fn run() -> Result<(), String> {
     #[cfg(close_ptrace)]
     if !snapshot_done { return Err("requested ptrace snapshot not captured/published".into()); }
     Ok(())
+    }
 }
 fn main() { if let Err(e) = run() { eprintln!("APP_CLOSE_PROBE refused: {e}"); std::process::exit(125); } }
 
@@ -316,6 +391,26 @@ fn main() { if let Err(e) = run() { eprintln!("APP_CLOSE_PROBE refused: {e}"); s
 mod tests {
     use super::*;
     use std::os::unix::fs::symlink;
+    #[cfg(close_stage)]
+    #[test] fn stage_wait_order_completion_errors_and_deadline() {
+        use std::cell::Cell;
+        let elapsed=Cell::new(Duration::ZERO);
+        let polls=Cell::new(0);
+        assert!(await_stage(|| elapsed.get(), || {
+            polls.set(polls.get()+1);
+            Ok(if polls.get()==3 {stage::State::Ready} else {stage::State::Waiting})
+        }, |d|elapsed.set(elapsed.get()+d)).is_ok());
+        assert_eq!(polls.get(),3);
+        assert_eq!(elapsed.get(),Duration::from_millis(10));
+        assert_eq!(await_stage(||Duration::ZERO,||Ok(stage::State::Complete),|_|panic!("no sleep after completion")),Err("stage-already-complete".into()));
+        assert_eq!(await_stage(||Duration::ZERO,||Err("identity-exited".into()),|_|panic!("no sleep after exit")),Err("identity-exited".into()));
+        elapsed.set(Duration::ZERO);
+        assert_eq!(await_stage(||elapsed.get(),||Ok(stage::State::Waiting),|d|elapsed.set(elapsed.get()+d)),Err("stage-deadline".into()));
+        assert_eq!(elapsed.get(),Duration::from_millis(1200));
+        assert_eq!(await_stage(||Duration::from_secs(2),||panic!("no late poll"),|_|panic!("no late sleep")),Err("stage-deadline".into()));
+        elapsed.set(Duration::ZERO);
+        assert_eq!(await_stage(||elapsed.get(),||{elapsed.set(Duration::from_secs(2));Ok(stage::State::Ready)},|_|panic!("no late sleep")),Err("stage-deadline".into()));
+    }
     #[cfg(close_ptrace)]
     #[test] fn expired_budget_never_starts_snapshot() {
         let mut called=false;
@@ -347,6 +442,28 @@ mod tests {
         let uid=unsafe{getuid()};
         assert!(pc_observation(root,timeout,Target{start:app.start+1,..app},uid).is_err());
         assert!(pc_observation(root,timeout,app,uid+1).is_err());
+        #[cfg(close_stage)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let path=dir.join("lifecycle.log");
+            let log=|phases:&[&str]|phases.iter().enumerate().map(|(i,p)|format!(
+                "ROG5_SETTINGS_SYNC phase={p}{} pid={} clock=CLOCK_MONOTONIC seconds={}.000000000\n",
+                if *p=="loaded" {" resolved=true"} else {""},app.pid,i+1)).collect::<String>();
+            let phases=["loaded","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END"];
+            fs::write(&path,log(&phases)).unwrap();fs::set_permissions(&path,fs::Permissions::from_mode(0o600)).unwrap();
+            assert!(stage_observation(root,timeout,app,uid,&path,Instant::now()).is_ok());
+            fs::write(&path,log(&["loaded","APP_RUN_BEGIN","SHUTDOWN_BEFORE","BEGIN","END","SHUTDOWN_AFTER"])).unwrap();
+            assert_eq!(stage_observation(root,timeout,app,uid,&path,Instant::now()).unwrap_err(),"stage-already-complete");
+            assert!(stage_observation(root,timeout,Target{start:app.start+1,..app},uid,&path,Instant::now()).is_err());
+            // Production validation is repeated after attach. Simulate stage
+            // completion there and prove the actual owned child is detached.
+            let checks=std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let calls=checks.clone();
+            assert!(pc_observation_guarded(root,timeout,app,uid,move || {
+                if calls.fetch_add(1,std::sync::atomic::Ordering::SeqCst)==0 {Ok(())} else {Err("stage-complete-race".into())}
+            }).is_err());
+            assert!(checks.load(std::sync::atomic::Ordering::SeqCst)>=2);
+        }
         let (shot,map,_extra)=pc_observation(root,timeout,app,uid).unwrap();
         #[cfg(close_stack)]
         assert!(_extra.first().is_some_and(|s|s.starts_with("status=observed") || s.starts_with("status=unavailable")));
