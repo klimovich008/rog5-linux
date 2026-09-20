@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Guarded VM capture reaches libgobject signal-handler matching; Mousepad137 remains",
+  "phase": "Stack deadline guard qualified; contention can prevent caller capture; Mousepad137 unresolved",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source2c1f4712: explicit last-window gate qualified,112 active suites PASS203.628s; native ARM64 API PASS3.723s and three retained GTK/Mousepad log replays. One full VM FAIL375.350s Foot0/Mousepad137; capture succeeds300ms after ZERO, PC libgobject+0x31528 strongly attributed to handlers_find by exact binary/source. No quit return/shutdown; stack0 Deadline, caller unknown. Normal poweroff and runtime/input integrity pass; /var unmount FAIL persists. Next measure first-frame read/maps costs in small native ARM64 fixture with realistic mapping volume; preserve64KiB/4frame/15ms stack and1200ms outer bounds. Qualify only a demonstrated scoped improvement before another full VM. Do not infer deadlock, change GLib behavior, widen grace, add markers or rebuild Denial. Raw logs remain private. Phone graphics independent; physical rows NOT RUN, S06/R01 FAIL unchanged.",
-  "evidence": "test-results/2026-09-20-window-gate.md"
+  "next": "Sourceffaf75ee: expired maps parsing eliminated, before regression FAIL/after host and9 native ARM64 cases PASS. Active tier PASS205.713s. Five small VM measurements show idle success but missed frames under contention with1 or2vCPUs; scheduling contributes, parser root cause unproven. Prior full VM FAIL Foot0/Mousepad137, PC handlers_find, caller unknown; /var unmount FAIL remains. Next use a bounded native ARM64 GTK/Mousepad close component with the retained libraries and controlled contention to distinguish a component stall from Denial-dependent teardown before another full VM. Preserve15ms/64KiB/4frame and1200ms outer bounds; no deadline widening, GLib behavior patch, or unchanged compositor rebuild. Phone graphics remain independent, physical NOT RUN and S06/R01 FAIL unchanged.",
+  "evidence": "test-results/2026-09-20-first-frame.md"
 }

@@ -3585,3 +3585,13 @@ exported callsites and relocations; a nearby exported symbol label can be wrong.
 Treat zero-frame Deadline as missing evidence, not proof of map-reader cost or
 application deadlock. Measure the first-frame path under unchanged bounds before
 optimizing it or rerunning the full compositor. Keep raw captures private.
+
+
+First-frame measurement (2026-09-20): measure wall and tracer-thread CPU separately
+before blaming maps volume. Idle17/303/559-map captures succeeded; bounded CPU
+contention produced zero-frame Deadline even at17 mappings and with either1 or2
+vCPUs. These fixtures do not establish the original VM cause. Keep the15ms clock
+and stop parsing once an already-completed maps read has exhausted it. A small
+native fixture qualifies this correction without another375s compositor run.
+Use the existing test wrapper to supply ROG5_STACK_FIXTURE; standalone whole-test
+execution without its fixture is setup failure, not a stack-reader regression.

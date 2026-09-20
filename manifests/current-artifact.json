@@ -2290,6 +2290,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-window-gate-vm-20260920-r1"
+    },
+    "first_frame_deadline": {
+      "status": "PASS deadline guard and native stack tests; full Denial failure unresolved",
+      "source_commit": "ffaf75ee12e5e19755b14f704023e0d7e440f02e",
+      "source_tree": "196bf996bc1d41c2835acc4b0f6523424ec0a3bf",
+      "evidence": {
+        "path": "test-results/2026-09-20-first-frame-qualification.json",
+        "sha256": "32dad43387ab94d4fed2cc6362a9cc9f67f89ff9958080aaad454f58476c18e7",
+        "bytes": 229062
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-first-frame-20260920-r1"
     }
   },
   "denial_phone_linkage": {
