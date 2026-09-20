@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production display logger and session pass offline; full-health/staging composition pending",
+  "phase": "Production display full-health and session pass offline; exact staging/admission pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Kernel logger now binds the exact production identity/source, preserves interruption failures and requires complete local process-group closure. Actual logger/session connection and remote read-only identity loop pass host fixtures. 25 logger,25 session,10 component,37 selector cases and 124 active suites PASS; three historical cleanup controls fail as expected. Next: qualify existing full-health checker against production identity/trial state, then exact staging/source admission; qualify firmware root transitions. No live composition,candidate,signing,claim,target staging or phone/VM operation. Artifacts and sealed controller unchanged. Physical NOT RUN; S06/R01 and historical Denial VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-production-kernel-logger.md"
+  "next": "Full-health now brackets collection with the production identity, requires canonical current-boot and persistent healthy receipts, and verifies armed rollback timers call only the guarded runtime. Original physical/root/firmware/source checks remain. 20 health,28 session,37 selector cases and 125 active suites PASS; four old-health controls and one old-session API control fail as expected. Next: exact private health inputs, target staging/source admission and firmware root-transition qualification. Historical pins remain incompatible; no live composition,candidate,signing,claim,target staging or phone/VM operation. Artifacts unchanged. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-20-production-display-health.md"
 }

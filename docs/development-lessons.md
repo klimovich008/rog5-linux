@@ -3812,3 +3812,19 @@ inside readiness time. Execute the generated program against inert I/O, not only
 its builder. The25 logger cases took3.27 seconds; real child ownership and virtual
 remote elapsed time remain separate evidence. A new module fixture is unnecessary
 for this userspace repair; reuse the proven stop function and existing build.
+
+
+### Validate acceptance semantics across the complete observer (2026-09-20)
+
+Changing commit/rollback semantics also changes the health observer. Requiring
+inactive timers contradicts an intentionally armed rollback protocol; accepting
+active timers by name alone can admit an unconditional reboot. Check the loaded
+action together with canonical RAM/persistent receipts and exact source hashes.
+Do not turn a mistaken sealed pending-state hash into a healthy-state assertion.
+
+Reuse the exact identity reader at the collection boundaries while preserving
+legacy inner-reader schemas. Test the generated collector and enclosing session
+API, including identity changes after observation. Keep physical guard execution
+and target tool availability distinct from host fixtures. The20 health cases ran
+in under half a second; no rebuild was needed. Live upstream refs were unchanged,
+so the existing audit was reused rather than beginning another broad review.
