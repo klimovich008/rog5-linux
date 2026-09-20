@@ -172,3 +172,38 @@ worker's group. This is not containment of arbitrary session escape, nor reversa
 of module effects or a guarantee that uninterruptible kernel work can terminate.
 Outer transport/admission and firmware root-transition assumptions remain
 unqualified before any real hardware trial.
+
+
+## Host duplex contract draft
+
+`0003-production-transport.patch` applies to the exact historical transport source
+retained as the non-importable `transport-before.py` fixture (SHA256
+`3d6f76bb421bf8f40967ac354d49e152248636b2272a1cf2653f8702e2a1a573`).
+Tests extract only the actual protocol functions; historical source loading,
+staging and SSH construction are neither imported nor called. The patch preserves
+those guarded historical entrypoints and pins, so it remains undeployable.
+
+The host uses `display-component.HostContract` with the separately admitted six-field
+production identity. It reads only pinned local source, snapshots the identity,
+and shares the actual loader entry scope and component/blank receipt validators.
+The existing outer owner still supplies device/signing/health/logger/recovery proof.
+No profile, signed descriptor, admission or claim is produced by this constructor.
+
+The exchange accepts the 100-second supervisor and reserves 120 seconds for normal
+operation including target cleanup and drainage. Its first failure closes the
+lease and starts one independent 18-second collection window; later errors or a
+positive terminal cannot reset it or erase the original failure. Two local reap
+windows and one second of reserve bring initial admission to 143 seconds. Exact
+arithmetic is tested against the current supervisor's constants. Terminal records
+use the production status and exact 14-insertion/zero receipts. Local transport
+children remain waitable until the repaired group-cleanup routine finishes.
+
+Real duplex fixtures cover handshake refusal in the historical version, the old
+78-second deadline using a virtual clock, delayed cleanup lost with the old min
+expression, fragmentation, owner loss, interruption, corrupt results, and a full
+host/supervisor/loader/endpoint chain with inert insertions and compiled callback
+extracts. Timing-fixture acceleration is not a long physical observation.
+
+The session's historical provider handoff, overall logger/recovery reservations,
+source admission and firmware root lifetime still need matching composition.
+Transport success alone does not qualify those boundaries or any phone hardware.

@@ -165,6 +165,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-display-endpoint.py
 	scripts/device/test-production-display-supervisor.py
 	scripts/device/test-display-component.py
+	scripts/device/test-production-display-transport.py
 	scripts/device/test-rog5-front-touch.py
 	scripts/device/test-rog5-touch-lifecycle.py
 	scripts/device/test-rog5-touch-regulator-errors.py

@@ -120,6 +120,39 @@ def dependency(name):
     return result
 
 
+class HostContract:
+    """Pure host receipt contract for an already admitted target identity.
+
+    This reads only pinned local Python sources. It neither discovers a device
+    nor grants admission; the transport owner must supply and retain that proof.
+    """
+    def __init__(self, identity):
+        endpoint = dependency('display-endpoint.py')
+        identity_valid(identity)
+        need(set(identity) == endpoint.FIELDS and all(type(v) is str for v in identity.values()),
+             'host target identity schema')
+        need(identity['release'] == endpoint.RELEASE and identity['board_dtb_sha256'] == endpoint.BOARD
+             and re.fullmatch('[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}', identity['bundle'])
+             and re.fullmatch('[0-9a-f]{64}', identity['descriptor_sha256']),
+             'host production identity differs')
+        self._binding = copy.deepcopy(identity)
+        self.modules = dependency('load-production-display.py')
+
+    def expected(self, boot, owner):
+        need(boot == self._binding['boot_id'] and owner == self._binding['owner'],
+             'host contract owner/boot changed')
+        return copy.deepcopy(self._binding)
+
+    def entry_intent(self, boot, owner):
+        return self.modules.entry_intent(self.expected(boot, owner))
+
+    def validate_blank(self, value, boot, owner):
+        return validate_blank(value, self.expected(boot, owner))
+
+    def validate_result(self, value, boot, owner):
+        return validate_result(value, self.expected(boot, owner))
+
+
 class Component:
     def __init__(self, identity_check):
         endpoint = dependency('display-endpoint.py')
