@@ -1,0 +1,915 @@
+{
+  "schema": 1,
+  "authority": "none; host-only ARM64 component qualification",
+  "physical_status": "NOT RUN",
+  "full_denial_vm": "NOT RUN",
+  "starting_source": {
+    "commit": "3e64777bd9072a5fffbc551d6416220834c363bd",
+    "tree": "34c6ae405176490b09aa9dbc18501936d9de0263"
+  },
+  "source": {
+    "commit": "617c4e7800bcc721ac6b7ee650adfc49c934a2d1",
+    "tree": "331dbaab3465dcda309ea9f28e42fb2c6c300dc1"
+  },
+  "focused_tests": {
+    "old_source_sha256": "470ec0596b712cd74562bb0cdc23bf086e6c8dfc3297fc414b2f542aaae36d85",
+    "tests": [
+      {
+        "name": "before-window-tests",
+        "command": [
+          "/usr/bin/python",
+          "-c",
+          "import importlib.util,unittest\nfrom pathlib import Path\ns=importlib.util.spec_from_file_location(\"probe_tests\",\"scripts/host/test-settings-sync-diagnostic.py\")\nm=importlib.util.module_from_spec(s);s.loader.exec_module(m)\nm.SOURCE=Path(\"/home/deck/.local/state/rog5-gtk-window-20260920-r1/before-window-probe.c\")\nr=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(m.GtkWindowDiagnostic))\nraise SystemExit(not r.wasSuccessful())\n"
+        ],
+        "exit": 1,
+        "expected_exit": 1,
+        "seconds": 0.41493455501040444
+      },
+      {
+        "name": "after-window-tests",
+        "command": [
+          "/usr/bin/python",
+          "scripts/host/test-settings-sync-diagnostic.py",
+          "-v"
+        ],
+        "exit": 0,
+        "expected_exit": 0,
+        "seconds": 0.7659151650150307
+      },
+      {
+        "name": "after-window-tests-optimized",
+        "command": [
+          "/usr/bin/python",
+          "-O",
+          "scripts/host/test-settings-sync-diagnostic.py",
+          "-v"
+        ],
+        "exit": 0,
+        "expected_exit": 0,
+        "seconds": 0.8158148030051962
+      }
+    ]
+  },
+  "build": {
+    "status": "PASS",
+    "authority": "none; ARM64 diagnostic helper build",
+    "source": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/settings-sync-diagnostic.c",
+      "sha256": "16d56848ec63723d9a203a02263bd5ae642dd5c9386fcdab9ae6bfdce47e2b19",
+      "bytes": 7810
+    },
+    "image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-window-build-1c4de823575c4352",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-o",
+          "/out/settings-sync-diagnostic.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:08:35.772548+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.46796846098732203,
+        "ended_utc": "2026-09-20T01:08:36.240544+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-0.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-1c4de823575c4352"
+        ],
+        "started_utc": "2026-09-20T01:08:36.241065+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03383327700430527,
+        "ended_utc": "2026-09-20T01:08:36.274913+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-0.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-1c4de823575c4352"
+        ],
+        "started_utc": "2026-09-20T01:08:36.275302+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033835327019914985,
+        "ended_utc": "2026-09-20T01:08:36.309152+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-0.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-window-build-ceec1437cd7c418c",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-DROG5_NO_UNREF_PROBE",
+          "-o",
+          "/out/settings-sync-no-unref.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:08:36.309580+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.4667471009888686,
+        "ended_utc": "2026-09-20T01:08:36.776342+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-ceec1437cd7c418c"
+        ],
+        "started_utc": "2026-09-20T01:08:36.776758+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.033771015994716436,
+        "ended_utc": "2026-09-20T01:08:36.810545+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-1.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-ceec1437cd7c418c"
+        ],
+        "started_utc": "2026-09-20T01:08:36.810948+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033738096011802554,
+        "ended_utc": "2026-09-20T01:08:36.844702+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-1.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-window-build-80cd6750ed0a440d",
+          "--rm",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fPIC",
+          "-shared",
+          "/out/settings-sync-diagnostic.c",
+          "-DROG5_NO_UNREF_PROBE",
+          "-DROG5_WINDOW_PROBE",
+          "-o",
+          "/out/settings-sync-window.so",
+          "-ldl",
+          "-pthread"
+        ],
+        "started_utc": "2026-09-20T01:08:36.845154+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.46687376202316955,
+        "ended_utc": "2026-09-20T01:08:37.312047+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-2.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-window-build-80cd6750ed0a440d"
+        ],
+        "started_utc": "2026-09-20T01:08:37.312600+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03437813598429784,
+        "ended_utc": "2026-09-20T01:08:37.346994+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-2.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-window-build-80cd6750ed0a440d"
+        ],
+        "started_utc": "2026-09-20T01:08:37.347407+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.033939779037609696,
+        "ended_utc": "2026-09-20T01:08:37.381362+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/build-2.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "outputs": {
+      "settings-sync-diagnostic.so": {
+        "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/settings-sync-diagnostic.so",
+        "sha256": "7a3cac369e1bd0d35b3af53b4b6c91ecbd6d199efd669fddeb7a871eb2edef38",
+        "bytes": 71784
+      },
+      "settings-sync-no-unref.so": {
+        "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/settings-sync-no-unref.so",
+        "sha256": "fcf35e0285b79c14223bb89737939d86b7c0940a18e30fd303e374739b113e5f",
+        "bytes": 71136
+      },
+      "settings-sync-window.so": {
+        "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/settings-sync-window.so",
+        "sha256": "4d9817c6bba700a8d2ea4b73b79ca53a0e58317571939e7b5f7b426529b86614",
+        "bytes": 71208
+      }
+    },
+    "default_identical_to_previous": true
+  },
+  "failed_execution": {
+    "status": "FAIL",
+    "scope": "Exact ARM64 Mousepad shutdown under QEMU user and Weston Pixman",
+    "physical": "NOT RUN",
+    "denial_session": "NOT RUN",
+    "focus": "NOT RUN",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source_head": "617c4e7800bcc721ac6b7ee650adfc49c934a2d1",
+    "image": "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+    "weston_command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-gtk-window-20260920-r1",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--userns=keep-id",
+      "--user=1000:1000",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "-v",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/run/user/1000:/run/user/1000:rw",
+      "-e",
+      "XDG_RUNTIME_DIR=/run/user/1000",
+      "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+      "weston",
+      "--backend=headless",
+      "--renderer=pixman",
+      "--shell=kiosk-shell.so",
+      "--width=540",
+      "--height=1224",
+      "--socket=wayland-app",
+      "--idle-time=0",
+      "--no-config"
+    ],
+    "weston_ready_seconds": 0.7335045990184881,
+    "app_command": [
+      "/usr/bin/bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--new-session",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/",
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/opt/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-entry.sh",
+      "/opt/entry.sh",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/etc",
+      "/etc",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/run",
+      "/run",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/var",
+      "/var",
+      "--tmpfs",
+      "/tmp",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/opt/logind-font-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/opt/logind-gtk-im-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+      "/usr/lib/libwayland-client.so.0.26.0",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/settings-sync-window.so",
+      "/opt/settings-sync-diagnostic.so",
+      "--clearenv",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-app.sh",
+      "/opt/session-app.sh",
+      "--setenv",
+      "PATH",
+      "/usr/bin",
+      "--setenv",
+      "HOME",
+      "/run/mobile-home",
+      "--setenv",
+      "USER",
+      "mobile",
+      "--setenv",
+      "LOGNAME",
+      "mobile",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "GSETTINGS_SCHEMA_DIR",
+      "/run/gtk-runtime/schemas",
+      "--setenv",
+      "XDG_DATA_DIRS",
+      "/run/gtk-runtime:/usr/local/share:/usr/share",
+      "--setenv",
+      "XDG_CACHE_HOME",
+      "/run/mobile-home/.cache",
+      "--setenv",
+      "XDG_CONFIG_HOME",
+      "/run/mobile-home/.config",
+      "--setenv",
+      "GTK_IM_MODULE_FILE",
+      "/run/gtk-runtime/immodules.cache",
+      "--setenv",
+      "XDG_RUNTIME_DIR",
+      "/run/user/1000",
+      "--setenv",
+      "WAYLAND_DISPLAY",
+      "wayland-app",
+      "--setenv",
+      "GDK_BACKEND",
+      "wayland",
+      "--chdir",
+      "/run/mobile-home",
+      "--",
+      "/opt/qemu",
+      "/usr/bin/bash",
+      "--noprofile",
+      "--norc",
+      "/opt/entry.sh"
+    ],
+    "protocol_parser_sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+    "error": "app session exited before mapped frame",
+    "app_process_exit": 134,
+    "container_cleanup_exit": 0,
+    "container_cleanup_stderr": "",
+    "container_absent": true,
+    "weston_process_exit": 0,
+    "mousepad_exit_observed": "134",
+    "cgroup_metrics": {
+      "pids.max": "96",
+      "pids.peak": "96",
+      "pids.events": "max 2",
+      "memory.max": "536870912",
+      "memory.peak": "479092736",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+    },
+    "seconds": 8.835868707043119,
+    "diagnostic_hashes": {
+      "weston.log": "6489d36fd41c07d2ee5e6aae9c1b5893152da49aa83555ccce665dbbad325d6e",
+      "session.log": "1ebb7aa2cf69b1c13b14211fe0bd4508a37c7ec6edb464351d011461a1d60327"
+    }
+  },
+  "execution": {
+    "status": "PASS_FOCUSED_APP_CLOSE",
+    "scope": "Exact ARM64 Mousepad shutdown under QEMU user and Weston Pixman",
+    "physical": "NOT RUN",
+    "denial_session": "NOT RUN",
+    "focus": "NOT RUN",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source_head": "617c4e7800bcc721ac6b7ee650adfc49c934a2d1",
+    "image": "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+    "weston_command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-gtk-window-20260920-r2",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--userns=keep-id",
+      "--user=1000:1000",
+      "--cap-drop=all",
+      "--security-opt=no-new-privileges",
+      "--memory=256m",
+      "--memory-swap=256m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "-v",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/run/user/1000:/run/user/1000:rw",
+      "-e",
+      "XDG_RUNTIME_DIR=/run/user/1000",
+      "dc817b835e4dc74967379b2189d4b88265e709828fd7ea3bfd5c5ba5b8334c51",
+      "weston",
+      "--backend=headless",
+      "--renderer=pixman",
+      "--shell=kiosk-shell.so",
+      "--width=540",
+      "--height=1224",
+      "--socket=wayland-app",
+      "--idle-time=0",
+      "--no-config"
+    ],
+    "weston_ready_seconds": 0.4590636739740148,
+    "app_command": [
+      "/usr/bin/bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--new-session",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "/",
+      "--tmpfs",
+      "/opt",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/opt/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-entry.sh",
+      "/opt/entry.sh",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/etc",
+      "/etc",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/run",
+      "/run",
+      "--bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/var",
+      "/var",
+      "--tmpfs",
+      "/tmp",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-font-cache.sh",
+      "/opt/logind-font-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-gtk-im-cache.sh",
+      "/opt/logind-gtk-im-cache.sh",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-arm64-app-close-20260919-r1/prepared-r1/payload/usr/lib/libwayland-client.so.0.26.0",
+      "/usr/lib/libwayland-client.so.0.26.0",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build-r1/settings-sync-window.so",
+      "/opt/settings-sync-diagnostic.so",
+      "--clearenv",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-app.sh",
+      "/opt/session-app.sh",
+      "--setenv",
+      "PATH",
+      "/usr/bin",
+      "--setenv",
+      "HOME",
+      "/run/mobile-home",
+      "--setenv",
+      "USER",
+      "mobile",
+      "--setenv",
+      "LOGNAME",
+      "mobile",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "GSETTINGS_SCHEMA_DIR",
+      "/run/gtk-runtime/schemas",
+      "--setenv",
+      "XDG_DATA_DIRS",
+      "/run/gtk-runtime:/usr/local/share:/usr/share",
+      "--setenv",
+      "XDG_CACHE_HOME",
+      "/run/mobile-home/.cache",
+      "--setenv",
+      "XDG_CONFIG_HOME",
+      "/run/mobile-home/.config",
+      "--setenv",
+      "GTK_IM_MODULE_FILE",
+      "/run/gtk-runtime/immodules.cache",
+      "--setenv",
+      "XDG_RUNTIME_DIR",
+      "/run/user/1000",
+      "--setenv",
+      "WAYLAND_DISPLAY",
+      "wayland-app",
+      "--setenv",
+      "GDK_BACKEND",
+      "wayland",
+      "--chdir",
+      "/run/mobile-home",
+      "--",
+      "/opt/qemu",
+      "/usr/bin/bash",
+      "--noprofile",
+      "--norc",
+      "/opt/entry.sh"
+    ],
+    "protocol_parser_sha256": "d3d29df6a92fecc75f921edd5002dbab2fb5d33654815e74d5d2af945a2d34a3",
+    "mapped_frame_seconds": 7.092595023976173,
+    "mapped_surfaces": {
+      "13": {
+        "surface": "7",
+        "title": true,
+        "configured": true,
+        "serial": "1",
+        "ack": true,
+        "pending_attach": null,
+        "committed": true
+      }
+    },
+    "frame_callback_observed": true,
+    "app_session_exit": 0,
+    "app_session_seconds": 8.35938007599907,
+    "settings_sync_log": "ROG5_SETTINGS_SYNC phase=loaded resolved=true pid=24 clock=CLOCK_MONOTONIC seconds=410536.334364624\nROG5_SETTINGS_SYNC phase=APP_RUN_BEGIN pid=24 clock=CLOCK_MONOTONIC seconds=410536.510767748\nROG5_SETTINGS_SYNC phase=WINDOW_REMOVED_ZERO pid=24 clock=CLOCK_MONOTONIC seconds=410543.266641132\nROG5_SETTINGS_SYNC phase=SHUTDOWN_BEFORE pid=24 clock=CLOCK_MONOTONIC seconds=410543.816792099\nROG5_SETTINGS_SYNC phase=BEGIN pid=24 clock=CLOCK_MONOTONIC seconds=410543.820622339\nROG5_SETTINGS_SYNC phase=END pid=24 clock=CLOCK_MONOTONIC seconds=410543.820787411\nROG5_SETTINGS_SYNC phase=SHUTDOWN_AFTER pid=24 clock=CLOCK_MONOTONIC seconds=410543.831169504\nROG5_SETTINGS_SYNC phase=APP_RUN_END pid=24 clock=CLOCK_MONOTONIC seconds=410543.836498207\nROG5_SETTINGS_SYNC phase=APP_DISCONNECT_ONE_END pid=24 clock=CLOCK_MONOTONIC seconds=410543.836570368\nROG5_SETTINGS_SYNC phase=APP_OBSERVERS_REMOVED pid=24 clock=CLOCK_MONOTONIC seconds=410543.836603039\nROG5_SETTINGS_SYNC phase=DSO_FINI pid=24 clock=CLOCK_MONOTONIC seconds=410543.839854760\n",
+    "dconf_backend_mapped": true,
+    "dconf_owner_before": true,
+    "dconf_owner_after": true,
+    "actual_app_emulator_sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+    "mousepad_exit": "0",
+    "document_unchanged": true,
+    "app_process_exit": 0,
+    "container_cleanup_exit": 0,
+    "container_cleanup_stderr": "",
+    "container_absent": true,
+    "weston_process_exit": 0,
+    "mousepad_exit_observed": "0",
+    "cgroup_metrics": {
+      "pids.max": "256",
+      "pids.peak": "98",
+      "pids.events": "max 0",
+      "memory.max": "536870912",
+      "memory.peak": "459280384",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+    },
+    "seconds": 8.990916181006469,
+    "diagnostic_hashes": {
+      "weston.log": "17bac574d0a6bba0f88b36f3f9bab9de457b7816f7ec97c0233028b517719d2a",
+      "session.log": "6edb413887aefd5c262958508ba7400eab4a8d885cf5d0312a512b7474ba3e31"
+    }
+  },
+  "retained_runtime_preparation": {
+    "status": "PREPARED_NOT_RUN",
+    "authority": "none",
+    "physical": "NOT RUN",
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "runtime_tree": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0"
+    },
+    "linker_cache": {
+      "path": "/home/deck/.local/state/rog5-linker-cache-integration-20260919-r1/prepared-r2/ld.so.cache",
+      "sha256": "d94e98279622383bbbf642584d1721a4adfee436e7d23f1eb3b32b4e83ffc654"
+    },
+    "tools": {
+      "qemu": {
+        "path": "/usr/bin/qemu-aarch64-static",
+        "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867"
+      },
+      "bwrap": {
+        "path": "/usr/bin/bwrap",
+        "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6"
+      },
+      "mousepad": {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/mousepad",
+        "sha256": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+      },
+      "dbus-run-session": {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/dbus-run-session",
+        "sha256": "d8c6b179e7b9fbcb66216bc3daa22c22140d070e759c5f462b59f586cc2cdf75"
+      },
+      "dbus-daemon": {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/dbus-daemon",
+        "sha256": "8c4c9c1d1f725e97c466f27c457852d9449d4f9cd3259ec9c255ae9868beaab3"
+      },
+      "dconf-service": {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/dconf-service",
+        "sha256": "682b43c41755a1fc04c75fc692eed781fc8328d2c56686fe4a69c63fe6cfd9bf"
+      }
+    },
+    "seconds": 23.350187214033213,
+    "differences": [
+      "QEMU user emulation; host kernel",
+      "Weston headless Pixman, not Denial",
+      "standalone private dbus-daemon, not systemd-user/dbus-broker",
+      "fresh private HOME and package cache derivation; no physical input"
+    ]
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "617c4e7800bcc721ac6b7ee650adfc49c934a2d1",
+    "source_tree": "331dbaab3465dcda309ea9f28e42fb2c6c300dc1",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 199.35208432399668
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "logs": [
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/build.py",
+      "sha256": "73d6d54d8f6b54aee4312f7dd87833d0c2b60b2febf6be8a83d6c3f1a6e27028",
+      "bytes": 2361
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-app.py",
+      "sha256": "a2c50d03b157028e9c59c82ab70a16e683e0ac7652929868dd7c93f61b1d082a",
+      "bytes": 10841
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-app.sh",
+      "sha256": "a1c5a5c616b62b35943350a3c69f46e35ca20bfcac7e58f298e180d5aec81876",
+      "bytes": 3492
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/session-entry.sh",
+      "sha256": "51c9d23d1c6a1b6b89f9e7f00b88ca4b52917174ce208ebe6888ec9f00f1677b",
+      "bytes": 293
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/bwrap_command.py",
+      "sha256": "20dd210d01541febeabdd2a1a7adb8480733e3975a4bc3b78f1de3fa3a605ace",
+      "bytes": 2054
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/test-run-app.py",
+      "sha256": "bb54ee9900a50bf4fe30feffa41b2ecc257ce86b46c2e958c88c0ee1280937fc",
+      "bytes": 2513
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/focused-command.json",
+      "sha256": "0859650ae55fdb1d3ee95b2c16e8e6bd4deffaad5f8017032300111d923c3e0f",
+      "bytes": 458
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/focused-r2-command.json",
+      "sha256": "a31486741bb1b7cd989fce82fcdb7a7b7ed14632b7e7e64dbacc90cd74a6ce97",
+      "bytes": 459
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/active-command.json",
+      "sha256": "49f6a2e27d986249b429e4c6129fcd03a48312abca81c2b4d5230f74a1ffaac7",
+      "bytes": 1380
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/active-report/summary.json",
+      "sha256": "a8ccd4fdef8b32a7b13d693fc7083af0811802863144b616f00b45d090406547",
+      "bytes": 123317
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/before-window-tests.log",
+      "sha256": "2a07ae95f6341f5d37f50283658faf23b0216c0fede98fde885479f00e67c124",
+      "bytes": 5044
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/after-window-tests.log",
+      "sha256": "510e09c52fa927c99e8e2fe62f8d92fc450b9702108cbf8a3a58ce5ccb11da85",
+      "bytes": 3172
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/after-window-tests-optimized.log",
+      "sha256": "87fd06716bae99b70661f577e20424e2eb0abe08d44229f5b9be0b28a093f1b1",
+      "bytes": 3172
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/harness.log",
+      "sha256": "d26bdd8902cfd9615fdc56631c8cf5c6f50365669f489e98ad81e93f48fdb11a",
+      "bytes": 104
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/run/mousepad.log",
+      "sha256": "502de3ee758cdb28b7600a140e96d5ab827ed274dd40b8125903b463d8ca44ee",
+      "bytes": 6212
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r1/session.log",
+      "sha256": "1ebb7aa2cf69b1c13b14211fe0bd4508a37c7ec6edb464351d011461a1d60327",
+      "bytes": 5371
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/run/mousepad.log",
+      "sha256": "0de241ecf8626df86ac2e8306b8604a6a14fc9ed68a04a9236eb8e005942919e",
+      "bytes": 19357
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/run/settings-sync.log",
+      "sha256": "e26ef3fce9886edcdcd8698e026344daac183519d9b321f89e8275a12f6eba77",
+      "bytes": 1031
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gtk-window-20260920-r1/run-r2/session.log",
+      "sha256": "6edb413887aefd5c262958508ba7400eab4a8d885cf5d0312a512b7474ba3e31",
+      "bytes": 5077
+    }
+  ],
+  "limitations": [
+    "RUN_FIRST window-removed AFTER handler reports public list only; no private application hold count",
+    "Explicit one-window no-unref diagnostic retains 12-record/1536-byte bounds",
+    "New markers incompatible with unchanged strict stage-after-sync reader; do not combine without separate validation",
+    "Weston/QEMU-user/private dbus-daemon is not full Denial VM or phone evidence",
+    "First run aborted at task cap before mapped frame; second changes only outer TasksMax96 to256",
+    "Build-script initial IndentationError occurred before any compilation; preserved privately"
+  ],
+  "post_execution_runtime_libraries": [
+    {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgtk-3.so.0.2420.32",
+      "sha256": "0baabc9210f3cbc007715fdd3bd69c26eac383ab16427182c094d7337db6d418",
+      "bytes": 8466632
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgio-2.0.so.0.8800.3",
+      "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+      "bytes": 2428456
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglib-2.0.so.0.8800.3",
+      "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+      "bytes": 1576520
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgobject-2.0.so.0.8800.3",
+      "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+      "bytes": 462680
+    }
+  ],
+  "gtk_source_lead": {
+    "path": "/home/deck/.local/state/rog5-app-shutdown-probe-20260919-r1/gtkapplication-3.24.52.c",
+    "sha256": "3419e3407691137e8cc39ec4e6a3b936bd2416f2d6ff9700c2a09add6d7d11fd",
+    "bytes": 58219,
+    "scope": "matching upstream version; not exact package debug attribution"
+  }
+}

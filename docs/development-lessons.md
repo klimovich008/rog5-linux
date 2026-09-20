@@ -3528,3 +3528,14 @@ limits. This does not measure full-UI overhead. Re-read adjacent protocol eviden
 before choosing another probe: window/surface destruction already progressed in
 the failed UI run, moving the next boundary before GApplication shutdown rather
 than back to generic signal dispatch or an unproven FIFO defect.
+
+
+GTK window observation (2026-09-20): check signal run phase in retained source;
+RUN_FIRST plus an AFTER callback observes completion of default removal, not its
+entry. Public empty-list state does not prove no GApplication holds. A9s actual
+Mousepad/Weston component run qualifies this observer without another390s UI run.
+The first attempt exhausted96 tasks in the image loader before mapping; cgroup
+pids.events and EAGAIN distinguish this from OOM or shutdown. The bounded256-task
+repeat peaked at98 and passed with the same binary, memory/CPU and deadlines.
+Preserve failed evidence and use measured task headroom in this fixture. Keep
+new diagnostic marker grammars separate from strict existing stage readers.

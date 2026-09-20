@@ -2225,6 +2225,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-glib-signal-20260920-r1"
+    },
+    "gtk_window_probe": {
+      "status": "Window-list probe qualified: actual ARM64 Mousepad/Weston close PASS; full Denial close remains FAIL",
+      "source_commit": "617c4e7800bcc721ac6b7ee650adfc49c934a2d1",
+      "source_tree": "331dbaab3465dcda309ea9f28e42fb2c6c300dc1",
+      "evidence": {
+        "path": "test-results/2026-09-20-gtk-window-probe-qualification.json",
+        "sha256": "de3bc938891780ad79ff2c07603fde6bd4572615570f0e056a4a513b58095c7b",
+        "bytes": 32623
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-gtk-window-20260920-r1"
     }
   },
   "denial_phone_linkage": {

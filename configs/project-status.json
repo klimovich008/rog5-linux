@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "ARM64 signal/observer fixture passes; full UI Mousepad close remains FAIL",
+  "phase": "GTK last-window probe qualified; full UI Mousepad close remains FAIL",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source dcdd8eec adds four real GLib SIGTERM cases: immediate/delayed shutdown with/without the exact production stage observer. All applications exit0; immediate observer125 is a legitimate completed-target refusal. Delayed observer0 captures the intended interval and four exact-ELF frame candidates through shutdown_app/g_usleep/nanosleep. This11.263s one-vCPU API guest does not reproduce full UI load or prove absence of observer cost. Retained failed UI log also shows text-input disable and window/surface destroy requests before137, narrowing work to Mousepad/GTK window teardown before GApplication shutdown. Next qualify a narrow window-removal/last-window observation using the existing cheap actual-Mousepad/Weston fixture before another full Denial VM; preserve helper and close limits. No demonstrated FIFO defect or generic signal failure justifies a fix. Phone rows remain NOT RUN; S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-20-glib-signal-fixture.md"
+  "next": "Source 617c4e78 adds an explicit no-unref GTK window-removed observer. Five new host regressions fail on old source; 24 cases pass normally and with -O. Actual ARM64 Mousepad on headless Weston draws a frame, reports WINDOW_REMOVED_ZERO before SHUTDOWN_BEFORE, and exits0 in an8.991s component run. First run aborted before drawing at TasksMax96; the bounded256-task repeat peaks at98 without task rejection or OOM. Default and previous no-unref DSOs are byte-identical. Next prepare one full Denial comparison using this qualified one-window variant, without the incompatible stage-after-sync reader; preserve close deadlines and retained FAIL evidence. This component PASS does not resolve full UI Mousepad137 or qualify phone graphics. No new Denial/Flutter build is needed. Phone rows remain NOT RUN; S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-20-gtk-window-probe.md"
 }
