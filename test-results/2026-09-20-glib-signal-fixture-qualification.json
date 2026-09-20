@@ -1,0 +1,747 @@
+{
+  "schema": 1,
+  "authority": "none; four small ARM64 API cases only",
+  "physical_status": "NOT RUN",
+  "starting_source": {
+    "commit": "6c8c72e9a62696d39bcad1e1b6bed36faadc54ed",
+    "tree": "4a28f5530fe4369c44023fc05d60a607b4093f53"
+  },
+  "source": {
+    "commit": "dcdd8eec9f5f5042298ea9e77544172751387c94",
+    "tree": "6097f0e2698683a6f26da8e9926fc7176d120d5b"
+  },
+  "execution": {
+    "status": "PASS",
+    "authority": "none; small ARM64 GLib API guest only",
+    "physical_status": "NOT RUN",
+    "source": {
+      "commit": "dcdd8eec9f5f5042298ea9e77544172751387c94",
+      "tree": "6097f0e2698683a6f26da8e9926fc7176d120d5b"
+    },
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/glib-signal-fixture.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/glib-signal-fixture.c",
+        "sha256": "e9fd6ed87bcd22e8989008d3b1f6c91ee0a81895f1895ad888122820f1cb4b86",
+        "bytes": 2599
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/glib-signal-fixture.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/glib-signal-fixture.sh",
+        "sha256": "e3743dbc780d17f3ab03951eeae41ea1e414547a59aa8a9da12a6c8a80178605",
+        "bytes": 2960
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/logind-apps.sh",
+        "sha256": "d794b12c80c6abce1093af7f23655d3200a56beb0c655ab53d609e589bee2a05",
+        "bytes": 23220
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+        "sha256": "fb87a1d213dd800ab054109f2863deae82c647b16be18a995732d8d4a75795f9",
+        "bytes": 3268
+      },
+      "/home/deck/.local/state/rog5-close-stage-vm-20260920-r1/vm-r1/payload/app-close-probe": {
+        "path": "/home/deck/.local/state/rog5-close-stage-vm-20260920-r1/vm-r1/payload/app-close-probe",
+        "sha256": "7d7cde4c590d68291665cafbac31973b2bdadf2d501e97bff0775a375374bfc0",
+        "bytes": 569576
+      },
+      "/home/deck/.local/state/rog5-no-unref-control-20260920-r1/build-r1/settings-sync-no-unref.so": {
+        "path": "/home/deck/.local/state/rog5-no-unref-control-20260920-r1/build-r1/settings-sync-no-unref.so",
+        "sha256": "fcf35e0285b79c14223bb89737939d86b7c0940a18e30fd303e374739b113e5f",
+        "bytes": 71136
+      },
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image": {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image",
+        "sha256": "2b1c8d95f54dda28e772df82be54af7508b2ce84183f1b0024a7f14e3d5ce0fc",
+        "bytes": 7049224
+      },
+      "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run.py": {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run.py",
+        "sha256": "e32a3e5c3a5b6d56c7c534c9aca249a525a58edcef8dcef418b9c7d43eb35a0c",
+        "bytes": 6200
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libgio-2.0.so.0.8800.3": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libgio-2.0.so.0.8800.3",
+        "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+        "bytes": 2428456
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libglib-2.0.so.0.8800.3": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/lib/libglib-2.0.so.0.8800.3",
+        "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+        "bytes": 1576520
+      },
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/bin/timeout": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root/usr/bin/timeout",
+        "sha256": "7539e28e3fc02160564cc93739e03d0d3e001a6fae58671371403a46b643439b",
+        "bytes": 68448
+      }
+    },
+    "steps": [
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-glib-signal-build-3911c630d29e490d",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=256m",
+          "--memory-swap=256m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1:/out:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-e",
+          "TMPDIR=/out",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "aarch64-linux-gnu-gcc",
+          "--sysroot=/runtime",
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-I/runtime/usr/include/glib-2.0",
+          "-I/runtime/usr/lib/glib-2.0/include",
+          "/out/fixture.c",
+          "-o",
+          "/out/payload/signal-fixture",
+          "-L/runtime/usr/lib",
+          "-Wl,-rpath-link=/runtime/usr/lib",
+          "-lgio-2.0",
+          "-lgobject-2.0",
+          "-lglib-2.0"
+        ],
+        "started_utc": "2026-09-20T01:00:49.683888+00:00",
+        "deadline_seconds": 40,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.7677051310311072,
+        "ended_utc": "2026-09-20T01:00:50.451625+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-glib-signal-build-3911c630d29e490d"
+        ],
+        "started_utc": "2026-09-20T01:00:50.452175+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03453862603055313,
+        "ended_utc": "2026-09-20T01:00:50.486731+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/build.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-glib-signal-build-3911c630d29e490d"
+        ],
+        "started_utc": "2026-09-20T01:00:50.487081+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.03369586105691269,
+        "ended_utc": "2026-09-20T01:00:50.520791+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/build.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      },
+      {
+        "command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs/init"
+        ],
+        "started_utc": "2026-09-20T01:00:50.522228+00:00",
+        "deadline_seconds": 30,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.11608363001141697,
+        "ended_utc": "2026-09-20T01:00:50.638335+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/init-build.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "cpio",
+          "--null",
+          "-o",
+          "--quiet",
+          "--format=newc",
+          "--owner=0:0"
+        ],
+        "started_utc": "2026-09-20T01:00:50.639521+00:00",
+        "deadline_seconds": 10,
+        "cwd": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs",
+        "stdin_sha256": "1ed62c2eaf600c5554e15a4c6837a5cf767cc2a9852503b999877dfdd37bb438",
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.007808448979631066,
+        "ended_utc": "2026-09-20T01:00:50.647358+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/cpio.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "gzip",
+          "-n",
+          "-c",
+          "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs.cpio"
+        ],
+        "started_utc": "2026-09-20T01:00:50.647915+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.005868164997082204,
+        "ended_utc": "2026-09-20T01:00:50.653798+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/gzip.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-glib-signal-vm-c84761cf911a4da8",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=2",
+          "--pids-limit=64",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-session/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload:/payload:ro",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "1",
+          "-m",
+          "512M",
+          "-accel",
+          "tcg,thread=single",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "none",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 arm64.nomops rog5.signal_fixture=1 rog5.logind_fixture=1 rog5.virtual_drm=1",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "started_utc": "2026-09-20T01:00:50.655866+00:00",
+        "deadline_seconds": 60,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 10.188054449041374,
+        "ended_utc": "2026-09-20T01:01:00.843945+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/serial.log",
+          "sha256": "7ff104e35168a12e4113f497576bb34c593d7bd79755709bc401a890d67b2898",
+          "bytes": 14524
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "rm",
+          "--force",
+          "--ignore",
+          "rog5-glib-signal-vm-c84761cf911a4da8"
+        ],
+        "started_utc": "2026-09-20T01:01:00.844521+00:00",
+        "deadline_seconds": 15,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.03466723597375676,
+        "ended_utc": "2026-09-20T01:01:00.879210+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/serial.cleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": [
+          "podman",
+          "container",
+          "exists",
+          "rog5-glib-signal-vm-c84761cf911a4da8"
+        ],
+        "started_utc": "2026-09-20T01:01:00.879622+00:00",
+        "deadline_seconds": 10,
+        "status": "PASS",
+        "exit_status": 1,
+        "duration_seconds": 0.06613354600267485,
+        "ended_utc": "2026-09-20T01:01:00.945775+00:00",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/serial.absence.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "interpretation": "exit 1 proves named container absent"
+      }
+    ],
+    "build_container": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "qemu_container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/glib-signal-fixture.sh",
+        "sha256": "e3743dbc780d17f3ab03951eeae41ea1e414547a59aa8a9da12a6c8a80178605",
+        "bytes": 2960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/launcher-apps.sh",
+        "sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+        "bytes": 6700
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/logind-apps.sh",
+        "sha256": "d794b12c80c6abce1093af7f23655d3200a56beb0c655ab53d609e589bee2a05",
+        "bytes": 23220
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/app-close-probe",
+        "sha256": "7d7cde4c590d68291665cafbac31973b2bdadf2d501e97bff0775a375374bfc0",
+        "bytes": 569576
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/probe.so",
+        "sha256": "fcf35e0285b79c14223bb89737939d86b7c0940a18e30fd303e374739b113e5f",
+        "bytes": 71136
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/signal-fixture",
+        "sha256": "a04987d0b75fc879f6959fe1b6a0cef96fdebbb002b5ef1283fea26ea23e62f8",
+        "bytes": 72072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs/stage/guest.sh",
+        "sha256": "97255d5ac6e3b25c4be7fefa8136d9694afd5b71f5912cf8f330f37e43474d41",
+        "bytes": 161
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs/init",
+        "sha256": "0c0019ae2b04b4378196ea4138340dc0d7e339cc76f67ea01f15871f84e5538a",
+        "bytes": 3352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/initramfs.gz",
+        "sha256": "603baba89c16e84ed4d54247efabbc799b76aa58f88615645dd59e20e669d13b",
+        "bytes": 1988
+      }
+    ],
+    "seconds": 11.26347587100463,
+    "inputs_unchanged": true,
+    "serial": {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/serial.log",
+      "sha256": "7ff104e35168a12e4113f497576bb34c593d7bd79755709bc401a890d67b2898",
+      "bytes": 14524
+    }
+  },
+  "analysis": {
+    "status": "PASS",
+    "scope": "four actual ARM64 GLib signal cases; no UI/phone",
+    "cases": [
+      {
+        "mode": "immediate",
+        "observer": "no",
+        "app_status": "0",
+        "probe_status": "not-requested",
+        "markers": [
+          {
+            "stage": "ready",
+            "pid": 38,
+            "microseconds": 2645974
+          },
+          {
+            "stage": "signal-callback",
+            "pid": 38,
+            "microseconds": 2691053
+          },
+          {
+            "stage": "shutdown-enter",
+            "pid": 38,
+            "microseconds": 2693541
+          },
+          {
+            "stage": "external-sync-returned",
+            "pid": 38,
+            "microseconds": 2695215
+          },
+          {
+            "stage": "shutdown-return",
+            "pid": 38,
+            "microseconds": 2695289
+          },
+          {
+            "stage": "run-return",
+            "pid": 38,
+            "microseconds": 2700367
+          }
+        ],
+        "callback_to_return_us": 9314,
+        "records": []
+      },
+      {
+        "mode": "immediate",
+        "observer": "yes",
+        "app_status": "0",
+        "probe_status": "125",
+        "markers": [
+          {
+            "stage": "ready",
+            "pid": 58,
+            "microseconds": 4478254
+          },
+          {
+            "stage": "signal-callback",
+            "pid": 58,
+            "microseconds": 4697448
+          },
+          {
+            "stage": "shutdown-enter",
+            "pid": 58,
+            "microseconds": 4699932
+          },
+          {
+            "stage": "external-sync-returned",
+            "pid": 58,
+            "microseconds": 4704759
+          },
+          {
+            "stage": "shutdown-return",
+            "pid": 58,
+            "microseconds": 4704831
+          },
+          {
+            "stage": "run-return",
+            "pid": 58,
+            "microseconds": 4717738
+          }
+        ],
+        "callback_to_return_us": 20290,
+        "records": [
+          {
+            "kind": "stage-armed",
+            "clipped": "false",
+            "value": "trigger=shutdown-external-sync-END total_budget_ms=1200"
+          },
+          {
+            "kind": "ptrace-unavailable",
+            "clipped": "false",
+            "value": "open:NotFound"
+          }
+        ]
+      },
+      {
+        "mode": "delayed",
+        "observer": "no",
+        "app_status": "0",
+        "probe_status": "not-requested",
+        "markers": [
+          {
+            "stage": "ready",
+            "pid": 85,
+            "microseconds": 6613321
+          },
+          {
+            "stage": "signal-callback",
+            "pid": 85,
+            "microseconds": 6749365
+          },
+          {
+            "stage": "shutdown-enter",
+            "pid": 85,
+            "microseconds": 6752823
+          },
+          {
+            "stage": "external-sync-returned",
+            "pid": 85,
+            "microseconds": 6753884
+          },
+          {
+            "stage": "shutdown-return",
+            "pid": 85,
+            "microseconds": 7004370
+          },
+          {
+            "stage": "run-return",
+            "pid": 85,
+            "microseconds": 7009782
+          }
+        ],
+        "callback_to_return_us": 260417,
+        "records": []
+      },
+      {
+        "mode": "delayed",
+        "observer": "yes",
+        "app_status": "0",
+        "probe_status": "0",
+        "markers": [
+          {
+            "stage": "ready",
+            "pid": 108,
+            "microseconds": 8693636
+          },
+          {
+            "stage": "signal-callback",
+            "pid": 108,
+            "microseconds": 8767374
+          },
+          {
+            "stage": "shutdown-enter",
+            "pid": 108,
+            "microseconds": 8776416
+          },
+          {
+            "stage": "external-sync-returned",
+            "pid": 108,
+            "microseconds": 8778006
+          },
+          {
+            "stage": "shutdown-return",
+            "pid": 108,
+            "microseconds": 9032536
+          },
+          {
+            "stage": "run-return",
+            "pid": 108,
+            "microseconds": 9040398
+          }
+        ],
+        "callback_to_return_us": 273024,
+        "records": [
+          {
+            "kind": "stage-armed",
+            "clipped": "false",
+            "value": "trigger=shutdown-external-sync-END total_budget_ms=1200"
+          },
+          {
+            "kind": "ptrace-pc",
+            "clipped": "false",
+            "value": "intrusive=true pc=0xffffb0d21c68 sp=0xffffc902c5c0 fp=0xffffc902c5c0 lr=Some(281473648250996) interrupt_to_detach_us=10373 end_monotonic=8.913374768"
+          },
+          {
+            "kind": "ptrace-map",
+            "clipped": "false",
+            "value": "ffffb0c90000-ffffb0e3f000 r-xp 00000000 00:0c 6906510                    /usr/lib/libc.so.6"
+          },
+          {
+            "kind": "ptrace-stack",
+            "clipped": "false",
+            "value": "status=observed candidates=4 stop=Limit complete_backtrace=false"
+          },
+          {
+            "kind": "ptrace-stack",
+            "clipped": "false",
+            "value": "index=0 fp=0xffffc902c5c0 return=0xffffb0d4f234 map_start=0xffffb0c90000 map_end=0xffffb0e3f000 file_offset=0x0 path_hex=2f7573722f6c69622f6c6962632e736f2e36"
+          },
+          {
+            "kind": "ptrace-stack",
+            "clipped": "false",
+            "value": "index=1 fp=0xffffc902c5e0 return=0xffffb0d59dbc map_start=0xffffb0c90000 map_end=0xffffb0e3f000 file_offset=0x0 path_hex=2f7573722f6c69622f6c6962632e736f2e36"
+          },
+          {
+            "kind": "ptrace-stack",
+            "clipped": "false",
+            "value": "index=2 fp=0xffffc902c5f0 return=0xffffb0f03b64 map_start=0xffffb0e60000 map_end=0xffffb0fd1000 file_offset=0x0 path_hex=2f7573722f6c69622f6c6962676c69622d322e302e736f2e302e383830302e33"
+          },
+          {
+            "kind": "ptrace-stack",
+            "clipped": "false",
+            "value": "index=3 fp=0xffffc902c630 return=0xaaaab0f91384 map_start=0xaaaab0f90000 map_end=0xaaaab0f92000 file_offset=0x0 path_hex=2f72756e2f7061796c6f61642f7369676e616c2d66697874757265"
+          }
+        ],
+        "capture_end_inside_delayed_shutdown": true,
+        "frames": [
+          {
+            "index": 0,
+            "elf": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libc.so.6",
+              "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+              "bytes": 1853736
+            },
+            "return_elf_address": "0xbf234",
+            "call_symbols": [
+              "clock_nanosleep@@GLIBC_2.17"
+            ]
+          },
+          {
+            "index": 1,
+            "elf": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libc.so.6",
+              "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+              "bytes": 1853736
+            },
+            "return_elf_address": "0xc9dbc",
+            "call_symbols": [
+              "__nanosleep@@GLIBC_2.17",
+              "nanosleep@@GLIBC_2.17"
+            ]
+          },
+          {
+            "index": 2,
+            "elf": {
+              "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglib-2.0.so.0.8800.3",
+              "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+              "bytes": 1576520
+            },
+            "return_elf_address": "0xa3b64",
+            "call_symbols": [
+              "g_usleep"
+            ]
+          },
+          {
+            "index": 3,
+            "elf": {
+              "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/payload/signal-fixture",
+              "sha256": "a04987d0b75fc879f6959fe1b6a0cef96fdebbb002b5ef1283fea26ea23e62f8",
+              "bytes": 72072
+            },
+            "return_elf_address": "0x1384",
+            "call_symbols": [
+              "shutdown_app"
+            ]
+          }
+        ]
+      }
+    ],
+    "limits": [
+      "One fixed-order matrix is not a statistically controlled overhead benchmark",
+      "No GTK, Wayland FIFO, D-Bus session, renderer or two-vCPU UI load",
+      "Immediate clean exit can legitimately refuse observer capture",
+      "Four conventional frame-pointer candidates are not a complete unwind"
+    ]
+  },
+  "review": {
+    "scope": "read-only independent review; no reviewer execution",
+    "reviewer": "signal_boundary_review",
+    "fixture": "Same no-unref DSO, READY from main context, separate markers, application/capture status separation and asynchronous start retained",
+    "followup": "Retained full UI log shows text-input disable/commit and xdg_toplevel/xdg_surface/wl_surface destruction before137. Draining continued; no demonstrated FIFO logging defect. A stalled downstream sink can cause blocking writes, but is not established here. Next inspect actual window teardown before GApplication shutdown."
+  },
+  "active": {
+    "command": [
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "dcdd8eec9f5f5042298ea9e77544172751387c94",
+    "source_tree": "6097f0e2698683a6f26da8e9926fc7176d120d5b",
+    "authority": "host tests only; no phone",
+    "exit_status": 0,
+    "duration_seconds": 199.52872280299198
+  },
+  "counts": {
+    "PASS": 112,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "optional_subchecks": {
+    "SKIPPED": 3
+  },
+  "logs": [
+    {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run.py",
+      "sha256": "e32a3e5c3a5b6d56c7c534c9aca249a525a58edcef8dcef418b9c7d43eb35a0c",
+      "bytes": 6200
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/analyze.py",
+      "sha256": "a06b9d37a88219205f9200e9dc1b5841e2944cd4a0230b4f21b0840f782f60e7",
+      "bytes": 3521
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/run-r1/serial.log",
+      "sha256": "7ff104e35168a12e4113f497576bb34c593d7bd79755709bc401a890d67b2898",
+      "bytes": 14524
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/active-command.json",
+      "sha256": "86f29304b4ae41cd64ff6585cc38fbb38935b51f9ce23c4082e1490913336fd6",
+      "bytes": 1384
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-glib-signal-20260920-r1/active-report/summary.json",
+      "sha256": "2a62acebef3a5df4c68326d028e3916ed70daa15e0466f6a70bc888e2f2a14ea",
+      "bytes": 123317
+    }
+  ],
+  "no_full_ui_or_phone_run": true
+}

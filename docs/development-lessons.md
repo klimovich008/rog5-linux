@@ -3517,3 +3517,14 @@ concurrent stage polling. Cover that small boundary before another full UI run.
 Keep cooperative budget overshoot (1318ms total versus1200ms checked limit)
 separate from accepted late data: this run accepted no sample. Source/terminal
 evidence is more useful than repeatedly widening grace or rebuilding Denial.
+
+
+Signal versus application teardown (2026-09-20): an11.263s real ARM64 GLib matrix
+can qualify signal callback, shutdown, observer timing and exact frame attribution
+without a390s full UI run. Emit READY from the running main context and separate
+application exit from observer refusal: immediate app0/probe125 was correct.
+Known delayed shutdown produced the expected g_usleep chain under unchanged
+limits. This does not measure full-UI overhead. Re-read adjacent protocol evidence
+before choosing another probe: window/surface destruction already progressed in
+the failed UI run, moving the next boundary before GApplication shutdown rather
+than back to generic signal dispatch or an unproven FIFO defect.

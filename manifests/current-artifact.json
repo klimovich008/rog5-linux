@@ -2212,6 +2212,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-close-stage-vm-20260920-r1"
+    },
+    "glib_signal_fixture": {
+      "status": "Four GLib signal/observer API cases PASS; known delayed shutdown capture attributed; full UI Mousepad137 unresolved",
+      "source_commit": "dcdd8eec9f5f5042298ea9e77544172751387c94",
+      "source_tree": "6097f0e2698683a6f26da8e9926fc7176d120d5b",
+      "evidence": {
+        "path": "test-results/2026-09-20-glib-signal-fixture-qualification.json",
+        "sha256": "b223e35d4e102f2b3a1bc216158688e658fb434b829586217f70bd3d31f929da",
+        "bytes": 27479
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-glib-signal-20260920-r1"
     }
   },
   "denial_phone_linkage": {
