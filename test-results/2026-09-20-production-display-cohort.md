@@ -306,3 +306,22 @@ admission must stay refused without proof, and receipt tampering must not become
 a recovery bypass. Current0010 source and its129-suite qualification are unchanged;
 no unchanged integrated run or kernel build was repeated. Runtime UNBOUND and all
 physical rows NOT RUN. No VM, phone, claim, signing or candidate operation occurred.
+
+
+### Controller interruption observations (2026-09-20)
+
+The unintegrated 0011 proposal was additionally called through its actual
+controller with `KeyboardInterrupt` injected before receipt creation, after a
+17-byte partial write, and immediately after complete publication. Three
+characterization cases reproduced the same result in 5.477 seconds under a
+512 MiB address-space limit and 60-second deadline: capture closure ran, the
+exception propagated, no fallback-location phase was entered, selection was
+not restored, and no session contract was constructed. Sticky boot selection
+remained intact. Receipt sizes were absent, 17 and 967 bytes respectively.
+
+These are observations of direct controller invocation, not successful recovery
+regressions or OS-signal/whole-process qualification. The outer launcher has
+owned-resource cleanup, but its full interruption path was not executed here.
+The existing Pro correction consultation already requests interruption coverage;
+retain these exact cases for local review of its answer. No proposal was applied,
+no running consultation was duplicated, and no phone operation occurred.
