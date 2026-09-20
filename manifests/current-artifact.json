@@ -2199,6 +2199,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-close-stage-20260920-r1"
+    },
+    "close_stage_vm": {
+      "status": "VM FAIL Foot0/Mousepad137; stage observation unavailable125; no shutdown marker or ptrace capture",
+      "source_commit": "b113edde0b56c49dbde2157b37b9e77402fbf61f",
+      "source_tree": "2dd962af37999424c43612b7afc65b496190ba01",
+      "evidence": {
+        "path": "test-results/2026-09-20-close-stage-vm-qualification.json",
+        "sha256": "52e2cba6934046dfffdfcecc7c2921afd0432e7a9be302ac76a37f23f04ae250",
+        "bytes": 129093
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-close-stage-vm-20260920-r1"
     }
   },
   "denial_phone_linkage": {

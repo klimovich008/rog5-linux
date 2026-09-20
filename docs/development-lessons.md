@@ -3507,3 +3507,13 @@ before another expensive UI run. Its success does not capture the unresolved
 Mousepad shutdown stage. Never extend the observation budget to force a late
 marker into a successful result. Reuse the existing community audit when live
 upstream identities have not changed; inspect the delta before new builds.
+
+
+Stage-target non-reproduction (2026-09-20): the390.288s VM run armed the waiter
+but never logged SHUTDOWN_BEFORE; open:NotFound and exit125 supplied no capture.
+Do not reinterpret the previous later-stage result as this run's failure phase.
+The immediate-quit GLib API fixture omits Unix-signal/main-loop dispatch and
+concurrent stage polling. Cover that small boundary before another full UI run.
+Keep cooperative budget overshoot (1318ms total versus1200ms checked limit)
+separate from accepted late data: this run accepted no sample. Source/terminal
+evidence is more useful than repeatedly widening grace or rebuilding Denial.
