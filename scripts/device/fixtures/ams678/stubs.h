@@ -30,7 +30,41 @@ struct regulator { int refs, index, enable_calls, disable_calls; };
 struct regulator_bulk_data { const char *supply; struct regulator *consumer; };
 struct gpio_desc { int role; };
 struct mipi_dsi_device { struct device dev; unsigned long mode_flags; void *data; };
-struct backlight_device { void *data; int brightness; };
+#define BACKLIGHT_RAW 1
+#define BL_CORE_SUSPENDRESUME (1 << 0)
+#define BL_CORE_SUSPENDED (1 << 0)
+#define BL_CORE_FBBLANK (1 << 1)
+#define BACKLIGHT_POWER_ON 0
+#define BACKLIGHT_POWER_OFF 4
+#define BACKLIGHT_UPDATE_SYSFS 1
+struct backlight_properties { int type, brightness, max_brightness, power, state; };
+struct backlight_device;
+struct backlight_ops {
+ int options;
+ int (*update_status)(struct backlight_device *);
+};
+struct backlight_device {
+ void *data;
+ struct backlight_properties props;
+ const struct backlight_ops *ops;
+ struct mutex update_lock, ops_lock;
+};
+static struct backlight_device registered_bl;
+static const char *dev_name(struct device *dev) { return "fixture-panel"; }
+static struct backlight_device *devm_backlight_device_register(
+ struct device *dev, const char *name, struct device *parent, void *data,
+ const struct backlight_ops *ops, const struct backlight_properties *props)
+{
+ /* Allocation/registration boundary only; preserve actual driver's properties.
+  * Real device_register/sysfs and asynchronous probe are not exercised. */
+ assert(dev == parent && !strcmp(name, "fixture-panel"));
+ registered_bl.data = data; registered_bl.props = *props; registered_bl.ops = ops;
+ mutex_init(&registered_bl.update_lock); mutex_init(&registered_bl.ops_lock);
+ return &registered_bl;
+}
+#define pr_debug(...) ((void)0)
+static void backlight_generate_event(struct backlight_device *bl, int reason) {}
+
 struct drm_panel;
 struct drm_panel_funcs {
  int (*prepare)(struct drm_panel *), (*enable)(struct drm_panel *);
@@ -51,16 +85,21 @@ static int diagnostics;
 #define dev_warn(dev, ...) ((void)0)
 #define dev_info(dev, ...) ((void)0)
 #define DRM_DEV_INFO(dev, ...) ((void)0)
-static int backlight_enable(void *p) { return 0; }
-static int backlight_disable(void *p) { return 0; }
 static void *bl_get_data(struct backlight_device *bl) { return bl->data; }
-static int backlight_get_brightness(struct backlight_device *bl) { return bl->brightness; }
 static void *mipi_dsi_get_drvdata(struct mipi_dsi_device *dsi) { return dsi->data; }
 static int ready = 1, gpio_reads, reset_asserted, dsi_calls;
 static int fail_init, fail_pps, fail_compression, fail_multi, fail_brightness;
 static int fail_disable = -1, fail_enable = -1;
 static int regulator_calls, enable_calls;
 static unsigned char brightness_payload[3];
+static unsigned dbv_values[256], dbv_count;
+static void record_dbv(const u8 *payload, size_t n)
+{
+ if (n == 3 && payload[0] == MIPI_DCS_SET_DISPLAY_BRIGHTNESS) {
+  assert(dbv_count < sizeof(dbv_values) / sizeof(dbv_values[0]));
+  dbv_values[dbv_count++] = (payload[1] << 8) | payload[2];
+ }
+}
 static pthread_mutex_t io_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t io_cond = PTHREAD_COND_INITIALIZER;
 static int block_brightness, brightness_entered, release_brightness, off_finished;
@@ -108,7 +147,13 @@ static void command(struct mipi_dsi_multi_context *c)
 }
 static void mipi_dsi_dcs_exit_sleep_mode_multi(struct mipi_dsi_multi_context *c)
 { command(c); if (fail_init) c->accum_err = -EIO; }
-#define mipi_dsi_dcs_write_seq_multi(c, ...) command(c)
+static void write_seq(struct mipi_dsi_multi_context *c, const u8 *p, size_t n)
+{
+ command(c);
+ if (!c->accum_err) record_dbv(p, n);
+}
+#define mipi_dsi_dcs_write_seq_multi(c, ...) \
+ write_seq(c, (const u8[]){__VA_ARGS__}, sizeof((const u8[]){__VA_ARGS__}))
 #define mipi_dsi_dcs_set_tear_on_multi(c, ...) command(c)
 #define mipi_dsi_dcs_set_tear_scanline_multi(c, ...) command(c)
 #define mipi_dsi_dcs_set_column_address_multi(c, ...) command(c)
@@ -127,6 +172,7 @@ static int mipi_dsi_dcs_write_buffer(struct mipi_dsi_device *d, void *p, size_t 
 {
  dsi_calls++;
  memcpy(brightness_payload, p, n);
+ if (!fail_brightness) record_dbv(p, n);
  pthread_mutex_lock(&io_lock);
  if (block_brightness) {
   brightness_entered = 1; pthread_cond_broadcast(&io_cond);

@@ -542,7 +542,7 @@ index 000000000..57dbb44f0
 +	struct device *dev = &dsi->dev;
 +	const struct backlight_properties props = {
 +		.type = BACKLIGHT_RAW,
-+		.brightness = 1023,
++		.brightness = 0, /* Stay dark until userspace requests light. */
 +		.max_brightness = 1023,
 +	};
 +

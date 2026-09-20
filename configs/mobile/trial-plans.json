@@ -78,7 +78,7 @@
       "tests": [
         {
           "path": "scripts/device/test-ams678-lifecycle.py",
-          "sha256": "2315ede421859a35f9d6ce164f41372522dca0740945f8852d3f4a92ab4f24d5"
+          "sha256": "fccc4747dce8791a0e7e320952834dd8425a9580ea071cabda843178018a0cf7"
         },
         {
           "path": "scripts/device/test-screen-toggle.sh",

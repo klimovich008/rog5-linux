@@ -4,7 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 patch=$repo/patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
 fragment=$repo/configs/kernel/rog5-display-60hz.fragment
-expected=a3fcff9b884facfa5628aff9623428c074eb4146926efd1c3dd9c53b4bd083ae
+expected=92e600fc5701a3e70ebc7940dddc7d018360ee9c30f0efa3d5dfdc687f499da1
 
 [ -f "$patch" ] && [ ! -L "$patch" ]
 [ -f "$fragment" ] && [ ! -L "$fragment" ]

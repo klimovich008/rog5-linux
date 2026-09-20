@@ -33,7 +33,7 @@ def extract(source):
     end = source.index('static const struct drm_display_mode ')
     lifecycle = source[start:end]
     start = source.index('static int ams678_er2_plus_dsc_bl_update_status(')
-    end = source.index('\n}', start) + 2
+    end = source.index('static int ams678_er2_plus_dsc_probe(', start)
     return lifecycle + '\n' + source[start:end]
 
 
@@ -48,6 +48,7 @@ def main():
     pins = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
     core = (FIXTURES / 'drm-panel-v7.1.4.c').read_text()
     brightness = (FIXTURES / 'drm-brightness-v7.1.4.c').read_text()
+    backlight = (FIXTURES / 'backlight-v7.1.4.c').read_text()
     if args.linux_source:
         exact = (args.linux_source / 'drivers/gpu/drm/drm_panel.c').read_text()
         for name in ('prepare', 'unprepare', 'enable', 'disable'):
@@ -60,12 +61,22 @@ def main():
         begin = exact.index('int mipi_dsi_dcs_set_display_brightness_large(')
         if exact[begin:exact.index('\n}', begin) + 2] not in brightness:
             raise ValueError('DRM brightness fixture differs')
-        print('PASS behavioral: exact Linux DRM lifecycle and brightness source comparison')
+        for relative, names in (
+                ('include/linux/backlight.h', ('static inline int backlight_update_status(',
+                 'static inline int backlight_enable(', 'static inline int backlight_disable(',
+                 'static inline bool backlight_is_blank(', 'static inline int backlight_get_brightness(')),
+                ('drivers/video/backlight/backlight.c', ('int backlight_device_set_brightness(',))):
+            exact = (args.linux_source / relative).read_text()
+            for name in names:
+                begin = exact.index(name)
+                if exact[begin:exact.index('\n}', begin) + 2] not in backlight:
+                    raise ValueError('backlight core fixture differs: ' + name)
+        print('PASS behavioral: exact Linux DRM lifecycle, brightness and backlight source comparison')
     else:
         print('NOT RUN external kernel-source comparison; pinned extracts compiled')
     driver = driver_source(args.patch)
     lock_init = '\n'.join(re.findall(r'mutex_init\(&ctx->\w+\);', driver)).replace('ctx->', 'ctx.')
-    source = ((FIXTURES / 'stubs.h').read_text() + '\n' + brightness + '\n' +
+    source = ((FIXTURES / 'stubs.h').read_text() + '\n' + brightness + '\n' + backlight + '\n' +
               extract(driver) + '\n' + core + '\n' +
               (FIXTURES / 'cases.c').read_text().replace('DRIVER_MUTEX_INIT', lock_init))
     cases = ('iris-timeout', 'iris-gpio-error', 'init-error', 'pps-error',
@@ -73,7 +84,8 @@ def main():
              'prepare-cleanup-error', 'normal-cycles', 'brightness-order',
              'enable-error', 'serialized-backlight', 'enable-supply-error',
              'disable-second-supply-error', 'brightness-error-flags',
-             'enable-first-supply-error')
+             'enable-first-supply-error', 'registered-default-dark',
+             'registered-preprepare-zero')
     with tempfile.TemporaryDirectory(prefix='ams678-lifecycle-',
                                      dir=os.environ.get('TMPDIR')) as tmp:
         unit = Path(tmp) / 'unit.c'
@@ -105,10 +117,20 @@ def main():
         if result.returncode == 0 or 'Assertion' not in result.stderr:
             raise ValueError('unsafe regulator retry mutation escaped behavioral checks')
         print('PASS behavioral: rejects HELD ownership after regulator-disable error')
+        target = '\t\t.brightness = 0,'
+        if source.count(target) != 1:
+            raise ValueError('default brightness mutation target changed')
+        unit.write_text(source.replace(target, '\t\t.brightness = 1023,', 1))
+        subprocess.run(command, check=True, timeout=30)
+        result = subprocess.run([str(binary), 'registered-default-dark'], capture_output=True,
+                                text=True, timeout=5)
+        if result.returncode == 0 or 'Assertion' not in result.stderr:
+            raise ValueError('automatic full brightness mutation escaped behavioral checks')
+        print('PASS behavioral: rejects automatic full brightness: ' + result.stdout.strip())
     if pins != {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}:
         raise ValueError('lifecycle inputs changed during tests')
     print('driver_sha256=' + hashlib.sha256(driver.encode()).hexdigest())
-    print(f'PASS behavioral: {len(cases)} actual-driver/core fault-injection cases, 1 mutation; '
+    print(f'PASS behavioral: {len(cases)} actual-driver/core fault-injection cases, 2 mutations; '
           f'elapsed={time.monotonic() - started:.6f}s')
     print('NOT RUN physical panel validation')
 

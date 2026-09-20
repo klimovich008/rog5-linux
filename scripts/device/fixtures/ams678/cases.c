@@ -22,7 +22,7 @@ static void setup(void)
  mutex_init(&ctx.panel.follower_lock);
  /* DRIVER_MUTEX_INIT is generated from the patch's actual probe. */
  DRIVER_MUTEX_INIT
- bl.data = &dsi; bl.brightness = 0x123;
+ bl.data = &dsi; bl.props.brightness = 0x123;
 }
 static void start(void)
 { drm_panel_prepare(&ctx.panel); assert(ctx.panel.prepared); drm_panel_enable(&ctx.panel); assert(ctx.panel.enabled); }
@@ -66,9 +66,48 @@ static void *off_thread(void *arg)
  stop(); pthread_mutex_lock(&io_lock); off_finished = 1;
  pthread_cond_broadcast(&io_cond); pthread_mutex_unlock(&io_lock); return NULL;
 }
+static void registered_backlight_case(bool check_default)
+{
+ ctx.panel.backlight = ams678_er2_plus_dsc_create_backlight(&dsi);
+ struct backlight_device *backlight = ctx.panel.backlight;
+ assert(backlight == &registered_bl && backlight->data == &dsi);
+ assert(backlight->props.type == BACKLIGHT_RAW && backlight->props.max_brightness == 1023);
+ assert(backlight->ops == &ams678_er2_plus_dsc_bl_ops);
+ if (!check_default) {
+  int before = dsi_calls;
+  assert(backlight_device_set_brightness(backlight, 0) == -EPERM);
+  /* Core stores the requested property before the failing driver callback. */
+  assert(backlight->props.brightness == 0 && !ctx.initialized);
+  assert(dsi_calls == before && !dbv_count);
+ }
+ start();
+ assert(dbv_count >= 2 && dbv_values[dbv_count - 2] == 0);
+ printf("REGISTERED_INITIAL_DBV driver_enable=%u core_backlight=%u property=%d\n",
+        dbv_values[dbv_count - 2], dbv_values[dbv_count - 1], backlight->props.brightness);
+ fflush(stdout);
+ /* No external observer or userspace brightness write is needed for darkness. */
+ assert(dbv_values[dbv_count - 1] == 0);
+ if (check_default) assert(backlight->props.brightness == 0);
+ static const unsigned values[] = {1, 255, 256, 1023, 0};
+ for (unsigned i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+  unsigned before = dbv_count;
+  assert(!backlight_device_set_brightness(backlight, values[i]));
+  assert(dbv_count == before + 1 && dbv_values[before] == values[i]);
+  assert(brightness_payload[0] == 0x51 && brightness_payload[1] == (values[i] >> 8)
+         && brightness_payload[2] == (values[i] & 255));
+ }
+ stop();
+ assert(!ctx.panel.enabled && !ctx.panel.prepared && dbv_values[dbv_count - 1] == 0);
+ int before = dsi_calls;
+ assert(backlight_device_set_brightness(backlight, 0) == -EPERM);
+ assert(dsi_calls == before);
+}
 int main(int argc, char **argv)
 {
  assert(argc == 2); setup(); const char *name = argv[1];
+ if (!strcmp(name, "registered-default-dark") || !strcmp(name, "registered-preprepare-zero")) {
+  registered_backlight_case(!strcmp(name, "registered-default-dark")); return 0;
+ }
  if (!strcmp(name, "iris-timeout") || !strcmp(name, "iris-gpio-error") ||
      !strcmp(name, "init-error") || !strcmp(name, "pps-error") ||
      !strcmp(name, "compression-error")) {
@@ -122,7 +161,7 @@ int main(int argc, char **argv)
   start();
   for (unsigned i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
    for (unsigned flags = 0x42; flags <= 0x43; flags++) {
-    dsi.mode_flags = flags; bl.brightness = values[i];
+    dsi.mode_flags = flags; bl.props.brightness = values[i];
     assert(!ams678_er2_plus_dsc_bl_update_status(&bl));
     assert(brightness_payload[0] == 0x51);
     assert(brightness_payload[1] == (values[i] >> 8));
