@@ -62,3 +62,24 @@ requests SQE/GMU firmware and the overlay names `qcom/sm8350/a660_zap.mbn`.
 Firmware status is explicitly NOT PACKAGED; empty module metadata is not proof of
 runtime firmware completeness. The archive is an unsigned host fixture, not a new
 phone candidate. Keep the historical loader and consumed claims unchanged.
+
+
+## Successor archive intake
+
+`scripts/device/stage-production-display-modules.py ARCHIVE --qualification JSON
+--qualification-sha256 SHA256 --output /absolute/new-directory` verifies the
+pinned offline packaging qualification and materializes its exact archive into a
+new private host directory. It accepts canonical builder USTAR records only:
+member order/names/types/modes/owners, payload hashes, manifest, padding and end
+records must match. It does not call an extraction API or interpret archive paths
+as instructions. Hash reads are bounded by the qualified size plus one EOF byte.
+Every copied member is hashed again before atomic exclusive publication.
+
+No staging directory is created before full archive validation. Failed copying
+or interruption removes only owned temporary files; an existing destination is
+never overwritten. A parent-directory fsync error after atomic publication stays
+an error while preserving the complete output. Output files are0644 regardless
+of host umask; the containing directory is private. This is host-side inert
+staging, not target admission or a root-owned phone payload. The future controller
+must revalidate its own target identity, ownership, files and one-use guards.
+The historical controller and its claims are unchanged.
