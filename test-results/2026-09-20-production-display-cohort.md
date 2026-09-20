@@ -862,3 +862,34 @@ and the new refusal, asking for the smallest justified offline successor-input
 preparation step. No historical pin, input lock, seal, claim or qualified image
 was replaced. Runtime remains UNBOUND and physical tests NOT RUN. No expensive
 unchanged integration/build suite was repeated.
+
+
+## Existing inert payload reuse after input review
+
+The matched Pro follow-up confirms expected retained-lock rejection, not a
+consumer defect. Compatibility investigation of that historical lock is complete;
+no extra bootstrap mechanism, relaxed schema or replacement historical pin is
+justified. A full compatible successor input set is a separate preparation step,
+not a reinterpretation of the old 129-file document.
+
+The existing `stage-production-display-payload.py` matches its frozen82679758
+Git object and the earlier reviewed source: 182 lines, 9073 bytes, SHA256
+`27f47f2b57004f879073bbc84abc803c5a8bf34f48485da4f7ccc736c8f0a15d`.
+The retained payload from the
+[existing payload qualification](2026-09-20-production-display-payload-qualification.json)
+was checked against the current literal loader/helper/firmware contracts,
+current consumer source hashes, its recorded manifest and every member's
+stable metadata and streaming hash. Result **PASS_RETAINED_INERT_PAYLOAD_REUSE**
+in **0.035991s**:22files,4851452bytes,14modules and3firmware files. No duplicate
+payload, archive, build or candidate was created. This ordinary-UID read used
+512MiB address-space and90s/2s timeout bounds; no payload program was executed.
+Manifest SHA256:
+`3323612cca004abdb08da842ab5823e35009994036b7155d3877a1722c8804d6`.
+
+This inventory remains `authority=none`. It covers module/helper/firmware
+ingredients, not the ten-source session closure, private worker/health data,
+complete admission inventory, cold-boot identity or compatible health seal.
+Full admission and target ownership/activation/root transition/physical tests
+remain NOT RUN. Reuse the verified ingredient set in subsequent source
+preparation; do not rerun unchanged builds or keep testing the known historical
+schema mismatch. No phone, signing, claim or protected-storage operation.

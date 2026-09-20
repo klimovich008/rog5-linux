@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Health binding qualified; retained input lock incompatible with production schema",
+  "phase": "Inert display payload reusable; compatible successor inputs still required",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source 82679758 retains 132 active suites PASS in 724.770s; no implementation changed or expensive suite repeated. Pro review and local source inspection found no requirement for an additional bootstrap wrapper under the trusted-coordinator premise. Read-only checks passed the exact 16-row history index (0.043s) and historical host-boot match (0.045s). Actual current input_schema rejected the exact retained 129-file lock (0.057s): its trusted hash matches, but production_display_sources is absent. This is a scoped schema refusal, not execution of full admission or evidence of a consumer defect. Preserve the historical lock; successor input preparation is under review. Touch source 1f936857 retains its board PASS. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. No phone, VM, root, input lock, seal, claim, signing or candidate operation.",
+  "next": "Source 82679758 retains 132 active suites PASS; no implementation changed or expensive suite repeated. The existing inert display payload passed current consumer-contract and stable-content verification: 22 files, 14 modules and 3 firmware files in 0.036s. Reuse that authority-free inventory; no duplicate build or candidate is needed. The retained 129-file lock remains deliberately rejected by the current schema despite matching its historical anchor. Compatibility diagnosis of that lock is complete; a separately prepared compatible successor input set is still needed, preserving all source, artifact, health, custody and one-use guards. No new bootstrap mechanism is justified. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. No phone, VM, root, input lock, seal, claim, signing or candidate operation.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }
