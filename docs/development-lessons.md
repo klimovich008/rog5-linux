@@ -4017,3 +4017,13 @@ the runner creates it exclusively. Preserve both setup failures. The unchanged
 Pro patch/tests then passed in the91-case suite, with131active suites passing
 in476.291s. Reuse existing fixtures and apply only required source sections;
 static review and a zero `git apply` exit status do not prove a selected hunk ran.
+
+
+Health binding qualification (2026-09-20): register a new test in both the
+declarative manifest and the retained shell selector while migration remains
+incremental. Their comparison correctly rejected the missing selector entry
+before suites ran. Keep the publication-tracing batch alone: it took 50.536s
+locally under the 90s deadline. Pro-side PASS is separate from local execution.
+An Oracle recovery command returned a previous answer with exit0; verify the
+exact submitted question and final answer, including empty completion markers,
+before treating notification or CLI termination as successful review retrieval.

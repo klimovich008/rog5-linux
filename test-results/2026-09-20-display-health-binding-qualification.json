@@ -1,0 +1,5397 @@
+{
+  "schema": 1,
+  "scope": "offline checked health-source binding; real bootstrap and private inputs remain unqualified",
+  "authority": "none",
+  "runtime": "UNBOUND",
+  "physical": "NOT RUN",
+  "phone_operations": 0,
+  "starting_commit": "08d6777f3d5528c82ae7165e4487ec09b5d85d3f",
+  "starting_tree": "ff802099644f2e623b54d36229a04fbde96e5689",
+  "implementation_commit": "82679758fc24a04b1e824396a85b775bd1cc124a",
+  "implementation_tree": "05445ff73aff25ba75cec05e3218242775fbff48",
+  "changed_implementation_files": [
+    "configs/repository-tests.json",
+    "patches/display-controller/0014-checked-health-sources.patch",
+    "patches/display-controller/README.md",
+    "scripts/device/fixtures/display-health/README.md",
+    "scripts/device/fixtures/display-health/binding.py",
+    "scripts/device/fixtures/display-health/gpu-capture-r1__capture-common.py.txt",
+    "scripts/device/fixtures/display-health/gpu-controller-r1__controller.py.txt",
+    "scripts/device/fixtures/display-health/gpu-state-guards-r1__guarded-state.py.txt",
+    "scripts/device/fixtures/display-health/gpu-state-guards-r1__legacy-restore.py.txt",
+    "scripts/device/fixtures/display-health/oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt",
+    "scripts/device/fixtures/display-health/oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt",
+    "scripts/device/fixtures/display-health/oled-startup-live-driver-r1__action-callbacks.py.txt",
+    "scripts/device/fixtures/display-health/source-pins.json",
+    "scripts/device/test-production-display-health-binding.py",
+    "scripts/host/test-repository-linux.sh"
+  ],
+  "implementation_file_sha256": {
+    "configs/repository-tests.json": "c8607bc8a3ef6e008d62ebe0c61bac283d872f7cbe910f7b00099718243c2b08",
+    "patches/display-controller/0014-checked-health-sources.patch": "3a0669f104eb85cf262be4b418f84d3f996a3c632dd879149a539b11f58b7e88",
+    "patches/display-controller/README.md": "18a4a836701a12f3a04f6ade35939835d273d7d167618d47bc2dc75b0866fee6",
+    "scripts/device/fixtures/display-health/README.md": "abb3b91acca4a663e157718caabcd5347c156a73963a38eb4fee9aed99abfef2",
+    "scripts/device/fixtures/display-health/binding.py": "71e61840eb93d056592d08724187bc3097d2115d2bee7f95503e7ebd0e503058",
+    "scripts/device/fixtures/display-health/gpu-capture-r1__capture-common.py.txt": "bbfdf17d32dd5beafc8f91f7520da0f860dd56e4e5b16e7ca6af8565c87fb997",
+    "scripts/device/fixtures/display-health/gpu-controller-r1__controller.py.txt": "1a15aabad0bac9fa6323da6407e14ce0a5d38f2fb3425cf43f2dfab3fada7cdf",
+    "scripts/device/fixtures/display-health/gpu-state-guards-r1__guarded-state.py.txt": "a7369d2f5a37acc33c2b797cfc3ad93aa371f9ce54711e92a3f3933cde1962da",
+    "scripts/device/fixtures/display-health/gpu-state-guards-r1__legacy-restore.py.txt": "5a403df8508897ed3dc69e77a9e0c24c48403a318c891ee6598c6ffe237535d7",
+    "scripts/device/fixtures/display-health/oled-startup-controller-worktree-r1__scripts__host__check-standalone-root.py.txt": "086a9257924aae57da15b8f641c3d935fe2e704d268ace92037e7bcaab8cb6c3",
+    "scripts/device/fixtures/display-health/oled-startup-controller-worktree-r1__scripts__host__isolated-recovery-observation.py.txt": "a8896afc4c3be61560ad32bc4a17eef279c95c4263a23c0b294509a52db9dc90",
+    "scripts/device/fixtures/display-health/oled-startup-live-driver-r1__action-callbacks.py.txt": "6a62d27cde39afa95b3b3b5dbe31b18ad48becbd064fe2b2bf3018376c5b0a43",
+    "scripts/device/fixtures/display-health/source-pins.json": "db22b38174f98bbb5cdf8f09a280ad208ccb3a3d9426fabc07615535fab91bf7",
+    "scripts/device/test-production-display-health-binding.py": "789e32f897f327e1d847a2bdfd091ba8e5cfaf8f0d2dd462111bbc3a7153ba84",
+    "scripts/host/test-repository-linux.sh": "69ce99efec94c218240f11c504e0b692c09a70db3fc0d3dd4c3b8774c658165f"
+  },
+  "patch_sha256": "3a0669f104eb85cf262be4b418f84d3f996a3c632dd879149a539b11f58b7e88",
+  "local_focused": {
+    "results": [
+      {
+        "batch": 1,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_actual_capture_negative_control_has_eager_private_load",
+          "--case",
+          "test_actual_validation_and_guard_generation_unchanged",
+          "--case",
+          "test_cache_probe_profile_and_data_metadata_mutations_refuse"
+        ],
+        "cases": [
+          "test_actual_capture_negative_control_has_eager_private_load",
+          "test_actual_validation_and_guard_generation_unchanged",
+          "test_cache_probe_profile_and_data_metadata_mutations_refuse"
+        ],
+        "exit_status": 0,
+        "seconds": 24.3673086129711,
+        "log": "batch-1.log"
+      },
+      {
+        "batch": 2,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_changed_seal_after_binding_refuses_without_repin",
+          "--case",
+          "test_default_worker_and_default_health_refusals_remain",
+          "--case",
+          "test_each_retained_health_source_change_refuses"
+        ],
+        "cases": [
+          "test_changed_seal_after_binding_refuses_without_repin",
+          "test_default_worker_and_default_health_refusals_remain",
+          "test_each_retained_health_source_change_refuses"
+        ],
+        "exit_status": 0,
+        "seconds": 38.53322803898482,
+        "log": "batch-2.log"
+      },
+      {
+        "batch": 3,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_failed_partial_dependency_binding_is_not_retried",
+          "--case",
+          "test_guard_state_trial_and_fallback_mismatch",
+          "--case",
+          "test_historical_and_owner_boot_seal_refusals"
+        ],
+        "cases": [
+          "test_failed_partial_dependency_binding_is_not_retried",
+          "test_guard_state_trial_and_fallback_mismatch",
+          "test_historical_and_owner_boot_seal_refusals"
+        ],
+        "exit_status": 0,
+        "seconds": 21.805379164987244,
+        "log": "batch-3.log"
+      },
+      {
+        "batch": 4,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_interruption_after_session_alias_publication_clears_both_stages",
+          "--case",
+          "test_late_replacement_during_final_preflight_refuses",
+          "--case",
+          "test_layout_path_reopen_negative_control_and_checked_refusal"
+        ],
+        "cases": [
+          "test_interruption_after_session_alias_publication_clears_both_stages",
+          "test_late_replacement_during_final_preflight_refuses",
+          "test_layout_path_reopen_negative_control_and_checked_refusal"
+        ],
+        "exit_status": 0,
+        "seconds": 19.397665832017083,
+        "log": "batch-4.log"
+      },
+      {
+        "batch": 5,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_missing_import_and_syntax_fail_entire_preflight",
+          "--case",
+          "test_missing_layout_and_profile_rows_refuse",
+          "--case",
+          "test_missing_or_changed_capture_profile_semantics"
+        ],
+        "cases": [
+          "test_missing_import_and_syntax_fail_entire_preflight",
+          "test_missing_layout_and_profile_rows_refuse",
+          "test_missing_or_changed_capture_profile_semantics"
+        ],
+        "exit_status": 0,
+        "seconds": 10.322027262998745,
+        "log": "batch-5.log"
+      },
+      {
+        "batch": 6,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_missing_seal_and_legacy_data_are_not_opened_as_modules",
+          "--case",
+          "test_missing_source_or_data_refuses_before_new_execution",
+          "--case",
+          "test_observer_or_guard_links_cannot_be_rebound"
+        ],
+        "cases": [
+          "test_missing_seal_and_legacy_data_are_not_opened_as_modules",
+          "test_missing_source_or_data_refuses_before_new_execution",
+          "test_observer_or_guard_links_cannot_be_rebound"
+        ],
+        "exit_status": 0,
+        "seconds": 7.1889686799841,
+        "log": "batch-6.log"
+      },
+      {
+        "batch": 7,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_old_observer_imports_are_eager_new_imports_are_inert",
+          "--case",
+          "test_preflight_executes_no_new_health_source_and_shared_binding",
+          "--case",
+          "test_probes_validators_helpers_and_worker_are_preserved"
+        ],
+        "cases": [
+          "test_old_observer_imports_are_eager_new_imports_are_inert",
+          "test_preflight_executes_no_new_health_source_and_shared_binding",
+          "test_probes_validators_helpers_and_worker_are_preserved"
+        ],
+        "exit_status": 0,
+        "seconds": 7.614636777958367,
+        "log": "batch-7.log"
+      },
+      {
+        "batch": 8,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_profile_hash_or_capture_owner_mismatch"
+        ],
+        "cases": [
+          "test_profile_hash_or_capture_owner_mismatch"
+        ],
+        "exit_status": 0,
+        "seconds": 13.227666994032916,
+        "log": "batch-8.log"
+      },
+      {
+        "batch": 9,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_publication_interruptions_clear_every_runtime_alias"
+        ],
+        "cases": [
+          "test_publication_interruptions_clear_every_runtime_alias"
+        ],
+        "exit_status": 0,
+        "seconds": 50.535750414012,
+        "log": "batch-9.log"
+      },
+      {
+        "batch": 10,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_real_predicates_reject_storage_power_markers_and_artifact_drift",
+          "--case",
+          "test_retained_guard_digest_still_required",
+          "--case",
+          "test_same_byte_replacement_and_metadata_change_refuse"
+        ],
+        "cases": [
+          "test_real_predicates_reject_storage_power_markers_and_artifact_drift",
+          "test_retained_guard_digest_still_required",
+          "test_same_byte_replacement_and_metadata_change_refuse"
+        ],
+        "exit_status": 0,
+        "seconds": 18.809406810963992,
+        "log": "batch-10.log"
+      },
+      {
+        "batch": 11,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_seal_digest_and_producer_mismatch_precede_new_execution",
+          "--case",
+          "test_syntax_failure_is_found_before_any_new_source_execution",
+          "--case",
+          "test_unauthenticated_or_changed_provider_refuses"
+        ],
+        "cases": [
+          "test_seal_digest_and_producer_mismatch_precede_new_execution",
+          "test_syntax_failure_is_found_before_any_new_source_execution",
+          "test_unauthenticated_or_changed_provider_refuses"
+        ],
+        "exit_status": 0,
+        "seconds": 1.3239404420019127,
+        "log": "batch-11.log"
+      },
+      {
+        "batch": 12,
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<EVIDENCE>/received/test-health-source-binding.py",
+          "--packet",
+          "<EVIDENCE>/received/packet.txt",
+          "--patch",
+          "<EVIDENCE>/received/health-source-binding.patch",
+          "--case",
+          "test_worker_mismatch_and_observer_deployed_change_refuse"
+        ],
+        "cases": [
+          "test_worker_mismatch_and_observer_deployed_change_refuse"
+        ],
+        "exit_status": 0,
+        "seconds": 5.9639342880109325,
+        "log": "batch-12.log"
+      }
+    ],
+    "seconds": 219.09148108301451,
+    "all_pass": true,
+    "cases_completed": 30,
+    "uid": 1000,
+    "host_kernel": "6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45",
+    "patch_sha256": "3a0669f104eb85cf262be4b418f84d3f996a3c632dd879149a539b11f58b7e88",
+    "test_sha256": "2b4d0e6940a4b99e4314615d318c4cb039f3496c3496ef63bad3271802e6d7a7",
+    "runtime": "UNBOUND",
+    "physical": "NOT RUN"
+  },
+  "local_additional": {
+    "results": [
+      {
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<REPO>/scripts/device/fixtures/display-health/binding.py",
+          "--packet",
+          "<REPO>/build/health-additional-qp261am4/packet.txt",
+          "--patch",
+          "<REPO>/patches/display-controller/0014-checked-health-sources.patch",
+          "--case",
+          "test_complete_seal_artifact_drift_fails_actual_configuration"
+        ],
+        "case": "test_complete_seal_artifact_drift_fails_actual_configuration",
+        "exit_status": 0,
+        "seconds": 12.718815189029556
+      },
+      {
+        "command": [
+          "/usr/bin/timeout",
+          "--signal=TERM",
+          "--kill-after=5",
+          "90",
+          "/usr/bin/prlimit",
+          "--as=536870912",
+          "--core=0",
+          "--",
+          "/usr/bin/python3",
+          "-B",
+          "-O",
+          "<REPO>/scripts/device/fixtures/display-health/binding.py",
+          "--packet",
+          "<REPO>/build/health-additional-qp261am4/packet.txt",
+          "--patch",
+          "<REPO>/patches/display-controller/0014-checked-health-sources.patch",
+          "--case",
+          "test_deep_shared_dependency_replacement_poisoning"
+        ],
+        "case": "test_deep_shared_dependency_replacement_poisoning",
+        "exit_status": 0,
+        "seconds": 22.819396383943968
+      }
+    ],
+    "seconds": 35.65889994997997,
+    "all_pass": true,
+    "scope": "Actual repository composition; two supplemental regressions; synthetic authority; physical NOT RUN"
+  },
+  "local_application": {
+    "commands": [
+      [
+        "git",
+        "apply",
+        "--check",
+        "<EVIDENCE>/received/health-source-binding.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "<EVIDENCE>/received/health-source-binding.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "--reverse",
+        "--check",
+        "<EVIDENCE>/received/health-source-binding.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "--reverse",
+        "<EVIDENCE>/received/health-source-binding.patch"
+      ],
+      [
+        "git",
+        "apply",
+        "<EVIDENCE>/received/health-source-binding.patch"
+      ]
+    ],
+    "seconds": 0.020963065035175532,
+    "status": "PASS",
+    "sources_match_actual_packet": true
+  },
+  "independent_review": {
+    "kind": "regular-Astra static review; no independent execution",
+    "result": "no blocking defect; two coverage gaps addressed by local regression methods"
+  },
+  "integrated": {
+    "command": {
+      "command": [
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "cwd": "<REPO>",
+      "source_commit": "82679758fc24a04b1e824396a85b775bd1cc124a",
+      "source_tree": "05445ff73aff25ba75cec05e3218242775fbff48",
+      "env": {
+        "PATH": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl",
+        "ROG5_WAYLAND_INCLUDE": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "<EVIDENCE>/integrated-active-r2/reports",
+        "TMPDIR": "<EVIDENCE>/integrated-active-r2/tmp"
+      },
+      "host_kernel": "6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45",
+      "uid": 1000,
+      "start_utc": "2026-09-20T19:38:07Z",
+      "memory_max_bytes": 1073741824,
+      "swap_max_bytes": 0,
+      "tasks_max": 256,
+      "physical": "NOT RUN",
+      "runtime": "UNBOUND"
+    },
+    "execution": {
+      "exit_status": 0,
+      "seconds": 724.7695735929883,
+      "end_utc": "2026-09-20T19:50:11Z"
+    },
+    "summary": {
+      "schema": 1,
+      "tier": "active",
+      "counts": {
+        "PASS": 132,
+        "FAIL": 0,
+        "BLOCKED": 0,
+        "SKIPPED": 0,
+        "NOT_SELECTED": 257
+      },
+      "subcheck_counts": {
+        "SKIPPED": 3
+      },
+      "tests": [
+        {
+          "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.26555522199487314,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-qcom-battmgr-charge-units.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-ncm-tx-timer.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2653563789790496,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-ncm-tx-timer.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-startup-observer.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.8492050499771722,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-startup-observer.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-persistent-ssh-key-files.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.38606438296847045,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-persistent-ssh-key-files.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-headless-stage-receiver.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.506684037973173,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-headless-stage-receiver.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-source-teardown-observation.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.24544625001726672,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-source-teardown-observation.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-capture-isolated-recovery.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2463059830479324,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-capture-isolated-recovery.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-isolated-recovery-observation.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2254403110127896,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-isolated-recovery-observation.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-isolated-recovery.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.26650132500799373,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-isolated-recovery.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-r01-controller-replay.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 4.146079964004457,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-r01-controller-replay.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-isolated-recovery-diagnostics.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.12560146796749905,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-isolated-recovery-diagnostics.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-verified-isolated-recovery-boot.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6475998020032421,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-verified-isolated-recovery-boot.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-verified-kernel-hardware-boot.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.3465216000331566,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-verified-kernel-hardware-boot.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-release-acceptance.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 7.219868979998864,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-release-acceptance.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-network-transfer-stream.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.1300506180268712,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-network-transfer-stream.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-wifi-restart-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.30573709902819246,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-wifi-restart-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-deployed-server.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.5670680340263061,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-deployed-server.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-standalone-root.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.30668111296836287,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-standalone-root.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-standalone-boot.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.6535042480099946,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-standalone-boot.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-ordinary-boot-smoke.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 2.8801937050302513,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-ordinary-boot-smoke.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-powered-off-start-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 2.7990624170051888,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-powered-off-start-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-repeated-boot-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.9694121319917031,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-repeated-boot-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-soak-observation.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.14616906398441643,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-soak-observation.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-soak-evidence-rules.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.930289625946898,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-soak-evidence-rules.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-soak-workload-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.1707041569752619,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-soak-workload-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-soak-runtime-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.3259817780344747,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-soak-runtime-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-soak-file-window.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 5.0708662329707295,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-soak-file-window.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-cpu-frequency-cap.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4888705310295336,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-cpu-frequency-cap.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-headless-cpu-policy.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6275340500287712,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-headless-cpu-policy.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-server-runtime-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.8291371809900738,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-server-runtime-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-rescue-startup.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.3056712640100159,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-rescue-startup.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-rescue-runtime-evidence.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2657073079608381,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-rescue-runtime-evidence.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-release-rescue-companion.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.954871587047819,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-release-rescue-companion.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-check-charging-regulation.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2258442619931884,
+          "source_sections": [
+            "test_exact_sealed_probe (__main__.Tests.test_exact_sealed_probe) ... skipped 'exact sealed archive integration is explicitly selected'"
+          ],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-check-charging-regulation.py",
+            "-v"
+          ],
+          "subchecks": [
+            {
+              "kind": "unittest",
+              "message": "exact sealed archive integration is explicitly selected",
+              "test_id": "Tests.test_exact_sealed_probe",
+              "status": "SKIPPED",
+              "declared_optional": true,
+              "declaration": {
+                "id": "optional-1",
+                "kind": "unittest",
+                "message": "exact sealed archive integration is explicitly selected",
+                "scope": "subcheck",
+                "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+                "inputs": [
+                  "ROG5_H03_TEST_ARCHIVE"
+                ],
+                "test_ids": [
+                  "Tests.test_exact_sealed_probe"
+                ]
+              }
+            }
+          ],
+          "subcheck_counts": {
+            "SKIPPED": 1
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-rescue-root-composition.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.8285464500077069,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-rescue-root-composition.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-release-composition.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4871681130025536,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-release-composition.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-owned-vm.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4261917630210519,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-owned-vm.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-a01-fixture.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.34657608496490866,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-a01-fixture.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-module-edge.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4668458490050398,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-module-edge.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-slotb-ram-bundle.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4262182629900053,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-slotb-ram-bundle.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-standalone-rescue-composition.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.42658871796447784,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-standalone-rescue-composition.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-watchdog-artifact.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.4918095580069348,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-qemu-watchdog-artifact.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-persistent-root-watchdog.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6077040209784172,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-persistent-root-watchdog.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-persistent-trial-state.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 4.267230457975529,
+          "source_sections": [
+            "test_retained_v1_target_can_acknowledge_v2_recovery (__main__.PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery) ... skipped 'requires explicit retained ARM binary replay'"
+          ],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-persistent-trial-state.py",
+            "-v"
+          ],
+          "subchecks": [
+            {
+              "kind": "unittest",
+              "message": "requires explicit retained ARM binary replay",
+              "test_id": "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery",
+              "status": "SKIPPED",
+              "declared_optional": true,
+              "declaration": {
+                "id": "optional-1",
+                "kind": "unittest",
+                "message": "requires explicit retained ARM binary replay",
+                "scope": "subcheck",
+                "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+                "inputs": [
+                  "ROG5_TRIAL_TEST_ARM64=1",
+                  "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+                ],
+                "test_ids": [
+                  "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+                ]
+              }
+            }
+          ],
+          "subcheck_counts": {
+            "SKIPPED": 1
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-build-persistent-wifi-selector.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.8135014929575846,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-build-persistent-wifi-selector.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rpmh-readback.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.1703812049818225,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-rpmh-readback.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rpmh-state-reader.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.18519431399181485,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-rpmh-state-reader.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-pmic-rail-reader.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.28612509899539873,
+          "source_sections": [
+            "test_exact_arm_binary (__main__.RailReaderTest.test_exact_arm_binary) ... skipped 'optional ARM64 artifact'"
+          ],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-pmic-rail-reader.py",
+            "-v"
+          ],
+          "subchecks": [
+            {
+              "kind": "unittest",
+              "message": "optional ARM64 artifact",
+              "test_id": "RailReaderTest.test_exact_arm_binary",
+              "status": "SKIPPED",
+              "declared_optional": true,
+              "declaration": {
+                "id": "optional-1",
+                "kind": "unittest",
+                "message": "optional ARM64 artifact",
+                "scope": "subcheck",
+                "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+                "inputs": [
+                  "ROG5_RAIL_READER_BINARY"
+                ],
+                "test_ids": [
+                  "RailReaderTest.test_exact_arm_binary"
+                ]
+              }
+            }
+          ],
+          "subcheck_counts": {
+            "SKIPPED": 1
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-persistent-power-readiness.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4663771989871748,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-persistent-power-readiness.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-s12-ufs-vote.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6270621960284188,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-s12-ufs-vote.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-asus-s12-oem-point.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6484576750081033,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-asus-s12-oem-point.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-ath11k-hw11.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.20515781099675223,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-ath11k-hw11.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-pcie-trace.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.1449477529968135,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-pcie-trace.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-activation.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2858704260434024,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-activation.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-wpa-start.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.14497952302917838,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-wpa-start.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-network-restart.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.8688613530248404,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-network-restart.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-boot.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 8.809538958012126,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-boot.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-buttons-indicator-trial-initramfs.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.4711374299949966,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-buttons-indicator-trial-initramfs.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-trial-initramfs.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.4715874149696901,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-display-trial-initramfs.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-front-touch.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.5064928070059977,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-rog5-front-touch.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-physical-key-events.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.1454103379510343,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-rog5-physical-key-events.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-observe-local-root-physical-key.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.5266385329887271,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-observe-local-root-physical-key.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-optional-display-runtime.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.5920939219649881,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-optional-display-runtime.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-healthy.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 5.028999797010329,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-healthy.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-finalization.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 14.77948008599924,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-finalization.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-native-wifi-radio-refusal.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 7.521118253993336,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-native-wifi-radio-refusal.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-quiesce-native-usb-data.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.18588561296928674,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-quiesce-native-usb-data.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-native-wifi-discovery.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.12424300803104416,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-native-wifi-discovery.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-controller-bindings.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.12428467802237719,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-controller-bindings.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-wifi-pwrctrl-probe.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.22487164399353787,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-wifi-pwrctrl-probe.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-pmic-pon-reader.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.12440005101962015,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-pmic-pon-reader.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-healthd.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.8478995490004309,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/device/test-rog5-healthd.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-select-repository-test-tier.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.9146423850324936,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-select-repository-test-tier.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-run-sealed-busybox.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.48632412997540087,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "<REPO>/scripts/host/test-run-sealed-busybox.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "bwrap",
+            "python3",
+            "qemu-aarch64-static"
+          ]
+        },
+        {
+          "path": "scripts/device/test-observe-early-mainline-power.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-probe-network-root-battery-telemetry.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-build-early-target-diag.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-early-target-diagnostics.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-collect-early-target-diagnostics.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-network-root-init.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-generate-power-usb-active.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-repository-test-report.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-mobile-power-policy.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-ufs-storage-trust-boundary.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-durability-file-ops.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-durability-target.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-durability-phase.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-storage-durability-evidence.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-repository-linux-runner-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-inspect-local-image-partial.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-benchmark-local-image-write.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-stage-local-image-direct.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-inspect-native-clone-progress.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-power-usb-active-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-power-usb-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-power-usb-composition.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-network-root-pdr-override.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-slotb-loader.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-slotb-recovery-loader.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-stage-persistent-service-state.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-overlay-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-service-state-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-tailscale-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-tailscale-netfilter-kernel.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-standalone-module-refresh.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-native-wifi-module-kit.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-native-wifi-dtb.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-ams678-panel-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-display-60hz-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-screen-toggle.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-power-buttond.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-status-screen.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-display-post-switch-report.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-display-post-switch-report.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-load-native-ram-bundle.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-native-kexec-shutdown.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-runtime-closure.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-ufs-module-profile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-observe-persistent-usb-liveness.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/check-power-usb-active-closure.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-rog5-host-doctor.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-power-usb-deployment-receipt.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-power-usb-real-output-replay.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-persistent-trial-state-aarch64.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-reusable-recovery-claim-design.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-collect-minimal-headless-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-wait-stock-android-fallback.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verify-headless-ssh-v2-key-admission.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verify-minimal-headless-runtime.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-qemu-system-smoke-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-qemu-network-root-nfs-hostile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-qemu-systemd-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-kernel-builder-bootstrap-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-import-asus-source-volume-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-steam-deck-builder-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-kernel-rebuild-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-kernel-builder-acceleration.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-thermal-pmic-candidate.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-dual-cell-readonly-candidate.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-suspend-pm-test-source-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-suspend-pm-test-candidate.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-run-network-root-suspend-pm-test-devices.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-reconstruct-recovery-base-v18r-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-reconstruct-network-root-v3-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-rebuild-early-target-diagnostic-initramfs-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-early-target-diagnostic-candidate-offline-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-restore-stable-recovery-inputs-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-post-wipe-restoration-bundle-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-recovery-retained-preflight-dedup.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-fetch-android-boot-tools-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-canonical-boot-v3-template-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-asus-kexec-stage-successor-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-private-arm64-binfmt-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-steam-deck-recovery-builders-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verify-asus-source-tree.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-corrected-successor-live-gate-offline.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-headless-core-candidate-offline-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-headless-ssh-v2-candidate-offline-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-build-headless-ssh-deployment-candidate-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-deployment-checkpoint-inputs.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stage-recovery-deployment-signing-inputs.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-preflight-headless-ssh-successor-candidate.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-recovery-candidate-dtb-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-ufs-rmtfs-reserved-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-ufs-phy-disabled-control-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-buttons-indicator-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-headless-display-isolation-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-headless-display-isolation-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-buttons-indicator-source-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-vcnl36866-port-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-run-network-root-physical-keys.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-core-compatibility-oracle.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-core-source-dtb-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-pin-minimal-headless-host-key.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-minimal-headless-runtime-acceptance.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-prepare-headless-ssh-deployment-root-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-prepare-headless-ssh-deployment-candidate.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-prepare-early-target-diagnostic-deployment-candidate.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-install-headless-ssh-deployment-export.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-headless-ssh-deployment-export-install.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-headless-battery-series.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-dual-cell-readonly-snapshot.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-dual-cell-readonly-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-fallback-acm-control.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retired-legacy-acm-entrypoints.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-minimal-headless-live-cycle.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-persistent-root-storage-live-cycle.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-consume-generation11-boot-claim.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-consume-generation12-boot-claim.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-consume-exact-boot-claim.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-sequence-reference.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-transaction.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-adapter.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-retention-cycle-live.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-executor-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-executor-boundary.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-retention-cycle-descriptor-execution.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-control-reference.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-control-native.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-progress-collector.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-progress-runtime.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-recovery-control.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verified-fastboot-boot.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-run-stable-recovery-live-gate.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-current-production-recovery-profile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-current-core-recovery-profile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-current-persistent-root-storage-profile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-current-observation-recovery-profile.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-bundle-native.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-prepare-recovery-runtime-bundle.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-prepare-recovery-candidate.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-candidate-integration.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-headless-network-root.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-compare-root-archives.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-normalize-headless-core-archive-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-kernel-source-seal.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-observation-recovery-wrapper.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-control-build-record.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verify-retention-cycle-admission.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-recovery-wrapper-cache.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-recovery-wrapper-cache-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-issue-stable-recovery-avb-generation.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-wrapper-slim-config.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-stable-wrapper-slim-config-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-arch-headless-rootfs-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-headless-package-closure.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-key-indicatord.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-arch-headless-core-rootfs-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-claude-readonly-review.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-github-exact-head-workflow.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-collect-readonly-storage-inventory.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-storage-resolution.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-handoff.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-initramfs.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-stage-local-arch-image.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-initramfs.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-clone-local-image-to-arch-root.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-inspect-native-arch-root.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-repair-native-arch-root-ssh.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qcom-wdt-candidate-dtb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-build-qcom-wdt-module.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qcom-wdt-observer.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-preusb-diagnostic.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-configfs-beacon.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-udc-inventory.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-timing.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-address.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-configfs-udc.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-bind-error.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-local-image-stage-ufs-baseline.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-power-usb-v9.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-power-usb-v10.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-probe-writer-v11.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-any-prior-v12.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-any-prior-v13.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-any-prior-v14.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-restart2-v15.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-local-image-reboot-mode-v16.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-sparse-diagnostic-v17.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-mainline-persistent-root-build.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-mainline-local-image-stage-power-usb.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-backup-readonly-storage-inventory.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-verify-dedicated-linux-layout.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-storage-preflight-initramfs-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-build-storage-layout-gpt-regions.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-storage-layout-stage1-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-userdata-ext4-reset-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-disarm-recovery-layout-watchdog.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-collect-storage-layout-stage1.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-observe-storage-layout-stage1-prewrite.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-storage-layout-stage2-contract.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-collect-storage-layout-stage2.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-storage-layout-stage2-runtime.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-rog5-charging-firmware-resolution.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-alpine-charging-rescue-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-build-direct-charging-rescue.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-build-stock-charging-successor-initramfs.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-load-stock-charging-recovery.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-collect-storage-preflight-report.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-storage-preflight-candidate.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-kernel-build-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-asus-kexec-stage-slim-build-contract.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-generate-artifact-prune-plan.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-generate-host-storage-cleanup-plan.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-cleanup-podman-volumes.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-fetch-native.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-timeout-lattice.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-bundle-server.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-host-controller.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-host-socket.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-init-policy.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-reboot-fallback-to-fastboot.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-regulator-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-mmio-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-clock-provider-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-fixed-clocks-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-first-fixed-clock-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-allocation-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-first-clock-name-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-clk-orphan-runtime-pm-lock-model.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-first-clock-runtime-pm-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-second-clock-runtime-pm-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-probe-third-clock-runtime-pm-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-clock-provider-cleanup-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-phy-creation-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-qmp-ufs-phy-provider-stage-patch.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-recovery-linux.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-a660-acceptance.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-a660-runtime-root.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-persistent-root-verifier.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-acm.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-persistent-root-acm.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-persistent-root-entry-acm.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-gpucc-atomic-confirmation.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-network-root-host.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-capture-vendor-kernel-log.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-sync-network-root-time.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-rog5-remote-tunnel-service.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-linux-rootfs-tools.sh",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-mobile-status.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-production-kernel-build.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-production-build-diagnostics.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/host/test-review-metadata-checkers.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 2.0342613739776425,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-review-metadata-checkers.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "gpg",
+            "gpgv",
+            "gpgconf",
+            "bsdtar",
+            "vercmp"
+          ]
+        },
+        {
+          "path": "scripts/host/test-ams678-compile-location.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-lifecycle.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 7.200942454044707,
+          "source_sections": [
+            "NOT RUN external kernel-source comparison; pinned extract is compiled",
+            "PASS behavioral: 27 actual-driver cases (13 probe failure stages), 8 mutation controls; elapsed=7.064500s",
+            "NOT RUN module loading, physical IRQ/input, rail behavior or suspend qualification"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-rog5-touch-lifecycle.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.7885971980285831,
+          "source_sections": [
+            "NOT RUN external source comparison; pinned actual accounting functions compiled",
+            "PASS behavioral: six actual-core/actual-driver regulator cases + two mutations; elapsed=0.662322s",
+            "NOT RUN physical RPMh/GPIO, terminal devres restoration or hardware recovery"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-rog5-touch-regulator-errors.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-ams678-regulator-errors.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.2118347359937616,
+          "source_sections": [
+            "NOT RUN external regulator-source comparison; pinned accounting functions compiled",
+            "PASS behavioral: rejected mutation assume-retained: FAIL <REPO>/build/ams678-regulator-ohxieind/unit.c:341 vote_is(f.panel.supply_vote[rail], AMS678_VOTE_UNKNOWN)",
+            "PASS behavioral: rejected mutation blind-retry: FAIL <REPO>/build/ams678-regulator-ohxieind/unit.c:319 ams678_er2_plus_dsc_power_off(&f->panel) == -EUCLEAN",
+            "PASS behavioral: rejected mutation skip-other-held: FAIL <REPO>/build/ams678-regulator-ohxieind/unit.c:360 vote_is(f.panel.supply_vote[!rail], AMS678_VOTE_NONE) && !f.consumers[!rail].enable_count && !f.upstream[!rail].enable_count",
+            "PASS behavioral: eight actual panel/core regulator cases + three mutations; elapsed=1.085619s",
+            "NOT RUN full DRM/DSI callbacks, physical power, devres restoration or recovery across reprobe"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-ams678-regulator-errors.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/host/test-rog5-touch-module-build.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.7083228339906782,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-rog5-touch-module-build.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bwrap"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-rpmh-binding.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.14515150396618992,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-rog5-rpmh-binding-guards.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-mobile-dt-guards.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.16540115897078067,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-mobile-dt-guards.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-mobile-touch-providers.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.1653716090368107,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-mobile-touch-providers.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-geni-mode.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.3918747620191425,
+          "source_sections": [
+            "NOT RUN external kernel-source comparison; pinned extracts compiled",
+            "NOT RUN adapter registration, hardware protocol/FIFO state, firmware loading, DMA, IRQ or touch"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-rog5-geni-mode.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-binding.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-gles-readback.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 12.510656972008292,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-gles-readback.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "rustc",
+            "cc",
+            "bwrap"
+          ]
+        },
+        {
+          "path": "scripts/host/test-mobile-runtime-materialization.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.9890813230304047,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-mobile-runtime-materialization.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bwrap",
+            "bsdtar",
+            "vercmp"
+          ]
+        },
+        {
+          "path": "scripts/host/test-denial-arm64-engine-args.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.38703927397727966,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-denial-arm64-engine-args.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-virtio-drm-prerequisites.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.7283597119967453,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-virtio-drm-prerequisites.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-mobile-observer.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.1403696149936877,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-mobile-observer.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-native-capture.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.38641684397589415,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-native-capture.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-screencopy.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 5.672484261973295,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-screencopy.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "gcc",
+            "pkg-config",
+            "wayland-scanner"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-launcher-apps.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 2.4164118379703723,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-launcher-apps.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "awk",
+            "timeout",
+            "mkfifo",
+            "sleep"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-launcher-protocol.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.16496082104276866,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-launcher-protocol.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-denial-runtime-linkage.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.090945960022509,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-denial-runtime-linkage.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "rustc",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-runtime-view.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4268868389772251,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-runtime-view.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bwrap",
+            "bsdtar",
+            "vercmp"
+          ]
+        },
+        {
+          "path": "scripts/host/test-denial-mobile-session.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.506952564988751,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-denial-mobile-session.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash"
+          ]
+        },
+        {
+          "path": "scripts/host/test-denial-session-payload.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.2253706289920956,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-denial-session-payload.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-logind-runner.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 35.84150285797659,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-logind-runner.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "bash",
+            "cat",
+            "head",
+            "timeout",
+            "cc",
+            "mktemp",
+            "od",
+            "python3",
+            "rustc",
+            "stat",
+            "stdbuf",
+            "tr"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-font-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.5308404710376635,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-font-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-gtk-im-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.2502439500531182,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-gtk-im-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-logind-editor.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4063131690490991,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-logind-editor.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-logind-apps.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 4.1857236289652064,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-logind-apps.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-apps.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 34.013175036991015,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-apps.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/host/test-launcher-diagnostics.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 12.849432249960955,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-launcher-diagnostics.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "tail",
+            "awk",
+            "timeout",
+            "head",
+            "mktemp",
+            "rm"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-caret-protocol.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.14558364398544654,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-caret-protocol.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-startup-diagnostic.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 4.266060586029198,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-startup-diagnostic.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "tail",
+            "head",
+            "od",
+            "tr",
+            "timeout",
+            "sleep"
+          ]
+        },
+        {
+          "path": "scripts/host/test-settings-sync-diagnostic.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.231632756011095,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-settings-sync-diagnostic.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc",
+            "nm"
+          ]
+        },
+        {
+          "path": "scripts/host/test-app-close-probe.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 17.43795481498819,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-app-close-probe.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "rustc",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-linker-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.30999131000135094,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-linker-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/host/test-qemu-hwdb-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.4073348300298676,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-qemu-hwdb-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cpio"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-linker-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.0711649169679731,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-linker-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "sha256sum",
+            "stat",
+            "cp",
+            "ln",
+            "mktemp"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-hwdb-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.1791344659868628,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-hwdb-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "bash",
+            "sha256sum",
+            "stat",
+            "cp",
+            "ln",
+            "mktemp",
+            "timeout",
+            "chmod",
+            "mkdir",
+            "rmdir",
+            "rm",
+            "cat"
+          ]
+        },
+        {
+          "path": "scripts/host/test-logind-icon-cache.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.5492219970328733,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/host/test-logind-icon-cache.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "gtk-update-icon-cache"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-loader-ordering.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 2.3579244010034017,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-display-loader-ordering.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-modules.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 1.492688063008245,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-modules.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "clang",
+            "modinfo"
+          ]
+        },
+        {
+          "path": "scripts/device/test-stage-production-display-modules.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.0999737299862318,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-stage-production-display-modules.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "clang",
+            "modinfo"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-cohort.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.2020340919843875,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-cohort.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-private-display-api.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 14.217119649983943,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-private-display-api.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-cold-boot.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 180.54819656303152,
+          "source_sections": [
+            "PASS behavioral: Integration 1: 4 cases",
+            "PASS behavioral: Integration 2: 4 cases",
+            "PASS behavioral: Integration 3: 4 cases",
+            "PASS behavioral: Integration 4: 4 cases",
+            "PASS behavioral: Integration 5: 4 cases",
+            "PASS behavioral: Integration 6: 4 cases",
+            "PASS behavioral: Integration 7: 4 cases",
+            "PASS behavioral: Owned 1: 4 cases",
+            "PASS behavioral: Owned 2: 4 cases",
+            "PASS behavioral: Owned 3: 4 cases",
+            "PASS behavioral: Owned 4: 4 cases",
+            "PASS behavioral: Owned 5: 4 cases",
+            "PASS behavioral: Owned 6: 4 cases",
+            "PASS behavioral: Owned 7: 4 cases",
+            "PASS behavioral: Finalization 1: 4 cases",
+            "PASS behavioral: Finalization 2: 4 cases",
+            "PASS behavioral: Finalization 3: 4 cases",
+            "PASS behavioral: Finalization 4: 2 cases",
+            "PASS behavioral: 70 actual cold-boot/controller/launcher regressions",
+            "PASS applicability: exact composed cohort/callers and strict 0011 application",
+            "NOT RUN private runtime authority, real credentials/claims, VM or phone operation"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-cold-boot.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-worker.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 65.87458786804928,
+          "source_sections": [
+            "PASS behavioral: binding.py: 6 cases",
+            "PASS behavioral: binding.py: 6 cases",
+            "PASS behavioral: binding.py: 6 cases",
+            "PASS behavioral: binding.py: 4 cases",
+            "PASS behavioral: lifetime.py: 6 cases",
+            "PASS behavioral: lifetime.py: 6 cases",
+            "PASS behavioral: lifetime.py: 6 cases",
+            "PASS behavioral: lifetime.py: 2 cases",
+            "PASS behavioral: finalization.py: 6 cases",
+            "PASS behavioral: finalization.py: 6 cases",
+            "PASS behavioral: finalization.py: 4 cases",
+            "PASS behavioral: checked-loader.py: 6 cases",
+            "PASS behavioral: checked-loader.py: 6 cases",
+            "PASS behavioral: checked-loader.py: 6 cases",
+            "PASS behavioral: checked-loader.py: 6 cases",
+            "PASS behavioral: checked-loader.py: 6 cases",
+            "PASS behavioral: checked-loader.py: 3 cases",
+            "PASS behavioral: 91 actual worker/source-identity/finalization/loader regressions",
+            "PASS applicability: exact source composition and strict forward/reverse patch application",
+            "NOT RUN private admission, installed runtime, real credentials, VM or phone operation"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-worker.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "prlimit"
+          ]
+        },
+        {
+          "path": "scripts/device/test-stage-production-display-payload.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.321482567989733,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-stage-production-display-payload.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "clang",
+            "modinfo"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-firmware.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.34699987998465076,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-display-firmware.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-providers.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.5475770250195637,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-display-providers.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-load-production-display.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 6.7394512220053,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-load-production-display.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "cc",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-endpoint.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.6281488799722865,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-display-endpoint.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-supervisor.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.6025314700091258,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-supervisor.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-display-component.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.1613394810119644,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-display-component.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-transport.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 8.546931911027059,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-transport.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-session.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 7.039585973019712,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-session.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "cc"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-kernel-log.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 3.4830830940045416,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-kernel-log.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-health.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.568021564045921,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-health.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-production-display-context.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 0.7888273890130222,
+          "source_sections": [],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-context.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git"
+          ]
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-input-core.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-input-core-runner.py",
+          "status": "NOT_SELECTED",
+          "reason": "outside selected tier",
+          "duration_seconds": 0,
+          "source_sections": []
+        },
+        {
+          "path": "scripts/device/test-production-display-health-binding.py",
+          "status": "PASS",
+          "reason": "exit 0",
+          "duration_seconds": 249.11460581503343,
+          "source_sections": [
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 1 health binding cases",
+            "PASS behavioral: 1 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 3 health binding cases",
+            "PASS behavioral: 1 health binding cases",
+            "PASS behavioral: 1 health binding cases",
+            "PASS behavioral: 1 health binding cases",
+            "PASS behavioral: 32 actual health binding regressions",
+            "NOT RUN private bootstrap authentication, installed runtime, VM or phone operation"
+          ],
+          "command": [
+            "python3",
+            "-O",
+            "<REPO>/scripts/device/test-production-display-health-binding.py"
+          ],
+          "subchecks": [],
+          "subcheck_counts": {
+            "SKIPPED": 0
+          },
+          "optional_suite_skip": false,
+          "resolved_prerequisites": [
+            "python3",
+            "python3",
+            "git",
+            "prlimit"
+          ]
+        }
+      ]
+    },
+    "health_methods": 32,
+    "health_seconds": 249.11460581503343,
+    "worker_seconds": 65.87458786804928,
+    "raw_report_sha256": {
+      "reports/summary.json": "73d1095bfcfc34e6995c22817e542f3a1cff62a20a18ceae97a99fe4e8a3efa4",
+      "reports/summary.xml": "c7cfd6427e1ead96be421f95f9c6737c155b4d379a5bb1a7537f3429bf3cf81d",
+      "runner.log": "0d7b448a2ed9bbd0021642b1c892b53873e13a5a70cd59c0635fe92217585605"
+    }
+  },
+  "historical_failures": [
+    {
+      "stage": "preflight",
+      "reason": "manifest/shell selection mismatch; added retained shell entry in82679758",
+      "execution": {
+        "exit_status": 1,
+        "seconds": 0.07343075703829527,
+        "end_utc": "2026-09-20T19:37:31Z"
+      }
+    }
+  ],
+  "adviser": {
+    "model": "verified 6Pro with Pro thinking",
+    "methods": 30,
+    "seconds": 138.90982632799978,
+    "scope": "adviser execution, separately reproduced locally"
+  },
+  "limitations": [
+    "Input anchors, preloaded admission graph, decoder/custody, profile/seal/layout data are explicit synthetic fixtures; no runtime authentication claim.",
+    "Original controller, probes, health predicates, default refusal, worker loader and finalizer preserved; legacy guard source parsed as data only.",
+    "Actual compatible private inputs and external bootstrap invocation remain unqualified. No input issuer, seal replacement, claim, signing, admission, candidate or phone operation.",
+    "Touch board evidence at1f936857 reused without rebuild. Physical NOT RUN; S06/R01 and prior VM failures unchanged."
+  ]
+}

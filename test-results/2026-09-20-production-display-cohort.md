@@ -773,3 +773,44 @@ and bootstrap authentication are the next unqualified source dependencies.
 No private lock, seal, pin, claim, signed candidate or installed image changed.
 No phone, VM, root or protected-storage operation occurred. Runtime UNBOUND;
 physical NOT RUN; headless S06/R01 and historical failures remain unchanged.
+
+
+## Checked health-source binding qualification
+
+Frozen implementation `82679758fc24a04b1e824396a85b775bd1cc124a`, tree `05445ff73aff25ba75cec05e3218242775fbff48`
+starts from `08d6777f3d5528c82ae7165e4487ec09b5d85d3f`.
+[Machine-readable evidence](2026-09-20-display-health-binding-qualification.json)
+records every changed implementation file, command, duration, test row and hash.
+
+Patch 0014 binds five inert health dependencies explicitly to the checked worker
+and deployed helper. Storage-layout bytes are captured with the source inventory.
+The existing GPU controller, health predicates, probes and physical guards remain.
+Interrupted publication refuses reuse. Default unbound paths still refuse.
+The legacy guard is parsed data; its module and mutation callbacks do not run.
+
+The verified Pro bundle hash is
+`234edc9b8fe0b1493c37d3150e461328ffdb2277f01a13bb24793c42538e1dd2`;
+the patch hash is `3a0669f104eb85cf262be4b418f84d3f996a3c632dd879149a539b11f58b7e88`.
+Its 30 methods passed locally in 219.091s under Python -O, ordinary UID1000,
+512MiB address-space/768MiB aggregate limits, no swap and 90s batch deadlines.
+Strict forward/reverse/reapply restored all six source pairs exactly. Two added
+methods reject fully shaped descriptor/DTB drift and deeper shared-object
+replacement; they passed locally in 12.719s and 22.819s.
+The adviser's 30 PASS in 138.910s remains separately identified.
+
+**Active tier: 132 PASS, 0 FAIL, 0 BLOCKED, 0 suite SKIPPED, 257 NOT_SELECTED
+in 724.770s.** The 32-method composed health suite passed in
+249.115s; the unchanged 91-method worker suite passed in
+65.875s. Declared historical optional subchecks retain
+their reported SKIPPED status. The initial preflight failed in 0.073s because
+the new manifest entry lacked its retained shell-selector entry; no suite ran.
+That registration error was fixed before the final run. No board/kernel rebuild.
+
+The source-only bootstrap inventory additionally found eager preparation-history
+reads and route imports before admission inputs validation. No pre-execution
+external launcher authentication was demonstrated in the bounded caller scan;
+this is missing qualification, not proof of an exploit or universal absence.
+Private profile/seal/layout inputs and existing admission authority were synthetic
+in tests. No private runtime data was opened or new authority issued. Runtime
+UNBOUND; physical NOT RUN. S06/R01, V11, ASUS rescue and prior VM evidence remain
+unchanged.

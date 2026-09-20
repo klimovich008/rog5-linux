@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Checked private worker loader integrated; bootstrap and health binding unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Checked health-source binding integrated; bootstrap and private inputs unqualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Source d3b4891e passes all 131 active suites locally in 476.291s, including 91 worker/source/finalization/loader cases in 66.467s. The 33 focused loader cases passed in 44.179s; both integration setup failures remain recorded. The fixed loader preserves authenticated input checks and default refusal; it does not authenticate the bootstrap or qualify the next health/capture binding. Touch source 1f936857 retains its 8-suite board PASS. Runtime UNBOUND. No phone, VM, root, signing, input lock, seal, claim or candidate operation. Physical NOT RUN; S06/R01 and previous VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Source 82679758 passes all 132 active suites locally in 724.770s, including 32 health-binding methods in 249.115s and 91 worker methods in 65.875s. Focused health runs passed 30 methods in 219.091s plus two added artifact/dependency regressions; the selector-registration preflight failure is retained. Explicit binding shares checked dependencies and preserves health/storage/power predicates and default refusal. Actual bootstrap authentication and compatible private profile/seal/layout inputs remain unqualified. Touch source 1f936857 retains its board PASS. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. No phone, VM, root, input lock, seal, claim, signing or candidate operation. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
