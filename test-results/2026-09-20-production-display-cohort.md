@@ -530,3 +530,31 @@ new health seal or claim is produced. Runtime remains UNBOUND.
 
 No phone, VM, signing, candidate or protected-storage operation occurred. Physical
 results remain NOT RUN; S06/R01 and historical VM failures remain FAIL.
+
+
+### Worker cleanup counterexample while source review runs (2026-09-20)
+
+An independent regular-Astra investigator extracted the actual worker `execute()`
+function and ran a harmless local child with a recording-only `killpg` adapter.
+The ordinary baseline completes without signalling. In the counterexample, real
+`communicate()` finishes with returncode0 and `waitpid` reports ECHILD, confirming
+the leader was reaped. The adapter then injects the first KeyboardInterrupt before
+returning. Actual worker cleanup still attempts `killpg(child.pid, SIGKILL)`, calls
+`communicate()` again and propagates the original interruption. Descriptors are
+preserved; the two characterization cases complete in0.033716s.
+
+This confirms a stale numeric-PGID signal attempt. **No actual signal was sent,
+and PID reuse or harm was not demonstrated.** The coordinator inspected the
+complete reproducer, log and result without repeating the run. Worker attachment
+SHA256 is `e0f734b13896e1bcc107f9aa3092625ab62daf6d04b3313279d35dfc3c9efb7f`;
+extracted function SHA256 is
+`6fa77c944eafa318690919aa97cd0b1a73c9220562adf746c8fa295fa79d8d44`.
+Private evidence and the staged follow-up are linked from the existing coordinator
+checkpoint. The current Pro conversation remains active; no duplicate or interrupting
+submission was made. No implementation change, runtime binding or device operation
+is inferred from these characterization passes.
+
+The coordinator separately verified the three newly attached deployed/receiver/
+network sources against their originals: only the documented string constants
+changed; all other AST data and numeric limits match (0.076819s). No module body
+was executed. The qualified130-suite source remains unchanged.
