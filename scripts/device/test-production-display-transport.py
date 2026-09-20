@@ -63,7 +63,8 @@ def peer(directory,scenario,backend_path):
     """CLI used only as the local pipe peer; no SSH or device entrypoints."""
     b=load(backend_path,'peer_backend')
     spec=json.loads((directory/'peer.json').read_text());who=spec['identity']
-    value=dict(phase='gpu-iommu-display',boot_id=who['boot_id'],owner=who['owner'],monitor_receipt_sha256='2'*64)
+    value=dict(phase='gpu-iommu-display',boot_id=who['boot_id'],owner=who['owner'],
+               monitor_receipt_sha256=spec.get('monitor_receipt_sha256','2'*64))
     (directory/'boot').write_text(who['boot_id'])
     b.ENTRY=directory/'target-entered.json';b.INITIALIZER_ENTRY=directory/'legacy-entered.json';b.LOCK=directory/'lock'
     b.LIFETIME=100.;b.LEASE=3.;b.REAP=.5;b.CLEANUP=.5

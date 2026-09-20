@@ -207,3 +207,32 @@ extracts. Timing-fixture acceleration is not a long physical observation.
 The session's historical provider handoff, overall logger/recovery reservations,
 source admission and firmware root lifetime still need matching composition.
 Transport success alone does not qualify those boundaries or any phone hardware.
+
+
+## Enclosing session adaptation (offline only)
+
+`0004-production-session.patch` applies to the exact historical `session.py`
+fixture SHA-256 `2a2316564977a2839a31f11fb0435859857b6567f38fc5f0752ca27b5f63fa8c`.
+It removes the separate GPUCC provider dispatch because the production loader
+owns the complete 14-module cohort. The session binds its immutable entry to
+that contract and revalidates it before display dispatch. It preserves the
+500-second session bound and reserves 1,800 seconds for fallback on every
+owner check, including delayed entry after initial admission.
+
+The 300-second logger closes before the final health observation. A health
+snapshot before that wait cannot prove health at session completion. Action
+failure or interruption remains FAIL even with successful independent cleanup;
+`healthy_target_with_cleanup` additionally requires logger-child closure.
+Failure to publish a health diagnostic cannot prevent the existing recovery
+owner from running. A failed final result write still raises; no receipt is
+claimed when storage cannot publish it.
+
+`test-production-display-session.py` executes the actual session, duplex loop,
+supervisor and assembled loader/endpoint fixtures. Logger/loader children and
+pipe transport are real; phone I/O, credentials, source admission, health,
+staging, module effects and logger time are explicit fixtures. No SSH or sealed
+historical import executes. This does not qualify live staging or logging.
+The old source pins, health validator, logger and admission closure remain
+unchanged and deliberately prevent deployment of this source adaptation.
+A matched composition must first qualify those boundaries and firmware-root
+lifetime. No new candidate, claim, staging authority or physical PASS is added.

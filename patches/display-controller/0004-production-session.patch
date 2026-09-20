@@ -1,0 +1,241 @@
+--- a/session.py
++++ b/session.py
+@@ -4,13 +4,17 @@
+ credentials/bridges. Independent hardware receipts never rewrite boot evidence.
+ No retry, module unload, forced reboot, or physical/acceleration PASS.
+ """
+-import base64,hashlib,importlib.util,json,math,os,stat,time
++import base64,copy,hashlib,importlib.util,json,math,os,stat,time
+ from pathlib import Path
+ HERE=Path(__file__).resolve().parent;STATE=HERE.parent
+ OUTPUT=HERE/'session-r1'
+ LOGGER_SECONDS = 300
+ RECOVERY_RESERVE=2300  # 500-second session plus 1800 seconds retained for recovery.
+ SESSION_SECONDS = 500
++FALLBACK_SECONDS = 1800
++DISPLAY_SECONDS = 143  # transport normal120 + failure18 + two reaps4 + margin1
++HEALTH_SECONDS = 35
++LOGGER_CLOSE_SECONDS = 20
+ PINS = {'gpu-iommu-session-r1/kernel-log.py': 'b690ae15bfced9c5cc3c9ab905209dc12dccb909678c31975fe6a32282a18d14', 'gpu-iommu-provider-r1/transport.py': 'a893eb01d60dd5a9d767a8d218397c6b338deba57f6c957dcc5b1f5aff633310', 'gpu-iommu-provider-r1/backend.py': '38dfdeff0180c9311f721bf76bb15d5b6edbd659dd5ea5466355be64c178faa1', 'gpu-iommu-provider-r1/module-io.py': 'c028b4ddd27ed43af9e7eda48c4dd21e5a685a1bda0ee61209eaa12df8f87620', 'gpu-iommu-provider-r1/provider.py': '3cc937fa611f0a85f75d234f75c8d3123e609735305a601f1077ce7a6a6f8924', 'gpu-iommu-provider-r1/reprobe.py': 'c2486e2c35ffc180b70d975523431169e338eff3774f14240b2b0353240562a5', 'gpu-iommu-display-r1/transport.py': '3d6f76bb421bf8f40967ac354d49e152248636b2272a1cf2653f8702e2a1a573', 'gpu-iommu-display-r1/backend.py': '840ba5ad5c1bfe2059bfc580fb45da4e8f3fef59f8e6627789cfe5ed38904a0d', 'gpu-iommu-display-r1/module-io.py': 'c028b4ddd27ed43af9e7eda48c4dd21e5a685a1bda0ee61209eaa12df8f87620', 'gpu-iommu-display-r1/load-display.py': '5c298ba05fe7a6f338471cd178a10b49cd9c03914f4a696ad442e7e0dbc1838d', 'gpu-iommu-display-r1/endpoint.py': '1c8c173d59a69cc514365844d179813b16d5ae6e7696ecfc9e12ccb999e654ca', 'gpu-iommu-display-r1/initialize.py': '373eb2bc855619e19901dd152344407ed3b119c6441e2d57b9716a7423181a38', 'gpu-iommu-display-r1/provider-proof.py': 'f73a9c55474fc38645e8b3f83809debc2b5fe1238dd69e291bf3c345e5b294d9', 'gpu-iommu-display-r1/provider-backend.py': '38dfdeff0180c9311f721bf76bb15d5b6edbd659dd5ea5466355be64c178faa1', 'gpu-iommu-display-r1/provider.py': '3cc937fa611f0a85f75d234f75c8d3123e609735305a601f1077ce7a6a6f8924', 'gpu-iommu-display-r1/reprobe.py': 'c2486e2c35ffc180b70d975523431169e338eff3774f14240b2b0353240562a5'}
+ HEALTH=STATE/'gpu-iommu-health-r1/successor-health.py'
+ HEALTH_SHA = '738f5d0b6bc6aef9f7b46babd7f53a46103696e8ce9624c21f2454d3de9bcb32'
+@@ -46,7 +50,22 @@
+          and locked[str(T.QUERY.relative_to(STATE))]['sha256']==T.B.QUERY_SHA,'GPU health/query lock differs')
+     return {str(path.relative_to(STATE)):locked[str(path.relative_to(STATE))]['sha256'] for path in paths}
+ 
+-def admission(ad,controller,credentials,boot_result):
++def contract_target(contract,boot,owner):
++    target=contract.expected(boot,owner)
++    need(type(target)is dict and set(target)=={'boot_id','release','bundle','descriptor_sha256','board_dtb_sha256','owner'}
++         and all(type(value)is str for value in target.values())
++         and target['boot_id']==boot and target['owner']==owner, 'production contract identity')
++    intent=contract.entry_intent(boot,owner)
++    need(type(intent)is dict and intent.get('identity')==target
++         and type(intent.get('maximum_insertions'))is int and intent['maximum_insertions']==14
++         and type(intent.get('modules'))is list and len(intent['modules'])==14,
++         'production contract module scope')
++    for key in ('retries','driver_reprobes','drm_opens','cleanup_brightness'):
++        need(type(intent.get(key))is int and intent[key]==0, 'production contract scope: '+key)
++    return copy.deepcopy(target),copy.deepcopy(intent)
++
++
++def admission(ad,controller,credentials,boot_result,contract):
+     cohort(ad)
+     value=ad.common(controller.context)
+     credentials.check()
+@@ -57,7 +76,7 @@
+          and boot_result.get('successor_running') is True and boot_result.get('errors')==[], 'GPU requires completed healthy boot trial')
+     need(boot_result['entered']==controller.entered and boot_result['phases']==list(controller.results)
+          and controller.target_identity==boot_result['target_identity'], 'GPU boot controller history differs')
+-    target=T.target(boot_result['target_identity']['boot_id'])
++    target,_=contract_target(contract,boot_result['target_identity']['boot_id'],controller.context['owner'])
+     need(boot_result['target_identity']==target,'GPU target identity')
+     health=controller.results.get('post_capture_health',{})
+     closed=controller.results.get('close_capture',{})
+@@ -79,7 +98,7 @@
+     def base(self,seconds=0):
+         self.credentials.check()
+         admitted=self.ad.common(self.controller.context)
+-        need(time.monotonic()+seconds<min(self.started+SESSION_SECONDS,admitted['expires_monotonic']), 'GPU session lifetime')
++        need(time.monotonic()+seconds<min(self.started+SESSION_SECONDS,admitted['expires_monotonic']-FALLBACK_SECONDS), 'GPU session lifetime')
+         need(hashlib.sha256(T.raw(OUTPUT/'entered.json',32768)).hexdigest()==self.receipt_sha, 'GPU session entry changed')
+         return True
+     def check(self,seconds=5):
+@@ -107,26 +126,17 @@
+     value=H.validate(H.A.decode(out),'target',boot);owner.base()
+     save(directory/'result.json',value);owner.health_at=time.monotonic();return value
+ 
+-def provider_result(value, owner):
+-    need(type(value) is dict and value.get('status')=='COMPONENT_PASS'
+-         and value.get('remote_reaped') is True and value.get('ssh_reaped') is True
+-         and value.get('cleanup_errors')==[], 'provider transport or cleanup failed')
+-    target=value.get('target')
+-    P.terminal(target,P.identity(owner))
+-    need(target['status']=='PASS_GPU_IOMMU_BINDING_AND_CLEANUP', 'provider did not complete')
+-    return hashlib.sha256(P.B.encoded(target)).hexdigest()
+-
+-def display_result(value, owner, provider_sha):
+-    need(type(value) is dict and value.get('status')=='COMPONENT_PASS'
+-         and value.get('remote_reaped') is True and value.get('ssh_reaped') is True
+-         and value.get('blank') is not None and value.get('cleanup_errors')==[],
+-         'GPU component or cleanup failed')
+-    target=T.terminal(value.get('target'),T.identity(owner))
+-    need(target['status']=='PASS_GPU_INITIALIZATION_AND_CLEANUP', 'GPU initialization failed')
+-    proof=target['component']['provider']
+-    need(proof['result_sha256']==provider_sha, 'display used a different provider result')
+-    return dict(status='PASS_SAME_PROVIDER_HANDOFF',identity=owner.target,
+-                owner=owner.admission['owner'],provider_result_sha256=provider_sha)
++def display_result(value,owner,contract):
++    need(type(value)is dict and value.get('status')=='COMPONENT_PASS'
++         and value.get('remote_reaped')is True and value.get('ssh_reaped')is True
++         and value.get('ssh_group_absent')is True and value.get('cleanup_errors')==[]
++         and value.get('local_cleanup_errors')==[] and value.get('transport_error')is None,
++         'production display transport or cleanup failed')
++    target=T.terminal(value.get('target'),T.identity(owner),contract)
++    need(target.get('status')=='PASS_PRODUCTION_DISPLAY_AND_CLEANUP'
++         and value.get('blank')==target.get('blank') and value.get('blank')is not None,
++         'production display receipt differs')
++    return target
+ 
+ 
+ def recovery(ad,controller,credentials):
+@@ -143,82 +153,98 @@
+                     entered=controller.entered[len(before):],error=str(exc)[:1500])
+     save(OUTPUT/'recovery.json',result);return result
+ 
+-def run(ad,controller,credentials,boot_result):
+-    """Both staged actions share one admitted owner and one bounded logger."""
+-    _,target=admission(ad,controller,credentials,boot_result)
++def run(ad,controller,credentials,boot_result,contract):
++    """One integrated production module cohort under the original admission.
++
++    Historical cohort/source/staging pins intentionally remain incompatible
++    with deployment. This adaptation grants no new admission or staging scope.
++    """
++    _,target=admission(ad,controller,credentials,boot_result,contract)
++    expected,intent=contract_target(contract,target['boot_id'],controller.context['owner'])
++    need(expected==target, 'production contract changed before entry')
+     need(OUTPUT==HERE/'session-r1' and OUTPUT.resolve()==OUTPUT and os.getuid()==os.geteuid()==1000,
+          'GPU session output/owner')
+     OUTPUT.mkdir(mode=0o700)
+-    entry=dict(format='rog5-gpu-iommu-session-entry-v1',phase='gpu_initialize',mutation=True,
+-        context=controller.context,identity=target,cohort=cohort(ad),maximum_module_insertions=3,
+-        maximum_driver_probes=1,maximum_query_opens=1,maximum_query_ioctls=4,submit_calls=0,
++    entry=dict(format='rog5-gpu-iommu-session-entry-v1',phase='production_display',mutation=True,
++        context=controller.context,identity=target,cohort=cohort(ad),maximum_module_insertions=14,
++        maximum_driver_probes=0,maximum_query_opens=0,maximum_query_ioctls=0,submit_calls=0,
++        expected_intent=intent,
+         retry_allowed=False,logger_seconds=LOGGER_SECONDS,session_seconds=SESSION_SECONDS,
+         boot_result_sha256=hashlib.sha256(T.raw(ad.OUTPUT/'result.json',1048576)).hexdigest())
+     pin=save(OUTPUT/'entered.json',entry)
+-    owner=None;provider=component=after=logger=fallback=handoff=None;error=None;display_dispatched=False
++    owner=None;component=after=logger=fallback=None;error=None;display_dispatched=False;health_recovery_errors=[]
+     try:
+         owner=Owner(ad,controller,credentials,target,pin)
+         collect_health(owner,'health-before')
+-        provider_dir=OUTPUT/'provider';provider_dir.mkdir(mode=0o700)
+         display_dir=OUTPUT/'display';display_dir.mkdir(mode=0o700)
+-        for directory in (provider_dir,display_dir):
+-            (directory/'staging').mkdir(mode=0o700)
+-            (directory/'hardware').mkdir(mode=0o700)
++        (display_dir/'staging').mkdir(mode=0o700)
++        (display_dir/'hardware').mkdir(mode=0o700)
+         # Stage code only while no operator window or hardware logger is running.
+-        provider_plan=P.stage(owner,provider_dir/'staging')
+         display_plan=T.stage(owner,display_dir/'staging')
+         collect_health(owner,'health-staged')
+-        owner.base(seconds=LOGGER_SECONDS+30)
++        owner.base(seconds=LOGGER_SECONDS+65)
+         owner.logger=K.KernelLog(OUTPUT/'kernel-log',target['boot_id'],LOGGER_SECONDS)
+         save(OUTPUT/'logger-ready.json',owner.logger.start())
+-        owner.check(seconds=260)
+-        owner.phase=provider_dir/'hardware'
+-        provider=P.exchange(owner,P.ssh_argv(owner,provider_plan),provider_dir)
+-        provider_sha=provider_result(provider,owner)
+-        owner.logger.live(remaining=170)
+-        collect_health(owner,'health-provider')
+-        owner.check(seconds=135)
++        owner.check(seconds=DISPLAY_SECONDS+HEALTH_SECONDS+LOGGER_CLOSE_SECONDS)
+         owner.phase=display_dir/'hardware'
+         display_argv=T.ssh_argv(owner,display_plan)
++        current,current_intent=contract_target(contract,target['boot_id'],controller.context['owner'])
++        need(current==target and current_intent==intent,'production contract changed before dispatch')
++        need(owner.health_at is not None and owner.logger is not None,'display prerequisites absent')
++        owner.check(seconds=DISPLAY_SECONDS+HEALTH_SECONDS+LOGGER_CLOSE_SECONDS)
+         display_dispatched=True
+-        component=T.exchange(owner,display_argv,display_dir)
+-        handoff=display_result(component,owner,provider_sha)
+-        save(OUTPUT/'handoff.json',handoff)
++        component=T.exchange(owner,display_argv,display_dir,contract)
++        display_result(component,owner,contract)
+         owner.logger.live(remaining=35)
+-        after=collect_health(owner,'health-after')
+-        owner.base(seconds=20)
++        collect_health(owner,'health-after')
++        owner.base(seconds=max(0,owner.logger.started+LOGGER_SECONDS-time.monotonic())+LOGGER_CLOSE_SECONDS+HEALTH_SECONDS)
+         logger=owner.logger.close()
+         owner.base()
+         need(logger and logger.get('status')=='PASS' and logger.get('child_reaped') is True,
+              'GPU logger closure failed')
+-    except Exception as exc:
++        after=collect_health(owner,'health-final')
++    except BaseException as exc:
+         error=dict(type=type(exc).__name__,reason=str(exc)[:1500])
+     finally:
+         if owner is not None and owner.logger is not None and not owner.logger.closed:
+             try:logger=owner.logger.close(cancel=True)
+-            except Exception as exc:
++            except BaseException as exc:
+                 error=dict(type=type(exc).__name__,reason='GPU logger cleanup: '+str(exc)[:1500],prior=error)
+         if error is not None and after is None and owner is not None:
+             try:after=collect_health(owner,'health-recovery')
+-            except Exception as exc:save(OUTPUT/'health-recovery-error.json',dict(error=str(exc)[:1500]))
++            except BaseException as exc:
++                diagnostic=dict(type=type(exc).__name__,error=str(exc)[:1500])
++                health_recovery_errors.append(diagnostic)
++                # Diagnostic storage failure must not bypass the recovery owner.
++                try:save(OUTPUT/'health-recovery-error.json',diagnostic)
++                except BaseException as write_exc:
++                    health_recovery_errors.append(dict(type=type(write_exc).__name__,
++                        error='health diagnostic publication: '+str(write_exc)[:1500]))
+         if error is not None and after is None:
+             try:fallback=recovery(ad,controller,credentials)
+-            except Exception as exc:
++            except BaseException as exc:
+                 fallback=dict(status='FAIL_RECOVERY_UNPROVEN',error=str(exc)[:1500])
+-    # A failed display action can still have verified blank cleanup and healthy
+-    # target, without rewriting either component's failure. Provider-only failure
+-    # requires a closed read-only cleanup and never implies a working display.
+-    display_safe=bool(component and component.get('remote_reaped') is True
+-                      and component.get('blank') is not None and component.get('cleanup_errors')==[])
+-    provider_safe=bool(provider and provider.get('remote_reaped') is True
+-                       and provider.get('cleanup_snapshot') is not None and provider.get('cleanup_errors')==[])
+-    safe_target=bool(after and (display_safe if display_dispatched else provider_safe))
++    # A failed action remains failed even when independent cleanup succeeds.
++    display_safe=False
++    if component and display_dispatched:
++        try:
++            terminal=T.terminal(component.get('target'),T.identity(owner),contract)
++            display_safe=bool(terminal.get('remote_reaped')is True and terminal.get('blank')is not None
++                and terminal.get('cleanup_errors')==[] and component.get('ssh_reaped')is True
++                and component.get('ssh_group_absent')is True and component.get('local_cleanup_errors')==[])
++        except BaseException as exc:
++            if error is None:
++                error=dict(type=type(exc).__name__,reason='terminal revalidation: '+str(exc)[:1500])
++    safe_target=bool(after and display_safe and logger and logger.get('child_reaped')is True
++                     and owner.logger.closed)
+     final=dict(format='rog5-gpu-iommu-session-result-v1',
+-        status='PASS_GPU_INITIALIZATION_SESSION' if error is None else 'FAIL',identity=target,
+-        provider=provider,component=component,handoff=handoff,health_after=after,logger=logger,
++        status='PASS_PRODUCTION_DISPLAY_SESSION' if error is None else 'FAIL',identity=target,
++        component=component,health_after=after,logger=logger,
+         display_dispatched=display_dispatched,
+-        error=error,recovery=fallback,healthy_target_with_cleanup=safe_target,
+-        hardware_acceleration_verified=False,retry_allowed=False,release_qualified=False)
++        error=error,recovery=fallback,health_recovery_errors=health_recovery_errors,
++        healthy_target_with_cleanup=safe_target,
++        hardware_acceleration_verified=False,physical_scanout_verified=False,
++        physical_darkness_verified=False,retry_allowed=False,release_qualified=False)
+     save(OUTPUT/'result.json',final)
+     return final
+ 

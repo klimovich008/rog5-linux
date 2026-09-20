@@ -8965,6 +8965,61 @@
         "test-results/2026-09-20-production-display-modules-qualification.json"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-display-session.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "git",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/display-controller/0001-default-dark-probe-ordering.patch",
+        "patches/display-controller/0002-production-supervisor.patch",
+        "patches/display-controller/0003-production-transport.patch",
+        "patches/display-controller/0004-production-session.patch",
+        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "scripts/device/display-component.py",
+        "scripts/device/display-endpoint.py",
+        "scripts/device/display-firmware.py",
+        "scripts/device/display-providers.py",
+        "scripts/device/fixtures/ams678/backlight-v7.1.4.c",
+        "scripts/device/fixtures/ams678/cases.c",
+        "scripts/device/fixtures/ams678/drm-brightness-v7.1.4.c",
+        "scripts/device/fixtures/ams678/drm-panel-v7.1.4.c",
+        "scripts/device/fixtures/ams678/stubs.h",
+        "scripts/device/fixtures/display-loader/backend-before.py",
+        "scripts/device/fixtures/display-loader/load-display-before.py",
+        "scripts/device/fixtures/display-loader/session-before.py",
+        "scripts/device/fixtures/display-loader/transport-before.py",
+        "scripts/device/load-production-display.py",
+        "scripts/device/test-ams678-lifecycle.py",
+        "scripts/device/test-display-component.py",
+        "scripts/device/test-display-endpoint.py",
+        "scripts/device/test-display-firmware.py",
+        "scripts/device/test-display-loader-ordering.py",
+        "scripts/device/test-display-providers.py",
+        "scripts/device/test-load-production-display.py",
+        "scripts/device/test-production-display-supervisor.py",
+        "scripts/device/test-production-display-transport.py",
+        "test-results/2026-09-20-production-display-modules-qualification.json"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
