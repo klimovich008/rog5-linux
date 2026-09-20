@@ -3476,3 +3476,18 @@ reanalysis of retained bytes resolved that without another VM. Request colorless
 test output or normalize terminal escapes, preserving the original failure.
 Use unique container names and the existing cleanup owner for compiler steps as
 well as VMs. Keep expensive application qualification separate from API proof.
+
+Instrumentation controls and phase ordering (2026-09-20): the no-unref control
+actually removes the exported symbol; a cheap forwarding wrapper would still
+perturb every public release. Prove default binary identity and actual ARM64
+lifecycle semantics before spending a full VM. This control still failed
+Mousepad close in384.25s, so removal alone is insufficient; do not infer its
+overhead from one comparison. Align diagnostic timestamps with later lifecycle
+markers: this sample preceded shutdown by0.815s, and its stack budget expired
+with zero frames. A future observation should trigger on the unresolved phase
+inside the existing deadline, not repeat an unchanged early capture or enlarge
+the read/close budgets. Test missing markers and exit races before another VM.
+Pre-arm the stage waiter asynchronously: waiting synchronously for shutdown
+markers before issuing TERM deadlocks preparation. Preserve ordered same-PID
+markers and refuse capture after completed shutdown/exit. Missing/late markers
+must not extend kill grace; startup-relative samples are not TERM-relative.

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "ARM64 stack reader qualified; VM Mousepad close still FAIL with GTK lifecycle candidates",
+  "phase": "Unref-free diagnostic control qualified; VM Mousepad close still FAIL",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source bcf3c336 replaces the unavailable process_vm_readv API with owned PTRACE_PEEKDATA. The old-reader ENOSYS regression fails; corrected host tests, ARM64 builds and the 112-suite active tier pass. A small exact-kernel ARM64 guest confirms real reads, partial handling and detach; its original ANSI-parser FAIL is retained beside successful reanalysis. One full VM still exits Mousepad137 (Foot0), but captures four unclipped frame candidates through GTK/GObject finalization and the diagnostic interposer. This run records APP_RUN_BEGIN only, not the later application-unref boundary of the previous run; do not combine those stages. Normal VM poweroff passes; /var unmount still fails. Exact GTK source/disassembly supports style-context and CSS-widget-node finalization, as an inference rather than debug-symbol proof. Next prepare and qualify a diagnostic variant without g_object_unref interposition, retaining run/shutdown/settings markers, then use a bounded comparison to test instrumentation sensitivity. Preserve the two-second close acceptance; no GTK/GLib fix is justified yet. Phone physical tests remain NOT RUN; S06/R01 FAIL preserved.",
-  "evidence": "test-results/2026-09-20-close-stack-peek.md"
+  "next": "Source b9da8f71 adds an explicit diagnostic control without g_object_unref interposition. Default DSO is byte-identical to the prior artifact; 19 focused tests in normal/-O modes, actual ARM64 GLib fixtures and 112-suite frozen active tier pass. One bounded control VM still exits Mousepad137 (Foot0); normal guest poweroff and post-run input/runtime identity checks pass, /var unmount still fails. This run reaches SHUTDOWN_BEFORE and external settings-sync BEGIN/END, but not SHUTDOWN_AFTER or APP_RUN_END. The earlier PC sample precedes those markers by0.815433s and returns no stack frames (Deadline), so it cannot locate the unfinished shutdown stage. Removal of per-object interception alone is insufficient; no GTK/GLib fix or overhead estimate is established. Next qualify a single stage-triggered bounded observation after external-sync END, with missing-marker refusal, identity/exit races and cleanup fixtures; retain the two-second close limit and no-unref control. Do not repeat an unchanged full VM. Phone physical rows stay NOT RUN and S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-20-no-unref-control.md"
 }

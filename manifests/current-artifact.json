@@ -2173,6 +2173,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-close-stack-peek-20260920-r1"
+    },
+    "close_unref_control": {
+      "status": "Control qualified; Denial VM FAIL Foot0/Mousepad137; external settings sync returned, shutdown not observed complete",
+      "source_commit": "b9da8f712e6c14344cc2988e5719862c12124000",
+      "source_tree": "fb650b3c96be14b7dadd6bde8f93436e20539345",
+      "evidence": {
+        "path": "test-results/2026-09-20-no-unref-control-qualification.json",
+        "sha256": "624735d7d526a098a1af864d586a95167c4cd02b2a205588c82e05b5cbfd0f98",
+        "bytes": 83187
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-no-unref-control-20260920-r1"
     }
   },
   "denial_phone_linkage": {
