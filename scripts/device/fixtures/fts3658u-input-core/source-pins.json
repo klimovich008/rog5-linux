@@ -1,0 +1,103 @@
+{
+  "repo_head": "1e13857a766e973edad77c95fd39fc83a6230bc7",
+  "kernel_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "packet_bytes": 245779,
+  "packet_sha256": "d1f74ace77ba8bd7e285d4b0f896b78bddfe0a926ebc979c82a1f35dd4c08e8b",
+  "sources": [
+    {
+      "label": "repo/tools/rog5-fts3658u/rog5_fts3658u.c",
+      "bytes": 11135,
+      "sha256": "d2ff4063df516a316b3716c841b99d82643474bfc07c63a946cdb8bed706c59f"
+    },
+    {
+      "label": "repo/tools/rog5-fts3658u/rog5_fts_protocol.h",
+      "bytes": 2385,
+      "sha256": "0253cff9ced95ce9b7dfde34d84cf0538568e0b6bb565e3afa5245c2b0f6e4c5"
+    },
+    {
+      "label": "repo/scripts/device/test-rog5-touch-lifecycle.py",
+      "bytes": 8408,
+      "sha256": "df5169af6694e545dcd56dd181e64cea2f546870988fd19e5f9807f865cb68bc"
+    },
+    {
+      "label": "repo/scripts/device/fixtures/fts3658u/stubs.h",
+      "bytes": 14079,
+      "sha256": "ff426b3ba94859d8d543da4f0fb5a67b7072526924fceb1b213b615d310927f5"
+    },
+    {
+      "label": "repo/scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
+      "bytes": 6892,
+      "sha256": "88f9b827617cb43ee5782ddaaf691bef3aeb63e0a0ebb160d9746c43bb2bdf10"
+    },
+    {
+      "label": "repo/scripts/device/fixtures/fts3658u/cases.c",
+      "bytes": 20006,
+      "sha256": "83fa257b11d3e42ce572521f4fa2e86ddfcd2d482f008740200fdb29961c722a"
+    },
+    {
+      "label": "repo/test-results/2026-09-20-touch-input-semantics.md",
+      "bytes": 7941,
+      "sha256": "fe2aacf2c8ba6ea64de88d1d02492eac0f8082ef086d4ef21dbe72d45bf400e5"
+    },
+    {
+      "label": "linux/drivers/input/input.c",
+      "bytes": 72056,
+      "sha256": "2a1cb7234dc6f7c124a779117fe7a070a55855f8082870ba7f9dc262e360e5bd"
+    },
+    {
+      "label": "linux/drivers/input/input-mt.c",
+      "bytes": 13688,
+      "sha256": "8037cc3f03bfb2a55452b0d549ea75b80ac7cbe95d75bd3c48a562b33624fc3a"
+    },
+    {
+      "label": "linux/include/linux/input.h",
+      "bytes": 21447,
+      "sha256": "9b844d36af0446090c4ec9910fb3d25f04b5e76c18cc359082d90b146eb01676"
+    },
+    {
+      "label": "linux/include/linux/input/mt.h",
+      "bytes": 3563,
+      "sha256": "956bc9f627ba07083d440d7eb57250f47e0d3a454c2f819fe08432619742fdea"
+    },
+    {
+      "label": "linux/include/uapi/linux/input.h",
+      "bytes": 16961,
+      "sha256": "7223b820de8034c827c3fc817b6740a5c51ca8332480b86d6a0c142730fb239e"
+    },
+    {
+      "label": "linux/include/uapi/linux/input-event-codes.h",
+      "bytes": 31591,
+      "sha256": "0aa175af6b02a096e7dc172bd31e81d499eba9083777515e8c20aa915ab79dec"
+    },
+    {
+      "label": "linux/drivers/input/input-compat.h",
+      "bytes": 1717,
+      "sha256": "3eb602f1c1f7db35d50af553041efa623c225f4439443e932db76e3872729dbc"
+    },
+    {
+      "label": "linux/drivers/input/input-core-private.h",
+      "bytes": 433,
+      "sha256": "49024594ecf5fcd9166d312eccf6ff1f43afa4e230e09a21e69d79955fcf18cc"
+    },
+    {
+      "label": "linux/drivers/input/input-poller.h",
+      "bytes": 478,
+      "sha256": "026b1a53a639fba0abfee99aa71239ef642de328a6047bddf7d081205a65665c"
+    },
+    {
+      "label": "linux/kernel/irq/manage.c#disable_irq",
+      "bytes": 111,
+      "sha256": "69645f3a8bb45d5c57569d5507a7253348be24a0188a771043ef3eb3e6b9165d"
+    },
+    {
+      "label": "qualification-selected.json",
+      "bytes": 6141,
+      "sha256": "71adbf2a2fcff9b9eca4616e8742c527d1d96ccede3b1adc67dbad76bb6999e3"
+    },
+    {
+      "label": "repository-test-entry.json",
+      "bytes": 552,
+      "sha256": "88c1ebb5f23f67ed079cfe79847c85da09838b787247b2f5f1835ca9e355a4c7"
+    }
+  ]
+}

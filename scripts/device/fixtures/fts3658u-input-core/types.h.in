@@ -1,0 +1,69 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/* Host representations, NOT kernel object layout/ABI or generic machinery.
+ * @...@ sections are replaced with exact declarations from verified headers.
+ * Only input_mt's flexible allocation is replaced with ten fixed slots.
+ * Legacy observation fields exist solely to compile the unchanged cases.c;
+ * no new test reads their event log, touch field, or sync counter. */
+typedef uint16_t __u16;
+typedef int32_t __s32;
+struct input_dev;
+struct input_handle;
+struct input_device_id;
+struct list_head {
+	struct input_handle *items[2];
+	unsigned count;
+};
+struct timer_list {
+	void (*function)(struct timer_list *);
+};
+typedef int64_t ktime_t;
+@INPUT_VALUE@
+@INPUT_CLOCK@
+@INPUT_ABSINFO@
+@INPUT_MT_SLOT@
+struct input_mt {
+	int trkid, num_slots, slot;
+	unsigned int flags, frame;
+	int *red;
+	struct input_mt_slot slots[10];
+};
+@INPUT_HANDLER@
+@INPUT_HANDLE@
+struct fixture_event {
+	int type, code, value, slot;
+};
+#define HOST_LONGS(n) (((n) + 8 * sizeof(unsigned long) - 1) / (8 * sizeof(unsigned long)))
+#define HOST_VAL_CAPACITY 128
+struct input_dev {
+	const char *name;
+	struct { int bustype; } id;
+	struct input_mt *mt;
+	int event_lock;
+	bool valid, registered, inhibited;
+	unsigned long evbit[HOST_LONGS(EV_CNT)], keybit[HOST_LONGS(KEY_CNT)];
+	unsigned long propbit[HOST_LONGS(INPUT_PROP_CNT)], absbit[HOST_LONGS(ABS_CNT)];
+	unsigned long relbit[HOST_LONGS(REL_CNT)], mscbit[HOST_LONGS(MSC_CNT)];
+	unsigned long swbit[HOST_LONGS(SW_CNT)], ledbit[HOST_LONGS(LED_CNT)];
+	unsigned long sndbit[HOST_LONGS(SND_CNT)];
+	unsigned long key[HOST_LONGS(KEY_CNT)], sw[HOST_LONGS(SW_CNT)];
+	unsigned long led[HOST_LONGS(LED_CNT)], snd[HOST_LONGS(SND_CNT)];
+	int rep[REP_CNT];
+	unsigned int repeat_key;
+	struct timer_list timer;
+	struct input_absinfo *absinfo, axes[ABS_CNT];
+	int (*event)(struct input_dev *, unsigned int, unsigned int, int);
+	struct input_handle *grab;
+	struct list_head h_list;
+	unsigned int num_vals, max_vals;
+	struct input_value *vals, storage[HOST_VAL_CAPACITY];
+	ktime_t timestamp[INPUT_CLK_MAX];
+	unsigned syncs, event_count;
+	int touch;
+	struct fixture_event events[4096];
+};
+void input_event(struct input_dev *, unsigned int, unsigned int, int);
+void input_handle_event(struct input_dev *, unsigned int, unsigned int, int);
+void input_set_abs_params(struct input_dev *, unsigned int, int, int, int, int);
+static void input_handle_setup_event_handler(struct input_handle *);
+static void fixture_input_allocate(struct input_dev *);
+static void fixture_input_register(struct input_dev *);

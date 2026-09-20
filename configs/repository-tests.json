@@ -9278,6 +9278,70 @@
         "scripts/device/test-display-endpoint.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 90,
+      "prerequisites": [
+        "cc"
+      ],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h",
+        "scripts/device/test-rog5-touch-lifecycle.py",
+        "scripts/device/fixtures/fts3658u/stubs.h",
+        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
+        "scripts/device/fixtures/fts3658u/cases.c",
+        "test-results/2026-09-20-touch-input-semantics.md",
+        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
+        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
+        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
+        "scripts/device/fixtures/fts3658u-input-core/cases.c",
+        "scripts/device/fixtures/fts3658u-input-core/owned_process.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core-runner.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 90,
+      "prerequisites": [],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "scripts/device/test-rog5-touch-input-core.py",
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h",
+        "scripts/device/test-rog5-touch-lifecycle.py",
+        "scripts/device/fixtures/fts3658u/stubs.h",
+        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
+        "scripts/device/fixtures/fts3658u/cases.c",
+        "test-results/2026-09-20-touch-input-semantics.md",
+        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
+        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
+        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
+        "scripts/device/fixtures/fts3658u-input-core/cases.c",
+        "scripts/device/fixtures/fts3658u-input-core/owned_process.py",
+        "scripts/device/fixtures/fts3658u-input-core/runner-regression.py",
+        "scripts/device/fixtures/fts3658u-input-core/original-runner.py",
+        "scripts/host/repository-test-report.py"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
