@@ -359,3 +359,44 @@ eight current source files, full tests and new probe results, requesting a scope
 writer-owned partial-publication and catchable-interruption solution. Historical
 failure evidence and qualified0010 remain intact; no phone/candidate/claim or
 signing operation occurred.
+
+
+### Independent touch handler-delivery qualification (2026-09-20)
+
+The six-file touch companion proposal is applied as uncommitted additions; it
+is not registered in the repository test manifest or admitted for hardware.
+The coordinator executed its actual extracted Linux input-core fixture under
+Python3.13.5 `-S -O` and GCC15.1.1: **13 delivered-event cases PASS**,
+**18 semantic mutation controls rejected**, **32 exact function comparisons
+PASS**, in21.771677s. The run used a512MiB/no-swap scope,32-task limit,
+90-second outer deadline and disk-backed scratch. Command:
+
+```sh
+CC=/usr/bin/gcc python3 -S -O scripts/device/test-rog5-touch-input-core.py \
+  --linux-source "$ROG5_LINUX_SOURCE" --batch all --report-dir NEW_REPORT_DIRECTORY
+```
+
+Source HEAD was8194bcec4da3fabe5dcd6142db8728e249d4b414; the Linux baseline
+remains7a5cef0db4795d9d453a12e0f61b5b7634fc4d40. Proposal patch SHA256:
+`f2b926f8cd7b959d138c5793275a8d5f09cafafd7fd9ecb2537fa8945643e969`.
+Generated C SHA256:
+`9a4aff51520f8ace82384a26711608dab245250c79c35e97f6ad525c1a5061ad`.
+No production-driver defect or change was established. Earlier lifecycle
+27-case/8-mutant results are retained, not rerun or included in these counts.
+
+An independent Astra investigator then exercised the actual runner with a
+controlled compiler fixture. After compiler READY, SIGTERM to the runner alone
+returned-15 but left the detached compiler and scratch directory alive. This
+regression intentionally **FAILed** in0.282381s. Its subreaper fixture subsequently
+killed/reaped its owned processes and removed its scratch; the coordinator
+inspected the complete reproducer and result. This is not a personally rerun
+coordinator test. Full raw local semantic results and cancellation evidence are
+retained in the private touch-input-core review directory identified by the
+existing coordinator checkpoint. A same-conversation Pro follow-up received all
+six files and the actual failure; it requests cleanup and minimal test-runner
+integration before commitment. No unchanged expensive run was repeated.
+
+These results cover host-extracted input filtering and handler-delivered batches.
+Locking/RCU/timers use explicit serial substitutes; kernel registration,
+evdev/libinput, ARM64 behavior, touch hardware/rails/PM remain **NOT RUN**.
+No VM or phone operation occurred.
