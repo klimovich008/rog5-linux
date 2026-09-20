@@ -25,3 +25,10 @@ Only short current-state checks and arming may follow Ready. Give one short
 physical action at a time. If readiness or a prerequisite expires, release the
 operator and resolve preparation independently. No countdown or Ready request
 is active during this offline task.
+
+The current panel source defaults to brightness zero, including DRM's automatic
+backlight-enable call. A future authorized session must request its bounded
+brightness explicitly after preparation. The older immediate sysfs-appearance
+blank observer is incompatible with the preparation guard: -EPERM must remain
+a failed command even if the requested brightness property reads zero afterward.
+Keep that distinction in recording/cleanup and in any successor controller.

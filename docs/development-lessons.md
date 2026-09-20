@@ -3633,3 +3633,20 @@ exercise wraparound and release with semantic mutations. Distinguish observed
 input API requests from input.c filtering, evdev/libinput delivery and physical
 calibration. Reuse unchanged qualified driver/module bytes: the final focused
 check took6.72s, while no phone kernel rebuild was needed.
+
+Panel initialization (2026-09-20): a driver enable callback sending DBV0 does not
+prove default-dark behavior when DRM subsequently enables a registered backlight
+whose property is1023. Couple registration properties, exact DRM/backlight helpers
+and the driver's DCS callback in the regression. A failed setter can update the
+requested property first; zero readback does not repair an-EPERM command result.
+The one-line default0 fix compiled as identical incremental modules; unchanged
+Image/DT proof was inherited only after input/byte checks. Before replaying old
+build commands, check cached archives exist; regenerate absent immutable inputs
+from pinned Git instead of weakening identity checks.
+
+The same turn's first active tier had an intermittent fragmented-ack fixture
+failure; isolated and unchanged full reruns passed. Its assertion retained
+stdout/stderr but omitted the evidence FIFO stream, so the controller phase
+cannot be recovered from that output. Preserve the failure; do not infer a
+transport, timing or panel cause from cleanup143. Any further reproduction
+should retain that stream before fixture cleanup rather than repeat blindly.

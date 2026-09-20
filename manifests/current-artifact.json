@@ -49,10 +49,10 @@
   },
   "current_board_qualification": {
     "status": "PASS: offline incremental software qualification",
-    "source_commit": "fce7a9892df3e69a170015699aad3f3f13e13aea",
-    "source_tree": "2ff259f1feec407ac87b38036960c6b35b9ab288",
+    "source_commit": "8f7b2f83b59b37c8a7cd53b78610d0b1db0896fc",
+    "source_tree": "f1390c7bde4af6933ee76f880431de42d586c8a3",
     "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
-    "production_series_sha256": "6ecab1592d1293be2dbb2d48792f4de889a5db5d2418738b56e8f3c394af62ee",
+    "production_series_sha256": "221640701b918efaa66e4399f396556631ac2eb57d8b0d648a376f19daaae1fd",
     "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
     "release": "7.1.4-rog5-production",
     "image": {
@@ -64,27 +64,29 @@
       "sha256": "bf7aebb449d6a7eee0c2778f13d69166ba3203bebffd1120e9c1f89357301412"
     },
     "module_metadata": {
-      "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-cohort-r1/module-provenance.json",
-      "sha256": "bfa19931ebdad5975d581efa85ee41e0d84ce85e14f3b20d04fdea79203db973"
+      "path": "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/module-cohort/module-provenance.json",
+      "sha256": "e9aeb0e80309076db1c13db4b990cd348a2a5dc3735c228ecf2684981dc5cd30",
+      "size": 379961
     },
     "evidence": {
-      "path": "test-results/2026-09-12-panel-regulator-qualification.json",
-      "sha256": "e774fa7f9be35c531cae52f612505858ab1066539c375897407c735f625aa9d5"
+      "path": "test-results/2026-09-20-panel-default-dark-qualification.json",
+      "sha256": "268676f9d2994be3f4e24aa34df244ab1f9ac542bf3544dfb586bbb99faff730",
+      "size": 936048
     },
     "physical_status": "NOT RUN",
     "candidate": null,
-    "note": "Current unsigned module cohort differs only in corrected panel module. Production patches/config revalidated; Image and DT/schema evidence inherited for matching bytes/inputs. No candidate or installation authority. Prior Q6 FAIL and all prior qualifications remain unchanged.",
+    "note": "Current unsigned cohort differs only in default-dark panel module. Exact production series/config, module twins, W=1/modpost and depmod/closure passed. Image/DT/schema proof inherited only for matching inputs. Prior panel qualification and historical Q6 FAIL preserved in evidence. No candidate or installation authority.",
     "composed_mobile_dtb": {
       "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/composed-2.dtb",
       "sha256": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57"
     },
-    "module_artifact_root": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-cohort-r1",
+    "module_artifact_root": "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/module-cohort",
     "panel_module": {
       "depends": "drm_display_helper,drm_kms_helper",
       "firmware": "",
       "name": "panel_asus_rog5_ams678",
-      "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-build/twin-c/module/panel-asus-rog5-ams678.ko",
-      "sha256": "e7a5ac14d92ded53ca480272f0272d8fe236a38b671c5deabb17ff44ba2a6191",
+      "path": "/home/deck/.local/state/rog5-panel-default-dark-20260920-r1/module-build/twin-c/module/panel-asus-rog5-ams678.ko",
+      "sha256": "79dc4d21db7726fd939acd10d35ce0f681fee07a847074734485c11008d72994",
       "size": 23128,
       "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
     }
