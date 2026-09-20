@@ -62,7 +62,7 @@ jobs:
             libwayland-dev libwayland-bin \
             libgles2 \
             libgl1-mesa-dri \
-            clang \
+            clang kmod \
             cpio \
             device-tree-compiler \
             gnupg \
@@ -137,7 +137,7 @@ jobs:
             libwayland-dev libwayland-bin \
             libgles2 \
             libgl1-mesa-dri \
-            clang \
+            clang kmod \
             cpio \
             device-tree-compiler \
             gnupg \
@@ -376,7 +376,7 @@ jobs:
             bc \
             bison \
             build-essential \
-            clang \
+            clang kmod \
             cpio \
             flex \
             gcc-aarch64-linux-gnu \

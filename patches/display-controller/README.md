@@ -38,3 +38,27 @@ supervision, and compiles the actual current panel plus pinned DRM/backlight cor
 extracts. Sysfs, identity, module insertion effects and preparation timing are
 fixtures. The test also verifies the previous loader fails with EPERM. No module
 is loaded and no phone operation, optical result or physical PASS is implied.
+
+## Current production module input
+
+`scripts/device/build-production-display-modules.py --output /absolute/new.tar`
+materializes the fixed REFGEN/GPUCC/panel/MSM symbol dependency closure from the
+machine-readable current board qualification. It validates that qualification,
+module metadata, dependency-index hashes, actual ARM64 ELF identity/vermagic and
+default-dark panel hash before atomically publishing an inert tar with an embedded
+manifest. Existing outputs are never replaced. Nothing is loaded or signed.
+The manifest binds builder/checker hashes and the exact board inputs. No helper,
+service, aliases, modprobe index, firmware or boot image is added. Future archive
+consumers must verify the archive hash and its exact members before staging it.
+
+Its order is only a symbol dependency order. REFGEN's DSI-PHY supply and GPUCC's
+GMU/SMMU clock/power relationships come from DT, and MSM can trigger fbcon/panel
+preparation automatically. Those activation edges require review in the successor
+controller; no insertion commands are generated. Inserting GPUCC can program PLLs,
+and opening MSM DRM can load firmware/start the GPU. These are hardware actions.
+
+All14 current modules have empty `.modinfo` firmware fields, but exact A660 source
+requests SQE/GMU firmware and the overlay names `qcom/sm8350/a660_zap.mbn`.
+Firmware status is explicitly NOT PACKAGED; empty module metadata is not proof of
+runtime firmware completeness. The archive is an unsigned host fixture, not a new
+phone candidate. Keep the historical loader and consumed claims unchanged.

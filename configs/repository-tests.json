@@ -8660,6 +8660,34 @@
         "scripts/device/fixtures/ams678/stubs.h"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-display-modules.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "clang",
+        "modinfo"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/build-production-display-modules.py",
+        "scripts/host/check-production-build-diagnostics.py"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
