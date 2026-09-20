@@ -44,3 +44,21 @@ READY and collect events automatically. Do not require terminal typing. If a
 prerequisite fails, resolve it independently before requesting readiness again.
 Never treat an expired reply as fresh presence, or repeat completed physical
 steps just because a later independent check failed. Preserve each raw result.
+
+
+# Pro reasoning adviser
+
+Standing user instruction,2026-09-20: before implementing tasks that require
+extended reasoning (complex debugging/root cause, architecture, unfamiliar
+subsystems or repeated failed fixes), consult Oracle Pro. Routine edits and
+straightforward commands remain direct. Use Oracle MCP consult with engine
+browser, model gpt-6-pro, browserThinkingTime pro, waitForCompletion false.
+If MCP is unavailable, use installed oracle CLI with equivalent browser/model/
+thinking settings. Verify Oracle's recorded Pro selection; no paid API fallback
+or silently weaker reasoning. Attach complete relevant sanitized source/config,
+logs and diff, exact repository branch/commit and reproduction, prior attempts
+and precise questions. Ask for concrete implementable changes, tests and rollback,
+with facts separated from hypotheses. Save and resume the same session for long
+consultations and test-failure follow-ups. Review proposals against actual code
+and test them; Pro's answer alone is never proof. Existing offline/device and
+private-data constraints remain in force.

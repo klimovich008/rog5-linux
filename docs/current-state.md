@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production source staging/context pass offline; private admission and payload composition pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Exact display payload passes offline; production admission closure pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Production backend now binds six exact source files and revalidates worker/cleanup identity after one-use entry without permitting another attempt. Source-only staging checks RAM and identity before/after exclusive copying, preserves replaced files and closes partial failures. 22 staging/context,31 supervisor,23 transport,28 session,25 logger,37 selector cases and 126 active suites PASS. Next: exact private health/admission closure, existing module/helper/firmware payload binding and firmware-root transition. Historical seals unchanged; no live composition,candidate,signing,claim,target staging or phone/VM operation. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-staging.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Two exact14-module/helper/firmware payloads match with notices and no authority.95 focused cases and 127 active suites PASS. Actual source-cohort counterexample still dereferences removed QUERY; Oracle Pro browser session rog5-production-cohort-admission is pending with verified Pro selection. Next: production source/admission binding and firmware-root transition. Historical seals/current board pointer unchanged; no candidate,signing,claim,VM,target staging or phone operation. Physical NOT RUN; S06/R01 and prior Denial VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-payload.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -3845,3 +3845,18 @@ never delete a replacement during cleanup. The22 staging/context cases took
 under a second. Source-only transfer stays within existing transport bounds;
 module/firmware payload packaging is a separate prerequisite, not a reason to
 weaken that bound or claim unperformed staging.
+
+
+### Bind payloads to consumers, retain publication uncertainty (2026-09-20)
+
+A valid module archive alone does not supply the loader's complete payload.
+Derive exact pins from actual consumers, compare inventories without confusing
+archive dependency order with activation order, and carry firmware notices.
+Normalize directories as well as file modes. Rename success followed by fsync
+failure means output may exist: preserve it and fail, never erase or retry over it.
+The two real host payload assemblies each took0.265 seconds; no rebuild needed.
+
+Exercise source-cohort validation separately from session fixtures that substitute
+admission. The direct production-cohort reproduction caught a removed QUERY
+reference hidden by that substitution. Oracle Pro now advises complex fixes;
+retain session IDs and verify selected Pro effort before accepting a proposal.
