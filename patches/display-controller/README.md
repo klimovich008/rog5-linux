@@ -342,3 +342,40 @@ image/payload composition must bind the already qualified module/firmware inputs
 `test-production-display-context.py` executes the generated script on a temporary
 filesystem with explicit root/proc/tmpfs/transport fixtures; it never writes to
 actual /run, contacts a phone or loads a kernel module.
+
+## Private caller API repair (offline consumer only)
+
+`0010-private-display-api.patch` applies to the two exact source fixtures
+`live-admission-before.py.txt` and `trial-launcher-before.py.txt`, copied under
+its `live-admission.py.txt` and `trial-launcher.py.txt` paths. The fixture bytes
+contain no unit serial, USB topology, address, credential or boot UUID. They are
+source inputs, not admission records; do not import their private top-level
+loaders or run their entrypoints. Historical runtime files and pins stay intact.
+
+The patch threads one explicit production contract and owner through ordinary
+admission callbacks, health-command policy and session execution. It accepts the
+exact ten-path production scope only inside the authenticated input bytes and
+recognizes the production session result. Recovery compares the three observed
+discovery fields with the contract projection, then separately requires the full
+six-field prior health identity. Descriptor, DTB and owner proof are not inferred
+from discovery or discarded to make the comparison pass.
+
+Preparation invokes the unchanged source-bound `initialize()` before credentials,
+launch entry or claim consumption. Its unreviewed private dependency still refuses.
+The historical health seal remains incompatible and cannot be replaced by changing
+a consumer hash. Root envelopes, root phase whitelist, one-use guards and fallback
+checks are unchanged. This patch is not a cold-boot launcher: an already boot-bound
+`HostContract` cannot use a guessed future boot UUID. The authenticated static
+artifact/owner producer and its one-time discovered-boot binding remain unqualified.
+The omitted boot-health wrapper and controller identity producers need separate
+source integration; no execution authority is produced here.
+
+Run `python3 -O scripts/device/test-private-display-api.py`. It assembles the
+existing production cohort and applies the caller patch strictly in temporary
+ordinary-user directories. It exercises actual caller definitions and composed
+session/health functions with explicit inert external effects. All five original
+counterexamples are checked before and after the repair. Two named no-effect
+initialization fixtures inspect downstream API checks; separate tests execute
+the real private-dependency refusal before credentials or claims. The suite is
+mandatory in the existing active/CI tiers, with bounded runtime and input checks.
+Physical results remain NOT RUN, and the private runtime remains UNBOUND.
