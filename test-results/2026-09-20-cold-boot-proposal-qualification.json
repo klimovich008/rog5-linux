@@ -1,0 +1,131 @@
+{
+  "status": "FAIL_PROPOSED_COLD_BOOT_RECOVERY",
+  "authority": "none",
+  "source_commit": "70a433340cb40d6357d55b2fe06506000f7d19af",
+  "source_tree": "90371af8477a169283a0cb6d9c41ad3e0f55af4b",
+  "proposal_integrated": false,
+  "oracle": {
+    "session": "rog5-cold-boot-integratio",
+    "engine": "browser",
+    "model": "6Pro",
+    "thinking": "Pro",
+    "response_sha256": "37a119baac183982406bcafc9ebf998b916d3f895a72674c2d353cd5923cda81",
+    "patch_sha256": "fa3497300d7876fbd7718748d52c80d7bcc52ac8dbe65056ae36dc5e83ca03e7",
+    "test_sha256": "55d3a192fa8425c58f35ecc47825964e1d8c5256cc69e58784b9c8b0e9f0dee6",
+    "download_zip_sha256": "54c3aa2b4ece768b6941587945249a0b098c149e9dc4a76745d3ffe6d7813c8c",
+    "internal_checksums_verified": 27
+  },
+  "executor_batches": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-O",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/test-production-cold-boot.py",
+        "--packet",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/source-packet.txt",
+        "--patch",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/0011-production-cold-boot.patch",
+        "--sources",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/assembled-after",
+        "Integration.test_actual_missing_static_or_private_dependency_precedes_credentials",
+        "Integration.test_actual_session_entry_call_uses_bound_hostcontract",
+        "Integration.test_actual_target_recovery_and_restored_identity6",
+        "Integration.test_authentication_and_decoder_refuse_before_structure_acceptance",
+        "Integration.test_binding_is_constructed_once_and_both_readers_refuse_replacement",
+        "Integration.test_bound_boot_conflict_and_mutated_contract_refuse",
+        "Integration.test_changed_static_during_credentials_refuses_before_claim",
+        "Integration.test_construct_failure_cannot_rebind_a_new_or_same_uuid",
+        "Integration.test_coordinated_controller_and_both_readers_and_session_admission",
+        "Integration.test_descriptor_board_owner_drift_fail_actual_health_validator",
+        "Integration.test_discovery_wrong_boot_release_bundle_and_source_refuse",
+        "Integration.test_early_fallback_without_any_target_uuid_preserves_legacy_route",
+        "Integration.test_failed_capture_remains_failed_even_with_target_recovery",
+        "Integration.test_fallback_remains_exact_identity3"
+      ],
+      "duration_seconds": 32.68881236604648,
+      "exit_status": 0,
+      "cases": 14,
+      "memory_limit_bytes": 536870912,
+      "deadline_seconds": 90
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-O",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/test-production-cold-boot.py",
+        "--packet",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/source-packet.txt",
+        "--patch",
+        "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/0011-production-cold-boot.patch",
+        "--sources",
+        "/home/deck/.local/state/rog5-display-cohort-20260920-r1/assembled-after",
+        "Integration.test_history_and_target_phase_gates_are_not_waived",
+        "Integration.test_launcher_to_controller_to_session_uses_one_late_contract",
+        "Integration.test_module_identity_disagreement_is_not_silently_rebound",
+        "Integration.test_old_source_counterexamples_are_still_real",
+        "Integration.test_other_three_executed_old_wrapper_identity_counterexamples",
+        "Integration.test_policy_wrong_owner_contract_and_source_fail_before_transport",
+        "Integration.test_restoration_combiner_requires_real_endpoint_and_legacy_proofs",
+        "Integration.test_retained_binding_receipt_replacement_is_not_adopted",
+        "Integration.test_source_and_lifecycle_guards_remain_unchanged",
+        "Integration.test_static_board_health_digest_and_boot_image_mismatch",
+        "Integration.test_static_document_has_no_boot_and_no_authority",
+        "Integration.test_static_schema_scope_and_owner_mismatches",
+        "Integration.test_unproved_binding_cannot_enter_session_after_health_failure",
+        "Integration.test_wrong_health_seal_and_recovery_generator_stay_refused"
+      ],
+      "duration_seconds": 21.9148069890216,
+      "exit_status": 0,
+      "cases": 14,
+      "memory_limit_bytes": 536870912,
+      "deadline_seconds": 90
+    }
+  ],
+  "additional_regression": {
+    "command_argv": [
+      "python3",
+      "-O",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/publication-failure-r1/test-publication-failure.py",
+      "--packet",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/source-packet.txt",
+      "--patch",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/0011-production-cold-boot.patch",
+      "--sources",
+      "/home/deck/.local/state/rog5-display-cohort-20260920-r1/assembled-after"
+    ],
+    "stdout": "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/publication-failure-r1/stdout.log",
+    "stderr": "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/publication-failure-r1/stderr.log",
+    "exit_code": 1,
+    "tests": 2,
+    "passed_control": 1,
+    "expected_regression_failures": 1,
+    "elapsed_test_seconds": 4.079,
+    "scope": "Only delivered inert actual-function fixture extended; no original patch/test/private source edits or phone/runtime authority.",
+    "changes": [
+      "Inject one OSError only before production-boot-binding.json save; retain original save for all other writes.",
+      "Switch existing inert discovery fixture to fallback after that injection.",
+      "Reuse delivered early-fallback stage/restore effect fixtures.",
+      "Wrap original admission need only to record stack without changing behavior.",
+      "Assert sticky selection/no receipt/no contract; intended fallback-restoration assertion fails."
+    ],
+    "source_hashes": {
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/publication-failure-r1/test-publication-failure.py": "155bda063a05650a821f881952ed4eb76ef287dec3ab49a1bc82588bc48d1164",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/test-production-cold-boot.py": "55d3a192fa8425c58f35ecc47825964e1d8c5256cc69e58784b9c8b0e9f0dee6",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/after/current-callers/live-admission.py.txt": "3802213eb4f24aa10df1824275f0aed49d74cc5c1f09e4fe0616a370509390c9",
+      "/home/deck/.local/state/rog5-display-private-admission-20260920-r1/cold-boot-review-r1/implementation-r1/bundle/after/downstream/gpu-iommu-controller-r1__controller.py.txt": "4f878ed891de25f62b1a28b05c69455ce64cac566e8860582c8fbf2ba55e5efb"
+    }
+  },
+  "failure": "One-shot expectation publication failure retains selected boot but ColdBoot.check blocks actual locate_fallback recovery with retained cold binding record changed. Original trial remains failed and selection eligibility is not restored.",
+  "full_errors_sha256": "82cecd4daefe338eafb81e405e0a0a04f73814ff10bcb9de26a76fe5fdf4b675",
+  "scope": "Actual controller/driver/admission and public cohort functions with inert private effects; no private top-level imports or transport/root/phone execution.",
+  "counts": {
+    "PASS": 29,
+    "FAIL": 1
+  },
+  "physical": "NOT RUN",
+  "private_runtime": "UNBOUND",
+  "phone_operations": 0,
+  "vm_operations": 0,
+  "candidate_generation": 0,
+  "followup": "Same Oracle conversation; private progress checkpoint holds delivery/model verification and retrieval state. No corrected proposal accepted yet."
+}

@@ -280,3 +280,29 @@ That is not a terminal adviser result. The installed Oracle live-read function
 is now observing the same exact tab with a30-minute stall window and no recovery
 or submission; private checkpoint holds the current handle. Do not treat the
 old answer returned by either early reader as the new proposal.
+
+
+### Cold-boot proposal: executor recovery failure
+
+The exact downloadable0011 proposal is now received and checksum-verified. A
+fresh view showed server completion while the original tab still displayed
+its earlier thinking state. The retained response and downloaded bytes are
+identified in the [proposal receipt](2026-09-20-cold-boot-proposal-qualification.json).
+Inline text differed from the download, so only the verified downloaded patch
+and test were executed. None of this proposal is integrated into production.
+
+Executor runs of the supplied28 cases passed in two14-case batches,32.689s and
+21.915s, with Python -O,512MiB address-space and90-second per-batch bounds.
+A bounded reviewer added an actual-controller publication-failure regression:
+two cases in4.079s, controlPASS and expected regressionFAIL. A one-shot error
+before publishing production-boot-binding.json leaves the selected boot sticky,
+but ColdBoot.check then prevents actual locate_fallback recovery because the
+record is absent. Later writes succeed; selection eligibility remains unrestored.
+The original failure is retained. Transport/root/state effects are inert fixtures.
+
+The same Pro conversation is receiving the exact proposal, full source, logs and
+new failure for correction. Sticky boot identity must remain immutable, target
+admission must stay refused without proof, and receipt tampering must not become
+a recovery bypass. Current0010 source and its129-suite qualification are unchanged;
+no unchanged integrated run or kernel build was repeated. Runtime UNBOUND and all
+physical rows NOT RUN. No VM, phone, claim, signing or candidate operation occurred.

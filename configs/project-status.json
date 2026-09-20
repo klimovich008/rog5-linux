@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production caller repair passes offline; private runtime remains unbound",
+  "phase": "Cold-boot proposal has a reproduced recovery failure; qualified caller fix retained",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Caller patch 0010 remains qualified at 4c99767a: 25 focused cases and 129 active suites PASS. Actual downstream wrapper/controller now reproduce seven conditional API/identity failures under Python -O. Same-conversation Oracle follow-up rog5-cold-boot-integratio has acknowledged the requested sources and is verified running in6Pro/Pro. Initial CLI ended on a false-negative prompt-commit check; follow the same session using the latest private retrieval checkpoint, do not resubmit. Early harvest matched the previous answer and is excluded. No cold-boot producer or full runtime binding is qualified; future boot UUID must not be guessed. Historical seals/pins, firmware-lifetime limitations and installed state unchanged. No candidate, signing, claim, VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
+  "next": "Caller patch 0010 remains qualified at 4c99767a: 25 focused cases and 129 active suites PASS. Exact Oracle cold-boot proposal 0011 was downloaded and verified, but is not integrated. Its 28 supplied cases pass locally in 54.604s; an additional actual-controller regression fails after a one-time expectation-receipt publication error blocks fallback recovery (control passes). Same-conversation Pro correction requested; private checkpoint holds current delivery and retrieval status. Preserve sticky boot selection, admission refusal and authenticated fallback guards. Runtime UNBOUND; historical seals/pins, installed artifacts and firmware-lifetime limitations unchanged. No candidate, signing, claim, VM or phone operation; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
   "evidence": "test-results/2026-09-20-production-display-cohort.md"
 }

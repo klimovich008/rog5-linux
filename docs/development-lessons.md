@@ -3935,3 +3935,15 @@ Treat that as a retrieval failure, not evidence to resubmit. Resume the exact
 conversation and verify live model/stop state. An in-progress harvest may still
 return the previous completed answer; compare its question/turn and response
 hash before extraction or application. Keep the new question's outcome pending.
+
+
+Cold-boot failure coverage (2026-09-20): the supplied28-case proposal passed, but
+a one-shot receipt-publication failure blocked the actual fallback controller.
+Exercise recovery through its real phase/driver/admission path; a construction
+failure test with a stubbed recovery callback does not cover publication failure.
+Keep sticky boot selection distinct from durable publication and health proof.
+Preserve the original failure while verifying safe recovery independently.
+For adviser artifacts, compare downloaded bytes with declared hashes before
+using inline code; this delivery differed in a deleted source digest and a test
+label. A stale browser tab is not authoritative for server completion; a fresh
+read-only view resolved it without another consultation.
