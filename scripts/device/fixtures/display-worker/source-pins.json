@@ -29,7 +29,8 @@
     "lifetime.py": "f086d2772398cff4b18e9d17fd44b4f2d901c534711bd3e0aaf76f4d4b291ac7",
     "rescue-capture-network.py.txt": "462e94231328363f4cc8fc9ae75165f8d5de6fd15f49dde4b95b13f4cf407d3b",
     "ssh-worker.py.txt": "e0f734b13896e1bcc107f9aa3092625ab62daf6d04b3313279d35dfc3c9efb7f",
-    "finalization.patch": "c64ee4648bd31969a88b1a6d6e9cc382c63d142ec9d7fc80848507dcbc9da279"
+    "finalization.patch": "c64ee4648bd31969a88b1a6d6e9cc382c63d142ec9d7fc80848507dcbc9da279",
+    "checked-loader.py": "45754db264fb325868534655d1dc0e5e25a881f5ef1a443ef74afd2ae2aef297"
   },
   "cases": {
     "binding.py": [
@@ -95,7 +96,47 @@
       "test_timeout_cleanup_failure_does_not_become_successful_timeout",
       "test_timeout_output_read_or_seek_error_is_the_actual_failure",
       "test_unexpected_received_descriptors_are_all_attempted"
+    ],
+    "checked-loader.py": [
+      "test_actual_initialize_stops_at_unchanged_health_boundary",
+      "test_actual_preflight_executes_nothing_then_real_shared_binding",
+      "test_arbitrary_dict_missing_reader_or_other_callable_is_not_authority",
+      "test_authenticated_private_rows_do_not_repin_public_sources",
+      "test_authority_cannot_reenter_the_loader_it_authenticates",
+      "test_bad_metadata_rows_are_not_accepted_as_typed_inputs",
+      "test_binding_cannot_move_to_another_provider_or_reader",
+      "test_cached_module_path_source_function_and_cache_replacement_refuse",
+      "test_changed_lock_implementation_anchor_owner_and_process_refuse",
+      "test_concurrent_alias_loads_share_one_module",
+      "test_decoder_failure_is_not_replaced_or_reauthenticated",
+      "test_default_actual_public_refusal_unchanged",
+      "test_dynamic_import_has_no_fallback_and_partial_import_poisoned",
+      "test_each_changed_source_is_rejected_before_any_module",
+      "test_each_missing_private_input_fails_whole_preflight",
+      "test_exact_fixed_scope_and_no_optional_transitive_fallback",
+      "test_failure_after_acceptance_bind_detaches_only_our_worker",
+      "test_input_hash_failure_and_legacy_schema_precede_any_execution",
+      "test_late_source_mutation_at_last_authority_check_is_detected",
+      "test_metadata_symlink_hardlink_fifo_and_alias_refuse",
+      "test_missing_transitive_disk_source_precedes_worker_execution",
+      "test_mixed_worker_before_attach_is_not_overwritten",
+      "test_mutation_during_source_execution_is_not_published_or_retried",
+      "test_name_alias_returns_one_canonical_module_and_no_pyc",
+      "test_partial_source_execution_failure_is_sticky_and_not_cached",
+      "test_path_alias_wrong_pin_and_main_name_refuse",
+      "test_provider_revocation_on_reuse_refuses_before_returning_cached_module",
+      "test_public_reader_and_historical_binders_remain_unchanged",
+      "test_same_bytes_replacement_and_reversion_poison_handle",
+      "test_shared_worker_and_deployed_alias_mutation_refuse_reuse",
+      "test_source_replaced_across_authentication_is_detected",
+      "test_unknown_import_and_syntax_error_refuse_before_any_module",
+      "test_worker_literal_projection_and_project_import_refuse_preexec"
     ]
   },
-  "finalization_before_sha256": "44382acd27a4a5da05d933dd4779496d8a49b7e135900202d8931bb20998ea69"
+  "finalization_before_sha256": "44382acd27a4a5da05d933dd4779496d8a49b7e135900202d8931bb20998ea69",
+  "checked_loader": {
+    "patch_sha256": "78961bddbe79c745df0838acc8064ba2288481aa9df6d600c83bf86aec377a59",
+    "after_session_sha256": "03cbc1cf437a95a10ebb35caa4f180ac59e05ea1f4e8c532bd6f0ad02795fde5",
+    "admission_sha256": "cfa51919a4b5bdfc456621c5531ac2bc706642664029b0821d6e1729ceb4393e"
+  }
 }

@@ -16,7 +16,7 @@ to reconstruct the intermediate worker for two historical negative controls;
 it is not a second patch to apply after 0012. All composed bytes and strict
 forward/reverse application are checked before execution.
 
-The 58 cases exercise actual source with explicit external fixtures: 22 binding
+The original 58 cases exercise actual source with explicit external fixtures: 22 binding
 and route-ownership cases, 20 real Git/process-lifetime cases, and 16 finalizer
 cases including two old-code failure controls. The finalizer tests extract the
 actual function and pidfd starter, not a duplicate model. Source authentication
@@ -39,3 +39,24 @@ resource-acquisition gaps, escaped process groups or host power loss.
 The original ten-path source pins and private-worker refusal remain unchanged.
 No admission, runtime pin/seal, signed artifact or claim is issued. The original
 runtime remains UNBOUND; phone and VM results are NOT RUN.
+
+Patch 0013 adds an optional fixed five-source loader after 0012. Its 33 cases
+exercise actual admission input/schema/digest definitions and all five source
+modules, bringing this mandatory suite to 91 cases. The wrapper reconstructs
+admission from the existing fixture and patches 0010/0011; the retained test
+receives only its required source packet. No private review packet is committed.
+
+The bootstrap must already authenticate the session, admission implementation,
+its dependencies and INPUTS_SHA. Module/function identity checks preserve that
+trust; they do not establish it. The fixture supplies the input bytes and anchor,
+preloaded dependency graph, decoder and two historical custody rows. It never
+issues a lock, seal, claim or runtime binding. Full initialization still refuses
+at the unchanged health boundary; the default path still refuses the worker.
+
+The loader checks all source files before executing captured compiled code,
+rechecks before cache publication, shares one worker between transport/logger,
+and refuses reuse after a validation failure. Failed partial attachment detaches
+its own references. Failure at the first check of an already attached handle can
+leave references in place, but guarded reuse still refuses the failed handle.
+Neither the import filter nor these tests claim to sandbox hostile Python or
+qualify the unreviewed bootstrap/health dependency graph.

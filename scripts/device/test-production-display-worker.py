@@ -19,6 +19,47 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def prepare_loader(work, sources, after, pins):
+    """Reuse existing source composition; retain only the packet the tests consume."""
+    loader = work / 'loader'
+    callers = loader / 'current-callers'
+    callers.mkdir(parents=True)
+    admission = callers / 'live-admission.py.txt'
+    shutil.copyfile(ROOT / 'scripts/device/fixtures/display-loader/live-admission-before.py.txt',
+                    admission)
+    for filename, directory, include in (
+            ('0010-private-display-api.patch', callers, admission.name),
+            ('0011-production-cold-boot.patch', loader, 'current-callers/' + admission.name)):
+        for options in (['--check'], []):
+            subprocess.run(['git', 'apply', *options, '--include=' + include,
+                            str(ROOT / 'patches/display-controller' / filename)],
+                           cwd=directory, check=True, capture_output=True, timeout=10)
+    expected = pins['checked_loader']
+    if digest(admission.read_bytes()) != expected['admission_sha256']:
+        raise ValueError('checked-loader admission composition differs')
+    composed = loader / 'production-cohort'
+    shutil.copytree(sources, composed)
+    shutil.copyfile(after / 'production-cohort/session.py', composed / 'session.py')
+    contents = {name: (after / name).read_bytes() for name in pins['after']}
+    contents['current-callers/' + admission.name] = admission.read_bytes()
+    packet = loader / 'packet.txt'
+    packet.write_bytes(b''.join(
+        ('===== FILE ' + name + ' SHA256 ' + digest(raw) + ' =====\n').encode()
+        + raw + b'\n===== END FILE =====\n' for name, raw in contents.items()))
+    patch = ROOT / 'patches/display-controller/0013-checked-worker-sources.patch'
+    if digest(patch.read_bytes()) != expected['patch_sha256']:
+        raise ValueError('checked-loader patch changed')
+    before_sha = pins['after']['production-cohort/session.py']
+    # Leave composed at the reviewed BEFORE bytes: each test applies the patch.
+    for options, sha in ((['--check'], None), ([], expected['after_session_sha256']),
+                         (['--reverse', '--check'], None), (['--reverse'], before_sha)):
+        subprocess.run(['git', 'apply', *options, str(patch)], cwd=loader,
+                       check=True, capture_output=True, timeout=10)
+        if sha and digest((composed / 'session.py').read_bytes()) != sha:
+            raise ValueError('checked-loader application bytes differ')
+    return ['--packet', str(packet), '--patch', str(patch), '--sources', str(composed)]
+
+
 def main():
     if os.getuid() != 1000 or os.geteuid() != 1000:
         raise ValueError('ordinary UID1000 required; no root execution')
@@ -83,16 +124,19 @@ def main():
             + raw + b'\n===== END FILE =====\n' for name, raw in contents.items()))
         common = ['--packet', str(packet), '--patch', str(patch), '--sources', str(sources),
                   '--acceptance', str(ROOT / 'scripts/host/release-acceptance.py')]
+        loader_options = prepare_loader(work, sources, after, pins)
         total = 0
-        for filename in ('binding.py', 'lifetime.py', 'finalization.py'):
+        for filename in ('binding.py', 'lifetime.py', 'finalization.py', 'checked-loader.py'):
             options = (['--before', str(intermediate / 'ssh-worker.py.txt'),
                         '--after', str(after / 'ssh-worker.py.txt')]
                        if filename == 'finalization.py' else common)
             if filename == 'lifetime.py':
                 options = ['--binding-test', str(FIXTURES / 'binding.py'), *options]
+            if filename == 'checked-loader.py':
+                options = loader_options
             names = pins['cases'][filename]
             classname = {'binding.py': 'Binding', 'lifetime.py': 'Focused',
-                         'finalization.py': 'Finalization'}[filename]
+                         'finalization.py': 'Finalization', 'checked-loader.py': 'Loader'}[filename]
             tree = ast.parse((FIXTURES / filename).read_bytes())
             cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == classname)
             actual_names = sorted(n.name for n in cls.body
@@ -111,7 +155,7 @@ def main():
                     raise RuntimeError('worker batch failed: ' + ', '.join(selected))
                 total += len(selected)
                 print(f'PASS behavioral: {filename}: {len(selected)} cases', flush=True)
-        print(f'PASS behavioral: {total} actual worker/source-identity/finalization regressions')
+        print(f'PASS behavioral: {total} actual worker/source-identity/finalization/loader regressions')
         print('PASS applicability: exact source composition and strict forward/reverse patch application')
         print('NOT RUN private admission, installed runtime, real credentials, VM or phone operation')
 
