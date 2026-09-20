@@ -3539,3 +3539,14 @@ pids.events and EAGAIN distinguish this from OOM or shutdown. The bounded256-tas
 repeat peaked at98 and passed with the same binary, memory/CPU and deadlines.
 Preserve failed evidence and use measured task headroom in this fixture. Keep
 new diagnostic marker grammars separate from strict existing stage readers.
+
+
+Last-window versus quit return (2026-09-20): the393.923s VM records an empty GTK
+window list but no application shutdown, with Mousepad137 and no sampling helper.
+A RUN_FIRST class-closure completion does not imply all application holds are
+released or the surrounding destruction callback returned. Choose a narrow outer
+quit-return seam before another full VM. Verify its actual ELF dependency: the
+small Mousepad executable delegates implementation to libmousepad, which carries
+the action-function import. Dynamic import is still weaker than runtime path
+qualification. Preserve stage differences between runs instead of treating every
+missing marker as the same settings-sync failure or widening close deadlines.

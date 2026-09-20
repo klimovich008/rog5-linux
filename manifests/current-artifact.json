@@ -2238,6 +2238,19 @@
       "physical_status": "NOT RUN",
       "authority": "none; no phone/candidate",
       "set_id": "private:rog5-gtk-window-20260920-r1"
+    },
+    "gtk_window_vm": {
+      "status": "VM FAIL Foot0/Mousepad137; last GTK window removal completed, GApplication shutdown not observed",
+      "source_commit": "b96ffdecd0d8c1fd357ee13d7298a56f204f5c12",
+      "source_tree": "f536673cf1999f030e1177e65db4adbe607c335b",
+      "evidence": {
+        "path": "test-results/2026-09-20-gtk-window-vm-qualification.json",
+        "sha256": "f47a9ab49be5cb592b9a12f2fc131a1f43137b64abdd5488183ca4f40664c95e",
+        "bytes": 182143
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; no phone/candidate",
+      "set_id": "private:rog5-gtk-window-vm-20260920-r1"
     }
   },
   "denial_phone_linkage": {
