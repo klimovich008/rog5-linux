@@ -8718,6 +8718,98 @@
         "scripts/device/stage-production-display-modules.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-display-firmware.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/display-firmware.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-display-providers.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/display-providers.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-load-production-display.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc",
+        "git"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/load-production-display.py",
+        "scripts/device/test-display-loader-ordering.py",
+        "scripts/device/display-firmware.py",
+        "scripts/device/test-display-firmware.py",
+        "test-results/2026-09-20-production-display-modules-qualification.json",
+        "patches/display-controller/0001-default-dark-probe-ordering.patch",
+        "scripts/device/fixtures/display-loader/load-display-before.py",
+        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "scripts/device/test-ams678-lifecycle.py",
+        "scripts/device/fixtures/ams678/backlight-v7.1.4.c",
+        "scripts/device/fixtures/ams678/cases.c",
+        "scripts/device/fixtures/ams678/drm-brightness-v7.1.4.c",
+        "scripts/device/fixtures/ams678/drm-panel-v7.1.4.c",
+        "scripts/device/fixtures/ams678/stubs.h",
+        "scripts/device/display-providers.py",
+        "scripts/device/test-display-providers.py"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

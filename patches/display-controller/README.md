@@ -83,3 +83,45 @@ of host umask; the containing directory is private. This is host-side inert
 staging, not target admission or a root-owned phone payload. The future controller
 must revalidate its own target identity, ownership, files and one-use guards.
 The historical controller and its claims are unchanged.
+
+## Production successor components (offline only)
+
+`load-production-display.py` carries the exact qualified 14-module pins and
+preserves the one-shot helper, bounded child supervision and durable-entry
+callback. It loads REFGEN and GPUCC first, checks those providers, loads the DRM
+helpers and MSM, checks Adreno, and inserts the panel last. Every insertion is
+preceded by current identity, health, cleanup-owner and retained firmware checks.
+The archive's symbol order deliberately differs from this activation sequence.
+
+`display-providers.py` supplies read-only checkpoints for the exact composed DT:
+REFGEN's DSI-host supply, GPUCC/SMMU bindings, reciprocal GPU/GMU group membership,
+then Adreno binding and the shared-DRM parameters after MSM is present. It performs
+no reprobe, DMA test or DRM open. A missing provider fails; module presence alone
+is insufficient. Panel insertion itself can complete component binding and start
+GMU/display setup, so independent cleanup ownership precedes that insertion.
+
+`display-firmware.py` retains protected directory/file descriptors for the three
+fixed A660 firmware inputs and validates the firmware-class path. It detects root,
+mount namespace and pathname changes, with bounded hashing. The kernel uses
+`init_task.fs`, not the caller's private root. Matching the caller to PID1 is a
+prerequisite only: a future root transition still needs its own qualification.
+Do not treat `check()` as firmware import, SCM authentication or execution proof.
+
+The successor constructor takes the qualified endpoint, firmware factory and
+read-only checkpoint adapter. The future admitted composition must bind their
+source identities and exact device/boot/board identity; no such composition is
+issued here. Its durable entry must cover all 14 insertions and the 85-second
+component bound. Historical two-module/45-second contracts are incompatible.
+The old endpoint's release is rejected. No module is unloaded or retried and no
+claim is issued or consumed. This source is not a live entry point.
+
+The final endpoint and zero-command receipts are required, including the actual
+two-byte write and zero readback. Zero property alone, `None`, or an unsuccessful
+write cannot produce success. Independent cleanup retains its own errors and
+runs even after main health or firmware validation fails. No physical darkness,
+scanout or hardware acceleration is inferred.
+
+The executable tests use owned inert children and the actual panel/DRM/backlight
+callback extracts. Provider/sysfs/ownership/identity effects are explicit host
+fixtures. They include firmware-reader integration, early-panel ordering failure,
+provider failure, uncertain entry, missing receipts and interruption cleanup.
