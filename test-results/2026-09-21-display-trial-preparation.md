@@ -152,3 +152,31 @@ The actual15-step power-loader order also matches every declared prior dependenc
 except mdt_loader before qcom_q6v5_pas (0.000561s source/inventory check).
 These are preparation findings, not phone load results. No module was executed,
 no output candidate was assembled, and no old archive or catalog was changed.
+
+## Missing custom helpers built without a kernel rebuild
+
+A manifest-based mapping (0.035580s, excluding preceding source lookups) found
+all37 nested modules and8 of13 extra loose modules in the production cohort.
+The I2C GENI driver is built in. Touch has a separately qualified production-release
+offline artifact. Only rog5-pmic-pon-readonly, rog5-s12-ufs-vote and
+rog5-wifi-activate lacked selected production artifacts. The archive has69 module
+occurrences but54 unique modules;15 power modules also occur in the nested tree.
+Presence is distinct from complete composition and physical qualification.
+
+Those three unchanged C sources were built together with the existing production
+Image/config/symbol kit using the retained touch builder's kit/tool verification,
+read-only bubblewrap sandbox and bounded process owner. No diagnostic WCN source
+patch was added. The exact rpmh_read built-in export was checked before compilation.
+Both `ARCH=arm64 LLVM=1 -j2 W=1` builds and modpost passed without compiler warnings:
+4.224813s and4.035701s including verification. Peak memory169.5MiB and115.9MiB;
+service bounds768MiB/no swap,128tasks and180s. Byte comparison also passed.
+
+The resulting three module hashes and exact source/tool identities are recorded
+in the linked JSON. All have production vermagic; the activator retains its
+rog5-s12-ufs-vote dependency. The Image, configuration, source and kernel build
+kit were read-only during compilation; recorded kit outputs and module sources
+were checked before/after. Consumed header/control hashes are retained privately.
+The original kit's historical schema FAIL and source-scope limits remain explicit.
+These are isolated unsigned artifacts, not selected replacements, admission,
+module-load qualification or a completed trial package. Pro's complex composition
+review remains live in the same conversation.

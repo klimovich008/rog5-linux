@@ -4064,3 +4064,12 @@ under the standalone builder's unchanged-files guarantee. Two bounded inventorie
 completed in1.124s without extracting or altering the58.6MB archive. Qualify the
 whole composed module/release/catalog closure; do not infer it from a passing
 boot-module refresh or confuse the target archive with its recovery wrapper.
+
+
+Reuse the retained read-only external-module kit before considering a full kernel
+rebuild. Mapping the complete archive found only three missing custom helpers;
+unchanged sources compiled together in4.225s/4.036s with W=1 and byte-identical
+outputs. Verify required exported symbols and the shared helper dependency first.
+A built-in replacement (I2C GENI here) needs an explicit composition/consumer
+change, not a fabricated replacement .ko or silent retention of an old ELF.
+Keep compile proof separate from selected artifact authority and load behavior.
