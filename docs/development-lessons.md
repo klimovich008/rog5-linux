@@ -4056,3 +4056,11 @@ conversation and verified the new question and gpt-6-pro/Pro selection. A browse
 navigation timeout is neither terminal process evidence nor permission to submit
 a duplicate request. Keep prior failures and match the final answer to the exact
 new question before implementing its proposal.
+
+Before reusing a historical target initramfs, stream its full member inventory,
+including nested module archives. The19 boot modules were only one part of the
+retained ROG5 target:13 other loose modules and a37-module Wi-Fi archive remained
+under the standalone builder's unchanged-files guarantee. Two bounded inventories
+completed in1.124s without extracting or altering the58.6MB archive. Qualify the
+whole composed module/release/catalog closure; do not infer it from a passing
+boot-module refresh or confuse the target archive with its recovery wrapper.

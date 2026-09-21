@@ -128,3 +128,27 @@ The remaining work is a reviewed production-compatible ramdisk and real private
 controller/input binding, then unsigned isolated package assembly. Connection is
 still pending for an authorized read-only phone check. All physical results remain
 NOT RUN, with zero phone commands, signing operations or claim changes.
+
+## Retained base and complete module boundary
+
+The exact historical target archive was streaming-verified against its packaging
+manifest and inventoried in0.626501s, without extraction or modification:
+58,613,216bytes,736members, SHA256
+`dc805f639acd6295138324ecb7e5c687d6d51e2e982509f0ba4e9835c4d9977b`.
+It contains the required four UFS and fifteen power/USB files and executable
+init/shutdown. Its kernel source is136f75ae869afd47a016b1278fae2110cc6d2229,
+release7.1.4-g136f75ae869a. It needs the builder's explicit reviewed-base hash;
+the smaller recovery-wrapper archive is structurally unsuitable for this role.
+
+An additional0.497706s streaming inventory found13 other loose modules and the
+22,604,480-byte nested Wi-Fi module archive. All13 hashes match historical
+composition records. The retained receipt declares37 nested modules for the old
+release; their contents were not freshly extracted or qualified. The current
+standalone builder preserves these modules and their release/checksum catalogs.
+Historical composition separately refreshed that entire closure. Correcting the
+19 boot modules alone therefore cannot produce a complete production successor.
+
+The actual15-step power-loader order also matches every declared prior dependency
+except mdt_loader before qcom_q6v5_pas (0.000561s source/inventory check).
+These are preparation findings, not phone load results. No module was executed,
+no output candidate was assembled, and no old archive or catalog was changed.

@@ -214,5 +214,46 @@
     "attachment_bundle_sha256": "d92f1ad302a0d4ad8ec972ecb8f5ab4cbae1a24bf29c8e4cb7fc1ad3fe0237f5",
     "attachment_bundle_bytes": 322872,
     "proposal_applied": false
+  },
+  "retained_base_inventory": {
+    "scope": "read-only exact historical archive inventory; no extraction/composition/signing/claims/device",
+    "seconds": 0.6265006610192358,
+    "archive": {
+      "sha256": "dc805f639acd6295138324ecb7e5c687d6d51e2e982509f0ba4e9835c4d9977b",
+      "size": 58613216,
+      "members": 736,
+      "historical_kernel_source": "136f75ae869afd47a016b1278fae2110cc6d2229",
+      "historical_release": "7.1.4-g136f75ae869a",
+      "exact_ufs_inventory": true,
+      "exact_power_inventory": true
+    },
+    "requires_explicit_external_base_sha256": true,
+    "recovery_wrapper_suitable": false,
+    "remaining_modules": {
+      "loose": 13,
+      "nested_archive_count": 1,
+      "nested_module_count_from_historical_receipt": 37,
+      "nested_contents_freshly_inspected": false,
+      "inventory_seconds": 0.49770554300630465,
+      "standalone_builder_preserves_these": true
+    },
+    "complete_production_composition": "NOT RUN"
+  },
+  "power_loader_order": {
+    "scope": "offline source order against retained exact modinfo inventory; no module execution",
+    "source_sha256": "8f92f779f37f6d2e7a1165a0d881f6885c6ce46eacfc7092e0b6b4f4d06a9783",
+    "inventory_sha256": "81b57b0c99bf320e29ae3fc25c9d38c2622079f0177c0a37d157d176e6cbe48a",
+    "load_count": 15,
+    "unresolved": [
+      {
+        "file": "qcom_q6v5_pas.ko",
+        "dependencies_not_previously_loaded": [
+          "mdt_loader"
+        ]
+      }
+    ],
+    "phone_operations": 0,
+    "physical": "NOT RUN",
+    "seconds": 0.0005614280235022306
   }
 }
