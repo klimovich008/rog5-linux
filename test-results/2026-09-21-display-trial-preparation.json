@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "source_commit": "d0f1830ac2e595aa0fcf08d07451771f2a60afae",
+  "source_tree": "66d0c2a28aa4a41917ec0164bbc98c487bf7cf47",
+  "scope": {
+    "allowed": [
+      "isolated trial preparation",
+      "read-only phone identity and health"
+    ],
+    "excluded": [
+      "signing",
+      "claim creation or consumption",
+      "boot",
+      "flash",
+      "phone mutation",
+      "physical display trial"
+    ]
+  },
+  "ingredients": {
+    "status": "PASS_ISOLATED_INGREDIENT_COPY",
+    "seconds": 0.1669797920039855,
+    "files": 25,
+    "bytes": 35813759,
+    "files_sha256": {
+      "kernel/Image": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+      "dt/composed-2.dtb": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57",
+      "payload/display-modules/manifest.json": "ec9e258cce646d6f0981adf6e7d08a3b7817260f2563acbc1f326a14c5e1b2f8",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/clk/qcom/gpucc-sm8350.ko": "f6655f793067d2f968e90e3d9e25df00a2c9ab07c4305ade6da87257ff067f94",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/clients/drm_client_lib.ko": "4bb90e10be99f08c26d133d88c503f008aa34e1fa45fa4f4b4a88cf447b46b85",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/display/drm_display_helper.ko": "c898ec6877e0cc8f8982d95eda43a1f88f32dee688544a32bebf04fb42680f85",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/display/drm_dp_aux_bus.ko": "354572b78d90c289306222dd97361fdfdce30be5743c3048c0ebc5eef27b7932",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_exec.ko": "0d229a2ba442285c46c6781c6bd5bd1c51e1b14f160e70d43fde5b43abb3dfb2",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_gpuvm.ko": "d0fa46f8efc6da80351850598b618ad5ba2d864d231b461ab3aad00dacc8539c",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/drm_kms_helper.ko": "58c42af96596f2d3f8de1872c6fff12ecbee4281dbc08a8c26753fc38a848560",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/msm/msm.ko": "39980ab3f730c680e493dade37316133cd6d5047a55a49664a9ead39a822e703",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/panel/panel-asus-rog5-ams678.ko": "79dc4d21db7726fd939acd10d35ce0f681fee07a847074734485c11008d72994",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/scheduler/gpu-sched.ko": "cca61e1ac9bb3f148e4627fdd6a38e9f3d266e181001171aca634f50f30b4ae4",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/media/cec/core/cec.ko": "9768836a5ced017d5de6ede06198c2307d7bb8ab1033d3864d6efc329cda85f8",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/regulator/qcom-refgen-regulator.ko": "10b6ab323bde093168d622139c505d77bb197aed45b75c4a2c23fcea9c0788c0",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/soc/qcom/mdt_loader.ko": "24c4d100d127a23354751f4e44b1d4cd1af206862627de863a60436ee84f2232",
+      "payload/display-modules/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/soc/qcom/ubwc_config.ko": "a34259b12cd3781037f8179c3793eea4956d54f0abbc42eb7dbad43e2e0cec8a",
+      "payload/firmware/LICENSES/LICENSE.qcom": "be904cd28cb292b80cdb6cf412ab0d9159d431671e987ad433c1f62e0988a9bc",
+      "payload/firmware/LICENSES/NOTICE.qcom": "fa43e1b9a13b341a07adca9dbe73d0f9072d7966fdfe811c01f0dd2872d7309a",
+      "payload/firmware/WHENCE": "855b6592910c87ba6a73c2543436830775dd0f622d4b82c0cfa6f9406bec3f64",
+      "payload/firmware/qcom/a660_gmu.bin": "8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7",
+      "payload/firmware/qcom/a660_sqe.fw": "d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76",
+      "payload/firmware/qcom/sm8350/a660_zap.mbn": "5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d",
+      "payload/module-once": "744361997ed149b6bae2df502f0d3bcf849de1a3f0bd70f450e8cc82adbac939",
+      "payload/payload-manifest.json": "3323612cca004abdb08da842ab5823e35009994036b7155d3877a1722c8804d6"
+    },
+    "complete_trial_package": false,
+    "boot_image_created": false,
+    "signed": false,
+    "admitted": false
+  },
+  "host_readonly_preflight": {
+    "status": "BLOCKED_READONLY_PHONE_CHECK",
+    "usb_mode": "absent",
+    "seconds": 0.11105336202308536,
+    "phone_command_invoked": false
+  },
+  "physical": "NOT RUN",
+  "scripts": {
+    "stage-ingredients.py": "b67b16ed088628d21b1032c121d993c4e491af84260ba90fa5456eb5ddb9833c",
+    "host-readonly-preflight.py": "087a3974cfcb7f1dedce2602b72532ffa0e6995b848893e90635562c26f3d379"
+  },
+  "commands": [
+    "timeout --kill-after=2s 30s python -I -B PRIVATE_PREPARATION/host-readonly-preflight.py",
+    "timeout --kill-after=2s 90s python -I -B PRIVATE_PREPARATION/stage-ingredients.py"
+  ]
+}

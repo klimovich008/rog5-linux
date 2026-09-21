@@ -1,14 +1,17 @@
 {
   "schema": 1,
-  "phase": "Display trial ingredients verified; scope approval pending",
+  "phase": "Isolated display-trial preparation; USB connection absent",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
-  "phone_operations_authorized": false,
+  "phone_operations_authorized": true,
   "open_headless_results": {
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Source 82679758 retains 132 active suites PASS. The retained 22-file display payload matches current contracts; current kernel Image and composed DTB hashes also match. No rebuild or new candidate was needed for these checks. Historical input-lock incompatibility is established; preserve that lock. Scope approval is pending for one isolated successor display-trial package and read-only phone health/identity checks. Signing, claims, booting and flashing remain excluded; no Ready request is active. Until the user answers, the offline-only restriction remains in force. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
-  "evidence": "test-results/2026-09-20-production-display-cohort.md"
+  "next": "User approved isolated trial preparation and read-only phone checks on September21. The verified Image, composedDTB and display payload are copied into one private package workspace; controller/input binding remains incomplete. Exact USB path absent: no phone command ran. Continue concrete successor-input review while awaiting connection. Signing, claims, boot, flashing and target mutation remain excluded; no Ready request. Runtime UNBOUND, physical NOT RUN, S06/R01 and prior VM failures remain FAIL.",
+  "evidence": "test-results/2026-09-21-display-trial-preparation.md",
+  "phone_operation_scope": [
+    "read-only identity and health checks only"
+  ]
 }

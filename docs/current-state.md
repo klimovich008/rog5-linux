@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Display trial ingredients verified; scope approval pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Isolated display-trial preparation; USB connection absent**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Source 82679758 retains 132 active suites PASS. The retained 22-file display payload matches current contracts; current kernel Image and composed DTB hashes also match. No rebuild or new candidate was needed for these checks. Historical input-lock incompatibility is established; preserve that lock. Scope approval is pending for one isolated successor display-trial package and read-only phone health/identity checks. Signing, claims, booting and flashing remain excluded; no Ready request is active. Until the user answers, the offline-only restriction remains in force. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-20-production-display-cohort.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+User approved isolated trial preparation and read-only phone checks on September21. The verified Image, composedDTB and display payload are copied into one private package workspace; controller/input binding remains incomplete. Exact USB path absent: no phone command ran. Continue concrete successor-input review while awaiting connection. Signing, claims, boot, flashing and target mutation remain excluded; no Ready request. Runtime UNBOUND, physical NOT RUN, S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-21-display-trial-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
