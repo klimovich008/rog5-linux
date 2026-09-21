@@ -126,7 +126,33 @@
         "scripts/device/test-standalone-module-refresh.sh": "d907200649bdbd8e9ed82ba95254411c81e479c5b1f130959f8902cce9f22c2a"
       }
     },
-    "integrated_active": "NOT RUN on new implementation yet",
+    "integrated_active": {
+      "command": [
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "b5afca52061300eb8ceedcb8092e28896127bc22",
+      "source_tree": "ae0d8fd2add248bdfaf01fa643db6cc67d0ec591",
+      "phone_operations": 0,
+      "exit_status": 0,
+      "seconds": 747.8643199939979,
+      "status": "PASS",
+      "counts": {
+        "PASS": 132,
+        "FAIL": 0,
+        "BLOCKED": 0,
+        "SKIPPED": 0,
+        "NOT_SELECTED": 257
+      },
+      "subcheck_counts": {
+        "SKIPPED": 3
+      },
+      "report_sha256": {
+        "summary.json": "394cc2516badafe97afa52101c537c5d9dc51c5fdb4850e84cf3c5e5f33c8d6d",
+        "summary.xml": "f52b238ae729448cf5b062dc85fa2a9b4a5c835c54aeee0107c368167657423e"
+      }
+    },
     "full_production_initramfs": "NOT RUN",
     "phone_operations": 0,
     "newline_before": {
@@ -151,5 +177,42 @@
       "seconds": 0.48480574804125354,
       "source_sha256": "cbeb8453b8a4a2b4e4ec7edca20be0721bf11b3b90cb224ac661064527c0c2fb"
     }
+  },
+  "boot_module_counterexample": {
+    "command": [
+      "scripts/device/verify-persistent-ufs-module-profile.sh",
+      "ISOLATED_COPIED_UFS_MODULES",
+      "7.1.4-rog5-production",
+      "local-write"
+    ],
+    "verifier_sha256": "d9f8361679d57aa861ae81214308ac4e264c588f3b631f596ba437810d7565bd",
+    "exit_status": 1,
+    "seconds": 0.022485815978143364,
+    "expected_refusal": "deferred UFS module lacks BTF: phy-qcom-qmp-ufs.ko",
+    "expected_refusal_observed": true,
+    "stdout": "verifier.stdout",
+    "stderr": "verifier.stderr",
+    "inventory": "inventory.json",
+    "attempts": 1,
+    "physical": "NOT RUN",
+    "production_config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+    "production_module_struct_bytes": 1216,
+    "legacy_required_module_struct_bytes": 1280,
+    "required_modules_present": 19,
+    "required_modules_have_btf": false,
+    "missing_loader_dependency": "mdt_loader for qcom_q6v5_pas",
+    "fix_status": "awaiting reviewed production composition solution"
+  },
+  "adviser": {
+    "status": "RUNNING",
+    "session": "rog5-trial-existing-r2",
+    "model": "gpt-6-pro",
+    "thinking": "pro",
+    "model_verified": true,
+    "prompt_submitted": true,
+    "same_existing_conversation": true,
+    "attachment_bundle_sha256": "d92f1ad302a0d4ad8ec972ecb8f5ab4cbae1a24bf29c8e4cb7fc1ad3fe0237f5",
+    "attachment_bundle_bytes": 322872,
+    "proposal_applied": false
   }
 }

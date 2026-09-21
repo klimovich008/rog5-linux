@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production release-name fix qualified; trial composition incomplete**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production release-name fix passes active tier; boot-module composition unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Exact production release-name rejection is fixed with a failing-before real archive regression; four composition methods and module-refresh suite PASS. Freeze this small change for one applicable active-tier run. Full production ramdisk, controller/input binding and unsigned boot composition remain incomplete. Oracle follow-up is live at navigation, submission/Pro selection unconfirmed. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged. See [current repair evidence](../test-results/2026-09-21-display-trial-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen b5afca52 source passed 132 active suites in 747.864s, with zero failed, blocked or skipped suites and three declared optional subchecks skipped. Actual production boot modules fail the legacy BTF profile; a missing power-loader dependency is also confirmed. Pro review is submitted in the existing conversation with gpt-6-pro and Pro thinking verified. Full ramdisk, private controller/input binding and unsigned boot composition remain incomplete. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged. See [current repair evidence](../test-results/2026-09-21-display-trial-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -5,8 +5,8 @@ checks. Signing, claims, boot, flashing, target mutation and physical trials rem
 excluded. No Ready request or physical countdown is active.
 
 Starting source is `d0f1830ac2e595aa0fcf08d07451771f2a60afae`, tree
-`66d0c2a28aa4a41917ec0164bbc98c487bf7cf47`. Implementation remains82679758;
-its previously recorded132-suite qualification was not rerun.
+`66d0c2a28aa4a41917ec0164bbc98c487bf7cf47`. Implementation initially remained82679758; the release-name correction and
+its new qualification are recorded below.
 
 [Machine-readable results](2026-09-21-display-trial-preparation.json) retain
 commands, durations, script identities and copied artifact hashes. In a new
@@ -56,9 +56,9 @@ or directly package the target DTB. Historical136f's raw outer Android image
 contains a signed inner Image/DTB/initramfs bundle. Its historical preparation
 command therefore must not be run as an unsigned shortcut. No signing command ran.
 
-The next Pro follow-up must include these exact builder sources and counterexample
-before adapting composition. The existing `rog5-trial-producer-r1` consultation
-process is live but remains at browser navigation with submission/Pro selection
+At that checkpoint, the next Pro follow-up still needed these exact builder
+sources and counterexample before adapting composition. The then-current `rog5-trial-producer-r1` consultation
+process remained at browser navigation with submission/Pro selection
 unconfirmed. Bounded page inspection and the previous owned-tab JavaScript recovery
 both timed out; neither means the process is terminal. No duplicate request or
 weaker model/API fallback was started. The owned-tab memory guard remains active.
@@ -90,3 +90,41 @@ or malformed release values. Final builder SHA256
 `cbeb8453b8a4a2b4e4ec7edca20be0721bf11b3b90cb224ac661064527c0c2fb`.
 This follow-up supersedes the intermediate builder hash without deleting its
 failing/passing evidence. No other module function changed after its focused pass.
+
+## Frozen implementation qualification and remaining composition failure
+
+Final implementation commit `b5afca52061300eb8ceedcb8092e28896127bc22`, tree
+`ae0d8fd2add248bdfaf01fa643db6cc67d0ec591`, passed
+`bash scripts/host/test-repository-linux.sh active` in747.864320s:
+132PASS, zeroFAIL/BLOCKED/suiteSKIPPED,257NOT_SELECTED. Three declared optional
+subchecks were SKIPPED. The run used two workers,1GiB memory/no swap and a1200s
+service deadline; peak memory378.3MiB. JSON/JUnit report hashes are in the linked
+result. This supersedes the pending integrated-test statement above. No unchanged
+kernel build or physical trial was rerun.
+
+The actual selected production cohort has all19 boot-module files and exact
+`7.1.4-rog5-production SMP preempt mod_unload aarch64` vermagic. However, all19
+lack BTF; their module structure section is0x4c0 bytes while the historical
+UFS verifier requires0x500 and BTF. The selected configuration has
+CONFIG_DEBUG_INFO_NONE=y and disabled CONFIG_MODVERSIONS. One invocation of the
+unchanged verifier on independently verified copies failed in0.022486s with
+`FAIL deferred UFS module lacks BTF: phy-qcom-qmp-ufs.ko`. This is a real
+profile incompatibility, separate from the now-fixed release-name rejection.
+The current qcom_q6v5_pas also requires mdt_loader, configured as a module and
+absent from the old fixed power-module list. No guard was relaxed and no module
+was loaded. Qualified display ingredients alone do not establish a complete
+compatible early-boot module closure.
+
+The stalled Oracle attempts terminated without submitting duplicate questions.
+The existing conversation was successfully resumed through its responsive owned
+tab and explicit browser port. Session `rog5-trial-existing-r2` now has the full
+current source/diff, module inventory and exact error attached (322872-byte
+bundle). Native response metadata confirms gpt-6-pro; Oracle records Pro thinking.
+The exact new question is verified; its final answer is still pending. No proposed
+complex production-composition change has been applied. The original navigation
+failures above remain historical evidence, not the current consultation state.
+
+The remaining work is a reviewed production-compatible ramdisk and real private
+controller/input binding, then unsigned isolated package assembly. Connection is
+still pending for an authorized read-only phone check. All physical results remain
+NOT RUN, with zero phone commands, signing operations or claim changes.

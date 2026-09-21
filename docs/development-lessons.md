@@ -4037,3 +4037,22 @@ refused the retained lock in0.057s, while history identity and host continuity
 passed. Keep the old lock intact and qualify any successor separately. Follow
 external helpers through their callees before borrowing behavior: Mu's
 ArmSmmuDetach argument is a skip list preserving the named display streams.
+
+
+Production boot preparation (2026-09-21): use exact string equality for an added
+fixed release token; a line-oriented regex accepted a newline suffix. The actual
+archive regression caught both the original production-name rejection and this
+intermediate error. Four final composition methods pass; one frozen active tier
+passed132suites in747.864s. Before rebuilding, compare retained boot modules with
+actual builder requirements: exact vermagic and a qualified display payload do
+not establish BTF, module-structure compatibility or early-boot dependency closure.
+The existing UFS verifier exposed the BTF mismatch in0.022486s without device I/O.
+
+Oracle recovery: this installed CLI's followup path resets the requested browser
+tab, so repeating that option did not reuse the responsive tab. Verify the native
+last question and terminal state of the owned stalled attempt before recovery.
+Explicit existing-tab mode with the actual remote browser port resumed the same
+conversation and verified the new question and gpt-6-pro/Pro selection. A browser
+navigation timeout is neither terminal process evidence nor permission to submit
+a duplicate request. Keep prior failures and match the final answer to the exact
+new question before implementing its proposal.
