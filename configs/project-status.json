@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "User approved isolated trial preparation and read-only phone checks on September21. The verified Image, composedDTB and display payload are copied into one private package workspace; controller/input binding remains incomplete. Exact USB path absent: no phone command ran. Continue concrete successor-input review while awaiting connection. Signing, claims, boot, flashing and target mutation remain excluded; no Ready request. Runtime UNBOUND, physical NOT RUN, S06/R01 and prior VM failures remain FAIL.",
+  "next": "User approved isolated trial preparation and read-only phone checks. Verified Image/DTB/display ingredients are staged, but current initramfs builder rejects7.1.4-rog5-production (actual0.006111s pre-input refusal). Historical outer raw boot image contains a signed inner bundle and is not an unsigned shortcut. Review exact composition before adapting it. Existing Oracle follow-up is live at browser navigation; submission/Pro selection unconfirmed. Exact USB path absent; connection prompt pending, no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
   "evidence": "test-results/2026-09-21-display-trial-preparation.md",
   "phone_operation_scope": [
     "read-only identity and health checks only"

@@ -34,3 +34,31 @@ no old pin, seal, consumed claim, accepted image or historical evidence is repla
 Physical results remain NOT RUN; S06/R01 and earlier VM failures remain unchanged.
 The useful efficiency step was reusing the retained compiled artifacts: no kernel,
 Denial or unchanged integration test rerun was needed for this preparation.
+
+## Boot composition boundary
+
+The actual `build-persistent-root-standalone-initramfs.sh` was invoked with
+`EXPECTED_RELEASE=7.1.4-rog5-production`, an intentionally absent base and a new
+output path. It exited1 in0.006111s with
+`FAIL invalid expected standalone kernel release`. No base was read or output
+created. Source SHA256:
+`1fa12860f9bddf716378647ece849e53f48593e726be8b11bd97aa3f3c2a92d1`.
+This establishes an incompatibility between the existing builder and the selected
+production release, not a failed full build or authority to broaden all guards.
+Its refresh additionally requires four UFS and fifteen power/USB modules; the
+14-module display payload is a different closure.
+
+`build-native-wifi-persistent-trial-initramfs.py --successor --refresh-userspace`
+can refresh current trial/radio userspace, but explicitly leaves kernel/init/storage
+composition separate. `repack-android-boot-v3.sh` can wrap compatible inputs with
+an unsigned AVB footer (`algorithm NONE`); it does not supply that missing base
+or directly package the target DTB. Historical136f's raw outer Android image
+contains a signed inner Image/DTB/initramfs bundle. Its historical preparation
+command therefore must not be run as an unsigned shortcut. No signing command ran.
+
+The next Pro follow-up must include these exact builder sources and counterexample
+before adapting composition. The existing `rog5-trial-producer-r1` consultation
+process is live but remains at browser navigation with submission/Pro selection
+unconfirmed. Bounded page inspection and the previous owned-tab JavaScript recovery
+both timed out; neither means the process is terminal. No duplicate request or
+weaker model/API fallback was started. The owned-tab memory guard remains active.

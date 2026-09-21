@@ -67,5 +67,20 @@
   "commands": [
     "timeout --kill-after=2s 30s python -I -B PRIVATE_PREPARATION/host-readonly-preflight.py",
     "timeout --kill-after=2s 90s python -I -B PRIVATE_PREPARATION/stage-ingredients.py"
-  ]
+  ],
+  "boot_composition_counterexample": {
+    "status": "CONFIRMED_PRODUCTION_RELEASE_REFUSAL",
+    "environment": {
+      "EXPECTED_RELEASE": "7.1.4-rog5-production"
+    },
+    "source_sha256": "1fa12860f9bddf716378647ece849e53f48593e726be8b11bd97aa3f3c2a92d1",
+    "returncode": 1,
+    "seconds": 0.006111492984928191,
+    "stderr": "FAIL invalid expected standalone kernel release\n",
+    "output_created": false,
+    "base_read": false,
+    "full_build": "NOT RUN",
+    "phone_operations": 0,
+    "command": "EXPECTED_RELEASE=7.1.4-rog5-production sh scripts/device/build-persistent-root-standalone-initramfs.sh ABSENT_BASE NEW_OUTPUT"
+  }
 }
