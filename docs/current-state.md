@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Isolated display-trial preparation; USB connection absent**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production release-name fix qualified; trial composition incomplete**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-User approved isolated trial preparation and read-only phone checks. Verified Image/DTB/display ingredients are staged, but current initramfs builder rejects7.1.4-rog5-production (actual0.006111s pre-input refusal). Historical outer raw boot image contains a signed inner bundle and is not an unsigned shortcut. Review exact composition before adapting it. Existing Oracle follow-up is live at browser navigation; submission/Pro selection unconfirmed. Exact USB path absent; connection prompt pending, no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL. See [current repair evidence](../test-results/2026-09-21-display-trial-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Exact production release-name rejection is fixed with a failing-before real archive regression; four composition methods and module-refresh suite PASS. Freeze this small change for one applicable active-tier run. Full production ramdisk, controller/input binding and unsigned boot composition remain incomplete. Oracle follow-up is live at navigation, submission/Pro selection unconfirmed. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged. See [current repair evidence](../test-results/2026-09-21-display-trial-preparation.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

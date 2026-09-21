@@ -62,3 +62,22 @@ process is live but remains at browser navigation with submission/Pro selection
 unconfirmed. Bounded page inspection and the previous owned-tab JavaScript recovery
 both timed out; neither means the process is terminal. No duplicate request or
 weaker model/API fallback was started. The owned-tab memory guard remains active.
+
+## Exact production release-name correction
+
+The release-name allowlist now additionally accepts the exact string
+`7.1.4-rog5-production`; the existing legacy format and all module/base checks
+are retained. This is a routine validation correction, separate from the complex
+source/input and complete boot composition still awaiting Pro. No production
+ramdisk, input lock, seal, signature or execution authority was created.
+
+The new real-archive regression failed against the previous builder in0.091392s.
+After the one-line correction, all four composition methods passed in0.489005s
+under Python-O. They exercise the real shell/cpio builder, confirm the selected
+release is embedded and the exact current shutdown script is included, preserve
+legacy archive checks and reject five other/malformed release names before input.
+The module-refresh fixture additionally passes with both legacy and production
+release names; its wrong-vermagic, unsafe and changed-inventory refusals remain.
+That suite passed in0.092223s. Artifact effects use tiny disposable nonbootable
+archives; no kernel modules execute. The applicable active tier will run once
+on the frozen result; previous132-suite evidence is not claimed for this edit.

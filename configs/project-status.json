@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Isolated display-trial preparation; USB connection absent",
+  "phase": "Production release-name fix qualified; trial composition incomplete",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "User approved isolated trial preparation and read-only phone checks. Verified Image/DTB/display ingredients are staged, but current initramfs builder rejects7.1.4-rog5-production (actual0.006111s pre-input refusal). Historical outer raw boot image contains a signed inner bundle and is not an unsigned shortcut. Review exact composition before adapting it. Existing Oracle follow-up is live at browser navigation; submission/Pro selection unconfirmed. Exact USB path absent; connection prompt pending, no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Runtime UNBOUND; physical NOT RUN; S06/R01 and prior VM failures remain FAIL.",
+  "next": "Exact production release-name rejection is fixed with a failing-before real archive regression; four composition methods and module-refresh suite PASS. Freeze this small change for one applicable active-tier run. Full production ramdisk, controller/input binding and unsigned boot composition remain incomplete. Oracle follow-up is live at navigation, submission/Pro selection unconfirmed. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged.",
   "evidence": "test-results/2026-09-21-display-trial-preparation.md",
   "phone_operation_scope": [
     "read-only identity and health checks only"

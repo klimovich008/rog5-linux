@@ -19,8 +19,10 @@ readelf() {
 	esac
 }
 modinfo() { printf '%s SMP\n' "${fixture_release:-$expected_release}"; }
-refresh_module_set "$work/source" "$work/target" 1
-cmp "$work/source/probe.ko" "$work/target/probe.ko"
+for expected_release in 7.1.4-g359318de534f 7.1.4-rog5-production; do
+	refresh_module_set "$work/source" "$work/target" 1
+	cmp "$work/source/probe.ko" "$work/target/probe.ko"
+done
 for hostile in missing extra symlink bad-release; do
 	case $hostile in
 		missing) mv "$work/source/probe.ko" "$work/probe.ko" ;;

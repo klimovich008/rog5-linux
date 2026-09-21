@@ -16,6 +16,41 @@ SPEC.loader.exec_module(M)
 
 
 class RescueComposition(unittest.TestCase):
+    def test_exact_production_release_is_rendered_into_real_archive(self):
+        members = {}
+        for name in ('init', 'shutdown'):
+            M.add(members, name, b'#!/bin/sh\nexit 1\n', 0o100755)
+        base = gzip.compress(M.encode(members), mtime=0)
+        with tempfile.TemporaryDirectory(prefix='rog5-production-release-') as temp:
+            root = Path(temp)
+            source, output = root/'base.gz', root/'output.gz'
+            source.write_bytes(base)
+            subprocess.run(
+                ['sh', str(REPO/'scripts/device/build-persistent-root-standalone-initramfs.sh'),
+                 str(source), str(output)], check=True, capture_output=True, timeout=30,
+                env=dict(os.environ, EXPECTED_RELEASE='7.1.4-rog5-production',
+                         EXPECTED_STANDALONE_BASE_SHA256=M.sha(base)))
+            built = M.entries(gzip.decompress(output.read_bytes()))
+            self.assertIn(b'expected_kernel_release=7.1.4-rog5-production\n', built['init'][1])
+            self.assertNotIn(b'@EXPECTED_KERNEL_RELEASE@', built['init'][1])
+            self.assertEqual(built['shutdown'][1],
+                             (REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes())
+
+    def test_other_production_release_names_are_rejected_before_input(self):
+        with tempfile.TemporaryDirectory(prefix='rog5-invalid-release-') as temp:
+            root = Path(temp)
+            for release in ('7.1.4-rog5-production-extra', '7.1.5-rog5-production',
+                            '7.1.4-rog5-diagnostic', '7.1.4-g123', '7.1.4-g123456789abz'):
+                with self.subTest(release=release):
+                    result = subprocess.run(
+                        ['sh', str(REPO/'scripts/device/build-persistent-root-standalone-initramfs.sh'),
+                         str(root/'absent.gz'), str(root/'output.gz')],
+                        capture_output=True, timeout=5,
+                        env=dict(os.environ, EXPECTED_RELEASE=release))
+                    self.assertEqual(result.returncode, 1)
+                    self.assertEqual(result.stderr, b'FAIL invalid expected standalone kernel release\n')
+                    self.assertFalse((root/'output.gz').exists())
+
     def test_refresh_includes_current_keyring_inputs_from_absent_or_stale_base(self):
         package_inputs = (
             ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring', 0o100755),

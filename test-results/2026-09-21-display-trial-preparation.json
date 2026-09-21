@@ -82,5 +82,52 @@
     "full_build": "NOT RUN",
     "phone_operations": 0,
     "command": "EXPECTED_RELEASE=7.1.4-rog5-production sh scripts/device/build-persistent-root-standalone-initramfs.sh ABSENT_BASE NEW_OUTPUT"
+  },
+  "release_gate_fix": {
+    "scope": "exact release-name allowlist only; ordinary validation edit",
+    "before": {
+      "command": [
+        "python",
+        "-B",
+        "-O",
+        "scripts/device/test-standalone-rescue-composition.py",
+        "RescueComposition.test_exact_production_release_is_rendered_into_real_archive"
+      ],
+      "exit_status": 1,
+      "seconds": 0.09139150299597532,
+      "expected_failure": true
+    },
+    "after": {
+      "results": [
+        {
+          "name": "composition",
+          "command": [
+            "python",
+            "-B",
+            "-O",
+            "scripts/device/test-standalone-rescue-composition.py"
+          ],
+          "exit_status": 0,
+          "seconds": 0.48900510399835184
+        },
+        {
+          "name": "module-refresh",
+          "command": [
+            "sh",
+            "scripts/device/test-standalone-module-refresh.sh"
+          ],
+          "exit_status": 0,
+          "seconds": 0.09222282300470397
+        }
+      ],
+      "sources": {
+        "scripts/device/build-persistent-root-standalone-initramfs.sh": "f6371303e3e9d6219eb4a45752a06232474392d4f9b97b81dea70af3ad004b4f",
+        "scripts/device/test-standalone-rescue-composition.py": "60a67de3344afba92b8fbb373dcd1ee5864b645c83a76591631656832a132504",
+        "scripts/device/test-standalone-module-refresh.sh": "d907200649bdbd8e9ed82ba95254411c81e479c5b1f130959f8902cce9f22c2a"
+      }
+    },
+    "integrated_active": "NOT RUN on new implementation yet",
+    "full_production_initramfs": "NOT RUN",
+    "phone_operations": 0
   }
 }
