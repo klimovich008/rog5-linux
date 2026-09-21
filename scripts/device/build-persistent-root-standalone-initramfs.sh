@@ -30,7 +30,8 @@ case $persistent_overlay_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
 	exit 1
 esac
-printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-(g[0-9a-f]{12}|rog5-production)$' || {
+[ "$expected_release" = 7.1.4-rog5-production ] ||
+printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
 	echo 'FAIL invalid expected standalone kernel release' >&2
 	exit 1
 }

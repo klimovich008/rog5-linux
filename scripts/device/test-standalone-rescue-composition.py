@@ -40,7 +40,8 @@ class RescueComposition(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='rog5-invalid-release-') as temp:
             root = Path(temp)
             for release in ('7.1.4-rog5-production-extra', '7.1.5-rog5-production',
-                            '7.1.4-rog5-diagnostic', '7.1.4-g123', '7.1.4-g123456789abz'):
+                            '7.1.4-rog5-diagnostic', '7.1.4-g123', '7.1.4-g123456789abz',
+                            '7.1.4-rog5-production\nextra'):
                 with self.subTest(release=release):
                     result = subprocess.run(
                         ['sh', str(REPO/'scripts/device/build-persistent-root-standalone-initramfs.sh'),

@@ -72,7 +72,7 @@ source/input and complete boot composition still awaiting Pro. No production
 ramdisk, input lock, seal, signature or execution authority was created.
 
 The new real-archive regression failed against the previous builder in0.091392s.
-After the one-line correction, all four composition methods passed in0.489005s
+After the initial correction, all four composition methods passed in0.489005s
 under Python-O. They exercise the real shell/cpio builder, confirm the selected
 release is embedded and the exact current shutdown script is included, preserve
 legacy archive checks and reject five other/malformed release names before input.
@@ -81,3 +81,12 @@ release names; its wrong-vermagic, unsafe and changed-inventory refusals remain.
 That suite passed in0.092223s. Artifact effects use tiny disposable nonbootable
 archives; no kernel modules execute. The applicable active tier will run once
 on the frozen result; previous132-suite evidence is not claimed for this edit.
+
+A final adversarial case caught line-oriented grep accepting a production release
+followed by a newline and extra data (failed-before0.123921s). The production
+addition now uses shell string equality; the legacy regex is unchanged. The
+final four composition methods pass in0.484806s, including six invalid production
+or malformed release values. Final builder SHA256
+`cbeb8453b8a4a2b4e4ec7edca20be0721bf11b3b90cb224ac661064527c0c2fb`.
+This follow-up supersedes the intermediate builder hash without deleting its
+failing/passing evidence. No other module function changed after its focused pass.

@@ -128,6 +128,28 @@
     },
     "integrated_active": "NOT RUN on new implementation yet",
     "full_production_initramfs": "NOT RUN",
-    "phone_operations": 0
+    "phone_operations": 0,
+    "newline_before": {
+      "command": [
+        "python",
+        "-B",
+        "-O",
+        "scripts/device/test-standalone-rescue-composition.py",
+        "RescueComposition.test_other_production_release_names_are_rejected_before_input"
+      ],
+      "exit_status": 1,
+      "seconds": 0.12392138899303973
+    },
+    "final_composition": {
+      "command": [
+        "python",
+        "-B",
+        "-O",
+        "scripts/device/test-standalone-rescue-composition.py"
+      ],
+      "exit_status": 0,
+      "seconds": 0.48480574804125354,
+      "source_sha256": "cbeb8453b8a4a2b4e4ec7edca20be0721bf11b3b90cb224ac661064527c0c2fb"
+    }
   }
 }
