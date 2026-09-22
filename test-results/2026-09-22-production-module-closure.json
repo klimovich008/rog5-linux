@@ -72,6 +72,27 @@
     "authority": "none",
     "physical": "NOT RUN"
   },
+  "nonbootable_archive_rehearsal": {
+    "status": "PASS_NONBOOTABLE_ARCHIVE_REFRESH_REHEARSAL",
+    "base_sha256": "dc805f639acd6295138324ecb7e5c687d6d51e2e982509f0ba4e9835c4d9977b",
+    "archive_sha256": "e25306cb83c1cceb29b670a32788677544ce1228486f8d131cdf1b4b6f2c9ee3",
+    "archive_bytes": 33896245,
+    "newc_members": 732,
+    "replaced_loose_modules": 31,
+    "removed_historical_i2c_module": true,
+    "removed_init_trial_identity_and_relay_nonce": true,
+    "nested_module_files": 78,
+    "boot_catalog_entries": 73,
+    "roundtrip_all_members": true,
+    "seconds": 2.9585022969404235,
+    "independent_stream_check_seconds": 0.37233365303836763,
+    "memory_peak_mib": 254.4,
+    "private_result_sha256": "626021213bc0c4c6ebb9ec3092c67c0a522816a6ca0f2df5afdd68351ff652a3",
+    "private_independent_check_sha256": "6f2e1e95e166bda0555c877a3d33308038237d9bdc340ef17aec31d78e68bcb4",
+    "authority": "none",
+    "bootable": false,
+    "physical": "NOT RUN"
+  },
   "pro_review": {
     "first_session": "rog5-trial-existing-r2",
     "requested_model": "gpt-6-pro",
@@ -86,7 +107,7 @@
     "paid_api_or_weaker_mode_used": false
   },
   "open": [
-    "coherent refresh of loose and nested archive modules, release and checksum catalogs",
+    "bootable composition of the rehearsed module/catalog refresh with fresh protected trial identity",
     "reviewed ownership of shared early MDT load and display loader",
     "private trial descriptor, health inputs, owner, boot and state identities",
     "Q6 historical schema FAIL and physical kernel/module validation",

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production module tree and unsigned package staged; coherent trial ramdisk incomplete",
+  "phase": "Production module tree and nonbootable archive rehearsal pass; coherent trial ramdisk incomplete",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The isolated production-release module tree contains 64 hash-verified modules; depmod -ae -F System.map has no warnings and nine critical modprobe closures resolve. Its deterministic 78-file unsigned package is an ingredient only. I2C GENI is built in, so the historical loose module cannot be retained in a coherent successor. The WCN6851 selector failed on the original source and passed after the retained device patch; twin W=1 builds reproduced four modules. Exact UFS local-write marker passed. A completed gpt-6-pro review proposed an unsigned 20-module ingredient stage, but six patch links returned 404. Same-conversation full-closure follow-up hit the ChatGPT usage limit, so no revised answer exists. Complete archive module/release/catalog refresh and shared MDT display ownership remain unresolved. Full ramdisk, private controller/input binding and boot composition are incomplete. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged.",
+  "next": "The isolated production-release module tree contains 64 hash-verified modules; depmod -ae -F System.map has no warnings and nine critical modprobe closures resolve. Its deterministic 78-file unsigned package is an ingredient only. A nonbootable scratch archive refresh replaced all 31 eligible loose modules, removed built-in I2C and regenerated release and checksum catalogs; 732-member round-trip and independent checks passed. It deliberately lacks init, consumed trial identity and historical relay nonce. The WCN6851 selector failed on the original source and passed after the retained device patch; twin W=1 builds reproduced four modules. Exact UFS local-write marker passed. A completed gpt-6-pro review proposed an unsigned 20-module ingredient stage, but six patch links returned 404. Same-conversation full-closure follow-up hit the ChatGPT usage limit, so no revised answer exists. Bootable composition and shared MDT display ownership remain unresolved. Private controller/input binding and boot composition are incomplete. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged.",
   "evidence": "test-results/2026-09-22-production-module-closure.md",
   "phone_operation_scope": [
     "read-only identity and health checks only"

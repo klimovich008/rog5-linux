@@ -60,8 +60,24 @@ full-module inventory reached the same conversation, but the browser returned
 weaker mode was used. The selected module input set therefore does not claim a
 coherent target ramdisk or runnable display session.
 
-The next source task is to refresh every loose/nested module occurrence, release
-and checksum catalog in a bounded scratch archive, then review the MDT ownership
-contract with the display loader. Actual private trial identity, health inputs,
-boot image, and state records remain unissued. The approved USB path was absent
-at the last exact host check, so no phone command or physical test ran.
+An isolated archive rehearsal subsequently refreshed the historical newc archive
+against the package above. It replaced31 loose modules, removed the historical
+I2C `.ko` that is built into the selected kernel, replaced the nested package,
+rewrote the 78-entry nested manifest and production `kernel-release`, and
+regenerated the boot checksum catalog. The rehearsal deliberately removed
+`init`, the consumed trial descriptor and the historical relay nonce, leaving
+732 members and **no bootable output**. A full round-trip check passed in2.959s
+under a512MiB/no-swap scope (254.4MiB peak); an independent streaming parser
+then verified732 members,73 boot-catalog entries and78 nested-manifest entries
+in0.372s. The disabled-init archive SHA-256 is
+`e25306cb83c1cceb29b670a32788677544ce1228486f8d131cdf1b4b6f2c9ee3`.
+This establishes the byte/catalog refresh path only. A runnable composition
+still needs a reviewed shared MDT load contract, fresh private trial/health
+identity, exact early-module policy and complete offline qualification. No
+accepted image, fallback, claim or phone state changed.
+
+The next source task is to review the shared MDT ownership contract with the
+display loader and qualify an exact early-module policy before any bootable
+composition. Actual private trial identity, health inputs, boot image and state
+records remain unissued. The approved USB path was absent at the last exact
+host check, so no phone command or physical test ran.

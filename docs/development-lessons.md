@@ -41,6 +41,11 @@ then verify representative roots with read-only `modprobe --show-depends` and
 round-trip every packaged member. The fixed tree and 78-file package took under
 half a second together, so this check should precede any expensive ramdisk
 composition or device session.
+The disabled-init archive rehearsal then took 2.959 seconds and used 254.4MiB
+peak memory under a 512MiB/no-swap scope. It proved the loose/nested module and
+checksum refresh without creating a bootable candidate or reusing a consumed
+trial descriptor. Keep this inexpensive rehearsal before assigning fresh
+identity or involving the phone.
 
 Mobile snapshot, 2026-09-12: use the supplier's actual trust model. Arch Linux
 ARM signs packages, not repository databases; retain TLS snapshot identities
