@@ -4073,3 +4073,17 @@ outputs. Verify required exported symbols and the shared helper dependency first
 A built-in replacement (I2C GENI here) needs an explicit composition/consumer
 change, not a fabricated replacement .ko or silent retention of an old ELF.
 Keep compile proof separate from selected artifact authority and load behavior.
+
+
+Production radio selection (2026-09-22): module filename, release and dependency
+closure can still hide a device-specific selector regression. The selected
+production ath11k source rejected the recorded WCN6851 revision1:0x10; the
+retained five-file device patch passed the exact selector and yielded four
+byte-identical external modules in two33-second builds. Check functionality
+relevant to the phone before promoting an otherwise matching module cohort.
+A complete input selection also must include display dependencies outside the
+historical54-module archive and represent the built-in I2C driver explicitly.
+Pro sandbox file links returned authenticated404; verify downloadable bytes before
+applying. The same-conversation follow-up hit a verified usage limit, so do not
+retry repeatedly or silently use paid API/weaker reasoning. Continue offline
+work from the completed review and retain its unresolved conditions.

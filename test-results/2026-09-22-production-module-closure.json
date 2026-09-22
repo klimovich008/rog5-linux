@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "scope": "offline production module preparation; no candidate or phone execution",
+  "repository_branch": "agent/review-correctness-20260912",
+  "implementation_commit": "b5afca52061300eb8ceedcb8092e28896127bc22",
+  "starting_documentation_commit": "d8b1d73f1a8bcac43466b70089e18d74b48f74cb",
+  "kernel_release": "7.1.4-rog5-production",
+  "image_sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+  "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+  "historical_archive": {
+    "sha256": "dc805f639acd6295138324ecb7e5c687d6d51e2e982509f0ba4e9835c4d9977b",
+    "module_occurrences": 69,
+    "unique_modules": 54,
+    "historical_release": "7.1.4-g136f75ae869a"
+  },
+  "ufs_local_write_marker": {
+    "status": "PASS_EXACT_LOCAL_WRITE_MARKER",
+    "enabled_count": 1,
+    "disabled_count": 0,
+    "seconds": 0.008891689940355718,
+    "private_result_sha256": "6f88ca97ae479090c1b960cd979296767b0cd49db2a9338e38898faf729709cd"
+  },
+  "wcn6851_selector": {
+    "unpatched_result": "FAIL for recorded revision 1:0x10, got -95 expected 1000",
+    "patched_result": "PASS twice on exact copied source",
+    "device_patch_sha256": "5c611739b2b8796d1b1b0e78f82287a1e6db4992f08b7b0b5e937587c4aa0ddd",
+    "modules": 4,
+    "build_seconds": [33.75538676104043, 33.464828840922564],
+    "twin_bytes_equal": true,
+    "private_comparison_sha256": "440fe601a4ef6c96bec29c3ac732ef388773033f7b03d9e90ac7fa3aa95da6f5"
+  },
+  "module_input_selection": {
+    "status": "PASS_ISOLATED_COMPLETE_MODULE_INPUT_SELECTION",
+    "modules": 64,
+    "built_in_from_config_and_index": ["drivers/i2c/busses/i2c-qcom-geni.ko"],
+    "all_dependencies_resolved_within_selected_modules": true,
+    "full_vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64",
+    "this_module_section_size": "0004c0",
+    "with_btf": 0,
+    "with_versions": 0,
+    "selection_seconds": 0.5048006189754233,
+    "elf_check_seconds": 0.3690729869995266,
+    "private_result_sha256": "7f264c3d30e3e9a87de558389de3b610afce2f3a6dd65a95f6a0035a8deff769",
+    "private_elf_profile_sha256": "1e51d857e778e34738916260147666726d9ccdf43f6ccd65d1e58d5e06ec13bf"
+  },
+  "pro_review": {
+    "first_session": "rog5-trial-existing-r2",
+    "requested_model": "gpt-6-pro",
+    "model_selection_verified": true,
+    "status": "COMPLETE_PROPOSAL_UNAPPLIED",
+    "matching_final_id": "3dca6f6e-7825-4ac7-bad6-d27b153e8c18",
+    "matching_answer_sha256": "5b590e5e6e0c275ccb0c8da058b0674c2dd6e198f7b235095f2276aa5c31ebdd",
+    "proposal_scope": "exact 20 early modules, isolated unsigned ingredient output; retained radio modules explicitly unresolved",
+    "proposed_patch_download": "BLOCKED: all six sandbox links returned authenticated 404",
+    "same_conversation_followup": "rog5-full-closure-inline-r3",
+    "followup_status": "LIMIT: native browser returned You've hit your limit; no Pro reasoning answer",
+    "paid_api_or_weaker_mode_used": false
+  },
+  "open": [
+    "coherent refresh of loose and nested archive modules, release and checksum catalogs",
+    "reviewed ownership of shared early MDT load and display loader",
+    "private trial descriptor, health inputs, owner, boot and state identities",
+    "Q6 historical schema FAIL and physical kernel/module validation",
+    "phone USB identity and health unavailable"
+  ],
+  "boot_image_created": false,
+  "package_signed": false,
+  "claim_created_or_consumed": false,
+  "phone_operations": 0,
+  "physical": "NOT RUN"
+}
