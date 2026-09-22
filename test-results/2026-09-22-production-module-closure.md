@@ -33,6 +33,23 @@ from both config and modules.builtin. Selection and ELF verification took
 claim, signature or admission authority. The Q6 kit's historical schema FAIL
 remains open, as does physical qualification.
 
+An isolated production-release module tree was then generated from those exact
+64 inputs. The first scratch attempt exposed a missing `modules.order`; `depmod`
+returned0 but warned, and the stage correctly refused PASS. The successful tree
+preserves the selected board's order for60 modules and appends four separately
+built modules. `depmod -ae -F` against the matching `System.map` returned0 with
+no warnings in0.125s. An independent pass rehashed all78 tree files, checked64
+`modules.dep` rows, and resolved nine key UFS, PAS, ath11k, MSM, panel, touch,
+S12, Wi-Fi activator and LPG roots through `modprobe --show-depends` in0.039s.
+The obsolete I2C `.ko` is absent; the matching kernel lists it as built in.
+
+A deterministic private `module-root-complete.tar.gz` now contains the64 modules
+and14 metadata files, with all78 extracted members byte-checked against the
+tree. Its SHA-256 is `bed63b7b07aaf51af5547fc0e5acefe85ac2afd7ab4b127db9fce686306f8a6b`
+(2,809,103 bytes, assembled and checked in0.212s). It is an unsigned ingredient
+outside Git, not a boot archive or accepted candidate. No old loose `.ko`,
+historical descriptor, init script or checksum catalog has been replaced.
+
 The first same-conversation Pro review completed using verified gpt-6-pro/Pro.
 Its attached six artifact links returned authenticated404; no proposed patch was
 applied. It recommended a fixed production profile, MDT before PAS and an honest

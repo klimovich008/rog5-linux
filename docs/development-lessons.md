@@ -30,6 +30,18 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+Production module tree, 2026-09-22: a selected ELF set is not yet a usable
+`modprobe` tree. `depmod -ae` returned zero but warned when `modules.order` was
+absent, so require empty stderr as well as exit zero. Convert the exact kernel's
+`.o` order into `.ko` entries for selected in-tree modules and append separately
+built modules explicitly; inventing alphabetical order needlessly changes alias
+precedence. Check `modules.builtin` before copying a historical loose `.ko`:
+I2C GENI is built in for this production Image. Use matching `System.map`,
+then verify representative roots with read-only `modprobe --show-depends` and
+round-trip every packaged member. The fixed tree and 78-file package took under
+half a second together, so this check should precede any expensive ramdisk
+composition or device session.
+
 Mobile snapshot, 2026-09-12: use the supplier's actual trust model. Arch Linux
 ARM signs packages, not repository databases; retain TLS snapshot identities
 and require signed package metadata rather than waiting for unavailable database

@@ -43,6 +43,35 @@
     "private_result_sha256": "7f264c3d30e3e9a87de558389de3b610afce2f3a6dd65a95f6a0035a8deff769",
     "private_elf_profile_sha256": "1e51d857e778e34738916260147666726d9ccdf43f6ccd65d1e58d5e06ec13bf"
   },
+  "isolated_module_tree": {
+    "status": "PASS_ISOLATED_PRODUCTION_MODULE_TREE",
+    "modules": 64,
+    "metadata_files": 14,
+    "depmod_exit": 0,
+    "depmod_stderr": "",
+    "depmod_seconds": 0.12486979900859296,
+    "system_map_sha256": "6bd1f0bf15b7648cb5b2b80b577791f5f25f51e04f99e8bea90b5da1cc9910cc",
+    "board_order_sha256": "70cec59c3ac9f40ab678b8a66435d87104cfcf25b631030a5b39e950f5d39f5c",
+    "board_order_modules": 60,
+    "appended_external_modules": 4,
+    "independent_verified_file_hashes": 78,
+    "independent_modprobe_roots": 9,
+    "independent_verification_seconds": 0.03912076691631228,
+    "private_tree_receipt_sha256": "b01bf1dc93d0214076f0cf8dca648689efcf559246e8ea8d576c73327b65f422",
+    "private_verification_sha256": "855c5003aec67a5a662cdc819a5faa503c68e5c5ef9d0aa80f03e953e3870f8"
+  },
+  "isolated_module_package": {
+    "status": "PASS_ISOLATED_UNSIGNED_MODULE_PACKAGE",
+    "sha256": "bed63b7b07aaf51af5547fc0e5acefe85ac2afd7ab4b127db9fce686306f8a6b",
+    "bytes": 2809103,
+    "modules": 64,
+    "metadata_files": 14,
+    "roundtrip_all_members": true,
+    "seconds": 0.21178315696306527,
+    "private_receipt_sha256": "58cb4bf241b6de6df62f2e9cb12e2944a77da9c84abfeb3b9e7fc10df67502a7",
+    "authority": "none",
+    "physical": "NOT RUN"
+  },
   "pro_review": {
     "first_session": "rog5-trial-existing-r2",
     "requested_model": "gpt-6-pro",
