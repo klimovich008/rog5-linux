@@ -93,6 +93,19 @@
     "bootable": false,
     "physical": "NOT RUN"
   },
+  "shared_mdt_counterexample": {
+    "status": "PASS_EXPECTED_SHARED_MDT_REFUSAL",
+    "actual_loader_source": "scripts/device/load-production-display.py",
+    "existing_fixture": "scripts/device/test-load-production-display.py",
+    "power_pas_modprobe_requires_mdt_first": true,
+    "preexisting_module": "mdt_loader",
+    "observed_error": "production module already present: mdt_loader",
+    "display_entry": false,
+    "insertions": 0,
+    "seconds": 0.13648486300371587,
+    "private_result_sha256": "097233414f6da955007092ece64124d514d13e54a731c2d0ac97951ca160f75c",
+    "physical": "NOT RUN"
+  },
   "pro_review": {
     "first_session": "rog5-trial-existing-r2",
     "requested_model": "gpt-6-pro",

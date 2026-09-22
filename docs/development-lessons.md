@@ -46,6 +46,11 @@ peak memory under a 512MiB/no-swap scope. It proved the loose/nested module and
 checksum refresh without creating a bootable candidate or reusing a consumed
 trial descriptor. Keep this inexpensive rehearsal before assigning fresh
 identity or involving the phone.
+Check cross-phase module ownership before boot: the exact PAS closure requires
+`mdt_loader` early, but the current display loader refuses any preloaded copy.
+An inert actual-loader fixture reproduced that refusal before durable entry in
+0.136 seconds. Dependency closure alone does not grant safe reuse; require a
+reviewed same-boot owner and identity handoff before changing either loader.
 
 Mobile snapshot, 2026-09-12: use the supplier's actual trust model. Arch Linux
 ARM signs packages, not repository databases; retain TLS snapshot identities

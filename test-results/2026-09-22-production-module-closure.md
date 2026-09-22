@@ -76,6 +76,16 @@ still needs a reviewed shared MDT load contract, fresh private trial/health
 identity, exact early-module policy and complete offline qualification. No
 accepted image, fallback, claim or phone state changed.
 
+The shared MDT conflict now has a direct source-level counterexample. The
+production `modprobe --show-depends qcom_q6v5_pas` closure begins with
+`mdt_loader`, while the actual display loader checks that every listed module
+is absent before entry. Using its existing inert test fixture with only
+`mdt_loader` preexisting produced `production module already present:
+mdt_loader`, zero insertions and no durable display entry in0.136s. This is
+not a phone observation. The loader must not simply skip a preloaded module
+without an exact same-boot ownership and identity contract. The Pro follow-up
+for this integration remains quota-limited.
+
 The next source task is to review the shared MDT ownership contract with the
 display loader and qualify an exact early-module policy before any bootable
 composition. Actual private trial identity, health inputs, boot image and state
