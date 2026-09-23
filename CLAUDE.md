@@ -110,6 +110,14 @@ when the results justify it. Don't let process work replace phone progress.
 
 ## Human-assisted hardware tests
 
+Standing user authorization (2026-09-23): phone tests that need no physical
+action from the user may run without asking for Ready. Examples are SSH
+probes, to-fastboot, RAM-only trials via `production-ram-trial.py`, and a
+normal `fastboot-reboot` to V11. Keep RAM-only, identity checks, one claim per
+image and evidence capture. Flashing, partition or slot changes still need
+explicit approval. Ask for Ready only when the user's hands are needed, and
+tell the user at once if a rescue press becomes necessary.
+
 Prepare everything first: builds, focused checks, review, artifact staging,
 device health and actual input/output discovery. Ask for Ready only when a
 reviewed session is fully prepared. Don't start any operator countdown without
