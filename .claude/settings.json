@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(fastboot flash:*)",
+      "Bash(fastboot erase:*)",
+      "Bash(fastboot format:*)",
+      "Bash(fastboot boot:*)",
+      "Bash(fastboot set_active:*)",
+      "Bash(fastboot --set-active:*)",
+      "Bash(fastboot flashing:*)",
+      "Bash(fastboot oem:*)",
+      "Bash(fastboot update:*)",
+      "Bash(fastboot reboot:*)",
+      "Bash(adb reboot:*)",
+      "Bash(adb push:*)",
+      "Bash(adb shell:*)",
+      "Bash(adb sideload:*)",
+      "Bash(sudo dd:*)",
+      "Bash(dd of=/dev/*)"
+    ]
+  }
+}
