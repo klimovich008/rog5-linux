@@ -40,4 +40,7 @@ CONFIG_DEBUG_INFO_NONE=y
 # (read-only, offset kept in userspace) and ramoops in the stock debug region.
 CONFIG_SOFT_WATCHDOG=m
 CONFIG_RTC_DRV_PM8XXX=m
+# The PMK8350 RTC holds a counter, not wall time: never copy it to the clock
+# (hctosys also runs for a modular RTC; it set the clock to 1970 on trial t4).
+# CONFIG_RTC_HCTOSYS is not set
 CONFIG_PSTORE_RAM=y

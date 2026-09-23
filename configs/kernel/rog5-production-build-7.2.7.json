@@ -52,7 +52,8 @@
     "CONFIG_QCOM_GPI_DMA": "m",
     "CONFIG_SOFT_WATCHDOG": "m",
     "CONFIG_RTC_DRV_PM8XXX": "m",
-    "CONFIG_PSTORE_RAM": "y"
+    "CONFIG_PSTORE_RAM": "y",
+    "CONFIG_RTC_HCTOSYS": "n"
   },
   "forbidden": [
     "CONFIG_COMPILE_TEST",
