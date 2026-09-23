@@ -775,6 +775,41 @@ reproduced the manual result byte for byte. The host tools are pinned under
 3.12.14 (release SHA256SUMS) and the dtschema 2026.6 environment. The old
 dtschema venv died with the removed Codex runtime.
 
+### Making a production kernel the default
+
+The slot-B loader boots the selector's primary bundle while the p23 try-once
+record (`/rog5/boot/wifi-trial-state`) is absent or healthy, and re-arms it
+to pending on each primary boot. A boot that does not mark itself healthy
+sends the next boot to the V11 fallback. The production ramdisk commits
+itself when it is built with a trial descriptor:
+
+1. Write a fresh descriptor (never reuse a trial id or bundle name):
+   `format=rog5-persistent-wifi-health-v1`, `trial_id=<64 random hex>`,
+   `primary_bundle=<new bundle>`, `mode=try-once`. Build the ramdisk with
+   `PRODUCTION_TRIAL_DESCRIPTOR=<file> PRODUCTION_TRIAL_DESCRIPTOR_SHA256=<sha>`
+   and package it with `--bundle <new bundle>`.
+2. RAM-trial that wrapper. `rog5-production-trial-commit.service` must log
+   `rog5-production-trial: SKIP …` (the record belongs to another trial) and
+   leave the record unchanged.
+3. `install-default-kernel.py --bundle-dir <package>/bundles/<bundle>
+   --descriptor <file> --trust-key <raw loader key> --evidence <new dir>`
+   from any booted ROG5 system. It verifies both bundles with the trust key
+   (V11 is fetched from the phone), checks that the ramdisk carries this
+   descriptor, generates the selector, backs up the old selector and record,
+   and runs the target script's `--inspect` and `--preflight` against a RAM
+   copy. Add `--stage` (clean repository) for the single write window: the
+   bundle goes to p24, the old selector stays as `selector.rollback-<bundle>`,
+   the new one is swapped in, p24 is relocked, and the old record is
+   archived as `wifi-trial-state.archived-before-<bundle>-<sha>`. A 180 s
+   timer relocks p24 if the script dies. Never retry a failed `--stage`:
+   inspect the phone first.
+4. Reboot normally. The first boot writes a pending record and boots the
+   bundle, and the unit logs `PASS <bundle> committed healthy`. The next
+   reboot must land on the same bundle.
+
+Going back is a selector change: `selector.rollback-<bundle>` is the
+previous selector, which boots V11 while the new record is foreign to it.
+
 ### Human-assisted hardware sessions
 
 Complete the builds, focused tests, review, staging and no-press runtime checks
