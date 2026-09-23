@@ -86,11 +86,12 @@ class BoardBuild(unittest.TestCase):
             source.unlink();self.assertFalse(B.inputs_unchanged(inputs,root))
     def test_all_patches_partition_and_known_diagnostics_stay_out(self):
         groups=B.series()
-        self.assertEqual((len(groups['production']),len(groups['diagnostic'])),(17,26))
+        self.assertEqual((len(groups['production']),len(groups['diagnostic'])),(18,26))
         self.assertTrue(any(x.startswith('0040-') for x in groups['production']))
         self.assertTrue(any(x.startswith('0041-') for x in groups['production']))
         self.assertTrue(any(x.startswith('0042-') for x in groups['production']))
         self.assertTrue(any(x.startswith('0043-') for x in groups['production']))
+        self.assertTrue(any(x.startswith('0044-') for x in groups['production']))
         for number in [4,5,6,7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,24,25,27,28,29,30,31,32]:
             self.assertTrue(any(x.startswith(f'{number:04d}-') for x in groups['diagnostic']))
     def test_7_2_7_policy_selects_its_rebased_series(self):
