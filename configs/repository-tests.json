@@ -857,6 +857,31 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-package-production-modules.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/package-production-modules.py",
+        "configs/kernel/rog5-production-modules.json"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-owned-vm.py",
       "interpreter": "python3",
       "tiers": [

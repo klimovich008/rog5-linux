@@ -268,6 +268,7 @@ active_tests=(
 	scripts/host/test-release-composition.py
 	scripts/host/test-production-ram-trial.py
 	scripts/host/test-module-loop.py
+	scripts/host/test-package-production-modules.py
 	scripts/host/test-owned-vm.py
 	scripts/host/test-a01-fixture.py
 	scripts/host/test-module-edge.py

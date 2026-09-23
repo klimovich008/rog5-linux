@@ -1,0 +1,87 @@
+{
+  "format": "rog5-production-module-selection-v1",
+  "description": "The 64 modules of the production ramdisk tree: 60 from the kernel build (install paths under kernel/) and 4 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi.",
+  "board_modules": [
+    "crypto/aes.ko",
+    "crypto/ccm.ko",
+    "crypto/cmac.ko",
+    "crypto/ctr.ko",
+    "crypto/gcm.ko",
+    "crypto/sha256.ko",
+    "drivers/bus/mhi/host/mhi.ko",
+    "drivers/bus/mhi/host/mhi_pci_generic.ko",
+    "drivers/clk/qcom/gpucc-sm8350.ko",
+    "drivers/dma/qcom/gpi.ko",
+    "drivers/gpu/drm/clients/drm_client_lib.ko",
+    "drivers/gpu/drm/display/drm_display_helper.ko",
+    "drivers/gpu/drm/display/drm_dp_aux_bus.ko",
+    "drivers/gpu/drm/drm_exec.ko",
+    "drivers/gpu/drm/drm_gpuvm.ko",
+    "drivers/gpu/drm/drm_kms_helper.ko",
+    "drivers/gpu/drm/msm/msm.ko",
+    "drivers/gpu/drm/panel/panel-asus-rog5-ams678.ko",
+    "drivers/gpu/drm/scheduler/gpu-sched.ko",
+    "drivers/leds/led-class-multicolor.ko",
+    "drivers/leds/rgb/leds-qcom-lpg.ko",
+    "drivers/media/cec/core/cec.ko",
+    "drivers/net/wireless/ath/ath.ko",
+    "drivers/net/wireless/ath/ath11k/ath11k.ko",
+    "drivers/net/wireless/ath/ath11k/ath11k_ahb.ko",
+    "drivers/net/wireless/ath/ath11k/ath11k_pci.ko",
+    "drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.ko",
+    "drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko",
+    "drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko",
+    "drivers/power/reset/qcom-pon.ko",
+    "drivers/power/sequencing/pwrseq-qcom-wcn.ko",
+    "drivers/power/supply/qcom_battmgr.ko",
+    "drivers/regulator/qcom-refgen-regulator.ko",
+    "drivers/remoteproc/qcom_common.ko",
+    "drivers/remoteproc/qcom_pil_info.ko",
+    "drivers/remoteproc/qcom_q6v5.ko",
+    "drivers/remoteproc/qcom_q6v5_pas.ko",
+    "drivers/rpmsg/qcom_glink_smem.ko",
+    "drivers/soc/qcom/mdt_loader.ko",
+    "drivers/soc/qcom/pdr_interface.ko",
+    "drivers/soc/qcom/pmic_glink.ko",
+    "drivers/soc/qcom/qcom-pbs.ko",
+    "drivers/soc/qcom/qcom_pd_mapper.ko",
+    "drivers/soc/qcom/qcom_pdr_msg.ko",
+    "drivers/soc/qcom/ubwc_config.ko",
+    "drivers/ufs/core/ufshcd-core.ko",
+    "drivers/ufs/host/ufs-qcom.ko",
+    "drivers/ufs/host/ufshcd-pltfrm.ko",
+    "drivers/usb/typec/typec.ko",
+    "drivers/usb/typec/ucsi/typec_ucsi.ko",
+    "drivers/usb/typec/ucsi/ucsi_glink.ko",
+    "lib/crypto/libarc4.ko",
+    "lib/crypto/libgf128hash.ko",
+    "net/mac80211/mac80211.ko",
+    "net/qrtr/qrtr-mhi.ko",
+    "net/qrtr/qrtr-smd.ko",
+    "net/qrtr/qrtr.ko",
+    "net/rfkill/rfkill-gpio.ko",
+    "net/rfkill/rfkill.ko",
+    "net/wireless/cfg80211.ko"
+  ],
+  "external_modules": [
+    {
+      "name": "rog5-pmic-pon-readonly",
+      "source": "tools/pmic_pon_reader"
+    },
+    {
+      "name": "rog5-s12-ufs-vote",
+      "source": "tools/s12_ufs_vote"
+    },
+    {
+      "name": "rog5-wifi-activate",
+      "source": "tools/wifi_activate"
+    },
+    {
+      "name": "rog5_fts3658u",
+      "source": "tools/rog5-fts3658u"
+    }
+  ],
+  "required_builtin": [
+    "kernel/drivers/i2c/busses/i2c-qcom-geni.ko"
+  ]
+}
