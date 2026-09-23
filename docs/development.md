@@ -699,8 +699,8 @@ Use `rog5-dev module` to change a loadable module and test it on the phone in
 seconds, with no ramdisk, packaging, reboot or flashing. The phone must be
 running a production boot whose vmlinux matches the object tree.
 
-- Dev tree for the running build-r2 kernel:
-  `~/.local/state/rog5-kdev/7.1.4-rog5-production-build-r2/`. `source/` is a
+- Dev trees, one per running kernel build: `~/.local/state/rog5-kdev/7.2.7-rog5-production-build-r2/`
+  (current) and `…/7.1.4-rog5-production-build-r2/`. `source/` is a
   git copy of the exact source; edit it there, and `git diff` exports the
   change as a patch. `env` exports `ROG5_KDEV_SOURCE` and
   `ROG5_KDEV_OBJECTS`, the read-only build-r2 objects.

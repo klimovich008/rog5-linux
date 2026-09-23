@@ -16,8 +16,8 @@ non-cellular hardware work still come before Denial/Flutter or VM UI work.
 2. Module package reproducible in the repo (`package-production-modules.py`). Done.
 3. Signed-tag upgrade tooling (`rebase-kernel-series.py`). Done.
 4. Production moves to stable 7.2.7: build, module package, ramdisk, then a
-   RAM trial with headless and display/GPU regression. In progress.
-5. Fold side patches into the series. The ath11k WCN6851 hw1.1 patch becomes 0044.
+   RAM trial with headless and display/GPU regression. Done: r2 image PASS on the phone.
+5. Fold side patches into the series. Done: the ath11k WCN6851 hw1.1 patch is 0044.
 6. Build speed: trim the defconfig base (6810 objects, about 50 min at -j6) to
    what SM8350 needs, proven by a phone regression trial.
 7. Self-recovery for unattended updates: ramoops, a watchdog kept armed across

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production kernel 7.2.7-rog5-production boots on the phone (stable base); fast module loop in place**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production kernel 7.2.7-rog5-production r2 passes on the phone; fast module loop and upgrade tooling in place**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-7.2.7 RAM trial production-7.2.7-r1 PASS: boot and SSH in 55 s, display lit via sysfs brightness (0043), A660 initializes. Upgrade tooling: rebase-kernel-series.py (signed tags), per-base build and warning policies, package-production-modules.py; rog5-dev module build|deliver edits and tests a module on the phone in about 15 s. Fixed for the next image: sshd reload wait, SID 5 PMIC WARN. Next: fold ath11k WCN6851 in as 0044, rebuild 7.2.7 r2 and re-trial, then trim the config for build speed; ramoops/watchdog/RTC; making production the default kernel needs explicit approval. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+7.2.7 r2 (0044 ath11k, SID 5 PMIC disabled): first fully clean build (0 unreviewed diagnostics), 6.7 min with a warm ccache. RAM trial t2 PASS: boot and SSH in 53 s, no failed units, display lit via sysfs, A660 initializes. The module loop runs on 7.2.7 (build 10 s, deliver 4.5 s). Next: trim the config for cold-build speed; ramoops/watchdog/RTC; Wi-Fi needs PCIe0 in the DT plus firmware; making production the default kernel needs explicit approval. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
