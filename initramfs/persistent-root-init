@@ -1352,9 +1352,20 @@ verify_ufs_health() {
 		overlay_loop_name=${overlay_loop##*/}
 		overlay_recovery_count=$(dmesg | grep -F -c \
 			"EXT4-fs ($overlay_loop_name): recovery complete" || true)
+		# One journal replay of the exact userdata partition is ext4's normal
+		# recovery after an unclean stop (a forced reset or an earlier crash),
+		# not corruption. The mount already replayed it; refusing here would
+		# only waste the boot. Other devices and repeats still fail.
+		userdata_recovery_count=0
+		if [ -n "${overlay_userdata:-}" ]; then
+			userdata_recovery_count=$(dmesg | grep -F -c \
+				"EXT4-fs (${overlay_userdata##*/}): recovery complete" || true)
+		fi
 		if [ "$overlay_recovery_count" -le 1 ] &&
-			[ "$overlay_recovery_count" -eq "$journal_recovery_count" ]; then
-			journal_recovery_allowed=$overlay_recovery_count
+			[ "$userdata_recovery_count" -le 1 ] &&
+			[ "$((overlay_recovery_count + userdata_recovery_count))" -eq \
+				"$journal_recovery_count" ]; then
+			journal_recovery_allowed=$journal_recovery_count
 		fi
 	fi
 	ufs_error_count=$(dmesg |

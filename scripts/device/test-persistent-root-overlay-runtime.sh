@@ -190,7 +190,30 @@ verify_ufs_health
 expected_persistent_overlay_mode=0
 ! verify_ufs_health
 expected_persistent_overlay_mode=1
+overlay_userdata=
 mock_dmesg='EXT4-fs (sda23): recovery complete
+'
+! verify_ufs_health
+# One replay of the exact resolved userdata partition is normal recovery.
+overlay_userdata=/dev/sda23
+verify_ufs_health
+mock_dmesg='EXT4-fs (sda23): recovery complete
+EXT4-fs (loop7): recovery complete
+'
+verify_ufs_health
+mock_dmesg='EXT4-fs (sda23): recovery complete
+EXT4-fs (sda23): recovery complete
+'
+! verify_ufs_health
+mock_dmesg='EXT4-fs (sda24): recovery complete
+'
+! verify_ufs_health
+mock_dmesg='EXT4-fs (sda23): recovery complete
+EXT4-fs error (device sda23): bad block
+'
+! verify_ufs_health
+mock_dmesg='EXT4-fs (sda23): recovering journal
+EXT4-fs (sda23): recovery complete
 '
 ! verify_ufs_health
 mock_dmesg='EXT4-fs (loop7): recovery complete
