@@ -4045,3 +4045,41 @@ byte-identical external modules in two33-second builds. Check functionality
 relevant to the phone before promoting an otherwise matching module cohort.
 A complete input selection also must include display dependencies outside the
 historical54-module archive and represent the built-in I2C driver explicitly.
+
+### Replay target shell code under the real BusyBox, not host sh (2026-09-23)
+
+Loader changes passed host `sh` but failed under the target BusyBox 1.37 ash,
+which rejects a literal newline inside `${var##*<newline>}`. The old syntax
+would have broken the ramdisk at boot. Replay target scripts in an unprivileged
+chroot of the real archive (`unshare -rm`, then `chroot ROOT /qemu -r REL
+/bin/busybox sh`). Two harness facts matter:
+
+- binfmt runs every exec'd child under a fresh qemu that ignores the parent's
+  `-r`. Export `QEMU_UNAME=<release>`, or `uname -r` and `modprobe` see the
+  host release.
+- A chroot has no `/dev/null`, but the ramdisk has devtmpfs. Bind-mount the
+  host `/dev/null` in the private mount namespace.
+
+BusyBox modprobe here has no `-d` or `-S` and no softdeps. The tree must sit
+at `/lib/modules/$(uname -r)`, built-in names return nonzero, and `-D` prints
+a trailing space after each path. Resolving plans from the real depmod tree
+with only the insertion faked caught every loader mistake in minutes.
+
+### Explicit module lists hide dependencies; modprobe exposes them (2026-09-23)
+
+The production config moved `DRM_MSM` to a module, which made `mdt_loader` a
+module too. The hand-written 15-module power list could never load PAS, and
+the display loader's must-be-absent list then refused the shared module. A
+receipt-and-pin attempt to paper over this broke 8 downstream suites. Naming
+modules to `modprobe` over one depmod tree removes the whole class. Keep
+explicit per-step `/proc/modules` checks where the order is a safety
+property, and check the release, vermagic and profile once at archive build.
+
+### Pack archives in C collation; freeze the checkout during integrated tiers (2026-09-23)
+
+The bundle verifier requires strcmp member order, and a locale-dependent
+`sort -z` breaks it once `lib/modules` names appear. Pack with
+`LC_ALL=C sort -z`. The integrated runner reads the working tree live:
+editing a test in the active checkout during a `ci` run made that suite fail
+on a half-edited file. Edit in a separate worktree and fast-forward after the
+tier passes.
