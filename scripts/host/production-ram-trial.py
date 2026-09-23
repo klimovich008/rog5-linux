@@ -51,6 +51,15 @@ RESCUE = {
           'Do not pick Recovery or Power off.',
 }
 HANG_SECONDS = 240
+# How a running target reaches fastboot. 'reboot' is a normal clean systemd
+# reboot, for targets whose RAM shutdown stage already ends in
+# restart2("bootloader"). 'helper' runs that same helper directly after sync;
+# it writes nothing on the phone. Userdata then gets one normal ext4 journal
+# replay at its next mount, which the production init accepts.
+FASTBOOT_MODES = {
+    'reboot': 'systemctl reboot',
+    'helper': 'sync; sync; exec /run/initramfs/usr/libexec/rog5-reboot-bootloader',
+}
 PROBE = r'''set +e
 echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"
 echo "release=$(uname -r)"
@@ -297,6 +306,7 @@ def main():
     fast = sub.add_parser('to-fastboot')
     fast.add_argument('--wait', type=int, default=120)
     fast.add_argument('--address', choices=sorted(PROFILES), default='10.77.0.2')
+    fast.add_argument('--mode', choices=sorted(FASTBOOT_MODES), required=True)
     run = sub.add_parser('boot')
     run.add_argument('--wrapper', required=True)
     run.add_argument('--wrapper-sha256', required=True)
@@ -313,8 +323,10 @@ def main():
     elif args.command == 'to-fastboot':
         need(usb_state() == 'target', 'phone is not a running target on the approved port')
         use_address(args.address)
-        result = ssh(args.address, 'systemctl reboot', 20)
-        print(f'{now()} reboot requested rc={result.returncode}', flush=True)
+        result = ssh(args.address, FASTBOOT_MODES[args.mode], 20)
+        # 255 is ssh losing the link as the phone restarts.
+        need(result.returncode in (0, 255), 'target refused the reboot request')
+        print(f'{now()} {args.mode} requested rc={result.returncode}', flush=True)
         deadline = time.monotonic()+args.wait
         while time.monotonic() < deadline:
             state = usb_state()

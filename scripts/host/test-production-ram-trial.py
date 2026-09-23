@@ -190,6 +190,34 @@ class Launcher(unittest.TestCase):
         self.assertEqual([p for p in prompts if p], ['R1'])
         self.assertEqual(summary['final_state'], 'absent')
 
+    def test_to_fastboot_needs_a_mode_and_sends_only_the_chosen_command(self):
+        self.device('1d6b', '0104', 'ROG5 persistent root')
+        self.target_net()
+        (self.bin/'nmcli').write_text('#!/bin/sh\ncase "$*" in *"device show"*) echo rog5-standalone-shared ;; esac\n')
+        key = self.base/'key'
+        hosts = self.base/'hosts'
+        for path in (key, hosts):
+            path.write_text('x')
+            path.chmod(0o600)
+        env = dict(os.environ, HOME=str(self.base))
+        state = self.base/'.local/state'
+        (state/'rog5-v13-live-inputs-20260823-r1').mkdir(parents=True)
+        (state/'rog5-native-root-release-v6-20260829-r1').mkdir(parents=True)
+        os.link(key, state/'rog5-v13-live-inputs-20260823-r1/deployment-ssh-key')
+        os.link(hosts, state/'rog5-native-root-release-v6-20260829-r1/v7-stable-known-hosts')
+        missing = subprocess.run([sys.executable, str(SOURCE), 'to-fastboot'], env=env,
+                                 capture_output=True, text=True)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn('--mode', missing.stderr)
+        result = subprocess.run([sys.executable, str(SOURCE), 'to-fastboot', '--mode', 'helper', '--wait', '1'],
+                                env=env, capture_output=True, text=True, timeout=30)
+        calls = self.log.read_text()
+        self.assertIn('root@10.77.0.2 sync; sync; exec /run/initramfs/usr/libexec/rog5-reboot-bootloader', calls)
+        self.assertNotIn('sed', calls)
+        # The fake phone never reaches fastboot, so the command must not claim success.
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('did not reach fastboot', result.stderr)
+
     def test_profile_activation_is_idempotent(self):
         (self.bin/'nmcli').write_text('#!/bin/sh\nprintf "%s\\n" "$*" >>"$FAKE_LOG"\n'
                                       'case "$*" in *"device show"*) echo rog5-standalone-shared ;; esac\n')
