@@ -6,9 +6,10 @@ hands-free phone tests. Question: with the production kernel and modprobe
 ramdisk, do the DSI panel and the A660 come up through the upstream msm
 driver?
 
-Answer: **yes for both, with one visual check pending.** The GPU initializes
-and runs its first commands with the stock ASUS zap. The DSI link runs and
-frames reach the panel. No human has looked at the screen yet.
+Answer: **yes for both.** The GPU initializes and runs its first commands
+with the stock ASUS zap. After the brightness fix found in d2–d7 (below,
+patch 0043), the user saw the test bands in the right colors and order on
+the OLED.
 
 ## Image (private, `~/.local/state/rog5-production-boot-20260923/`)
 
@@ -78,19 +79,17 @@ SSH health was at 15:18:56. The boot then stayed up with no rollback.
   bootloader splash when the apps SMMU resets. All 10 are at 0.093 s; none
   occur later.
 
-## Visual check
-
-Pending: a person looks at the screen for up to 90 s at brightness 255 and
-reports the band order.
 
 ## Changes from this run
 
+- `production-display-trial.py`: the brightness step uses max_brightness;
+  a quarter of it is dark on this panel (only DBV[9:8] takes effect).
 - `production-display-trial.py`: the SMMU step reprobes through
   `drivers_probe`, requires the driver link, and no longer stops the display
   steps when it fails. gpu-open waits up to 5 s for the render node. Every step
   now checks its own success marker in the step output.
 
-## Open
+## Open after d1
 
 - GMU `PREPARE_SLUMBER` ack error with the stock v3.1.5 GMU firmware. The build
   has `INIT_STACK_ALL_ZERO=y`, so 0x88888888 is what the GMU wrote, not stack
@@ -103,3 +102,64 @@ reports the band order.
 - `fb0: sys_imageblit/Framebuffer is not in virtual address space` warnings
   appear, but fbcon draws (the readback shows glyphs).
 - No mesa on the root, so there is no userspace GPU workload yet.
+
+## Visual check and the black-screen root cause (trials d2–d7)
+
+Visual result: **PASS on d6.** At brightness 1023 the user saw four bands, red,
+green, blue and white, top to bottom. That is the framebuffer layout, so the
+colors and orientation are correct through DPU → DSC → DSI → Iris analog
+bypass → OLED. The first two looks (d1 at 15:32Z and d6 at 16:49Z, both at
+brightness 255) were black.
+
+Each trial RAM-booted the same Image, DTB `de1cce47…` and ramdisk r5 under a new
+bundle name, so every boot had its own one-use claim. The test panel modules
+were built out of tree against the build-r2 objects and loaded with insmod from /tmp.
+
+| Trial | Bundle | Wrapper | What it tested |
+|---|---|---|---|
+| d2 | `production-display-r2` | `ecfd6c05dea4de3a…` | panel untouched → msm → stock panel; rails sampled each second |
+| d3 | `production-display-r3` | `ba148a26c292ff76…` | insmod of the XBL-sequence panel variant |
+| d4 | `production-display-r4` | `89741baf32165c69…` | soft-reset variant; probe matrix (the LP/HS split was found here) |
+| d5 | `production-display-r5` | `16a184546b540cb0…` | stock panel module + LP brightness |
+| d6 | `production-display-r6` | `7ff58cdbbbcdd0ee…` | **0043 panel module; visual PASS** |
+| d7 | `production-display-r7` | `54e213d4f3e00c87…` | 0043 + continuous DSI clock (HS long writes still ignored) |
+
+Method: the phone's USB input current served as a light meter, with the
+battery full and the input limited to 500 mA. A full-white OLED at high
+brightness pushes the input to the limit and discharges the battery (about
+−15 mA); a black frame stays at idle (about 230–320 mA). Read-only DCS status
+came from a one-shot out-of-tree probe module that fails its own init
+(`scratchpad dsiprobe`; not in the repository).
+
+| Finding | Evidence |
+|---|---|
+| The panel controller is healthy | 0x0A = 0x9C (booster, sleep out, normal, display on), 0x0E = 0x80 (TE on), 0x0F = 0xC0, 0x05 = 0, scanline advances; `err-fg` (gpio27) is high, which ASUS treats as normal (its IRQ is falling-edge) |
+| The PPS is right | msm's packed `dsi->dsc` equals the vendor 0x9E payload byte for byte |
+| PM8350B AB/IBB/OLEDB (SID 3, 0xF800/0xF900/0xFA00) stay off, even while the panel is lit | STATUS1 = 0 throughout; the rails that UEFI polls are not this panel's supply on these boots |
+| **Brightness sent in HS mode is ignored** | HS long `51 03 FF` leaves a white frame at idle current; an LP write of the same bytes draws the input limit plus battery |
+| HS short DCS writes do work | HS `34` (tear off) clears 0x0E bit 7; HS one-byte `51 03` lights the panel |
+| **Only DBV[9:8] takes effect** | White-frame current steps at 256, 512 and 768 and is flat within each block; `51 00 FF` (255) is dark, `51 04 00` is dark, one-byte `51 FF` is full; confirmed by eye (255 black, 1023 bright) |
+| The stock init sequence is fine | d5: stock packaged panel module plus an LP write of 1023 → lit |
+| Not needed | DCS soft reset, the XBL init sequence, a continuous DSI clock (d7: HS long writes still ignored) |
+
+The earlier hypotheses in this report's first draft (DSI PLL regression, AMOLED
+rails, level-2 registers, soft reset) were each tested and dropped.
+
+## Driver fix
+
+`patches/linux-7.1.4/0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch`:
+the backlight callback now keeps `MIPI_DSI_MODE_LPM` for the 0x51 write.
+Verified on d6 through sysfs only: a white frame at 1023 drew 496 mA plus
+battery current, before and after a full panel power cycle, and a black frame
+stayed at idle. Checked offline by `scripts/device/test-ams678-lp-brightness.py`
+(applies 0037+0043, checks the one-line change, runs the lifecycle harness).
+
+## Open after d7
+
+- Brightness has four effective steps: 0–255 dark, 256–511, 512–767 and
+  768–1023. ASUS sends the same `[hi, lo]` bytes in HS mode, and on Android
+  brightness is smooth, so the low byte probably needs a working HS long
+  write. Why HS long command packets are dropped (msm command DMA with DSC,
+  the Iris analog bypass, or PHY timing at 361 Mbps) is not known.
+- `dsi_err_worker: status=5` once at panel bind on d6.
+- The GMU `PREPARE_SLUMBER` ack error and the SMMU deferred timeout, as above.

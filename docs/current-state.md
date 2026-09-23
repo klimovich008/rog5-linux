@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production kernel runs the OLED link and Adreno 660 (display/GPU trial d1); visual check pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production kernel shows images on the OLED and initializes the Adreno 660 (display/GPU trial PASS)**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Display/GPU trial d1 (package-r5, wrapper 73b9b028) on 7.1.4-rog5-production: the msm KMS, DSI link and ASUS panel driver run (PLL locked at modeset, frames and pingpong-done IRQs, no timeouts; the probe-time PLL lock message comes from orphan reparenting). The A660 initializes with the stock ASUS zap after a drivers_probe of the GPU SMMU (bind is EPERM), and the CP consumed its init ring. Pending: one visual look at a staged 4-band test pattern. Open: the GMU PREPARE_SLUMBER ack error (try the linux-firmware GMU), the SMMU deferred timeout (load gpucc earlier), no mesa on the root, the package-keyring timeout and the kmsg stream. See [current repair evidence](../test-results/2026-09-23-production-display-gpu-trial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Display/GPU trials d1-d7 on 7.1.4-rog5-production (RAM boots only): the A660 initializes with the stock ASUS zap after a drivers_probe of the GPU SMMU; the OLED shows the framebuffer (user saw red, green, blue, white top to bottom on d6). The black screen was the panel ignoring brightness sent in HS mode; patch 0043 sends it in LP mode. Open: only DBV[9:8] takes effect (four brightness steps) and HS long DCS writes are dropped; GMU PREPARE_SLUMBER ack error; GPU SMMU deferred timeout (load gpucc earlier); no mesa on the root; package-keyring timeout; kmsg stream. Next goal to pick: fine brightness/HS long writes, touch, or Wi-Fi on the production kernel. See [current repair evidence](../test-results/2026-09-23-production-display-gpu-trial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

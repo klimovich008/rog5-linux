@@ -43,7 +43,7 @@ STEPS = [
               "for c in /sys/class/drm/card*-*; do echo \"$c $(cat $c/status 2>/dev/null) $(cat $c/enabled 2>/dev/null)\"; "
               "head -3 $c/modes 2>/dev/null; done", True),
     ('brightness', "b=$(ls -d /sys/class/backlight/* | head -1); echo $b; cat $b/max_brightness $b/brightness; "
-                   "m=$(cat $b/max_brightness); echo $((m/4)) > $b/brightness; cat $b/brightness; sleep 20; "
+                   "m=$(cat $b/max_brightness); echo $m > $b/brightness; cat $b/brightness; sleep 20; "
                    "echo 0 > $b/brightness; cat $b/brightness", False),
     ('gpu-open', "for i in 1 2 3 4 5; do ls /dev/dri/renderD* >/dev/null 2>&1 && break; sleep 1; done; ls -l /dev/dri; r=$(ls /dev/dri/renderD* 2>/dev/null | head -1); echo render=$r; "
                  "[ -n \"$r\" ] && { exec 3<$r; sleep 4; exec 3<&-; echo OPENED; }", False),

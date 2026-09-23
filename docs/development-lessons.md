@@ -4107,3 +4107,28 @@ kernel's `request_module` (net-pf-42 from sysmon after ADSP start) loads
 modules ahead of their explicit step. Tree mode now accepts an autoloaded
 module and logs it to kmsg. The legacy insmod path keeps the strict
 not-yet-loaded check.
+
+### Measure OLED emission with input current; change one variable per test (2026-09-23)
+
+With the battery full and USB input capped at 500 mA, battmgr's USB
+`current_now` works as a light meter: a full-white frame at high brightness
+drives the input to the cap and the battery starts discharging, while a black
+frame stays at idle. Averaging 8–16 samples beats the ±40 mA noise, and
+white-minus-black at fixed brightness isolates pixel emission. Together with
+a one-shot probe module (DCS reads and writes from init, which then returns
+-EAGAIN so nothing stays loaded), this found the AMS678 black screen without
+a person watching. The panel ignores 0x51 sent in HS mode; LP works.
+Three earlier hypotheses (DSI PLL, PMIC AMOLED rails, init sequence and soft
+reset) each looked confirmed only because every test also changed how the
+brightness was sent. Keep the brightness path fixed and vary one thing.
+
+### Session-script pitfalls around RAM trials (2026-09-23)
+
+- Wait for the previous trial's observer to exit (stage port 8079 free)
+  before `boot --stage-receiver`; the launcher refuses before consuming the
+  claim, but the session then waits on an SSH that never comes. Poll the
+  launcher process too, and fail fast when it exits.
+- A failed launch leaves its evidence directory behind; move it aside before
+  retrying under the same name.
+- `pkill -f 'sleep 180'` over SSH matches its own remote shell and kills the
+  session. Use a pattern that cannot match itself, e.g. `'sleep 18[0]'`.

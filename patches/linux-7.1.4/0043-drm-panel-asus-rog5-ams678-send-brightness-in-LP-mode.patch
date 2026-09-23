@@ -11,6 +11,10 @@ meter: a white frame drew the same idle current after HS writes of 1 or
 1023, and idle again after an LP write of 1 or 0. The stock init
 sequence is unchanged and works once the DBV arrives in LP mode.
 
+Known limit: in LP mode only DBV[9:8] takes effect, so there are four
+steps (0-255 dark, 256-511, 512-767, 768-1023). The low byte needs
+further work.
+
 ---
 --- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 +++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
