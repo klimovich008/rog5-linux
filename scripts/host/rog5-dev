@@ -19,6 +19,7 @@ case $action in
   check-package-keyring) exec python3 "$repo/scripts/host/test-systemd-package-keyring.py" "$@" ;;
   check-wifi-restart) exec python3 "$repo/scripts/host/test-systemd-wifi-restart.py" "$@" ;;
   check-overlay-recovery) exec python3 "$repo/scripts/host/test-qemu-overlay-recovery.py" "$@" ;;
+  module) exec python3 "$repo/scripts/host/module-loop.py" "$@" ;;
   test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;

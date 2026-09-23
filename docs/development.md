@@ -693,6 +693,36 @@ No repeated full CI for unchanged inputs. While remote checks run, do useful
 independent work without modifying their frozen inputs or starting a second
 device coordinator. This policy changes iteration cadence, not release gates.
 
+### Fast module loop (running production kernel)
+
+Use `rog5-dev module` to change a loadable module and test it on the phone in
+seconds, with no ramdisk, packaging, reboot or flashing. The phone must be
+running a production boot whose vmlinux matches the object tree.
+
+- Dev tree for the running build-r2 kernel:
+  `~/.local/state/rog5-kdev/7.1.4-rog5-production-build-r2/`. `source/` is a
+  git copy of the exact source; edit it there, and `git diff` exports the
+  change as a patch. `env` exports `ROG5_KDEV_SOURCE` and
+  `ROG5_KDEV_OBJECTS`, the read-only build-r2 objects.
+- Build: `set -a; . <dev tree>/env; set +a; rog5-dev module build --dir
+  drivers/power/supply --ccache ~/.local/state/rog5-host-tools/ccache-4.14/ccache`
+  compiles that directory as an external module against the pristine objects,
+  so kernel headers always match the running vmlinux. Edits to `include/`,
+  `arch/` or a header outside the directory are refused, because they need a
+  full kernel build.
+- Deliver: `rog5-dev module deliver --build <build dir> --only qcom_battmgr
+  --test '<command>'` checks the USB port, the release and the GNU build ID
+  from `/sys/kernel/notes`. It then streams the module into
+  `/run/rog5-dev-modules` (RAM), loads its dependencies from
+  `/run/rog5-modules`, runs `rmmod` + `insmod` (or `--mode load|oneshot`), runs
+  the test and keeps the kernel log since its marker. An oops, BUG, WARNING or
+  lost SSH makes the run FAIL.
+- Measured on 2026-09-23: `qcom_battmgr` edited, built in 9 s, delivered and
+  tested in 5 s.
+- Modules that cannot be unloaded while in use (msm, the panel) need a clean
+  boot first. The RAM-trial launcher gives one in about a minute, after which
+  `deliver --mode load` applies.
+
 ### Human-assisted hardware sessions
 
 Complete the builds, focused tests, review, staging and no-press runtime checks

@@ -129,7 +129,7 @@ def usb_state():
         return 'transition'
 
 
-def ssh(address, command, timeout):
+def ssh(address, command, timeout, data=None):
     for path in (KEY, KNOWN_HOSTS):
         info = path.lstat()
         need(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and not info.st_mode & 0o022,
@@ -139,7 +139,9 @@ def ssh(address, command, timeout):
             '-o', 'ConnectTimeout=3', '-o', 'ServerAliveInterval=2', '-o', 'ServerAliveCountMax=3',
             '-o', 'HostKeyAlias=169.254.77.2', '-o', 'UserKnownHostsFile='+str(KNOWN_HOSTS),
             '-i', str(KEY), 'root@'+address, command]
-    return subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, timeout=timeout)
+    if data is None:
+        return subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, timeout=timeout)
+    return subprocess.run(argv, input=data, capture_output=True, timeout=timeout)
 
 
 def use_address(address):

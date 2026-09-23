@@ -68,6 +68,9 @@ Status of each step goes in the generated block of `docs/current-state.md`, not 
 
 ## Development loop
 
+- Module changes: `rog5-dev module build|deliver` builds a module directory against the running
+  kernel's objects and loads it on the phone after a build-ID check (seconds, RAM only). See
+  "Fast module loop" in `docs/development.md`.
 - Use `scripts/host/rog5-dev` and `docs/development.md`. The project skill
   `rog5-fast-loop` covers kernel/module/DTB/initramfs/boot-chain changes.
   `systematic-debugging` is for repeated or cross-component unknown failures.
