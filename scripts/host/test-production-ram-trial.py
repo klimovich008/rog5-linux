@@ -173,6 +173,23 @@ class Launcher(unittest.TestCase):
             self.m.probe()
         self.assertFalse(self.log.exists() and 'ssh' in self.log.read_text())
 
+    def test_observe_prompts_each_rescue_step_once(self):
+        evidence = self.base/'observe'
+        evidence.mkdir()
+        self.device('05c6', '900e')  # crashdump: R2 (which ends in R1) at once
+        summary = self.m.observe(evidence, seconds=0.3, interval=0.05, hang_seconds=0.1)
+        self.assertEqual(summary['rescue_prompts'], ['R2'])
+        self.assertEqual(summary['final_state'], 'crashdump')
+        silent = self.base/'silent'
+        silent.mkdir()
+        self.usb.unlink()  # nothing enumerates after the boot: R1 once
+        summary = self.m.observe(silent, seconds=0.4, interval=0.05, hang_seconds=0.1)
+        self.assertEqual(summary['rescue_prompts'], ['R1'])
+        prompts = [json.loads(line).get('rescue_prompt') for line in
+                   (silent/'transitions.jsonl').read_text().splitlines()]
+        self.assertEqual([p for p in prompts if p], ['R1'])
+        self.assertEqual(summary['final_state'], 'absent')
+
     def test_profile_activation_is_idempotent(self):
         (self.bin/'nmcli').write_text('#!/bin/sh\nprintf "%s\\n" "$*" >>"$FAKE_LOG"\n'
                                       'case "$*" in *"device show"*) echo rog5-standalone-shared ;; esac\n')

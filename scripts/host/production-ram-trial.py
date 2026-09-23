@@ -44,6 +44,13 @@ NMCLI = os.environ.get('ROG5_TRIAL_NMCLI', '/usr/bin/nmcli')
 # Existing NetworkManager profiles on the phone's NCM interface: the V9-line
 # targets answer on 10.77.0.2, the V11 fallback only on link-local.
 PROFILES = {'10.77.0.2': 'rog5-standalone-shared', '169.254.77.2': 'rog5-fallback-usb-ssh'}
+RESCUE = {
+    'R1': 'Hold Power + Volume Up about 20 s; when it vibrates or the logo shows, '
+          'release Power and keep holding Volume Up until fastboot appears.',
+    'R2': 'Crashdump screen: hold Volume Down + Power 8-12 s, then immediately do R1. '
+          'Do not pick Recovery or Power off.',
+}
+HANG_SECONDS = 240
 PROBE = r'''set +e
 echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"
 echo "release=$(uname -r)"
@@ -218,10 +225,14 @@ def boot(image, expected, evidence):
         os.close(snapshot)
 
 
-def observe(evidence, seconds, interval=1.0):
+def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS):
     """Record every USB transition; take one SSH health read and stream the
-    kernel log while the target is reachable. Read-only on the phone."""
-    deadline = time.monotonic()+seconds
+    kernel log while the target is reachable. Read-only on the phone. With no
+    target within hang_seconds, or on the crashdump screen, prompt the one
+    manual rescue step (docs/development.md) exactly once."""
+    started = time.monotonic()
+    deadline = started+seconds
+    prompted = set()
     transitions = (evidence/'transitions.jsonl').open('a')
     last = None
     logged = False
@@ -234,6 +245,16 @@ def observe(evidence, seconds, interval=1.0):
                 transitions.flush()
                 print(f'{now()} usb={state}', flush=True)
                 last = state
+            rescue = None
+            if state == 'crashdump':
+                rescue = 'R2'
+            elif not logged and state != 'target' and time.monotonic()-started > hang_seconds:
+                rescue = 'R1'
+            if rescue and rescue not in prompted:
+                prompted.add(rescue)
+                transitions.write(json.dumps(dict(t=now(), rescue_prompt=rescue))+'\n')
+                transitions.flush()
+                print(f'{now()} RESCUE {rescue}: {RESCUE[rescue]}', flush=True)
             if state == 'target' and not logged:
                 try:
                     health = probe()
@@ -264,7 +285,7 @@ def observe(evidence, seconds, interval=1.0):
                 stream.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 stream.kill()
-    return dict(final_state=last, ssh_health=logged)
+    return dict(final_state=last, ssh_health=logged, rescue_prompts=sorted(prompted))
 
 
 def main():

@@ -76,6 +76,14 @@ Status of each step goes in the generated block of `docs/current-state.md`, not 
 - Unit suites are standalone (`python3 scripts/device/test-<name>.py`, mostly
   under 10 s). `rog5-dev test active` (about 750 s) runs once on frozen source,
   not per edit. `rog5-dev select BASE HEAD` picks the tier.
+- The integrated tiers need the environment of the last passing run. The
+  runner fails fast and marks every remaining suite BLOCKED, and the report
+  dir must not exist yet:
+  `systemd-run --user --wait --pipe --collect -p MemoryMax=1G -p MemorySwapMax=0 -p CPUQuota=200% --working-directory=$PWD env PATH=$HOME/.local/state/rog5-gbm-sync-evidence-20260912-r1:$PATH ROG5_WAYLAND_INCLUDE=$HOME/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include ROG5_TEST_WORKERS=2 ROG5_TEST_REPORT_DIR=<new dir> TMPDIR=<scratch> bash scripts/host/test-repository-linux.sh <tier>`.
+- New tests: register in both `configs/repository-tests.json` and the shell
+  arrays in `scripts/host/test-repository-linux.sh`. Tests that need private
+  inputs declare them as `optional_subchecks`, with the exact skip message and
+  test ids, so CI reports PASS with declared skips.
 - Target shell code must run under the real ARM64 busybox. Extract `bin/busybox`
   and `lib/ld-musl-aarch64.so.1` from the target archive into scratch, then
   `QEMU_LD_PREFIX=<dir> ROG5_TEST_QEMU=/usr/bin/qemu-aarch64-static ROG5_TEST_BUSYBOX=<dir>/bin/busybox python3 <test>`.
