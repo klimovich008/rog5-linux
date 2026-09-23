@@ -79,6 +79,16 @@ class Source(unittest.TestCase):
         self.assertIn('/proc/sys/kernel/osrelease', text)
         self.assertNotIn('uname', text)
 
+    def test_main_flow_gate_sees_the_production_tree(self):
+        # The r2 package failed this: the gate only knew the legacy directory,
+        # so the production ramdisk would never have loaded UFS.
+        gate = function(INIT.read_text(), 'deferred_ufs_modules_present')
+        self.assertIn('/rog5-ufs-modules', gate)
+        self.assertIn('/lib/modules/${running_kernel_release:-}/modules.dep', gate)
+        init = INIT.read_text()
+        self.assertLess(init.index('IFS= read -r running_kernel_release'),
+                        init.index('if deferred_ufs_modules_present; then'))
+
     def test_init_dispatches_production_ufs_only_without_loose_modules(self):
         text = INIT.read_text()
         legacy = function(text, 'load_deferred_ufs_modules')
@@ -218,6 +228,23 @@ class Loaders(unittest.TestCase):
         result, loaded = self.ufs_case(env={'FAIL_LOAD': 'ufshcd_pltfrm'})
         self.assertIn('FAIL ufs mode=tree', result.stdout)
         self.assertEqual(loaded, UFS_ORDER[:2])
+
+    def test_ufs_gate_under_target_busybox(self):
+        body = ('IFS= read -r running_kernel_release </proc/sys/kernel/osrelease\n'
+                + function(self.init, 'deferred_ufs_modules_present')
+                + 'if deferred_ufs_modules_present; then echo GATE=1; else echo GATE=0; fi\n')
+        result, _ = self.run_case(body)
+        self.assertIn('GATE=1', result.stdout, result.stdout+result.stderr)
+        (self.root/'rog5-ufs-modules').mkdir()
+        result, _ = self.run_case(body)
+        self.assertIn('GATE=1', result.stdout)
+        (self.root/'rog5-ufs-modules').rmdir()
+        self.dep.rename(self.dep.with_suffix('.hidden'))
+        try:
+            result, _ = self.run_case(body)
+            self.assertIn('GATE=0', result.stdout)
+        finally:
+            self.dep.with_suffix('.hidden').rename(self.dep)
 
     def test_ufs_legacy_archive_keeps_insmod(self):
         legacy = self.root/'rog5-ufs-modules'

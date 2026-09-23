@@ -648,7 +648,13 @@ configure_usb() {
 }
 
 deferred_ufs_modules_present() {
-	[ -d /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ]
+	# Legacy archives carry the loose UFS modules; a production ramdisk carries
+	# them in the depmod tree for the running release (see
+	# load_deferred_ufs_modules). Either way UFS must be loaded before discovery.
+	{ [ -d /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ]; } ||
+		{ [ ! -e /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ] &&
+			[ -f "/lib/modules/${running_kernel_release:-}/modules.dep" ] &&
+			[ ! -L "/lib/modules/${running_kernel_release:-}/modules.dep" ]; }
 }
 
 prepare_native_wifi_boot() {

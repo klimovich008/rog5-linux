@@ -1190,6 +1190,7 @@
             "Loaders.test_power_legacy_inventory_must_stay_fifteen",
             "Loaders.test_ufs_tree_loads_four_modules_in_order",
             "Loaders.test_ufs_tree_refuses_preloaded_or_failed_module",
+            "Loaders.test_ufs_gate_under_target_busybox",
             "Loaders.test_ufs_legacy_archive_keeps_insmod"
           ]
         }
