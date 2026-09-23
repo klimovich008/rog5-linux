@@ -7,25 +7,23 @@ charging/rescue route. Claude Code has been the only coordinator since
 
 ## Goal
 
-Boot the production kernel `7.1.4-rog5-production` on the phone with a coherent
-ramdisk, then run one bounded display/GPU (OLED + Adreno 660) trial on it.
-Kernel and non-cellular hardware bring-up come before any further Denial/Flutter
-or VM UI work.
+Set 2026-09-23 after the display/GPU goal passed: **fast, safe module
+iteration on the phone and a kernel base that is easy to upgrade.** Kernel and
+non-cellular hardware work still come before Denial/Flutter or VM UI work.
 
-1. Shared `mdt_loader` ownership (the power stage loads it before PAS; the
-   display loader verifies it). WIP: `~/.local/state/rog5-shared-mdt-20260923-r1/`.
-2. Verifier profile for production modules (no BTF, 0x4c0 module struct). Check
-   against the real config (`CONFIG_DEBUG_INFO_NONE=y`, no MODVERSIONS); don't
-   just relax the old check.
-3. Bootable unsigned trial ramdisk and boot image from the 64-module production
-   tree (`module-root-complete.tar.gz`, `bed63b7b…`). Load modules with
-   `modprobe` over a depmod-generated `modules.dep`, as postmarketOS mkinitfs
-   does, instead of hand-ordered `insmod` lists. Pin exact bytes once, at
-   archive build time.
-4. Focused offline tests on the frozen source, including the target busybox
-   under qemu.
-5. Phone on USB → read-only health → fresh Ready → one headless boot → the
-   display/GPU experiment.
+1. Fast module loop: `rog5-dev module build|deliver`, build-ID-checked and RAM
+   only. Done: about 15 s from edit to tested module.
+2. Module package reproducible in the repo (`package-production-modules.py`). Done.
+3. Signed-tag upgrade tooling (`rebase-kernel-series.py`). Done.
+4. Production moves to stable 7.2.7: build, module package, ramdisk, then a
+   RAM trial with headless and display/GPU regression. In progress.
+5. Fold side patches into the series. The ath11k WCN6851 hw1.1 patch becomes 0044.
+6. Build speed: trim the defconfig base (6810 objects, about 50 min at -j6) to
+   what SM8350 needs, proven by a phone regression trial.
+7. Self-recovery for unattended updates: ramoops, a watchdog kept armed across
+   kexec, and the RTC time.
+8. Production as the phone's default kernel (selector try-once plus fallback).
+   **Needs explicit user approval**, because it writes boot storage.
 
 Status of each step goes in the generated block of `docs/current-state.md`, not here.
 
