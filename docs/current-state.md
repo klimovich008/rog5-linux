@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production kernel 7.2.7-rog5-production r2 passes on the phone; fast module loop and upgrade tooling in place**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7-rog5-production r3 is the slot-B default; goal: full non-cellular Linux support, then a Denial touch session**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-7.2.7 r2 (0044 ath11k, SID 5 PMIC disabled): first fully clean build (0 unreviewed diagnostics), 6.7 min with a warm ccache. RAM trial t2 PASS: boot and SSH in 53 s, no failed units, display lit via sysfs, A660 initializes. The module loop runs on 7.2.7 (build 10 s, deliver 4.5 s). Next: trim the config for cold-build speed; ramoops/watchdog/RTC; Wi-Fi needs PCIe0 in the DT plus firmware; making production the default kernel needs explicit approval. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+production-7.2.7-r3 is installed as the slot-B default (try-once commit, V11 fallback); two ordinary boots committed healthy, with SSH at 58.6 s and no failed units. New goal (CLAUDE.md): 1 clock and self-recovery (RTC/NTP, ramoops, watchdog); 2 display and GPU at boot without manual steps; 3 Wi-Fi; 4 touch and buttons; 5 Mesa and a hardware-rendered test; 6 Denial session; 7 audio; 8 remaining hardware table. Next: milestone 1. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

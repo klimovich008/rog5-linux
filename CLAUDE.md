@@ -7,25 +7,57 @@ charging/rescue route. Claude Code has been the only coordinator since
 
 ## Goal
 
-Set 2026-09-23 after the display/GPU goal passed: **fast, safe module
-iteration on the phone and a kernel base that is easy to upgrade.** Kernel and
-non-cellular hardware work still come before Denial/Flutter or VM UI work.
+Set 2026-09-23, after `production-7.2.7-r3` became the slot-B default: **make
+the default kernel a usable native Linux phone, meaning every non-cellular hardware
+block works or is explicitly marked unsupported, then run a Denial touch
+session on the OLED.** Cellular is excluded. The previous goal (fast module
+loop, signed-tag upgrades, 7.2.7 as the default) is done. Its leftover config trim
+continues only when a build blocks work.
 
-1. Fast module loop: `rog5-dev module build|deliver`, build-ID-checked and RAM
-   only. Done: about 15 s from edit to tested module.
-2. Module package reproducible in the repo (`package-production-modules.py`). Done.
-3. Signed-tag upgrade tooling (`rebase-kernel-series.py`). Done.
-4. Production moves to stable 7.2.7: build, module package, ramdisk, then a
-   RAM trial with headless and display/GPU regression. Done: r2 image PASS on the phone.
-5. Fold side patches into the series. Done: the ath11k WCN6851 hw1.1 patch is 0044.
-6. Build speed: trim the defconfig base (6810 objects, about 50 min at -j6) to
-   what SM8350 needs, proven by a phone regression trial.
-7. Self-recovery for unattended updates: ramoops, a watchdog kept armed across
-   kexec, and the RTC time.
-8. Production as the phone's default kernel (selector try-once plus fallback).
-   **Needs explicit user approval**, because it writes boot storage.
+Each milestone ends with a new default bundle. First a RAM trial of the
+image, then `install-default-kernel.py` with a fresh descriptor, then two
+ordinary boots that commit healthy (see "Making a production kernel the
+default" in `docs/development.md`). Driver iteration uses `rog5-dev module`.
+Ask the user only for what needs eyes, ears or fingers, and batch those checks.
 
-Status of each step goes in the generated block of `docs/current-state.md`, not here.
+1. **Clock and self-recovery.** Correct time after a reboot without network
+   (PM8350 RTC, or NTP over the USB link), ramoops/pstore at the stock
+   debug region `0x9b800000`, and a watchdog that survives kexec. Pass: time
+   is right after a cold boot, and a forced panic leaves a pstore record that the
+   next boot reads.
+2. **Display and GPU at boot, without manual steps.** The default DT enables
+   MDSS/DSI/panel/gpucc/refgen, and modules autoload in the right order. Fix
+   the GPU SMMU deferred probe instead of the `drivers_probe` workaround.
+   Pass: three boots each show `/dev/dri/card*` and `renderD*` and the A660
+   initialized, with no new WARN. The user sees the panel lit once.
+3. **Wi-Fi.** Enable PCIe0 in the DT, add the WCN6851 firmware and
+   `regulatory.db`, and keep the radio off until it's configured. Pass: scan,
+   associate, DHCP, then 10 minutes of traffic with no firmware crash. The
+   network name and password come from the user.
+4. **Touch and buttons.** Autoload the FocalTech touch driver, and map evdev
+   coordinates to the panel. Keep the three keys and LED from the buttons
+   milestone. Pass: `libinput debug-events` shows the four corners the user
+   touches, plus power/volume events.
+5. **Graphics stack.** Mesa freedreno/turnip on Arch ARM, then a
+   hardware-rendered test such as kmscube or weston on the panel. Pass:
+   GPU-rendered frames at the panel refresh rate, with no GPU faults or hangs
+   over 10 minutes.
+6. **Denial session.** Build the pinned ARM64 compositor, engine and AOT shell
+   from `configs/denial/source-lock-v1.json`, then run it on the OLED with
+   touch. Pass: the completion criteria in `ROADMAP.md`: GPU acceleration, two
+   native Wayland apps and text entry, three starts, a 60-minute
+   interactive/idle run, screen off and wake, compositor recovery, and
+   update/rollback.
+7. **Audio.** Speaker, earpiece, microphones and headset through the
+   q6/LPASS path. Pass: the user hears a test tone on each output, and a
+   recording plays back.
+8. **The rest, as a tracked table.** Bluetooth, sensors (VCNL36866 first),
+   charging control, suspend/resume and cameras. Each one is qualified or marked
+   unsupported or untested in `docs/port-status.md`.
+
+Order is 1 → 2 → 3/4 → 5 → 6, with 7 and 8 fitted in where they don't block.
+Status of each step goes in the generated block of `docs/current-state.md`,
+not here.
 
 ## Where things live (don't break these)
 
