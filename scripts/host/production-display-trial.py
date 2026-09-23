@@ -4,8 +4,10 @@
 Runs one SSH command per step against a production-display boot and records
 every step's output plus a filtered kernel-log tail into a new evidence
 directory. The order follows the reviewed findings: REFGEN, then GPUCC, then
-a rebind of the GPU SMMU, whose deferred probe timed out before GPUCC existed.
-Then msm with separate_gpu_kms=1 (display only), the panel, a short visible
+a reprobe of the GPU SMMU, whose deferred probe timed out before GPUCC existed.
+arm-smmu suppresses its bind attribute, so the reprobe goes through
+drivers_probe (trial d1: bind gave EPERM, drivers_probe bound it and the GPU
+followed). Then msm with separate_gpu_kms=1, the panel, a short visible
 brightness check and a single render-node open, which runs the first GMU/zap
 start. The panel is always set back to brightness 0 at the end. No retries,
 reprobes of other devices, or writes outside sysfs/modprobe.
@@ -31,10 +33,10 @@ STEPS = [
                  "ls -l /sys/bus/platform/devices/3da0000.iommu/driver 2>&1; cut -d' ' -f1 /proc/modules | tr '\\n' ' '", True),
     ('refgen', f"{M} qcom_refgen_regulator && echo LOADED", True),
     ('gpucc', f"{M} gpucc_sm8350 && echo LOADED; sleep 1; ls -l /sys/bus/platform/devices/3d90000.clock-controller/driver", True),
-    ('smmu-bind', "d=/sys/bus/platform/devices/3da0000.iommu; if [ ! -e $d/driver ]; then "
-                  "echo 3da0000.iommu > /sys/bus/platform/drivers/arm-smmu/bind && echo BOUND; else echo ALREADY; fi; "
-                  "sleep 1; ls -l $d/driver; ls -l /sys/bus/platform/devices/3d00000.gpu/iommu_group "
-                  "/sys/bus/platform/devices/3d6a000.gmu/iommu_group 2>&1", True),
+    ('smmu-probe', "d=/sys/bus/platform/devices/3da0000.iommu; if [ ! -e $d/driver ]; then "
+                   "echo 3da0000.iommu > /sys/bus/platform/drivers_probe; sleep 2; fi; "
+                   "[ -e $d/driver ] && echo PROBED; ls -l /sys/bus/platform/devices/3d00000.gpu/iommu_group "
+                   "/sys/bus/platform/devices/3d6a000.gmu/iommu_group 2>&1", False),
     ('msm', f"{M} msm separate_gpu_kms=1 && echo LOADED; sleep 3; ls /sys/class/drm; "
             "cat /sys/module/msm/parameters/separate_gpu_kms", True),
     ('panel', f"{M} panel_asus_rog5_ams678 && echo LOADED; sleep 6; ls /sys/class/drm /sys/class/backlight /sys/class/graphics 2>&1; "
@@ -43,7 +45,7 @@ STEPS = [
     ('brightness', "b=$(ls -d /sys/class/backlight/* | head -1); echo $b; cat $b/max_brightness $b/brightness; "
                    "m=$(cat $b/max_brightness); echo $((m/4)) > $b/brightness; cat $b/brightness; sleep 20; "
                    "echo 0 > $b/brightness; cat $b/brightness", False),
-    ('gpu-open', "ls -l /dev/dri; r=$(ls /dev/dri/renderD* 2>/dev/null | head -1); echo render=$r; "
+    ('gpu-open', "for i in 1 2 3 4 5; do ls /dev/dri/renderD* >/dev/null 2>&1 && break; sleep 1; done; ls -l /dev/dri; r=$(ls /dev/dri/renderD* 2>/dev/null | head -1); echo render=$r; "
                  "[ -n \"$r\" ] && { exec 3<$r; sleep 4; exec 3<&-; echo OPENED; }", False),
 ]
 
@@ -75,7 +77,8 @@ def main():
     try:
         for name, command, critical in STEPS:
             record = run(args.address, evidence, name, command)
-            ok = record['returncode'] == 0 and ('LOADED' in record['stdout'] or name not in ('refgen', 'gpucc', 'msm', 'panel'))
+            marker = dict(refgen='LOADED', gpucc='LOADED', msm='LOADED', panel='LOADED', **{'smmu-probe': 'PROBED', 'gpu-open': 'OPENED'}).get(name)
+            ok = record['returncode'] == 0 and (marker is None or marker in record['stdout'].split('---LOG---')[0])
             summary['steps'].append(dict(step=name, ok=ok, returncode=record['returncode']))
             if not ok and critical:
                 print(f'{TRIAL.now()} stopping after failed critical step {name}', flush=True)

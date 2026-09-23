@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production kernel 7.1.4-rog5-production boots headless on the phone (RAM trial r3 PASS)**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production kernel runs the OLED link and Adreno 660 (display/GPU trial d1); visual check pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-RAM trial r3 (package-r4, wrapper b757a9e1) booted 7.1.4-rog5-production with the modprobe ramdisk and V9 DTB: power/USB, UFS, switch-root, sshd and SSH health all PASS, stable for 20 min with no rollback. r1/r2 found the host capture defect and the kernel autoload of qrtr (net-pf-42), both fixed. Next: the bounded OLED + Adreno 660 trial on this kernel: a display DTB (display-60hz plus the gpu overlays with gpucc and GPU SMMU enabled and the TE mdp_vsync fix), the stock ASUS zap (extracted), msm with separate_gpu_kms=1 first, and an arm-smmu rebind after gpucc. Open: package-keyring timeout and the kmsg stream. See [current repair evidence](../test-results/2026-09-23-production-headless-package.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Display/GPU trial d1 (package-r5, wrapper 73b9b028) on 7.1.4-rog5-production: the msm KMS, DSI link and ASUS panel driver run (PLL locked at modeset, frames and pingpong-done IRQs, no timeouts; the probe-time PLL lock message comes from orphan reparenting). The A660 initializes with the stock ASUS zap after a drivers_probe of the GPU SMMU (bind is EPERM), and the CP consumed its init ring. Pending: one visual look at a staged 4-band test pattern. Open: the GMU PREPARE_SLUMBER ack error (try the linux-firmware GMU), the SMMU deferred timeout (load gpucc earlier), no mesa on the root, the package-keyring timeout and the kmsg stream. See [current repair evidence](../test-results/2026-09-23-production-display-gpu-trial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
