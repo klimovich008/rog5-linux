@@ -198,6 +198,23 @@ class Launcher(unittest.TestCase):
         self.assertEqual([p for p in prompts if p], ['R1'])
         self.assertEqual(summary['final_state'], 'absent')
 
+    def test_fastboot_reboot_needs_exact_identity_and_sends_only_reboot(self):
+        self.device('1d6b', '0104', 'ROG5 persistent root')
+        env = dict(os.environ, HOME=str(self.base))
+        result = subprocess.run([sys.executable, str(SOURCE), 'fastboot-reboot', '--wait', '1'],
+                                env=env, capture_output=True, text=True, timeout=30)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('not in fastboot', result.stderr)
+        self.device('0b05', '4daf')
+        (self.bin/'fastboot').write_text(FASTBOOT.replace('*) exit 1 ;;', '*" reboot") ;;\n\t*) exit 1 ;;'))
+        result = subprocess.run([sys.executable, str(SOURCE), 'fastboot-reboot', '--wait', '1'],
+                                env=env, capture_output=True, text=True, timeout=30)
+        calls = self.log.read_text()
+        self.assertIn(f'-s {SERIAL} reboot', calls)
+        self.assertNotIn('flash', calls)
+        self.assertNotIn(' boot ', calls)
+        self.assertIn('did not leave fastboot', result.stderr)  # the fake phone stays put
+
     def test_observation_ends_when_the_trial_returns_to_fastboot(self):
         evidence = self.base/'ended'
         evidence.mkdir()

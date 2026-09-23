@@ -3,8 +3,9 @@
 
   status       host-only USB state of the approved port (no phone command)
   probe        read-only SSH health read of a running target
-  to-fastboot  ask a running target for its normal clean reboot (the RAM
-               shutdown stage ends in restart2("bootloader")) and wait
+  to-fastboot  move a running target into fastboot (see --mode) and wait
+  fastboot-reboot  normal reboot from the exact fastboot identity into the
+               installed slot-B chain (no image is sent)
   boot         check the exact fastboot identity, consume the one-use claim
                for this wrapper hash, RAM-boot a sealed snapshot
   observe      bounded capture of USB transitions, SSH health and the kernel
@@ -423,11 +424,27 @@ def main():
     watch = sub.add_parser('observe')
     watch.add_argument('--evidence', required=True)
     watch.add_argument('--seconds', type=int, default=600)
+    watch.add_argument('--stage-receiver', action='store_true')
+    home = sub.add_parser('fastboot-reboot')
+    home.add_argument('--wait', type=int, default=150)
     args = parser.parse_args()
     if args.command == 'status':
         print(json.dumps(dict(usb=usb_state(), t=now())))
     elif args.command == 'probe':
         print(json.dumps(probe(address=args.address), indent=2))
+    elif args.command == 'fastboot-reboot':
+        identity = fastboot_identity()
+        result = fastboot('reboot', timeout=30)
+        need(result.returncode == 0, 'fastboot reboot failed')
+        print(json.dumps(dict(t=now(), requested='normal reboot', identity=identity)), flush=True)
+        deadline = time.monotonic()+args.wait
+        while time.monotonic() < deadline:
+            state = usb_state()
+            if state in ('recovery', 'enumerating', 'target'):
+                print(json.dumps(dict(usb=state, t=now())))
+                return
+            time.sleep(0.5)
+        raise ValueError('phone did not leave fastboot for the installed chain; last state '+usb_state())
     elif args.command == 'to-fastboot':
         need(usb_state() == 'target', 'phone is not a running target on the approved port')
         use_address(args.address)
@@ -464,7 +481,18 @@ def main():
                     stages.close()
                     stage_path(False)
         else:
-            summary = observe(evidence, args.seconds)
+            stages = None
+            if args.stage_receiver:
+                stages = StageReceiver(evidence)
+                stage_path(True)
+                stages.start()
+            try:
+                summary = observe(evidence, args.seconds, stages=stages,
+                                  address='169.254.77.2' if stages else '10.77.0.2')
+            finally:
+                if stages is not None:
+                    stages.close()
+                    stage_path(False)
         (evidence/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print(json.dumps(summary))
 
