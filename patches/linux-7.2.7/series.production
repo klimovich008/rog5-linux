@@ -1,0 +1,18 @@
+# Ordered production build inputs rebased onto v7.2.7 (f42acb36); no hardware qualification implied.
+0001-ufs-add-read-only-discovery-mode.patch
+0002-ufs-tighten-read-only-discovery-command-gates.patch
+0003-ufs-pin-discovery-link-active-across-pm-and-shutdown.patch
+0012-drm-msm-a6xx-propagate-gmu-pwrlevels-error.patch
+0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch
+0026-clk-resume-runtime-pm-providers-around-orphan-walks.patch
+0033-ufs-permit-bounded-data-writes-under-discovery-containment.patch
+0034-ufs-enable-high-speed-for-bounded-data-writes.patch
+0035-soc-qcom-rpmh-timeout-safe-readback.patch
+0036-regulator-qcom-rpmh-asus-s12-oem-point.patch
+0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
+0038-power-supply-qcom-battmgr-fix-charge-units.patch
+0039-usb-gadget-ncm-restart-busy-tx-timer.patch
+0040-drm-msm-adreno-defer-until-iommu-attachment.patch
+0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch
+0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch
+0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch

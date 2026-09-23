@@ -117,11 +117,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--linux-git', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--jobs', type=int, choices=(1, 2), default=2)
+    parser.add_argument('--jobs', type=int, default=2, help='parallel make jobs, 1 to the CPU count')
+    parser.add_argument('--config', type=Path, default=CONFIG, help='build policy; its patch_dir selects the series')
+    parser.add_argument('--ccache', type=Path, help='ccache executable wrapping clang (cache in ~/.local/state/rog5-kernel-ccache)')
     parser.add_argument('--firmware-root', type=Path)
     parser.add_argument('--base-archive', type=Path, help='reuse only the exact hash-pinned immutable-base tar')
     parser.add_argument('--prepare-only', action='store_true', help='apply/resolve config only; compile remains NOT RUN')
     args = parser.parse_args()
+    if not 1 <= args.jobs <= (os.cpu_count() or 1): parser.error('--jobs must be between 1 and the CPU count')
+    if args.ccache and not (args.ccache.is_file() and os.access(args.ccache, os.X_OK)): parser.error('--ccache must be an executable')
     output = args.output.resolve()
     if output.exists(): parser.error('output must be new; never reuse an unknown build')
     output.mkdir(parents=True)
@@ -169,20 +173,22 @@ def main():
         save()
         if process.returncode: raise RuntimeError(name+' failed; see '+str(output/(name+'.log')))
     try:
-        policy = json.loads(CONFIG.read_text()); groups = series()
+        config = args.config.resolve(); policy = json.loads(config.read_text())
+        patches = REPO/policy.get('patch_dir', 'patches/linux-7.1.4'); groups = series(patches)
         result['repository'] = dict(commit=capture(['git','-C',str(REPO),'rev-parse','HEAD']),
             tree=capture(['git','-C',str(REPO),'rev-parse','HEAD^{tree}']),
             dirty=bool(capture(['git','-C',str(REPO),'status','--porcelain'])))
-        inputs = [CONFIG, Path(__file__).resolve(), DIAGNOSTIC_SOURCE, WARNING_POLICY, PATCHES/'series.production', PATCHES/'series.diagnostic']
-        inputs += [PATCHES/name for name in groups['production']+groups['diagnostic']]
+        inputs = [config, Path(__file__).resolve(), DIAGNOSTIC_SOURCE, WARNING_POLICY, patches/'series.production', patches/'series.diagnostic']
+        inputs += [patches/name for name in groups['production']+groups['diagnostic']]
         inputs += [REPO/name for name in policy['fragments']+policy['dt_sources']]
         inputs += [REPO/item['source'] for item in policy['dt_bindings']]
         inputs += [DT_COMPOSITION, REPO/'scripts/device/verify-recovery-dtb-delta.py',
                    REPO/'scripts/device/verify-display-60hz-dtb-delta.py', TOUCH_PROVIDERS]
         result['inputs'] = {str(p.relative_to(REPO)): digest(p) for p in inputs}
-        result['ordered_series']={role:[dict(name=name,sha256=digest(PATCHES/name)) for name in groups[role]] for role in groups}
+        result['ordered_series']={role:[dict(name=name,sha256=digest(patches/name)) for name in groups[role]] for role in groups}
         result['production_series_binding_sha256']=hashlib.sha256(json.dumps(result['ordered_series']['production'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
         result['build_limits']=dict(jobs=args.jobs,min_free_disk_bytes=MIN_FREE)
+        result['patch_dir']=str(patches.relative_to(REPO))
         result['policy'] = policy
         result['linux_base'] = capture(['git','-C',str(args.linux_git),'rev-parse',policy['base_commit']+'^{commit}'])
         if result['linux_base'] != policy['base_commit']: raise ValueError('exact kernel base missing')
@@ -214,12 +220,19 @@ def main():
         run('extract', ['tar','-xf',str(archive),'-C',str(source)])
         if not args.base_archive: archive.unlink()
         for name in groups['production']:
-            run('apply-'+name[:4], ['git','apply','--check',str(PATCHES/name)], cwd=source)
-            subprocess.run(['git','apply',str(PATCHES/name)], cwd=source, env=env, check=True)
+            run('apply-'+name[:4], ['git','apply','--check',str(patches/name)], cwd=source)
+            subprocess.run(['git','apply',str(patches/name)], cwd=source, env=env, check=True)
         targets = stage_dt_sources(source, policy['dt_sources'])
         stage_dt_bindings(source, policy['dt_bindings'])
         objects = output/'objects'
         make = ['make','-C',str(source),'O='+str(objects),'ARCH=arm64','LLVM=1']
+        if args.ccache:
+            # Paths under the output directory hash relative, so later builds of the same
+            # sources in a new output directory hit the cache.
+            env.update(CCACHE_DIR=str(Path.home()/'.local/state/rog5-kernel-ccache'), CCACHE_BASEDIR=str(output), CCACHE_NOHASHDIR='1')
+            make.append('CC='+str(args.ccache.resolve())+' clang')
+            result['tools']['ccache']=dict(path=str(args.ccache.resolve()),sha256=digest(args.ccache),
+                version=subprocess.run([str(args.ccache),'--version'],capture_output=True,text=True).stdout.splitlines()[:1])
         run('defconfig', make+['defconfig'])
         run('merge-config', [str(source/'scripts/kconfig/merge_config.sh'),'-m','-O',str(objects),str(objects/'.config')]+[str(REPO/p) for p in policy['fragments']])
         run('olddefconfig', make+['olddefconfig'])

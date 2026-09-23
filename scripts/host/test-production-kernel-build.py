@@ -93,6 +93,15 @@ class BoardBuild(unittest.TestCase):
         self.assertTrue(any(x.startswith('0043-') for x in groups['production']))
         for number in [4,5,6,7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,24,25,27,28,29,30,31,32]:
             self.assertTrue(any(x.startswith(f'{number:04d}-') for x in groups['diagnostic']))
+    def test_7_2_7_policy_selects_its_rebased_series(self):
+        policy=json.loads((B.REPO/'configs/kernel/rog5-production-build-7.2.7.json').read_text())
+        base=json.loads(B.CONFIG.read_text())
+        self.assertEqual(policy['patch_dir'],'patches/linux-7.2.7')
+        self.assertEqual(policy['base_commit'],'f42acb3678424d1e08f6ed27c0d8ba8a125e14d6')
+        self.assertEqual({k:v for k,v in policy.items() if k not in ('base_commit','base_archive_sha256','patch_dir','base_description')},base)
+        groups=B.series(B.REPO/policy['patch_dir'])
+        self.assertEqual(groups['diagnostic'],[])
+        self.assertEqual(groups['production'],B.series()['production'])
     def test_missing_duplicate_and_overlap_are_rejected(self):
         for mutation in ('missing','duplicate','overlap','path'):
             with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as d:

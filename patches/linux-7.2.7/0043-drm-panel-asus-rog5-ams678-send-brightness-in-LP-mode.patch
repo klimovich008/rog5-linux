@@ -1,0 +1,17 @@
+diff --git a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+index 2f6dfeba4087aae4b30f8ca80bf5f978ad5494a6..72b5a3de1f2330edcd7327b47c1c5fc2f6eb3f33 100644
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+@@ -387,7 +387,11 @@ static int ams678_er2_plus_dsc_bl_update_status(struct backlight_device *bl)
+ 		return -EPERM;
+ 	}
+ 	mode_flags = dsi->mode_flags;
+-	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
++	/*
++	 * The panel ignores 0x51 sent in HS mode: the DBV stays at the value
++	 * last written in LP mode (0 from enable), so the screen stays dark.
++	 */
++	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+ 
+ 	/* Vendor inverted-DBV handling sends the high byte first. */
+ 	ret = mipi_dsi_dcs_set_display_brightness_large(dsi, brightness);
