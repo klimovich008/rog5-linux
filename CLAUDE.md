@@ -29,6 +29,25 @@ or VM UI work.
 
 Status of each step goes in the generated block of `docs/current-state.md`, not here.
 
+## Where things live (don't break these)
+
+- This checkout is a git worktree. Its git dir is
+  `~/.local/state/rog5-haven-clean-ci-20260810/.git`, which borrows objects from
+  `~/Projects/rog-phone-linux-migration/repo/.git/objects` (alternates). Never
+  delete or move either directory. About 600 commits are not on GitHub. Backup
+  bundle of all refs: `~/rog5-git-backup/rog5-all-refs-20260923.bundle`.
+- Boot chain: slot A is stock ASUS (rescue/charging). boot_b holds a 96 MiB ASUS 5.4
+  wrapper whose recovery initramfs mounts p24 `arch_root_a`, reads
+  `/boot/rog5-linux/selector`, verifies an Ed25519-signed inner bundle (Image, DTB,
+  initramfs, manifest) and kexecs it. The root is p24 (ro lower) with an overlay
+  on `userdata:/rog5/root/root-overlay-v1.ext4`. Trials RAM-boot a 128 MiB wrapper
+  that embeds the signed bundle via `fastboot boot` (no flashing). The signing
+  key stays outside Git.
+- Observation: SSH over USB NCM 10.77.0.2 (host 10.77.0.1), early progress on USB
+  ACM `/dev/ttyGS0`, UDP stage messages to 169.254.77.1:8079. There's no pstore
+  yet, so a hard hang needs a manual forced reboot.
+- Detailed map: `~/.local/state/rog5-wf-scratch-20260923/BOOT-CHAIN.md`.
+
 ## Orientation (cheap reads only)
 
 - `git status --short`, `git rev-parse HEAD`, then `sed -n 1,8p docs/current-state.md`.
