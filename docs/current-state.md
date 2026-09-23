@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production headless RAM-trial package signed and verified; awaiting attended boot**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production kernel 7.1.4-rog5-production boots headless on the phone (RAM trial r3 PASS)**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Package r3 (bundle production-headless-r2, wrapper 6cafb1ce) boots 7.1.4-rog5-production headless: the V9 board DTB (display/GPU off) and a modprobe ramdisk built from the V9 base plus the 64-module production tree (no Wi-Fi payload). The exact pinned ARM64 verifier accepts it under qemu, and it rebuilds byte-identically. The loaders replay under the target BusyBox. A second investigation round caught a main-flow UFS gate bug in r2 before any boot; it is fixed in 50d7fc00. The phone is on V11 and healthy (read-only probe 14:00Z). Next: the user picks the fastboot route; after a fresh Ready, run production-ram-trial.py to-fastboot + boot --stage-receiver. The display/GPU trial follows: SMMU rebind after gpucc, the stock ASUS zap (extracted), the TE mdp_vsync fix, separate_gpu_kms=1 first. See [current repair evidence](../test-results/2026-09-23-production-headless-package.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+RAM trial r3 (package-r4, wrapper b757a9e1) booted 7.1.4-rog5-production with the modprobe ramdisk and V9 DTB: power/USB, UFS, switch-root, sshd and SSH health all PASS, stable for 20 min with no rollback. r1/r2 found the host capture defect and the kernel autoload of qrtr (net-pf-42), both fixed. Next: the bounded OLED + Adreno 660 trial on this kernel: a display DTB (display-60hz plus the gpu overlays with gpucc and GPU SMMU enabled and the TE mdp_vsync fix), the stock ASUS zap (extracted), msm with separate_gpu_kms=1 first, and an arm-smmu rebind after gpucc. Open: package-keyring timeout and the kmsg stream. See [current repair evidence](../test-results/2026-09-23-production-headless-package.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -119,3 +119,18 @@ rog5.target_timeout=600 rog5.recovery_timeout=900`.
 Known limits: no ramoops (pstore is lost across the wrapper boot), Tailscale
 lacks `NF_CONNTRACK_MARK`, and Wi-Fi, display and GPU are deliberately absent
 from this boot.
+
+## Phone trials (RAM-only, attended by software)
+
+| Trial | Image | Result |
+|---|---|---|
+| r1 14:27Z | wrapper `6cafb1ce…` (package-r3) | The production kernel ran for the first time: `ufs-ready ENTER`, then rollback to fastboot about 2 s after the gadget enumerated. The failure code was lost because NetworkManager 1.52 silently ignored a second address on the shared profile. |
+| r2 14:42Z | same image (reuse recorded in claims/) | `ufs-ready FAIL power-usb-module-qrtr-already-loaded`. With a depmod tree, the kernel's request_module (net-pf-42, from the built-in sysmon QMI socket after ADSP start) loads qrtr before its explicit step. |
+| r3 14:48Z | wrapper `b757a9e1…` (package-r4, commit 5b57a603) | **PASS headless.** kernel-verified; power/USB ready at 3.5 s (`qrtr was autoloaded before its step`); UFS by modprobe at 7.5–8.1 s; switch-root PASS at +15 s; sshd running; SSH health at 14:49:09. Up 1206 s later with no rollback (P2 gate passed): battery 100 % at 29.8 °C, USB online, only sda/sda23 writable, load 0.20, 37 °C. |
+
+Capture validation: a normal V11 boot at 14:37Z delivered 8 initramfs stage records and link-local SSH health through the new host path.
+
+Open items from r3:
+- `rog5-package-keyring.service` hits its 120 s start timeout; the phone clock reads May 28 because the RTC is not set.
+- The live kmsg stream recorded 0 lines; the one-shot dmesg at health time worked.
+- `pmic-spmi 0-05` probe -EIO also occurs on V11, so it predates this work.
