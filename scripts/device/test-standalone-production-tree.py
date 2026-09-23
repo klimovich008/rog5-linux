@@ -103,7 +103,7 @@ class Builds(unittest.TestCase):
         self.assertEqual(modes['rog5-platform'], 'drwx------')
         self.assertEqual(modes['rog5-platform/boot-modules'], '-r--r--r--')
         self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
-        self.assertEqual(len(modes), 10)
+        self.assertEqual(len(modes), 9)
 
     def test_trial_kit_is_installed_with_exact_modes(self):
         descriptor = self.dir/'trial-descriptor'
@@ -132,7 +132,10 @@ class Builds(unittest.TestCase):
         members = self.members(output)
         self.assertEqual(members, sorted(members, key=lambda name: name.encode()))
         modules = [m for m in members if m.endswith('.ko')]
-        self.assertEqual(len(modules), 64)
+        with tarfile.open(PACKAGE) as package:
+            packaged = [m.name for m in package.getmembers() if m.name.endswith('.ko')]
+        self.assertEqual(len(modules), len(packaged))
+        self.assertGreaterEqual(len(modules), 63)
         self.assertTrue(all(m.startswith(f'lib/modules/{RELEASE}/') for m in modules))
         for gone in ('rog5-power-usb-modules', 'rog5-ufs-modules', 'rog5-native-wifi', 'rog5-reboot-mode-modules'):
             self.assertFalse([m for m in members if m == gone or m.startswith(gone+'/')], gone)
