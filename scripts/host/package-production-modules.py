@@ -113,9 +113,14 @@ def main():
     tree = out/'tree'
     root = tree/'lib/modules'/release
     (root/'kernel').mkdir(parents=True)
-    missing = [m for m in selection['board_modules'] if not (installed/'kernel'/m).is_file()]
+    # A base may build a selected module in (7.2.7 defconfig: crypto aes, cmac, sha256).
+    builtin_names = set((installed/'modules.builtin').read_text().splitlines())
+    built_in = [m for m in selection['board_modules'] if not (installed/'kernel'/m).is_file() and 'kernel/'+m in builtin_names]
+    missing = [m for m in selection['board_modules'] if not (installed/'kernel'/m).is_file() and m not in built_in]
     need(not missing, 'selected modules missing from this build: '+', '.join(missing))
     for canonical in selection['board_modules']:
+        if canonical in built_in:
+            continue
         dst = root/'kernel'/canonical
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(installed/'kernel'/canonical, dst)
@@ -133,7 +138,7 @@ def main():
     builtin = (root/'modules.builtin').read_text().splitlines()
     need(all(b in builtin for b in selection['required_builtin']), 'required built-in modules missing')
     board_order = [line[:-2]+'.ko' for line in (objects/'modules.order').read_text().splitlines()]
-    selected = set(selection['board_modules'])
+    selected = set(selection['board_modules'])-set(built_in)
     order = [c for c in board_order if c in selected]
     need(sorted(order) == sorted(selected), 'modules.order lacks selected modules')
     (root/'modules.order').write_text(''.join('kernel/'+c+'\n' for c in order+sorted(externals)))
@@ -148,7 +153,7 @@ def main():
                   kernel_image_sha256=sha(objects/'arch/arm64/boot/Image'),
                   selection_sha256=sha(args.selection), package_sha256=sha(package), package_bytes=package.stat().st_size,
                   files=len(entries), modules=sum(n.endswith('.ko') for n in entries), uncompressed_bytes=total,
-                  external_modules=externals, files_sha256=entries, duration_seconds=round(time.monotonic()-started, 2),
+                  external_modules=externals, selected_built_in=built_in, files_sha256=entries, duration_seconds=round(time.monotonic()-started, 2),
                   physical='NOT RUN', signed=False)
     (out/'result.json').write_text(json.dumps(result, indent=2)+'\n')
     print(json.dumps({k: result[k] for k in ('status', 'release', 'package_sha256', 'files', 'modules', 'duration_seconds')}))

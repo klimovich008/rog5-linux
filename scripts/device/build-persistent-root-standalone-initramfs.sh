@@ -43,14 +43,17 @@ case $persistent_overlay_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
 	exit 1
 esac
-[ "$expected_release" = 7.1.4-rog5-production ] ||
+production_release() {
+	printf '%s\n' "$1" | grep -Eqx '[0-9]+[.][0-9]+[.][0-9]+-rog5-production'
+}
+production_release "$expected_release" ||
 printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
 	echo 'FAIL invalid expected standalone kernel release' >&2
 	exit 1
 }
 
 if [ -n "$production_package" ]; then
-	[ "$expected_release" = 7.1.4-rog5-production ] &&
+	production_release "$expected_release" &&
 		printf '%s\n' "$production_package_sha256" | grep -Eqx '[0-9a-f]{64}' &&
 		[ -z "$ufs_modules" ] && [ -z "$power_modules" ] || {
 		echo 'FAIL production module tree needs the production release, its pinned package hash and no loose module sets' >&2
