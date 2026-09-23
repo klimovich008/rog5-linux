@@ -37,6 +37,11 @@ production_no_autoload=etc/modprobe.d/rog5-production-no-autoload.conf
 # 29-file ADSP inventory is unchanged.
 production_firmware=${PRODUCTION_EXTRA_FIRMWARE:-}
 production_firmware_sha256=${PRODUCTION_EXTRA_FIRMWARE_SHA256:-}
+# Optional try-once commit kit that makes this bundle the phone's default:
+# the 4-line trial descriptor (same identity as the installed selector), the
+# tracked trial-state helper and the per-boot commit unit.
+production_trial=${PRODUCTION_TRIAL_DESCRIPTOR:-}
+production_trial_sha256=${PRODUCTION_TRIAL_DESCRIPTOR_SHA256:-}
 epoch=1681862400
 
 case $persistent_overlay_mode in 0|1) ;; *)
@@ -57,6 +62,28 @@ printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
 	exit 1
 }
 
+install_production_trial() {
+	descriptor=$1
+	[ -f "$descriptor" ] && [ ! -L "$descriptor" ] || return 1
+	[ "$(sha256sum "$descriptor" | cut -d ' ' -f 1)" = "$production_trial_sha256" ] || return 1
+	[ "$(wc -l <"$descriptor")" -eq 4 ] &&
+		[ "$(sed -n 1p "$descriptor")" = format=rog5-persistent-wifi-health-v1 ] &&
+		[ "$(sed -n 4p "$descriptor")" = mode=try-once ] || return 1
+	sed -n 2p "$descriptor" | grep -Eqx 'trial_id=[0-9a-f]{64}' &&
+		sed -n 3p "$descriptor" | grep -Eqx 'primary_bundle=[a-z0-9][a-z0-9._-]{0,63}' &&
+		! grep -q '[.][.]' "$descriptor" || return 1
+	helper=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
+	(cd "$(dirname "$helper")" && sha256sum -c --quiet SHA256SUMS) || return 1
+	kit=$root/rog5-production-trial
+	[ ! -e "$kit" ] && [ ! -L "$kit" ] || return 1
+	install -d -m 0700 "$kit" &&
+		install -m 0444 "$descriptor" "$kit/trial-descriptor" &&
+		install -m 0755 "$helper" "$kit/trial-state" &&
+		install -m 0755 "$repo/initramfs/production-trial-commit" "$kit/commit" &&
+		install -m 0644 "$repo/configs/systemd/rog5-production-trial-commit.service" \
+			"$kit/rog5-production-trial-commit.service"
+}
+
 if [ -n "$production_package" ]; then
 	production_release "$expected_release" &&
 		printf '%s\n' "$production_package_sha256" | grep -Eqx '[0-9a-f]{64}' &&
@@ -65,6 +92,10 @@ if [ -n "$production_package" ]; then
 		exit 1
 	}
 fi
+[ -z "$production_trial" ] || [ -n "$production_package" ] || {
+	echo 'FAIL a production trial kit needs the production module tree' >&2
+	exit 1
+}
 
 # Full module refresh is for an exact rebuilt kernel/BTF closure. The caller
 # must independently prove code equivalence and load the closure with its Image.
@@ -190,6 +221,9 @@ unchanged_files() {
 	if [ -n "$production_firmware" ]; then
 		set -- "$@" ! -path './opt/rog5-charge-firmware/*/*'
 	fi
+	if [ -n "$production_trial" ]; then
+		set -- "$@" ! -path './rog5-production-trial/*'
+	fi
 	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
 
@@ -287,6 +321,12 @@ if [ -n "$production_package" ]; then
 		printf '%s\n' "$production_firmware_sha256" | grep -Eqx '[0-9a-f]{64}' &&
 			install_production_firmware "$production_firmware" || {
 			echo 'FAIL production extra firmware' >&2
+			exit 1
+		}
+	fi
+	if [ -n "$production_trial" ]; then
+		install_production_trial "$production_trial" || {
+			echo 'FAIL production trial kit' >&2
 			exit 1
 		}
 	fi

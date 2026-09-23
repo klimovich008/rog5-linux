@@ -328,6 +328,7 @@ shared_tests=(
 	scripts/device/test-tailscale-netfilter-kernel.sh
 	scripts/device/test-standalone-module-refresh.sh
 	scripts/device/test-standalone-production-tree.py
+	scripts/device/test-production-trial-commit.py
 	scripts/device/test-native-wifi-module-kit.sh
 	scripts/device/test-native-wifi-dtb.py
 	scripts/device/test-ams678-panel-patch.sh

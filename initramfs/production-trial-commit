@@ -1,0 +1,85 @@
+#!/bin/sh
+# Commit this boot of the default production bundle as healthy.
+#
+# The slot-B loader boots the selector's primary bundle only while its
+# try-once record (userdata /rog5/boot/wifi-trial-state) is absent or healthy,
+# and re-arms it to pending on every primary boot. Without this commit, the
+# next boot takes the fallback bundle (V11). A boot that is not the selected
+# trial (a RAM trial, or the fallback) finds a different record and changes
+# nothing. Any failure leaves the record pending.
+set -u
+root=${ROG5_TRIAL_KIT:-/run/rog5-production-trial}
+run=${ROG5_TRIAL_RUN:-/run}
+sys=${ROG5_TRIAL_SYS:-/sys}
+proc=${ROG5_TRIAL_PROC:-/proc}
+kmsg=${ROG5_TRIAL_KMSG:-/dev/kmsg}
+descriptor=$root/trial-descriptor
+helper=$root/trial-state
+limit=${ROG5_TRIAL_WAIT:-180}
+
+log() {
+	printf 'rog5-production-trial: %s\n' "$*" >"$kmsg" 2>/dev/null ||
+		printf 'rog5-production-trial: %s\n' "$*" >&2
+}
+
+fail() {
+	log "FAIL $*"
+	exit 1
+}
+
+[ -f "$descriptor" ] && [ ! -L "$descriptor" ] || fail 'trial descriptor missing'
+[ "$(wc -l <"$descriptor")" -eq 4 ] &&
+	[ "$(sed -n 1p "$descriptor")" = format=rog5-persistent-wifi-health-v1 ] &&
+	[ "$(sed -n 4p "$descriptor")" = mode=try-once ] || fail 'trial descriptor format'
+trial_id=$(sed -n 's/^trial_id=//p' "$descriptor")
+primary=$(sed -n 's/^primary_bundle=//p' "$descriptor")
+[ "$(sed -n 2p "$descriptor")" = "trial_id=$trial_id" ] &&
+	[ "$(sed -n 3p "$descriptor")" = "primary_bundle=$primary" ] ||
+	fail 'trial descriptor fields'
+case $trial_id in ''|*[!0-9a-f]*) fail 'trial id' ;; esac
+[ "${#trial_id}" -eq 64 ] || fail 'trial id length'
+case $primary in ''|*[!a-z0-9._-]*|*..*|[._-]*) fail 'primary bundle name' ;; esac
+[ -x "$helper" ] && [ ! -L "$helper" ] || fail 'trial helper missing'
+boot_id=$(cat "$proc/sys/kernel/random/boot_id") || fail 'boot id'
+
+if ! state=$("$helper" state "$trial_id" "$primary" 2>/dev/null); then
+	log "SKIP this boot is not the selected try-once trial of $primary"
+	exit 0
+fi
+case $state in
+	pending|healthy) ;;
+	failed) log "SKIP the $primary trial is already failed"; exit 0 ;;
+	*) fail "unexpected trial state $state" ;;
+esac
+
+ready() {
+	p2=$run/rog5-p2-ready
+	identity=$run/rog5-persistent-ssh-identity.record
+	[ -f "$p2" ] && [ ! -L "$p2" ] && [ "$(stat -c '%u:%g:%a' "$p2")" = 0:0:444 ] &&
+		grep -Fxq status=PASS "$p2" &&
+		grep -Fxq "attested_boot_id=$boot_id" "$p2" || return 1
+	[ -f "$identity" ] && [ ! -L "$identity" ] &&
+		[ "$(stat -c '%u:%g:%a' "$identity")" = 0:0:444 ] &&
+		grep -Fxq "identity_boot_id=$boot_id" "$identity" || return 1
+	# sshd listening on 0.0.0.0:22.
+	grep -q ': 00000000:0016 00000000:0000 0A ' "$proc/net/tcp" || return 1
+	for node in "$sys"/class/block/sd*; do
+		[ -e "$node/ro" ] || continue
+		[ "$(cat "$node/ro")" = 1 ] && continue
+		case ${node##*/} in sda|sda23) ;; *) return 1 ;; esac
+	done
+	temp=$(cat "$sys/class/power_supply/qcom-battmgr-bat/temp" 2>/dev/null) || temp=
+	case $temp in ''|*[!0-9-]*) ;; *) [ "$temp" -lt 450 ] || return 1 ;; esac
+	return 0
+}
+
+waited=0
+until ready; do
+	waited=$((waited + 1))
+	[ "$waited" -lt "$limit" ] ||
+		fail "health not reached in $limit s; record stays $state, so the next boot takes the fallback"
+	sleep 1
+done
+result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
+case $result in healthy|already-healthy) ;; *) fail "trial commit result $result" ;; esac
+log "PASS $primary committed $result for boot $boot_id after $waited s"

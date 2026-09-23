@@ -2567,10 +2567,39 @@
           ],
           "test_ids": [
             "Builds.test_real_build_has_one_release_tree_and_no_loose_release_modules",
-            "Builds.test_hostile_packages_are_refused"
+            "Builds.test_hostile_packages_are_refused",
+            "Builds.test_trial_kit_is_installed_with_exact_modes"
           ]
         }
       ]
+    },
+    {
+      "path": "scripts/device/test-production-trial-commit.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-trial-commit",
+        "initramfs/persistent-root-init",
+        "configs/systemd/rog5-production-trial-commit.service"
+      ],
+      "optional_subchecks": []
     },
     {
       "path": "scripts/device/test-native-wifi-module-kit.sh",

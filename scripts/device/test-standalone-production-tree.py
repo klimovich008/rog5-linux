@@ -32,9 +32,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def build(base, output, package, package_sha, release=RELEASE, extra=()):
+def build(base, output, package, package_sha, release=RELEASE, extra=(), env_extra=None):
     env = dict(os.environ, EXPECTED_RELEASE=release, EXPECTED_STANDALONE_BASE_SHA256=sha(base) if Path(base).is_file() else '0'*64,
-               PRODUCTION_MODULE_PACKAGE=str(package), PRODUCTION_MODULE_PACKAGE_SHA256=package_sha)
+               PRODUCTION_MODULE_PACKAGE=str(package), PRODUCTION_MODULE_PACKAGE_SHA256=package_sha, **(env_extra or {}))
     return subprocess.run(['sh', str(BUILDER), str(base), str(output), *extra],
                           capture_output=True, text=True, env=env, timeout=300)
 
@@ -57,6 +57,23 @@ class Arguments(unittest.TestCase):
                     self.assertFalse((Path(tmp)/'out.cpio.gz').exists())
 
 
+    def test_trial_kit_needs_the_production_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)/'base.cpio.gz'
+            base.write_bytes(gzip.compress(b''))
+            env = dict(os.environ, EXPECTED_RELEASE=RELEASE, EXPECTED_STANDALONE_BASE_SHA256='0'*64,
+                       PRODUCTION_TRIAL_DESCRIPTOR=str(base), PRODUCTION_TRIAL_DESCRIPTOR_SHA256='a'*64)
+            env.pop('PRODUCTION_MODULE_PACKAGE', None)
+            result = subprocess.run(['sh', str(BUILDER), str(base), str(Path(tmp)/'out.cpio.gz')],
+                                    capture_output=True, text=True, env=env, timeout=60)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('FAIL a production trial kit needs the production module tree', result.stderr)
+
+
+DESCRIPTOR = (b'format=rog5-persistent-wifi-health-v1\ntrial_id=' + b'c'*64 +
+              b'\nprimary_bundle=production-7.2.7-test\nmode=try-once\n')
+
+
 @unittest.skipUnless(READY, SKIP_MESSAGE)
 class Builds(unittest.TestCase):
     def setUp(self):
@@ -75,6 +92,26 @@ class Builds(unittest.TestCase):
         with tarfile.open(PACKAGE) as source, tarfile.open(out, 'w:gz') as target:
             mutate(source, target)
         return out
+
+    def test_trial_kit_is_installed_with_exact_modes(self):
+        descriptor = self.dir/'trial-descriptor'
+        descriptor.write_bytes(DESCRIPTOR)
+        output = self.dir/'trial.cpio.gz'
+        result = build(BASE, output, PACKAGE, sha(PACKAGE), env_extra=dict(
+            PRODUCTION_TRIAL_DESCRIPTOR=str(descriptor), PRODUCTION_TRIAL_DESCRIPTOR_SHA256=sha(descriptor)))
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        listing = subprocess.run(f'gzip -dc {output} | cpio -tv --quiet', shell=True,
+                                 capture_output=True, text=True, check=True).stdout.splitlines()
+        modes = {line.split()[-1]: line.split()[0] for line in listing if 'rog5-production-trial' in line}
+        self.assertEqual(modes, {'rog5-production-trial': 'drwx------',
+                                 'rog5-production-trial/commit': '-rwxr-xr-x',
+                                 'rog5-production-trial/rog5-production-trial-commit.service': '-rw-r--r--',
+                                 'rog5-production-trial/trial-descriptor': '-r--r--r--',
+                                 'rog5-production-trial/trial-state': '-rwxr-xr-x'})
+        wrong = build(BASE, self.dir/'wrong.cpio.gz', PACKAGE, sha(PACKAGE), env_extra=dict(
+            PRODUCTION_TRIAL_DESCRIPTOR=str(descriptor), PRODUCTION_TRIAL_DESCRIPTOR_SHA256='d'*64))
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn('FAIL production trial kit', wrong.stderr)
 
     def test_real_build_has_one_release_tree_and_no_loose_release_modules(self):
         output = self.dir/'target.cpio.gz'

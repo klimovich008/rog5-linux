@@ -2032,6 +2032,34 @@ prepare_package_keyring() {
 		/run/systemd/system/multi-user.target.wants/rog5-package-keyring.service
 }
 
+prepare_production_trial() {
+	# Optional: only a production ramdisk built with a trial descriptor carries
+	# the try-once commit kit. Publish it to /run for the booted systemd.
+	kit=/rog5-production-trial
+	run=/run
+	[ -e "$kit" ] || [ -L "$kit" ] || return 0
+	[ -d "$kit" ] && [ ! -L "$kit" ] || return 1
+	for entry in trial-descriptor:444 trial-state:755 commit:755 \
+		rog5-production-trial-commit.service:644; do
+		file=$kit/${entry%%:*}
+		[ -f "$file" ] && [ ! -L "$file" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] ||
+			return 1
+	done
+	for path in "$run/rog5-production-trial" \
+		"$run/systemd/system/rog5-production-trial-commit.service" \
+		"$run/systemd/system/multi-user.target.wants/rog5-production-trial-commit.service"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	mkdir -m 0700 "$run/rog5-production-trial" || return 1
+	cp -p "$kit/trial-descriptor" "$kit/trial-state" "$kit/commit" \
+		"$run/rog5-production-trial/" || return 1
+	mkdir -p "$run/systemd/system/multi-user.target.wants" || return 1
+	cp -p "$kit/rog5-production-trial-commit.service" "$run/systemd/system/" || return 1
+	ln -s ../rog5-production-trial-commit.service \
+		"$run/systemd/system/multi-user.target.wants/rog5-production-trial-commit.service"
+}
+
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
@@ -2207,6 +2235,7 @@ EOF
 	ln -s ../rog5-tailscaled.service \
 		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
 	prepare_package_keyring || return 1
+	prepare_production_trial || return 1
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	if [ "$native_wifi_boot" -eq 1 ]; then
 		/run/rog5-native-wifi/runtime install || return 1
