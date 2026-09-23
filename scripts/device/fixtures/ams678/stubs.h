@@ -161,7 +161,6 @@ static void write_seq(struct mipi_dsi_multi_context *c, const u8 *p, size_t n)
 #define mipi_dsi_dcs_set_display_off_multi(c) command(c)
 #define mipi_dsi_dcs_set_display_on_multi(c) command(c)
 #define mipi_dsi_dcs_enter_sleep_mode_multi(c) command(c)
-#define mipi_dsi_dcs_soft_reset_multi(c) command(c)
 #define mipi_dsi_usleep_range(c, ...) ((void)0)
 #define mipi_dsi_msleep(c, ...) ((void)0)
 static void drm_dsc_pps_payload_pack(void *p, void *d) {}

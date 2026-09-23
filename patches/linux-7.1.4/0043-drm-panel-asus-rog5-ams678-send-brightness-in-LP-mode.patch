@@ -1,0 +1,29 @@
+From: ROG5 Linux contributors <klimovich008@gmail.com>
+Subject: [PATCH] drm/panel: asus-rog5-ams678: send brightness in LP mode
+
+The backlight callback cleared MIPI_DSI_MODE_LPM and sent 0x51 in HS
+mode. On the phone the panel ignores that write: the DBV stays at the
+value last written in LP mode, which is 0 from enable(), so the screen
+stays black at any brightness. Measured on 2026-09-23 (production
+display trials d4 and d5) with the phone's input current as a light
+meter: a white frame drew the same idle current after HS writes of 1 or
+1023, but the USB input limit plus battery current after an LP write of
+1023, and idle again after an LP write of 1 or 0. The stock init
+sequence is unchanged and works once the DBV arrives in LP mode.
+
+---
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+@@ -387,7 +387,11 @@
+ 		return -EPERM;
+ 	}
+ 	mode_flags = dsi->mode_flags;
+-	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
++	/*
++	 * The panel ignores 0x51 sent in HS mode: the DBV stays at the value
++	 * last written in LP mode (0 from enable), so the screen stays dark.
++	 */
++	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+ 
+ 	/* Vendor inverted-DBV handling sends the high byte first. */
+ 	ret = mipi_dsi_dcs_set_display_brightness_large(dsi, brightness);

@@ -181,7 +181,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-rog5-touch-lifecycle.py
 	scripts/device/test-rog5-touch-regulator-errors.py
 	scripts/device/test-ams678-regulator-errors.py
-	scripts/device/test-ams678-xbl-sequence.py
+	scripts/device/test-ams678-lp-brightness.py
 	scripts/device/test-rog5-physical-key-events.py
 	scripts/device/test-observe-local-root-physical-key.py
 	scripts/device/test-optional-display-runtime.py
