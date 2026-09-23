@@ -44,7 +44,8 @@ Status of each step goes in the generated block of `docs/current-state.md`, not 
   that embeds the signed bundle via `fastboot boot` (no flashing). The signing
   key stays outside Git.
 - Observation: SSH over USB NCM 10.77.0.2 (host 10.77.0.1), early progress on USB
-  ACM `/dev/ttyGS0`, UDP stage messages to 169.254.77.1:8079. There's no pstore
+  ACM `/dev/ttyGS0`, and TCP stage records (busybox nc) to 169.254.77.1:8079, which
+  `production-ram-trial.py boot --stage-receiver` collects without root. There's no pstore
   yet, so a hard hang needs a manual forced reboot.
 - Detailed map: `~/.local/state/rog5-wf-scratch-20260923/BOOT-CHAIN.md`.
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production module tree and nonbootable archive rehearsal pass; coherent trial ramdisk incomplete",
+  "phase": "Production headless RAM-trial package signed and verified; awaiting attended boot",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,9 +9,10 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The isolated production-release module tree contains 64 hash-verified modules; depmod -ae -F System.map has no warnings and nine critical modprobe closures resolve. Its deterministic 78-file unsigned package is an ingredient only. A nonbootable scratch archive refresh replaced all 31 eligible loose modules, removed built-in I2C and regenerated release and checksum catalogs; 732-member round-trip and independent checks passed. It deliberately lacks init, consumed trial identity and historical relay nonce. The WCN6851 selector failed on the original source and passed after the retained device patch; twin W=1 builds reproduced four modules. Exact UFS local-write marker passed. Actual display-loader fixture confirms it refuses preloaded mdt_loader before entry, while the PAS dependency closure requires MDT first; shared ownership remains unresolved. A completed gpt-6-pro review proposed an unsigned 20-module ingredient stage, but six patch links returned 404. Same-conversation full-closure follow-up hit the ChatGPT usage limit, so no revised answer exists. Bootable composition and private controller/input binding remain incomplete. USB connection prompt pending; no phone command. Signing, claims, boot, flashing and target mutation remain excluded. Physical NOT RUN; S06/R01 and prior VM failures unchanged.",
-  "evidence": "test-results/2026-09-22-production-module-closure.md",
+  "next": "Package r3 (bundle production-headless-r2, wrapper 6cafb1ce) boots 7.1.4-rog5-production headless: the V9 board DTB (display/GPU off) and a modprobe ramdisk built from the V9 base plus the 64-module production tree (no Wi-Fi payload). The exact pinned ARM64 verifier accepts it under qemu, and it rebuilds byte-identically. The loaders replay under the target BusyBox. A second investigation round caught a main-flow UFS gate bug in r2 before any boot; it is fixed in 50d7fc00. The phone is on V11 and healthy (read-only probe 14:00Z). Next: the user picks the fastboot route; after a fresh Ready, run production-ram-trial.py to-fastboot + boot --stage-receiver. The display/GPU trial follows: SMMU rebind after gpucc, the stock ASUS zap (extracted), the TE mdp_vsync fix, separate_gpu_kms=1 first.",
+  "evidence": "test-results/2026-09-23-production-headless-package.md",
   "phone_operation_scope": [
-    "read-only identity and health checks only"
+    "read-only identity and health checks",
+    "RAM-only production boot (no flash) after fresh Ready"
   ]
 }
