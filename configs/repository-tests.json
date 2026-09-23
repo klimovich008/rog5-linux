@@ -1183,7 +1183,8 @@
           ],
           "test_ids": [
             "Loaders.test_power_tree_loads_mdt_loader_first_then_historical_order",
-            "Loaders.test_power_tree_refuses_preloaded_module",
+            "Loaders.test_power_tree_accepts_kernel_autoloaded_closure_module",
+            "Loaders.test_power_legacy_still_refuses_preloaded_module",
             "Loaders.test_power_tree_refuses_module_absent_from_tree",
             "Loaders.test_power_tree_insertion_failure_and_unobservable_module",
             "Loaders.test_power_legacy_archive_keeps_insmod_without_mdt_loader",

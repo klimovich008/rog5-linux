@@ -76,9 +76,17 @@ load_module() {
 		[ -f "$module_root/$file" ] && [ ! -L "$module_root/$file" ] ||
 			fail "module-$detail-missing" "missing module $file"
 	fi
-	! grep -q "^$name " /proc/modules ||
-		fail "module-$detail-already-loaded" "module already loaded: $name"
-	if [ "$module_mode" = tree ]; then
+	if grep -q "^$name " /proc/modules; then
+		# With a depmod tree the kernel's own request_module works: on the
+		# phone, ADSP start makes the built-in sysmon open a QMI socket, which
+		# requests net-pf-42 and loads qrtr before its step (trial r2). A module
+		# of this closure loaded that way is accepted and still verified
+		# below. Legacy archives have no tree, so any early load is an error.
+		[ "$module_mode" = tree ] ||
+			fail "module-$detail-already-loaded" "module already loaded: $name"
+		echo "rog5-persistent-power: $name was autoloaded before its step" \
+			>/dev/kmsg 2>/dev/null || true
+	elif [ "$module_mode" = tree ]; then
 		modprobe "$name" ||
 			fail "module-$detail-load" "module load failed: $name"
 	else

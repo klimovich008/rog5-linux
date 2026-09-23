@@ -43,6 +43,11 @@ modprobe() {
 	case " ${FAIL_LOAD:-} " in *" $1 "*) return 1 ;; esac
 	case " ${SILENT_LOAD:-} " in *" $1 "*) return 0 ;; esac
 	printf '%s 16384 0 - Live 0x0\n' "$1" >>/proc/modules
+	# Simulate the kernel's request_module side effect seen on the phone:
+	# AUTOLOAD_AFTER=trigger:module appends module after trigger loads.
+	case ${AUTOLOAD_AFTER:-} in "$1":*)
+		printf '%s 16384 0 - Live 0x0\n' "${AUTOLOAD_AFTER#*:}" >>/proc/modules ;;
+	esac
 }
 insmod() {
 	n=$(basename "$1" .ko | tr - _)
@@ -173,11 +178,25 @@ class Loaders(unittest.TestCase):
         self.assertEqual(loaded, POWER_ORDER)
         self.assertNotIn('INSMOD', result.stdout)
 
-    def test_power_tree_refuses_preloaded_module(self):
+    def test_power_tree_accepts_kernel_autoloaded_closure_module(self):
+        # Trial r2: ADSP start autoloaded qrtr (net-pf-42) right after PAS.
+        result, loaded = self.power_case(env={'AUTOLOAD_AFTER': 'qcom_q6v5_pas:qrtr'})
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertIn('PASS mode=tree', result.stdout)
+        self.assertEqual(loaded, POWER_ORDER)
+        self.assertNotIn('MODPROBE qrtr\n', result.stdout)
         result, loaded = self.power_case(preload=['qcom_q6v5'])
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertEqual(sorted(loaded), sorted(POWER_ORDER))
+
+    def test_power_legacy_still_refuses_preloaded_module(self):
+        legacy = self.root/'rog5-power-usb-modules'
+        legacy.mkdir()
+        for name in POWER_ORDER[1:]:
+            (legacy/(name.replace('qrtr_smd', 'qrtr-smd')+'.ko')).write_bytes(b'x')
+        result, loaded = self.power_case(preload=['qrtr'])
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('FAIL module-qcom-q6v5-already-loaded', result.stdout)
-        self.assertEqual(loaded, ['qcom_q6v5', 'mdt_loader'])
+        self.assertIn('FAIL module-qrtr-already-loaded', result.stdout)
 
     def test_power_tree_refuses_module_absent_from_tree(self):
         self.dep.write_text(''.join(line+'\n' for line in self.dep_text.splitlines()
