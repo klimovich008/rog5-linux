@@ -122,6 +122,15 @@
 	reg = <0x0 0xd8800000 0x0 0xa800000>;
 };
 
+/*
+ * Stock declares only a debug node at SPMI SID 5. Every Linux read there fails,
+ * and the 7.2 PMIC arbiter WARNs on it, so do not probe the PMIC. Its thermal
+ * zone stays described but never registers, as before.
+ */
+&pmr735b {
+	status = "disabled";
+};
+
 &rmtfs_mem {
 	reg = <0x0 0x9b800000 0x0 0x400000>;
 };
