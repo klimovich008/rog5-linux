@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production 7.2.7-rog5-production r3 is the slot-B default; goal: full non-cellular Linux support, then a Denial touch session**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7 r6 is the slot-B default (milestone 1 done); r7/r8 packaged for display/GPU autoload, Wi-Fi and touch**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-production-7.2.7-r3 is installed as the slot-B default (try-once commit, V11 fallback); two ordinary boots committed healthy, with SSH at 58.6 s and no failed units. New goal (CLAUDE.md): 1 clock and self-recovery (RTC/NTP, ramoops, watchdog); 2 display and GPU at boot without manual steps; 3 Wi-Fi; 4 touch and buttons; 5 Mesa and a hardware-rendered test; 6 Denial session; 7 audio; 8 remaining hardware table. Next: milestone 1. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Milestone 1 PASS on the default r6 (test-results/2026-09-24-milestone1-clock-recovery.md): RTC-restored clock before NTP, systemd softdog, panic self-recovery in 35 s; panic records cannot survive because every reset is a PMIC hard reset, and a warm reset hangs in firmware (needs R1; the phone is waiting for one). Packaged, not yet booted: r7 (gpucc/refgen built in, msm+panel boot modules, production Wi-Fi kit) and r8 (r7 plus the enabled front-touch overlay). Next: RAM-trial r8, user check of panel and touch corners, install as default; then a persistent root overlay (PERSISTENT_ROOT_OVERLAY=1) so Mesa and the Denial runtime can be installed. See [current repair evidence](../test-results/2026-09-24-milestone1-clock-recovery.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
