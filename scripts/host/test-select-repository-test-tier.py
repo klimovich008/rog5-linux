@@ -140,7 +140,8 @@ class TierSelectorTest(unittest.TestCase):
         )
 
     def test_agent_guidance_markdown_uses_active_tier(self) -> None:
-        for path in ("AGENTS.md", ".agents/skills/rog5-fast-loop/SKILL.md",
+        for path in ("AGENTS.md", "CLAUDE.md", ".claude/skills/rog5-fast-loop/SKILL.md",
+                     ".agents/skills/rog5-fast-loop/SKILL.md",
                      ".agents/skills/example/references/notes.md"):
             with self.subTest(path=path):
                 self.assertEqual(MODULE.classify([path]), ("active", "no"))
@@ -153,7 +154,8 @@ class TierSelectorTest(unittest.TestCase):
         # test-results is not a documentation-only namespace.
         for path in (".agents/skills/example/scripts/check.py",
                      ".agents/skills/example/template.json", ".agents/config.md",
-                     "tools/AGENTS.md", "test-results/runtime.json",
+                     "tools/AGENTS.md", "tools/CLAUDE.md", ".claude/settings.json",
+                     "test-results/runtime.json",
                      "test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md",
                      "test-results/2026-07-22-kernel-20.md"):
             with self.subTest(path=path):

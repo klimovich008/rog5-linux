@@ -106,8 +106,8 @@ def documentation(path: str) -> bool:
     # Markdown elsewhere can be a sealed artifact/runtime input, not prose.
     # In particular, test-results includes hash-pinned runtime-builder evidence
     # and compatibility-oracle inputs: do not exempt that whole namespace.
-    return path in {"README.md", "ROADMAP.md", "AGENTS.md"} or (
-        path.startswith(("docs/", ".agents/skills/")) and path.endswith(".md")
+    return path in {"README.md", "ROADMAP.md", "AGENTS.md", "CLAUDE.md"} or (
+        path.startswith(("docs/", ".agents/skills/", ".claude/skills/")) and path.endswith(".md")
     )
 
 

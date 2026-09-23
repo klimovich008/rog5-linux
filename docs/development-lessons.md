@@ -3880,11 +3880,15 @@ The two real host payload assemblies each took0.265 seconds; no rebuild needed.
 
 Exercise source-cohort validation separately from session fixtures that substitute
 admission. The direct production-cohort reproduction caught a removed QUERY
-reference hidden by that substitution. Oracle Pro now advises complex fixes;
-retain session IDs and verify selected Pro effort before accepting a proposal.
+reference hidden by that substitution.
 
 
-### Verify adviser output delivery before relying on its tests (2026-09-20)
+### Verify external review output before relying on its tests (2026-09-20)
+
+The ChatGPT/Oracle Pro adviser workflow was retired on 2026-09-23 and its
+tool-specific lessons removed. The general lesson stands: reviewer output of any
+kind is not local evidence. Verify delivered bytes against their declared hashes,
+then apply and test locally.
 
 The first Oracle Pro review took41m30s, but its proposed patch/ZIP returned404
 and were absent from the saved artifacts. Its scratch-test claim is therefore
@@ -3907,16 +3911,6 @@ private admission as an explicit fixture; successful binding is not permission
 to enter the unreviewed private runtime.
 
 
-For text-only adviser packets, Oracle's supported --browser-attachments never
-mode delivered the same verified source excerpts after both text-bundle and ZIP
-uploads failed before submission. Remove repeated unrelated provenance metadata
-from the prompt, retaining source hashes and every relevant function. Preserve
-failed attempts and verify submitted state plus the live selected Pro model; a
-running CLI alone does not prove the adviser received the question. Extracting
-actual call expressions can demonstrate an API arity failure before any private
-function body or authority-bearing launcher executes.
-
-
 Firmware-root source qualification (2026-09-20): distinguish exec's `unshare_files`
 from filesystem-context unsharing. `/proc/1/root` equality alone does not prove
 `init_task.fs` lookup, and a post-chroot fs split initially retains the same root.
@@ -3924,21 +3918,6 @@ The35 actual-source cases qualify control flow/root arguments only; keep real VF
 request timing, successor startup and payload lifetime separate. Do not rebuild or
 change the firmware path without a demonstrated defect. Preserve a correctly
 rejected historical seal while repairing independent caller/API mismatches.
-
-
-Bound adviser delivery separately from reasoning (2026-09-20): two large inline
-source requests exhausted browser CPU without reaching the conversation. A
-smaller inline retry still consumed909.77 renderer CPU seconds before its owned
-tab was closed. Metadata `promptSubmitted=false` alone is inconclusive because
-Oracle records it after the awaited send action; inspect a fresh conversation
-view after terminal failure before resubmitting. Never duplicate an active turn.
-For the same API review, one118131-byte plaintext file uploaded through the
-supported `--browser-attachments always` path; submission, visible6Pro and Pro's
-acknowledgment of the complete caller files were verified within123.699s of
-launch. This demonstrates a usable delivery path, not the cause of earlier
-upload/editor failures. Keep verbose delivery evidence private, bound resource
-use per owned tab, and distinguish confirmed file access from a completed review
-or locally tested solution. Close owned read-only diagnostic tabs after capture.
 
 
 Caller integration qualification (2026-09-20): carry the source-bound contract
@@ -3951,14 +3930,6 @@ future boot only after authenticated discovery; never construct its UUID in an
 offline contract. Preserve historical pins and seals while testing source copies.
 
 
-Oracle follow-up retrieval (2026-09-20): prompt-commit timeout can disagree with
-a captured matching new user turn and source-readable assistant acknowledgement.
-Treat that as a retrieval failure, not evidence to resubmit. Resume the exact
-conversation and verify live model/stop state. An in-progress harvest may still
-return the previous completed answer; compare its question/turn and response
-hash before extraction or application. Keep the new question's outcome pending.
-
-
 Cold-boot failure coverage (2026-09-20): the supplied28-case proposal passed, but
 a one-shot receipt-publication failure blocked the actual fallback controller.
 Exercise recovery through its real phase/driver/admission path; a construction
@@ -3969,26 +3940,6 @@ For adviser artifacts, compare downloaded bytes with declared hashes before
 using inline code; this delivery differed in a deleted source digest and a test
 label. A stale browser tab is not authoritative for server completion; a fresh
 read-only view resolved it without another consultation.
-
-
-Adviser waiting and parallelism (2026-09-20): repeated goal continuations while
-Pro reasoned added no development evidence. The installed Oracle wait function
-already watches session files; its internal one-second fallback uses no model.
-Use that mechanism and one terminal notification, then validate the matching
-question/answer. CLI terminal error can still require browser retrieval and is
-not proof that Pro reasoning failed. The current session exposes no task-wakeup
-tool; a desktop alert must not be described as automatic task resumption.
-Bound independent regular-Astra investigations separately from Pro decisions,
-with one integration owner and no duplicated prompts. Keep three advisers as a
-ceiling, not a target for empty work.
-
-Oracle upload recovery (2026-09-20): an upload timeout occurred before any user
-turn; assigning files to the generic DOM input also produced no attachment.
-Opening the actual file chooser in the same owned tab produced both attachment
-chips. Submit once only after checking them and the empty conversation, then
-retain the matching user ID, visible6Pro and source-specific acknowledgement.
-Use the existing session's live reader for retrieval; its earlier error metadata
-and terminal notification remain historical, not the new answer's status.
 
 
 Touch runner qualification (2026-09-20): test cancellation during handler
@@ -4046,9 +3997,7 @@ declarative manifest and the retained shell selector while migration remains
 incremental. Their comparison correctly rejected the missing selector entry
 before suites ran. Keep the publication-tracing batch alone: it took 50.536s
 locally under the 90s deadline. Pro-side PASS is separate from local execution.
-An Oracle recovery command returned a previous answer with exit0; verify the
-exact submitted question and final answer, including empty completion markers,
-before treating notification or CLI termination as successful review retrieval.
+
 
 
 Retained-input diagnosis (2026-09-20): distinguish the trusted coordinator's
@@ -4069,15 +4018,6 @@ passed132suites in747.864s. Before rebuilding, compare retained boot modules wit
 actual builder requirements: exact vermagic and a qualified display payload do
 not establish BTF, module-structure compatibility or early-boot dependency closure.
 The existing UFS verifier exposed the BTF mismatch in0.022486s without device I/O.
-
-Oracle recovery: this installed CLI's followup path resets the requested browser
-tab, so repeating that option did not reuse the responsive tab. Verify the native
-last question and terminal state of the owned stalled attempt before recovery.
-Explicit existing-tab mode with the actual remote browser port resumed the same
-conversation and verified the new question and gpt-6-pro/Pro selection. A browser
-navigation timeout is neither terminal process evidence nor permission to submit
-a duplicate request. Keep prior failures and match the final answer to the exact
-new question before implementing its proposal.
 
 Before reusing a historical target initramfs, stream its full member inventory,
 including nested module archives. The19 boot modules were only one part of the
@@ -4105,7 +4045,3 @@ byte-identical external modules in two33-second builds. Check functionality
 relevant to the phone before promoting an otherwise matching module cohort.
 A complete input selection also must include display dependencies outside the
 historical54-module archive and represent the built-in I2C driver explicitly.
-Pro sandbox file links returned authenticated404; verify downloadable bytes before
-applying. The same-conversation follow-up hit a verified usage limit, so do not
-retry repeatedly or silently use paid API/weaker reasoning. Continue offline
-work from the completed review and retain its unresolved conditions.
