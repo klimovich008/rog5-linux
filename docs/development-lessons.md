@@ -4095,3 +4095,15 @@ as ok because its check read the exit code of the step's last command. Every
 step now has to print its own success marker. A probe-time `DSI PLL lock
 failed` from `clk_core_reparent_orphans` is not a link failure: read
 clk_summary and the DPU/DSI interrupt counts after modeset before chasing it.
+
+### Prove the capture path live; a depmod tree turns on kernel autoload (2026-09-23)
+
+Trial r1 lost its failure code because NetworkManager 1.52 silently ignored a
+second address added to the shared USB profile, so the stage receiver never
+saw a record. The fix is a separate fallback profile with its own address,
+validated by one ordinary boot that delivered 8 records before the next
+trial. Trial r2 failed `qrtr-already-loaded`: once `modules.dep` exists, the
+kernel's `request_module` (net-pf-42 from sysmon after ADSP start) loads
+modules ahead of their explicit step. Tree mode now accepts an autoloaded
+module and logs it to kmsg. The legacy insmod path keeps the strict
+not-yet-loaded check.
