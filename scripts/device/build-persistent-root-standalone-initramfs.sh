@@ -43,8 +43,13 @@ case $persistent_overlay_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
 	exit 1
 esac
+# Exact production releases with a build policy in configs/kernel; an upgrade
+# adds its release here. case matches the whole string (no newline tricks).
 production_release() {
-	printf '%s\n' "$1" | grep -Eqx '[0-9]+[.][0-9]+[.][0-9]+-rog5-production'
+	case $1 in
+		7.1.4-rog5-production|7.2.7-rog5-production) return 0 ;;
+		*) return 1 ;;
+	esac
 }
 production_release "$expected_release" ||
 printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {

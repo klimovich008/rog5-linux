@@ -759,7 +759,10 @@ one RAM trial:
    --build <build> --policy <that file> --output <new json>`. 7.2.7: 7 of 21
    reviewed files and both initializer pins carried over; 317 messages in 28
    upstream files were drafted; the checker reports PASS.
-4. `package-production-modules.py --build <build> --output <new dir>` builds the
+4. Add the new `X.Y.Z-rog5-production` to `production_release()` in
+   `build-persistent-root-standalone-initramfs.sh`, an exact allowlist so no
+   other release name gets through.
+   `package-production-modules.py --build <build> --output <new dir>` builds the
    64-module ramdisk package, including the `tools/` externals, from that build.
 5. Then the ramdisk, signed package and RAM trial as in the production trial
    flow. After a PASS, create a new `rog5-kdev` dev tree from the build for the

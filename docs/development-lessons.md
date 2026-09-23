@@ -4161,3 +4161,7 @@ have broken or quietly weakened an upgrade:
   the CPUs. CI r9 ran next to the 6-job 7.2.7 build: two QEMU logind suites
   timed out or were killed, while r8 had passed them an hour earlier on
   nearly the same tree. Run CI after the build, or cap the build's jobs.
+- Validate an identifier with `case` on the whole string, not
+  `printf | grep -x`. grep matches line by line, so a release name containing
+  a newline passed the first 7.2.7 version of the ramdisk builder's check;
+  `test-standalone-rescue-composition.py` caught it in CI r10.
