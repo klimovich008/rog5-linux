@@ -269,6 +269,7 @@ active_tests=(
 	scripts/host/test-production-ram-trial.py
 	scripts/host/test-module-loop.py
 	scripts/host/test-install-default-kernel.py
+	scripts/device/test-production-trial-commit.py
 	scripts/host/test-package-production-modules.py
 	scripts/host/test-rebase-kernel-series.py
 	scripts/host/test-owned-vm.py
@@ -329,7 +330,6 @@ shared_tests=(
 	scripts/device/test-tailscale-netfilter-kernel.sh
 	scripts/device/test-standalone-module-refresh.sh
 	scripts/device/test-standalone-production-tree.py
-	scripts/device/test-production-trial-commit.py
 	scripts/device/test-native-wifi-module-kit.sh
 	scripts/device/test-native-wifi-dtb.py
 	scripts/device/test-ams678-panel-patch.sh
