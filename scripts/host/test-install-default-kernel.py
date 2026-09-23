@@ -106,7 +106,8 @@ class Target(unittest.TestCase):
             (self.stub/'block'/disk/'ro').write_text(f'{ro}\n')
         power = d/'power'
         for name, value in (('qcom-battmgr-bat/health', 'Good'), ('qcom-battmgr-bat/temp', '300'),
-                            ('qcom-battmgr-bat/voltage_now', '8700000'), ('qcom-battmgr-usb/online', '1')):
+                            ('qcom-battmgr-bat/voltage_now', '8405000'), ('qcom-battmgr-bat/capacity', '100'),
+                            ('qcom-battmgr-usb/online', '1')):
             (power/name).parent.mkdir(parents=True, exist_ok=True)
             (power/name).write_text(value+'\n')
         self.p24, self.p23, self.source = d/'p24', d/'p23', d/'source'
@@ -232,6 +233,8 @@ class Target(unittest.TestCase):
             ('write scope is sda sda23 sdb', {}, lambda: (self.stub/'block/sdb/ro').write_text('0\n')),
             ('battery temperature unsafe', {}, lambda: (self.dir/'power/qcom-battmgr-bat/temp').write_text('401\n')),
             ('USB power offline', {}, lambda: (self.dir/'power/qcom-battmgr-usb/online').write_text('0\n')),
+            ('battery voltage unsafe', {}, lambda: (self.dir/'power/qcom-battmgr-bat/voltage_now').write_text('7300000\n')),
+            ('battery capacity below 30 %', {}, lambda: (self.dir/'power/qcom-battmgr-bat/capacity').write_text('29\n')),
             ('p24 is not read-only', {}, lambda: (self.stub/'p24-mount').write_text('rw\n')),
             ('unexpected userdata boot state', {}, lambda: (self.p23/'rog5/state/good').mkdir(parents=True)),
         ]

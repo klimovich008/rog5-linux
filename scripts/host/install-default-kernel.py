@@ -256,8 +256,9 @@ def main():
         need(pushed.stdout.decode().split()[0] == sha(data), 'transfer changed '+name)
     result = phone.script(script, '--preflight')
     write_new(args.evidence/'preflight.log', result.stdout+result.stderr)
-    need(result.returncode == 0 and result.stdout == b'PASS default kernel payload preflight\n',
-         'payload preflight failed: '+(result.stdout+result.stderr).decode(errors='replace')[-300:])
+    if result.returncode != 0 or result.stdout != b'PASS default kernel payload preflight\n':
+        phone.run(f"rm -r -- '{source}'", check=False)
+        raise ValueError('payload preflight failed: '+(result.stdout+result.stderr).decode(errors='replace')[-300:])
     note('payload preflight PASS')
     if not args.stage:
         phone.run(f"rm -r -- '{source}'")

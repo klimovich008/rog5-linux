@@ -113,7 +113,11 @@ case $temperature in ''|*[!0-9]*) fail 'battery temperature invalid' ;; esac
 [ "$temperature" -lt 400 ] || fail 'battery temperature unsafe'
 voltage=$(cat "$sys_power/qcom-battmgr-bat/voltage_now")
 case $voltage in ''|*[!0-9]*) fail 'battery voltage invalid' ;; esac
-[ "$voltage" -ge 8400000 ] && [ "$voltage" -le 9000000 ] || fail 'battery voltage unsafe'
+# Dual cell: 7.4 V is 3.7 V per cell; a full pack rests near 8.4 V.
+[ "$voltage" -ge 7400000 ] && [ "$voltage" -le 9000000 ] || fail 'battery voltage unsafe'
+capacity=$(cat "$sys_power/qcom-battmgr-bat/capacity")
+case $capacity in ''|*[!0-9]*) fail 'battery capacity invalid' ;; esac
+[ "$capacity" -ge 30 ] || fail 'battery capacity below 30 %'
 
 for pair in "Image:$fallback_image" "board.dtb:$fallback_dtb" \
 	"initramfs.cpio.gz:$fallback_initramfs" "manifest:$fallback_manifest" \
