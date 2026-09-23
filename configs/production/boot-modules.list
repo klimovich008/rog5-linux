@@ -8,3 +8,7 @@ softdog soft_panic=1
 # device; gpucc and refgen are built in.
 msm separate_gpu_kms=1
 panel_asus_rog5_ams678
+# Front touch (milestone 4): GPI DMA for the GENI SE, then the FTS3658U driver.
+# Without the touch DT node the driver loads and binds nothing.
+gpi
+rog5_fts3658u
