@@ -809,6 +809,28 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-production-ram-trial.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-owned-vm.py",
       "interpreter": "python3",
       "tiers": [
