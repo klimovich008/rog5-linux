@@ -714,6 +714,34 @@ and every raw failure; avoid repeating a completed physical step solely because
 a later independent validator failed. Explicitly distinguish a strict test-case
 FAIL from separately verified component behavior.
 
+### Manual rescue (hard hang, no USB, dark screen)
+
+The production kernel has no lockup detector. The ASUS Haven watchdog is
+disabled before kexec, and the trial's rollback timers are userspace. A hang
+that doesn't panic (`panic=10` covers panics) therefore stays hung until someone
+resets the phone by hand. Declare a hang when nothing new appears for the
+controller's deadline after kexec: no stage frame, USB enumeration or SSH. Then
+prompt the operator one step at a time:
+
+- **R1 (force reboot to fastboot):** hold Power + Volume Up for about 20 s. When
+  it vibrates or the logo appears, release Power but keep holding Volume Up
+  until fastboot shows. This comes from the Codex-era archive and worked after
+  a kexec'd kernel hung.
+- **R2 (Qualcomm crashdump screen, "waiting for flashing full ramdump", USB
+  05c6:900e):** hold Volume Down + Power for 8–12 s, then immediately do R1.
+  Proven on 2026-08-16 (commit 411dc6fe, since removed from the charging doc).
+- If R1 gets no response within 25 s, do R2, then R1.
+- Never pick Recovery or Power off in the menus, and never press anything on the
+  ramdump screen. Replugging USB does not reset a hung kernel.
+
+Landing: a forced reset without Volume Up boots the flashed boot_b wrapper. A RAM
+trial image is gone after any reset. The slot-B loader then picks the primary
+or the V11 fallback; while the foreign GPU trial record stays in userdata, that
+is V11. A loader failure returns to fastboot. With USB connected, power-off is
+not a stable state: the phone restarted into slot B by itself (S06 on 2026-09-09
+and on 2026-09-03). Record which landing occurred and the hold time the operator
+reports.
+
 ### Development-only fast eligibility
 
 `select --development BASE HEAD` emits a JSON **NOT RUN** decision, the exact

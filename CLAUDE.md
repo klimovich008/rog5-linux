@@ -56,7 +56,12 @@ Status of each step goes in the generated block of `docs/current-state.md`, not 
 - `grep -n` `docs/development-lessons.md` for the specific issue only.
 - Private evidence lives in `~/.local/state/rog5-*`. List it shallowly and never
   `grep -r` across it (hundreds of GB). Registered worktrees: `git worktree list`.
-- Phone presence (host-only, read-only): `lsusb | grep -i 0b05`.
+- Phone presence (host-only, read-only): `cat /sys/bus/usb/devices/1-1.2/{idVendor,idProduct,product}`.
+  Linux reports `1d6b 0104 "ROG5 persistent root"`; fastboot reports `0b05 4daf`;
+  `05c6 900e` is the Qualcomm crashdump screen. `lsusb | grep 0b05` cannot see
+  Linux. Host NCM interface: `enp4s0f3u1u2` with 10.77.0.1/30. Any ordinary
+  reboot lands on V11: userdata still holds a GPU-trial record the selector
+  doesn't recognise. Manual rescue runbook: docs/development.md.
 - External references (pmOS pdx215, sm8350-mainline OnePlus DT, old i005d DTS):
   see the Claude memory `sm8350-references`.
 
