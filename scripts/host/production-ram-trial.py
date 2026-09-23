@@ -22,8 +22,10 @@ import os
 from pathlib import Path
 import re
 import stat
+import socket
 import subprocess
 import sys
+import threading
 import time
 
 SERIAL = 'ROG5-SERIAL-REDACTED'
@@ -41,6 +43,15 @@ KNOWN_HOSTS = STATE/'rog5-native-root-release-v6-20260829-r1/v7-stable-known-hos
 CLAIMS = Path(os.environ.get('ROG5_TRIAL_CLAIMS', STATE/'rog5-production-boot-20260923/claims'))
 SHA = re.compile(r'[0-9a-f]{64}')
 NMCLI = os.environ.get('ROG5_TRIAL_NMCLI', '/usr/bin/nmcli')
+FIREWALL = os.environ.get('ROG5_TRIAL_FIREWALL', '/usr/bin/firewall-cmd')
+# The target initramfs sends each stage record with busybox nc from
+# 169.254.77.2 to 169.254.77.1:8079 over TCP, before SSH exists.
+STAGE_HOST = '169.254.77.1'
+STAGE_PEER = os.environ.get('ROG5_TRIAL_STAGE_PEER', '169.254.77.2')
+STAGE_BIND = os.environ.get('ROG5_TRIAL_STAGE_BIND', '0.0.0.0')
+STAGE_PORT = int(os.environ.get('ROG5_TRIAL_STAGE_PORT', '8079'))
+STAGE_RULE = ('rule family="ipv4" source address="169.254.77.2" destination address="169.254.77.1" '
+              'port port="8079" protocol="tcp" accept')
 # Existing NetworkManager profiles on the phone's NCM interface: the V9-line
 # targets answer on 10.77.0.2, the V11 fallback only on link-local.
 PROFILES = {'10.77.0.2': 'rog5-standalone-shared', '169.254.77.2': 'rog5-fallback-usb-ssh'}
@@ -155,6 +166,81 @@ def probe(timeout=20, address='10.77.0.2'):
     return {key: value[0] if len(value) == 1 else value for key, value in fields.items()}
 
 
+def host_run(argv, why):
+    result = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+    need(result.returncode == 0, why+': '+(result.stdout+result.stderr).decode(errors='replace')[-300:])
+    return result
+
+
+def stage_path(enable):
+    """Runtime-only host path for early stage records (polkit, no sudo): a
+    temporary second address on the shared profile and an expiring firewalld
+    rule in its nm-shared zone. Nothing is written to disk."""
+    sign = '+' if enable else '-'
+    host_run([NMCLI, 'connection', 'modify', '--temporary', PROFILES['10.77.0.2'],
+              sign+'ipv4.addresses', STAGE_HOST+'/30'], 'stage address')
+    present = subprocess.run([NMCLI, '-g', 'GENERAL.CONNECTION', 'device', 'show', INTERFACE],
+                             stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+    if present.returncode == 0 and present.stdout.decode().strip() == PROFILES['10.77.0.2']:
+        host_run([NMCLI, 'device', 'reapply', INTERFACE], 'stage address reapply')
+    if enable:
+        host_run([FIREWALL, '--zone=nm-shared', '--add-rich-rule='+STAGE_RULE, '--timeout=2400'], 'stage firewall rule')
+    else:
+        subprocess.run([FIREWALL, '--zone=nm-shared', '--remove-rich-rule='+STAGE_RULE],
+                       stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+
+
+class StageReceiver(threading.Thread):
+    """Accept stage records only from the target's link-local address and
+    append them, time-stamped, to stages.log. Bounded per connection."""
+
+    def __init__(self, evidence):
+        super().__init__(daemon=True)
+        self.path = evidence/'stages.log'
+        self.stop = threading.Event()
+        self.records = 0
+        self.last = None
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server.bind((STAGE_BIND, STAGE_PORT))
+        self.server.listen(8)
+        self.server.settimeout(0.5)
+
+    def run(self):
+        with self.path.open('ab') as log:
+            while not self.stop.is_set():
+                try:
+                    connection, peer = self.server.accept()
+                except socket.timeout:
+                    continue
+                except OSError:
+                    break
+                with connection:
+                    if peer[0] != STAGE_PEER:
+                        continue
+                    connection.settimeout(2)
+                    data = b''
+                    try:
+                        while len(data) < 4096 and (chunk := connection.recv(4096-len(data))):
+                            data += chunk
+                    except OSError:
+                        pass
+                if not data or data == self.last:
+                    continue
+                self.last = data
+                self.records += 1
+                log.write(f'--- {now()}\n'.encode()+data+b'\n')
+                log.flush()
+                fields = dict(line.split('=', 1) for line in data.decode(errors='replace').splitlines() if '=' in line)
+                print(f"{now()} stage {fields.get('sequence', '?')} {fields.get('stage', '?')} "
+                      f"{fields.get('state', '?')} {fields.get('detail', '')}", flush=True)
+
+    def close(self):
+        self.stop.set()
+        self.server.close()
+        self.join(timeout=3)
+
+
 def fastboot(*args, timeout=15):
     info = FASTBOOT.lstat()
     need(stat.S_ISREG(info.st_mode) and not info.st_mode & 0o022, 'fastboot executable is unsafe')
@@ -234,7 +320,7 @@ def boot(image, expected, evidence):
         os.close(snapshot)
 
 
-def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS):
+def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=None):
     """Record every USB transition; take one SSH health read and stream the
     kernel log while the target is reachable. Read-only on the phone. With no
     target within hang_seconds, or on the crashdump screen, prompt the one
@@ -294,7 +380,8 @@ def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS):
                 stream.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 stream.kill()
-    return dict(final_state=last, ssh_health=logged, rescue_prompts=sorted(prompted))
+    return dict(final_state=last, ssh_health=logged, rescue_prompts=sorted(prompted),
+                stage_records=stages.records if stages else None)
 
 
 def main():
@@ -312,6 +399,8 @@ def main():
     run.add_argument('--wrapper-sha256', required=True)
     run.add_argument('--evidence', required=True)
     run.add_argument('--observe-seconds', type=int, default=1200)
+    run.add_argument('--stage-receiver', action='store_true',
+                     help='runtime NM address + expiring firewalld rule + TCP 8079 listener')
     watch = sub.add_parser('observe')
     watch.add_argument('--evidence', required=True)
     watch.add_argument('--seconds', type=int, default=600)
@@ -340,10 +429,20 @@ def main():
         need(evidence.is_absolute() and not evidence.exists(), 'evidence must be a new absolute directory')
         evidence.mkdir(mode=0o700, parents=True)
         if args.command == 'boot':
-            record = boot(Path(args.wrapper), args.wrapper_sha256, evidence)
-            print(f'{now()} fastboot accepted the RAM boot', flush=True)
-            summary = observe(evidence, args.observe_seconds)
-            summary.update(boot=record)
+            stages = None
+            if args.stage_receiver:
+                stages = StageReceiver(evidence)  # bind first: fail before any phone step
+                stage_path(True)
+                stages.start()
+            try:
+                record = boot(Path(args.wrapper), args.wrapper_sha256, evidence)
+                print(f'{now()} fastboot accepted the RAM boot', flush=True)
+                summary = observe(evidence, args.observe_seconds, stages=stages)
+                summary.update(boot=record)
+            finally:
+                if stages is not None:
+                    stages.close()
+                    stage_path(False)
         else:
             summary = observe(evidence, args.seconds)
         (evidence/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')

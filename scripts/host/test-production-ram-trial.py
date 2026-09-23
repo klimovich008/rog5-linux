@@ -4,10 +4,12 @@ ssh and nmcli executables. No phone, USB device or network is touched."""
 import importlib.util
 import json
 import os
+import socket
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -227,6 +229,66 @@ class Launcher(unittest.TestCase):
         self.assertIn('connection up rog5-fallback-usb-ssh ifname enp4s0f3u1u2', self.log.read_text())
         with self.assertRaisesRegex(ValueError, 'unknown target address'):
             self.m.use_address('10.0.0.2')
+
+
+class Stages(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.log = self.base/'calls.log'
+        bin_dir = self.base/'bin'
+        bin_dir.mkdir()
+        for name in ('nmcli', 'firewall-cmd'):
+            (bin_dir/name).write_text('#!/bin/sh\nprintf "%s %s\\n" "$(basename "$0")" "$*" >>"$FAKE_LOG"\n'
+                                      'case "$*" in *"device show"*) echo rog5-standalone-shared ;; esac\n')
+            (bin_dir/name).chmod(0o755)
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', 0))
+            self.port = probe.getsockname()[1]
+        env = dict(ROG5_TRIAL_NMCLI=str(bin_dir/'nmcli'), ROG5_TRIAL_FIREWALL=str(bin_dir/'firewall-cmd'),
+                   ROG5_TRIAL_STAGE_BIND='127.0.0.1', ROG5_TRIAL_STAGE_PEER='127.0.0.1',
+                   ROG5_TRIAL_STAGE_PORT=str(self.port), FAKE_LOG=str(self.log))
+        saved = {key: os.environ.get(key) for key in env}
+        self.addCleanup(lambda: [os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+                                 for k, v in saved.items()])
+        self.m = load(env)
+
+    def send(self, payload):
+        with socket.create_connection(('127.0.0.1', self.port), timeout=2) as connection:
+            connection.sendall(payload)
+
+    def test_receiver_records_distinct_stage_records_from_the_peer(self):
+        receiver = self.m.StageReceiver(self.base)
+        receiver.start()
+        record = b'format=rog5-persistent-root-stage-v2\nsequence=3\nstage=ufs-ready\nstate=PASS\ndetail=ok\n'
+        for payload in (record, record, record.replace(b'sequence=3', b'sequence=4')):
+            self.send(payload)
+            time.sleep(0.2)
+        receiver.close()
+        text = (self.base/'stages.log').read_text()
+        self.assertEqual(receiver.records, 2)
+        self.assertEqual(text.count('stage=ufs-ready'), 2)
+
+    def test_receiver_ignores_other_peers(self):
+        self.m.STAGE_PEER = '127.0.0.2'
+        receiver = self.m.StageReceiver(self.base)
+        receiver.start()
+        self.send(b'stage=overlay\n')
+        time.sleep(0.2)
+        receiver.close()
+        self.assertEqual(receiver.records, 0)
+
+    def test_stage_path_is_runtime_only_and_reversible(self):
+        self.m.stage_path(True)
+        self.m.stage_path(False)
+        calls = self.log.read_text()
+        self.assertIn('connection modify --temporary rog5-standalone-shared +ipv4.addresses 169.254.77.1/30', calls)
+        self.assertIn('connection modify --temporary rog5-standalone-shared -ipv4.addresses 169.254.77.1/30', calls)
+        self.assertIn('device reapply enp4s0f3u1u2', calls)
+        self.assertIn('--timeout=2400', calls)
+        self.assertIn('--remove-rich-rule=', calls)
+        self.assertNotIn('--permanent', calls)
 
 
 if __name__ == '__main__':
