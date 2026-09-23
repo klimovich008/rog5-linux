@@ -98,5 +98,6 @@
     }
   ],
   "patch_dir": "patches/linux-7.2.7",
-  "base_description": "stable v7.2.7 (tag object 80e08e73, signed by Greg Kroah-Hartman 647F28654894E3BD457199BE38DBBDC86092693E)"
+  "base_description": "stable v7.2.7 (tag object 80e08e73, signed by Greg Kroah-Hartman 647F28654894E3BD457199BE38DBBDC86092693E)",
+  "warning_policy_file": "configs/kernel/rog5-production-warning-policy-7.2.7.json"
 }

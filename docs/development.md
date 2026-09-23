@@ -748,6 +748,17 @@ one RAM trial:
    --jobs 6 --ccache ~/.local/state/rog5-host-tools/ccache-4.14/ccache`. Run
    `--prepare-only` first: in under a minute it shows whether the patches
    apply and the merged config still meets the policy.
+   A new base prints upstream W=1 diagnostics that the old hash-pinned warning
+   policy cannot match, so the build ends FAIL with only those left. Run
+   `draft-warning-policy.py --build <build> --build-policy <new policy> --previous
+   <old warning policy> --output configs/kernel/rog5-production-warning-policy-<version>.json`.
+   It keeps the old entries whose files are unchanged, pins the rest by file
+   hash and exact message, and refuses any diagnostic in a series-modified
+   file, schema message or depmod line. Set `warning_policy_file` in the
+   new build policy, then confirm with `check-production-build-diagnostics.py
+   --build <build> --policy <that file> --output <new json>`. 7.2.7: 7 of 21
+   reviewed files and both initializer pins carried over; 317 messages in 28
+   upstream files were drafted; the checker reports PASS.
 4. `package-production-modules.py --build <build> --output <new dir>` builds the
    64-module ramdisk package, including the `tools/` externals, from that build.
 5. Then the ramdisk, signed package and RAM trial as in the production trial

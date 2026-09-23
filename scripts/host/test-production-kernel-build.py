@@ -98,7 +98,7 @@ class BoardBuild(unittest.TestCase):
         base=json.loads(B.CONFIG.read_text())
         self.assertEqual(policy['patch_dir'],'patches/linux-7.2.7')
         self.assertEqual(policy['base_commit'],'f42acb3678424d1e08f6ed27c0d8ba8a125e14d6')
-        specific=('base_commit','base_archive_sha256','patch_dir','base_description')
+        specific=('base_commit','base_archive_sha256','patch_dir','base_description','warning_policy_file')
         self.assertEqual({k:v for k,v in policy.items() if k not in specific},{k:v for k,v in base.items() if k not in specific})
         groups=B.series(B.REPO/policy['patch_dir'])
         self.assertEqual(groups['diagnostic'],[])

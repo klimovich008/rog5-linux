@@ -175,10 +175,11 @@ def main():
     try:
         config = args.config.resolve(); policy = json.loads(config.read_text())
         patches = REPO/policy.get('patch_dir', 'patches/linux-7.1.4'); groups = series(patches)
+        warning_policy_path = REPO/policy.get('warning_policy_file', str(WARNING_POLICY.relative_to(REPO)))
         result['repository'] = dict(commit=capture(['git','-C',str(REPO),'rev-parse','HEAD']),
             tree=capture(['git','-C',str(REPO),'rev-parse','HEAD^{tree}']),
             dirty=bool(capture(['git','-C',str(REPO),'status','--porcelain'])))
-        inputs = [config, Path(__file__).resolve(), DIAGNOSTIC_SOURCE, WARNING_POLICY, patches/'series.production', patches/'series.diagnostic']
+        inputs = [config, Path(__file__).resolve(), DIAGNOSTIC_SOURCE, warning_policy_path, patches/'series.production', patches/'series.diagnostic']
         inputs += [patches/name for name in groups['production']+groups['diagnostic']]
         inputs += [REPO/name for name in policy['fragments']+policy['dt_sources']]
         inputs += [REPO/item['source'] for item in policy['dt_bindings']]
@@ -241,7 +242,7 @@ def main():
         result['btf'] = dict(status='DISABLED', resolved_config_debug_info_btf='n', pahole='NOT REQUIRED: CONFIG_DEBUG_INFO_NONE=y')
         spec=importlib.util.spec_from_file_location('board_diagnostics',DIAGNOSTIC_SOURCE)
         diagnostics=importlib.util.module_from_spec(spec); spec.loader.exec_module(diagnostics)
-        warning_policy=json.loads(WARNING_POLICY.read_text())
+        warning_policy=json.loads(warning_policy_path.read_text())
         if args.prepare_only:
             result['status']='PREPARED'; result['compilation']='NOT RUN'
         else:

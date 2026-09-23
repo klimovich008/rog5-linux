@@ -110,12 +110,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--policy',type=Path,default=POLICY,help='warning policy of the build base')
     args=parser.parse_args();build=args.build.resolve()
     result=dict(format='rog5-production-diagnostics-v1',status='FAIL',physical_validation='NOT RUN',
                 scope='Compiler/DT diagnostics and installed-module dependency closure only',errors=[])
     try:
-        raw=json.loads((build/'result.json').read_text());policy=json.loads(POLICY.read_text())
-        result['raw_result_sha256']=sha(build/'result.json');result['policy_sha256']=sha(POLICY)
+        raw=json.loads((build/'result.json').read_text());policy=json.loads(args.policy.read_text())
+        result['raw_result_sha256']=sha(build/'result.json');result['policy_sha256']=sha(args.policy)
         result['checker_sha256']=sha(Path(__file__).resolve());result['diagnostics']=[]
         if raw['linux_base']!=policy['base_commit']:result['errors'].append('exact base identity mismatch')
         for relative,expected in raw.get('outputs',{}).items():
