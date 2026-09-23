@@ -73,15 +73,16 @@ class BootModules(Base):
         code, kmsg = self.load()
         self.assertEqual(code, 0, kmsg)
         tree = self.dir/'tree'
-        self.assertEqual(self.calls(), [f'modprobe -d {tree} rtc_pm8xxx', f'modprobe -d {tree} softdog soft_panic=1'])
-        self.assertIn('loaded rtc_pm8xxx softdog', kmsg)
+        self.assertEqual(self.calls(), [f'modprobe -d {tree} rtc_pm8xxx', f'modprobe -d {tree} softdog soft_panic=1',
+                                        f'modprobe -d {tree} msm separate_gpu_kms=1', f'modprobe -d {tree} panel_asus_rog5_ams678'])
+        self.assertIn('loaded rtc_pm8xxx softdog msm panel_asus_rog5_ams678', kmsg)
 
     def test_one_failure_still_loads_the_rest_and_fails_the_unit(self):
         (self.dir/'fail-rtc_pm8xxx').touch()
         code, kmsg = self.load()
         self.assertEqual(code, 1)
         self.assertIn('FAIL modprobe rtc_pm8xxx', kmsg)
-        self.assertEqual(len(self.calls()), 2)
+        self.assertEqual(len(self.calls()), 4)
 
     def test_bad_names_are_refused(self):
         (self.kit/'boot-modules').write_text('softdog\n../evil\n')
@@ -244,6 +245,9 @@ class Units(unittest.TestCase):
         self.assertIn('rog5-platform-modules.service', after)
         self.assertIn('ExecStop=/run/rog5-platform/rtc-time save', text)
         self.assertIn('/persist/var/lib/rog5-clock', RTC.read_text())
+
+    def test_the_save_unit_stays_active_so_its_path_unit_cannot_loop(self):
+        self.assertIn('RemainAfterExit=yes', (REPO/'configs/systemd/rog5-rtc-time-save.service').read_text())
 
     def test_every_listed_module_is_in_the_production_selection(self):
         import json

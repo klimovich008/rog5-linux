@@ -6,3 +6,6 @@ After=rog5-rtc-time.service
 [Service]
 Type=oneshot
 ExecStart=/run/rog5-platform/rtc-time save
+# Stay active: the .path unit re-triggers while its file exists (default r6
+# looped into the start limit).
+RemainAfterExit=yes

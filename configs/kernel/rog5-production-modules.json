@@ -10,7 +10,6 @@
     "crypto/sha256.ko",
     "drivers/bus/mhi/host/mhi.ko",
     "drivers/bus/mhi/host/mhi_pci_generic.ko",
-    "drivers/clk/qcom/gpucc-sm8350.ko",
     "drivers/dma/qcom/gpi.ko",
     "drivers/gpu/drm/clients/drm_client_lib.ko",
     "drivers/gpu/drm/display/drm_display_helper.ko",
@@ -34,7 +33,6 @@
     "drivers/power/reset/qcom-pon.ko",
     "drivers/power/sequencing/pwrseq-qcom-wcn.ko",
     "drivers/power/supply/qcom_battmgr.ko",
-    "drivers/regulator/qcom-refgen-regulator.ko",
     "drivers/remoteproc/qcom_common.ko",
     "drivers/remoteproc/qcom_pil_info.ko",
     "drivers/remoteproc/qcom_q6v5.ko",
@@ -84,6 +82,8 @@
     }
   ],
   "required_builtin": [
-    "kernel/drivers/i2c/busses/i2c-qcom-geni.ko"
+    "kernel/drivers/clk/qcom/gpucc-sm8350.ko",
+    "kernel/drivers/i2c/busses/i2c-qcom-geni.ko",
+    "kernel/drivers/regulator/qcom-refgen-regulator.ko"
   ]
 }

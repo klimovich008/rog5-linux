@@ -4165,3 +4165,12 @@ have broken or quietly weakened an upgrade:
   `printf | grep -x`. grep matches line by line, so a release name containing
   a newline passed the first 7.2.7 version of the ramdisk builder's check;
   `test-standalone-rescue-composition.py` caught it in CI r10.
+
+## Reset behaviour on this firmware (2026-09-24)
+
+Every reboot and panic is a PMIC hard reset that power-cycles DDR, so RAM
+survives only a kexec, never a reset. Requesting a warm reset
+(`/sys/kernel/reboot/mode` = warm, PSCI SYSTEM_RESET2) hangs in firmware with
+the USB link frozen, and it needs a manual R1: never do it. The ASUS 5.4
+wrapper kernel boots first after every reset and owns `0x9b800000` with its
+ramoops command line; mainline must use its exact layout there.

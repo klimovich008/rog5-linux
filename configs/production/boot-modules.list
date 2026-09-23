@@ -4,3 +4,7 @@
 rtc_pm8xxx
 # systemd's RuntimeWatchdogSec drives it; on expiry it panics, so ramoops keeps the log.
 softdog soft_panic=1
+# Display and GPU (milestone 2): KMS on card0, the A660 as a separate render
+# device; gpucc and refgen are built in.
+msm separate_gpu_kms=1
+panel_asus_rog5_ams678
