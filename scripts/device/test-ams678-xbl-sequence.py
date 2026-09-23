@@ -2,7 +2,7 @@
 """Check that 0043 turns the AMS678 driver into the XBL init sequence.
 
 Rebuilds the 0037 driver file, applies 0043 with git apply, then checks the
-resulting callbacks: prepare sends sleep out, 10 ms, the Samsung DSC enable
+resulting callbacks: prepare sends a DCS soft reset, 120 ms, sleep out, 10 ms, the Samsung DSC enable
 and PPS registers, the PPS and compression packets, TE on and a 60 ms settle,
 and no Samsung level-2 register writes remain in the command paths. The
 combined driver then runs through the fault-injection lifecycle harness.
@@ -45,7 +45,8 @@ def main():
         source = (work / DRIVER).read_text()
 
         on = function(source, 'ams678_er2_plus_dsc_on')
-        order(on, ['mipi_dsi_dcs_exit_sleep_mode_multi(', 'mipi_dsi_usleep_range(&dsi_ctx, 10000, 11000)',
+        order(on, ['mipi_dsi_dcs_soft_reset_multi(', 'mipi_dsi_msleep(&dsi_ctx, 120)',
+                   'mipi_dsi_dcs_exit_sleep_mode_multi(', 'mipi_dsi_usleep_range(&dsi_ctx, 10000, 11000)',
                    'mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9d, 0x01)',
                    'mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9e,'])
         off = function(source, 'ams678_er2_plus_dsc_off')

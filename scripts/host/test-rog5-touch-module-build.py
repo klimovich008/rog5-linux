@@ -84,12 +84,13 @@ class Builder(unittest.TestCase):
 
     def assert_process_stopped(self,stat):
         # Reaping can remove procfs between exists() and read_text(). Read once;
-        # either disappearance or a zombie proves this child stopped executing.
+        # disappearance, a zombie or the transient dead state (X, seen in CI r6
+        # on 2026-09-23 while the reaper ran) proves this child stopped executing.
         try:
             state=stat.read_text().rsplit(')',1)[1].split()[0]
         except (FileNotFoundError,ProcessLookupError):
             state=None
-        self.assertIn(state,(None,'Z'))
+        self.assertIn(state,(None,'Z','X'))
 
     def test_proc_disappearance_is_distinct_from_running_or_unreadable(self):
         for error in (FileNotFoundError(),ProcessLookupError()):

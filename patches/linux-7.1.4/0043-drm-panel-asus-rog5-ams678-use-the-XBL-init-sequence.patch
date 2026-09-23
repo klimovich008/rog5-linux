@@ -1,33 +1,38 @@
 From: ROG5 Linux contributors <klimovich008@gmail.com>
-Subject: [PATCH] drm/panel: asus-rog5-ams678: use the XBL init sequence
+Subject: [PATCH] drm/panel: asus-rog5-ams678: soft reset, then the XBL init sequence
 
-The on and off sequences came from the ASUS Android DT. Besides sleep out,
-the DSC enable and the PPS, they program Samsung level-2 registers (0xd1,
-0xd3, 0xd5, 0xe4, 0xec, 0xf7 and 0x60). On the phone the panel then reports
-sleep out and display on, answers DCS reads and raises TE, but it emits no
-light: all pixels on at brightness 1023 draws no current (2026-09-23,
-production display trial d2).
+On the phone the Android-DT sequence left the panel reporting sleep out
+and display on, answering DCS reads and raising TE, but emitting no light:
+all pixels on at brightness 1023 drew no extra current (2026-09-23,
+production display trials d2 and d3). The reset GPIO and a full
+vddio/vdd power-off do not change that; a DCS soft reset does.
 
-The ASUS XBL DisplayDxe lights this panel with a shorter sequence: sleep
-out, 10 ms, 0x9d 0x01, the 0x9e PPS, TE on, 60 ms, then brightness and
-display on. After a DCS soft reset, replaying exactly that sequence on the
-same boot made a white frame draw the USB input limit plus battery current
-while a black frame stayed at idle. Use that sequence, and turn the panel
-off with display off and sleep in as the XBL term sequence does.
+After a DCS soft reset, the ASUS XBL DisplayDxe sequence (sleep out,
+10 ms, 0x9d 0x01, the 0x9e PPS, TE on, 60 ms, brightness, display on)
+made a white frame draw the USB input limit plus battery current while a
+black frame stayed at idle, on two boots. The XBL sequence without the
+soft reset did not. Send the soft reset and that sequence, drop the
+Samsung level-2 register writes (0xd1, 0xd3, 0xd5, 0xe4, 0xec, 0xf7,
+0x60), and turn the panel off with display off and sleep in as the XBL
+term sequence does.
 
 ---
 --- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 +++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
-@@ -103,32 +103,14 @@
+@@ -103,32 +103,18 @@
  
  	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
  
 +	/*
-+	 * The sequence the ASUS XBL display driver sends to light this panel.
-+	 * The Android DT sequence additionally programs Samsung level-2
-+	 * registers (0xd1, 0xd3, 0xd5, 0xe4, 0xec, 0xf7 and 0x60); after it the
-+	 * panel reports display on but emits no light, even with all pixels on.
++	 * Neither the reset GPIO nor removing vddio/vdd clears the controller
++	 * state left by earlier software: after them it reports sleep out and
++	 * display on but emits no light, even with all pixels on. A DCS soft
++	 * reset does clear it. Then send the sequence the ASUS XBL display
++	 * driver uses; the Android DT sequence also programs Samsung level-2
++	 * registers (0xd1, 0xd3, 0xd5, 0xe4, 0xec, 0xf7 and 0x60), not needed.
 +	 */
++	mipi_dsi_dcs_soft_reset_multi(&dsi_ctx);
++	mipi_dsi_msleep(&dsi_ctx, 120);
  	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
  	mipi_dsi_usleep_range(&dsi_ctx, 10000, 11000);
 -	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
@@ -57,7 +62,7 @@ off with display off and sleep in as the XBL term sequence does.
  	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9d, 0x01);
  	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9e,
  				     0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x09,
-@@ -150,22 +132,6 @@
+@@ -150,22 +136,6 @@
  				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
  				     0x00, 0x00);
@@ -80,7 +85,7 @@ off with display off and sleep in as the XBL term sequence does.
  
  	return dsi_ctx.accum_err;
  }
-@@ -176,10 +142,6 @@
+@@ -176,10 +146,6 @@
  
  	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
  
@@ -91,7 +96,7 @@ off with display off and sleep in as the XBL term sequence does.
  	mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
  	mipi_dsi_msleep(&dsi_ctx, 20);
  	mipi_dsi_dcs_enter_sleep_mode_multi(&dsi_ctx);
-@@ -242,6 +204,7 @@
+@@ -242,6 +208,7 @@
  {
  	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
  	struct device *dev = &ctx->dsi->dev;
@@ -99,7 +104,7 @@ off with display off and sleep in as the XBL term sequence does.
  	struct drm_dsc_picture_parameter_set pps;
  	int ret;
  
-@@ -286,7 +249,13 @@
+@@ -286,7 +253,13 @@
  		goto err_off;
  	}
  
