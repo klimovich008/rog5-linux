@@ -715,7 +715,49 @@ wait_for_deferred_ufs_rendezvous() {
 	return 1
 }
 
+load_production_ufs_modules() {
+	# One depmod tree for the running release replaces the four loose legacy
+	# modules. Exactly one named module is inserted per step, and each step
+	# proves the same /proc/modules state as the legacy chain.
+	production_ufs_tree=/lib/modules/$running_kernel_release
+	if grep -Eq '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules; then
+		return 1
+	fi
+	for production_ufs_step in phy_qcom_qmp_ufs:phy-qcom-qmp-ufs.ko \
+		ufshcd_core:ufshcd-core.ko ufshcd_pltfrm:ufshcd-pltfrm.ko \
+		ufs_qcom:ufs-qcom.ko; do
+		production_ufs_name=${production_ufs_step%%:*}
+		production_ufs_file=${production_ufs_step#*:}
+		production_ufs_plan=$(modprobe -D "$production_ufs_name" 2>/dev/null) ||
+			return 1
+		case $(printf '%s\n' "$production_ufs_plan" | tail -n 1) in
+			"insmod $production_ufs_tree/"*"/$production_ufs_file" | \
+			"insmod $production_ufs_tree/"*"/$production_ufs_file "*) ;;
+			*) return 1 ;;
+		esac
+		grep -q "^$production_ufs_name " /proc/modules && return 1
+		case $production_ufs_name in
+			phy_qcom_qmp_ufs) log 'deferred Qualcomm UFS PHY probe begin' ;;
+			ufs_qcom) log 'deferred Qualcomm UFS host probe begin' ;;
+		esac
+		modprobe "$production_ufs_name" || return 1
+		grep -q "^$production_ufs_name " /proc/modules || return 1
+		[ "$production_ufs_name" != phy_qcom_qmp_ufs ] ||
+			log 'deferred Qualcomm UFS PHY probe returned'
+	done
+	[ "$(grep -Ec '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules)" -eq 4 ] || return 1
+	log 'deferred Qualcomm UFS host probe returned'
+	return 0
+}
+
 load_deferred_ufs_modules() {
+	if [ ! -e /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ] &&
+		[ -f "/lib/modules/${running_kernel_release:-}/modules.dep" ]; then
+		load_production_ufs_modules
+		return
+	fi
 	module_dir=/rog5-ufs-modules
 	phy=$module_dir/phy-qcom-qmp-ufs.ko
 	core=$module_dir/ufshcd-core.ko

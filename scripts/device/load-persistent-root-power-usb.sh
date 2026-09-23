@@ -5,6 +5,18 @@ module_root=/rog5-power-usb-modules
 firmware_source=/opt/rog5-charge-firmware
 firmware_runtime=/run/rog5-charge-firmware
 record=/run/rog5-power-usb-ready
+# A production ramdisk carries one depmod tree for the running release instead
+# of the legacy loose-module directory. Modules are still named one at a time in
+# the historical order, so every per-step check below keeps its meaning.
+module_release=
+{ IFS= read -r module_release </proc/sys/kernel/osrelease; } 2>/dev/null ||
+	module_release=
+module_tree=/lib/modules/$module_release
+module_mode=legacy
+if [ -n "$module_release" ] && [ ! -e "$module_root" ] && [ ! -L "$module_root" ] &&
+	[ -f "$module_tree/modules.dep" ] && [ ! -L "$module_tree/modules.dep" ]; then
+	module_mode=tree
+fi
 
 fail() {
 	code=$1
@@ -51,12 +63,28 @@ load_module() {
 	file=$1
 	name=$2
 	detail=$3
-	[ -f "$module_root/$file" ] && [ ! -L "$module_root/$file" ] ||
-		fail "module-$detail-missing" "missing module $file"
+	if [ "$module_mode" = tree ]; then
+		# The last line of the plan must be this module's own file; anything
+		# else means the tree does not provide it under this name.
+		plan=$(modprobe -D "$name" 2>/dev/null) ||
+			fail "module-$detail-missing" "missing module $file"
+		case $(printf '%s\n' "$plan" | tail -n 1) in
+			*/"$file" | */"$file "*) ;;
+			*) fail "module-$detail-missing" "missing module $file" ;;
+		esac
+	else
+		[ -f "$module_root/$file" ] && [ ! -L "$module_root/$file" ] ||
+			fail "module-$detail-missing" "missing module $file"
+	fi
 	! grep -q "^$name " /proc/modules ||
 		fail "module-$detail-already-loaded" "module already loaded: $name"
-	insmod "$module_root/$file" ||
-		fail "module-$detail-load" "module load failed: $name"
+	if [ "$module_mode" = tree ]; then
+		modprobe "$name" ||
+			fail "module-$detail-load" "module load failed: $name"
+	else
+		insmod "$module_root/$file" ||
+			fail "module-$detail-load" "module load failed: $name"
+	fi
 	grep -q "^$name " /proc/modules ||
 		fail "module-$detail-unobservable" "module not observable: $name"
 }
@@ -126,8 +154,13 @@ printf '%s\n' "$firmware_runtime" \
 	>/sys/module/firmware_class/parameters/path ||
 	fail firmware-path 'firmware path update failed'
 
-[ "$(find "$module_root" -mindepth 1 -maxdepth 1 -type f -name '*.ko' | wc -l)" -eq 15 ] ||
-	fail module-inventory 'module inventory changed'
+if [ "$module_mode" = legacy ]; then
+	[ "$(find "$module_root" -mindepth 1 -maxdepth 1 -type f -name '*.ko' | wc -l)" -eq 15 ] ||
+		fail module-inventory 'module inventory changed'
+else
+	# Production builds mdt_loader as a module (DRM_MSM=m); PAS needs it first.
+	load_module mdt_loader.ko mdt_loader mdt-loader
+fi
 load_module qcom_q6v5.ko qcom_q6v5 qcom-q6v5
 load_module qcom_glink_smem.ko qcom_glink_smem qcom-glink-smem
 load_module qcom_common.ko qcom_common qcom-common
