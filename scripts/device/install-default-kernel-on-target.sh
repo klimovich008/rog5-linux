@@ -1,0 +1,172 @@
+#!/bin/sh
+# Install one signed bundle as the slot-B default (try-once primary, V11 fallback).
+#
+# Runs as root on the booted ROG5 system, fed on stdin by
+# scripts/host/install-default-kernel.py, which prepends the exact values
+# below (every one validated there). Modes:
+#   --inspect    read-only identity, power, scope and fallback checks
+#   --preflight  also checks the payload transferred to $source_root (RAM)
+#   --stage      one write window: new bundle directory on p24, previous
+#                selector kept as selector.rollback-$bundle, new selector
+#                swapped in atomically, p24 relocked, then the previous
+#                try-once record on p23 archived so the next boot starts
+#                the new trial.
+# A 180 s relock timer and the EXIT trap put p24 back to read-only on any
+# failure. Nothing is ever deleted; no boot is performed.
+#
+# Values (prepended by the host):
+#   boot_id bundle trial_id payload_{image,dtb,initramfs,manifest,signature}
+#   selector_old_sha256 selector_old_size selector_new_sha256
+#   record_old_sha256 (or "absent") record_archive
+#   fallback_{image,dtb,initramfs,manifest,signature}
+#   p24_uuid p23_uuid p24_size
+#   root_mount userdata_mount source_root sys_block sys_power
+#   install_path (tests only; the host never sets it)
+set -eu
+
+PATH=${install_path:-/usr/sbin:/usr/bin:/sbin:/bin}
+export PATH
+[ "$#" -eq 1 ] || exit 2
+case $1 in --inspect|--preflight|--stage) ;; *) exit 2 ;; esac
+mode=$1
+mutating=0
+
+linux=$root_mount/boot/rog5-linux
+bundle_target=$linux/bundles/$bundle
+selector=$linux/selector
+selector_next=$linux/.selector.next-$trial_id
+selector_rollback=$linux/selector.rollback-$bundle
+fallback_dir=$linux/bundles/persistent-native-root-v11
+record=$userdata_mount/rog5/boot/wifi-trial-state
+record_next=$userdata_mount/rog5/boot/.wifi-trial-state.next
+guard=rog5-default-kernel-guard-$(printf '%s' "$trial_id" | cut -c1-16)
+
+fail() { echo "FAIL default kernel install: $*" >&2; exit 1; }
+
+writable() {
+	result=
+	for node in "$sys_block"/sd*; do
+		[ -e "$node/ro" ] || continue
+		[ "$(cat "$node/ro")" = 1 ] || result="$result ${node##*/}"
+	done
+	printf '%s\n' "$result"
+}
+
+sha() { sha256sum "$1" | cut -d ' ' -f 1; }
+
+cleanup() {
+	status=$?
+	trap - EXIT HUP INT TERM
+	set +e
+	[ "$mutating" = 1 ] || exit "$status"
+	sync
+	mount -o remount,ro "$root_mount"
+	mount_status=$?
+	blockdev --setro /dev/sda24
+	lock_status=$?
+	systemctl --job-mode=ignore-dependencies stop "$guard.timer" >/dev/null 2>&1
+	if [ "$mount_status" -ne 0 ] || [ "$lock_status" -ne 0 ] ||
+		[ "$(writable)" != "$scope" ]; then
+		echo 'FAIL default kernel install: p24 cleanup/relock failed' >&2
+		status=97
+	fi
+	exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' HUP INT TERM
+
+[ "$(id -u)" = 0 ] || fail 'root required'
+[ "$(cat /proc/sys/kernel/random/boot_id)" = "$boot_id" ] || fail 'boot identity changed'
+[ "$(findmnt -n -o SOURCE "$root_mount")" = /dev/sda24 ] || fail 'p24 source changed'
+case ,$(findmnt -n -o OPTIONS "$root_mount"), in *,ro,*) ;; *) fail 'p24 is not read-only' ;; esac
+[ "$(blockdev --getsize64 /dev/sda24)" = "$p24_size" ] || fail 'p24 size changed'
+blkid /dev/sda24 | grep -Fq " UUID=\"$p24_uuid\"" || fail 'p24 UUID changed'
+[ "$(findmnt -n -o SOURCE "$userdata_mount")" = /dev/sda23 ] || fail 'p23 source changed'
+blkid /dev/sda23 | grep -Fq " UUID=\"$p23_uuid\"" || fail 'p23 UUID changed'
+scope=$(writable)
+case $scope in ' sda'|' sda sda23') ;; *) fail "write scope is$scope" ;; esac
+[ "$(findmnt -n -o FSTYPE /run)" = tmpfs ] || fail 'transfer path is not RAM'
+awk '/MemAvailable:/ { if ($2 >= 524288) ok = 1 } END { exit !ok }' /proc/meminfo || fail 'RAM headroom'
+[ "$(systemctl show -p LoadState --value "$guard.timer")" = not-found ] || fail 'guard unit already exists'
+
+[ -f "$selector" ] && [ ! -L "$selector" ] || fail 'selector missing'
+[ "$(stat -c '%u:%g:%a:%s:%h' "$selector")" = "0:0:600:$selector_old_size:1" ] || fail 'selector metadata changed'
+[ "$(sha "$selector")" = "$selector_old_sha256" ] || fail 'previous selector changed'
+if [ "$record_old_sha256" = absent ]; then
+	[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'a try-once record appeared'
+else
+	[ -f "$record" ] && [ ! -L "$record" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$record")" = 0:0:600:1 ] || fail 'record metadata changed'
+	[ "$(sha "$record")" = "$record_old_sha256" ] || fail 'previous record changed'
+fi
+for path in "$bundle_target" "$selector_next" "$selector_rollback" \
+	"$userdata_mount/rog5/boot/$record_archive" "$record_next"; do
+	[ ! -e "$path" ] && [ ! -L "$path" ] || fail "path exists: $path"
+done
+[ ! -e "$userdata_mount/rog5/state/good" ] && [ ! -e "$userdata_mount/rog5/state/next" ] ||
+	fail 'unexpected userdata boot state'
+
+[ "$(cat "$sys_power/qcom-battmgr-bat/health")" = Good ] || fail 'battery health unsafe'
+[ "$(cat "$sys_power/qcom-battmgr-usb/online")" = 1 ] || fail 'USB power offline'
+temperature=$(cat "$sys_power/qcom-battmgr-bat/temp")
+case $temperature in ''|*[!0-9]*) fail 'battery temperature invalid' ;; esac
+[ "$temperature" -lt 400 ] || fail 'battery temperature unsafe'
+voltage=$(cat "$sys_power/qcom-battmgr-bat/voltage_now")
+case $voltage in ''|*[!0-9]*) fail 'battery voltage invalid' ;; esac
+[ "$voltage" -ge 8400000 ] && [ "$voltage" -le 9000000 ] || fail 'battery voltage unsafe'
+
+for pair in "Image:$fallback_image" "board.dtb:$fallback_dtb" \
+	"initramfs.cpio.gz:$fallback_initramfs" "manifest:$fallback_manifest" \
+	"manifest.sig:$fallback_signature"; do
+	[ "$(sha "$fallback_dir/${pair%%:*}")" = "${pair#*:}" ] || fail "fallback ${pair%%:*} changed"
+done
+[ "$mode" != --inspect ] || { echo "PASS default kernel inspection scope=$scope"; exit 0; }
+
+for pair in "Image:$payload_image" "board.dtb:$payload_dtb" \
+	"initramfs.cpio.gz:$payload_initramfs" "manifest:$payload_manifest" \
+	"manifest.sig:$payload_signature" "selector:$selector_new_sha256"; do
+	[ "$(sha "$source_root/${pair%%:*}")" = "${pair#*:}" ] || fail "transferred ${pair%%:*} changed"
+done
+[ "$mode" != --preflight ] || { echo 'PASS default kernel payload preflight'; exit 0; }
+
+mutating=1
+systemd-run --quiet --unit="$guard" --on-active=180s --timer-property=AccuracySec=1s \
+	/bin/sh -c "sync; mount -o remount,ro $root_mount; blockdev --setro /dev/sda24; sync"
+systemctl is-active --quiet "$guard.timer" || fail 'relock guard did not arm'
+blockdev --setrw /dev/sda24 || fail 'p24 write window did not open'
+case $scope in
+	' sda') expected=' sda sda24' ;;
+	*) expected=' sda sda23 sda24' ;;
+esac
+[ "$(writable)" = "$expected" ] || fail 'p24 write scope is not exact'
+mount -o remount,rw "$root_mount" || fail 'p24 remount failed'
+case ,$(findmnt -n -o OPTIONS "$root_mount"), in *,rw,*) ;; *) fail 'p24 is not rw' ;; esac
+
+mkdir -m 0700 "$bundle_target" || fail 'cannot create bundle directory'
+for name in Image board.dtb initramfs.cpio.gz manifest manifest.sig; do
+	install -o root -g root -m 0400 "$source_root/$name" "$bundle_target/$name" || fail "cannot install $name"
+	cmp "$source_root/$name" "$bundle_target/$name" || fail "installed $name changed"
+done
+[ "$(find "$bundle_target" -mindepth 1 -maxdepth 1 | wc -l)" -eq 5 ] || fail 'bundle inventory changed'
+install -o root -g root -m 0600 "$selector" "$selector_rollback" || fail 'cannot preserve previous selector'
+[ "$(sha "$selector_rollback")" = "$selector_old_sha256" ] || fail 'rollback selector changed'
+install -o root -g root -m 0600 "$source_root/selector" "$selector_next" || fail 'cannot stage selector'
+[ "$(sha "$selector_next")" = "$selector_new_sha256" ] || fail 'staged selector changed'
+sync -f "$root_mount"
+mv -T "$selector_next" "$selector" || fail 'selector activation failed'
+[ "$(sha "$selector")" = "$selector_new_sha256" ] || fail 'active selector changed'
+sync -f "$root_mount"
+mount -o remount,ro "$root_mount" || fail 'p24 read-only remount failed'
+blockdev --setro /dev/sda24 || fail 'p24 relock failed'
+case ,$(findmnt -n -o OPTIONS "$root_mount"), in *,ro,*) ;; *) fail 'p24 mount remained writable' ;; esac
+[ "$(writable)" = "$scope" ] || fail 'post-p24 write scope changed'
+if [ "$record_old_sha256" != absent ]; then
+	mv -T "$record" "$userdata_mount/rog5/boot/$record_archive" || fail 'previous record archival failed'
+	[ "$(sha "$userdata_mount/rog5/boot/$record_archive")" = "$record_old_sha256" ] || fail 'archived record changed'
+fi
+[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'active record remains'
+sync -f "$userdata_mount"
+systemctl --job-mode=ignore-dependencies stop "$guard.timer" >/dev/null 2>&1 || true
+mutating=0
+
+echo "PASS default kernel $bundle installed; V11 fallback preserved; p24 relocked; no boot performed"

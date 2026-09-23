@@ -857,6 +857,35 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-install-default-kernel.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/install-default-kernel.py",
+        "scripts/device/install-default-kernel-on-target.sh",
+        "scripts/host/build-persistent-wifi-selector.py",
+        "scripts/host/production-ram-trial.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-package-production-modules.py",
       "interpreter": "python3",
       "tiers": [

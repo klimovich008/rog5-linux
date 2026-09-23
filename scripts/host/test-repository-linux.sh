@@ -268,6 +268,7 @@ active_tests=(
 	scripts/host/test-release-composition.py
 	scripts/host/test-production-ram-trial.py
 	scripts/host/test-module-loop.py
+	scripts/host/test-install-default-kernel.py
 	scripts/host/test-package-production-modules.py
 	scripts/host/test-rebase-kernel-series.py
 	scripts/host/test-owned-vm.py
