@@ -173,19 +173,27 @@ def host_run(argv, why):
 
 
 def stage_path(enable):
-    """Runtime-only host path for early stage records (polkit, no sudo): a
-    temporary second address on the shared profile and an expiring firewalld
-    rule in its nm-shared zone. Nothing is written to disk."""
-    sign = '+' if enable else '-'
-    host_run([NMCLI, 'connection', 'modify', '--temporary', PROFILES['10.77.0.2'],
-              sign+'ipv4.addresses', STAGE_HOST+'/30'], 'stage address')
-    present = subprocess.run([NMCLI, '-g', 'GENERAL.CONNECTION', 'device', 'show', INTERFACE],
-                             stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
-    if present.returncode == 0 and present.stdout.decode().strip() == PROFILES['10.77.0.2']:
-        host_run([NMCLI, 'device', 'reapply', INTERFACE], 'stage address reapply')
+    """Runtime-only host path for early stage records (polkit, no sudo).
+
+    A shared-mode NM profile keeps a single address (NetworkManager 1.52
+    silently ignores a second one). During a trial the existing link-local
+    profile (manual 169.254.77.1/30, priority 100) is therefore allowed to
+    autoconnect in the nm-shared zone. It wins over the shared profile
+    (priority -10), and the target keeps 169.254.77.2 after switch_root, so
+    stage records and SSH share one channel. An expiring firewalld rule admits
+    the records. All changes are in-memory and are reverted here."""
+    fallback = PROFILES['169.254.77.2']
     if enable:
+        host_run([NMCLI, 'connection', 'modify', '--temporary', fallback,
+                  'connection.autoconnect', 'yes', 'connection.zone', 'nm-shared'], 'stage profile')
+        shown = host_run([NMCLI, '-g', 'connection.autoconnect,connection.zone,ipv4.addresses',
+                          'connection', 'show', fallback], 'stage profile readback').stdout.decode().split()
+        need(shown == ['yes', 'nm-shared', STAGE_HOST+'/30'], 'stage profile did not take effect: '+' '.join(shown))
         host_run([FIREWALL, '--zone=nm-shared', '--add-rich-rule='+STAGE_RULE, '--timeout=2400'], 'stage firewall rule')
     else:
+        subprocess.run([NMCLI, 'connection', 'modify', '--temporary', fallback,
+                        'connection.autoconnect', 'no', 'connection.zone', ''],
+                       stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
         subprocess.run([FIREWALL, '--zone=nm-shared', '--remove-rich-rule='+STAGE_RULE],
                        stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
 
@@ -320,7 +328,7 @@ def boot(image, expected, evidence):
         os.close(snapshot)
 
 
-def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=None):
+def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=None, address='10.77.0.2'):
     """Record every USB transition; take one SSH health read and stream the
     kernel log while the target is reachable. Read-only on the phone. With no
     target within hang_seconds, or on the crashdump screen, prompt the one
@@ -328,6 +336,8 @@ def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=N
     started = time.monotonic()
     deadline = started+seconds
     prompted = set()
+    changed = started
+    seen_boot = False
     transitions = (evidence/'transitions.jsonl').open('a')
     last = None
     logged = False
@@ -340,10 +350,19 @@ def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=N
                 transitions.flush()
                 print(f'{now()} usb={state}', flush=True)
                 last = state
+                changed = time.monotonic()
+            if state in ('recovery', 'enumerating', 'target'):
+                seen_boot = True
+            if state == 'fastboot' and seen_boot:
+                # The trial image is gone and fastboot waits for the host:
+                # nothing more can happen without a new decision.
+                print(f'{now()} phone returned to fastboot; the trial boot has ended', flush=True)
+                time.sleep(3)  # let a late stage record land
+                break
             rescue = None
             if state == 'crashdump':
                 rescue = 'R2'
-            elif not logged and state != 'target' and time.monotonic()-started > hang_seconds:
+            elif state in ('absent', 'transition', 'mismatch') and time.monotonic()-changed > hang_seconds:
                 rescue = 'R1'
             if rescue and rescue not in prompted:
                 prompted.add(rescue)
@@ -352,7 +371,7 @@ def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=N
                 print(f'{now()} RESCUE {rescue}: {RESCUE[rescue]}', flush=True)
             if state == 'target' and not logged:
                 try:
-                    health = probe()
+                    health = probe(address=address)
                     (evidence/'health.json').write_text(json.dumps(health, indent=2)+'\n')
                     print(f'{now()} ssh: release={health.get("release")} state={health.get("system_state")}', flush=True)
                     logged = True
@@ -363,9 +382,9 @@ def observe(evidence, seconds, interval=1.0, hang_seconds=HANG_SECONDS, stages=N
                          '-o', 'UpdateHostKeys=no', '-o', 'ConnectTimeout=3',
                          '-o', 'ServerAliveInterval=2', '-o', 'ServerAliveCountMax=3',
                          '-o', 'HostKeyAlias=169.254.77.2', '-o', 'UserKnownHostsFile='+str(KNOWN_HOSTS),
-                         '-i', str(KEY), 'root@10.77.0.2', 'dmesg --follow-new 2>/dev/null || dmesg -w'],
+                         '-i', str(KEY), 'root@'+address, 'dmesg --follow-new 2>/dev/null || dmesg -w'],
                         stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
-                    full = ssh('10.77.0.2', 'dmesg', 30)
+                    full = ssh(address, 'dmesg', 30)
                     (evidence/'dmesg-at-health.txt').write_bytes(full.stdout)
                 except (ValueError, OSError, subprocess.SubprocessError) as error:
                     print(f'{now()} ssh not ready: {error}', flush=True)
@@ -437,7 +456,8 @@ def main():
             try:
                 record = boot(Path(args.wrapper), args.wrapper_sha256, evidence)
                 print(f'{now()} fastboot accepted the RAM boot', flush=True)
-                summary = observe(evidence, args.observe_seconds, stages=stages)
+                summary = observe(evidence, args.observe_seconds, stages=stages,
+                                  address='169.254.77.2' if stages else '10.77.0.2')
                 summary.update(boot=record)
             finally:
                 if stages is not None:

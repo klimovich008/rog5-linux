@@ -182,6 +182,12 @@ class Launcher(unittest.TestCase):
         summary = self.m.observe(evidence, seconds=0.3, interval=0.05, hang_seconds=0.1)
         self.assertEqual(summary['rescue_prompts'], ['R2'])
         self.assertEqual(summary['final_state'], 'crashdump')
+        # Host-controlled fastboot never prompts a rescue.
+        parked = self.base/'parked'
+        parked.mkdir()
+        self.device('0b05', '4daf')
+        summary = self.m.observe(parked, seconds=0.3, interval=0.05, hang_seconds=0.1)
+        self.assertEqual(summary['rescue_prompts'], [])
         silent = self.base/'silent'
         silent.mkdir()
         self.usb.unlink()  # nothing enumerates after the boot: R1 once
@@ -191,6 +197,27 @@ class Launcher(unittest.TestCase):
                    (silent/'transitions.jsonl').read_text().splitlines()]
         self.assertEqual([p for p in prompts if p], ['R1'])
         self.assertEqual(summary['final_state'], 'absent')
+
+    def test_observation_ends_when_the_trial_returns_to_fastboot(self):
+        evidence = self.base/'ended'
+        evidence.mkdir()
+        self.device('1d6b', '0104', 'ROG5 recovery')
+        states = iter([None, None, ('0b05', '4daf')])
+        original = self.m.usb_state
+        def scripted():
+            step = next(states, ('0b05', '4daf'))
+            if step:
+                self.device(*step)
+            return original()
+        self.m.usb_state = scripted
+        from unittest import mock
+        patcher = mock.patch.object(self.m.time, 'sleep', lambda s: None)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        summary = self.m.observe(evidence, seconds=5, interval=0.01, hang_seconds=100)
+        self.assertEqual(summary['final_state'], 'fastboot')
+        states_seen = [json.loads(l)['state'] for l in (evidence/'transitions.jsonl').read_text().splitlines()]
+        self.assertEqual(states_seen, ['recovery', 'fastboot'])
 
     def test_to_fastboot_needs_a_mode_and_sends_only_the_chosen_command(self):
         self.device('1d6b', '0104', 'ROG5 persistent root')
@@ -280,15 +307,26 @@ class Stages(unittest.TestCase):
         self.assertEqual(receiver.records, 0)
 
     def test_stage_path_is_runtime_only_and_reversible(self):
+        nmcli = self.base/'bin/nmcli'
+        nmcli.write_text('#!/bin/sh\nprintf "%s %s\\n" "$(basename "$0")" "$*" >>"$FAKE_LOG"\n'
+                         'case "$*" in *"connection show"*) printf "yes\\nnm-shared\\n169.254.77.1/30\\n" ;; esac\n')
         self.m.stage_path(True)
         self.m.stage_path(False)
         calls = self.log.read_text()
-        self.assertIn('connection modify --temporary rog5-standalone-shared +ipv4.addresses 169.254.77.1/30', calls)
-        self.assertIn('connection modify --temporary rog5-standalone-shared -ipv4.addresses 169.254.77.1/30', calls)
-        self.assertIn('device reapply enp4s0f3u1u2', calls)
+        self.assertIn('connection modify --temporary rog5-fallback-usb-ssh connection.autoconnect yes connection.zone nm-shared', calls)
+        self.assertIn('connection modify --temporary rog5-fallback-usb-ssh connection.autoconnect no connection.zone', calls)
         self.assertIn('--timeout=2400', calls)
         self.assertIn('--remove-rich-rule=', calls)
         self.assertNotIn('--permanent', calls)
+        self.assertNotIn('ipv4.addresses +', calls)
+
+    def test_stage_path_refuses_when_the_profile_does_not_take_effect(self):
+        # NetworkManager 1.52 silently ignored a second address on the shared
+        # profile during trial r1; a readback is now mandatory.
+        nmcli = self.base/'bin/nmcli'
+        nmcli.write_text('#!/bin/sh\ncase "$*" in *"connection show"*) printf "no\\n\\n169.254.77.1/30\\n" ;; esac\n')
+        with self.assertRaisesRegex(ValueError, 'did not take effect'):
+            self.m.stage_path(True)
 
 
 if __name__ == '__main__':
