@@ -4157,3 +4157,7 @@ have broken or quietly weakened an upgrade:
 - `test ... | tail -n 2 && git commit` commits even when the test fails,
   because the pipeline's status is `tail`'s. This happened once. Redirect the
   test to a log, check `$?`, then commit.
+- Don't run the integrated CI tier while a kernel build is using most of
+  the CPUs. CI r9 ran next to the 6-job 7.2.7 build: two QEMU logind suites
+  timed out or were killed, while r8 had passed them an hour earlier on
+  nearly the same tree. Run CI after the build, or cap the build's jobs.
