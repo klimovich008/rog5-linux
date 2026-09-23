@@ -1,0 +1,29 @@
+#!/bin/sh
+# Load the production boot modules listed in the platform kit, in order.
+# Modules come only from the published tree /run/rog5-modules (the root's
+# /lib/modules stays empty, so nothing autoloads). A failed module is logged
+# and the rest still load; the unit fails if any module failed.
+set -u
+kit=${ROG5_PLATFORM_KIT:-/run/rog5-platform}
+tree=${ROG5_PLATFORM_MODULES:-/run/rog5-modules}
+kmsg=${ROG5_PLATFORM_KMSG:-/dev/kmsg}
+log() {
+	printf 'rog5-platform-modules: %s\n' "$*" >>"$kmsg" 2>/dev/null ||
+		printf 'rog5-platform-modules: %s\n' "$*" >&2
+}
+[ -d "$tree/lib/modules/$(uname -r)" ] || { log "FAIL no module tree for $(uname -r)"; exit 1; }
+status=0
+loaded=
+while read -r name params; do
+	case $name in ''|'#'*) continue ;; esac
+	case $name in *[!A-Za-z0-9_-]*) log "FAIL bad module name $name"; status=1; continue ;; esac
+	# shellcheck disable=SC2086 # parameters are separate words
+	if modprobe -d "$tree" "$name" $params; then
+		loaded="$loaded $name"
+	else
+		log "FAIL modprobe $name"
+		status=1
+	fi
+done <"$kit/boot-modules"
+log "loaded$loaded"
+exit "$status"

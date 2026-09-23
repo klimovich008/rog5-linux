@@ -2,7 +2,7 @@
 """Build standalone production ramdisks and refuse hostile module packages.
 
 Argument checks run everywhere. The full builds use the private V9 base
-archive and the pinned 7.1.4-rog5-production module package; override them
+archive and the 7.2.7-rog5-production module package (with the platform kit's boot modules); override them
 with ROG5_TEST_STANDALONE_BASE / ROG5_TEST_MODULE_TREE. Nothing is signed or
 booted; outputs stay in a temporary directory.
 """
@@ -18,12 +18,12 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 BUILDER = REPO/'scripts/device/build-persistent-root-standalone-initramfs.sh'
-RELEASE = '7.1.4-rog5-production'
+RELEASE = '7.2.7-rog5-production'
 STATE = Path.home()/'.local/state'
 BASE = Path(os.environ.get('ROG5_TEST_STANDALONE_BASE',
                            STATE/'rog5-cpu-startup-20260908.kjE4IqCf/buttons-successor-unsigned-r2/target-a.cpio.gz'))
 PACKAGE = Path(os.environ.get('ROG5_TEST_MODULE_TREE',
-                              STATE/'rog5-display-trial-preparation-20260921-r1/module-selection-r1/package-r1/module-root-complete.tar.gz'))
+                              STATE/'rog5-production-boot-20260923/modules-7.2.7-r3/module-root-complete.tar.gz'))
 SKIP_MESSAGE = 'production ramdisk build needs the private V9 base archive and module package'
 READY = BASE.is_file() and PACKAGE.is_file()
 
@@ -92,6 +92,18 @@ class Builds(unittest.TestCase):
         with tarfile.open(PACKAGE) as source, tarfile.open(out, 'w:gz') as target:
             mutate(source, target)
         return out
+
+    def test_platform_kit_is_always_installed(self):
+        output = self.dir/'platform.cpio.gz'
+        result = build(BASE, output, PACKAGE, sha(PACKAGE))
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        listing = subprocess.run(f'gzip -dc {output} | cpio -tv --quiet', shell=True,
+                                 capture_output=True, text=True, check=True).stdout.splitlines()
+        modes = {line.split()[-1]: line.split()[0] for line in listing if line.split()[-1].startswith('rog5-platform')}
+        self.assertEqual(modes['rog5-platform'], 'drwx------')
+        self.assertEqual(modes['rog5-platform/boot-modules'], '-r--r--r--')
+        self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
+        self.assertEqual(len(modes), 10)
 
     def test_trial_kit_is_installed_with_exact_modes(self):
         descriptor = self.dir/'trial-descriptor'

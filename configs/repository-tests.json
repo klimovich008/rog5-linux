@@ -2597,7 +2597,8 @@
           "test_ids": [
             "Builds.test_real_build_has_one_release_tree_and_no_loose_release_modules",
             "Builds.test_hostile_packages_are_refused",
-            "Builds.test_trial_kit_is_installed_with_exact_modes"
+            "Builds.test_trial_kit_is_installed_with_exact_modes",
+            "Builds.test_platform_kit_is_always_installed"
           ]
         }
       ]
@@ -2627,6 +2628,37 @@
         "initramfs/production-trial-commit",
         "initramfs/persistent-root-init",
         "configs/systemd/rog5-production-trial-commit.service"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-platform-kit.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-platform-modules",
+        "initramfs/production-rtc-time",
+        "initramfs/persistent-root-init",
+        "configs/production/boot-modules.list",
+        "configs/systemd/rog5-rtc-time.service",
+        "configs/kernel/rog5-production-modules.json"
       ],
       "optional_subchecks": []
     },

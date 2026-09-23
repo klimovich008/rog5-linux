@@ -1,0 +1,8 @@
+[Unit]
+Description=Save the ROG5 RTC offset after NTP synchronization
+Requires=rog5-rtc-time.service
+After=rog5-rtc-time.service
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/rtc-time save

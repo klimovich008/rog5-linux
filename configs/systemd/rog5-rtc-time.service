@@ -1,0 +1,17 @@
+[Unit]
+Description=Set the clock from the ROG5 PMIC RTC and save its offset at shutdown
+DefaultDependencies=no
+Requires=rog5-persistent-state.service
+After=rog5-platform-modules.service rog5-persistent-state.service
+Before=time-set.target basic.target shutdown.target
+Wants=time-set.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/rtc-time restore
+ExecStop=/run/rog5-platform/rtc-time save
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

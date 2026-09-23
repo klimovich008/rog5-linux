@@ -62,6 +62,28 @@ printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
 	exit 1
 }
 
+install_platform_kit() {
+	kit=$root/rog5-platform
+	[ ! -e "$kit" ] && [ ! -L "$kit" ] || return 1
+	install -d -m 0700 "$kit" &&
+		install -m 0444 "$repo/configs/production/boot-modules.list" "$kit/boot-modules" &&
+		install -m 0755 "$repo/initramfs/production-platform-modules" "$kit/modules" &&
+		install -m 0755 "$repo/initramfs/production-rtc-time" "$kit/rtc-time" &&
+		install -m 0644 "$repo/configs/systemd/rog5-watchdog.conf" "$kit/rog5-watchdog.conf" || return 1
+	for unit in rog5-platform-modules.service rog5-rtc-time.service \
+		rog5-rtc-time-save.service rog5-rtc-time-save.path; do
+		install -m 0644 "$repo/configs/systemd/$unit" "$kit/$unit" || return 1
+	done
+	# Every listed boot module must exist in the production tree.
+	sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "$kit/boot-modules" | while read -r name params; do
+		# modprobe treats - and _ alike; match the file either way.
+		[ -n "$(find "$root/lib/modules/$expected_release" -name "$(printf '%s' "$name" | tr _- '??').ko*" | head -n 1)" ] || {
+			echo "FAIL boot module $name is not in the production tree" >&2
+			exit 1
+		}
+	done
+}
+
 install_production_trial() {
 	descriptor=$1
 	[ -f "$descriptor" ] && [ ! -L "$descriptor" ] || return 1
@@ -224,6 +246,9 @@ unchanged_files() {
 	if [ -n "$production_trial" ]; then
 		set -- "$@" ! -path './rog5-production-trial/*'
 	fi
+	if [ -n "$production_package" ]; then
+		set -- "$@" ! -path './rog5-platform/*'
+	fi
 	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
 
@@ -324,6 +349,10 @@ if [ -n "$production_package" ]; then
 			exit 1
 		}
 	fi
+	install_platform_kit || {
+		echo 'FAIL production platform kit' >&2
+		exit 1
+	}
 	if [ -n "$production_trial" ]; then
 		install_production_trial "$production_trial" || {
 			echo 'FAIL production trial kit' >&2

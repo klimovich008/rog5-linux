@@ -126,6 +126,11 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.jobs <= (os.cpu_count() or 1): parser.error('--jobs must be between 1 and the CPU count')
     if args.ccache and not (args.ccache.is_file() and os.access(args.ccache, os.X_OK)): parser.error('--ccache must be an executable')
+    # A full build without the dtschema tools ends BLOCKED only after the whole compile.
+    missing_tools = [name for name in ('dt-validate', 'dt-doc-validate', 'dt-mk-schema') if not shutil.which(name)]
+    if missing_tools and not args.prepare_only:
+        parser.error('schema tools not on PATH: '+', '.join(missing_tools)
+                     + ' (put ~/.local/state/rog5-host-tools/dtschema-2026.6/bin first in PATH)')
     output = args.output.resolve()
     if output.exists(): parser.error('output must be new; never reuse an unknown build')
     output.mkdir(parents=True)

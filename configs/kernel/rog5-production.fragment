@@ -35,3 +35,9 @@ CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y
 CONFIG_DEBUG_INFO_NONE=y
 # CONFIG_DEBUG_INFO_BTF is not set
 # CONFIG_DEBUG_INFO_BTF_MODULES is not set
+
+# Milestone 1 (self-recovery): systemd-driven software watchdog, PMIC RTC
+# (read-only, offset kept in userspace) and ramoops in the stock debug region.
+CONFIG_SOFT_WATCHDOG=m
+CONFIG_RTC_DRV_PM8XXX=m
+CONFIG_PSTORE_RAM=y

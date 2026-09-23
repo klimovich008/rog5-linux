@@ -1,0 +1,60 @@
+#!/bin/sh
+# Wall time from the PMK8350 RTC, which Linux can read but not set.
+#
+# The RTC counts seconds from an arbitrary base (near the Unix epoch on this
+# phone), like Android's time_daemon expects. `save` stores the offset between
+# NTP-synchronized system time and the RTC; `restore` sets the clock to
+# RTC + offset at boot, and never moves it backwards.
+set -u
+sys=${ROG5_RTC_SYS:-/sys/class/rtc}
+state=${ROG5_RTC_STATE:-/persist/var/lib/rog5-clock}
+synced=${ROG5_RTC_SYNCED:-/run/systemd/timesync/synchronized}
+kmsg=${ROG5_RTC_KMSG:-/dev/kmsg}
+# 2026-01-01T00:00:00Z .. 2100-01-01: anything outside is not a real clock.
+min=1767225600
+max=4102444800
+log() {
+	printf 'rog5-rtc-time: %s\n' "$*" >>"$kmsg" 2>/dev/null ||
+		printf 'rog5-rtc-time: %s\n' "$*" >&2
+}
+integer() { case $1 in ''|*[!0-9]*) return 1 ;; esac; [ "${#1}" -le 12 ]; }
+
+rtc=
+for node in "$sys"/rtc*; do
+	case $(cat "$node/name" 2>/dev/null) in *rtc@6100*) rtc=$node; break ;; esac
+done
+[ -n "$rtc" ] || { log 'SKIP no PMK8350 RTC'; exit 0; }
+raw=$(cat "$rtc/since_epoch") && integer "$raw" || { log 'FAIL unreadable RTC'; exit 1; }
+now=$(date +%s)
+
+case ${1:-} in
+restore)
+	[ -f "$state/rtc-offset" ] || { log "SKIP no stored offset; RTC $raw"; exit 0; }
+	set -- $(cat "$state/rtc-offset")
+	[ "$#" -eq 2 ] && [ "$1" = rog5-rtc-offset-v1 ] && integer "$2" ||
+		{ log 'FAIL stored offset is malformed'; exit 1; }
+	target=$((raw + $2))
+	[ "$target" -ge "$min" ] && [ "$target" -lt "$max" ] ||
+		{ log "FAIL RTC $raw + offset $2 is outside the sane range"; exit 1; }
+	if [ "$target" -gt $((now + 2)) ]; then
+		date -u -s "@$target" >/dev/null || { log 'FAIL cannot set the clock'; exit 1; }
+		log "restored $(date -u +%Y-%m-%dT%H:%M:%SZ) from RTC $raw (clock was $((target - now)) s behind)"
+	else
+		log "clock already at or past RTC time ($((now - target)) s ahead); unchanged"
+	fi
+	;;
+save)
+	[ -e "$synced" ] || { log 'SKIP clock not NTP-synchronized this boot; offset unchanged'; exit 0; }
+	[ "$now" -ge "$min" ] && [ "$now" -lt "$max" ] || { log 'FAIL synchronized clock is outside the sane range'; exit 1; }
+	[ "$now" -gt "$raw" ] || { log 'FAIL RTC is ahead of the clock'; exit 1; }
+	mkdir -p "$state" &&
+		printf 'rog5-rtc-offset-v1 %s\n' $((now - raw)) >"$state/.rtc-offset.next" &&
+		sync "$state/.rtc-offset.next" &&
+		mv -f "$state/.rtc-offset.next" "$state/rtc-offset" || { log 'FAIL cannot store the offset'; exit 1; }
+	log "saved offset $((now - raw)) s (RTC $raw)"
+	;;
+*)
+	log 'usage: production-rtc-time restore|save'
+	exit 2
+	;;
+esac

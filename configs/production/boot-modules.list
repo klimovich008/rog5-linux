@@ -1,0 +1,6 @@
+# Modules the booted production system loads from /run/rog5-modules, in order.
+# One module per line, optionally followed by its parameters.
+# PMK8350 RTC: read-only time source, see production-rtc-time.
+rtc_pm8xxx
+# systemd's RuntimeWatchdogSec drives it; on expiry it panics, so ramoops keeps the log.
+softdog soft_panic=1

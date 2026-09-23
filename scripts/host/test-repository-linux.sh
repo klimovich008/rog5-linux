@@ -270,6 +270,7 @@ active_tests=(
 	scripts/host/test-module-loop.py
 	scripts/host/test-install-default-kernel.py
 	scripts/device/test-production-trial-commit.py
+	scripts/device/test-production-platform-kit.py
 	scripts/host/test-package-production-modules.py
 	scripts/host/test-rebase-kernel-series.py
 	scripts/host/test-owned-vm.py

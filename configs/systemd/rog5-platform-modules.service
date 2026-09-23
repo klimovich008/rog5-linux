@@ -1,0 +1,13 @@
+[Unit]
+Description=Load the ROG5 production boot modules
+DefaultDependencies=no
+Before=sysinit.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/modules
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

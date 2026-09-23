@@ -2060,6 +2060,49 @@ prepare_production_trial() {
 		"$run/systemd/system/multi-user.target.wants/rog5-production-trial-commit.service"
 }
 
+prepare_platform_services() {
+	# Optional: a production ramdisk carries the platform kit (boot modules,
+	# RTC time and the systemd watchdog setting). Publish it to /run for the
+	# booted systemd.
+	kit=/rog5-platform
+	run=/run
+	[ -e "$kit" ] || [ -L "$kit" ] || return 0
+	[ -d "$kit" ] && [ ! -L "$kit" ] || return 1
+	for entry in boot-modules:444 modules:755 rtc-time:755 \
+		rog5-platform-modules.service:644 rog5-rtc-time.service:644 \
+		rog5-rtc-time-save.service:644 rog5-rtc-time-save.path:644 \
+		rog5-watchdog.conf:644; do
+		file=$kit/${entry%%:*}
+		[ -f "$file" ] && [ ! -L "$file" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] ||
+			return 1
+	done
+	units="rog5-platform-modules.service rog5-rtc-time.service rog5-rtc-time-save.service rog5-rtc-time-save.path"
+	for path in "$run/rog5-platform" "$run/systemd/system.conf.d/rog5-watchdog.conf" \
+		"$run/systemd/system/sysinit.target.wants/rog5-platform-modules.service" \
+		"$run/systemd/system/sysinit.target.wants/rog5-rtc-time.service" \
+		"$run/systemd/system/multi-user.target.wants/rog5-rtc-time-save.path"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	for unit in $units; do
+		[ ! -e "$run/systemd/system/$unit" ] && [ ! -L "$run/systemd/system/$unit" ] || return 1
+	done
+	mkdir -m 0700 "$run/rog5-platform" || return 1
+	cp -p "$kit/boot-modules" "$kit/modules" "$kit/rtc-time" "$run/rog5-platform/" || return 1
+	mkdir -p "$run/systemd/system/sysinit.target.wants" \
+		"$run/systemd/system/multi-user.target.wants" "$run/systemd/system.conf.d" || return 1
+	for unit in $units; do
+		cp -p "$kit/$unit" "$run/systemd/system/" || return 1
+	done
+	cp -p "$kit/rog5-watchdog.conf" "$run/systemd/system.conf.d/" || return 1
+	ln -s ../rog5-platform-modules.service \
+		"$run/systemd/system/sysinit.target.wants/rog5-platform-modules.service" || return 1
+	ln -s ../rog5-rtc-time.service \
+		"$run/systemd/system/sysinit.target.wants/rog5-rtc-time.service" || return 1
+	ln -s ../rog5-rtc-time-save.path \
+		"$run/systemd/system/multi-user.target.wants/rog5-rtc-time-save.path"
+}
+
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
@@ -2236,6 +2279,7 @@ EOF
 		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
 	prepare_package_keyring || return 1
 	prepare_production_trial || return 1
+	prepare_platform_services || return 1
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	if [ "$native_wifi_boot" -eq 1 ]; then
 		/run/rog5-native-wifi/runtime install || return 1

@@ -49,7 +49,10 @@
     "CONFIG_QCOM_COMMAND_DB": "y",
     "CONFIG_DMA_ENGINE": "y",
     "CONFIG_DMA_VIRTUAL_CHANNELS": "y",
-    "CONFIG_QCOM_GPI_DMA": "m"
+    "CONFIG_QCOM_GPI_DMA": "m",
+    "CONFIG_SOFT_WATCHDOG": "m",
+    "CONFIG_RTC_DRV_PM8XXX": "m",
+    "CONFIG_PSTORE_RAM": "y"
   },
   "forbidden": [
     "CONFIG_COMPILE_TEST",
@@ -80,7 +83,9 @@
     "leds_qcom_lpg",
     "ufshcd_core",
     "ufs_qcom",
-    "gpi"
+    "gpi",
+    "softdog",
+    "rtc_pm8xxx"
   ],
   "warning_policy": "W=1; all compiler and device-tree warnings retained; any warning fails qualification until specifically reviewed. No global suppression.",
   "firmware_policy": "Enumerate every module-declared firmware dependency; presence only verified when --firmware-root is supplied. No firmware, module loading or touch binding is inferred from compilation.",
