@@ -723,6 +723,44 @@ running a production boot whose vmlinux matches the object tree.
   boot first. The RAM-trial launcher gives one in about a minute, after which
   `deliver --mode load` applies.
 
+### Upgrading the kernel base
+
+Every kernel-source change belongs in the base's `series.production`.
+Side patches applied by other builders get lost on upgrade: the WCN6851
+hw1.1 ath11k patch in `patches/linux/device/` is one, to be folded in as
+0044. The upgrade is one scripted rebase, one build, one module package and
+one RAM trial:
+
+1. `rebase-kernel-series.py start --linux-git ~/.local/state/rog5-linux-stable-git
+   --tag v7.2.8 --fetch --from patches/linux-7.2.7 --work <new dir>` fetches the
+   tag and requires a valid signature from Greg Kroah-Hartman
+   (`647F…693E`) or Linus Torvalds (`ABAF…1886`); the keyring is
+   `~/.local/state/rog5-host-tools/gnupg`. It then applies the series one commit
+   per patch. On a conflict, fix the listed `.rej` hunks in `<work>/tree`,
+   delete the `.rej`/`.orig` files and run `continue --work <dir>`.
+2. `export --work <dir> --policy-from configs/kernel/rog5-production-build-7.2.7.json`
+   writes `patches/linux-<version>/` and `configs/kernel/rog5-production-build-<version>.json`
+   (new base commit and base-archive hash). Export fails unless the new patch
+   set reproduces the work tree on a fresh extract.
+3. Build with the dtschema environment on PATH:
+   `~/.local/state/rog5-host-tools/dtschema-2026.6/bin/python3 scripts/host/build-rog5-production-kernel.py
+   --config <new policy> --linux-git ~/.local/state/rog5-linux-stable-git --output <new dir>
+   --jobs 6 --ccache ~/.local/state/rog5-host-tools/ccache-4.14/ccache`. Run
+   `--prepare-only` first: in under a minute it shows whether the patches
+   apply and the merged config still meets the policy.
+4. `package-production-modules.py --build <build> --output <new dir>` builds the
+   64-module ramdisk package, including the `tools/` externals, from that build.
+5. Then the ramdisk, signed package and RAM trial as in the production trial
+   flow. After a PASS, create a new `rog5-kdev` dev tree from the build for the
+   fast module loop.
+
+Measured on 2026-09-23 (7.1.4 → 7.2.7): 15 of 17 patches applied
+unchanged; 0003 and 0018 needed context-only fixes. Replaying with the tool
+reproduced the manual result byte for byte. The host tools are pinned under
+`~/.local/state/rog5-host-tools`: ccache 4.14 (minisign-verified), CPython
+3.12.14 (release SHA256SUMS) and the dtschema 2026.6 environment. The old
+dtschema venv died with the removed Codex runtime.
+
 ### Human-assisted hardware sessions
 
 Complete the builds, focused tests, review, staging and no-press runtime checks
