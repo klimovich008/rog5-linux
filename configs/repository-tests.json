@@ -2432,6 +2432,46 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-standalone-production-tree.py",
+      "interpreter": "python3",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "cpio",
+        "readelf",
+        "modinfo"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "production ramdisk build needs the private V9 base archive and module package",
+          "scope": "subcheck",
+          "reason": "Builds the real production headless ramdisk from private retained inputs; argument refusals stay mandatory.",
+          "inputs": [
+            "ROG5_TEST_STANDALONE_BASE",
+            "ROG5_TEST_MODULE_TREE"
+          ],
+          "test_ids": [
+            "Builds.test_real_build_has_one_release_tree_and_no_loose_release_modules",
+            "Builds.test_hostile_packages_are_refused"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/device/test-native-wifi-module-kit.sh",
       "interpreter": "sh",
       "tiers": [

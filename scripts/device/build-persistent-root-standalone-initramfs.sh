@@ -24,6 +24,13 @@ probe_boot_id=staged-seal
 native_root_mode=1
 ssh_diagnostic_mode=0
 persistent_overlay_mode=${PERSISTENT_ROOT_OVERLAY:-0}
+# Production mode replaces every loose release-bound module with one depmod
+# tree for 7.1.4-rog5-production. The stage loaders then use modprobe. The
+# native Wi-Fi payload carries its own release-bound modules and is removed:
+# the first production boot is headless.
+production_package=${PRODUCTION_MODULE_PACKAGE:-}
+production_package_sha256=${PRODUCTION_MODULE_PACKAGE_SHA256:-}
+production_no_autoload=etc/modprobe.d/rog5-production-no-autoload.conf
 epoch=1681862400
 
 case $persistent_overlay_mode in 0|1) ;; *)
@@ -35,6 +42,15 @@ printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
 	echo 'FAIL invalid expected standalone kernel release' >&2
 	exit 1
 }
+
+if [ -n "$production_package" ]; then
+	[ "$expected_release" = 7.1.4-rog5-production ] &&
+		printf '%s\n' "$production_package_sha256" | grep -Eqx '[0-9a-f]{64}' &&
+		[ -z "$ufs_modules" ] && [ -z "$power_modules" ] || {
+		echo 'FAIL production module tree needs the production release, its pinned package hash and no loose module sets' >&2
+		exit 1
+	}
+fi
 
 # Full module refresh is for an exact rebuilt kernel/BTF closure. The caller
 # must independently prove code equivalence and load the closure with its Image.
@@ -65,6 +81,54 @@ refresh_module_set() {
 	done
 }
 
+install_production_module_tree() {
+	package=$1
+	[ -f "$package" ] && [ ! -L "$package" ] || return 1
+	[ "$(sha256sum "$package" | cut -d ' ' -f 1)" = "$production_package_sha256" ] || return 1
+	tree=$root/lib/modules/$expected_release
+	[ ! -e "$tree" ] && [ ! -L "$tree" ] || return 1
+	# Exactly one release tree of regular files; no links, devices or escapes.
+	tar -tvzf "$package" >"$work/package-listing" || return 1
+	! grep -Ev '^[-d]' "$work/package-listing" | grep -q . || return 1
+	tar -tzf "$package" >"$work/package-members" || return 1
+	! grep -Evx "(lib/|lib/modules/|lib/modules/$expected_release/.*)" \
+		"$work/package-members" | grep -q . || return 1
+	! grep -Fq '..' "$work/package-members" || return 1
+	mkdir -p "$root/lib/modules" || return 1
+	tar -xzf "$package" -C "$root" --no-same-owner || return 1
+	[ -f "$tree/modules.dep" ] && [ ! -L "$tree/modules.dep" ] || return 1
+	[ -z "$(find "$tree" ! -type f ! -type d -print -quit)" ] || return 1
+	find "$tree" -type f -name '*.ko' >"$work/production-modules"
+	[ -s "$work/production-modules" ] || return 1
+	while IFS= read -r module; do
+		readelf -h "$module" | grep -q 'Type:.*REL (Relocatable file)' || return 1
+		readelf -h "$module" | grep -q 'Machine:.*AArch64' || return 1
+		[ "$(modinfo -F vermagic "$module" | awk '{print $1}')" = "$expected_release" ] || return 1
+		# Production profile: CONFIG_DEBUG_INFO_NONE, no MODVERSIONS.
+		! readelf -SW "$module" | grep -Eq '[.]BTF[[:space:]]|__versions' || return 1
+	done <"$work/production-modules"
+	for loaded in mdt_loader qcom_q6v5_pas ufs_qcom ufshcd_core ufshcd_pltfrm \
+		phy_qcom_qmp_ufs ucsi_glink qcom_battmgr; do
+		grep -q "/$(printf '%s' "$loaded" | sed 's/_/[-_]/g')[.]ko:" "$tree/modules.dep" ||
+			return 1
+	done
+	find "$tree" -exec chmod u=rwX,go=rX {} + || return 1
+	install -d -m 0755 "$root/etc/modprobe.d" || return 1
+	[ ! -e "$root/$production_no_autoload" ] || return 1
+	cat >"$root/$production_no_autoload" <<'EOF_BLACKLIST' || return 1
+# Display, GPU, touch and Wi-Fi drivers load only through explicit,
+# supervised steps, never through alias autoloading of the production tree.
+blacklist msm
+blacklist gpucc_sm8350
+blacklist panel_asus_rog5_ams678
+blacklist qcom_refgen_regulator
+blacklist rog5_fts3658u
+blacklist ath11k_pci
+blacklist ath11k_ahb
+EOF_BLACKLIST
+	chmod 0644 "$root/$production_no_autoload"
+}
+
 unchanged_files() {
 	set -- ! -path ./init ! -path ./shutdown \
 		! -path ./sbin/rog5-load-persistent-power-usb \
@@ -80,7 +144,15 @@ unchanged_files() {
 		set -- "$@" ! -path './rog5-ufs-modules/*' \
 			! -path './rog5-power-usb-modules/*'
 	fi
-	find . -type f "$@" -print0 | sort -z | xargs -0 sha256sum
+	if [ -n "$production_package" ]; then
+		set -- "$@" ! -path './rog5-ufs-modules/*' \
+			! -path './rog5-power-usb-modules/*' \
+			! -path './rog5-reboot-mode-modules/*' \
+			! -path './rog5-native-wifi/*' \
+			! -path "./lib/modules/$expected_release/*" \
+			! -path "./$production_no_autoload"
+	fi
+	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
 
 [ -f "$base" ] && [ ! -L "$base" ]
@@ -166,7 +238,14 @@ install -D -m 0755 "$repo/initramfs/persistent-package-keyring" \
 	"$root/usr/local/sbin/rog5-persistent-keyring"
 install -D -m 0644 "$repo/configs/systemd/rog5-package-keyring.service" \
 	"$root/usr/local/share/rog5/rog5-package-keyring.service"
-if [ -n "$power_modules" ]; then
+if [ -n "$production_package" ]; then
+	rm -rf -- "$root/rog5-ufs-modules" "$root/rog5-power-usb-modules" \
+		"$root/rog5-reboot-mode-modules" "$root/rog5-native-wifi"
+	install_production_module_tree "$production_package" || {
+		echo 'FAIL production module tree' >&2
+		exit 1
+	}
+elif [ -n "$power_modules" ]; then
 	refresh_module_set "$ufs_modules" "$root/rog5-ufs-modules" 4
 	refresh_module_set "$power_modules" "$root/rog5-power-usb-modules" 15
 elif [ -n "$ufs_modules" ]; then
@@ -181,7 +260,8 @@ cmp "$work/before" "$work/after"
 
 find "$root" -exec touch -h -d "@$epoch" {} +
 mkdir -p "$(dirname "$output")"
-(cd "$root" && find . -mindepth 1 -print0 | sort -z |
+# The bundle verifier requires strcmp member order (C collation).
+(cd "$root" && find . -mindepth 1 -print0 | LC_ALL=C sort -z |
 	cpio --null -o --quiet --format=newc --owner=0:0 --reproducible) |
 	gzip -n >"$output.tmp"
 mv -T "$output.tmp" "$output"
