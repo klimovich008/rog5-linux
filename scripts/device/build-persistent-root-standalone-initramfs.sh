@@ -41,6 +41,8 @@ production_firmware_sha256=${PRODUCTION_EXTRA_FIRMWARE_SHA256:-}
 # the 4-line trial descriptor (same identity as the installed selector), the
 # tracked trial-state helper and the per-boot commit unit.
 production_trial=${PRODUCTION_TRIAL_DESCRIPTOR:-}
+production_wifi=${PRODUCTION_WIFI_KIT:-}
+production_wifi_sha256=${PRODUCTION_WIFI_KIT_SHA256:-}
 production_trial_sha256=${PRODUCTION_TRIAL_DESCRIPTOR_SHA256:-}
 epoch=1681862400
 
@@ -84,6 +86,38 @@ install_platform_kit() {
 	done
 }
 
+install_wifi_kit() {
+	# The pinned Wi-Fi payload (firmware, musl wpa_supplicant and iw) plus the
+	# repo's radio script and units. Every payload file is listed in SHA256SUMS.
+	source_dir=$1
+	[ -d "$source_dir" ] && [ ! -L "$source_dir" ] && [ -f "$source_dir/SHA256SUMS" ] || return 1
+	[ "$(sha256sum "$source_dir/SHA256SUMS" | cut -d ' ' -f 1)" = "$production_wifi_sha256" ] || return 1
+	[ -z "$(find "$source_dir" ! -type f ! -type d -print -quit)" ] || return 1
+	[ -z "$(find "$source_dir" -perm /6000 -print -quit)" ] || return 1
+	(cd "$source_dir" && sha256sum -c --quiet SHA256SUMS) || return 1
+	[ "$(find "$source_dir" -type f ! -name SHA256SUMS | wc -l)" -eq "$(wc -l <"$source_dir/SHA256SUMS")" ] || return 1
+	kit=$root/rog5-wifi
+	[ ! -e "$kit" ] && [ ! -L "$kit" ] || return 1
+	install -d -m 0700 "$kit" || return 1
+	while read -r _ relative; do
+		case $relative in
+			firmware/*|wpa-userspace/*|wifi-userspace/*) ;;
+			*) return 1 ;;
+		esac
+		case $relative in /*|*..*) return 1 ;; esac
+		mode=0644
+		[ -x "$source_dir/$relative" ] && mode=0755
+		install -D -m "$mode" "$source_dir/$relative" "$kit/$relative" || return 1
+	done <"$source_dir/SHA256SUMS"
+	for dir in firmware wpa-userspace wifi-userspace; do
+		[ -d "$kit/$dir" ] || return 1
+	done
+	install -m 0755 "$repo/initramfs/production-wifi" "$kit/wifi" || return 1
+	for unit in rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service; do
+		install -m 0644 "$repo/configs/systemd/$unit" "$kit/$unit" || return 1
+	done
+}
+
 install_production_trial() {
 	descriptor=$1
 	[ -f "$descriptor" ] && [ ! -L "$descriptor" ] || return 1
@@ -114,6 +148,10 @@ if [ -n "$production_package" ]; then
 		exit 1
 	}
 fi
+[ -z "$production_wifi" ] || [ -n "$production_package" ] || {
+	echo 'FAIL a production Wi-Fi kit needs the production module tree' >&2
+	exit 1
+}
 [ -z "$production_trial" ] || [ -n "$production_package" ] || {
 	echo 'FAIL a production trial kit needs the production module tree' >&2
 	exit 1
@@ -249,6 +287,9 @@ unchanged_files() {
 	if [ -n "$production_package" ]; then
 		set -- "$@" ! -path './rog5-platform/*'
 	fi
+	if [ -n "$production_wifi" ]; then
+		set -- "$@" ! -path './rog5-wifi/*'
+	fi
 	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
 
@@ -353,6 +394,12 @@ if [ -n "$production_package" ]; then
 		echo 'FAIL production platform kit' >&2
 		exit 1
 	}
+	if [ -n "$production_wifi" ]; then
+		install_wifi_kit "$production_wifi" || {
+			echo 'FAIL production Wi-Fi kit' >&2
+			exit 1
+		}
+	fi
 	if [ -n "$production_trial" ]; then
 		install_production_trial "$production_trial" || {
 			echo 'FAIL production trial kit' >&2

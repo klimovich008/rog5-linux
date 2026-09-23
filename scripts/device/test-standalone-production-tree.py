@@ -24,6 +24,7 @@ BASE = Path(os.environ.get('ROG5_TEST_STANDALONE_BASE',
                            STATE/'rog5-cpu-startup-20260908.kjE4IqCf/buttons-successor-unsigned-r2/target-a.cpio.gz'))
 PACKAGE = Path(os.environ.get('ROG5_TEST_MODULE_TREE',
                               STATE/'rog5-production-boot-20260923/modules-7.2.7-r3/module-root-complete.tar.gz'))
+WIFI_KIT = Path(os.environ.get('ROG5_TEST_WIFI_KIT', STATE/'rog5-production-boot-20260923/wifi-kit-r1'))
 SKIP_MESSAGE = 'production ramdisk build needs the private V9 base archive and module package'
 READY = BASE.is_file() and PACKAGE.is_file()
 
@@ -104,6 +105,25 @@ class Builds(unittest.TestCase):
         self.assertEqual(modes['rog5-platform/boot-modules'], '-r--r--r--')
         self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
         self.assertEqual(len(modes), 9)
+
+    @unittest.skipUnless((WIFI_KIT/'SHA256SUMS').is_file(), 'needs the private Wi-Fi kit')
+    def test_wifi_kit_is_installed_only_when_pinned(self):
+        output = self.dir/'wifi.cpio.gz'
+        result = build(BASE, output, PACKAGE, sha(PACKAGE), env_extra=dict(
+            PRODUCTION_WIFI_KIT=str(WIFI_KIT), PRODUCTION_WIFI_KIT_SHA256=sha(WIFI_KIT/'SHA256SUMS')))
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        listing = subprocess.run(f'gzip -dc {output} | cpio -tv --quiet', shell=True,
+                                 capture_output=True, text=True, check=True).stdout.splitlines()
+        modes = {line.split()[-1]: line.split()[0] for line in listing if line.split()[-1].startswith('rog5-wifi')}
+        self.assertEqual(modes['rog5-wifi'], 'drwx------')
+        self.assertEqual(modes['rog5-wifi/wifi'], '-rwxr-xr-x')
+        self.assertEqual(modes['rog5-wifi/firmware/ath11k/WCN6855/hw1.1/amss.bin'], '-rw-r--r--')
+        self.assertEqual(modes['rog5-wifi/wpa-userspace/sbin/wpa_supplicant'], '-rwxr-xr-x')
+        self.assertIn('rog5-wifi/rog5-wifi-radio.service', modes)
+        wrong = build(BASE, self.dir/'wrong.cpio.gz', PACKAGE, sha(PACKAGE), env_extra=dict(
+            PRODUCTION_WIFI_KIT=str(WIFI_KIT), PRODUCTION_WIFI_KIT_SHA256='e'*64))
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn('FAIL production Wi-Fi kit', wrong.stderr)
 
     def test_trial_kit_is_installed_with_exact_modes(self):
         descriptor = self.dir/'trial-descriptor'

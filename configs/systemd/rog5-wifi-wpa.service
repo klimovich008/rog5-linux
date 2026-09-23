@@ -1,0 +1,17 @@
+[Unit]
+Description=Wi-Fi authentication with the private network from /persist
+Requires=rog5-wifi-radio.service rog5-persistent-state.service
+After=rog5-wifi-radio.service rog5-persistent-state.service
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=exec
+ExecCondition=/run/rog5-wifi/wifi ready
+ExecStartPre=/run/rog5-wifi/wifi prepare
+ExecStart=/run/rog5-wifi/wifi wpa
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

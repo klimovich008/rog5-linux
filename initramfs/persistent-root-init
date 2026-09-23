@@ -2103,6 +2103,34 @@ prepare_platform_services() {
 		"$run/systemd/system/multi-user.target.wants/rog5-rtc-time-save.path"
 }
 
+prepare_wifi_services() {
+	# Optional: a production ramdisk built with a Wi-Fi kit publishes it to /run.
+	kit=/rog5-wifi
+	run=/run
+	[ -e "$kit" ] || [ -L "$kit" ] || return 0
+	[ -d "$kit" ] && [ ! -L "$kit" ] && [ "$(stat -c '%u:%g:%a' "$kit")" = 0:0:700 ] || return 1
+	[ -z "$(find "$kit" ! -type f ! -type d -print -quit)" ] &&
+		[ -z "$(find "$kit" -perm /6022 -print -quit)" ] || return 1
+	units="rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service"
+	for entry in wifi:755 rog5-wifi-radio.service:644 rog5-wifi-wpa.service:644 \
+		rog5-wifi-dhcp.service:644; do
+		file=$kit/${entry%%:*}
+		[ -f "$file" ] && [ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] || return 1
+	done
+	[ ! -e "$run/rog5-wifi" ] && [ ! -L "$run/rog5-wifi" ] || return 1
+	for unit in $units; do
+		for path in "$run/systemd/system/$unit" "$run/systemd/system/multi-user.target.wants/$unit"; do
+			[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+		done
+	done
+	cp -a "$kit" "$run/rog5-wifi" || return 1
+	mkdir -p "$run/systemd/system/multi-user.target.wants" || return 1
+	for unit in $units; do
+		cp -p "$kit/$unit" "$run/systemd/system/" || return 1
+		ln -s "../$unit" "$run/systemd/system/multi-user.target.wants/$unit" || return 1
+	done
+}
+
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
@@ -2280,6 +2308,7 @@ EOF
 	prepare_package_keyring || return 1
 	prepare_production_trial || return 1
 	prepare_platform_services || return 1
+	prepare_wifi_services || return 1
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	if [ "$native_wifi_boot" -eq 1 ]; then
 		/run/rog5-native-wifi/runtime install || return 1

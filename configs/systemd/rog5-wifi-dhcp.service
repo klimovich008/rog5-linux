@@ -1,0 +1,16 @@
+[Unit]
+Description=Wi-Fi DHCP lease (the USB link keeps its own address)
+Requires=rog5-wifi-wpa.service systemd-resolved.service
+After=rog5-wifi-wpa.service systemd-resolved.service
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=exec
+ExecCondition=/run/rog5-wifi/wifi ready
+ExecStart=/run/rog5-wifi/wifi dhcp
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

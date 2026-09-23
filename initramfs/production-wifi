@@ -1,0 +1,173 @@
+#!/bin/sh
+# Production Wi-Fi (WCN6851 on PCIe0, ath11k) for the default kernel.
+#
+# The hardware-qualified sequence from the September native Wi-Fi kit
+# (test-results/2026-09-02-persistent-wifi-v3-soak.md), without its trial
+# machinery: the S12 rail vote (query, mode, then a held OEM vote), the
+# software modules, the QMP PCIe PHY, then rog5-wifi-activate, which rechecks
+# the held vote and switches the staged PMU/PHY/PCIe DT nodes on. ath11k_pci
+# binds only once the exact endpoint 17cb:1103/17cb:0108 has enumerated.
+#
+#   radio    power the radio and create the WLAN interface (oneshot)
+#   prepare  copy the private network from /persist, power save off
+#   wpa      run wpa_supplicant in the foreground
+#   dhcp     run dhcpcd in the foreground
+#   ready    exit 0 only when this boot's radio came up (unit condition)
+#
+# Radio power needs USB input and at least 8.4 V (the bound every earlier
+# radio run held); otherwise the radio is deferred, not failed.
+set -u
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+kit=${ROG5_WIFI_KIT:-/run/rog5-wifi}
+modules=${ROG5_WIFI_MODULES:-/run/rog5-modules}
+sys=${ROG5_WIFI_SYS:-/sys}
+kmsg=${ROG5_WIFI_KMSG:-/dev/kmsg}
+secret=${ROG5_WIFI_SECRET:-/persist/secrets/wifi/network.conf}
+state=${ROG5_WIFI_STATE:-/run/rog5-wifi-association}
+runroot=${ROG5_WIFI_RUN:-/run}
+power=$sys/class/power_supply
+pci=$sys/bus/pci/devices/0000:01:00.0
+# Software modules first, in the qualified order; crypto may be built in.
+software='sha256 aes ctr ccm gcm cmac pwrseq-qcom-wcn pci-pwrctrl-pwrseq mhi qrtr-mhi rfkill libarc4 cfg80211 mac80211 ath11k'
+
+log() {
+	printf 'rog5-wifi: %s\n' "$*" >>"$kmsg" 2>/dev/null || printf 'rog5-wifi: %s\n' "$*" >&2
+}
+fail() {
+	log "FAIL $*"
+	exit 1
+}
+number() { case $1 in ''|*[!0-9]*) return 1 ;; esac; }
+
+guard() {
+	[ "$(cat "$power/qcom-battmgr-bat/health")" = Good ] || fail 'battery health'
+	temp=$(cat "$power/qcom-battmgr-bat/temp") && number "$temp" && [ "$temp" -lt 400 ] ||
+		fail 'battery temperature'
+	for zone in "$sys"/class/thermal/thermal_zone*/temp; do
+		value=$(cat "$zone" 2>/dev/null) && number "$value" || continue
+		[ "$value" -lt 60000 ] || fail "thermal zone ${zone%/temp} at $value"
+	done
+	writable=
+	for node in "$sys"/class/block/sd*; do
+		[ -e "$node/ro" ] || continue
+		[ "$(cat "$node/ro")" = 1 ] || writable="$writable ${node##*/}"
+	done
+	case $writable in ' sda'|' sda sda23') ;; *) fail "write scope is$writable" ;; esac
+}
+
+load() {
+	guard
+	timeout -k 2 20 modprobe -d "$modules" "$@" || fail "modprobe $*"
+}
+
+interface() {
+	phy=$(readlink -f "$sys/class/ieee80211/phy0" 2>/dev/null) || return 1
+	found=
+	for net in "$sys"/class/net/*; do
+		[ "$(readlink -f "$net/phy80211" 2>/dev/null)" = "$phy" ] || continue
+		[ "$(readlink -f "$net/device")" = "$(readlink -f "$pci")" ] || return 1
+		[ -z "$found" ] || return 1
+		found=${net##*/}
+	done
+	[ -n "$found" ] && printf '%s\n' "$found"
+}
+
+radio() {
+	[ "$(id -u)" = 0 ] || fail 'root required'
+	[ -d "$modules/lib/modules/$(uname -r)" ] || fail "no module tree for $(uname -r)"
+	[ ! -d "$sys/module/rog5_s12_ufs_vote" ] && [ ! -d "$sys/module/ath11k_pci" ] ||
+		fail 'radio already entered this boot'
+	guard
+	if [ "$(cat "$power/qcom-battmgr-usb/online")" != 1 ]; then
+		log 'DEFER no USB input; the radio stays off'
+		exit 0
+	fi
+	voltage=$(cat "$power/qcom-battmgr-bat/voltage_now") && number "$voltage" || fail 'battery voltage'
+	if [ "$voltage" -lt 8400000 ]; then
+		log "DEFER battery at $voltage uV is below 8.4 V; the radio stays off"
+		exit 0
+	fi
+	# Firmware: ath11k and cfg80211 look in firmware_class.path, which the
+	# power loader points at /run/rog5-charge-firmware (after its own check).
+	path=$(cat "$sys/module/firmware_class/parameters/path")
+	case $path in "$runroot"/*) ;; *) fail "unexpected firmware path '$path'" ;; esac
+	[ -d "$path" ] && [ ! -e "$path/ath11k" ] && [ ! -e "$path/regulatory.db" ] ||
+		fail 'firmware directory missing or already holds Wi-Fi files'
+	cp -Rp "$kit/firmware/." "$path/" || fail 'firmware copy'
+	for action in query mode held-oem; do
+		load rog5_s12_ufs_vote "action=$action"
+		if [ "$action" = held-oem ]; then
+			[ "$(cat "$sys/module/rog5_s12_ufs_vote/refcnt")" = 1 ] || fail 'S12 hold missing'
+		else
+			rmmod rog5_s12_ufs_vote || fail "rmmod after S12 $action"
+		fi
+	done
+	[ -z "$(ls -A "$sys/bus/pci/devices" 2>/dev/null)" ] || fail 'unexpected PCI device before activation'
+	for module in $software; do
+		load "$module"
+	done
+	load phy-qcom-qmp-pcie
+	load rog5_wifi_activate
+	[ "$(cat "$sys/module/rog5_wifi_activate/parameters/result")" = 0 ] || fail 'radio activation result'
+	waited=0
+	until [ -r "$pci/subsystem_device" ]; do
+		waited=$((waited + 1))
+		[ "$waited" -le 30 ] || fail 'PCI endpoint did not enumerate in 30 s'
+		guard
+		sleep 1
+	done
+	[ "$(cat "$pci/vendor"):$(cat "$pci/device"):$(cat "$pci/subsystem_vendor"):$(cat "$pci/subsystem_device")" = \
+		0x17cb:0x1103:0x17cb:0x0108 ] || fail 'PCI endpoint identity'
+	load ath11k_pci
+	waited=0
+	until name=$(interface); do
+		waited=$((waited + 1))
+		[ "$waited" -le 60 ] || fail 'no WLAN interface 60 s after ath11k_pci'
+		guard
+		sleep 1
+	done
+	: >"$kit/radio-ready" || fail 'ready marker'
+	log "PASS radio ready on $name"
+}
+
+prepare() {
+	name=$(interface) || fail 'no WLAN interface'
+	[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] || fail '/persist is not mounted'
+	[ -f "$secret" ] && [ ! -L "$secret" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$secret")" = 0:0:600:1 ] || fail 'private network config metadata'
+	size=$(stat -c %s "$secret")
+	[ "$size" -gt 0 ] && [ "$size" -le 4096 ] || fail 'private network config size'
+	if [ ! -d "$state" ]; then
+		mkdir -m 0700 "$state" || fail 'association state'
+	fi
+	install -m 0600 "$secret" "$state/private-network.conf" || fail 'private config copy'
+	: >"$state/dhcpcd.conf"
+	chmod 0600 "$state/dhcpcd.conf"
+	ip link set dev "$name" up || fail 'interface up'
+	# Power save stalled TCP setup on the headless server; keep it off.
+	iw dev "$name" set power_save off || fail 'power save refused'
+	[ "$(iw dev "$name" get power_save)" = 'Power save: off' ] || fail 'power save not off'
+}
+
+iw() {
+	"$kit/wifi-userspace/lib/ld-musl-aarch64.so.1" --library-path "$kit/wifi-userspace/lib" \
+		"$kit/wifi-userspace/usr/sbin/iw" "$@"
+}
+
+case ${1:-} in
+radio) radio ;;
+ready) [ -e "$kit/radio-ready" ] ;;
+prepare) prepare ;;
+wpa)
+	name=$(interface) || fail 'no WLAN interface'
+	exec /usr/bin/env "OPENSSL_CONF=$kit/wpa-userspace/openssl.cnf" \
+		"$kit/wpa-userspace/lib/ld-musl-aarch64.so.1" --library-path "$kit/wpa-userspace/lib" \
+		"$kit/wpa-userspace/sbin/wpa_supplicant" -Dnl80211 -i "$name" -c "$state/private-network.conf"
+	;;
+dhcp)
+	name=$(interface) || fail 'no WLAN interface'
+	exec /usr/bin/dhcpcd -4 -B -L -m 100 -C hostname -f "$state/dhcpcd.conf" -t 0 "$name"
+	;;
+*) log 'usage: production-wifi radio|prepare|wpa|dhcp'; exit 2 ;;
+esac

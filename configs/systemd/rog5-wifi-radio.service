@@ -1,0 +1,15 @@
+[Unit]
+Description=Power the ROG5 Wi-Fi radio (S12 vote, PCIe0, ath11k)
+Requires=rog5-p2-ready.service rog5-platform-modules.service
+After=rog5-p2-ready.service rog5-platform-modules.service rog5-persistent-state.service
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-wifi/wifi radio
+TimeoutStartSec=300
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
