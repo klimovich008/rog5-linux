@@ -4083,3 +4083,15 @@ The bundle verifier requires strcmp member order, and a locale-dependent
 editing a test in the active checkout during a `ci` run made that suite fail
 on a half-edited file. Edit in a separate worktree and fast-forward after the
 tier passes.
+
+### Reprobe through drivers_probe; judge each step by its own marker (2026-09-23)
+
+A device whose deferred probe times out (the GPU SMMU at 10 s, before gpucc
+was loaded) is not retried. arm-smmu suppresses its `bind` attribute, so
+`echo DEV > drivers/arm-smmu/bind` gives EPERM. Writing the device name to
+`/sys/bus/platform/drivers_probe` probes it, and the deferred-probe trigger
+then binds its consumers. The display trial runner reported that failed bind
+as ok because its check read the exit code of the step's last command. Every
+step now has to print its own success marker. A probe-time `DSI PLL lock
+failed` from `clk_core_reparent_orphans` is not a link failure: read
+clk_summary and the DPU/DSI interrupt counts after modeset before chasing it.
