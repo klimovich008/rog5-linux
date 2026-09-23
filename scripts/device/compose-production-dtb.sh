@@ -34,11 +34,16 @@ for property in qcom,client-id qcom,vmid no-map; do
 done
 fdtput -t s "$work/composed.dtb" "$node" compatible ramoops
 fdtput -t s "$work/composed.dtb" "$node" status okay
-fdtput -t u "$work/composed.dtb" "$node" record-size 262144
-fdtput -t u "$work/composed.dtb" "$node" console-size 1048576
-fdtput -t u "$work/composed.dtb" "$node" pmsg-size 262144
+# Exactly the layout the ASUS 5.4 wrapper kernel uses on its command line
+# (1 MiB dump record, 3 MiB console, no pmsg/ftrace/ECC). It boots first after
+# every reset; with a different layout its ramoops reinitializes the region
+# (trial t5 found the t4 records corrupted). With the same one it only replaces
+# the console zone, and a panic dump survives until our kernel reads it.
+fdtput -t u "$work/composed.dtb" "$node" record-size 1048576
+fdtput -t u "$work/composed.dtb" "$node" console-size 3145728
+fdtput -t u "$work/composed.dtb" "$node" pmsg-size 0
 fdtput -t u "$work/composed.dtb" "$node" ftrace-size 0
-fdtput -t u "$work/composed.dtb" "$node" ecc-size 16
+fdtput -t u "$work/composed.dtb" "$node" ecc-size 0
 
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
