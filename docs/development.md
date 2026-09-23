@@ -805,7 +805,10 @@ itself when it is built with a trial descriptor:
    inspect the phone first.
 4. Reboot normally. The first boot writes a pending record and boots the
    bundle, and the unit logs `PASS <bundle> committed healthy`. The next
-   reboot must land on the same bundle.
+   reboot must land on the same bundle. Persistent boots answer SSH on
+   `10.77.0.2` (the RAM-trial address is `169.254.77.2`), about 60 s after
+   the reboot. 7.2.7 (`production-7.2.7-r3`) became the default this way on
+   2026-09-23.
 
 Going back is a selector change: `selector.rollback-<bundle>` is the
 previous selector, which boots V11 while the new record is foreign to it.
