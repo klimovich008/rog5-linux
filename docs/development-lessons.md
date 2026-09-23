@@ -4132,3 +4132,28 @@ brightness was sent. Keep the brightness path fixed and vary one thing.
   retrying under the same name.
 - `pkill -f 'sleep 180'` over SSH matches its own remote shell and kills the
   session. Use a pattern that cannot match itself, e.g. `'sleep 18[0]'`.
+
+### Keep every input of a kernel upgrade inside the repo and per base (2026-09-23)
+
+Moving 7.1.4 → 7.2.7 turned up four hidden dependencies, each of which would
+have broken or quietly weakened an upgrade:
+- A kernel patch applied by only one side builder (ath11k WCN6851 hw1.1 in
+  `patches/linux/device/`) was missing from `series.production`. Every
+  source change belongs in the base's series.
+- The module package came from one-off scripts in a state directory. It is
+  now `package-production-modules.py` with a selection file in `configs/`.
+- The warning policy pins exact file hashes, so it can never carry over to a
+  new base. Draft a per-base policy with `draft-warning-policy.py`, which
+  refuses anything in series-modified files.
+- The dtschema environment was a venv on a runtime that later disappeared.
+  Host tools now live, verified and pinned, in `~/.local/state/rog5-host-tools`.
+
+### Verification hygiene: evidence trees and exit codes (2026-09-23)
+
+- Never compile-check inside a finished build's `source/` or `objects/`. A
+  `cp` of an edited DTS into the 7.2.7 build tree replaced the file the build
+  had used; it was restored byte-exactly from git and checked against the
+  build's recorded input hash. Compile checks go in scratch directories.
+- `test ... | tail -n 2 && git commit` commits even when the test fails,
+  because the pipeline's status is `tail`'s. This happened once. Redirect the
+  test to a log, check `$?`, then commit.
