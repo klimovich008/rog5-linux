@@ -758,6 +758,23 @@ load_production_ufs_modules() {
 	return 0
 }
 
+publish_production_modules() {
+	# Explicit post-boot steps (display/GPU) need the production depmod tree
+	# after switch_root. /run moves into the new root; the initramfs does not.
+	# The root filesystem's own /lib/modules stays untouched, so udev cannot
+	# autoload from it: loads happen only via 'modprobe -d /run/rog5-modules'.
+	production_modules_tree=/lib/modules/${running_kernel_release:-}
+	[ ! -e /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ] &&
+		[ -f "$production_modules_tree/modules.dep" ] &&
+		[ ! -L "$production_modules_tree/modules.dep" ] || return 0
+	[ ! -e /run/rog5-modules ] && [ ! -L /run/rog5-modules ] || return 1
+	mkdir -p "/run/rog5-modules/lib/modules/$running_kernel_release" || return 1
+	cp -a "$production_modules_tree"/. \
+		"/run/rog5-modules/lib/modules/$running_kernel_release"/ || return 1
+	chmod -R go-w /run/rog5-modules || return 1
+	log 'production module tree published at /run/rog5-modules'
+}
+
 load_deferred_ufs_modules() {
 	if [ ! -e /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ] &&
 		[ -f "/lib/modules/${running_kernel_release:-}/modules.dep" ]; then
@@ -2579,6 +2596,7 @@ if ! verify_ufs_health; then
 		"$final_storage_detail"
 fi
 publish_or_rollback final-storage PASS
+publish_production_modules || log 'production module tree publication failed'
 
 run_pre_switch_display_observer
 

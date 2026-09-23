@@ -27,7 +27,7 @@ ARCHIVE = Path(os.environ.get('ROG5_TEST_TARGET_ARCHIVE', STATE/'archive-rehears
 TREE = Path(os.environ.get('ROG5_TEST_MODULE_TREE', STATE/'package-r1/module-root-complete.tar.gz'))
 QEMU = Path(os.environ.get('ROG5_TEST_QEMU', '/usr/bin/qemu-aarch64-static'))
 APPLETS = ('sh', 'grep', 'find', 'wc', 'cat', 'sed', 'head', 'tail', 'tr', 'basename',
-           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false')
+           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false', 'cp', 'chmod')
 POWER_ORDER = ['mdt_loader', 'qcom_q6v5', 'qcom_glink_smem', 'qcom_common', 'qcom_pil_info',
                'qcom_q6v5_pas', 'qrtr', 'qrtr_smd', 'qcom_pdr_msg', 'qcom_pd_mapper',
                'pdr_interface', 'pmic_glink', 'qcom_battmgr', 'typec', 'typec_ucsi', 'ucsi_glink']
@@ -264,6 +264,26 @@ class Loaders(unittest.TestCase):
             self.assertIn('GATE=0', result.stdout)
         finally:
             self.dep.with_suffix('.hidden').rename(self.dep)
+
+    def test_production_tree_is_published_to_run_for_post_boot_steps(self):
+        body = ('IFS= read -r running_kernel_release </proc/sys/kernel/osrelease\nlog() { echo "LOG $*"; }\n'
+                + function(self.init, 'publish_production_modules')
+                + 'publish_production_modules && echo PUBLISH=0 || echo PUBLISH=$?\n')
+        shutil.rmtree(self.root/'run', ignore_errors=True)
+        (self.root/'run').mkdir()
+        result, _ = self.run_case(body)
+        self.assertIn('PUBLISH=0', result.stdout, result.stdout+result.stderr)
+        published = self.root/'run/rog5-modules/lib/modules'/RELEASE
+        self.assertEqual((published/'modules.dep').read_text(), self.dep_text)
+        self.assertTrue((published/'kernel/drivers/gpu/drm/msm/msm.ko').is_file())
+        result, _ = self.run_case(body)  # a second publication must refuse
+        self.assertIn('PUBLISH=1', result.stdout)
+        shutil.rmtree(self.root/'run/rog5-modules')
+        (self.root/'rog5-ufs-modules').mkdir()  # legacy archive: nothing to publish
+        result, _ = self.run_case(body)
+        self.assertIn('PUBLISH=0', result.stdout)
+        self.assertFalse((self.root/'run/rog5-modules').exists())
+        (self.root/'rog5-ufs-modules').rmdir()
 
     def test_ufs_legacy_archive_keeps_insmod(self):
         legacy = self.root/'rog5-ufs-modules'

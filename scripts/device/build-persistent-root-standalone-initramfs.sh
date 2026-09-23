@@ -31,6 +31,12 @@ persistent_overlay_mode=${PERSISTENT_ROOT_OVERLAY:-0}
 production_package=${PRODUCTION_MODULE_PACKAGE:-}
 production_package_sha256=${PRODUCTION_MODULE_PACKAGE_SHA256:-}
 production_no_autoload=etc/modprobe.d/rog5-production-no-autoload.conf
+# Optional pinned firmware for explicit post-boot steps (e.g. the stock A660
+# SQE/GMU/zap files). It lands in subdirectories of the charge firmware tree,
+# which the power loader copies to firmware_class.path; its top-level
+# 29-file ADSP inventory is unchanged.
+production_firmware=${PRODUCTION_EXTRA_FIRMWARE:-}
+production_firmware_sha256=${PRODUCTION_EXTRA_FIRMWARE_SHA256:-}
 epoch=1681862400
 
 case $persistent_overlay_mode in 0|1) ;; *)
@@ -129,6 +135,27 @@ EOF_BLACKLIST
 	chmod 0644 "$root/$production_no_autoload"
 }
 
+install_production_firmware() {
+	source_dir=$1
+	[ -d "$source_dir" ] && [ ! -L "$source_dir" ] && [ -f "$source_dir/SHA256SUMS" ] || return 1
+	[ "$(sha256sum "$source_dir/SHA256SUMS" | cut -d ' ' -f 1)" = "$production_firmware_sha256" ] || return 1
+	[ -z "$(find "$source_dir" ! -type f ! -type d -print -quit)" ] || return 1
+	(cd "$source_dir" && sha256sum -c --quiet SHA256SUMS) || return 1
+	[ "$(find "$source_dir" -type f ! -name SHA256SUMS | wc -l)" -eq \
+		"$(wc -l <"$source_dir/SHA256SUMS")" ] || return 1
+	target_dir=$root/opt/rog5-charge-firmware
+	[ -d "$target_dir" ] && [ ! -L "$target_dir" ] || return 1
+	while read -r _ relative; do
+		case $relative in
+			*/*) ;;
+			*) return 1 ;;
+		esac
+		case $relative in /*|*..*) return 1 ;; esac
+		[ ! -e "$target_dir/$relative" ] || return 1
+		install -D -m 0644 "$source_dir/$relative" "$target_dir/$relative" || return 1
+	done <"$source_dir/SHA256SUMS"
+}
+
 unchanged_files() {
 	set -- ! -path ./init ! -path ./shutdown \
 		! -path ./sbin/rog5-load-persistent-power-usb \
@@ -151,6 +178,9 @@ unchanged_files() {
 			! -path './rog5-native-wifi/*' \
 			! -path "./lib/modules/$expected_release/*" \
 			! -path "./$production_no_autoload"
+	fi
+	if [ -n "$production_firmware" ]; then
+		set -- "$@" ! -path './opt/rog5-charge-firmware/*/*'
 	fi
 	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
@@ -245,6 +275,13 @@ if [ -n "$production_package" ]; then
 		echo 'FAIL production module tree' >&2
 		exit 1
 	}
+	if [ -n "$production_firmware" ]; then
+		printf '%s\n' "$production_firmware_sha256" | grep -Eqx '[0-9a-f]{64}' &&
+			install_production_firmware "$production_firmware" || {
+			echo 'FAIL production extra firmware' >&2
+			exit 1
+		}
+	fi
 elif [ -n "$power_modules" ]; then
 	refresh_module_set "$ufs_modules" "$root/rog5-ufs-modules" 4
 	refresh_module_set "$power_modules" "$root/rog5-power-usb-modules" 15
