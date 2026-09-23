@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production kernel shows images on the OLED and initializes the Adreno 660 (display/GPU trial PASS)**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production kernel 7.2.7-rog5-production boots on the phone (stable base); fast module loop in place**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Display/GPU trials d1-d7 on 7.1.4-rog5-production (RAM boots only): the A660 initializes with the stock ASUS zap after a drivers_probe of the GPU SMMU; the OLED shows the framebuffer (user saw red, green, blue, white top to bottom on d6). The black screen was the panel ignoring brightness sent in HS mode; patch 0043 sends it in LP mode. Open: only DBV[9:8] takes effect (four brightness steps) and HS long DCS writes are dropped; GMU PREPARE_SLUMBER ack error; GPU SMMU deferred timeout (load gpucc earlier); no mesa on the root; package-keyring timeout; kmsg stream. Next goal to pick: fine brightness/HS long writes, touch, or Wi-Fi on the production kernel. See [current repair evidence](../test-results/2026-09-23-production-display-gpu-trial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+7.2.7 RAM trial production-7.2.7-r1 PASS: boot and SSH in 55 s, display lit via sysfs brightness (0043), A660 initializes. Upgrade tooling: rebase-kernel-series.py (signed tags), per-base build and warning policies, package-production-modules.py; rog5-dev module build|deliver edits and tests a module on the phone in about 15 s. Fixed for the next image: sshd reload wait, SID 5 PMIC WARN. Next: fold ath11k WCN6851 in as 0044, rebuild 7.2.7 r2 and re-trial, then trim the config for build speed; ramoops/watchdog/RTC; making production the default kernel needs explicit approval. See [current repair evidence](../test-results/2026-09-23-kernel-7.2.7-upgrade.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
