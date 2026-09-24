@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Production self-recovery: the PMK8350 RTC (read-only; userspace keeps the
- * wall-time offset). compose-production-dtb.sh also turns the disabled
+ * wall-time offset). The PON power key and RESIN (volume-down; volume-up is
+ * the GPIO key) are the phone's other two buttons. compose-production-dtb.sh also turns the disabled
  * 0x9b800000 reservation (upstream rmtfs, stock ASUS debug region) into the
  * ramoops node in place: the loader's verifier forbids overlapping
  * reserved-memory tuples, disabled or not.
@@ -10,5 +11,14 @@
 /plugin/;
 
 &pmk8350_rtc {
+	status = "okay";
+};
+
+&pon_pwrkey {
+	status = "okay";
+};
+
+&pon_resin {
+	linux,code = <114>; /* KEY_VOLUMEDOWN */
 	status = "okay";
 };

@@ -1,0 +1,12 @@
+{
+  "mode": "fault",
+  "baseline_nop_ms": 4.84,
+  "recovered_after_s": 0.11,
+  "kernel": [
+    "[  129.060032] alarm kernel: *** gpu fault: ttbr0=00000001653fd000 iova=0000000000000000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  129.134265] alarm kernel: adreno 3d00000.gpu: [drm:a6xx_irq [msm]] *ERROR* gpu fault ring 0 fence 30 status 00800005 rb 0054/0063 ib1 0000000100001000/0000 ib2 0000000000000000/0000",
+    "[  129.134460] alarm kernel: adreno 3d00000.gpu: [drm:recover_worker [msm]] *ERROR* 06060001: hangcheck recover!",
+    "[  129.168866] alarm kernel: adreno 3d00000.gpu: [drm:recover_worker [msm]] *ERROR* 06060001: offending task: python3 (python3 /root/rog5-bench/gpu-recovery-probe.py fault)"
+  ],
+  "status": "PASS"
+}

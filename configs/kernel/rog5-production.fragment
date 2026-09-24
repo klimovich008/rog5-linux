@@ -46,3 +46,10 @@ CONFIG_RTC_DRV_PM8XXX=m
 # (hctosys also runs for a modular RTC; it set the clock to 1970 on trial t4).
 # CONFIG_RTC_HCTOSYS is not set
 CONFIG_PSTORE_RAM=y
+
+# Milestone 8 (hardware table). SM8350 describes its CPU sleep states as PSCI
+# OS-initiated power-domain states; without the domain driver cpuidle
+# registers no state and the cores never enter deep idle.
+CONFIG_ARM_PSCI_CPUIDLE_DOMAIN=y
+# The bench's virtual touchscreen (scripts/device/bench/vtouch.py).
+CONFIG_INPUT_UINPUT=m

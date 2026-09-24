@@ -1,0 +1,233 @@
+{
+  "display": {
+    "status": "pass",
+    "evidence": {
+      "connectors": {
+        "/sys/class/drm/card1-DSI-1": "connected"
+      },
+      "modes": {
+        "/sys/class/drm/card1-DSI-1": [
+          "1080x2448"
+        ]
+      },
+      "backlight": {
+        "/sys/class/backlight/ae94000.dsi.0": "10/1023"
+      }
+    }
+  },
+  "gpu": {
+    "status": "pass",
+    "evidence": {
+      "nop": "{\n  \"mode\": \"nop\",\n  \"baseline_nop_ms\": 4.82,\n  \"status\": \"PASS\"\n}\n",
+      "renderer": "OpenGL ES profile renderer: FD660",
+      "devfreq": {
+        "/sys/class/devfreq/3d00000.gpu": "315000000"
+      }
+    }
+  },
+  "touch": {
+    "status": "pass",
+    "evidence": {
+      "devices": [
+        "ASUS ROG5 MP2 front FTS3658U"
+      ]
+    }
+  },
+  "buttons": {
+    "status": "partial",
+    "evidence": {
+      "devices": [
+        "gpio-keys"
+      ]
+    }
+  },
+  "wifi": {
+    "status": "missing",
+    "evidence": {
+      "interface": "",
+      "link": "",
+      "addr": ""
+    }
+  },
+  "bluetooth": {
+    "status": "missing",
+    "evidence": {
+      "controllers": [],
+      "rfkill": ""
+    }
+  },
+  "audio": {
+    "status": "missing",
+    "evidence": {
+      "cards": [],
+      "pcm": []
+    }
+  },
+  "battery_charger": {
+    "status": "pass",
+    "evidence": {
+      "supplies": {
+        "qcom-battmgr-usb": {
+          "type": "USB",
+          "voltage_now": "4981000",
+          "current_now": "494000",
+          "online": "1"
+        },
+        "ucsi-source-psy-pmic_glink.ucsi.01": {
+          "type": "USB",
+          "status": "Charging",
+          "voltage_now": "5000000",
+          "current_now": "100000",
+          "online": "1"
+        },
+        "qcom-battmgr-wls": {
+          "type": "Wireless",
+          "voltage_now": "0",
+          "current_now": "506000",
+          "online": "0"
+        },
+        "qcom-battmgr-bat": {
+          "type": "Battery",
+          "status": "Charging",
+          "capacity": "82",
+          "voltage_now": "8175000",
+          "current_now": "-82000",
+          "temp": "300"
+        }
+      }
+    }
+  },
+  "usb": {
+    "status": "pass",
+    "evidence": {
+      "udc": {
+        "a600000.usb": "configured"
+      },
+      "roles": {}
+    }
+  },
+  "storage": {
+    "status": "pass",
+    "evidence": {
+      "ufs": [
+        "/sys/bus/platform/drivers/ufshcd-qcom/1d84000.ufshc"
+      ],
+      "root": "overlay overlay"
+    }
+  },
+  "rtc": {
+    "status": "pass",
+    "evidence": {
+      "rtc": "rtc-pm8xxx c440000.spmi:pmic@0:rtc@6100",
+      "time_trusted": true,
+      "ntp": "yes"
+    }
+  },
+  "vibration": {
+    "status": "missing",
+    "evidence": {
+      "ff_devices": [],
+      "leds": []
+    }
+  },
+  "sensors": {
+    "status": "missing",
+    "evidence": {
+      "iio": {}
+    }
+  },
+  "thermal_cpufreq": {
+    "status": "pass",
+    "evidence": {
+      "zones": 34,
+      "hottest_mC": 39500,
+      "cpufreq": {
+        "policy4": [
+          "schedutil",
+          "1555200",
+          "2419200"
+        ],
+        "policy0": [
+          "schedutil",
+          "1209600",
+          "1804800"
+        ],
+        "policy7": [
+          "schedutil",
+          "1785600",
+          "2841600"
+        ]
+      },
+      "cpuidle_state1": ""
+    }
+  },
+  "suspend": {
+    "status": "partial",
+    "evidence": {
+      "state": "freeze mem disk",
+      "mem_sleep": "s2idle [deep]",
+      "note": "entering suspend is exercised by the bench, not here"
+    }
+  },
+  "leds": {
+    "status": "missing",
+    "evidence": {
+      "leds": []
+    }
+  },
+  "dsp_remoteprocs": {
+    "status": "pass",
+    "evidence": {
+      "remoteprocs": {
+        "adsp": "running"
+      }
+    }
+  },
+  "nfc": {
+    "status": "missing",
+    "evidence": {
+      "devices": []
+    }
+  },
+  "cameras": {
+    "status": "missing",
+    "evidence": {
+      "v4l": {}
+    }
+  },
+  "fingerprint": {
+    "status": "missing",
+    "evidence": {
+      "note": "under-display fingerprint sensor has no mainline driver probe here"
+    }
+  },
+  "_summary": {
+    "pass": [
+      "battery_charger",
+      "display",
+      "dsp_remoteprocs",
+      "gpu",
+      "rtc",
+      "storage",
+      "thermal_cpufreq",
+      "touch",
+      "usb"
+    ],
+    "partial": [
+      "buttons",
+      "suspend"
+    ],
+    "missing": [
+      "audio",
+      "bluetooth",
+      "cameras",
+      "fingerprint",
+      "leds",
+      "nfc",
+      "sensors",
+      "vibration",
+      "wifi"
+    ],
+    "error": []
+  }
+}

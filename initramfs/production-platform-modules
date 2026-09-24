@@ -12,6 +12,14 @@ log() {
 		printf 'rog5-platform-modules: %s\n' "$*" >&2
 }
 [ -d "$tree/lib/modules/$(uname -r)" ] || { log "FAIL no module tree for $(uname -r)"; exit 1; }
+# The loader's signed command line sets loglevel=8 ignore_loglevel with a
+# 115200-baud console; every message then prints synchronously (~11 KB/s) and
+# stalls whoever logs, e.g. a 5 s display wake. Keep only warnings on the
+# console from here on; the kernel log itself is unchanged.
+printk=${ROG5_PLATFORM_PRINTK:-/sys/module/printk/parameters/ignore_loglevel}
+[ ! -w "$printk" ] || echo N >"$printk" 2>/dev/null || log "WARN could not clear ignore_loglevel"
+[ ! -w /proc/sys/kernel/printk ] || [ -n "${ROG5_PLATFORM_PRINTK:-}" ] ||
+	echo 4 >/proc/sys/kernel/printk 2>/dev/null || log "WARN could not lower the console loglevel"
 status=0
 loaded=
 while read -r name params; do

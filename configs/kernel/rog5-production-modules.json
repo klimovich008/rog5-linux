@@ -1,6 +1,6 @@
 {
   "format": "rog5-production-module-selection-v1",
-  "description": "The 64 modules of the production ramdisk tree: 60 from the kernel build (install paths under kernel/) and 4 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi.",
+  "description": "The 65 modules of the production ramdisk tree: 61 from the kernel build (install paths under kernel/) and 4 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi. uinput (drivers/input/misc) added 2026-09-24 for the bench virtual touchscreen.",
   "board_modules": [
     "crypto/aes.ko",
     "crypto/ccm.ko",
@@ -20,6 +20,7 @@
     "drivers/gpu/drm/msm/msm.ko",
     "drivers/gpu/drm/panel/panel-asus-rog5-ams678.ko",
     "drivers/gpu/drm/scheduler/gpu-sched.ko",
+    "drivers/input/misc/uinput.ko",
     "drivers/leds/led-class-multicolor.ko",
     "drivers/leds/rgb/leds-qcom-lpg.ko",
     "drivers/media/cec/core/cec.ko",

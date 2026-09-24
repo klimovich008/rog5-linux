@@ -66,8 +66,15 @@ class BootModules(Base):
         self.stub('modprobe', 'echo "modprobe $*" >>$D/calls; [ ! -e "$D/fail-$3" ]')
 
     def load(self):
+        (self.dir/'ignore_loglevel').write_text('Y\n')
         return self.run_script(MODULES, ROG5_PLATFORM_KIT=str(self.kit), ROG5_PLATFORM_MODULES=str(self.dir/'tree'),
-                               ROG5_PLATFORM_KMSG=str(self.dir/'kmsg'))
+                               ROG5_PLATFORM_KMSG=str(self.dir/'kmsg'),
+                               ROG5_PLATFORM_PRINTK=str(self.dir/'ignore_loglevel'))
+
+    def test_console_logging_is_quieted_first(self):
+        code, kmsg = self.load()
+        self.assertEqual(code, 0, kmsg)
+        self.assertEqual((self.dir/'ignore_loglevel').read_text(), 'N\n')
 
     def test_the_listed_modules_load_in_order_with_parameters(self):
         code, kmsg = self.load()
@@ -75,15 +82,16 @@ class BootModules(Base):
         tree = self.dir/'tree'
         self.assertEqual(self.calls(), [f'modprobe -d {tree} rtc_pm8xxx', f'modprobe -d {tree} softdog soft_panic=1',
                                         f'modprobe -d {tree} msm separate_gpu_kms=1', f'modprobe -d {tree} panel_asus_rog5_ams678',
-                                        f'modprobe -d {tree} gpi', f'modprobe -d {tree} rog5_fts3658u'])
-        self.assertIn('loaded rtc_pm8xxx softdog msm panel_asus_rog5_ams678 gpi rog5_fts3658u', kmsg)
+                                        f'modprobe -d {tree} gpi', f'modprobe -d {tree} rog5_fts3658u',
+                                        f'modprobe -d {tree} qcom_pon'])
+        self.assertIn('loaded rtc_pm8xxx softdog msm panel_asus_rog5_ams678 gpi rog5_fts3658u qcom_pon', kmsg)
 
     def test_one_failure_still_loads_the_rest_and_fails_the_unit(self):
         (self.dir/'fail-rtc_pm8xxx').touch()
         code, kmsg = self.load()
         self.assertEqual(code, 1)
         self.assertIn('FAIL modprobe rtc_pm8xxx', kmsg)
-        self.assertEqual(len(self.calls()), 6)
+        self.assertEqual(len(self.calls()), 7)
 
     def test_bad_names_are_refused(self):
         (self.kit/'boot-modules').write_text('softdog\n../evil\n')

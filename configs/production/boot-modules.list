@@ -12,3 +12,6 @@ panel_asus_rog5_ams678
 # Without the touch DT node the driver loads and binds nothing.
 gpi
 rog5_fts3658u
+# Power key and volume-down (milestone 8): the PMK8350 PON parent populates
+# the pwrkey/resin children that the platform overlay enables.
+qcom_pon

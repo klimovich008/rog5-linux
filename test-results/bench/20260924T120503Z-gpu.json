@@ -1,0 +1,22 @@
+{
+  "mode": "hang",
+  "baseline_nop_ms": 4.7,
+  "recovered_after_s": 3.14,
+  "kernel": [
+    "[  152.748034] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748063] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748074] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748083] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748093] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748102] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748111] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748120] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  152.748131] alarm kernel: *** gpu fault: ttbr0=0000000122ce1000 iova=0000000100001000 dir=READ type=TRANSLATION source=CP (0,0,0,1)",
+    "[  155.834022] alarm kernel: adreno 3d00000.gpu: [drm:hangcheck_handler [msm]] *ERROR* 06060001: hangcheck detected gpu lockup rb 0!",
+    "[  155.887743] alarm kernel: adreno 3d00000.gpu: [drm:hangcheck_handler [msm]] *ERROR* 06060001:     completed fence: 65",
+    "[  155.887863] alarm kernel: adreno 3d00000.gpu: [drm:hangcheck_handler [msm]] *ERROR* 06060001:     submitted fence: 66",
+    "[  155.887961] alarm kernel: adreno 3d00000.gpu: [drm:recover_worker [msm]] *ERROR* 06060001: hangcheck recover!",
+    "[  155.888074] alarm kernel: adreno 3d00000.gpu: [drm:recover_worker [msm]] *ERROR* 06060001: offending task: python3 (python3 /root/rog5-bench/gpu-recovery-probe.py hang)"
+  ],
+  "status": "PASS"
+}
