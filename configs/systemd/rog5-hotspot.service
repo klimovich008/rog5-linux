@@ -1,0 +1,10 @@
+[Unit]
+Description=ROG5 Wi-Fi hotspot on 2.4 GHz alongside the Wi-Fi client link
+After=rog5-wifi-dhcp.service
+Wants=rog5-wifi-dhcp.service
+
+[Service]
+ExecStart=/usr/local/bin/rog5-hotspot run
+ExecStopPost=/usr/local/bin/rog5-hotspot cleanup
+Restart=on-failure
+RestartSec=5

@@ -1,0 +1,142 @@
+#!/bin/sh
+# Wi-Fi hotspot on a second interface while the client link stays up.
+#
+#   rog5-hotspot on | off | status      (start/stop rog5-hotspot.service)
+#   rog5-hotspot run                    service body: set up, run hostapd
+#   rog5-hotspot cleanup                service ExecStopPost
+#   rog5-hotspot config                 create the settings, print the plan
+#
+# The WCN6855 firmware allows two channels (#channels <= 2, total <= 3), so
+# the access point can sit on 2.4 GHz while the client stays on 5 GHz. The
+# world regulatory domain (00) forbids starting an AP on 5 GHz, so the AP
+# uses a 2.4 GHz channel: the client's own when it is on 2.4 GHz, else
+# ROG5_HOTSPOT_CHANNEL (default 6). Clients get DHCP and DNS from dnsmasq on
+# 10.42.0.1/24 and reach the internet through NAT on whatever uplink routes.
+# Settings (ssid, passphrase) live in /persist/secrets/wifi/hotspot.conf,
+# created on first use with a random 16-character passphrase.
+set -u
+uplink=${ROG5_HOTSPOT_UPLINK:-wlp1s0}
+ap=${ROG5_HOTSPOT_IF:-wlp1s0ap}
+conf=${ROG5_HOTSPOT_CONF:-/persist/secrets/wifi/hotspot.conf}
+run=${ROG5_HOTSPOT_RUN:-/run/rog5-hotspot}
+default_channel=${ROG5_HOTSPOT_CHANNEL:-6}
+subnet=10.42.0
+table=rog5_hotspot
+
+log() { printf 'rog5-hotspot: %s\n' "$*" >&2; }
+die() { log "FAIL $*"; exit 1; }
+
+setting() {
+	sed -n "s/^$1=//p" "$conf" | tail -n 1
+}
+
+ensure_config() {
+	[ -s "$conf" ] && return 0
+	umask 077
+	mkdir -p "$(dirname "$conf")" || return 1
+	pass=$(head -c 12 /dev/urandom | base32 | tr -d '=' | cut -c 1-16)
+	printf 'ssid=ROG5-hotspot\npassphrase=%s\n' "$pass" >"$conf.new" &&
+		mv -f "$conf.new" "$conf"
+}
+
+# 2.4 GHz channel for the AP: share the client's channel when it is on 2.4 GHz.
+ap_channel() {
+	freq=$(iw dev "$uplink" link 2>/dev/null | sed -n 's/^[[:space:]]*freq: \([0-9]*\).*/\1/p')
+	case ${freq:-} in
+	24[1-7][0-9]) echo $(((freq - 2407) / 5)) ;;
+	*) echo "$default_channel" ;;
+	esac
+}
+
+write_hostapd() {
+	ssid=$(setting ssid)
+	pass=$(setting passphrase)
+	[ -n "$ssid" ] && [ "${#pass}" -ge 8 ] || die "invalid $conf"
+	umask 077
+	cat >"$run/hostapd.conf" <<EOF
+interface=$ap
+driver=nl80211
+ctrl_interface=$run/hostapd
+ssid=$ssid
+hw_mode=g
+channel=$1
+ieee80211n=1
+ieee80211ax=1
+wmm_enabled=1
+auth_algs=1
+wpa=2
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+ieee80211w=1
+wpa_passphrase=$pass
+EOF
+}
+
+cleanup() {
+	[ -f "$run/dnsmasq.pid" ] && kill "$(cat "$run/dnsmasq.pid")" 2>/dev/null
+	nft delete table ip "$table" 2>/dev/null
+	[ -f "$run/ip_forward" ] && cat "$run/ip_forward" >/proc/sys/net/ipv4/ip_forward 2>/dev/null
+	iw dev "$ap" del 2>/dev/null
+	rm -rf "$run"
+	return 0
+}
+
+run_hotspot() {
+	command -v hostapd >/dev/null && command -v dnsmasq >/dev/null || die 'hostapd and dnsmasq are required'
+	[ -d "/sys/class/net/$uplink/wireless" ] || die "no wireless uplink $uplink"
+	ensure_config || die "cannot create $conf"
+	cleanup
+	mkdir -m 0700 -p "$run" || die "cannot create $run"
+	channel=$(ap_channel)
+	write_hostapd "$channel"
+	# A second interface on the same radio needs its own (locally administered) MAC.
+	mac=$(cat "/sys/class/net/$uplink/address")
+	first=$(printf '%02x' $(((0x${mac%%:*} | 0x02) ^ 0x04)))
+	iw dev "$uplink" interface add "$ap" type __ap || die "cannot add $ap"
+	ip link set "$ap" address "$first:${mac#*:}" || die 'cannot set the AP MAC'
+	ip addr add "$subnet.1/24" dev "$ap" || die 'cannot address the AP'
+	cat /proc/sys/net/ipv4/ip_forward >"$run/ip_forward"
+	echo 1 >/proc/sys/net/ipv4/ip_forward
+	nft -f - <<EOF || die 'cannot install NAT rules'
+table ip $table {
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr $subnet.0/24 oifname != "$ap" masquerade
+	}
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		iifname "$ap" accept
+		oifname "$ap" ct state established,related accept
+	}
+}
+EOF
+	dnsmasq --conf-file=/dev/null --interface="$ap" --bind-interfaces --except-interface=lo \
+		--listen-address="$subnet.1" --dhcp-range="$subnet.10,$subnet.200,12h" \
+		--dhcp-option=option:router,"$subnet.1" --dhcp-option=option:dns-server,"$subnet.1" \
+		--no-resolv --server=127.0.0.53 --pid-file="$run/dnsmasq.pid" \
+		--dhcp-leasefile="$run/leases" || die 'dnsmasq failed'
+	log "starting $(setting ssid) on $ap, 2.4 GHz channel $channel, uplink $uplink"
+	exec hostapd "$run/hostapd.conf"
+}
+
+status() {
+	systemctl is-active rog5-hotspot.service
+	[ -d "/sys/class/net/$ap" ] || return 0
+	iw dev "$ap" info | sed -n 's/^[[:space:]]*\(ssid\|channel\) /\1 /p'
+	echo "clients: $(iw dev "$ap" station dump | grep -c '^Station')"
+	[ -f "$run/leases" ] && awk '{print "  " $3, $4}' "$run/leases"
+	echo "password: cat $conf"
+}
+
+case ${1:-status} in
+on) systemctl start rog5-hotspot.service && status ;;
+off) systemctl stop rog5-hotspot.service ;;
+status) status ;;
+run) run_hotspot ;;
+cleanup) cleanup ;;
+config)
+	ensure_config || die "cannot create $conf"
+	echo "ssid=$(setting ssid) channel=$(ap_channel) interface=$ap uplink=$uplink subnet=$subnet.0/24"
+	;;
+*) die "usage: rog5-hotspot on|off|status|config" ;;
+esac
