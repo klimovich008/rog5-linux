@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * CPU memory bandwidth monitors, the two stock lahaina bw_hwmon pairs:
+ *   cpu_cpu_llcc_bwmon  0x90b6400, BWMON v4, SPI 581: CPU -> LLCC (GEM NoC)
+ *   cpu_llcc_ddr_bwmon  0x9091000, BWMON v5, SPI 81:  LLCC -> DDR (MC virt)
+ * Same blocks, addresses and interrupts as SM8250, so the upstream
+ * icc-bwmon compatibles and layout apply. Each monitor measures traffic and
+ * votes a peak bandwidth from its OPP table, so DDR and LLCC can follow CPU
+ * load once the interconnect sync_state hold is released.
+ *
+ * OPP tables are the stock ones: llcc_bw_opp_table (BW_OPP_ENTRY(MHz, 16))
+ * and the LPDDR5 entries of ddr_bw_opp_table (BW_OPP_ENTRY_DDR(MHz, 4),
+ * type mask 0x100 or 0x180).
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,sm8350.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+&{/soc@0} {
+	pmu@9091000 {
+		compatible = "qcom,sm8250-llcc-bwmon", "qcom,sc7280-llcc-bwmon";
+		reg = <0 0x09091000 0 0x1000>;
+
+		interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
+
+		interconnects = <&mc_virt MASTER_LLCC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ACTIVE_ONLY>;
+
+		operating-points-v2 = <&rog5_llcc_bwmon_opp_table>;
+
+		rog5_llcc_bwmon_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			opp-0 {
+				opp-peak-kBps = <(200 * 4 * 1000)>;
+			};
+
+			opp-1 {
+				opp-peak-kBps = <(451 * 4 * 1000)>;
+			};
+
+			opp-2 {
+				opp-peak-kBps = <(547 * 4 * 1000)>;
+			};
+
+			opp-3 {
+				opp-peak-kBps = <(681 * 4 * 1000)>;
+			};
+
+			opp-4 {
+				opp-peak-kBps = <(768 * 4 * 1000)>;
+			};
+
+			opp-5 {
+				opp-peak-kBps = <(1017 * 4 * 1000)>;
+			};
+
+			opp-6 {
+				opp-peak-kBps = <(1555 * 4 * 1000)>;
+			};
+
+			opp-7 {
+				opp-peak-kBps = <(1708 * 4 * 1000)>;
+			};
+
+			opp-8 {
+				opp-peak-kBps = <(2092 * 4 * 1000)>;
+			};
+
+			opp-9 {
+				opp-peak-kBps = <(2736 * 4 * 1000)>;
+			};
+
+			opp-10 {
+				opp-peak-kBps = <(3196 * 4 * 1000)>;
+			};
+		};
+	};
+
+	pmu@90b6400 {
+		compatible = "qcom,sm8250-cpu-bwmon", "qcom,sdm845-bwmon";
+		reg = <0 0x090b6400 0 0x600>;
+
+		interrupts = <GIC_SPI 581 IRQ_TYPE_LEVEL_HIGH>;
+
+		interconnects = <&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &gem_noc SLAVE_LLCC QCOM_ICC_TAG_ACTIVE_ONLY>;
+
+		operating-points-v2 = <&rog5_cpu_bwmon_opp_table>;
+
+		rog5_cpu_bwmon_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			opp-0 {
+				opp-peak-kBps = <(150 * 16 * 1000)>;
+			};
+
+			opp-1 {
+				opp-peak-kBps = <(300 * 16 * 1000)>;
+			};
+
+			opp-2 {
+				opp-peak-kBps = <(466 * 16 * 1000)>;
+			};
+
+			opp-3 {
+				opp-peak-kBps = <(600 * 16 * 1000)>;
+			};
+
+			opp-4 {
+				opp-peak-kBps = <(806 * 16 * 1000)>;
+			};
+
+			opp-5 {
+				opp-peak-kBps = <(933 * 16 * 1000)>;
+			};
+
+			opp-6 {
+				opp-peak-kBps = <(1000 * 16 * 1000)>;
+			};
+		};
+	};
+};
