@@ -95,7 +95,8 @@ esac''')
         script.write_text(WIFI.read_text().replace('PATH=/usr/sbin:/usr/bin:/sbin:/bin\n',
                                                    f'PATH={self.bin}:/usr/sbin:/usr/bin:/sbin:/bin\n', 1))
         env = dict(os.environ, ROG5_WIFI_KIT=str(self.kit), ROG5_WIFI_MODULES=str(self.dir/'tree'),
-                   ROG5_WIFI_SYS=str(self.sys), ROG5_WIFI_KMSG=str(self.dir/'kmsg'), ROG5_WIFI_RUN=str(self.dir))
+                   ROG5_WIFI_SYS=str(self.sys), ROG5_WIFI_KMSG=str(self.dir/'kmsg'), ROG5_WIFI_RUN=str(self.dir),
+                   ROG5_WIFI_COOL_WAIT=getattr(self, 'cool_wait', '0'))
         result = subprocess.run(['unshare', '-r', 'sh', str(script), action], capture_output=True, text=True,
                                 env=env, timeout=60)
         kmsg = self.dir/'kmsg'
@@ -141,6 +142,19 @@ esac''')
                 self.assertEqual(self.calls(), [])
                 self.assertNotEqual(self.wifi('ready')[0], 0)
                 path.write_text(old)
+
+    @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
+    def test_a_boot_heat_spike_waits_for_the_zones_to_cool(self):
+        zone = self.sys/'class/thermal/thermal_zone0/temp'
+        zone.write_text('62700\n')
+        # the kit's sleep cools the zone, standing in for time passing
+        self.stub('sleep', f'echo 45000 >{zone}')
+        self.cool_wait = '90'
+        code, kmsg = self.wifi('radio')
+        self.assertEqual(code, 0, kmsg)
+        self.assertIn('WAIT thermal zone', kmsg)
+        self.assertIn('cooled below 60 C after 2s', kmsg)
+        self.assertIn('modprobe ath11k_pci ', self.calls())
 
     @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
     def test_failures_stop_before_the_radio_binds(self):

@@ -28,6 +28,10 @@ kmsg=${ROG5_WIFI_KMSG:-/dev/kmsg}
 secret=${ROG5_WIFI_SECRET:-/persist/secrets/wifi/network.conf}
 state=${ROG5_WIFI_STATE:-/run/rog5-wifi-association}
 runroot=${ROG5_WIFI_RUN:-/run}
+# Seconds the radio waits for every thermal zone to drop below 60 C. Boot
+# briefly heats the CPU zones past the limit (61-63 C seen on 2026-09-24),
+# which used to fail the radio for the whole boot.
+cool_wait=${ROG5_WIFI_COOL_WAIT:-90}
 power=$sys/class/power_supply
 pci=$sys/bus/pci/devices/0000:01:00.0
 # Software modules first, in the qualified order; crypto may be built in.
@@ -42,14 +46,26 @@ fail() {
 }
 number() { case $1 in ''|*[!0-9]*) return 1 ;; esac; }
 
+# The first thermal zone at or above 60 C, as "path at value", or nothing.
+hot_zone() {
+	for zone in "$sys"/class/thermal/thermal_zone*/temp; do
+		value=$(cat "$zone" 2>/dev/null) && number "$value" || continue
+		[ "$value" -lt 60000 ] || { echo "${zone%/temp} at $value"; return 0; }
+	done
+}
+
 guard() {
 	[ "$(cat "$power/qcom-battmgr-bat/health")" = Good ] || fail 'battery health'
 	temp=$(cat "$power/qcom-battmgr-bat/temp") && number "$temp" && [ "$temp" -lt 400 ] ||
 		fail 'battery temperature'
-	for zone in "$sys"/class/thermal/thermal_zone*/temp; do
-		value=$(cat "$zone" 2>/dev/null) && number "$value" || continue
-		[ "$value" -lt 60000 ] || fail "thermal zone ${zone%/temp} at $value"
+	waited=0
+	while hot=$(hot_zone); [ -n "$hot" ]; do
+		[ "$waited" -lt "$cool_wait" ] || fail "thermal zone $hot after ${waited}s"
+		[ "$waited" -gt 0 ] || log "WAIT thermal zone $hot"
+		sleep 2
+		waited=$((waited + 2))
 	done
+	[ "$waited" -eq 0 ] || log "cooled below 60 C after ${waited}s"
 	writable=
 	for node in "$sys"/class/block/sd*; do
 		[ -e "$node/ro" ] || continue
