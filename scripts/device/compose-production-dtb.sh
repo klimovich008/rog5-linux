@@ -64,6 +64,13 @@ if [ "$feature" = touch ]; then
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
+# The base already enables the PON power key and RESIN volume-down (V9
+# buttons-indicator); qcom_pon in the boot list binds them.
+pon=/soc@0/spmi@c440000/pmic@0/pon@1300
+[ "$(fdtget "$work/composed.dtb" "$pon/pwrkey" status)" = okay ] &&
+	[ "$(fdtget "$work/composed.dtb" "$pon/resin" status)" = okay ] &&
+	[ "$(fdtget "$work/composed.dtb" "$pon/resin" linux,code)" = 114 ] ||
+	{ echo 'FAIL power key / volume-down not enabled' >&2; exit 1; }
 [ "$(fdtget "$work/composed.dtb" "$node" compatible)" = ramoops ]
 [ "$(fdtget -tx "$work/composed.dtb" "$node" reg)" = '0 9b800000 0 400000' ]
 [ "$(fdtget -l "$work/composed.dtb" /reserved-memory | grep -c 9b8)" = 1 ]
