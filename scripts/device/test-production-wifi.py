@@ -19,7 +19,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 WIFI = REPO/'initramfs/production-wifi'
 INIT = REPO/'initramfs/persistent-root-init'
-UNITS = ('rog5-wifi-radio.service', 'rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service')
+UNITS = ('rog5-wifi-radio.service', 'rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service', 'rog5-bluetooth.service')
 SOFTWARE = ['sha256', 'aes', 'ctr', 'ccm', 'gcm', 'cmac', 'pwrseq-qcom-wcn', 'pci-pwrctrl-pwrseq', 'mhi', 'qrtr-mhi',
             'rfkill', 'libarc4', 'cfg80211', 'mac80211', 'ath11k']
 
@@ -144,6 +144,29 @@ esac''')
                 path.write_text(old)
 
     @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
+    def test_bluetooth_needs_a_ready_radio_then_activates_in_order(self):
+        code, kmsg = self.wifi('bluetooth')
+        self.assertEqual(code, 1, kmsg)
+        self.assertIn('Wi-Fi radio is not ready', kmsg)
+        self.assertEqual(self.calls(), [])
+        (self.dir/'rog5-wifi').mkdir(exist_ok=True)
+        (self.kit/'radio-ready').write_text('')
+        S = self.sys
+        self.stub('modprobe', f'''shift 2; name=$1; shift
+echo "modprobe $name $*" >>$D/calls
+case $name in
+	rog5_bt_activate) mkdir -p {S}/module/$name/parameters; echo 0 >{S}/module/$name/parameters/result ;;
+	hci_uart) mkdir -p {S}/class/bluetooth/hci0 ;;
+esac''')
+        code, kmsg = self.wifi('bluetooth')
+        self.assertEqual(code, 0, kmsg)
+        self.assertEqual(self.calls(), ['modprobe rog5_bt_activate ', 'modprobe hci_uart ', 'modprobe hidp '])
+        self.assertIn('PASS bluetooth hci0', kmsg)
+        code, kmsg = self.wifi('bluetooth')
+        self.assertEqual(code, 1, kmsg)
+        self.assertIn('bluetooth already entered this boot', kmsg)
+
+    @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
     def test_a_boot_heat_spike_waits_for_the_zones_to_cool(self):
         zone = self.sys/'class/thermal/thermal_zone0/temp'
         zone.write_text('62700\n')
@@ -239,8 +262,10 @@ class Publish(unittest.TestCase):
 
 
 class Units(unittest.TestCase):
-    def test_wpa_and_dhcp_run_only_after_a_ready_radio(self):
-        for unit in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service'):
+    def test_wpa_dhcp_and_bluetooth_run_only_after_a_ready_radio(self):
+        bt = (REPO/'configs/systemd/rog5-bluetooth.service').read_text()
+        self.assertIn('rog5-wifi-radio.service', re.search(r'^After=(.*)$', bt, re.M).group(1))
+        for unit in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service', 'rog5-bluetooth.service'):
             self.assertIn('ExecCondition=/run/rog5-wifi/wifi ready', (REPO/'configs/systemd'/unit).read_text())
         radio = (REPO/'configs/systemd/rog5-wifi-radio.service').read_text()
         self.assertIn('rog5-platform-modules.service', re.search(r'^After=(.*)$', radio, re.M).group(1))

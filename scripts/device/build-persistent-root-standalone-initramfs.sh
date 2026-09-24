@@ -113,7 +113,8 @@ install_wifi_kit() {
 		[ -d "$kit/$dir" ] || return 1
 	done
 	install -m 0755 "$repo/initramfs/production-wifi" "$kit/wifi" || return 1
-	for unit in rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service; do
+	for unit in rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service \
+		rog5-bluetooth.service; do
 		install -m 0644 "$repo/configs/systemd/$unit" "$kit/$unit" || return 1
 	done
 }

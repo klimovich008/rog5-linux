@@ -2123,9 +2123,9 @@ prepare_wifi_services() {
 	[ -d "$kit" ] && [ ! -L "$kit" ] && [ "$(stat -c '%u:%g:%a' "$kit")" = 0:0:700 ] || return 1
 	[ -z "$(find "$kit" ! -type f ! -type d -print -quit)" ] &&
 		[ -z "$(find "$kit" -perm /6022 -print -quit)" ] || return 1
-	units="rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service"
+	units="rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service rog5-bluetooth.service"
 	for entry in wifi:755 rog5-wifi-radio.service:644 rog5-wifi-wpa.service:644 \
-		rog5-wifi-dhcp.service:644; do
+		rog5-wifi-dhcp.service:644 rog5-bluetooth.service:644; do
 		file=$kit/${entry%%:*}
 		[ -f "$file" ] && [ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] || return 1
 	done

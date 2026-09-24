@@ -6,16 +6,16 @@
  * which already carries BT_EN (gpio65) and SW_CTRL (gpio153); the power
  * sequencer arbitrates the two radios. The GENI UART driver needs a serial
  * alias for a non-console port.
+ *
+ * QUP wrapper 2 (uart18's parent) stays disabled here: probed at boot it
+ * breaks the Wi-Fi firmware load (RAM trials t16-t20). rog5_bt_activate
+ * enables it once ath11k owns the Wi-Fi function (production-wifi bluetooth).
  */
 /dts-v1/;
 /plugin/;
 
 &{/aliases} {
 	serial1 = "/soc@0/geniqup@8c0000/serial@890000";
-};
-
-&qupv3_id_2 {
-	status = "okay";
 };
 
 &tlmm {

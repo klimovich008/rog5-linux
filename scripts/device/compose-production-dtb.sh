@@ -71,7 +71,7 @@ if [ "${features#*,}" = bluetooth ]; then
 	fdtoverlay -i "$work/composed.dtb" -o "$work/bt.dtb" "$work/bluetooth.dtbo"
 	mv "$work/bt.dtb" "$work/composed.dtb"
 	uart=/soc@0/geniqup@8c0000/serial@890000
-	[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = okay ] &&
+	[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
 		[ "$(fdtget "$work/composed.dtb" "$uart" status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" "$uart/bluetooth" compatible)" = qcom,wcn6855-bt ] &&
 		[ "$(fdtget "$work/composed.dtb" /aliases serial1)" = "$uart" ] ||

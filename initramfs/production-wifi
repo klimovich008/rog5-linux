@@ -150,6 +150,26 @@ radio() {
 	log "PASS radio ready on $name"
 }
 
+# Bluetooth (QCA6490 on uart18) shares the WCN6855 PMU. Its UART wrapper may
+# only probe after ath11k owns the Wi-Fi function: enabled at boot, the
+# wrapper breaks the Wi-Fi firmware load (RAM trials t16-t20, 2026-09-24).
+bluetooth() {
+	[ "$(id -u)" = 0 ] || fail 'root required'
+	[ -e "$kit/radio-ready" ] || fail 'Wi-Fi radio is not ready'
+	[ ! -d "$sys/module/rog5_bt_activate" ] || fail 'bluetooth already entered this boot'
+	load rog5_bt_activate
+	[ "$(cat "$sys/module/rog5_bt_activate/parameters/result")" = 0 ] || fail 'bluetooth activation result'
+	load hci_uart
+	load hidp
+	waited=0
+	until [ -e "$sys/class/bluetooth/hci0" ]; do
+		waited=$((waited + 1))
+		[ "$waited" -le 30 ] || fail 'no hci0 30 s after hci_uart'
+		sleep 1
+	done
+	log 'PASS bluetooth hci0'
+}
+
 prepare() {
 	name=$(interface) || fail 'no WLAN interface'
 	[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] || fail '/persist is not mounted'
@@ -177,6 +197,7 @@ iw() {
 case ${1:-} in
 radio) radio ;;
 ready) [ -e "$kit/radio-ready" ] ;;
+bluetooth) bluetooth ;;
 prepare) prepare ;;
 wpa)
 	name=$(interface) || fail 'no WLAN interface'
@@ -188,5 +209,5 @@ dhcp)
 	name=$(interface) || fail 'no WLAN interface'
 	exec /usr/bin/dhcpcd -4 -B -L -m 100 -C hostname -f "$state/dhcpcd.conf" -t 0 "$name"
 	;;
-*) log 'usage: production-wifi radio|prepare|wpa|dhcp'; exit 2 ;;
+*) log 'usage: production-wifi radio|bluetooth|prepare|wpa|dhcp'; exit 2 ;;
 esac

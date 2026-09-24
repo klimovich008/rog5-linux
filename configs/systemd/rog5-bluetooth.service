@@ -1,0 +1,16 @@
+[Unit]
+Description=Bring up ROG5 Bluetooth (QCA6490 on uart18) after the Wi-Fi radio
+Requires=rog5-wifi-radio.service
+After=rog5-wifi-radio.service
+Before=bluetooth.service shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecCondition=/run/rog5-wifi/wifi ready
+ExecStart=/run/rog5-wifi/wifi bluetooth
+TimeoutStartSec=180
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
