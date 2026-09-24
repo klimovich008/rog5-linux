@@ -1,0 +1,18 @@
+# Denial mobile session on the OLED, started at boot on the persistent root.
+# Installed to /etc/systemd/system on the root overlay (not the ramdisk): the
+# bundle lives in /opt/denial and its runtime comes from pacman.
+[Unit]
+Description=Denial mobile session on the ROG5 OLED
+Requires=rog5-platform-modules.service
+After=rog5-platform-modules.service systemd-user-sessions.service
+ConditionPathExists=/opt/denial/deniald
+
+[Service]
+Environment=XDG_RUNTIME_DIR=/run/user/0 DENIA_SHELL_PROFILE=mobile HOME=/root
+ExecStartPre=/usr/bin/install -d -m 0700 /run/user/0
+ExecStart=/usr/bin/seatd-launch -- /opt/denial/deniald --device /dev/dri/card1 --render-device /dev/dri/renderD128 --output-config /etc/denial/outputs.conf --wayland --flutter-bundle /opt/denial
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
