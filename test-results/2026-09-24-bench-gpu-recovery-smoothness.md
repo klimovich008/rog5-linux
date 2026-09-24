@@ -77,3 +77,26 @@ deferred release in the engine.
   writes still do not reach the panel.
 - Bluetooth: QCA6490 on QUP SE18 (`uart18`, 0x890000, 4-wire), BT_EN GPIO 65,
   SW_CTRL GPIO 153 (stock lahaina.dtsi); no DT node, modules or firmware yet.
+
+## Wi-Fi and dual Wi-Fi (r15/r16)
+
+- Link: 5540 MHz, 160 MHz HE (Wi-Fi 6), PHY 1.7-2.2 Gbit/s, -45 dBm. No
+  6 GHz band on this WCN6855 hw1.1. Regulatory domain is the world domain
+  `00` (passive scan, 20 dBm on 5 GHz) until a country is set.
+- Throughput from Hetzner fsn1: one stream 490-680 Mbit/s (noisy), four
+  streams 688 Mbit/s; the laptop gets 668 on the same network. RPS on the big
+  cores made no measurable difference; the ath11k DP MSIs sit behind the
+  DesignWare PCIe MSI demux and have no settable affinity.
+- Dual Wi-Fi: the firmware offers `#{managed} <= 2, total <= 3, #channels <= 2`.
+  A second managed interface (wlp1s1) on the router's 2.4 GHz radio while
+  wlp1s0 stayed on 5 GHz: both associated with their own DHCP leases. Alone:
+  5 GHz 492, 2.4 GHz 146 Mbit/s; together 313 + 133 = 446 Mbit/s. An idle
+  associated second link does not cost 5 GHz throughput (565/544 vs 569).
+
+## Console spinner (fixed in r16)
+
+The ramdisk's stage reporter was never stopped; after switch_root its nc and
+sleep were gone and the orphaned /init subshell printed errors to the
+115200-baud console nonstop: ~11 KB/s, ~210 UART interrupts/s, 6.5 % CPU on
+every boot. r16 stops it after the final switch-root report: UART 0 B/s,
+idle system load 0.2-0.5 %.
