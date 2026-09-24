@@ -6,7 +6,7 @@
  * GPU frequency through the interconnect framework. (GMU-side voting with the
  * a660 BCM list, former patch 0046, made the GMU miss HFI_H2F_MSG_GX_BW_PERF_VOTE
  * deadlines by over 1 s on r30 and r35, and was dropped.)
-
+ *
  * Values are the stock LPDDR5 (ddr8) nominal bus levels for speed bin 0
  * (lahaina-v2-gpu.dtsi qcom,bus-freq-ddr8 indexing qcom,bus-table-ddr8,
  * MHZ_TO_KBPS(mhz, 4)): 840/778/738 MHz -> 3196 MHz DDR, 676 -> 2736,
