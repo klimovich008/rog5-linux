@@ -58,7 +58,8 @@ if [ "$feature" = touch ]; then
 	[ "$(fdtget "$work/composed.dtb" "$i2c" status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" "$i2c/touchscreen@38" status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" "$i2c/touchscreen@38" compatible)" = asus,rog5-mp2-fts3658u ] &&
-		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@9c0000/spi@990000 status)" = disabled ] ||
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@9c0000/spi@990000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/dma-controller@900000 status)" = okay ] ||
 		{ echo 'FAIL touch composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100

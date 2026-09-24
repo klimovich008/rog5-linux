@@ -38,7 +38,8 @@ class Radio(unittest.TestCase):
         (d/'tree/lib/modules'/release).mkdir(parents=True)
         power = self.sys/'class/power_supply'
         for name, value in (('qcom-battmgr-bat/health', 'Good'), ('qcom-battmgr-bat/temp', '300'),
-                            ('qcom-battmgr-bat/voltage_now', '8500000'), ('qcom-battmgr-usb/online', '1')):
+                            ('qcom-battmgr-bat/voltage_now', '8000000'), ('qcom-battmgr-bat/capacity', '76'),
+                            ('qcom-battmgr-usb/online', '1')):
             (power/name).parent.mkdir(parents=True, exist_ok=True)
             (power/name).write_text(value+'\n')
         (self.sys/'class/thermal/thermal_zone0').mkdir(parents=True)
@@ -127,7 +128,8 @@ esac''')
     @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
     def test_no_usb_or_low_battery_defers_without_touching_power(self):
         for name, value, why in (('qcom-battmgr-usb/online', '0', 'no USB input'),
-                                 ('qcom-battmgr-bat/voltage_now', '8399999', 'below 8.4 V')):
+                                 ('qcom-battmgr-bat/voltage_now', '7599999', 'below 7.6 V'),
+                                 ('qcom-battmgr-bat/capacity', '49', 'below 7.6 V / 50 %')):
             with self.subTest(why):
                 path = self.sys/'class/power_supply'/name
                 old = path.read_text()

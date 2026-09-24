@@ -14,8 +14,10 @@
 #   dhcp     run dhcpcd in the foreground
 #   ready    exit 0 only when this boot's radio came up (unit condition)
 #
-# Radio power needs USB input and at least 8.4 V (the bound every earlier
-# radio run held); otherwise the radio is deferred, not failed.
+# Radio power needs USB input, 7.6 V and 50 % charge; otherwise the radio is
+# deferred, not failed. The earlier 8.4 V floor had no measured basis: the one
+# reset during radio bring-up (S12 shared rail, 2026-08-31) came from the UFS
+# rail request, not battery voltage, and 8.4 V holds only near full charge.
 set -u
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
@@ -84,8 +86,9 @@ radio() {
 		exit 0
 	fi
 	voltage=$(cat "$power/qcom-battmgr-bat/voltage_now") && number "$voltage" || fail 'battery voltage'
-	if [ "$voltage" -lt 8400000 ]; then
-		log "DEFER battery at $voltage uV is below 8.4 V; the radio stays off"
+	capacity=$(cat "$power/qcom-battmgr-bat/capacity") && number "$capacity" || fail 'battery capacity'
+	if [ "$voltage" -lt 7600000 ] || [ "$capacity" -lt 50 ]; then
+		log "DEFER battery at $voltage uV / $capacity % is below 7.6 V / 50 %; the radio stays off"
 		exit 0
 	fi
 	# Firmware: ath11k and cfg80211 look in firmware_class.path, which the

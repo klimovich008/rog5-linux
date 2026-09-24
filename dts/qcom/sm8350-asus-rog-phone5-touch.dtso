@@ -40,6 +40,11 @@
 	};
 };
 
+/* I2C4 runs in GPI mode (trial t8: "Failed to get tx DMA ch"): QUP0's GPI DMA. */
+&gpi_dma0 {
+	status = "okay";
+};
+
 &spi4 {
 	status = "disabled";
 };
