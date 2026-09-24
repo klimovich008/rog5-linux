@@ -15,6 +15,12 @@ panel_asus_rog5_ams678
 # Without the touch DT node the driver loads and binds nothing.
 gpi
 rog5_fts3658u
+# Haptics (AW8697, input FF), light/proximity (VCNL36866, IIO) and the back logo
+# LED (MS51 Aura, rgb:logo) on wrapper 0 I2C; they bind nothing without the
+# peripherals overlay.
+rog5_aw8697
+rog5_vcnl36866
+rog5_aura
 # Power key and volume-down (milestone 8): the PMK8350 PON parent populates
 # the pwrkey/resin children the base DTB already enables (V9 buttons-indicator).
 qcom_pon

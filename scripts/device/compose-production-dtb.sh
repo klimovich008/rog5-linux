@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -68,6 +68,7 @@ case ,$features, in *,cpuidle,*) cpuidle=1 ;; *) cpuidle=0 ;; esac
 case ,$features, in *,gpubw,*) gpubw=1 ;; *) gpubw=0 ;; esac
 case ,$features, in *,bwmon,*) bwmon=1 ;; *) bwmon=0 ;; esac
 case ,$features, in *,ddrscale,*) ddrscale=1 ;; *) ddrscale=0 ;; esac
+case ,$features, in *,periph,*) periph=1 ;; *) periph=0 ;; esac
 if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -156,6 +157,28 @@ if [ "$ddrscale" = 1 ]; then
 	[ "$(fdtget "$work/composed.dtb" "$crypto" compatible | cut -d ' ' -f 1)" = qcom,sm8350-qce ] ||
 		{ echo 'FAIL unexpected crypto node' >&2; exit 1; }
 	fdtput -t s "$work/composed.dtb" "$crypto" status disabled
+fi
+if [ "$periph" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/periph.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-peripherals.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/periph.dtbo" "$work/periph.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/per.dtb" "$work/periph.dtbo"
+	mv "$work/per.dtb" "$work/composed.dtb"
+	w0=/soc@0/geniqup@9c0000
+	l7c=$(fdtget "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1/ldo7 phandle)
+	c2=$(fdtget "$work/composed.dtb" /soc@0/spmi@c440000/pmic@2/gpio@8800 phandle)
+	[ "$(fdtget "$work/composed.dtb" $w0/i2c@998000 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/spi@998000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/serial@998000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@998000/haptics@5a compatible)" = awinic,aw8697 ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/spi@980000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/light-sensor@60 vdd-supply)" = "$l7c" ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1/ldo7 regulator-min-microvolt)" = 3300000 ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 enable-gpios)" = "$c2 2 0" ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] ||
+		{ echo 'FAIL periph composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

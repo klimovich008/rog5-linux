@@ -23,7 +23,7 @@ STATE = Path.home()/'.local/state'
 BASE = Path(os.environ.get('ROG5_TEST_STANDALONE_BASE',
                            STATE/'rog5-cpu-startup-20260908.kjE4IqCf/buttons-successor-unsigned-r2/target-a.cpio.gz'))
 PACKAGE = Path(os.environ.get('ROG5_TEST_MODULE_TREE',
-                              STATE/'rog5-production-boot-20260923/modules-7.2.7-r13-c/module-root-complete.tar.gz'))
+                              STATE/'rog5-production-boot-20260923/modules-7.2.7-r13-d/module-root-complete.tar.gz'))
 WIFI_KIT = Path(os.environ.get('ROG5_TEST_WIFI_KIT', STATE/'rog5-production-boot-20260923/wifi-kit-r1'))
 SKIP_MESSAGE = 'production ramdisk build needs the private V9 base archive and module package'
 READY = BASE.is_file() and PACKAGE.is_file()
