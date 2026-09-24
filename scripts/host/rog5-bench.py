@@ -4,6 +4,8 @@
   rog5-bench.py hw                    hardware matrix (bench/hwcheck.py)
   rog5-bench.py gpu [nop|fault|hang|cycle N]
                                       GPU health / recovery probe
+  rog5-bench.py power [--seconds N] [--label L]
+                                      idle battery draw, USB unplugged, screen off
   rog5-bench.py shot [OUT.png]       screenshot of what the panel shows
   rog5-bench.py gesture OUT.png swipe X0 Y0 X1 Y1 [SECONDS] | tap X Y
                                       one gesture (panel pixels), then a screenshot
@@ -21,7 +23,10 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('trial', ROOT/'scripts/host/production-ram-trial.py')
 trial = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(trial)
-ADDR = next((a for a in ('10.77.0.2', '169.254.77.2') if trial.ssh(a, 'true', 5).returncode == 0), '10.77.0.2')
+import os
+# USB link first; ROG5_BENCH_ADDR (e.g. the phone's Wi-Fi address) when unplugged.
+ADDR = os.environ.get('ROG5_BENCH_ADDR') or next(
+    (a for a in ('10.77.0.2', '169.254.77.2') if trial.ssh(a, 'true', 5).returncode == 0), '10.77.0.2')
 OUT = ROOT/'test-results/bench'
 REMOTE = '/root/rog5-bench'
 
@@ -78,6 +83,11 @@ def main():
         print(json.dumps({k: v for k, v in data.items() if k != 'kernel'}, indent=2))
         for line in data.get('kernel', [])[-12:]:
             print('  ', line[:200])
+    elif kind == 'power':
+        data, path = run('power', f'python3 {REMOTE}/bench/power.py {rest}', 900)
+        print(json.dumps({k: v for k, v in data.items() if k != 'top_interrupts_per_s'}, indent=2))
+        for rate, name in data.get('top_interrupts_per_s', []):
+            print(f'  {rate:8.1f}/s  {name}')
     elif kind == 'shot':
         push()
         r = trial.ssh(ADDR, f'python3 {REMOTE}/bench/scanout.py png /run/rog5-shot.png --scale 3 >&2 && '
