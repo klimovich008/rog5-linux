@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * GPU DDR bandwidth votes. The GPU gets its gfx-mem path (GEM NoC to EBI1)
+ * and every GPU OPP a peak bandwidth, so the GMU can vote DDR per GPU
+ * frequency (a660 BCM table, kernel patch 0046) and the CPU side drops the
+ * vote when the GPU suspends. Without this the GPU never voted DDR, so DDR
+ * could only be left at the boot-time maximum.
+ *
+ * Values are the stock LPDDR5 (ddr8) nominal bus levels for speed bin 0
+ * (lahaina-v2-gpu.dtsi qcom,bus-freq-ddr8 indexing qcom,bus-table-ddr8,
+ * MHZ_TO_KBPS(mhz, 4)): 840/778/738 MHz -> 3196 MHz DDR, 676 -> 2736,
+ * 608-443 -> 1555, 379 -> 1017, 315 -> 451.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,sm8350.h>
+
+&gpu {
+	interconnects = <&gem_noc MASTER_GFX3D QCOM_ICC_TAG_ALWAYS
+			 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+	interconnect-names = "gfx-mem";
+};
+
+&gpu_opp_table {
+	opp-840000000 {
+		opp-peak-kBps = <12784000>;
+	};
+
+	opp-778000000 {
+		opp-peak-kBps = <12784000>;
+	};
+
+	opp-738000000 {
+		opp-peak-kBps = <12784000>;
+	};
+
+	opp-676000000 {
+		opp-peak-kBps = <10944000>;
+	};
+
+	opp-608000000 {
+		opp-peak-kBps = <6220000>;
+	};
+
+	opp-540000000 {
+		opp-peak-kBps = <6220000>;
+	};
+
+	opp-491000000 {
+		opp-peak-kBps = <6220000>;
+	};
+
+	opp-443000000 {
+		opp-peak-kBps = <6220000>;
+	};
+
+	opp-379000000 {
+		opp-peak-kBps = <4068000>;
+	};
+
+	opp-315000000 {
+		opp-peak-kBps = <1804000>;
+	};
+};

@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -65,6 +65,7 @@ if [ "$feature" = touch ]; then
 fi
 case ,$features, in *,bluetooth,*) bluetooth=1 ;; *) bluetooth=0 ;; esac
 case ,$features, in *,cpuidle,*) cpuidle=1 ;; *) cpuidle=0 ;; esac
+case ,$features, in *,gpubw,*) gpubw=1 ;; *) gpubw=0 ;; esac
 if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -99,6 +100,27 @@ if [ "$cpuidle" = 1 ]; then
 	# platform-coordinated only: no CPU power-domain references
 	[ -z "$(fdtget "$work/composed.dtb" /cpus/cpu@0 power-domains 2>/dev/null)" ] ||
 		{ echo 'FAIL cpuidle must not add OSI domains' >&2; exit 1; }
+fi
+if [ "$gpubw" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/gpubw.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-gpu-bw.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/gpubw.dtbo" "$work/gpubw.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/bw.dtb" "$work/gpubw.dtbo"
+	mv "$work/bw.dtb" "$work/composed.dtb"
+	gpu=/soc@0/gpu@3d00000
+	gem=$(fdtget "$work/composed.dtb" /soc@0/interconnect@9100000 phandle)
+	mc=$(fdtget "$work/composed.dtb" /soc@0/interconnect@1580000 phandle)
+	[ "$(fdtget "$work/composed.dtb" "$gpu" interconnects)" = "$gem 5 7 $mc 1 7" ] &&
+		[ "$(fdtget "$work/composed.dtb" "$gpu" interconnect-names)" = gfx-mem ] ||
+		{ echo 'FAIL gpubw interconnect' >&2; exit 1; }
+	# every GPU OPP carries exactly one peak bandwidth
+	for opp in $(fdtget -l "$work/composed.dtb" "$gpu/opp-table"); do
+		[ -n "$(fdtget "$work/composed.dtb" "$gpu/opp-table/$opp" opp-peak-kBps)" ] ||
+			{ echo "FAIL gpubw $opp has no opp-peak-kBps" >&2; exit 1; }
+	done
+	[ "$(fdtget "$work/composed.dtb" "$gpu/opp-table/opp-315000000" opp-peak-kBps)" = 1804000 ] ||
+		{ echo 'FAIL gpubw composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
