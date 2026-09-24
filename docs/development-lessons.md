@@ -4188,3 +4188,16 @@ ramoops command line; mainline must use its exact layout there.
   (0x88888888), so each runtime suspend force-powers the GMU off; with the
   66 ms autosuspend this caused a GPU hang in the first seconds of a Weston
   client. The GPU held on (`power/control=on`) ran 10 min with no faults.
+
+## Panel brightness writes (2026-09-24)
+
+- In LP mode the AMS678 path keeps only the first data byte of `0x51`: sending
+  `51 00 ff` (DBV 255) was black, as all values below 256 have been. The
+  panel's brightness register (`0x52`) reads back `00 00` at every level, so
+  readback cannot diagnose it.
+- A 4-byte LP write `51 00 ff 00` hard-hung the phone (USB frozen, no softdog
+  reboot); it needed a manual forced reset. Never send padded or other
+  non-standard DCS lengths to this panel from a running system.
+- Stock routes brightness through the Pixelworks Iris6 bridge
+  (`iris_update_backlight`, pass-through mode) on production panels; the next
+  brightness fix should follow that path, not raw DCS experiments.
