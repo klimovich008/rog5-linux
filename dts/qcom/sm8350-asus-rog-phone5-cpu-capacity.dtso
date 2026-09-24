@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/*
+ * Heterogeneous CPU capacity and energy data, absent from sm8350.dtsi: without
+ * them every core reports capacity 1024 and the scheduler treats the 1.8 GHz
+ * A55s like the 2.84 GHz X1. Values from sibling SoCs with the same cores:
+ * A55 from sm8250, A78/X1 from sc8280xp (A78C/X1C). With frequency scaling
+ * the capacities come out near 284 / 836 / 1024.
+ *
+ * Not in production yet: on r25 capacity-aware placement moved Denial's raster
+ * and UI threads to the A55s (quick settings 5 -> 60 dropped frames, keyboard
+ * 7 -> 77; 50 / 33 with sched_energy_aware=0). Re-test with uclamp boosting.
+ */
+&cpu0 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu1 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu2 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu3 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu4 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu5 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu6 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu7 {
+	capacity-dmips-mhz = <1024>;
+	dynamic-power-coefficient = <590>;
+};
