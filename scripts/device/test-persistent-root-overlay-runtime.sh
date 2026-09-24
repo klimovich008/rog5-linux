@@ -35,6 +35,13 @@ for contract in \
 	'root=native-ext4-overlay-persistent'; do
 	grep -Fq "$contract" "$attest" || fail "missing attestation contract: $contract"
 done
+# The booted-system attestor accepts the same journal replays as the init.
+for contract in \
+	'"EXT4-fs (${overlay_userdata##*/}): recovery complete"' \
+	'[ "$userdata_recovery_count" -le 1 ]' \
+	'[ "$((overlay_recovery_count + userdata_recovery_count))" -eq'; do
+	grep -Fq -- "$contract" "$attest" || fail "missing attestation recovery rule: $contract"
+done
 for contract in \
 	'final_storage_detail=overlay-runtime' \
 	'ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}' \
