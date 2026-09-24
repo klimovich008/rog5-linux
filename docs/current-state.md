@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production 7.2.7 r16 default (persistent root): milestones 1-5 pass; Denial starts at boot on the OLED with GPU acceleration**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7 r22 default (persistent root): milestones 1-5 pass; Denial at boot with GPU acceleration; Wi-Fi, hotspot and Bluetooth**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-r16 default (2026-09-24; r16 stops the ramdisk stage reporter that spun on the console after switch_root, 6.5 % CPU): power key/volume-down, quiet console, uinput; Denial engine patched for implicit MSAA (quick settings 48 -> 5 dropped frames); battery tile fed by rog5-battery-log. Bench: scripts/host/rog5-bench.py (hw matrix, GPU fault/recovery probe, screenshots, gesture smoothness). Next: Wi-Fi review and dual Wi-Fi, Bluetooth (QCA6490 on uart18), brightness, slow-drag buffer churn, audio (docs/audio-plan.md), CPU idle qualification. See [current repair evidence](../test-results/2026-09-24-bench-gpu-recovery-smoothness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+r22 default (2026-09-24): Bluetooth (QCA6490, late wrapper activation after Wi-Fi), Wi-Fi thermal wait, console spinner fixed, power key/volume-down, rog5-hotspot, Denial implicit-MSAA engine patch, battery tile. Bench: scripts/host/rog5-bench.py. Next: kernel options UHID/RFCOMM/BNEP/FW_LOADER_COMPRESS_ZSTD, brightness, slow-drag buffer churn, audio (docs/audio-plan.md), sensors, vibration, CPU idle qualification, Wi-Fi on battery policy. See [current repair evidence](../test-results/2026-09-24-bench-gpu-recovery-smoothness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

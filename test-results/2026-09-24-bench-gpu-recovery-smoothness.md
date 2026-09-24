@@ -100,3 +100,28 @@ sleep were gone and the orphaned /init subshell printed errors to the
 115200-baud console nonstop: ~11 KB/s, ~210 UART interrupts/s, 6.5 % CPU on
 every boot. r16 stops it after the final switch-root report: UART 0 B/s,
 idle system load 0.2-0.5 %.
+
+## Wi-Fi robustness and hotspot (r19-r22)
+
+- Thermal gate: boot heats CPU zones to 61-66 C for a moment; the radio's
+  one-shot 60 C check failed Wi-Fi for the whole boot in 3 of 5 boots. The kit
+  now waits up to 90 s for the zones to cool (limit unchanged).
+- `rog5-hotspot on|off|status`: hostapd AP on `wlp1s0ap`, 2.4 GHz (the world
+  domain forbids starting an AP on 5 GHz), dnsmasq on 10.42.0.1/24, nft NAT.
+  Verified AP-ENABLED on channel 6 while the client stayed on channel 108
+  (160 MHz). No client test yet.
+- Wi-Fi only starts on USB power with the battery at 7.6 V / 50 % or more
+  (existing radio policy, unchanged).
+
+## Bluetooth (r22)
+
+QCA6490 (SoC 0x400c0110, ROM 1.0) on uart18: firmware `qca/wcnhpbtfw10.tlv`
+and `wcnhpnv10.bin` from Arch's linux-firmware-atheros load over the UART.
+Enabling QUP wrapper 2 at boot broke the Wi-Fi MHI/BHI firmware load in every
+trial (t16, t18, t20; t20 with nothing but the wrapper); the wrapper took an
+SMMU context bank ahead of PCIe. `rog5_bt_activate` now enables the wrapper
+only after ath11k owns 17cb:1103, from `rog5-bluetooth.service` (Wi-Fi kit).
+Trial t22 and the r22 default: radio ready 37.1 s, wrapper 37.4 s, hci0
+38.1 s, BlueZ active, a scan saw a nearby device, Wi-Fi 100 MB in 1.56 s.
+Next kernel build: CONFIG_UHID, BT_RFCOMM, BT_BNEP (LE HID devices, serial
+and PAN profiles) and FW_LOADER_COMPRESS_ZSTD.
