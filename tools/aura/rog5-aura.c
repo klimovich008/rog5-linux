@@ -126,7 +126,6 @@ static int aura_probe(struct i2c_client *i2c)
 	a->mc.led_cdev.max_brightness = 255;
 	a->mc.led_cdev.brightness_set_blocking = aura_set;
 	init.default_label = "rgb:logo";
-	init.devicename = "rog5-aura";
 	init.fwnode = dev_fwnode(dev);
 	ret = devm_led_classdev_multicolor_register_ext(dev, &a->mc, &init);
 	if (ret)

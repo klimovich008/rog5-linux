@@ -209,3 +209,29 @@ its animations end, not a GPU, DDR or allocation stall. The shade's settle
 path (`endQuickSettingsDrag` -> `open/closeQuickSettings`, implicit
 animations) has no timer in it; the next step is to trace which widget
 schedules that frame.
+
+## Haptics, light/proximity sensor, logo LED (step 11, r34-r36)
+
+On the r33 default, a development module enabled QUP wrapper 0 SE0 and SE6
+I2C at run time; all three stock parts answered:
+
+| part | bus / addr | identity | driver | result |
+|---|---|---|---|---|
+| AW8697 LRA haptics | SE6 0x5a | ID 0x97 | tools/aw8697 (input FF_RUMBLE, CONT mode) | a 1 s effect: GLB_STATE 0x06 (CONT playing), SYSCTRL 0x48, back to standby after |
+| VCNL36866 light/proximity | SE0 0x60 | ID 0x62 | tools/vcnl36866 (IIO) | room light 37-39 counts (about 23 lx at the default calibration), proximity about 152-155 with nothing near; switched off 2 s after the last read |
+| MS51 Aura logo MCU | SE0 0x16 | firmware 0x0105 | tools/aura (multicolor LED `rgb:logo`) | powered through PM8350C GPIO 2; static colour written and applied |
+
+r34 (both buses, the three devices and PM8350C LDO7 declared at 3.3 V, the
+sensor's `vcc_psensor`) reset within the first second of kernel boot. It left
+no panic record and never reached the USB gadget. The bisect:
+- r35 (SE6 + AW8697 only) booted, and haptics bound from DT.
+- r36 (SE0 + VCNL36866 + MS51, no LDO7) booted: sensor 37-39 lx counts /
+  proximity 155, logo firmware 0105, the LED lit for 3 s.
+
+So LDO7 stays undeclared; the boot chain leaves it on. Whether the user feels
+the vibration and sees the logo is still to be confirmed.
+
+r35 also produced a second GMU `HFI_H2F_MSG_GX_BW_PERF_VOTE` timeout (worst
+GPU wake 1036 ms in the 300-cycle test). GMU-side DDR voting (patch 0046) is
+therefore dropped in kernel r14. The GPU's OPP bandwidths are still voted from
+the CPU side on every frequency change.

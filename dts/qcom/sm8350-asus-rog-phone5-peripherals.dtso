@@ -5,27 +5,22 @@
  * overrides):
  *   SE6 I2C (i2c@998000): AW8697 LRA driver at 0x5a (chip ID 0x97), VBAT
  *     powered. tools/aw8697 drives it in CONT mode as an input FF device.
- *   SE0 I2C (i2c@980000): VCNL36866 light/proximity at 0x60 (ID 0x62) on the
- *     3.3 V PM8350C LDO7 ("vcc_psensor"), tools/vcnl36866 (IIO); and the MS51
- *     Aura MCU at 0x16, powered by PM8350C GPIO 2 ("logo_5p0_en",
- *     hw_stage 5), tools/aura (multicolor LED rgb:logo).
+ *   SE0 I2C (i2c@980000): VCNL36866 light/proximity at 0x60 (ID 0x62),
+ *     tools/vcnl36866 (IIO); and the MS51 Aura MCU at 0x16, powered by
+ *     PM8350C GPIO 2 ("logo_5p0_en", hw_stage 5), tools/aura (multicolor
+ *     LED rgb:logo).
  * All three answered on the r33 default boot with the buses enabled at run
  * time (2026-09-24).
+ *
+ * The sensor's supply is PM8350C LDO7 ("vcc_psensor"), which the boot chain
+ * leaves on. Declaring LDO7 to Linux (3.3 V, HPM) reset the phone within the
+ * first second of kernel boot (trial r34); SE6 alone (r35) and SE0 alone
+ * without LDO7 (r36) booted, so the regulator stays undeclared.
  */
 /dts-v1/;
 /plugin/;
 
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/regulator/qcom,rpmh-regulator.h>
-
-&{/soc@0/rsc@18200000/regulators-1} {
-	rog5_l7c_3p3: ldo7 {
-		regulator-name = "rog5_l7c_3p3";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-	};
-};
 
 &i2c6 {
 	clock-frequency = <400000>;
@@ -44,7 +39,6 @@
 	light-sensor@60 {
 		compatible = "vishay,vcnl36866";
 		reg = <0x60>;
-		vdd-supply = <&rog5_l7c_3p3>;
 	};
 
 	led-controller@16 {

@@ -166,7 +166,6 @@ if [ "$periph" = 1 ]; then
 	fdtoverlay -i "$work/composed.dtb" -o "$work/per.dtb" "$work/periph.dtbo"
 	mv "$work/per.dtb" "$work/composed.dtb"
 	w0=/soc@0/geniqup@9c0000
-	l7c=$(fdtget "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1/ldo7 phandle)
 	c2=$(fdtget "$work/composed.dtb" /soc@0/spmi@c440000/pmic@2/gpio@8800 phandle)
 	[ "$(fdtget "$work/composed.dtb" $w0/i2c@998000 status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/spi@998000 status)" = disabled ] &&
@@ -174,8 +173,8 @@ if [ "$periph" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@998000/haptics@5a compatible)" = awinic,aw8697 ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000 status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/spi@980000 status)" = disabled ] &&
-		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/light-sensor@60 vdd-supply)" = "$l7c" ] &&
-		[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1/ldo7 regulator-min-microvolt)" = 3300000 ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/light-sensor@60 compatible)" = vishay,vcnl36866 ] &&
+		[ -z "$(fdtget -l "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1 | grep -x ldo7)" ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 enable-gpios)" = "$c2 2 0" ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] ||
 		{ echo 'FAIL periph composition' >&2; exit 1; }
