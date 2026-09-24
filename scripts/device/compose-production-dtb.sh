@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -69,6 +69,7 @@ case ,$features, in *,gpubw,*) gpubw=1 ;; *) gpubw=0 ;; esac
 case ,$features, in *,bwmon,*) bwmon=1 ;; *) bwmon=0 ;; esac
 case ,$features, in *,ddrscale,*) ddrscale=1 ;; *) ddrscale=0 ;; esac
 case ,$features, in *,periph,*) periph=1 ;; *) periph=0 ;; esac
+case ,$features, in *,audio,*) audio=1 ;; *) audio=0 ;; esac
 if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -179,6 +180,25 @@ if [ "$periph" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 function)" = logo ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] ||
 		{ echo 'FAIL periph composition' >&2; exit 1; }
+fi
+if [ "$audio" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/audio.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-audio.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/audio.dtbo" "$work/audio.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/aud.dtb" "$work/audio.dtbo"
+	mv "$work/aud.dtb" "$work/composed.dtb"
+	i2c17=/soc@0/geniqup@8c0000/i2c@88c000
+	afe=/soc@0/remoteproc@3000000/glink-edge/apr/service@4/dais
+	# The amplifiers' bus is on wrapper 2: that wrapper must stay disabled at boot.
+	[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" $i2c17 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $i2c17/amplifier@30 compatible)" = cirrus,cs35l45 ] &&
+		[ "$(fdtget "$work/composed.dtb" $i2c17/amplifier@31 sound-name-prefix)" = SPK ] &&
+		[ "$(fdtget "$work/composed.dtb" $afe/dai@147 reg)" = 147 ] &&
+		[ "$(fdtget "$work/composed.dtb" $afe/dai@147 qcom,sd-lines)" = 1 ] &&
+		[ "$(fdtget "$work/composed.dtb" /sound compatible)" = qcom,sm8250-sndcard ] ||
+		{ echo 'FAIL audio composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Earpiece and loudspeaker playback: two Cirrus CS35L45 amplifiers on QUP SE17
+ * I2C (stock ZS673KS DT: "RCV" at 0x30, reset GPIO104, IRQ GPIO90; "SPK" at
+ * 0x31, reset GPIO105, IRQ GPIO2), fed by the ADSP over SENARY MI2S on the
+ * LPASS LPI pins GPIO10-13 (stock lpi_i2s2; playback on data line SD1).
+ * Both amplifiers answered on the r38 default (DEVID 0x35a450, rev A0).
+ *
+ * SE17 sits on QUP wrapper 2, which must stay disabled at boot (it breaks the
+ * Wi-Fi firmware load); the amplifiers appear when rog5_bt_activate enables the
+ * wrapper after Wi-Fi, and the sound card completes then. Without DSP firmware
+ * the amplifiers play ASP_RX straight to the DAC (no speaker protection), so
+ * userspace keeps volumes low.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/sound/qcom,q6afe.h>
+#include <dt-bindings/sound/qcom,q6asm.h>
+
+&{/} {
+	rog5_sound: sound {
+		compatible = "qcom,sm8250-sndcard";
+		model = "ASUS-ROG-Phone-5";
+		pinctrl-0 = <&rog5_sen_mi2s_active>;
+		pinctrl-names = "default";
+
+		mm1-dai-link {
+			link-name = "MultiMedia1";
+
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+			};
+		};
+
+		mm2-dai-link {
+			link-name = "MultiMedia2";
+
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
+			};
+		};
+
+		speaker-dai-link {
+			link-name = "Speakers";
+
+			cpu {
+				sound-dai = <&q6afedai SENARY_MI2S_RX>;
+			};
+
+			platform {
+				sound-dai = <&q6routing>;
+			};
+
+			codec {
+				sound-dai = <&rog5_amp_rcv 0>, <&rog5_amp_spk 0>;
+			};
+		};
+	};
+};
+
+&q6afedai {
+	dai@147 {
+		reg = <SENARY_MI2S_RX>;
+		qcom,sd-lines = <1>;
+	};
+};
+
+&q6asmdai {
+	dai@0 {
+		reg = <MSM_FRONTEND_DAI_MULTIMEDIA1>;
+	};
+
+	dai@1 {
+		reg = <MSM_FRONTEND_DAI_MULTIMEDIA2>;
+	};
+};
+
+&lpass_tlmm {
+	rog5_sen_mi2s_active: rog5-sen-mi2s-active-state {
+		clk-pins {
+			pins = "gpio10";
+			function = "i2s2_clk";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		ws-pins {
+			pins = "gpio11";
+			function = "i2s2_ws";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		data-pins {
+			pins = "gpio12", "gpio13";
+			function = "i2s2_data";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+};
+
+&i2c17 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	rog5_amp_rcv: amplifier@30 {
+		compatible = "cirrus,cs35l45";
+		reg = <0x30>;
+		#sound-dai-cells = <1>;
+		reset-gpios = <&tlmm 104 GPIO_ACTIVE_HIGH>;
+		interrupts-extended = <&tlmm 90 IRQ_TYPE_LEVEL_LOW>;
+		sound-name-prefix = "RCV";
+		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+	};
+
+	rog5_amp_spk: amplifier@31 {
+		compatible = "cirrus,cs35l45";
+		reg = <0x31>;
+		#sound-dai-cells = <1>;
+		reset-gpios = <&tlmm 105 GPIO_ACTIVE_HIGH>;
+		interrupts-extended = <&tlmm 2 IRQ_TYPE_LEVEL_LOW>;
+		sound-name-prefix = "SPK";
+		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+	};
+};

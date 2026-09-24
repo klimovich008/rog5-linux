@@ -120,7 +120,7 @@ static int vcnl_read_raw(struct iio_dev *indio, struct iio_chan_spec const *chan
 		}
 		ret = i2c_smbus_read_word_data(v->i2c,
 					       chan->type == IIO_LIGHT ? ALS_DATA : PS_DATA);
-		mod_delayed_work(system_wq, &v->off, msecs_to_jiffies(IDLE_OFF_MS));
+		mod_delayed_work(system_dfl_wq, &v->off, msecs_to_jiffies(IDLE_OFF_MS));
 		mutex_unlock(&v->lock);
 		if (ret < 0)
 			return ret;
