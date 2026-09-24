@@ -4,7 +4,7 @@
 [Unit]
 Description=Denial mobile session on the ROG5 OLED
 Requires=rog5-platform-modules.service
-After=rog5-platform-modules.service systemd-user-sessions.service
+After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service
 ConditionPathExists=/opt/denial/deniald
 
 [Service]
