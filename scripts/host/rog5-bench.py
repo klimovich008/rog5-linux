@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('trial', ROOT/'scripts/host/production-ram-trial.py')
 trial = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(trial)
-ADDR = '10.77.0.2'
+ADDR = next((a for a in ('10.77.0.2', '169.254.77.2') if trial.ssh(a, 'true', 5).returncode == 0), '10.77.0.2')
 OUT = ROOT/'test-results/bench'
 REMOTE = '/root/rog5-bench'
 
