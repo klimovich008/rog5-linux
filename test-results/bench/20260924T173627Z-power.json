@@ -1,0 +1,44 @@
+{
+  "label": "r26-baseline-no-cpuidle",
+  "time": "2026-09-24T17:32:32",
+  "display_off": true,
+  "blank_wait_s": 80,
+  "status": "PASS",
+  "seconds": 150,
+  "current_ma_mean": -190.7,
+  "current_ma_median": -188.0,
+  "current_ma_p10_p90": [
+    -234.0,
+    -139.0
+  ],
+  "power_mw_mean": -1597.9,
+  "voltage_v": 8.386,
+  "capacity": 93,
+  "cpu_busy_pct": 1.11,
+  "top_interrupts_per_s": [
+    [
+      612.1,
+      "11 GICv3 27 Level arch_timer"
+    ],
+    [
+      251.5,
+      "IPI1 Function call interrupts"
+    ],
+    [
+      23.2,
+      "167 GICv3 277 Level gpi-dma"
+    ],
+    [
+      18.6,
+      "166 msm_mdss 0 Edge msm-kms"
+    ],
+    [
+      14.9,
+      "191 DW-PCI-MSI-0000:01:00.0 5 Edge ce2"
+    ],
+    [
+      11.6,
+      "176 msmgpio 23 Edge 0-0038"
+    ]
+  ]
+}

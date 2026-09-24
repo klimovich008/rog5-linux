@@ -713,11 +713,20 @@ run_pre_switch_display_observer() {
 wait_for_deferred_ufs_rendezvous() {
 	# Storage-writing and diagnostic archives retain the attended rendezvous.
 	[ "${native_wifi_boot:-0}" != 1 ] || return 0
+	# A production archive (platform kit, read-only UFS) is a daily phone and
+	# must also boot with no USB host, e.g. on battery: without a host carrier
+	# within 2 s it continues unattended; with a host it keeps the
+	# stable-identity wait. An unplugged r26 boot fell back here (2026-09-24).
+	unattended=0
+	[ -d "${rendezvous_platform_kit:-/rog5-platform}" ] &&
+		[ "${expected_ufs_storage_mode:-}" = read-only ] && unattended=1
 	attempt=0
 	stable=0
+	seen=0
 	while [ "$attempt" -lt 150 ]; do
 		if [ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" = 1 ]; then
 			stable=$((stable + 1))
+			seen=1
 		else
 			stable=0
 		fi
@@ -727,9 +736,14 @@ wait_for_deferred_ufs_rendezvous() {
 			sleep 3
 			return 0
 		fi
+		if [ "$unattended" = 1 ] && [ "$seen" = 0 ] && [ "$attempt" -ge 20 ]; then
+			log 'no USB host: production boot continues unattended'
+			return 0
+		fi
 		attempt=$((attempt + 1))
 		sleep 0.1
 	done
+	[ "$unattended" = 1 ] && return 0
 	return 1
 }
 

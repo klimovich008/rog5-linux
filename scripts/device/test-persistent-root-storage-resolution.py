@@ -1123,15 +1123,20 @@ chmod() {
         self.assertIn("sleep 2", self.source[final_publish:handoff])
 
     def run_rendezvous(
-        self, carrier: str
+        self, carrier: str, production: bool = False
     ) -> tuple[subprocess.CompletedProcess[str], str, list[str]]:
         with tempfile.TemporaryDirectory() as tmp:
             calls = Path(tmp) / "calls"
             sleeps = Path(tmp) / "sleeps"
+            kit = Path(tmp) / "kit"
+            if production:
+                kit.mkdir()
             script = (
                 "set -u\n"
                 + self.rendezvous
                 + '\ncall_log="$1"\nsleep_log="$2"\ncarrier="$3"\n'
+                + f'rendezvous_platform_kit={kit}\nexpected_ufs_storage_mode=read-only\n'
+                + 'log() { :; }\n'
                 + 'cat() { printf x >>"$call_log"; printf "%s\\n" "$carrier"; }\n'
                 + 'sleep() { printf "%s\\n" "$1" >>"$sleep_log"; }\n'
                 + "wait_for_deferred_ufs_rendezvous\n"
@@ -1158,6 +1163,16 @@ chmod() {
         self.assertNotEqual(absent.returncode, 0)
         self.assertEqual(len(calls), 150)
         self.assertEqual(sleeps, ["0.1"] * 150)
+
+    def test_production_rendezvous_continues_without_a_usb_host(self) -> None:
+        absent, calls, sleeps = self.run_rendezvous("0", production=True)
+        self.assertEqual(absent.returncode, 0, absent.stderr)
+        self.assertEqual(len(calls), 21)
+        self.assertEqual(sleeps, ["0.1"] * 20)
+        # a present host still gets the stable-identity wait
+        ready, calls, sleeps = self.run_rendezvous("1", production=True)
+        self.assertEqual(ready.returncode, 0, ready.stderr)
+        self.assertEqual(sleeps, ["0.1"] * 9 + ["3"])
 
 
 if __name__ == "__main__":
