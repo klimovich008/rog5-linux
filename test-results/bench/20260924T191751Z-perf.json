@@ -1,0 +1,43 @@
+{
+  "label": "r30-ddr-max",
+  "time": "2026-09-24T19:17:36",
+  "kernel": "7.2.7-rog5-production",
+  "cpufreq_max_khz": {
+    "0": 1804800,
+    "4": 2419200,
+    "7": 2841600
+  },
+  "ebi_before": {
+    "avg_kBps": 2147723647,
+    "peak_kBps": 2147483647
+  },
+  "sha256_MBps": {
+    "a55_cpu0": 748.8,
+    "a78_cpu4": 1484.3,
+    "x1_cpu7": 1747.0,
+    "all_8": 8948.0
+  },
+  "memory_GBps": {
+    "memcpy_x1": 16.928494,
+    "memcpy_a55": 4.268455,
+    "memset_x1": 37.799752,
+    "memset_a55": 20.741036
+  },
+  "ebi_peak_kBps_during_memory": {
+    "memcpy_cpu7": 2147483647,
+    "memcpy_cpu0": 2147483647,
+    "memset_cpu7": 2147483647,
+    "memset_cpu0": 2147483647
+  },
+  "glmark2": {
+    "score": null,
+    "scenes_fps": {},
+    "renderer": null,
+    "error": "rc 1: Warning: DRM_CAP_ASYNC_PAGE_FLIP not supported, falling back to 'mailbox' mode for SwapInterval(0).\nError: glwindow has never been initialized, check native-state code\nError: it should not return a valid window until create_window() is called\nError: main: Could not initialize canvas\n",
+    "denial_restarted": true
+  },
+  "ebi_after": {
+    "avg_kBps": 2149766557,
+    "peak_kBps": 2147483647
+  }
+}

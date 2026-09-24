@@ -6,6 +6,8 @@
                                       GPU health / recovery probe
   rog5-bench.py power [--seconds N] [--label L]
                                       idle battery draw, USB unplugged, screen off
+  rog5-bench.py perf [--skip cpu,memory,gpu] [--label L]
+                                      CPU/memory/GPU throughput (bench/perf.py)
   rog5-bench.py shot [OUT.png]       screenshot of what the panel shows
   rog5-bench.py gesture OUT.png swipe X0 Y0 X1 Y1 [SECONDS] | tap X Y
                                       one gesture (panel pixels), then a screenshot
@@ -88,6 +90,13 @@ def main():
         print(json.dumps({k: v for k, v in data.items() if k != 'top_interrupts_per_s'}, indent=2))
         for rate, name in data.get('top_interrupts_per_s', []):
             print(f'  {rate:8.1f}/s  {name}')
+    elif kind == 'perf':
+        data, path = run('perf', f'python3 {REMOTE}/bench/perf.py {rest}', 1200)
+        print(json.dumps({k: v for k, v in data.items() if k != 'glmark2'}, indent=2))
+        g = data.get('glmark2') or {}
+        print('glmark2 score:', g.get('score'), g.get('error', ''))
+        for scene, fps in g.get('scenes_fps', {}).items():
+            print(f'  {fps:6d} fps  {scene}')
     elif kind == 'shot':
         push()
         r = trial.ssh(ADDR, f'python3 {REMOTE}/bench/scanout.py png /run/rog5-shot.png --scale 3 >&2 && '
