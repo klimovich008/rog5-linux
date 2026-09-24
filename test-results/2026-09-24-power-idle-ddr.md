@@ -155,3 +155,28 @@ input-to-first-frame, dropped frames):
 
 `install-default-kernel.py` installed r32 at 19:55Z; two ordinary reboots
 committed healthy. No GMU HFI timeouts on r31 or r32.
+
+## GMU sync_state (step 6, r33)
+
+The A660 GMU platform device never bound a driver: msm drives it through
+`of_find_device_by_node()`. fw_devlink therefore kept GCC and GPUCC waiting
+(`sync_state() pending due to 3d6a000.gmu`), and their unused boot-time clocks
+stayed on. `tools/gmu_bind` is an empty platform driver (`driver_managed_dma`,
+no clocks or registers). It loads before msm, because the driver core refuses
+to probe a device that already has devm resources.
+
+On t33:
+- `3d6a000.gmu` is bound to `rog5-gmu-bind`.
+- GCC, GPUCC, mc_virt and aggre2 all report `state_synced=1`.
+- The GPU passes: 300 wake cycles (worst 9.0 ms), fault recovered in 0.1 s.
+- 300 s idle soak with 0 misses; Bluetooth came up.
+- Wi-Fi was 100 MB in 1.63-1.78 s over three repeats. The session's single
+  8 s timeout did not recur.
+
+r33 was installed as the default at 20:10Z; two ordinary reboots committed
+healthy.
+
+A known warning remains at msm load: the DSI PLL lock fails during the
+bootloader handoff, followed by a `dsi0_phy_pll_out_dsiclk already disabled`
+clock-reparent WARN. It predates this work, and the display works; it is left
+for step 12.
