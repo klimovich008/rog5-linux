@@ -4,6 +4,9 @@
 rtc_pm8xxx
 # systemd's RuntimeWatchdogSec drives it; on expiry it panics, so ramoops keeps the log.
 softdog soft_panic=1
+# Empty driver for the A660 GMU so GCC/GPUCC reach sync_state (plan step 6).
+# Must load before msm, which leaves devm resources on the GMU device.
+rog5_gmu_bind
 # Display and GPU (milestone 2): KMS on card0, the A660 as a separate render
 # device; gpucc and refgen are built in.
 msm separate_gpu_kms=1

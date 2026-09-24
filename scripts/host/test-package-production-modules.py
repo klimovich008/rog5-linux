@@ -64,12 +64,12 @@ class Packager(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'did not pass'):
                 P.main()
 
-    def test_selection_is_the_booted_80_module_set(self):
+    def test_selection_is_the_booted_81_module_set(self):
         selection = json.loads(P.SELECTION.read_text())
         self.assertEqual(len(selection['board_modules']), 74)
         self.assertEqual(len(selection['board_modules']), len(set(selection['board_modules'])))
         self.assertEqual([m['name'] for m in selection['external_modules']],
-                         ['rog5-bt-activate', 'rog5-input-boost', 'rog5-pmic-pon-readonly', 'rog5-s12-ufs-vote', 'rog5-wifi-activate', 'rog5_fts3658u'])
+                         ['rog5-bt-activate', 'rog5-gmu-bind', 'rog5-input-boost', 'rog5-pmic-pon-readonly', 'rog5-s12-ufs-vote', 'rog5-wifi-activate', 'rog5_fts3658u'])
         for item in selection['external_modules']:
             self.assertTrue((REPO/item['source']/'Makefile').is_file(), item)
 

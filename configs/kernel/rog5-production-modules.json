@@ -1,6 +1,6 @@
 {
   "format": "rog5-production-module-selection-v1",
-  "description": "The 80 modules of the production ramdisk tree: 74 from the kernel build (install paths under kernel/) and 6 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi. uinput (drivers/input/misc) added 2026-09-24 for the bench virtual touchscreen. Bluetooth (QCA6490 on uart18: bluetooth, hci_uart, btqca, btbcm, hidp; ecdh_generic, ecc, kpp) added 2026-09-24. Bluetooth profiles (uhid, rfcomm, bnep) added 2026-09-24. CPU bandwidth monitors (icc-bwmon) and RPMh sleep stats (qcom_stats) added 2026-09-24. rog5-input-boost (LLCC/DDR boost while the user interacts) added 2026-09-24.",
+  "description": "The 81 modules of the production ramdisk tree: 74 from the kernel build (install paths under kernel/) and 7 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi. uinput (drivers/input/misc) added 2026-09-24 for the bench virtual touchscreen. Bluetooth (QCA6490 on uart18: bluetooth, hci_uart, btqca, btbcm, hidp; ecdh_generic, ecc, kpp) added 2026-09-24. Bluetooth profiles (uhid, rfcomm, bnep) added 2026-09-24. CPU bandwidth monitors (icc-bwmon) and RPMh sleep stats (qcom_stats) added 2026-09-24. rog5-input-boost (LLCC/DDR boost while the user interacts) added 2026-09-24. rog5-gmu-bind (empty GMU driver so GCC/GPUCC reach sync_state) added 2026-09-24.",
   "board_modules": [
     "crypto/aes.ko",
     "crypto/ccm.ko",
@@ -81,6 +81,10 @@
     {
       "name": "rog5-bt-activate",
       "source": "tools/bt_activate"
+    },
+    {
+      "name": "rog5-gmu-bind",
+      "source": "tools/gmu_bind"
     },
     {
       "name": "rog5-input-boost",
