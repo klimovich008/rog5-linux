@@ -4,11 +4,12 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
-feature=${4:-}
-case $feature in ''|touch) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+features=${4:-}
+case $features in ''|touch|touch,bluetooth) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 [ ! -e "$output" ] || { echo 'FAIL output exists' >&2; exit 1; }
@@ -61,6 +62,20 @@ if [ "$feature" = touch ]; then
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@9c0000/spi@990000 status)" = disabled ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/dma-controller@900000 status)" = okay ] ||
 		{ echo 'FAIL touch composition' >&2; exit 1; }
+fi
+if [ "${features#*,}" = bluetooth ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/bluetooth.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-bluetooth.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/bluetooth.dtbo" "$work/bluetooth.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/bt.dtb" "$work/bluetooth.dtbo"
+	mv "$work/bt.dtb" "$work/composed.dtb"
+	uart=/soc@0/geniqup@8c0000/serial@890000
+	[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" "$uart" status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" "$uart/bluetooth" compatible)" = qcom,wcn6855-bt ] &&
+		[ "$(fdtget "$work/composed.dtb" /aliases serial1)" = "$uart" ] ||
+		{ echo 'FAIL bluetooth composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

@@ -64,9 +64,9 @@ class Packager(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'did not pass'):
                 P.main()
 
-    def test_selection_is_the_booted_65_module_set(self):
+    def test_selection_is_the_booted_73_module_set(self):
         selection = json.loads(P.SELECTION.read_text())
-        self.assertEqual(len(selection['board_modules']), 61)
+        self.assertEqual(len(selection['board_modules']), 69)
         self.assertEqual(len(selection['board_modules']), len(set(selection['board_modules'])))
         self.assertEqual([m['name'] for m in selection['external_modules']],
                          ['rog5-pmic-pon-readonly', 'rog5-s12-ufs-vote', 'rog5-wifi-activate', 'rog5_fts3658u'])

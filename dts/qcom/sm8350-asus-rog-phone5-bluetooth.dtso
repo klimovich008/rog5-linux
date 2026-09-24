@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Bluetooth: the QCA6490 (WCN6855 family) BT core on QUP SE18, a 4-wire UART
+ * (stock lahaina.dtsi and lahaina-pinctrl.dtsi: CTS gpio68, RTS gpio69, TX
+ * gpio70, RX gpio71). It is powered through the same wcn6855-pmu as Wi-Fi,
+ * which already carries BT_EN (gpio65) and SW_CTRL (gpio153); the power
+ * sequencer arbitrates the two radios. The GENI UART driver needs a serial
+ * alias for a non-console port.
+ */
+/dts-v1/;
+/plugin/;
+
+&{/aliases} {
+	serial1 = "/soc@0/geniqup@8c0000/serial@890000";
+};
+
+&qupv3_id_2 {
+	status = "okay";
+};
+
+&tlmm {
+	rog5_bt_uart_default: rog5-bt-uart-default-state {
+		cts-rx-pins {
+			pins = "gpio68", "gpio71";
+			function = "qup18";
+			drive-strength = <2>;
+			bias-disable;
+		};
+
+		rts-pins {
+			pins = "gpio69";
+			function = "qup18";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		tx-pins {
+			pins = "gpio70";
+			function = "qup18";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+	};
+};
+
+&uart18 {
+	pinctrl-0 = <&rog5_bt_uart_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	bluetooth {
+		compatible = "qcom,wcn6855-bt";
+
+		vddrfacmn-supply = <&pmu_ldo0>;
+		vddaon-supply = <&pmu_ldo1>;
+		vddwlcx-supply = <&pmu_ldo2>;
+		vddwlmx-supply = <&pmu_ldo3>;
+		vddbtcmx-supply = <&pmu_ldo4>;
+		vddrfa0p8-supply = <&pmu_ldo7>;
+		vddrfa1p2-supply = <&pmu_ldo8>;
+		vddrfa1p7-supply = <&pmu_ldo9>;
+		max-speed = <3200000>;
+	};
+};
