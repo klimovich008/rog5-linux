@@ -355,7 +355,7 @@ if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
 		"EXT4-fs ($overlay_loop_name): recovery complete" || true)
 	# As in the init's verify_ufs_health: one replay each of the overlay image
 	# and of its exact userdata partition is ext4's normal recovery after an
-	# unclean stop (a forced reset, or a reboot to fastboot). Repeats and any
+	# unclean stop (a forced reset, or a restart into fastboot). Repeats and any
 	# other device still fail.
 	userdata_recovery_count=$(dmesg | grep -F -c \
 		"EXT4-fs (${overlay_userdata##*/}): recovery complete" || true)

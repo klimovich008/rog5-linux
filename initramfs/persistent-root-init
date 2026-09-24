@@ -114,18 +114,30 @@ send_stage_record() {
 		169.254.77.1 8079 >/dev/null 2>&1
 }
 
+stop_stage_reporter() {
+	[ -n "$stage_reporter_pid" ] || return 0
+	kill "$stage_reporter_pid" 2>/dev/null || true
+	wait "$stage_reporter_pid" 2>/dev/null || true
+	stage_reporter_pid=
+}
+
 report_current_stage_once() {
 	[ -s "$stage_record" ] || return 1
 	send_stage_record <"$stage_record"
 }
 
 start_stage_reporter() {
+	# After switch_root the ramdisk's busybox is gone: nc and sleep then fail
+	# at once, so a loop that ignored sleep spun for the whole uptime and
+	# printed "not found" to the 115200-baud console (~11 KB/s, ~210 UART
+	# interrupts/s, 6.5 % of a CPU). stop_stage_reporter ends it before the
+	# switch; a failing sleep ends it too.
 	(
 		while :; do
 			if [ -s "$stage_record" ]; then
 				send_stage_record <"$stage_record" || true
 			fi
-			sleep 1
+			sleep 1 || exit 0
 		done
 	) &
 	stage_reporter_pid=$!
@@ -2724,6 +2736,8 @@ if ! publish_stage switch-root PASS; then
 	fail_local_stage switch-root 'post-handoff stage publication failed'
 fi
 report_current_stage_once || true
+# The switch-root PASS was just sent; nothing is left for the heartbeat.
+stop_stage_reporter
 
 # PASS above proves mount movement, not successful successor init execution.
 # Keep the boot watchdog until the actual current-boot P2 attestation exists.

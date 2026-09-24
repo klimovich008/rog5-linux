@@ -1066,7 +1066,15 @@ chmod() {
         self.assertIn("nc -n -w 1 -s 169.254.77.2", sender)
         self.assertIn("169.254.77.1 8079", sender)
         self.assertIn('send_stage_record <"$stage_record"', one_shot)
-        self.assertIn('sleep 1', reporter)
+        self.assertIn('sleep 1 || exit 0', reporter)
+        # The heartbeat must not outlive the ramdisk: stopped after the final
+        # one-shot report, before switch_root.
+        final = self.source.index("report_current_stage_once || true\n# The switch-root PASS")
+        stop = self.source.index("stop_stage_reporter\n", final)
+        switch = self.source.index("exec switch_root /newroot /sbin/init")
+        self.assertLess(final, stop)
+        self.assertLess(stop, switch)
+        self.assertIn('kill "$stage_reporter_pid"', function(self.source, "stop_stage_reporter"))
         self.assertIn('format=rog5-persistent-root-stage-v2', publisher)
         self.assertIn('"sequence=$stage_sequence"', publisher)
         self.assertIn('"detail=$stage_detail"', publisher)
