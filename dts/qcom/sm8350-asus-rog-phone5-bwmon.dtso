@@ -11,6 +11,10 @@
  * OPP tables are the stock ones: llcc_bw_opp_table (BW_OPP_ENTRY(MHz, 16))
  * and the LPDDR5 entries of ddr_bw_opp_table (BW_OPP_ENTRY_DDR(MHz, 4),
  * type mask 0x100 or 0x180).
+ *
+ * rog5-input-boost holds both paths at their top level while the user
+ * touches or types (tools/input_boost): bwmon only follows measured traffic,
+ * and the first frames of a gesture are latency-bound.
  */
 /dts-v1/;
 /plugin/;
@@ -18,6 +22,19 @@
 #include <dt-bindings/interconnect/qcom,icc.h>
 #include <dt-bindings/interconnect/qcom,sm8350.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+&{/} {
+	rog5-input-boost {
+		compatible = "asus,rog5-input-boost";
+		interconnects = <&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &gem_noc SLAVE_LLCC QCOM_ICC_TAG_ACTIVE_ONLY>,
+				<&mc_virt MASTER_LLCC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ACTIVE_ONLY>;
+		interconnect-names = "cpu-llcc", "llcc-ddr";
+		asus,cpu-llcc-kBps = <(1000 * 16 * 1000)>;
+		asus,llcc-ddr-kBps = <(3196 * 4 * 1000)>;
+	};
+};
 
 &{/soc@0} {
 	pmu@9091000 {

@@ -1,0 +1,52 @@
+{
+  "label": "r31-ddr-scaling",
+  "time": "2026-09-24T19:33:38",
+  "kernel": "7.2.7-rog5-production",
+  "cpufreq_max_khz": {
+    "0": 1804800,
+    "4": 2419200,
+    "7": 2841600
+  },
+  "ebi_before": {
+    "avg_kBps": 240000,
+    "peak_kBps": 1804000
+  },
+  "sha256_MBps": {
+    "a55_cpu0": 748.1,
+    "a78_cpu4": 1479.3,
+    "x1_cpu7": 1748.2,
+    "all_8": 8943.5
+  },
+  "memory_GBps": {
+    "memcpy_x1": 17.890112,
+    "memcpy_a55": 4.169711,
+    "memset_x1": 36.931986,
+    "memset_a55": 20.742412
+  },
+  "ebi_peak_kBps_during_memory": {
+    "memcpy_cpu7": 12784000,
+    "memcpy_cpu0": 12784000,
+    "memset_cpu7": 12784000,
+    "memset_cpu0": 12784000
+  },
+  "glmark2": {
+    "score": 1642,
+    "scenes_fps": {
+      "build use-vbo=true": 2569,
+      "texture texture-filter=linear": 2424,
+      "shading shading=phong": 2313,
+      "bump bump-render=normals": 2602,
+      "effect2d kernel=0,1,0;1,-4,1;0,1,0;": 1562,
+      "pulsar quads=5": 2115,
+      "desktop blur-radius=5:effect=blur:passes=1": 906,
+      "refract <default>": 149,
+      "terrain <default>": 152
+    },
+    "renderer": "FD660",
+    "denial_restarted": true
+  },
+  "ebi_after": {
+    "avg_kBps": 2282910,
+    "peak_kBps": 2915200
+  }
+}

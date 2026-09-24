@@ -19,5 +19,8 @@ qcom_pon
 # LLCC->DDR (v5) vote from measured traffic. Without the bwmon DT nodes the
 # driver loads and binds nothing.
 icc_bwmon
+# LLCC/DDR at their top level while the user touches or types (the bwmon
+# ramp made the first frame of a gesture ~12 ms later, r31 bench).
+rog5_input_boost
 # RPMh sleep counters (/sys/kernel/debug/qcom_stats): DDR and CX collapse.
 qcom_stats

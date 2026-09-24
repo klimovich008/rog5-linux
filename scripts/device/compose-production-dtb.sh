@@ -140,7 +140,9 @@ if [ "$bwmon" = 1 ]; then
 		[ "$(fdtget -tx "$work/composed.dtb" /soc@0/pmu@90b6400 reg)" = '0 90b6400 0 600' ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/pmu@90b6400 interconnects)" = "$gem 2 3 $gem 14 3" ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/pmu@90b6400 interrupts)" = '0 581 4' ] &&
-		[ "$(fdtget -l "$work/composed.dtb" /soc@0/pmu@90b6400/opp-table | wc -l)" = 7 ] ||
+		[ "$(fdtget -l "$work/composed.dtb" /soc@0/pmu@90b6400/opp-table | wc -l)" = 7 ] &&
+		[ "$(fdtget "$work/composed.dtb" /rog5-input-boost interconnects)" = "$gem 2 3 $gem 14 3 $mc 0 3 $mc 1 3" ] &&
+		[ "$(fdtget "$work/composed.dtb" /rog5-input-boost asus,llcc-ddr-kBps)" = 12784000 ] ||
 		{ echo 'FAIL bwmon composition' >&2; exit 1; }
 fi
 if [ "$ddrscale" = 1 ]; then
