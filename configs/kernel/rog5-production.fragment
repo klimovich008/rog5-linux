@@ -73,3 +73,6 @@ CONFIG_FW_LOADER_COMPRESS_ZSTD=y
 # (r25: quick settings 5 -> 60 dropped frames).
 CONFIG_UCLAMP_TASK=y
 CONFIG_UCLAMP_TASK_GROUP=y
+# Audio (plan step 10): the two Cirrus CS35L45 amplifiers (earpiece and
+# speaker) on QUP SE17 I2C, fed over SENARY MI2S from the ADSP.
+CONFIG_SND_SOC_CS35L45_I2C=m

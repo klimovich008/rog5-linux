@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * GPU DDR bandwidth votes. The GPU gets its gfx-mem path (GEM NoC to EBI1)
- * and every GPU OPP a peak bandwidth, so the GMU can vote DDR per GPU
- * frequency (a660 BCM table, kernel patch 0046) and the CPU side drops the
- * vote when the GPU suspends. Without this the GPU never voted DDR, so DDR
- * could only be left at the boot-time maximum.
- *
+ * and every GPU OPP a peak bandwidth. msm sets the GPU OPP on every frequency
+ * change and on resume, and clears it on suspend, so the CPU side votes DDR per
+ * GPU frequency through the interconnect framework. (GMU-side voting with the
+ * a660 BCM list, former patch 0046, made the GMU miss HFI_H2F_MSG_GX_BW_PERF_VOTE
+ * deadlines by over 1 s on r30 and r35, and was dropped.)
+
  * Values are the stock LPDDR5 (ddr8) nominal bus levels for speed bin 0
  * (lahaina-v2-gpu.dtsi qcom,bus-freq-ddr8 indexing qcom,bus-table-ddr8,
  * MHZ_TO_KBPS(mhz, 4)): 840/778/738 MHz -> 3196 MHz DDR, 676 -> 2736,
