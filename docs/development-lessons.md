@@ -4174,3 +4174,17 @@ survives only a kexec, never a reset. Requesting a warm reset
 the USB link frozen, and it needs a manual R1: never do it. The ASUS 5.4
 wrapper kernel boots first after every reset and owns `0x9b800000` with its
 ramoops command line; mainline must use its exact layout there.
+
+## GPU runtime rules (2026-09-24)
+
+- Never unbind `3d00000.gpu` at runtime: msm's component teardown WARNs in
+  `component_del` and then faults on a paging request; the phone panics and
+  reboots. To try another GMU firmware, replace the runtime file before the
+  first GPU open of a boot (the GMU image loads at first open, not at probe).
+- With the persistent root, the systemd journal on the overlay keeps the
+  previous boot's kernel log, oops included (`journalctl -b -1 -k`). That is
+  the crash log that ramoops cannot keep across this firmware's hard resets.
+- The stock GMU firmware v3.1.5 fails every `HFI_H2F_MSG_PREPARE_SLUMBER`
+  (0x88888888), so each runtime suspend force-powers the GMU off; with the
+  66 ms autosuspend this caused a GPU hang in the first seconds of a Weston
+  client. The GPU held on (`power/control=on`) ran 10 min with no faults.
