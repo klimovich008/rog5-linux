@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production 7.2.7 r22 default (persistent root): milestones 1-5 pass; Denial at boot with GPU acceleration; Wi-Fi, hotspot and Bluetooth**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7 r26 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable policy), hotspot, Bluetooth with profiles, power key, 3-level brightness**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-r22 default (2026-09-24): Bluetooth (QCA6490, late wrapper activation after Wi-Fi), Wi-Fi thermal wait, console spinner fixed, power key/volume-down, rog5-hotspot, Denial implicit-MSAA engine patch, battery tile. Bench: scripts/host/rog5-bench.py. Next: kernel options UHID/RFCOMM/BNEP/FW_LOADER_COMPRESS_ZSTD, brightness, slow-drag buffer churn, audio (docs/audio-plan.md), sensors, vibration, CPU idle qualification, Wi-Fi on battery policy. See [current repair evidence](../test-results/2026-09-24-bench-gpu-recovery-smoothness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Following the user's 13-step plan (2026-09-24). Done: r26 (Wi-Fi on battery policy, brightness mapping, BT profiles, Denial after P2). CPU capacities regressed Denial smoothness (moved to the cpu-capacity overlay); schedutil ramp is a major factor (performance governor: quick settings 37-61 -> 28 dropped). Next: r12 kernel with UCLAMP, Denial uclamp boost, Wi-Fi-on-battery test, idle-power baseline, cpuidle trial, DDR voting (GPU gfx-mem, CPU bwmon) before releasing the crypto hold. See [current repair evidence](../test-results/2026-09-24-bench-gpu-recovery-smoothness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
