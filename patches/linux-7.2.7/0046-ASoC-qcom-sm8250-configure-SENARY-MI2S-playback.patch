@@ -1,0 +1,23 @@
+--- a/sound/soc/qcom/sm8250.c
++++ b/sound/soc/qcom/sm8250.c
+@@ -112,6 +112,20 @@
+ 		snd_soc_dai_set_fmt(cpu_dai, fmt);
+ 		snd_soc_dai_set_fmt(codec_dai, codec_dai_fmt);
+ 		break;
++	case SENARY_MI2S_RX: {
++		struct snd_soc_dai *dai;
++		int i;
++
++		/* The ASUS ROG Phone 5 drives two amplifiers from one link. */
++		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
++		snd_soc_dai_set_sysclk(cpu_dai,
++			Q6AFE_LPASS_CLK_ID_SEN_MI2S_IBIT,
++			MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
++		snd_soc_dai_set_fmt(cpu_dai, fmt);
++		for_each_rtd_codec_dais(rtd, i, dai)
++			snd_soc_dai_set_fmt(dai, codec_dai_fmt);
++		break;
++	}
+ 	default:
+ 		break;
+ 	}
