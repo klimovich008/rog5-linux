@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -67,6 +67,7 @@ case ,$features, in *,bluetooth,*) bluetooth=1 ;; *) bluetooth=0 ;; esac
 case ,$features, in *,cpuidle,*) cpuidle=1 ;; *) cpuidle=0 ;; esac
 case ,$features, in *,gpubw,*) gpubw=1 ;; *) gpubw=0 ;; esac
 case ,$features, in *,bwmon,*) bwmon=1 ;; *) bwmon=0 ;; esac
+case ,$features, in *,ddrscale,*) ddrscale=1 ;; *) ddrscale=0 ;; esac
 if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -141,6 +142,18 @@ if [ "$bwmon" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" /soc@0/pmu@90b6400 interrupts)" = '0 581 4' ] &&
 		[ "$(fdtget -l "$work/composed.dtb" /soc@0/pmu@90b6400/opp-table | wc -l)" = 7 ] ||
 		{ echo 'FAIL bwmon composition' >&2; exit 1; }
+fi
+if [ "$ddrscale" = 1 ]; then
+	# The crypto engine has no driver in this kernel. As an enabled but
+	# unprobed interconnect consumer it holds the aggre2/mc_virt providers'
+	# sync_state, so every DDR/LLCC node stays at the boot-time maximum.
+	# Disable it only with GPU (gpubw) and CPU (bwmon) votes in place, so
+	# something asks for bandwidth once the hold is released.
+	[ "$gpubw" = 1 ] && [ "$bwmon" = 1 ] || { echo 'FAIL ddrscale needs gpubw and bwmon' >&2; exit 1; }
+	crypto=/soc@0/crypto@1dfa000
+	[ "$(fdtget "$work/composed.dtb" "$crypto" compatible | cut -d ' ' -f 1)" = qcom,sm8350-qce ] ||
+		{ echo 'FAIL unexpected crypto node' >&2; exit 1; }
+	fdtput -t s "$work/composed.dtb" "$crypto" status disabled
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

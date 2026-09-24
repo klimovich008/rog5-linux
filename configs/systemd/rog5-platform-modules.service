@@ -1,6 +1,9 @@
 [Unit]
 Description=Load the ROG5 production boot modules
 DefaultDependencies=no
+# The P2 gate requires every backlight off; msm and the panel driver light the
+# panel as they bind (t29 lost that race at 24.4 s). Load after the gate.
+After=rog5-p2-ready.service
 Before=sysinit.target shutdown.target
 Conflicts=shutdown.target
 
