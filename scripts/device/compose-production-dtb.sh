@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -63,7 +63,9 @@ if [ "$feature" = touch ]; then
 		[ "$(fdtget "$work/composed.dtb" /soc@0/dma-controller@900000 status)" = okay ] ||
 		{ echo 'FAIL touch composition' >&2; exit 1; }
 fi
-if [ "${features#*,}" = bluetooth ]; then
+case ,$features, in *,bluetooth,*) bluetooth=1 ;; *) bluetooth=0 ;; esac
+case ,$features, in *,cpuidle,*) cpuidle=1 ;; *) cpuidle=0 ;; esac
+if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
 		-o "$work/bluetooth.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-bluetooth.dtso"
@@ -76,6 +78,27 @@ if [ "${features#*,}" = bluetooth ]; then
 		[ "$(fdtget "$work/composed.dtb" "$uart/bluetooth" compatible)" = qcom,wcn6855-bt ] &&
 		[ "$(fdtget "$work/composed.dtb" /aliases serial1)" = "$uart" ] ||
 		{ echo 'FAIL bluetooth composition' >&2; exit 1; }
+fi
+if [ "$cpuidle" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/cpuidle.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-cpuidle.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/cpuidle.dtbo" "$work/cpuidle.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/idle.dtb" "$work/cpuidle.dtbo"
+	mv "$work/idle.dtb" "$work/composed.dtb"
+	little=$(fdtget "$work/composed.dtb" /cpus/idle-states/cpu-sleep-0-0 phandle)
+	big=$(fdtget "$work/composed.dtb" /cpus/idle-states/cpu-sleep-1-0 phandle)
+	for cpu in 0 100 200 300; do
+		[ "$(fdtget "$work/composed.dtb" /cpus/cpu@$cpu cpu-idle-states)" = "$little" ] ||
+			{ echo 'FAIL cpuidle composition' >&2; exit 1; }
+	done
+	for cpu in 400 500 600 700; do
+		[ "$(fdtget "$work/composed.dtb" /cpus/cpu@$cpu cpu-idle-states)" = "$big" ] ||
+			{ echo 'FAIL cpuidle composition' >&2; exit 1; }
+	done
+	# platform-coordinated only: no CPU power-domain references
+	[ -z "$(fdtget "$work/composed.dtb" /cpus/cpu@0 power-domains 2>/dev/null)" ] ||
+		{ echo 'FAIL cpuidle must not add OSI domains' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
