@@ -31,10 +31,34 @@ def note(text):
     del log[:-12]
 
 
+def display_on():
+    """The CRTC's atomic 'active' state (Denial blanks through it; the
+    connector's legacy dpms file keeps saying On)."""
+    try:
+        state = open('/sys/kernel/debug/dri/1/state').read()
+    except OSError:
+        return False
+    return '\tactive=1' in state.split('crtc[', 1)[-1].split('\n\n', 1)[0]
+
+
+def ensure_display_on():
+    # Never send panel commands while the panel and DSI link are powered down.
+    if display_on():
+        return
+    keyboard.press()
+    for _ in range(30):
+        time.sleep(0.1)
+        if display_on():
+            time.sleep(0.3)
+            return
+    raise RuntimeError('display is off and did not wake; nothing sent')
+
+
 def apply(value, mode):
     value = max(0, min(1023, int(value)))
     hi, lo = value >> 8, value & 0xff
     with lock:
+        ensure_display_on()
         if mode == 'driver':
             with open(BACKLIGHT, 'w') as f:
                 f.write(str(value))
