@@ -6,6 +6,7 @@ sent one of three ways:
   driver  /sys/class/backlight/*/brightness (panel driver: 0x51 in LP)
   hs      raw 0x51 [hi, lo] in HS through rog5-panel-dcs-probe (stock order)
   lp      raw 0x51 [hi, lo] in LP through the same probe
+  lp1/hs1 raw 0x51 with one byte (value / 4) in LP or HS
 "Push frames" swipes between the home pages so a command-mode panel gets
 new frames. While the page is open the display is kept awake with a virtual
 Shift press every 20 s. Only fixed-length 0x51 writes are possible (the probe
@@ -63,6 +64,13 @@ def apply(value, mode):
             with open(BACKLIGHT, 'w') as f:
                 f.write(str(value))
             note(f'driver {value} -> 51 {hi:02x} {lo:02x} (LP)')
+        elif mode in ('hs1', 'lp1'):
+            if not os.path.exists(PROBE):
+                raise RuntimeError('rog5_panel_dcs_probe is not loaded')
+            byte = value >> 2
+            with open(PROBE, 'w') as f:
+                f.write(f'51 {byte:02x} {mode[:2]}')
+            note(f'raw {mode[:2].upper()} 1-byte {value} -> 51 {byte:02x}')
         elif mode in ('hs', 'lp'):
             if not os.path.exists(PROBE):
                 raise RuntimeError('rog5_panel_dcs_probe is not loaded')
@@ -107,7 +115,9 @@ label{margin-right:16px} pre{background:#222;padding:10px;min-height:9em} .v{fon
 <div class="row">
 <label><input type="radio" name="m" value="driver" checked> driver (LP, Denial's path)</label>
 <label><input type="radio" name="m" value="hs"> raw HS (stock)</label>
-<label><input type="radio" name="m" value="lp"> raw LP</label></div>
+<label><input type="radio" name="m" value="lp"> raw LP</label><br>
+<label><input type="radio" name="m" value="lp1"> 1-byte LP (slider/4)</label>
+<label><input type="radio" name="m" value="hs1"> 1-byte HS (slider/4)</label></div>
 <div class="row"><button id="f">Push frames</button> <button id="m1">-1</button> <button id="p1">+1</button>
 <button id="p16">+16</button> <button id="m16">-16</button></div>
 <pre id="log"></pre>
@@ -115,7 +125,7 @@ label{margin-right:16px} pre{background:#222;padding:10px;min-height:9em} .v{fon
 const s=document.getElementById('s'),v=document.getElementById('v'),lg=document.getElementById('log'),b=document.getElementById('b');
 function mode(){return document.querySelector('input[name=m]:checked').value}
 let t=null;
-function send(){v.textContent=s.value;const x=+s.value;b.textContent='bytes 51 '+(x>>8).toString(16).padStart(2,'0')+' '+(x&255).toString(16).padStart(2,'0');
+function send(){v.textContent=s.value;const x=+s.value;b.textContent=mode().endsWith('1')?'bytes 51 '+(x>>2).toString(16).padStart(2,'0'):'bytes 51 '+(x>>8).toString(16).padStart(2,'0')+' '+(x&255).toString(16).padStart(2,'0');
  clearTimeout(t);t=setTimeout(()=>fetch('set?v='+s.value+'&m='+mode()).then(r=>r.json()).then(show),60)}
 function show(d){lg.textContent=d.log.join('\\n')}
 s.oninput=send;

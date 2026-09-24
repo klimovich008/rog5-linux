@@ -4,6 +4,7 @@
  * Writes to /sys/kernel/debug/rog5-panel-dcs, one command per write:
  *   "53 XX lp|hs"      Write CTRL Display, exactly one parameter byte
  *   "51 HH LL lp|hs"   Write Display Brightness, exactly two parameter bytes
+ *   "51 XX lp|hs"      Write Display Brightness, one parameter byte (short write)
  *   "r 0a|52|54 lp|hs" read power mode, brightness or CTRL display; reading
  *                      the file returns the last result as hex bytes
  * Nothing else is accepted: a padded 0x51 (four bytes) hard-hung the phone,
@@ -61,11 +62,16 @@ static ssize_t dcs_write(struct file *f, const char __user *ubuf, size_t len, lo
 		count = 1;
 	} else if (cmd == 0x51) {
 		n = sscanf(buf, "%x %x %x %2s", &cmd, &a, &b, mode);
-		if (n != 4 || a > 0xff || b > 0xff)
+		if (n == 4 && a <= 0xff && b <= 0xff) {
+			params[0] = a;
+			params[1] = b;
+			count = 2;
+		} else if (sscanf(buf, "%x %x %2s", &cmd, &a, mode) == 3 && a <= 0xff) {
+			params[0] = a;
+			count = 1;
+		} else {
 			return -EINVAL;
-		params[0] = a;
-		params[1] = b;
-		count = 2;
+		}
 	} else {
 		return -EINVAL;
 	}
