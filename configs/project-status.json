@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production 7.2.7 r26 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable policy), hotspot, Bluetooth with profiles, power key, 3-level brightness",
+  "phase": "Production 7.2.7 r32 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, GPU+CPU DDR voting with DDR scaling, input boost",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,8 +9,8 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Following the user's 13-step plan (2026-09-24). Done: r26 (Wi-Fi on battery policy, brightness mapping, BT profiles, Denial after P2). CPU capacities regressed Denial smoothness (moved to the cpu-capacity overlay); schedutil ramp is a major factor (performance governor: quick settings 37-61 -> 28 dropped). Next: r12 kernel with UCLAMP, Denial uclamp boost, Wi-Fi-on-battery test, idle-power baseline, cpuidle trial, DDR voting (GPU gfx-mem, CPU bwmon) before releasing the crypto hold.",
-  "evidence": "test-results/2026-09-24-bench-gpu-recovery-smoothness.md",
+  "next": "Following the user's 13-step plan (2026-09-24). Done since r26: boot on battery (r27 rendezvous, r29 power/USB loader), per-core PC-mode CPU idle (idle 191 -> 136 mA), shmem THP + Denial on big cores (quick settings 37 -> 8 dropped), P2/platform-module ordering fix (t29 backlight race), DDR voting (0046 a660 BCMs, gpubw, bwmon) and DDR scaling (crypto off: idle EBI 1.8 GB/s, glmark2 1669 -> 1642, CPU unchanged), rog5-input-boost (first-frame latency back to ~26-34 ms). r32 installed 2026-09-24 and passed two ordinary boots. Next: unplugged reboot + idle power on r32 (needs the user), GMU sync_state stub (tools/gmu_bind, step 6), Denial slow-drag churn (step 7), GPU soaks (step 8).",
+  "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",
     "RAM-only production boot (no flash)",

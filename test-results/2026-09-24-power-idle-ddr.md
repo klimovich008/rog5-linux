@@ -138,3 +138,20 @@ bwmon only follows measured traffic, and the first frames of a gesture are
 latency-bound. Stock Android covers this with memory-latency governors and
 input boost. `tools/input_boost` (r32) holds both paths at the top level from
 the first touch, key or power-key event until 250 ms after the last one.
+
+### r32: input boost, installed as the default
+
+t32 passed the full session (GPU worst wake 8.9 ms, 300 s soak with 0 misses,
+Wi-Fi 100 MB in 1.6 s, Bluetooth), and `rog5-input-boost` is bound to the
+touchscreen. During a swipe the EBI vote goes to 12.78 GB/s; between gestures it
+falls back to 0.8-2.9 GB/s. A/B on the same boot, 5 repeats each (median
+input-to-first-frame, dropped frames):
+
+| scenario | boost | no boost (rmmod) |
+|---|---:|---:|
+| quick settings | 33.9 ms, 15 | 46.1 ms, 11 |
+| keyboard | 26.2 ms, 10 | 29.1 ms, 9 |
+| home pages | 31.5 ms, 10 | 28.9 ms, 10 |
+
+`install-default-kernel.py` installed r32 at 19:55Z; two ordinary reboots
+committed healthy. No GMU HFI timeouts on r31 or r32.

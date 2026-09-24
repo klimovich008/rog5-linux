@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production 7.2.7 r26 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable policy), hotspot, Bluetooth with profiles, power key, 3-level brightness**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7 r32 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, GPU+CPU DDR voting with DDR scaling, input boost**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Following the user's 13-step plan (2026-09-24). Done: r26 (Wi-Fi on battery policy, brightness mapping, BT profiles, Denial after P2). CPU capacities regressed Denial smoothness (moved to the cpu-capacity overlay); schedutil ramp is a major factor (performance governor: quick settings 37-61 -> 28 dropped). Next: r12 kernel with UCLAMP, Denial uclamp boost, Wi-Fi-on-battery test, idle-power baseline, cpuidle trial, DDR voting (GPU gfx-mem, CPU bwmon) before releasing the crypto hold. See [current repair evidence](../test-results/2026-09-24-bench-gpu-recovery-smoothness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Following the user's 13-step plan (2026-09-24). Done since r26: boot on battery (r27 rendezvous, r29 power/USB loader), per-core PC-mode CPU idle (idle 191 -> 136 mA), shmem THP + Denial on big cores (quick settings 37 -> 8 dropped), P2/platform-module ordering fix (t29 backlight race), DDR voting (0046 a660 BCMs, gpubw, bwmon) and DDR scaling (crypto off: idle EBI 1.8 GB/s, glmark2 1669 -> 1642, CPU unchanged), rog5-input-boost (first-frame latency back to ~26-34 ms). r32 installed 2026-09-24 and passed two ordinary boots. Next: unplugged reboot + idle power on r32 (needs the user), GMU sync_state stub (tools/gmu_bind, step 6), Denial slow-drag churn (step 7), GPU soaks (step 8). See [current repair evidence](../test-results/2026-09-24-power-idle-ddr.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
