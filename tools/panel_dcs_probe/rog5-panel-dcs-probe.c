@@ -5,6 +5,7 @@
  *   "53 XX lp|hs"      Write CTRL Display, exactly one parameter byte
  *   "51 HH LL lp|hs"   Write Display Brightness, exactly two parameter bytes
  *   "51 XX lp|hs"      Write Display Brightness, one parameter byte (short write)
+ *   "g51 HH LL lp|hs"  the same three bytes as a MIPI generic long write (0x29)
  *   "r 0a|52|54 lp|hs" read power mode, brightness or CTRL display; reading
  *                      the file returns the last result as hex bytes
  * Nothing else is accepted: a padded 0x51 (four bytes) hard-hung the phone,
@@ -50,6 +51,26 @@ static ssize_t dcs_write(struct file *f, const char __user *ubuf, size_t len, lo
 		snprintf(last, sizeof(last), "%02x ret=%d: %02x %02x\n", cmd, ret, data[0], data[1]);
 		mutex_unlock(&lock);
 		pr_info("rog5-panel-dcs: read %s", last);
+		return ret < 0 ? ret : len;
+	}
+	if (buf[0] == 'g') {
+		u8 msg[3] = { 0x51 };
+
+		if (sscanf(buf, "g51 %x %x %2s", &a, &b, mode) != 3 || a > 0xff || b > 0xff ||
+		    (strcmp(mode, "lp") && strcmp(mode, "hs")))
+			return -EINVAL;
+		msg[1] = a;
+		msg[2] = b;
+		mutex_lock(&lock);
+		saved = dsi->mode_flags;
+		if (!strcmp(mode, "lp"))
+			dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+		else
+			dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+		ret = mipi_dsi_generic_write(dsi, msg, sizeof(msg));
+		dsi->mode_flags = saved;
+		mutex_unlock(&lock);
+		pr_info("rog5-panel-dcs: generic 51 %02x %02x %s ret=%d\n", a, b, mode, ret);
 		return ret < 0 ? ret : len;
 	}
 	if (sscanf(buf, "%x", &cmd) != 1)

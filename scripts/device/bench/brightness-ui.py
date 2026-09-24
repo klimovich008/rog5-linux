@@ -7,6 +7,7 @@ sent one of three ways:
   hs      raw 0x51 [hi, lo] in HS through rog5-panel-dcs-probe (stock order)
   lp      raw 0x51 [hi, lo] in LP through the same probe
   lp1/hs1 raw 0x51 with one byte (the slider runs 0-255) in LP or HS
+  glp/ghs 51 hi lo as a MIPI generic long write (0x29) in LP or HS
 "Push frames" swipes between the home pages so a command-mode panel gets
 new frames. While the page is open the display is kept awake with a virtual
 Shift press every 20 s. Only fixed-length 0x51 writes are possible (the probe
@@ -70,6 +71,12 @@ def apply(value, mode):
             with open(PROBE, 'w') as f:
                 f.write(f'51 {value:02x} {mode[:2]}')
             note(f'raw {mode[:2].upper()} 1-byte {value} -> 51 {value:02x}')
+        elif mode in ('ghs', 'glp'):
+            if not os.path.exists(PROBE):
+                raise RuntimeError('rog5_panel_dcs_probe is not loaded')
+            with open(PROBE, 'w') as f:
+                f.write(f'g51 {hi:02x} {lo:02x} {mode[1:]}')
+            note(f'generic {mode[1:].upper()} {value} -> 51 {hi:02x} {lo:02x}')
         elif mode in ('hs', 'lp'):
             if not os.path.exists(PROBE):
                 raise RuntimeError('rog5_panel_dcs_probe is not loaded')
@@ -116,7 +123,9 @@ label{margin-right:16px} pre{background:#222;padding:10px;min-height:9em} .v{fon
 <label><input type="radio" name="m" value="hs"> raw HS (stock)</label>
 <label><input type="radio" name="m" value="lp"> raw LP</label><br>
 <label><input type="radio" name="m" value="lp1"> 1-byte LP (0-255)</label>
-<label><input type="radio" name="m" value="hs1"> 1-byte HS (0-255)</label></div>
+<label><input type="radio" name="m" value="hs1"> 1-byte HS (0-255)</label><br>
+<label><input type="radio" name="m" value="glp"> generic LP</label>
+<label><input type="radio" name="m" value="ghs"> generic HS</label></div>
 <div class="row"><button id="f">Push frames</button> <button id="m1">-1</button> <button id="p1">+1</button>
 <button id="p16">+16</button> <button id="m16">-16</button></div>
 <pre id="log"></pre>
