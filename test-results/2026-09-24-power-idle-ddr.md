@@ -250,3 +250,37 @@ the CPU side on every frequency change.
 - `rog5-bench.py hw` now passes vibration (`aw8697-haptics`), leds
   (`rgb:logo`) and sensors (`vcnl36866`). Audio, cameras, fingerprint and NFC
   remain.
+
+## Audio (step 10, r39-r42)
+
+The earpiece ("RCV", 0x30) and speaker ("SPK", 0x31) CS35L45 amplifiers on
+SE17 I2C answered on the r38 default: DEVID 0x35a450, rev A0, with resets on
+TLMM 104/105. The ADSP's APR services (q6core/q6afe/q6asm/q6adm) register when
+the stack is loaded.
+
+Changes:
+- Kernel r15:
+  - `CONFIG_SND_SOC_CS35L45_I2C=m`.
+  - Patch 0046: the sm8250 machine driver sets the SENARY MI2S bit clock and
+    I2S format, for every codec DAI on the link.
+- Kernel r16: patch 0047, a q6routing `SEN_MI2S_RX Audio Mixer`.
+- `sm8350-asus-rog-phone5-audio.dtso`:
+  - q6afe SENARY_MI2S_RX on SD1 and LPI GPIO10-13 `i2s2`;
+  - the sound card (MultiMedia1/2 plus a Speakers back end with both amps);
+  - the amps on i2c17, whose QUP wrapper 2 stays disabled at boot.
+
+Trials:
+- r39: the audio modules loaded with the boot modules. The q6asm DAIs took an
+  apps SMMU context ahead of PCIe, and ath11k MHI failed (-110), the same
+  failure mode as wrapper 2 at boot. Fix: `rog5-audio.service` loads
+  `audio-modules` after Wi-Fi and Bluetooth.
+- r40: Wi-Fi, Bluetooth and both amplifiers were fine, but the card failed
+  -ENODEV. fdtoverlay had reversed the DAI link order, so q6routing's routes
+  to q6asm widgets failed, and in 7.2 component route errors are fatal. Fix:
+  links ordered mm1, mm2, speaker, checked by the composer.
+- r41: the card registers: `ASUSROGPhone5`, MultiMedia1/2 PCMs, and the RCV/SPK
+  controls (DACPCM Source, AMP Enable, volumes, DSP1). q6routing had no
+  SENARY mixer, which r42 adds.
+
+The ADSP accepts the LPASS core HW vote but rejects the devote (AFE 0x100f6),
+so LPASS stays voted after first use.
