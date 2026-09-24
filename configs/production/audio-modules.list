@@ -1,0 +1,15 @@
+# Audio stack, loaded by rog5-audio.service after Wi-Fi and Bluetooth.
+# Loaded at boot (r39) the q6asm DAIs took an apps SMMU context ahead of the
+# PCIe Wi-Fi function and ath11k's MHI power-up timed out (-110), the same
+# failure QUP wrapper 2 caused at boot. The CS35L45 amplifiers sit on wrapper 2
+# and only appear once rog5_bt_activate enables it, so nothing is lost by
+# loading late. One module per line, as in boot-modules.
+apr
+q6core
+q6afe_dai
+q6afe_clocks
+q6asm_dai
+q6routing
+pinctrl_sc7280_lpass_lpi
+snd_soc_cs35l45_i2c
+snd_soc_sm8250

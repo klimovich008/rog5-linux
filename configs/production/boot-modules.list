@@ -33,16 +33,3 @@ icc_bwmon
 rog5_input_boost
 # RPMh sleep counters (/sys/kernel/debug/qcom_stats): DDR and CX collapse.
 qcom_stats
-# Audio (plan step 10): the ADSP's APR services, the LPASS LPI pins, the
-# SENARY MI2S sound card and the CS35L45 amplifiers. The amplifiers sit on
-# QUP wrapper 2 and bind once rog5_bt_activate enables it after Wi-Fi; the
-# card completes then.
-apr
-q6core
-q6afe_dai
-q6afe_clocks
-q6asm_dai
-q6routing
-pinctrl_sc7280_lpass_lpi
-snd_soc_cs35l45_i2c
-snd_soc_sm8250

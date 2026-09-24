@@ -1,5 +1,7 @@
 #!/bin/sh
 # Load the production boot modules listed in the platform kit, in order.
+# An argument names another list in the kit (audio-modules for
+# rog5-audio.service); the one-time boot settings below apply to boot-modules.
 # Modules come only from the published tree /run/rog5-modules (the root's
 # /lib/modules stays empty, so nothing autoloads). A failed module is logged
 # and the rest still load; the unit fails if any module failed.
@@ -11,20 +13,24 @@ log() {
 	printf 'rog5-platform-modules: %s\n' "$*" >>"$kmsg" 2>/dev/null ||
 		printf 'rog5-platform-modules: %s\n' "$*" >&2
 }
+list=${1:-boot-modules}
+case $list in boot-modules|audio-modules) ;; *) log "FAIL unknown module list $list"; exit 1 ;; esac
 [ -d "$tree/lib/modules/$(uname -r)" ] || { log "FAIL no module tree for $(uname -r)"; exit 1; }
-# The loader's signed command line sets loglevel=8 ignore_loglevel with a
-# 115200-baud console; every message then prints synchronously (~11 KB/s) and
-# stalls whoever logs, e.g. a 5 s display wake. Keep only warnings on the
-# console from here on; the kernel log itself is unchanged.
-# GPU buffers are shmem-backed: huge pages cut the per-page allocation,
-# zeroing and LRU cost of the per-frame render targets Denial creates while a
-# panel slides (quick settings 37 -> 8 dropped frames, 2026-09-24).
-thp=${ROG5_PLATFORM_SHMEM_THP:-/sys/kernel/mm/transparent_hugepage/shmem_enabled}
-[ ! -w "$thp" ] || echo within_size >"$thp" 2>/dev/null || log "WARN could not enable shmem huge pages"
-printk=${ROG5_PLATFORM_PRINTK:-/sys/module/printk/parameters/ignore_loglevel}
-[ ! -w "$printk" ] || echo N >"$printk" 2>/dev/null || log "WARN could not clear ignore_loglevel"
-[ ! -w /proc/sys/kernel/printk ] || [ -n "${ROG5_PLATFORM_PRINTK:-}" ] ||
-	echo 4 >/proc/sys/kernel/printk 2>/dev/null || log "WARN could not lower the console loglevel"
+if [ "$list" = boot-modules ]; then
+	# The loader's signed command line sets loglevel=8 ignore_loglevel with a
+	# 115200-baud console; every message then prints synchronously (~11 KB/s) and
+	# stalls whoever logs, e.g. a 5 s display wake. Keep only warnings on the
+	# console from here on; the kernel log itself is unchanged.
+	# GPU buffers are shmem-backed: huge pages cut the per-page allocation,
+	# zeroing and LRU cost of the per-frame render targets Denial creates while a
+	# panel slides (quick settings 37 -> 8 dropped frames, 2026-09-24).
+	thp=${ROG5_PLATFORM_SHMEM_THP:-/sys/kernel/mm/transparent_hugepage/shmem_enabled}
+	[ ! -w "$thp" ] || echo within_size >"$thp" 2>/dev/null || log "WARN could not enable shmem huge pages"
+	printk=${ROG5_PLATFORM_PRINTK:-/sys/module/printk/parameters/ignore_loglevel}
+	[ ! -w "$printk" ] || echo N >"$printk" 2>/dev/null || log "WARN could not clear ignore_loglevel"
+	[ ! -w /proc/sys/kernel/printk ] || [ -n "${ROG5_PLATFORM_PRINTK:-}" ] ||
+		echo 4 >/proc/sys/kernel/printk 2>/dev/null || log "WARN could not lower the console loglevel"
+fi
 status=0
 loaded=
 while read -r name params; do
@@ -37,6 +43,6 @@ while read -r name params; do
 		log "FAIL modprobe $name"
 		status=1
 	fi
-done <"$kit/boot-modules"
-log "loaded$loaded"
+done <"$kit/$list"
+if [ "$list" = boot-modules ]; then log "loaded$loaded"; else log "$list loaded$loaded"; fi
 exit "$status"

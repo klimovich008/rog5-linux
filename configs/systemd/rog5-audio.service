@@ -1,0 +1,16 @@
+[Unit]
+Description=Load the ROG5 audio stack after Wi-Fi and Bluetooth
+# Loaded before the PCIe Wi-Fi function the audio DAIs take an SMMU context
+# ahead of it and the Wi-Fi firmware load fails (r39). The amplifiers appear
+# with QUP wrapper 2, which rog5-bluetooth.service enables.
+After=rog5-platform-modules.service rog5-wifi-radio.service rog5-bluetooth.service
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/modules audio-modules
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

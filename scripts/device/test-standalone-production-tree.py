@@ -103,8 +103,9 @@ class Builds(unittest.TestCase):
         modes = {line.split()[-1]: line.split()[0] for line in listing if line.split()[-1].startswith('rog5-platform')}
         self.assertEqual(modes['rog5-platform'], 'drwx------')
         self.assertEqual(modes['rog5-platform/boot-modules'], '-r--r--r--')
+        self.assertEqual(modes['rog5-platform/audio-modules'], '-r--r--r--')
         self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
-        self.assertEqual(len(modes), 9)
+        self.assertEqual(len(modes), 11)
 
     @unittest.skipUnless((WIFI_KIT/'SHA256SUMS').is_file(), 'needs the private Wi-Fi kit')
     def test_wifi_kit_is_installed_only_when_pinned(self):
