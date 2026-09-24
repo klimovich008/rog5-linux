@@ -21,6 +21,7 @@
 /plugin/;
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
 
 &i2c6 {
 	clock-frequency = <400000>;
@@ -45,5 +46,7 @@
 		compatible = "asus,rog5-aura";
 		reg = <0x16>;
 		enable-gpios = <&pm8350c_gpios 2 GPIO_ACTIVE_HIGH>;
+		color = <LED_COLOR_ID_RGB>;
+		function = "logo";
 	};
 };

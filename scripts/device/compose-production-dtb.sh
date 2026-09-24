@@ -176,6 +176,7 @@ if [ "$periph" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/light-sensor@60 compatible)" = vishay,vcnl36866 ] &&
 		[ -z "$(fdtget -l "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1 | grep -x ldo7)" ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 enable-gpios)" = "$c2 2 0" ] &&
+		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 function)" = logo ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] ||
 		{ echo 'FAIL periph composition' >&2; exit 1; }
 fi

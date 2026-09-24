@@ -9,8 +9,8 @@
  * (0 off, 1 static), 0x802f = 1 applies the settings, 0xcb01 the firmware
  * version.
  *
- * Exposed as one multicolor LED class device (rgb:logo). The MCU is powered
- * only while the LED is lit.
+ * Exposed as one multicolor LED class device, named from the DT color and
+ * function (rgb:logo). The MCU is powered only while the LED is lit.
  */
 #include <linux/delay.h>
 #include <linux/gpio/consumer.h>
@@ -125,7 +125,6 @@ static int aura_probe(struct i2c_client *i2c)
 	a->mc.num_colors = 3;
 	a->mc.led_cdev.max_brightness = 255;
 	a->mc.led_cdev.brightness_set_blocking = aura_set;
-	init.default_label = "rgb:logo";
 	init.fwnode = dev_fwnode(dev);
 	ret = devm_led_classdev_multicolor_register_ext(dev, &a->mc, &init);
 	if (ret)
