@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Production 7.2.7 r10 is the slot-B default: milestones 1–4 pass (clock/recovery, display+GPU at boot, Wi-Fi, touch)**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Production 7.2.7 r12 default with persistent root: milestones 1–5 pass; first Denial touch session on the OLED passed**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-r10 default (two committed boots): display/GPU with no manual steps (user saw the test bands), Wi-Fi WPA+DHCP at boot, FTS3658U touch with correct corner coordinates. Denial engine, host tools and mobile-shell AOT bundle are built (test-results/2026-09-24-denial-arm64-bundle.md). Next: persistent root overlay so packages survive reboots, then Mesa (milestone 5) and the Denial session (6); audio plan in docs/audio-plan.md. See [current repair evidence](../test-results/2026-09-24-milestones-2-4-display-wifi-touch.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+r12 default (persistent root overlay): Mesa FD660 GL 4.6/ES 3.2, Weston and glmark2 on the panel; GMU firmware v3.1.10 removes the slumber hang (r13 packaged). Denial runs on the OLED (Impeller, scale 2.5); the user saw the mobile shell and swipes work. Next: install r13, start Denial at boot, then the ROADMAP completion criteria; audio (docs/audio-plan.md). See [current repair evidence](../test-results/2026-09-24-milestones-5-6-graphics-denial.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
