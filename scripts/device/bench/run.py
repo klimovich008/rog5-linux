@@ -14,6 +14,12 @@ Per scenario it reports input-to-first-frame latency, animation duration,
 frame count, p50/p95/p99/max frame interval, dropped frames against the
 panel refresh, GPU busy share and glitch counts. The summary JSON goes to
 stdout (and --out). GPU faults logged during the run fail the bench.
+
+A slow drag that stops before lifting (fling=False) rests the finger for
+150 ms; nothing on screen changes, so no frame is due. Gaps inside that rest
+are reported as finger_rest_gap_ms and not counted as dropped frames. The
+worst remaining gap is located (interval_max_at_ms, worst_gap_mono_s) and
+the trace events inside it are listed (worst_gap_events).
 """
 import argparse, json, os, re, statistics, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -71,12 +77,15 @@ def run_scenario(vt, name, steps, pid):
         c0 = cpu_ticks(pid)
         mark(f'{name} {gesture} start')
         t0 = time.monotonic()
+        vt.moved_until = None
         if gesture == 'swipe':
             vt.swipe(*args)
         t_in_end = time.monotonic()
+        # a drag that stops before lifting: the finger rests from moved_until to t_in_end
+        hold = (vt.moved_until, t_in_end) if vt.moved_until and t_in_end - vt.moved_until > 0.05 else None
         time.sleep(settle)
         t1 = time.monotonic()
-        windows.append((t0, t_in_end, t1, (cpu_ticks(pid) - c0) / os.sysconf('SC_CLK_TCK') / (t1 - t0)))
+        windows.append((t0, t_in_end, t1, (cpu_ticks(pid) - c0) / os.sysconf('SC_CLK_TCK') / (t1 - t0), hold))
         mark(f'{name} {gesture} end')
     return windows
 
@@ -106,7 +115,7 @@ def analyse(events, windows, refresh_ms):
     flips = [t for t, e, _ in events if e == 'dpu_crtc_complete_flip']
     res = {'gestures': []}
     all_intervals = []
-    for t0, t_in_end, t1, cpu in windows:
+    for t0, t_in_end, t1, cpu, hold in windows:
         f = [t for t in flips if t0 <= t < t1]
         g = {'frames': len(f), 'compositor_cpu_share': round(cpu, 2)}
         if f:
@@ -118,13 +127,31 @@ def analyse(events, windows, refresh_ms):
                     break
                 end = b
             active = [t for t in f if t <= end]
-            iv = [(b - a) * 1000 for a, b in zip(active, active[1:])]
+            pairs = list(zip(active, active[1:]))
+            if hold:
+                # Nothing changes on screen while the finger rests, so no frame is due:
+                # a gap that starts after the last move and ends by the first frame
+                # after the lift is not a dropped frame.
+                rest = [(a, b) for a, b in pairs
+                        if a >= hold[0] - refresh_ms / 1000 and b <= hold[1] + 2 * refresh_ms / 1000]
+                g['finger_rest_gap_ms'] = round(sum(b - a for a, b in rest) * 1000, 1)
+                pairs = [p for p in pairs if p not in rest]
+            iv = [(b - a) * 1000 for a, b in pairs]
             all_intervals += iv
             g['animation_ms'] = round((end - t0) * 1000, 1)
             g['fps'] = round(len(active) / max(end - f[0], 1e-3), 1) if len(active) > 1 else None
             g['interval_p50_ms'] = pct(iv, 50)
             g['interval_p95_ms'] = pct(iv, 95)
             g['interval_max_ms'] = round(max(iv), 2) if iv else None
+            if iv:
+                # where the worst gap starts, and when the finger lifted (ms after touch-down)
+                g['interval_max_at_ms'] = round((pairs[iv.index(max(iv))][0] - t0) * 1000, 1)
+                g['release_ms'] = round((t_in_end - t0) * 1000, 1)
+                if max(iv) > 2.5 * refresh_ms:
+                    a, b = pairs[iv.index(max(iv))]
+                    names = [e for t, e, _ in events if a < t < b and e != 'dpu_crtc_complete_flip']
+                    g['worst_gap_events'] = {n: names.count(n) for n in sorted(set(names))}
+                    g['worst_gap_mono_s'] = [round(a, 4), round(b, 4)]
             g['dropped_frames'] = sum(max(0, round(i / refresh_ms) - 1) for i in iv)
         gpu = [e for e in events if e[1] == 'msm_gpu_submit_retired' and t0 <= e[0] < t1]
         busy = 0.0

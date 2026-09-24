@@ -180,3 +180,32 @@ A known warning remains at msm load: the DSI PLL lock fails during the
 bootloader handoff, followed by a `dsi0_phy_pll_out_dsiclk already disabled`
 clock-reparent WARN. It predates this work, and the display works; it is left
 for step 12.
+
+## Slow-drag dropped frames: what they were (step 7)
+
+Each slow-drag gesture showed one 130-166 ms gap, which accounted for
+essentially all of its 8-11 "dropped frames". The gap started 1010-1035 ms
+after touch-down: the scripted drag moves for 1.0 s, rests the finger for
+150 ms, then lifts. Nothing on screen changes while the finger rests, so
+Denial correctly renders nothing. The bench now reports gaps inside that rest
+as `finger_rest_gap_ms` and does not count them as dropped. It also locates
+the worst remaining gap and lists the kernel trace events inside it.
+
+With that correction (r33, 20 gestures per scenario, profiled run):
+
+| scenario | dropped frames | per gesture | gestures dropping 0-1 |
+|---|---:|---:|---:|
+| quick settings (fling) | 21 | 1.05 | 18 / 20 |
+| quick settings slow drag | 56 | 2.8 | 14 / 20 |
+| keyboard | 17 | 0.85 | 17 / 20 |
+
+The remaining outliers (6-10 frames in 6 of 20 slow drags, and one quick
+settings fling) share one pattern. A 120-185 ms gap comes just before the
+final frame of the settle animation, 370-500 ms after the lift. In that gap
+the GPU suspends and resumes, and a 1999 Hz call-graph profile of deniald
+shows 3 samples in 138 ms, all threads waiting in epoll or poll. Nothing is
+blocked or rendering, so this is a late repaint requested by the shell after
+its animations end, not a GPU, DDR or allocation stall. The shade's settle
+path (`endQuickSettingsDrag` -> `open/closeQuickSettings`, implicit
+animations) has no timer in it; the next step is to trace which widget
+schedules that frame.

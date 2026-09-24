@@ -110,6 +110,7 @@ class VirtualTouch:
             delay = start + i * self.period - time.monotonic()
             if delay > 0:
                 time.sleep(delay)
+        self.moved_until = time.monotonic()
         if not fling:
             time.sleep(0.15)
         self.up()
