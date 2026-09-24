@@ -6,7 +6,7 @@ sent one of three ways:
   driver  /sys/class/backlight/*/brightness (panel driver: 0x51 in LP)
   hs      raw 0x51 [hi, lo] in HS through rog5-panel-dcs-probe (stock order)
   lp      raw 0x51 [hi, lo] in LP through the same probe
-  lp1/hs1 raw 0x51 with one byte (value / 4) in LP or HS
+  lp1/hs1 raw 0x51 with one byte (the slider runs 0-255) in LP or HS
 "Push frames" swipes between the home pages so a command-mode panel gets
 new frames. While the page is open the display is kept awake with a virtual
 Shift press every 20 s. Only fixed-length 0x51 writes are possible (the probe
@@ -56,7 +56,7 @@ def ensure_display_on():
 
 
 def apply(value, mode):
-    value = max(0, min(1023, int(value)))
+    value = max(0, min(255 if mode.endswith('1') else 1023, int(value)))
     hi, lo = value >> 8, value & 0xff
     with lock:
         ensure_display_on()
@@ -67,10 +67,9 @@ def apply(value, mode):
         elif mode in ('hs1', 'lp1'):
             if not os.path.exists(PROBE):
                 raise RuntimeError('rog5_panel_dcs_probe is not loaded')
-            byte = value >> 2
             with open(PROBE, 'w') as f:
-                f.write(f'51 {byte:02x} {mode[:2]}')
-            note(f'raw {mode[:2].upper()} 1-byte {value} -> 51 {byte:02x}')
+                f.write(f'51 {value:02x} {mode[:2]}')
+            note(f'raw {mode[:2].upper()} 1-byte {value} -> 51 {value:02x}')
         elif mode in ('hs', 'lp'):
             if not os.path.exists(PROBE):
                 raise RuntimeError('rog5_panel_dcs_probe is not loaded')
@@ -110,26 +109,32 @@ body{font:16px system-ui;background:#111;color:#eee;max-width:640px;margin:24px 
 input[type=range]{width:100%;height:40px} .row{margin:18px 0} button{font:inherit;padding:8px 14px}
 label{margin-right:16px} pre{background:#222;padding:10px;min-height:9em} .v{font-size:40px;font-weight:600}
 </style></head><body><h2>ROG5 brightness test</h2>
-<div class="row"><span class="v" id="v">%(value)d</span> / 1023 &nbsp; <span id="b"></span></div>
+<div class="row"><span class="v" id="v">%(value)d</span> / <span id="max">1023</span> &nbsp; <span id="b"></span></div>
 <div class="row"><input type="range" id="s" min="0" max="1023" value="%(value)d"></div>
 <div class="row">
 <label><input type="radio" name="m" value="driver" checked> driver (LP, Denial's path)</label>
 <label><input type="radio" name="m" value="hs"> raw HS (stock)</label>
 <label><input type="radio" name="m" value="lp"> raw LP</label><br>
-<label><input type="radio" name="m" value="lp1"> 1-byte LP (slider/4)</label>
-<label><input type="radio" name="m" value="hs1"> 1-byte HS (slider/4)</label></div>
+<label><input type="radio" name="m" value="lp1"> 1-byte LP (0-255)</label>
+<label><input type="radio" name="m" value="hs1"> 1-byte HS (0-255)</label></div>
 <div class="row"><button id="f">Push frames</button> <button id="m1">-1</button> <button id="p1">+1</button>
 <button id="p16">+16</button> <button id="m16">-16</button></div>
 <pre id="log"></pre>
 <script>
 const s=document.getElementById('s'),v=document.getElementById('v'),lg=document.getElementById('log'),b=document.getElementById('b');
 function mode(){return document.querySelector('input[name=m]:checked').value}
-let t=null;
-function send(){v.textContent=s.value;const x=+s.value;b.textContent=mode().endsWith('1')?'bytes 51 '+(x>>2).toString(16).padStart(2,'0'):'bytes 51 '+(x>>8).toString(16).padStart(2,'0')+' '+(x&255).toString(16).padStart(2,'0');
+function one(){return mode().endsWith('1')}
+let t=null, wasOne=false;
+function hex(x){return x.toString(16).padStart(2,'0')}
+function send(){v.textContent=s.value;const x=+s.value;
+ b.textContent=one()?'bytes 51 '+hex(x):'bytes 51 '+hex(x>>8)+' '+hex(x&255);
  clearTimeout(t);t=setTimeout(()=>fetch('set?v='+s.value+'&m='+mode()).then(r=>r.json()).then(show),60)}
+function rescale(){const o=one();if(o===wasOne)return;const x=+s.value;
+ s.max=o?255:1023;s.value=o?0:x<<2;document.getElementById('max').textContent=s.max;wasOne=o;v.textContent=s.value}
+for(const r of document.querySelectorAll('input[name=m]'))r.onchange=()=>{rescale();b.textContent='(mode changed; move the slider to send)'};
 function show(d){lg.textContent=d.log.join('\\n')}
 s.oninput=send;
-for(const [id,d] of [['m1',-1],['p1',1],['p16',16],['m16',-16]])document.getElementById(id).onclick=()=>{s.value=+s.value+d;send()};
+for(const [id,d] of [['m1',-1],['p1',1],['p16',16],['m16',-16]])document.getElementById(id).onclick=()=>{s.value=Math.max(0,Math.min(+s.max,+s.value+d));send()};
 document.getElementById('f').onclick=()=>fetch('frames').then(r=>r.json()).then(show);
 setInterval(()=>fetch('ping').then(r=>r.json()).then(show),5000);
 </script></body></html>"""
