@@ -16,6 +16,11 @@ log() {
 # 115200-baud console; every message then prints synchronously (~11 KB/s) and
 # stalls whoever logs, e.g. a 5 s display wake. Keep only warnings on the
 # console from here on; the kernel log itself is unchanged.
+# GPU buffers are shmem-backed: huge pages cut the per-page allocation,
+# zeroing and LRU cost of the per-frame render targets Denial creates while a
+# panel slides (quick settings 37 -> 8 dropped frames, 2026-09-24).
+thp=${ROG5_PLATFORM_SHMEM_THP:-/sys/kernel/mm/transparent_hugepage/shmem_enabled}
+[ ! -w "$thp" ] || echo within_size >"$thp" 2>/dev/null || log "WARN could not enable shmem huge pages"
 printk=${ROG5_PLATFORM_PRINTK:-/sys/module/printk/parameters/ignore_loglevel}
 [ ! -w "$printk" ] || echo N >"$printk" 2>/dev/null || log "WARN could not clear ignore_loglevel"
 [ ! -w /proc/sys/kernel/printk ] || [ -n "${ROG5_PLATFORM_PRINTK:-}" ] ||

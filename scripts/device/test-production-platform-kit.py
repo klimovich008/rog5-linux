@@ -67,14 +67,17 @@ class BootModules(Base):
 
     def load(self):
         (self.dir/'ignore_loglevel').write_text('Y\n')
+        (self.dir/'shmem_enabled').write_text('never\n')
         return self.run_script(MODULES, ROG5_PLATFORM_KIT=str(self.kit), ROG5_PLATFORM_MODULES=str(self.dir/'tree'),
                                ROG5_PLATFORM_KMSG=str(self.dir/'kmsg'),
-                               ROG5_PLATFORM_PRINTK=str(self.dir/'ignore_loglevel'))
+                               ROG5_PLATFORM_PRINTK=str(self.dir/'ignore_loglevel'),
+                               ROG5_PLATFORM_SHMEM_THP=str(self.dir/'shmem_enabled'))
 
     def test_console_logging_is_quieted_first(self):
         code, kmsg = self.load()
         self.assertEqual(code, 0, kmsg)
         self.assertEqual((self.dir/'ignore_loglevel').read_text(), 'N\n')
+        self.assertEqual((self.dir/'shmem_enabled').read_text(), 'within_size\n')
 
     def test_the_listed_modules_load_in_order_with_parameters(self):
         code, kmsg = self.load()

@@ -500,8 +500,11 @@ grep -Fq 'power_usb_failure=power-usb-invalid-failure-record' "$init"
 grep -Fq 'publish_stage ufs-ready FAIL "$power_usb_failure"' "$init"
 grep -Fq 'side USB power is offline' "$power_loader"
 grep -Fq 'storage appeared before the UFS stage' "$power_loader"
-grep -Fq 'typec_data_role=device' "$power_loader"
-grep -Fq 'typec_power_role=sink' "$power_loader"
+grep -Fq '	typec_data=device' "$power_loader"
+grep -Fq "printf 'typec_data_role=%s" "$power_loader"
+# Only a production archive (platform kit) may continue without USB power.
+grep -Fq '[ ! -d "${ROG5_POWER_PLATFORM_KIT:-/rog5-platform}" ] || production=1' "$power_loader"
+grep -Fq '	typec_power=sink' "$power_loader"
 grep -Fq 'NCM route changed' "$power_loader"
 grep -Fq 'persistent-root PDR override retains rejected BTF' "$builder"
 ! grep -Eq 'charge_control|input_current_limit|constant_charge|charge_behaviour' \

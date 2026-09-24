@@ -8,6 +8,9 @@ After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.
 ConditionPathExists=/opt/denial/deniald
 
 [Service]
+# Big cores only (A78 x3 + X1): Mesa's submit workers are ordinary threads and
+# on the A55s they stalled frames (keyboard 25 -> 6 dropped, 2026-09-24).
+CPUAffinity=4-7
 Environment=XDG_RUNTIME_DIR=/run/user/0 DENIA_SHELL_PROFILE=mobile HOME=/root
 ExecStartPre=/usr/bin/install -d -m 0700 /run/user/0
 ExecStart=/usr/bin/seatd-launch -- /opt/denial/deniald --device /dev/dri/card1 --render-device /dev/dri/renderD128 --output-config /etc/denial/outputs.conf --wayland --flutter-bundle /opt/denial

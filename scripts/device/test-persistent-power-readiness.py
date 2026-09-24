@@ -31,7 +31,16 @@ class ReadinessTest(unittest.TestCase):
             self.assertFalse(fixture[key])
         self.assertIsNone(fixture['usb_online_later_in_same_target_boot'])
 
-    def run_gate(self,case,deadline=20,attempt=0):
+    def test_production_boot_continues_on_battery(self):
+        p=self.run_gate('never',production=1)
+        self.assertEqual(p.returncode,0,p.stdout+p.stderr)
+        self.assertIn('OBS battery',p.stdout)
+        self.assertNotIn('FAIL',p.stdout)
+        # the battery checks still apply in production
+        p=self.run_gate('unsafe-later',production=1)
+        self.assertIn('FAIL battery-temperature-unsafe',p.stdout)
+
+    def run_gate(self,case,deadline=20,attempt=0,production=0):
         text=SOURCE.read_text()
         if 'wait_for_usb_online() {' in text:
             gate=function(text,'wait_for_usb_online')+'\nwait_for_usb_online\n'
@@ -73,7 +82,7 @@ cat() {
  esac
 }
 '''
-        payload=(stub+f'case={case}\ntelemetry_deadline={deadline}\nattempt={attempt}\n'+
+        payload=(stub+f'case={case}\ntelemetry_deadline={deadline}\nattempt={attempt}\nproduction={production}\n'+
                  function(text,'read_integer')+'\n'+gate+
                  'printf "PASS step=%s online=%s\\n" "$step" "$usb_online"\n')
         command=['sh']
