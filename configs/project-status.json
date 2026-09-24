@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Following the user's 13-step plan (2026-09-24). Done since r33: slow-drag bench corrected (resting finger is not a drop; 20-gesture means: slow drag 2.8, quick settings 1.05, keyboard 0.85 dropped frames per gesture), GMU-side DDR voting dropped (HFI timeouts), haptics/light sensor/logo LED drivers (r34 LDO7 reset bisected), r38 installed 2026-09-24 21:38Z with two healthy boots; hwcheck passes vibration, leds, sensors. Next: idle power + unplugged reboot on r38 (needs the user to unplug), audio (CS35L45 on SE17 behind wrapper 2, q6afe SENARY MI2S), IMU via SLPI, remaining outlier repaint at the end of the shade settle, GPU soaks, cleanup.",
+  "next": "Following the user's 13-step plan (2026-09-24). Done since r33: slow-drag bench corrected (resting finger is not a drop; 20-gesture means: slow drag 2.8, quick settings 1.05, keyboard 0.85 dropped frames per gesture), GMU-side DDR voting dropped (HFI timeouts), haptics/light sensor/logo LED drivers (r34 LDO7 reset bisected), r38 installed 2026-09-24 21:38Z with two healthy boots; hwcheck passes vibration, leds, sensors. Audio (r39-r46): card, routing (patches 0046/0047), CS35L45 amplifiers and late loading work, but starting a stream hard-resets the phone (ADSP at SENARY MI2S run, see test-results); not in the default. Next: idle power + unplugged reboot on r38 (needs the user to unplug), the SENARY run reset, IMU via SLPI, remaining outlier repaint at the end of the shade settle, GPU soaks, cleanup.",
   "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",

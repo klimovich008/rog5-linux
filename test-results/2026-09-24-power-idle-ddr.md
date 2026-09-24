@@ -284,3 +284,28 @@ Trials:
 
 The ADSP accepts the LPASS core HW vote but rejects the devote (AFE 0x100f6),
 so LPASS stays voted after first use.
+
+### r42-r46: playback start resets the phone (open)
+
+With patch 0047 (r42) MultiMedia1 can be routed to SEN_MI2S_RX, and the card,
+controls and amplifiers are all present. Starting a stream resets the whole
+phone. No panic record is left; the next boot is the r38 default.
+
+The resets were staged down to one step:
+- r43: the reset happens in the DSP path alone. Both amplifiers were disabled
+  (AMP Enable 0, DACPCM Source Zero) and fed a -40 dBFS tone.
+- r44: holding the LPASS core/dcodec votes (LPI pinctrl runtime PM forced on)
+  did not change it.
+- r46: a kernel log streamed to the userdata filesystem with a global sync per
+  line shows `open`, `hw_params` and `prepare` succeeding, so the AFE port
+  configuration is accepted. The reset comes at the first write, when the
+  stream runs. There are no SMMU fault or remoteproc messages in between.
+
+A hard reset at stream run, without the amplifiers, points to a fatal ADSP
+error when LPASS starts clocking data out of SENARY MI2S (LPI i2s2). The ASUS
+firmware turns that into a device reset. Next steps: compare the stock
+SENARY/LPI clock setup (IBIT vs EBIT, LPI clock root, `msm-mi2s-master`,
+ext-mclk) with upstream q6afe; test an unconnected MI2S port to tell a
+SENARY-specific problem from a general AFE-run one; recover the ADSP crash
+reason from SMEM if the reset can be delayed. Audio is not in the default
+image: r38 carries none of the audio changes.
