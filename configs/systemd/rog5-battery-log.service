@@ -1,0 +1,12 @@
+[Unit]
+Description=ROG5 battery samples for the Denial battery tile
+ConditionPathExists=/sys/class/power_supply/qcom-battmgr-bat
+
+[Service]
+ExecStart=/usr/local/bin/rog5-battery-log
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
