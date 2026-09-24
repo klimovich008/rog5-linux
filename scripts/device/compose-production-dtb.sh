@@ -83,9 +83,8 @@ rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 # buttons-indicator); qcom_pon in the boot list binds them.
 [ "$(fdtget "$work/composed.dtb" /cpus/cpu@0 capacity-dmips-mhz)" = 448 ] &&
 	[ "$(fdtget "$work/composed.dtb" /cpus/cpu@400 capacity-dmips-mhz)" = 981 ] &&
-	[ "$(fdtget "$work/composed.dtb" /cpus/cpu@700 capacity-dmips-mhz)" = 1024 ] &&
-	[ "$(fdtget "$work/composed.dtb" /soc@0/crypto@1dfa000 status)" = disabled ] ||
-	{ echo 'FAIL CPU capacity or crypto composition' >&2; exit 1; }
+	[ "$(fdtget "$work/composed.dtb" /cpus/cpu@700 capacity-dmips-mhz)" = 1024 ] ||
+	{ echo 'FAIL CPU capacity composition' >&2; exit 1; }
 pon=/soc@0/spmi@c440000/pmic@0/pon@1300
 [ "$(fdtget "$work/composed.dtb" "$pon/pwrkey" status)" = okay ] &&
 	[ "$(fdtget "$work/composed.dtb" "$pon/resin" status)" = okay ] &&

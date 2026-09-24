@@ -59,13 +59,3 @@
 	capacity-dmips-mhz = <1024>;
 	dynamic-power-coefficient = <590>;
 };
-
-/*
- * No driver binds the crypto engine (CRYPTO_DEV_QCOM_QCE is off; the CPU's
- * ARMv8 crypto extensions are faster). As an unprobed consumer it kept the
- * mc_virt/aggre interconnect providers from reaching sync_state, so DDR and
- * LLCC stayed at their boot-time maximum vote for the whole uptime.
- */
-&crypto {
-	status = "disabled";
-};

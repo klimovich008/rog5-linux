@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Per-core CPU power collapse in PSCI platform-coordinated mode, the regime
+ * the stock 5.4 kernel runs (lpm-levels: silver/gold rail off, state id 4,
+ * no cluster state). The idle-state nodes already carry the stock latencies
+ * (silver 360/531/3934 us, gold 702/1061/4488 us) and 0x40000004; the board
+ * DT only never referenced them. ARM_PSCI_CPUIDLE_DOMAIN stays off, so the
+ * firmware is never switched to OS-initiated mode (the historical ASUS reset
+ * after kexec) and no cluster or RPMh sleep state is involved.
+ */
+/dts-v1/;
+/plugin/;
+
+&cpu0 {
+	cpu-idle-states = <&little_cpu_sleep_0>;
+};
+
+&cpu1 {
+	cpu-idle-states = <&little_cpu_sleep_0>;
+};
+
+&cpu2 {
+	cpu-idle-states = <&little_cpu_sleep_0>;
+};
+
+&cpu3 {
+	cpu-idle-states = <&little_cpu_sleep_0>;
+};
+
+&cpu4 {
+	cpu-idle-states = <&big_cpu_sleep_0>;
+};
+
+&cpu5 {
+	cpu-idle-states = <&big_cpu_sleep_0>;
+};
+
+&cpu6 {
+	cpu-idle-states = <&big_cpu_sleep_0>;
+};
+
+&cpu7 {
+	cpu-idle-states = <&big_cpu_sleep_0>;
+};
