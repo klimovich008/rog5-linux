@@ -1,0 +1,20 @@
+diff --git a/engine/src/flutter/impeller/renderer/backend/gles/capabilities_gles.cc b/engine/src/flutter/impeller/renderer/backend/gles/capabilities_gles.cc
+index c6fbfa13..f6063eb8 100644
+--- a/engine/src/flutter/impeller/renderer/backend/gles/capabilities_gles.cc
++++ b/engine/src/flutter/impeller/renderer/backend/gles/capabilities_gles.cc
+@@ -132,9 +132,12 @@ CapabilitiesGLES::CapabilitiesGLES(const ProcTableGLES& gl) {
+   }
+ 
+   if (desc->HasExtension(kMultisampledRenderToTextureExt)) {
+-    // GLES 3 can use core multisample renderbuffers and explicit resolves.
+-    // Keep the extension path only for GLES 2, where those APIs are absent.
+-    supports_implicit_msaa_ = desc->GetGlVersion().major_version < 3;
++    // Prefer the extension on GLES 3 too (upstream behaviour). On tilers such
++    // as Adreno the samples live in tile memory and resolve on store; the
++    // explicit path allocates, clears and resolves a 4x renderbuffer per
++    // offscreen layer, which on the ROG5 (A660, freedreno) cost 36-85 ms
++    // raster spikes whenever an animated backdrop layer changed size.
++    supports_implicit_msaa_ = true;
+ 
+     if (desc->HasExtension(kMultisampledRenderToTexture2Ext)) {
+       // We hard-code 4x MSAA, so let's make sure it's supported.

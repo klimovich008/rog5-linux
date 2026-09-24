@@ -4,6 +4,9 @@
   rog5-bench.py hw                    hardware matrix (bench/hwcheck.py)
   rog5-bench.py gpu [nop|fault|hang|cycle N]
                                       GPU health / recovery probe
+  rog5-bench.py shot [OUT.png]       screenshot of what the panel shows
+  rog5-bench.py gesture OUT.png swipe X0 Y0 X1 Y1 [SECONDS] | tap X Y
+                                      one gesture (panel pixels), then a screenshot
   rog5-bench.py smooth [--repeat N] [--scenarios a,b]
                                       Denial gesture bench (bench/run.py)
 Each run pushes scripts/device/bench and the GPU probe to /root/rog5-bench,
@@ -26,7 +29,7 @@ REMOTE = '/root/rog5-bench'
 def push():
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode='w') as tar:
-        for p in sorted((ROOT/'scripts/device/bench').glob('*.py')):
+        for p in sorted([*(ROOT/'scripts/device/bench').glob('*.py'), *(ROOT/'scripts/device/bench').glob('*.c')]):
             tar.add(p, arcname='bench/'+p.name)
         tar.add(ROOT/'scripts/device/gpu-recovery-probe.py', arcname='gpu-recovery-probe.py')
     r = trial.ssh(ADDR, f'rm -rf {REMOTE} && mkdir -p {REMOTE} && tar -xf - -C {REMOTE}', 30, data=buf.getvalue())
@@ -75,6 +78,30 @@ def main():
         print(json.dumps({k: v for k, v in data.items() if k != 'kernel'}, indent=2))
         for line in data.get('kernel', [])[-12:]:
             print('  ', line[:200])
+    elif kind == 'shot':
+        push()
+        r = trial.ssh(ADDR, f'python3 {REMOTE}/bench/scanout.py png /run/rog5-shot.png --scale 3 >&2 && '
+                            'cat /run/rog5-shot.png && rm -f /run/rog5-shot.png', 120)
+        if r.returncode:
+            sys.exit('shot failed: ' + r.stderr.decode(errors='replace')[-600:])
+        OUT.mkdir(parents=True, exist_ok=True)
+        path = Path(rest) if rest else OUT/f'{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}-shot.png'
+        path.write_bytes(r.stdout)
+        print('stored', path)
+        return
+    elif kind == 'gesture':
+        out, *g = sys.argv[2:]
+        push()
+        call = (f'v.swipe({",".join(g[1:])})' if g[0] == 'swipe' else f'v.tap({",".join(g[1:])})')
+        r = trial.ssh(ADDR, f'cd {REMOTE}/bench && python3 -c "from vtouch import VirtualTouch, wake_display; import time; '
+                            f'wake_display(0.5); v = VirtualTouch(); {call}; time.sleep(1.5); v.close()" && '
+                            'python3 scanout.py png /run/rog5-shot.png --scale 3 --no-wake >&2 && '
+                            'cat /run/rog5-shot.png && rm -f /run/rog5-shot.png', 120)
+        if r.returncode:
+            sys.exit('gesture failed: ' + r.stderr.decode(errors='replace')[-600:])
+        Path(out).write_bytes(r.stdout)
+        print('stored', out)
+        return
     elif kind == 'smooth':
         previous = sorted(OUT.glob('*-smooth.json')) if OUT.exists() else []
         data, path = run('smooth', f'python3 {REMOTE}/bench/run.py {rest}', 900)

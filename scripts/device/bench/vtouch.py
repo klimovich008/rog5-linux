@@ -114,3 +114,41 @@ class VirtualTouch:
             time.sleep(0.15)
         self.up()
         return t
+
+
+class VirtualKeyboard:
+    """A one-key virtual keyboard; a Shift tap wakes the display without side effects."""
+    KEY_LEFTSHIFT = 42
+
+    def __init__(self, keys=(KEY_LEFTSHIFT,)):
+        if not os.path.exists('/dev/uinput'):
+            subprocess.run(['modprobe', '-d', '/run/rog5-modules', 'uinput'], check=False)
+            time.sleep(0.5)
+        self.fd = os.open('/dev/uinput', os.O_WRONLY | os.O_NONBLOCK)
+        fcntl.ioctl(self.fd, UI_SET_EVBIT, EV_KEY)
+        for key in keys:
+            fcntl.ioctl(self.fd, UI_SET_KEYBIT, key)
+        fcntl.ioctl(self.fd, UI_DEV_SETUP, struct.pack('<4H80sI', 0x06, 0x0b05, 0x5ee8, 1, b'rog5-bench virtual keys', 0))
+        fcntl.ioctl(self.fd, UI_DEV_CREATE)
+        time.sleep(1.0)
+
+    def press(self, key=KEY_LEFTSHIFT):
+        for value in (1, 0):
+            now = time.time()
+            sec, usec = int(now), int((now % 1) * 1e6)
+            os.write(self.fd, struct.pack('<qqHHi', sec, usec, EV_KEY, key, value) +
+                     struct.pack('<qqHHi', sec, usec, EV_SYN, SYN_REPORT, 0))
+            time.sleep(0.03)
+
+    def close(self):
+        fcntl.ioctl(self.fd, UI_DEV_DESTROY)
+        os.close(self.fd)
+
+
+def wake_display(settle=1.5):
+    kb = VirtualKeyboard()
+    try:
+        kb.press()
+        time.sleep(settle)
+    finally:
+        kb.close()

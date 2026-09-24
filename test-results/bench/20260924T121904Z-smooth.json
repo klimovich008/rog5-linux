@@ -1,0 +1,55 @@
+{
+  "refresh_hz": 60.0,
+  "scenarios": {
+    "quick_settings": {
+      "gestures": [
+        {
+          "frames": 11,
+          "compositor_cpu_share": 0.18,
+          "input_to_first_frame_ms": 27.2,
+          "animation_ms": 398.6,
+          "fps": 29.6,
+          "interval_p50_ms": 19.16,
+          "interval_p95_ms": 110.48,
+          "interval_max_ms": 110.48,
+          "dropped_frames": 14,
+          "gpu_job_ms_p50": 0.38,
+          "gpu_job_ms_max": 2.72,
+          "gpu_submit_to_done_ms_p50": 1.31,
+          "gpu_jobs": 56,
+          "gpu_busy_ms": 40.5,
+          "gpu_freq_max": 840,
+          "gpu_suspend_resume": 4,
+          "glitches": 0
+        },
+        {
+          "frames": 1,
+          "compositor_cpu_share": 0.02,
+          "input_to_first_frame_ms": 368.7,
+          "animation_ms": 368.7,
+          "fps": null,
+          "interval_p50_ms": null,
+          "interval_p95_ms": null,
+          "interval_max_ms": null,
+          "dropped_frames": 0,
+          "gpu_job_ms_p50": 1.58,
+          "gpu_job_ms_max": 1.85,
+          "gpu_submit_to_done_ms_p50": 6.93,
+          "gpu_jobs": 3,
+          "gpu_busy_ms": 4.2,
+          "gpu_freq_max": 676,
+          "gpu_suspend_resume": 2,
+          "glitches": 0
+        }
+      ],
+      "interval_p50_ms": 19.16,
+      "interval_p95_ms": 110.48,
+      "interval_p99_ms": 110.48,
+      "dropped_frames": 14,
+      "glitches": 0
+    }
+  },
+  "trace_events": 187,
+  "kernel_gpu_errors": [],
+  "status": "PASS"
+}

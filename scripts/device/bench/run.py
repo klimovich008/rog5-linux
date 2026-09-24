@@ -38,17 +38,22 @@ def mark(text):
     wr('trace_marker', 'bench: ' + text)
 
 
-# Each scenario: list of (gesture, args, settle seconds). Coordinates are panel pixels.
+# Each scenario: list of (gesture, args, settle seconds). Coordinates are panel pixels,
+# checked against screenshots (rog5-bench.py gesture ...): the open shade ends
+# near y=1180 with its drag handle at y~1155.
+QS_HANDLE_Y = 1155
 SCENARIOS = {
     'idle': [('wait', (), 2.0)],
     'quick_settings': [('swipe', (540, 0.5 * 48 * S, 540, 0.5 * 48 * S + 488 * S, 0.30), 1.5),
-                       ('swipe', (540, 488 * S, 540, 60, 0.30), 1.5)],
+                       ('swipe', (540, QS_HANDLE_Y, 540, 100, 0.30), 1.5)],
     'quick_settings_slow_drag': [('swipe', (540, 0.5 * 48 * S, 540, 0.5 * 48 * S + 488 * S, 1.0, False), 1.5),
-                                 ('swipe', (540, 488 * S, 540, 60, 1.0, False), 1.5)],
-    'edge_panel': [('swipe', (W - 110 * S, H - 5, W - 110 * S, H - 368 * S, 0.30), 1.5),
-                   ('swipe', (W - 110 * S, H - 368 * S + 40, W - 110 * S, H - 5, 0.30), 1.5)],
-    'home_gesture': [('swipe', (540, H - 20, 540, H - 900, 0.25), 1.5),
-                     ('swipe', (540, H - 20, 540, H - 900, 0.25), 1.5)],
+                                 ('swipe', (540, QS_HANDLE_Y, 540, 100, 1.0, False), 1.5)],
+    # the bottom swipe on the home screen opens the on-screen keyboard; drag it down to close
+    'keyboard': [('swipe', (540, H - 20, 540, H - 900, 0.25), 1.5),
+                 ('swipe', (540, 1745, 540, H - 8, 0.30), 1.5)],
+    # the home screen has two pages
+    'home_pages': [('swipe', (950, 1900, 130, 1900, 0.25), 1.5),
+                   ('swipe', (130, 1900, 950, 1900, 0.25), 1.5)],
 }
 
 
