@@ -92,3 +92,49 @@ driverless crypto engine held the mc_virt/aggre2 `sync_state`.
   counters.
 - `ddrscale`: the crypto node is disabled, which the composer only allows
   together with `gpubw` and `bwmon`. That is trial r31.
+
+### r30: votes in place, DDR still held
+
+t30 (kernel r13, `gpubw` + `bwmon`, P2 ordering fix) passed:
+- P2 at 23.20 s, then the platform modules; system `running`.
+- GPU: 300 wake cycles (worst 7.8 ms), fault recovered in 0.1 s.
+- 300 s idle soak with 0 SSH misses; Wi-Fi 100 MB in 1.6 s; Bluetooth on its
+  own.
+- Both bwmons bound. Consumers on EBI: bwmon 0.8 GB/s, GPU 10.94 GB/s while
+  busy, UFS 2.9 GB/s, display, USB. The aggregate stayed INT_MAX because crypto
+  still held `sync_state`, and the RPMh DDR/CX sleep counters stayed at 0.
+
+One `HFI_H2F_MSG_GX_BW_PERF_VOTE ... timed out` (the GMU answered after more
+than 1 s) happened when glmark2 exited and Denial restarted. There were none in
+5 more glmark2/Denial cycles, in a further smooth run, or anywhere on r31/r32.
+It is left for the step-8 soaks.
+
+### r31: DDR scaling
+
+With the crypto node disabled, mc_virt, aggre2 and gem_noc reached
+`sync_state`. The idle EBI vote is now 1.8 GB/s peak (451 MHz DDR) instead of
+INT_MAX.
+
+| `rog5-bench.py perf` | r30 (DDR max) | r31 (scaling) |
+|---|---:|---:|
+| glmark2 (9 scenes, 1080x2448) | 1669 | 1642 |
+| SHA-256 A55 / A78 / X1, MB/s | 749 / 1484 / 1747 | 748 / 1479 / 1748 |
+| SHA-256, 8 cores | 8948 | 8944 |
+| memcpy X1 / A55, GB/s | 16.9 / 4.3 | 17.9 / 4.2 |
+| EBI peak vote during memcpy | INT_MAX | 12.78 GB/s (bwmon top) |
+
+Throughput holds. Smoothness (3 gestures per scenario) stays within the goal:
+quick settings 4, keyboard 5 and home pages 6 dropped frames. But
+input-to-first-frame latency grew from about 26 ms to about 38 ms (quick
+settings 28 to 41 ms, keyboard 24 to 37 ms).
+
+Two experiments on the same boot narrowed it down:
+- A 443 MHz GPU floor (6.22 GB/s GPU vote) did not help (37/35 ms).
+- An experiment module flooring CPU to LLCC and LLCC to DDR helped only at the
+  top levels. At 7.46/6.22 GB/s latency was 40/31 ms; at 16/12.78 GB/s it was
+  27.6/26.1 ms.
+
+bwmon only follows measured traffic, and the first frames of a gesture are
+latency-bound. Stock Android covers this with memory-latency governors and
+input boost. `tools/input_boost` (r32) holds both paths at the top level from
+the first touch, key or power-key event until 250 ms after the last one.
