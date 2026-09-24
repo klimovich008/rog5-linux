@@ -235,3 +235,18 @@ r35 also produced a second GMU `HFI_H2F_MSG_GX_BW_PERF_VOTE` timeout (worst
 GPU wake 1036 ms in the 300-cycle test). GMU-side DDR voting (patch 0046) is
 therefore dropped in kernel r14. The GPU's OPP bandwidths are still voted from
 the CPU side on every frequency change.
+
+### r37/r38: installed
+
+- r37 (kernel r14 without 0046, both buses, no LDO7) booted; the Aura LED
+  needed a DT color/function to be named.
+- r38 passed the full trial:
+  - GPU: 300 wake cycles (worst 11.4 ms), no GMU HFI timeouts.
+  - 300 s soak; Wi-Fi 100 MB in 1.75 s; Bluetooth.
+  - Peripherals: haptics played, `rgb:logo` lit and turned off, proximity
+    153-155.
+- r38 was installed as the default at 21:38Z; two ordinary reboots committed
+  healthy.
+- `rog5-bench.py hw` now passes vibration (`aw8697-haptics`), leds
+  (`rgb:logo`) and sensors (`vcnl36866`). Audio, cameras, fingerprint and NFC
+  remain.
