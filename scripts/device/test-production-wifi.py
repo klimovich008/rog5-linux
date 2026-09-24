@@ -127,21 +127,37 @@ esac''')
         self.assertIn('radio already entered', kmsg)
 
     @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
-    def test_no_usb_or_low_battery_defers_without_touching_power(self):
-        for name, value, why in (('qcom-battmgr-usb/online', '0', 'no USB input'),
-                                 ('qcom-battmgr-bat/voltage_now', '7599999', 'below 7.6 V'),
-                                 ('qcom-battmgr-bat/capacity', '49', 'below 7.6 V / 50 %')):
-            with self.subTest(why):
-                path = self.sys/'class/power_supply'/name
+    def test_low_battery_without_usb_defers_without_touching_power(self):
+        power = self.sys/'class/power_supply'
+        (power/'qcom-battmgr-usb/online').write_text('0\n')
+        for name, value in (('qcom-battmgr-bat/voltage_now', '6999999'), ('qcom-battmgr-bat/capacity', '14')):
+            with self.subTest(name):
+                path = power/name
                 old = path.read_text()
                 path.write_text(value+'\n')
                 code, kmsg = self.wifi('radio')
                 self.assertEqual(code, 0, kmsg)
-                self.assertIn('DEFER', kmsg)
-                self.assertIn(why, kmsg)
+                self.assertIn('DEFER on battery', kmsg)
+                self.assertIn('below 7.0 V / 15 %', kmsg)
                 self.assertEqual(self.calls(), [])
                 self.assertNotEqual(self.wifi('ready')[0], 0)
                 path.write_text(old)
+
+    @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
+    def test_battery_alone_is_enough_when_charged(self):
+        (self.sys/'class/power_supply/qcom-battmgr-usb/online').write_text('0\n')
+        code, kmsg = self.wifi('radio')
+        self.assertEqual(code, 0, kmsg)
+        self.assertNotIn('DEFER', kmsg)
+        self.assertIn('modprobe ath11k_pci ', self.calls())
+
+    @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
+    def test_usb_power_starts_the_radio_even_on_a_low_battery(self):
+        (self.sys/'class/power_supply/qcom-battmgr-bat/capacity').write_text('5\n')
+        code, kmsg = self.wifi('radio')
+        self.assertEqual(code, 0, kmsg)
+        self.assertNotIn('DEFER', kmsg)
+        self.assertIn('modprobe ath11k_pci ', self.calls())
 
     @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
     def test_bluetooth_needs_a_ready_radio_then_activates_in_order(self):

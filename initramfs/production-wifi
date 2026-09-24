@@ -97,14 +97,14 @@ radio() {
 	[ ! -d "$sys/module/rog5_s12_ufs_vote" ] && [ ! -d "$sys/module/ath11k_pci" ] ||
 		fail 'radio already entered this boot'
 	guard
-	if [ "$(cat "$power/qcom-battmgr-usb/online")" != 1 ]; then
-		log 'DEFER no USB input; the radio stays off'
-		exit 0
-	fi
+	# On USB the charger carries the radio. On battery (2S pack) keep a floor
+	# of 7.0 V / 15 % so the radio never starts on a nearly flat battery.
+	# The earlier USB-only rule was a test gate, not a known hardware limit.
 	voltage=$(cat "$power/qcom-battmgr-bat/voltage_now") && number "$voltage" || fail 'battery voltage'
 	capacity=$(cat "$power/qcom-battmgr-bat/capacity") && number "$capacity" || fail 'battery capacity'
-	if [ "$voltage" -lt 7600000 ] || [ "$capacity" -lt 50 ]; then
-		log "DEFER battery at $voltage uV / $capacity % is below 7.6 V / 50 %; the radio stays off"
+	if [ "$(cat "$power/qcom-battmgr-usb/online")" != 1 ] &&
+		{ [ "$voltage" -lt 7000000 ] || [ "$capacity" -lt 15 ]; }; then
+		log "DEFER on battery at $voltage uV / $capacity %, below 7.0 V / 15 %; the radio stays off"
 		exit 0
 	fi
 	# Firmware: ath11k and cfg80211 look in firmware_class.path, which the

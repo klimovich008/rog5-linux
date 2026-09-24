@@ -12,3 +12,60 @@
 &pmk8350_rtc {
 	status = "okay";
 };
+
+/*
+ * Heterogeneous CPU capacity and energy data, absent from sm8350.dtsi: without
+ * them every core reports capacity 1024 and the scheduler treats the 1.8 GHz
+ * A55s like the 2.84 GHz X1. Values from sibling SoCs with the same cores:
+ * A55 from sm8250, A78/X1 from sc8280xp (A78C/X1C). With frequency scaling
+ * the capacities come out near 284 / 836 / 1024.
+ */
+&cpu0 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu1 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu2 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu3 {
+	capacity-dmips-mhz = <448>;
+	dynamic-power-coefficient = <105>;
+};
+
+&cpu4 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu5 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu6 {
+	capacity-dmips-mhz = <981>;
+	dynamic-power-coefficient = <549>;
+};
+
+&cpu7 {
+	capacity-dmips-mhz = <1024>;
+	dynamic-power-coefficient = <590>;
+};
+
+/*
+ * No driver binds the crypto engine (CRYPTO_DEV_QCOM_QCE is off; the CPU's
+ * ARMv8 crypto extensions are faster). As an unprobed consumer it kept the
+ * mc_virt/aggre interconnect providers from reaching sync_state, so DDR and
+ * LLCC stayed at their boot-time maximum vote for the whole uptime.
+ */
+&crypto {
+	status = "disabled";
+};
