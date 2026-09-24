@@ -197,7 +197,8 @@ if [ "$audio" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" $i2c17/amplifier@31 sound-name-prefix)" = SPK ] &&
 		[ "$(fdtget "$work/composed.dtb" $afe/dai@147 reg)" = 147 ] &&
 		[ "$(fdtget "$work/composed.dtb" $afe/dai@147 qcom,sd-lines)" = 1 ] &&
-		[ "$(fdtget "$work/composed.dtb" /sound compatible)" = qcom,sm8250-sndcard ] ||
+		[ "$(fdtget "$work/composed.dtb" /sound compatible)" = qcom,sm8250-sndcard ] &&
+		[ "$(fdtget -l "$work/composed.dtb" /sound | tr '\n' ' ')" = 'mm1-dai-link mm2-dai-link speaker-dai-link ' ] ||
 		{ echo 'FAIL audio composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100

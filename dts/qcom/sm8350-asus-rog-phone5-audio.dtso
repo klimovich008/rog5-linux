@@ -27,22 +27,14 @@
 		pinctrl-0 = <&rog5_sen_mi2s_active>;
 		pinctrl-names = "default";
 
-		mm1-dai-link {
-			link-name = "MultiMedia1";
-
-			cpu {
-				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
-			};
-		};
-
-		mm2-dai-link {
-			link-name = "MultiMedia2";
-
-			cpu {
-				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
-			};
-		};
-
+		/*
+		 * Front ends before the back end: q6routing (the back end's
+		 * platform) adds routes to the q6asm widgets, and a route to a
+		 * component not yet probed fails the card (7.2: route errors are
+		 * fatal). fdtoverlay reverses the order of added child nodes, so
+		 * they are listed back end first here; the composer checks the
+		 * result.
+		 */
 		speaker-dai-link {
 			link-name = "Speakers";
 
@@ -56,6 +48,22 @@
 
 			codec {
 				sound-dai = <&rog5_amp_rcv 0>, <&rog5_amp_spk 0>;
+			};
+		};
+
+		mm2-dai-link {
+			link-name = "MultiMedia2";
+
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
+			};
+		};
+
+		mm1-dai-link {
+			link-name = "MultiMedia1";
+
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
 			};
 		};
 	};
