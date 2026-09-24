@@ -160,7 +160,11 @@ bluetooth() {
 	load rog5_bt_activate
 	[ "$(cat "$sys/module/rog5_bt_activate/parameters/result")" = 0 ] || fail 'bluetooth activation result'
 	load hci_uart
-	load hidp
+	# Profiles BlueZ would otherwise autoload from /lib/modules, which is empty:
+	# HID (classic and, through uhid, LE), RFCOMM serial and BNEP PAN.
+	for module in hidp uhid rfcomm bnep; do
+		load "$module"
+	done
 	waited=0
 	until [ -e "$sys/class/bluetooth/hci0" ]; do
 		waited=$((waited + 1))
