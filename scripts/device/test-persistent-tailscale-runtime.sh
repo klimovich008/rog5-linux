@@ -17,7 +17,7 @@ for contract in \
 	'service_gateway=10.77.0.1' \
 	"[ \"\$(stat -c '%t:%T:%a' /dev/net/tun)\" = a:c8:666 ]" \
 	'findmnt -n -o OPTIONS --target /persist' \
-	'ip -4 route replace default via "$service_gateway" dev "$interface"' \
+	'ip -4 route replace default via "$service_gateway" dev "$interface" metric "$service_metric"' \
 	'format=rog5-persistent-tailscale-runtime-v1'
 do
 	grep -Fq "$contract" "$helper"
@@ -122,8 +122,8 @@ ip() {
 		'-4 route show exact default') cat "$test_root/routes" ;;
 		'-4 address add 10.77.0.2/30 dev usb0'|\
 		'-4 address del 10.77.0.2/30 dev usb0'|\
-		'-4 route replace default via 10.77.0.1 dev usb0'|\
-		'-4 route del default via 10.77.0.1 dev usb0') : ;;
+		'-4 route replace default via 10.77.0.1 dev usb0 metric 1000'|\
+		'-4 route del default via 10.77.0.1 dev usb0 metric 1000') : ;;
 		*) echo "FAIL unexpected mocked ip: $*" >&2; exit 95 ;;
 	esac
 }
@@ -181,13 +181,13 @@ check test ! -e "$fixture/run/rog5-tailscale/tailscaled"
 new_case legacy-up
 expect_pass prepare
 check grep -Fxq 'ip -4 address add 10.77.0.2/30 dev usb0' "$fixture/calls"
-check grep -Fxq 'ip -4 route replace default via 10.77.0.1 dev usb0' "$fixture/calls"
+check grep -Fxq 'ip -4 route replace default via 10.77.0.1 dev usb0 metric 1000' "$fixture/calls"
 printf '2: usb0 inet 10.77.0.2/30 scope global usb0\n' >>"$fixture/addresses"
 expect_pass cleanup
 check no_route_writes
-printf 'default via 10.77.0.1 dev usb0\n' >>"$fixture/routes"
+printf 'default via 10.77.0.1 dev usb0 metric 1000\n' >>"$fixture/routes"
 expect_pass cleanup
-check grep -Fxq 'ip -4 route del default via 10.77.0.1 dev usb0' "$fixture/calls"
+check grep -Fxq 'ip -4 route del default via 10.77.0.1 dev usb0 metric 1000' "$fixture/calls"
 check grep -Fxq 'ip -4 address del 10.77.0.2/30 dev usb0' "$fixture/calls"
 
 new_case legacy-down

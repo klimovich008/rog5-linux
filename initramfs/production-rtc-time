@@ -9,6 +9,8 @@ set -u
 sys=${ROG5_RTC_SYS:-/sys/class/rtc}
 state=${ROG5_RTC_STATE:-/persist/var/lib/rog5-clock}
 synced=${ROG5_RTC_SYNCED:-/run/systemd/timesync/synchronized}
+# Present once this boot's clock came from the RTC (or was already past it).
+trusted=${ROG5_RTC_TRUSTED:-/run/rog5-rtc-time.trusted}
 kmsg=${ROG5_RTC_KMSG:-/dev/kmsg}
 # 2026-01-01T00:00:00Z .. 2100-01-01: anything outside is not a real clock.
 min=1767225600
@@ -42,6 +44,7 @@ restore)
 	else
 		log "clock already at or past RTC time ($((now - target)) s ahead); unchanged"
 	fi
+	: >"$trusted" || { log 'FAIL cannot publish the trusted-clock marker'; exit 1; }
 	;;
 save)
 	[ -e "$synced" ] || { log 'SKIP clock not NTP-synchronized this boot; offset unchanged'; exit 0; }

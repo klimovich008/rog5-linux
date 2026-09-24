@@ -13,6 +13,9 @@ record=/run/rog5-tailscale-prepared.record
 interface=usb0
 service_address=10.77.0.2/30
 service_gateway=10.77.0.1
+# Behind Wi-Fi's DHCP route (metric 100): the USB link is the fallback, and a
+# host without NAT on it must not black-hole the phone's traffic (NTP, pacman).
+service_metric=1000
 
 fail() {
 	echo "FAIL $*" >&2
@@ -38,8 +41,8 @@ fi
 
 cleanup() {
 	if [ "$automatic_wifi" = 0 ] && ip -4 route show exact default |
-		grep -Fxq "default via $service_gateway dev $interface"; then
-		ip -4 route del default via "$service_gateway" dev "$interface" || true
+		grep -Fxq "default via $service_gateway dev $interface metric $service_metric"; then
+		ip -4 route del default via "$service_gateway" dev "$interface" metric "$service_metric" || true
 	fi
 	if [ "$automatic_wifi" = 0 ] && ip -4 -o address show dev "$interface" |
 		grep -Fq " inet $service_address "; then
@@ -101,7 +104,7 @@ case $observed in
 	*) fail 'standalone service address is ambiguous' ;;
 esac
 if [ "$automatic_wifi" = 0 ]; then
-	ip -4 route replace default via "$service_gateway" dev "$interface"
+	ip -4 route replace default via "$service_gateway" dev "$interface" metric "$service_metric"
 fi
 [ "$(stat -c '%u:%g:%a' "$runtime")" = 0:0:700 ] ||
 	fail 'Tailscale runtime directory metadata changed'

@@ -1,7 +1,7 @@
 [Unit]
 Description=Initialize persistent Arch Linux ARM package trust
 Requires=rog5-persistent-state.service
-After=rog5-persistent-state.service systemd-timesyncd.service
+After=rog5-persistent-state.service systemd-timesyncd.service rog5-rtc-time.service
 Before=archlinux-keyring-wkd-sync.service
 
 [Service]

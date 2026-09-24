@@ -74,9 +74,11 @@ verify_bind() {
 start_keyring() {
 	verify_state || return 1
 	[ ! -e /var/lib/pacman/db.lck ] || return 1
-	# This helper is run by the bounded systemd unit; do not race NTP when
-	# creating or validating persistent keys on a machine without a set RTC.
-	while [ ! -f /run/systemd/timesync/synchronized ]; do sleep 1; done
+	# This helper is run by the bounded systemd unit; do not create or
+	# validate persistent keys before the clock is right: NTP-synchronized, or
+	# set from the PMIC RTC and its stored offset by rog5-rtc-time.
+	while [ ! -f /run/systemd/timesync/synchronized ] &&
+		[ ! -f /run/rog5-rtc-time.trusted ]; do sleep 1; done
 	if mountpoint -q "$runtime"; then
 		verify_bind && keyring_complete
 		return $?

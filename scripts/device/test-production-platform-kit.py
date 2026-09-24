@@ -116,7 +116,8 @@ esac''')
         if synced:
             (self.dir/'synced').touch()
         return self.run_script(RTC, action, ROG5_RTC_SYS=str(self.dir/'sys'), ROG5_RTC_STATE=str(self.state),
-                               ROG5_RTC_SYNCED=str(self.dir/'synced'), ROG5_RTC_KMSG=str(self.dir/'kmsg'))
+                               ROG5_RTC_SYNCED=str(self.dir/'synced'), ROG5_RTC_KMSG=str(self.dir/'kmsg'),
+                               ROG5_RTC_TRUSTED=str(self.dir/'trusted'))
 
     def test_save_then_restore_after_a_reboot(self):
         code, kmsg = self.rtc_time('save')
@@ -131,6 +132,7 @@ esac''')
         self.assertEqual(code, 0, kmsg)
         self.assertEqual(self.calls(), [f'date -u -s @{NOW + 3600}'])
         self.assertIn('restored', kmsg)
+        self.assertTrue((self.dir/'trusted').exists())
 
     def test_restore_never_moves_the_clock_back(self):
         self.state.mkdir()
@@ -160,6 +162,7 @@ esac''')
                 self.assertEqual(code, 1, kmsg)
                 self.assertIn(why, kmsg)
                 self.assertEqual(self.calls(), [])
+                self.assertFalse((self.dir/'trusted').exists())
 
     def test_missing_rtc_is_a_skip(self):
         (self.rtc/'name').write_text('some-other-rtc\n')
