@@ -309,3 +309,15 @@ ext-mclk) with upstream q6afe; test an unconnected MI2S port to tell a
 SENARY-specific problem from a general AFE-run one; recover the ADSP crash
 reason from SMEM if the reset can be delayed. Audio is not in the default
 image: r38 carries none of the audio changes.
+
+### r47: the amplifiers are ruled out
+
+r47 replaced both CS35L45 in the Speakers link with the `linux,spdif-dit`
+dummy codec. The phone still reset at the first write, after a successful open,
+`hw_params` and prepare (which starts the AFE port). The reset therefore comes
+from the DSP data path itself once the ASM stream runs into SENARY MI2S.
+The upstream q6afe clock range does cover SEN_MI2S_IBIT (0x10D within
+0x100-0x116). The q6asm buffer SID matches stock (0x1801, mask 0xf in the
+IOVA). Still open: LPI island clocking for i2s2, the ADM/ASM topology, and the
+ADSP crash reason (SMEM), which needs a way to keep the phone alive long
+enough to read it.
