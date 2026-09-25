@@ -418,3 +418,23 @@ The QRTR service list stays ADSP (node 5) and Wi-Fi (node 7) only. Like the
 audio stream reset, this now needs insight into the TZ/hypervisor side (the
 stock kernel runs a Qualcomm trusted VM, `qcom,trustedvm@d0800000`). The
 default image does not enable the SLPI.
+
+### SLPI follow-up checks on the r51 trial
+
+- **Firmware provenance.** The phone's `modem_a` and `modem_b` (read-only
+  copies) are byte-identical to the WW33 stock `modem.img`, SLPI files
+  included. The production charge-kit ADSP is an older build
+  (ADSP.HT.5.5-00933-LAHAINA-2, 2021-10-21), but TZ also accepts the WW33
+  ADSP: stopping the ADSP and starting it with WW33 `adsp.mdt` ran, and it
+  switched back. So a firmware version or era mismatch does not explain the
+  SLPI rejection.
+- **Stale state.** `qcom_scm_pas_shutdown(12)` before a new start changed
+  nothing (`-22` at init).
+- **PAS support query.** `qcom_scm_pas_supported()` is false for every ID
+  0-31, the ADSP's included, so that query is not answered on this firmware
+  and says nothing about the SLPI.
+
+TZ refuses the SLPI image at `pas_init_image` with a generic error, while
+the same path loads the ADSP. The upstream definition and the stock PIL node
+agree (PAS 12, LPI CX/MX proxy votes at max, XO, AOP load state, region
+0x88200000/0x1500000).
