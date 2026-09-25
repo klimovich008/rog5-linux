@@ -360,3 +360,12 @@ With CPU-side GPU DDR votes (0046 dropped), no GMU stall has recurred since r35.
   gone. The repo no longer carries either tool (git history does).
 - The laptop's USB profile is unchanged; `rog5-bench.py hw` passes (earlier
   run, this boot).
+
+## Wake from screen-off (step 12)
+
+On r38, after Denial blanked the screen (48-58 s idle), a virtual key press
+brought up the display pipe and the first frame in 119-135 ms (3 wakes). The
+earlier multi-second wakes came from synchronous console printk, which the
+platform kit has lowered to warnings since r16. A watchdog panic restarting the
+phone was verified in milestone 1 (self-recovery in 35 s). Whether the lock
+screen really needs a double tap on wake needs the user's eyes.
