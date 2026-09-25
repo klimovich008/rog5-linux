@@ -77,6 +77,13 @@
 };
 
 &q6asmdai {
+	/*
+	 * The ADSP firmware only reads stream buffers inside the IOVA window its
+	 * own driver used (qcom,iommu-dma-addr-pool 0x10000000-0x1fffffff);
+	 * above it every stream start reset the phone (r42-r48). Patch 0048.
+	 */
+	qcom,iova-bits = <29>;
+
 	dai@0 {
 		reg = <MSM_FRONTEND_DAI_MULTIMEDIA1>;
 	};

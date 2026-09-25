@@ -1,0 +1,28 @@
+--- a/sound/soc/qcom/qdsp6/q6asm-dai.c
++++ b/sound/soc/qcom/qdsp6/q6asm-dai.c
+@@ -1302,12 +1302,25 @@
+ 	struct device_node *node = dev->of_node;
+ 	struct of_phandle_args args;
+ 	struct q6asm_dai_data *pdata;
++	u32 iova_bits;
+ 	int rc;
+ 
+ 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
+ 	if (!pdata)
+ 		return -ENOMEM;
+ 
++	/*
++	 * Some ADSP firmware (SM8350 as shipped on the ASUS ROG Phone 5) only
++	 * accepts stream buffers inside a small IOVA window; its own driver
++	 * used 0x10000000-0x1fffffff. A narrower DMA mask keeps the top-down
++	 * IOVA allocations below the limit the DT asks for.
++	 */
++	if (!of_property_read_u32(node, "qcom,iova-bits", &iova_bits)) {
++		rc = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(iova_bits));
++		if (rc)
++			return dev_err_probe(dev, rc, "cannot limit IOVAs to %u bits\n", iova_bits);
++	}
++
+ 	rc = of_parse_phandle_with_fixed_args(node, "iommus", 1, 0, &args);
+ 	if (rc < 0)
+ 		pdata->sid = -1;

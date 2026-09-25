@@ -20,3 +20,4 @@
 0045-drm-panel-asus-rog5-ams678-map-brightness-to-DBV-high-levels.patch
 0046-ASoC-qcom-sm8250-configure-SENARY-MI2S-playback.patch
 0047-ASoC-qcom-q6routing-add-the-SENARY-MI2S-RX-mixer.patch
+0048-ASoC-qcom-q6asm-dai-optional-IOVA-limit-for-stream-buffers.patch
