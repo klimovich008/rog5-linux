@@ -1,0 +1,175 @@
+#!/bin/sh
+# Stock ASUS 5.4 capture: RAM-trial executor for the slot-B wrapper (loader
+# mode persistent-slotb-loader-v1, installed as
+# /usr/libexec/rog5-persistent-slotb-local-loader). It never kexecs and never
+# writes storage: recovery-init has already set every physical block device
+# read-only, and modem_a is only mounted read-only (vfat) for the DSP images.
+#
+# It records what the stock kernel knows and our 7.2.7 kernel does not, over
+# the loader's raw USB ACM link (/dev/ttyGS0), in sections framed as
+#   === BEGIN <name> ===  ...  === END <name> rc=<rc> ===
+# 1. identity, the full stock kernel log (including the PMIC PON history,
+#    which records the reasons of earlier resets), the TZ/hypervisor logs
+#    (/proc/tzdbg) and the flattened DT the bootloader passed (base64);
+# 2. the ADSP, CDSP and SLPI started by the stock loaders in Android's
+#    early-boot order, each with its new kernel log lines, then the subsystem
+#    states and the TZ logs again.
+# It then returns non-zero: recovery-init waits 10 s and restarts into the
+# bootloader, from where the host returns the phone to the installed chain.
+# CAPTURE_ID makes each packaged wrapper unique (one boot per wrapper image).
+CAPTURE_ID=@CAPTURE_ID@
+tty=/dev/ttyGS0
+run=/run/stock-capture
+mkdir -p "$run" /mnt/modem
+
+log() { echo "rog5-stock-capture: $*" >/dev/kmsg 2>/dev/null || true; }
+
+# The section name gets its own variable: the functions it runs set $name.
+emit() {
+	section=$1
+	shift
+	{
+		echo "=== BEGIN $section ==="
+		"$@" 2>&1
+		rc=$?
+		echo "=== END $section rc=$rc ==="
+	} >"$run/$section.txt"
+	cat "$run/$section.txt" >"$tty"
+}
+
+identity() {
+	echo "capture_id=$CAPTURE_ID"
+	uname -a
+	cat /proc/version /proc/cmdline /proc/uptime
+}
+
+tz_logs() {
+	for file in /proc/tzdbg/*; do
+		[ -e "$file" ] || continue
+		echo "--- $file"
+		timeout 10 cat "$file"
+	done
+}
+
+subsystems() {
+	for device in /sys/bus/msm_subsys/devices/*; do
+		[ -e "$device/name" ] || continue
+		printf '%s name=%s state=%s restart_level=%s firmware=%s crash_count=%s\n' \
+			"${device##*/}" "$(cat "$device/name")" "$(cat "$device/state" 2>/dev/null)" \
+			"$(cat "$device/restart_level" 2>/dev/null)" \
+			"$(cat "$device/firmware_name" 2>/dev/null)" \
+			"$(cat "$device/crash_count" 2>/dev/null)"
+	done
+	ls -l /sys/kernel/boot_slpi 2>&1
+}
+
+regulators() {
+	for regulator in /sys/class/regulator/*; do
+		printf '%s name=%s state=%s users=%s uV=%s\n' "${regulator##*/}" \
+			"$(cat "$regulator/name" 2>/dev/null)" "$(cat "$regulator/state" 2>/dev/null)" \
+			"$(cat "$regulator/num_users" 2>/dev/null)" "$(cat "$regulator/microvolts" 2>/dev/null)"
+	done
+}
+
+dt_nodes() {
+	# Nodes whose compatible names the sensor, audio and display stacks.
+	find /proc/device-tree -name compatible | while read -r file; do
+		value=$(tr '\000' ' ' <"$file")
+		case $value in
+		*ssc*|*slpi*|*sensor*|*audio*|*q6*|*apr*|*wcd*|*cs35l*|*dsi*|*backlight*|*pon*)
+			echo "${file%/compatible}: $value"
+			;;
+		esac
+	done
+}
+
+fdt() {
+	wc -c </sys/firmware/fdt
+	base64 </sys/firmware/fdt
+}
+
+modem_firmware() {
+	partition=
+	for block in /sys/class/block/*; do
+		grep -qx 'PARTNAME=modem_a' "$block/uevent" 2>/dev/null || continue
+		partition=/dev/${block##*/}
+	done
+	[ -n "$partition" ] || { echo 'no modem_a partition'; return 1; }
+	echo "modem_a=$partition ro=$(blockdev --getro "$partition")"
+	[ "$(blockdev --getro "$partition")" = 1 ] || { echo 'modem_a is writable'; return 1; }
+	mount -t vfat -o ro,shortname=lower,nodev,nosuid,noexec "$partition" /mnt/modem || return 1
+	ls /mnt/modem/image | grep -i -e slpi -e adsp
+	# The ASUS PIL looks in /vendor/firmware first; the direct loader then
+	# searches /lib/firmware. (The firmware_class path parameter did not
+	# reach the loader in capture c1: "Direct firmware load ... -2".)
+	mkdir -p /vendor/firmware /lib/firmware
+	for image in adsp cdsp slpi; do
+		cp /mnt/modem/image/"$image".* /vendor/firmware/ || return 1
+		cp /mnt/modem/image/"$image".* /lib/firmware/ || return 1
+	done
+	ls -l /vendor/firmware | head -4
+	echo "copied=$(ls /vendor/firmware | wc -l)"
+}
+
+subsys_state() {
+	for device in /sys/bus/msm_subsys/devices/*; do
+		[ "$(cat "$device/name" 2>/dev/null)" = "$1" ] || continue
+		cat "$device/state"
+	done
+}
+
+# Start one subsystem the way stock Android's "on early-boot" does (ADSP,
+# then CDSP, then SLPI), and report its state and the new kernel lines.
+start_subsys() {
+	name=$1
+	lines=$(dmesg | wc -l)
+	# As Android init does: a crash restarts the subsystem, not the phone.
+	# The store compares the written length, so no trailing newline.
+	for device in /sys/bus/msm_subsys/devices/*; do
+		[ "$(cat "$device/name" 2>/dev/null)" = "$name" ] || continue
+		printf RELATED >"$device/restart_level"
+		echo "${name}_restart_level=$(cat "$device/restart_level")"
+	done
+	log "starting $name"
+	case $name in
+	adsp)
+		# The ADSP loader is an Android module; holding the subsystem
+		# device open is the built-in equivalent.
+		sleep 600 </dev/subsys_adsp &
+		;;
+	*)
+		echo 1 >/sys/kernel/boot_"$name"/boot || return 1
+		;;
+	esac
+	waited=0
+	while [ "$waited" -lt 40 ]; do
+		sleep 1
+		waited=$((waited + 1))
+		[ "$(subsys_state "$name")" = ONLINE ] && break
+	done
+	echo "${name}_state=$(subsys_state "$name") after ${waited}s"
+	sleep 3
+	dmesg | tail -n +"$((lines + 1))" | grep -v -e snt8100fsr -e 'i2c_geni 984000' -e KTOP -e Grip
+}
+
+log "capture $CAPTURE_ID starting"
+emit identity identity
+emit subsystems-before subsystems
+emit regulators-before regulators
+emit tzdbg-before tz_logs
+emit dmesg-before dmesg
+emit dt-nodes dt_nodes
+emit fdt fdt
+emit modem-firmware modem_firmware
+emit adsp-boot start_subsys adsp
+emit cdsp-boot start_subsys cdsp
+emit slpi-boot start_subsys slpi
+emit subsystems-after subsystems
+emit regulators-after regulators
+emit tzdbg-after tz_logs
+emit dmesg-after dmesg
+umount /mnt/modem 2>/dev/null
+echo "=== CAPTURE DONE $CAPTURE_ID ===" >"$tty"
+log "capture $CAPTURE_ID done"
+sleep 5
+exit 1

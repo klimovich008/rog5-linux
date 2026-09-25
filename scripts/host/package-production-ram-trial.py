@@ -66,6 +66,39 @@ class Log:
         return result.stdout if capture else None
 
 
+def build_wrapper(log, out, inputs, recovery):
+    """Rebuild the ASUS boot template around the 5.4 kernel and RECOVERY."""
+    raw_args = log.run(['python3', TOOLS/'unpack_bootimg.py', '--boot_img', inputs['asus_template'],
+                        '--out', out/'template', '--format=mkbootimg', '--null'], capture=True)
+    need(raw_args.endswith(b'\0'), 'mkbootimg argument framing')
+    boot_args = raw_args[:-1].decode().split('\0')
+    for flag, value in (('--kernel', inputs['asus_kernel']), ('--ramdisk', recovery)):
+        need(boot_args.count(flag) == 1 and boot_args.index(flag)+1 < len(boot_args), 'template '+flag)
+        boot_args[boot_args.index(flag)+1] = str(value)
+    need('--output' not in boot_args, 'unexpected template output option')
+    raw = out/'boot.raw.img'
+    log.run(['python3', TOOLS/'mkbootimg.py', *boot_args, '--output', raw])
+    maximum = int(log.run(['python3', TOOLS/'avbtool.py', 'add_hash_footer', '--partition_size',
+                           str(IMAGE_SIZE), '--calc_max_image_size'], capture=True).decode().strip())
+    need(raw.stat().st_size <= maximum, 'wrapper does not fit the 128 MiB envelope')
+    wrapper = out/'boot-ram-128m.img'
+    shutil.copyfile(raw, wrapper)
+    log.run(['python3', TOOLS/'avbtool.py', 'add_hash_footer', '--image', wrapper, '--partition_name', 'boot',
+             '--partition_size', str(IMAGE_SIZE), '--algorithm', 'NONE', '--salt', sha(raw)])
+    need(wrapper.stat().st_size == IMAGE_SIZE, 'AVB envelope size')
+    # avbtool resolves the partition by name next to the image it verifies.
+    staged = out/'avb-verify'
+    staged.mkdir(mode=0o700)
+    shutil.copyfile(wrapper, staged/'boot.img')
+    log.run(['python3', TOOLS/'avbtool.py', 'verify_image', '--image', staged/'boot.img'])
+    need(sha(staged/'boot.img') == sha(wrapper), 'AVB staging copy changed')
+    check = out/'check'
+    log.run(['python3', TOOLS/'unpack_bootimg.py', '--boot_img', raw, '--out', check])
+    need(sha(check/'kernel') == sha(inputs['asus_kernel']) and sha(check/'ramdisk') == sha(recovery),
+         'wrapper payload bytes')
+    return wrapper
+
+
 def package(args):
     out = Path(args.output)
     need(out.is_absolute() and not out.exists(), 'output must be a new absolute directory')
@@ -109,34 +142,7 @@ def package(args):
     log.run([REPO/'scripts/device/build-persistent-slotb-recovery-initramfs.sh', inputs['recovery_base'],
              REPO/'initramfs/recovery-init', 'embedded-ram', recovery, bundle])
 
-    raw_args = log.run(['python3', TOOLS/'unpack_bootimg.py', '--boot_img', inputs['asus_template'],
-                        '--out', out/'template', '--format=mkbootimg', '--null'], capture=True)
-    need(raw_args.endswith(b'\0'), 'mkbootimg argument framing')
-    boot_args = raw_args[:-1].decode().split('\0')
-    for flag, value in (('--kernel', inputs['asus_kernel']), ('--ramdisk', recovery)):
-        need(boot_args.count(flag) == 1 and boot_args.index(flag)+1 < len(boot_args), 'template '+flag)
-        boot_args[boot_args.index(flag)+1] = str(value)
-    need('--output' not in boot_args, 'unexpected template output option')
-    raw = out/'boot.raw.img'
-    log.run(['python3', TOOLS/'mkbootimg.py', *boot_args, '--output', raw])
-    maximum = int(log.run(['python3', TOOLS/'avbtool.py', 'add_hash_footer', '--partition_size',
-                           str(IMAGE_SIZE), '--calc_max_image_size'], capture=True).decode().strip())
-    need(raw.stat().st_size <= maximum, 'wrapper does not fit the 128 MiB envelope')
-    wrapper = out/'boot-ram-128m.img'
-    shutil.copyfile(raw, wrapper)
-    log.run(['python3', TOOLS/'avbtool.py', 'add_hash_footer', '--image', wrapper, '--partition_name', 'boot',
-             '--partition_size', str(IMAGE_SIZE), '--algorithm', 'NONE', '--salt', sha(raw)])
-    need(wrapper.stat().st_size == IMAGE_SIZE, 'AVB envelope size')
-    # avbtool resolves the partition by name next to the image it verifies.
-    staged = out/'avb-verify'
-    staged.mkdir(mode=0o700)
-    shutil.copyfile(wrapper, staged/'boot.img')
-    log.run(['python3', TOOLS/'avbtool.py', 'verify_image', '--image', staged/'boot.img'])
-    need(sha(staged/'boot.img') == sha(wrapper), 'AVB staging copy changed')
-    check = out/'check'
-    log.run(['python3', TOOLS/'unpack_bootimg.py', '--boot_img', raw, '--out', check])
-    need(sha(check/'kernel') == args.asus_kernel_sha256 and sha(check/'ramdisk') == sha(recovery),
-         'wrapper payload bytes')
+    wrapper = build_wrapper(log, out, inputs, recovery)
 
     # Re-verify with the wrapper's own trust key using the host verifier build.
     with tempfile.TemporaryDirectory() as tmp:

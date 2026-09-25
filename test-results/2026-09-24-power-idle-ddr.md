@@ -468,3 +468,62 @@ sleep), which were deliberately kept off (ASUS reset after kexec in OSI mode).
 
 Haptics (three 400 ms effects) and the logo LED (red, green, blue) were run
 for the user to confirm by eye.
+
+## Stock ASUS 5.4 capture (2026-09-25, RAM only)
+
+A full stock Android boot is off the table: its fstab mounts `/data` from
+userdata as encrypted f2fs with `formattable`, and userdata is now the Linux
+ext4 partition. Instead, the slot-B wrapper's ASUS 5.4 kernel (our build of
+the ASUS source, `5.4.210-qgki-...-builtin-recovery`) ran a capture
+executor in RAM:
+- `initramfs/stock-capture-5.4` runs as the slot-B loader executor, never
+  kexecs, and only mounts modem_a read-only;
+- `scripts/host/package-stock-capture-wrapper.py` packages it (the
+  wrapper-image steps were split out of package-production-ram-trial.py as
+  `build_wrapper()`; r51 still rebuilds byte-identical);
+- the output streams over the loader's USB ACM.
+
+Evidence: `~/.local/state/rog5-production-boot-20260923/trial-stockcap-c{1,2,3}-session/`
+(capture.txt, and the stock flattened DT as stock-fdt.dtb/.dts in c1).
+
+Findings:
+- **SLPI and CDSP are rejected by TZ for the stock kernel too.** With the stock
+  PIL (proxy votes, crypto bandwidth, AOP load state, all before init), c2/c3
+  log `slpi: Initializing image failed(rc:-22)`, and c3 `cdsp: ... (rc:-22)`.
+  The ADSP from the same WW33 image set boots (`adsp: Brought out of reset`).
+  The TZ log records each failure as event `0x30001f` (PAS ID, metadata PA),
+  then SMC 0x42000201 returns `0xffcfffe1` (-0x30001f). The hypervisor logs
+  `pil_init_image_to_tz [300045]`, and at boot `HYPX NOT ENABLED Reason:
+  0xfa11`.
+- The difference between the images: the ADSP (sw_id 0x4) is bound to this
+  OEM (hw_id 0x29, oem_id 0x28, flags 0x0002) and chains to root
+  `2c8bc18e…`, the root that also signs `multiimgoem`. The CDSP (sw_id 0x17)
+  and SLPI (0x18) carry hw_id/oem_id 0, flags 0x0102, and chain to a different
+  root `959b8d05…`. The `multiimgoem` MULT table lists sw_ids including 0x4,
+  0x17 and 0x18. Its SHA-384 entries match no image, hash segment,
+  sub-range or certificate from the WW33 modem image, so how TZ authenticates
+  these two images is still unknown.
+- Slot A and slot B hold identical secure firmware, all equal to stock WW33:
+  multiimgoem, tz, hyp, xbl, xbl_config, aop, devcfg, keymaster, featenabler,
+  qupfw, cpucp, shrm, uefisecapp, abl, dsp, bluetooth.
+- So the missing piece is runtime state that stock Android sets up before its
+  `on early-boot` writes `boot_adsp`, `boot_cdsp`, `boot_slpi` (vendor
+  `init.qti.kernel.rc`). Neither kernel is at fault.
+- The PMIC PON history records every reset as `Reset Trigger: PS_HOLD`,
+  `HARD_RESET`: software dropped PS_HOLD. That fits the audio stream resets
+  being secure-side resets.
+- Stock brightness for the AMS678 ER2: `bl_ctrl_dcs`, 1..1023, inverted DBV,
+  panel through the Iris6 (`pxlw,iris-lightup-config`). Stock sends `51 hi lo`
+  as a DCS long write in HS mode: `iris_pt_send_panel_cmd` in Iris
+  passthrough (PT) mode, `mipi_dsi_dcs_set_display_brightness` in bypass. Our
+  driver runs the Iris in analog bypass, where only the first 0x51 byte lands
+  (3 visible levels, patch 0045) and HS writes were ignored (patch 0043).
+  Full-range brightness likely needs the Iris PT path.
+
+Boot-chain incident: after capture c1, the next r38 boot (08:27Z) stalled
+before its persistent root (USB NCM up, then TX timeouts at about 2.5 min, no
+Wi-Fi, no journal). It never committed, and the target timer put it in
+fastboot. The next boot took the V11 fallback because the r38 record was left
+`pending`. The r38 boot before the capture had committed healthy at 27.4 s.
+After c2 and c3, V11 came back normally. The default is restored through a
+fresh bundle, r52 (below).
