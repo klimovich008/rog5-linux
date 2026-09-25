@@ -634,3 +634,32 @@ the user mapping. The next step is to check what `writei` touches that mmap
 does not in the upstream `q6asm-dai` (fixed buffer from
 `snd_pcm_set_fixed_buffer_all`) plus ALSA core path, for example by switching
 the buffer type or logging `dma_area`/`dma_addr` before the copy.
+
+### r64-r71: the ADSP's DMA read of the stream buffer is the trigger
+
+- r64: with `ASM_DATA_CMD_WRITE_V2` withheld, both `fill` and `play` survive.
+  Upstream's `q6asm_dai_prepare` marks the stream RUNNING, so the first
+  `writei` makes `.ack` queue WRITEs, before RUN. The dumped payload matches
+  stock's layout: `1ff80000 00000001 <handle> 00000f00 seq 0 0 0`.
+- r65: queuing WRITEs only after RUN (`tools/audio_debug`): `fill` survives
+  (no writes), but `play` still froze on the first write after RUN.
+- r66: re-enabling the crypto node leaves most providers synced, including
+  lpass_ag_noc. Upstream lpass_ag_noc has no BCMs, and stock votes nothing on
+  it; the stock ADSP TBU (0x1800-0x1bff) has no interconnect vote either.
+  Still froze.
+- r67: a live `dmesg -W` over SSH carried nothing past the pause. The freeze
+  happens right after the WRITE is sent and takes USB and UFS I/O with it.
+- r68: the q6asm DAI device is in SMMU group 10 (DMA domain, apps SMMU).
+- **r69: WRITE_V2 with `buf_size` forced to 0 does not freeze, and `play`
+  completes.** So the trigger is the ADSP DMA-reading the upstream buffer
+  (IOVA 0x1ff8xxxx, SID 0x1801). It is not the command, RUN, or the
+  ADM/AFE/ASM configuration.
+- r70 (q6asm DAIs `dma-coherent`) and r71 (SMR mask 0x3f0 around 0x1801) both
+  still froze.
+
+Open: why the ADSP's read through the apps SMMU works on stock 5.4 (vendor
+arm-smmu with `qcom,skip-init`, no reset of the boot SMMU state; ION buffers
+through `msm-audio-ion`) and wedges the system on upstream. Candidates:
+- SMMU global state reset by upstream (sCR0, unidentified-stream handling);
+- context-bank attributes;
+- a fault handler that touches TBU registers.

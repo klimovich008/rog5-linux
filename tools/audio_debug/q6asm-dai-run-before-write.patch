@@ -1,0 +1,85 @@
+--- /home/deck/.local/state/rog5-kernel-7.2.7-build-r17/source/sound/soc/qcom/qdsp6/q6asm-dai.c	2026-09-25 02:27:05.059665081 +0200
++++ q6asm-dai.c	2026-09-25 16:38:53.995974085 +0200
+@@ -64,6 +64,7 @@
+ 	uint64_t copied_total;
+ 	uint16_t bits_per_sample;
+ 	snd_pcm_uframes_t queue_ptr;
++	bool started;
+ 	uint16_t source; /* Encoding source bit mask */
+ 	struct audio_client *audio_client;
+ 	uint32_t next_track_stream_id;
+@@ -296,8 +297,10 @@
+ 	}
+ 	if (ret < 0)
+ 		dev_info(dev, "%s: CMD Format block failed\n", __func__);
+-	else
++	else {
++		prtd->started = false;
+ 		prtd->state = Q6ASM_STREAM_RUNNING;
++	}
+ 
+ 	return ret;
+ 
+@@ -309,20 +312,27 @@
+ 	return ret;
+ }
+ 
+-static int q6asm_dai_ack(struct snd_soc_component *component, struct snd_pcm_substream *substream)
++/*
++ * Queue the periods the application has filled, but only after
++ * ASM_SESSION_CMD_RUN: on the ASUS ROG Phone 5 (SM8350) a WRITE sent to a
++ * prepared session that is not yet running hangs the phone until it
++ * hard-resets. The vendor stack also sends RUN first and the writes after it.
++ */
++static int q6asm_dai_queue_periods(struct device *dev, struct snd_pcm_substream *substream)
+ {
+ 	struct snd_pcm_runtime *runtime = substream->runtime;
+ 	struct q6asm_dai_rtd *prtd = runtime->private_data;
+ 	int i, ret = 0, avail_periods;
+ 
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK && prtd->state == Q6ASM_STREAM_RUNNING) {
++	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK && prtd->state == Q6ASM_STREAM_RUNNING &&
++	    prtd->started) {
+ 		avail_periods = (runtime->control->appl_ptr - prtd->queue_ptr)/runtime->period_size;
+ 		for (i = 0; i < avail_periods; i++) {
+ 			ret = q6asm_write_async(prtd->audio_client, prtd->stream_id,
+ 					   prtd->pcm_count, 0, 0, 0);
+ 
+ 			if (ret < 0) {
+-				dev_err(component->dev, "Error queuing playback buffer %d\n", ret);
++				dev_err(dev, "Error queuing playback buffer %d\n", ret);
+ 				return ret;
+ 			}
+ 			prtd->queue_ptr += runtime->period_size;
+@@ -332,6 +342,11 @@
+ 	return ret;
+ }
+ 
++static int q6asm_dai_ack(struct snd_soc_component *component, struct snd_pcm_substream *substream)
++{
++	return q6asm_dai_queue_periods(component->dev, substream);
++}
++
+ static int q6asm_dai_trigger(struct snd_soc_component *component,
+ 			     struct snd_pcm_substream *substream, int cmd)
+ {
+@@ -345,13 +360,19 @@
+ 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+ 		ret = q6asm_run_nowait(prtd->audio_client, prtd->stream_id,
+ 				       0, 0, 0);
++		if (ret)
++			break;
++		prtd->started = true;
++		ret = q6asm_dai_queue_periods(component->dev, substream);
+ 		break;
+ 	case SNDRV_PCM_TRIGGER_STOP:
++		prtd->started = false;
+ 		ret = q6asm_cmd_nowait(prtd->audio_client, prtd->stream_id,
+ 				       CMD_EOS);
+ 		break;
+ 	case SNDRV_PCM_TRIGGER_SUSPEND:
+ 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
++		prtd->started = false;
+ 		ret = q6asm_cmd_nowait(prtd->audio_client, prtd->stream_id,
+ 				       CMD_PAUSE);
+ 		break;
