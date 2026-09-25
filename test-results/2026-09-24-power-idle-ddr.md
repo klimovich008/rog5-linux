@@ -663,3 +663,43 @@ through `msm-audio-ion`) and wedges the system on upstream. Candidates:
 - SMMU global state reset by upstream (sCR0, unidentified-stream handling);
 - context-bank attributes;
 - a fault handler that touches TBU registers.
+
+### r72-r85: root cause is an SMMU stream route the hypervisor refuses
+
+- r72-r76 (buffer variants: zero-size write, low CMA, a separate alias
+  mapping, physical-address buffers): only the zero-size write survived. So
+  the buffer allocation path is not the difference.
+- r77 (`tools/audio_debug` SMR/S2CR dump module): **SID 0x1801, the ADSP's
+  stream for the q6asm buffers, sits at S2CR 0x000200ff = FAULT**, although
+  Linux attached it to a DMA domain (group 10, context bank 9). 0x180f and
+  0x1803 are on bank 74, upstream's bypass-quirk bank. The ADSP's first read
+  of the stream buffer therefore faults, and on SM8350 that fault wedges the
+  SoC until the PS_HOLD reset about 10 s later.
+- r78: a full dump of the apps SMMU. Linux's own routes (display, GPU, UFS,
+  USB) all took effect, on banks 2-13.
+- r79-r82 (kprobes on `arm_smmu_attach_dev` by `/proc/kallsyms` address, since
+  SMMUv2 and v3 are both built in): the attach succeeds and writes S2CR for
+  bank 9. Re-attaching the group after the ADSP booted left it at FAULT too.
+  The hypervisor (which traps the SMMU's stream-mapping registers) silently
+  drops that write.
+- r83 (`rog5-smmu-poke`): copying bank 9's context into bank 52 and routing
+  0x1801 there (stock's layout: 0x1801 on CB52, 0x180f on CB40, 0x1803 on
+  CB27) was accepted, and **`play` completed with the phone still
+  reachable**.
+- r84: acceptance scan for 0x1801. Banks 9 and 10 are ignored; 20, 27, 30,
+  40, 50, 52, 60, 70 and 73 are accepted.
+- Fix: `patches/linux-7.2.7/0049` gives the SM8350 SMMU-500 an
+  `alloc_context_bank` hook. For LPASS SIDs (0x1800-0x1bff) it starts the
+  search at bank 20, and every other master keeps the lowest free bank.
+- **r85 (kernel r18 with 0049, `platform-audio-dtb-r4`, no debug modules):**
+  - 0x1801 came up on CB20 (s2cr 0x14) with no poke.
+  - `play` with the amplifiers off completed.
+  - With both CS35L45 amps enabled in RCV mode, a quiet 100 Hz tone for 2 s
+    also completed.
+  - The phone stayed reachable throughout, and afterwards it returned to the
+    installed r52 chain.
+
+Open: `SNDRV_PCM_IOCTL_DRAIN` returns -EIO after the last period (the data is
+consumed). Audible output has not yet been confirmed by ear. The audio DTB is
+not in the default yet: a new bundle with kernel r18 needs the full RAM trial
+and hw matrix before `install-default-kernel.py`.

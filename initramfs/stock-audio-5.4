@@ -172,6 +172,13 @@ device=$(echo "${device:-0}" | sed 's/^0*\([0-9]\)/\1/')
 	dmesg | tail -n +"$((lines + 1))" | grep -v -e snt8100fsr -e 'i2c_geni 984000' -e KTOP -e Grip | tail -80
 	echo "=== END play ==="
 } >"$tty" 2>&1
+smmu() {
+	for sid in 0x1801 0x180f 0x1803; do
+		insmod /usr/libexec/rog5-smmu-dump.ko sid=$sid 2>&1
+	done
+	dmesg | grep rog5-smmu-dump
+}
+emit smmu smmu
 emit dmesg-after dmesg
 sleep 1
 kill "$kmsg_reader" 2>/dev/null

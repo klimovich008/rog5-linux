@@ -1,0 +1,76 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-25 19:16:18.516951303 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-25 19:16:18.529246095 +0200
+@@ -628,6 +628,50 @@
+ #endif
+ };
+ 
++/*
++ * On SM8350 the hypervisor ignores S2CR writes that route the ADSP's stream
++ * IDs (the LPASS TBU, 0x1800-0x1bff) to the lowest context banks: the stream
++ * stays FAULT and the ADSP's first access to a shared buffer wedges the SoC
++ * until it resets. Routes to banks 20 and above are accepted (the vendor
++ * kernel used 27, 40 and 52), so allocate those streams' banks from there.
++ */
++#define QCOM_SM8350_LPASS_SID_FIRST	0x1800
++#define QCOM_SM8350_LPASS_SID_LAST	0x1bff
++#define QCOM_SM8350_LPASS_FIRST_CB	20
++
++static int qcom_sm8350_smmu500_alloc_context_bank(struct arm_smmu_domain *smmu_domain,
++						  struct arm_smmu_device *smmu,
++						  struct device *dev, int start)
++{
++	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
++	int i;
++
++	for (i = 0; fwspec && i < fwspec->num_ids; i++) {
++		u16 sid = FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[i]);
++
++		if (sid >= QCOM_SM8350_LPASS_SID_FIRST && sid <= QCOM_SM8350_LPASS_SID_LAST) {
++			start = max(start, QCOM_SM8350_LPASS_FIRST_CB);
++			break;
++		}
++	}
++
++	return __arm_smmu_alloc_bitmap(smmu->context_map, start, smmu->num_context_banks);
++}
++
++static const struct arm_smmu_impl qcom_sm8350_smmu_500_impl = {
++	.init_context = qcom_smmu_init_context,
++	.cfg_probe = qcom_smmu_cfg_probe,
++	.def_domain_type = qcom_smmu_def_domain_type,
++	.reset = arm_mmu500_reset,
++	.write_s2cr = qcom_smmu_write_s2cr,
++	.tlb_sync = qcom_smmu_tlb_sync,
++	.alloc_context_bank = qcom_sm8350_smmu500_alloc_context_bank,
++#ifdef CONFIG_ARM_SMMU_QCOM_DEBUG
++	.context_fault = qcom_smmu_context_fault,
++	.context_fault_needs_threaded_irq = true,
++#endif
++};
++
+ static const struct arm_smmu_impl sdm845_smmu_500_impl = {
+ 	.init_context = qcom_smmu_init_context,
+ 	.cfg_probe = qcom_smmu_cfg_probe,
+@@ -735,6 +779,13 @@
+ 	.client_match = qcom_smmu_actlr_client_of_match,
+ };
+ 
++static const struct qcom_smmu_match_data qcom_sm8350_smmu_500_data = {
++	.impl = &qcom_sm8350_smmu_500_impl,
++	.adreno_impl = &qcom_adreno_smmu_500_impl,
++	.cfg = &qcom_smmu_impl0_cfg,
++	.client_match = qcom_smmu_actlr_client_of_match,
++};
++
+ /*
+  * Do not add any more qcom,SOC-smmu-500 entries to this list, unless they need
+  * special handling and can not be covered by the qcom,smmu-500 entry.
+@@ -762,7 +813,7 @@
+ 	{ .compatible = "qcom,sm7150-smmu-v2", .data = &qcom_smmu_v2_data },
+ 	{ .compatible = "qcom,sm8150-smmu-500", .data = &qcom_smmu_500_impl0_data },
+ 	{ .compatible = "qcom,sm8250-smmu-500", .data = &qcom_smmu_500_impl0_data },
+-	{ .compatible = "qcom,sm8350-smmu-500", .data = &qcom_smmu_500_impl0_data },
++	{ .compatible = "qcom,sm8350-smmu-500", .data = &qcom_sm8350_smmu_500_data },
+ 	{ .compatible = "qcom,sm8450-smmu-500", .data = &qcom_smmu_500_impl0_data },
+ 	{ .compatible = "qcom,smmu-500", .data = &qcom_smmu_500_impl0_data },
+ 	{ }
