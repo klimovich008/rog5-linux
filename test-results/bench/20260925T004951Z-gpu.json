@@ -1,0 +1,10 @@
+{
+  "mode": "cycle",
+  "baseline_nop_ms": 8.61,
+  "cycles": 3000,
+  "first_failure": null,
+  "worst_wake_ms": 11.84,
+  "wakes_over_50ms": 0,
+  "kernel": [],
+  "status": "PASS"
+}

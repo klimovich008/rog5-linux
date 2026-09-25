@@ -336,3 +336,16 @@ The phone resets without a Linux panic and without a remoteproc crash report.
 That points to a secure-side reset (an XPU or hypervisor stage-2 violation by
 the ADSP on first buffer access) rather than a recoverable ADSP crash. Audio
 remains open; the default (r38) carries none of these changes.
+
+## GPU soak on the r38 default (step 8)
+
+On a fresh r38 boot, back to back:
+- 3000 GPU suspend/wake cycles: worst wake 11.84 ms, 0 over 50 ms, no
+  failure.
+- Three glmark2 runs: 1662, 1656 and 1675.
+- Five rounds of the smooth bench (10 gestures per scenario): quick settings 20,
+  slow drag 34, keyboard 12 and home pages 4 dropped frames. That is 2.0, 3.4,
+  1.2 and 0.4 per gesture.
+
+The kernel log after the soak has no GMU HFI timeout, GPU fault or hangcheck.
+With CPU-side GPU DDR votes (0046 dropped), no GMU stall has recurred since r35.

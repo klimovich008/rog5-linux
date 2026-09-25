@@ -1,0 +1,34 @@
+{
+  "label": "r38-soak-2",
+  "time": "2026-09-25T00:51:25",
+  "kernel": "7.2.7-rog5-production",
+  "cpufreq_max_khz": {
+    "0": 1804800,
+    "4": 2419200,
+    "7": 2841600
+  },
+  "ebi_before": {
+    "avg_kBps": 2282910,
+    "peak_kBps": 1804000
+  },
+  "glmark2": {
+    "score": 1656,
+    "scenes_fps": {
+      "build use-vbo=true": 2666,
+      "texture texture-filter=linear": 2503,
+      "shading shading=phong": 2301,
+      "bump bump-render=normals": 2590,
+      "effect2d kernel=0,1,0;1,-4,1;0,1,0;": 1564,
+      "pulsar quads=5": 2089,
+      "desktop blur-radius=5:effect=blur:passes=1": 902,
+      "refract <default>": 149,
+      "terrain <default>": 153
+    },
+    "renderer": "FD660",
+    "denial_restarted": true
+  },
+  "ebi_after": {
+    "avg_kBps": 2282910,
+    "peak_kBps": 2915200
+  }
+}
