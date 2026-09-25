@@ -542,3 +542,31 @@ the kit now needs the audio-module list that modules r14-b lacks.
   call traces are the known DSI PHY clock reparent warnings, as in r51.
 - `install-default-kernel.py --stage` passed at 09:31Z; both ordinary reboots
   committed healthy (`PASS production-7.2.7-r52 committed healthy`, 26 s).
+
+### r52 default: bench verification (2026-09-25, USB attached)
+
+- `rog5-bench.py hw` (20260925T094252Z-hw.json): pass battery_charger,
+  bluetooth, buttons, display, dsp_remoteprocs, gpu, leds, rtc, sensors
+  (vcnl36866), storage, thermal_cpufreq, touch, usb, vibration. Wi-Fi is
+  partial only because hwcheck reads no `wpa` state; wlp1s0 is up at
+  192.168.1.15. Suspend is partial by design. Audio, cameras, fingerprint
+  and NFC are missing.
+- Smooth bench, `--repeat 10`. Each run is an open and a close, so 20
+  gestures per scenario (the r38 baseline used 10):
+
+  | scenario | dropped frames | per gesture | r38 per gesture |
+  |---|---:|---:|---:|
+  | quick_settings | 21 | 1.05 | 2.0 |
+  | quick_settings_slow_drag | 37 | 1.85 | 3.4 |
+  | keyboard (two runs) | 40, 34 | 2.0, 1.7 | 1.2 |
+  | home_pages | 13 | 0.65 | 0.4 |
+
+  Everything is under 5 per gesture; p50 is 16.7 ms; no glitches and no GPU
+  errors.
+- Throughput (20260925T094924Z-perf.json):
+  - SHA-256: A55 750, A78 1484, X1 1739, all 8 cores 8944 MB/s.
+  - glmark2: 1639 (r38 1656-1675).
+  - The EBI vote reaches its 12.78 GB/s ceiling during the memory tests and
+    drops back afterwards.
+- Idle power on r52 still needs an unplugged run. The DTB and idle
+  configuration match r38, which measured 114 mA / 0.98 W.
