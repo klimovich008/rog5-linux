@@ -1,0 +1,44 @@
+{
+  "label": "r93-battery",
+  "time": "2026-09-25T23:29:51",
+  "display_off": true,
+  "blank_wait_s": 48,
+  "status": "PASS",
+  "seconds": 240,
+  "current_ma_mean": -106.2,
+  "current_ma_median": -105.0,
+  "current_ma_p10_p90": [
+    -114.0,
+    -101.0
+  ],
+  "power_mw_mean": -911.9,
+  "voltage_v": 8.581,
+  "capacity": 98,
+  "cpu_busy_pct": 0.61,
+  "top_interrupts_per_s": [
+    [
+      156.7,
+      "11 GICv3 27 Level arch_timer"
+    ],
+    [
+      89.7,
+      "IPI1 Function call interrupts"
+    ],
+    [
+      88.9,
+      "140 GICv3 38 Level arch_mem_timer"
+    ],
+    [
+      84.3,
+      "IPI4 Timer broadcast interrupts"
+    ],
+    [
+      11.5,
+      "201 DW-PCI-MSI-0000:01:00.0 5 Edge ce2"
+    ],
+    [
+      9.0,
+      "167 ipcc 196608 Edge glink-smem"
+    ]
+  ]
+}

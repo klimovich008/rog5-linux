@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "2026-09-26: default is production-7.2.7-r93 (content of r91, fallback production-7.2.7-safe-r2 replacing V11, forced-fallback tested) (kernel r20: 0049/0051 DSP streams on SMMU banks >= 20, 0050 q6asm pointer; DTB platform-audio-slpi-dtb-r1; firmware kit r4 with the vendor-partition SLPI image; rog5-audio and rog5-sensors services). All non-cellular blocks in hwcheck pass (audio, BT, buttons, display, GPU, LEDs, sensors incl. accel/gyro/mag via the SLPI, touch, vibration, Wi-Fi); r91 perf/smooth pass. Open: unplugged idle power on r91; audio by ear; brightness full range (Iris6 PT); an r87 boot stalled once after a hard reset (watch); then Denial: volume, auto-rotate, Wi-Fi settings UI, QS glitch.",
+  "next": "2026-09-26: default is production-7.2.7-r93 (content of r91, fallback production-7.2.7-safe-r2 replacing V11, forced-fallback tested) (kernel r20: 0049/0051 DSP streams on SMMU banks >= 20, 0050 q6asm pointer; DTB platform-audio-slpi-dtb-r1; firmware kit r4 with the vendor-partition SLPI image; rog5-audio and rog5-sensors services). All non-cellular blocks in hwcheck pass (audio, BT, buttons, display, GPU, LEDs, sensors incl. accel/gyro/mag via the SLPI, touch, vibration, Wi-Fi); r91 perf/smooth pass. Verified on r93: both speakers heard by the user; idle on battery 106 mA / 0.91 W (screen off, Wi-Fi + audio + sensors up). Open: brightness full range (Iris6 PT); an r87 boot stalled once after a hard reset (watch); then Denial: volume, auto-rotate, Wi-Fi settings UI, QS glitch.",
   "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",

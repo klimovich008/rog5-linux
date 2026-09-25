@@ -878,3 +878,20 @@ V11 is a headless volatile root.
     keeping safe-r2. Two reboots committed healthy.
 - **Default now:** production-7.2.7-r93 (the same content as r91/r92), with
   fallback production-7.2.7-safe-r2.
+
+### r93 default: speakers by ear, idle power on battery (2026-09-26)
+
+- **Speakers by ear:** the user held the phone over Wi-Fi SSH, USB unplugged.
+  Three 1 kHz beeps at -10 dBFS on the left channel, a pause, then three on
+  the right. The user heard the bottom speaker, then the top one. Both
+  CS35L45 speaker paths are confirmed audible.
+- **Idle power** (`rog5-bench.py power --seconds 240`, USB unplugged, over
+  Wi-Fi, display blanked after 48 s):
+  - **106.2 mA mean / 105 median** (p10-p90 101-114 mA), 0.91 W at 8.58 V,
+    CPU busy 0.61 %.
+  - That is with Wi-Fi associated, audio loaded, the SLPI and hexagonrpcd
+    running, and deep CPU idle and DDR scaling on.
+  - For comparison: r38 measured 114 mA / 0.98 W with none of audio or
+    sensors; r26 (WFI only) measured 191 mA.
+  - Top wakeups: arch_timer 157/s, IPI function calls 90/s, mem_timer 89/s,
+    timer broadcast 84/s, Wi-Fi CE 11/s, glink 9/s.
