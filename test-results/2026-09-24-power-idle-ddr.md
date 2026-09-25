@@ -369,3 +369,27 @@ earlier multi-second wakes came from synchronous console printk, which the
 platform kit has lowered to warnings since r16. A watchdog panic restarting the
 phone was verified in milestone 1 (self-recovery in 35 s). Whether the lock
 screen really needs a double tap on wake needs the user's eyes.
+
+### r50: how the phone dies at stream run
+
+A heartbeat script appended uptime, the remoteproc states and the last kernel
+line to userdata every 50 ms, with a sync each time. It ran normally up to
+454.93 s, with the ADSP `running`. The first `writei` (stream run, first
+ASM buffer) started about 455.0 s, and the heartbeat stopped there: the phone
+reset within about 80 ms. No kernel message, no ADSP state change, no panic.
+That is the signature of a secure-side reset (an access violation) when the
+ADSP first touches the stream buffer, not of an ADSP software crash (Linux
+would see and log that).
+
+Compared with stock and found identical:
+- the ASM memory-map pool (SHMEM8_4K, property flag 0);
+- the SID bits in the buffer address (0x1801, mask 0xf);
+- the MI2S clock setup;
+- master mode.
+
+Stock confined the buffers to IOVA 0x10000000-0x1fffffff; r49's 29-bit limit
+did not help, although whether it took effect is unverified. No SM8350 board in
+the upstream tree has working APR audio, so there is no reference to follow;
+this needs lower-level work (e.g. reading the reset reason from the PMIC/TZ
+restart registers, or testing buffers from a hypervisor-shared region like the
+stock audio CMA pool).
