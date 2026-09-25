@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * The sensor DSP (SLPI): the IMU and other sensors of the ROG Phone 5 sit
+ * behind it (stock Snapdragon Sensor Core). Firmware is the stock
+ * NON-HLOS image (modem partition image/slpi.*), shipped in the production
+ * firmware kit as qcom/sm8350/slpi.*. PAS-loaded, no HLOS SMMU mappings.
+ */
+/dts-v1/;
+/plugin/;
+
+&{/soc@0/remoteproc@5c00000} {
+	firmware-name = "qcom/sm8350/slpi.mdt";
+	status = "okay";
+};
