@@ -570,3 +570,67 @@ the kit now needs the audio-module list that modules r14-b lacks.
     drops back afterwards.
 - Idle power on r52 still needs an unplugged run. The DTB and idle
   configuration match r38, which measured 114 mA / 0.98 W.
+
+## Audio: stock stack plays; upstream hangs at the first kernel buffer write (2026-09-25)
+
+### Stock ASUS 5.4 audio in RAM (captures a1-a12)
+
+- The ASUS 5.4 source was rebuilt with its techpack audio modules (32 `.ko`) in
+  the `localhost/rog5-kernel-builder:ubuntu-24.04` container. The clang 18.1.3
+  build boots; a host clang 20 build did not (a1). The build is in
+  `~/.local/state/rog5-asus54-audio-build-r2`; the writable debug source is in
+  `~/.local/state/rog5-asus54-src-debug`.
+- `initramfs/stock-audio-5.4` loads the stock module set, boots the ADSP
+  through `adsp_loader` and drives `tools/alsa_probe` (a freestanding raw
+  ALSA ioctl client).
+- Three changes, test build only, were needed to get a card without Android:
+  - `audio_notifier` starts on SSR: the service locator is on the modem, and
+    its LOCATOR_DOWN reply arrives before the notifier listens;
+  - the machine driver skips the WCN BT SLIMbus links: that codec only exists
+    once Android's BT stack powers the chip;
+  - `mdev -s` after the card registers.
+- **Result (a11, a12): `lahaina-mtp-snd-card` registers, and MultiMedia1 ->
+  SEN_MI2S_RX (amplifiers off) opens, prepares, runs and plays for 3 s. The
+  ADSP returned 150 write-done events, end of stream and a clean close, with
+  no reset.**
+- The stock command stream, from an `apr_send_pkt` hex dump:
+  - AFE clock set (`0x100f3`): SEN_MI2S_IBIT at 3.072 MHz;
+  - LPASS votes: `0x100f4` "LPASS_HW", devote `0x100f6` with the client
+    handle;
+  - AFE `DEVICE_HW_DELAY` and I2S config: 24-bit, SD1, stereo, internal WS,
+    48 kHz; then `DEVICE_START`;
+  - ASM map: one 0x4000 region, IOVA 0x1fff4000, msw 1;
+  - ASM `OPEN_WRITE_V3`: POPP 0x10be4, PCM 0x13222;
+  - ADM `DEVICE_OPEN_V8`: topology 0x10312, 24-bit;
+  - matrix map, then media format (PCM v4 block);
+  - `RUN_V2`, then `WRITE_V2` at 0x1fff4000/0x1fff4f00 (msw 1).
+
+### Upstream 7.2.7 with a packet-dumping `apr.ko` (RAM trials r53-r63)
+
+- r54: upstream sends the same kind of sequence. It differs in a 1.536 MHz
+  clock, 16-bit I2S and COPP, NULL POPP (0x10c68) with PCM v2 (0x10da5), and
+  ADM `DEVICE_OPEN_V5`. All of these are acknowledged.
+- r55, r56: stock's 3.072 MHz clock, a 24-bit back end and the default POPP
+  still reset. So none of them is the cause.
+- r57: ADSP coredump was already disabled; disabling recovery changed
+  nothing.
+- r58: with `ASM_SESSION_CMD_RUN_V2` withheld in `apr.ko`, the phone still
+  reset. So no DSP command at stream start is needed for the reset.
+- r59 (`alsa_probe fill`): prepare, then `sw_params` with a start threshold
+  that is never reached, then the first `writei`. The phone reset with no
+  stream start.
+- r60 (`alsa_probe mmaptest`): writing the same buffer through an mmap of the
+  PCM, before and after prepare (after the ASM map), did not reset. The
+  following `writei` did.
+- r61: with `kernel.panic_on_oops=0 kernel.panic=0` the phone still went down,
+  and USB dropped 10 s after play started. The reboot is a PS_HOLD hard reset:
+  a ramoops region moved to 0x85c00000 (r62, r63; the stock wrapper leaves it
+  alone) came back empty, so DDR is not retained.
+
+So the upstream failure is a Linux-side hang on the first `writei` into the
+q6asm PCM buffer, followed by a hard reset about 10 s later. It is not an ADSP
+command, not the SENARY port, not the amplifiers, and not a CPU store through
+the user mapping. The next step is to check what `writei` touches that mmap
+does not in the upstream `q6asm-dai` (fixed buffer from
+`snd_pcm_set_fixed_buffer_all`) plus ALSA core path, for example by switching
+the buffer type or logging `dma_area`/`dma_addr` before the copy.

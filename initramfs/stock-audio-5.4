@@ -1,0 +1,182 @@
+#!/bin/sh
+# Stock ASUS 5.4 audio capture: RAM-trial executor for the slot-B wrapper,
+# like stock-capture-5.4 (no kexec, no storage writes, modem_a read-only).
+# The wrapper kernel is a fresh build of the ASUS source whose techpack audio
+# modules (and tools/alsa_probe) arrive in an extra cpio under
+# /lib/modules/$(uname -r)/extra and /usr/libexec. It then does what Android
+# does for speaker playback, without the audio HAL:
+#   load the stock audio modules, boot the ADSP through adsp_loader,
+#   wait for the stock sound card, route MultiMedia1 to SEN_MI2S_RX (the
+#   stock "deep-buffer-playback speaker" path) with both CS35L45 amplifiers
+#   left disabled, and play a quiet 100 Hz triangle on MultiMedia1.
+# 7.2.7 reset the phone about 80 ms into that stream (r42-r50). Whether the
+# stock stack survives it tells the two apart. Play output goes straight to the
+# ACM, so a reset still leaves the last step on the host.
+CAPTURE_ID=@CAPTURE_ID@
+tty=/dev/ttyGS0
+run=/run/stock-capture
+probe=/usr/libexec/rog5-alsa-probe
+mkdir -p "$run" /mnt/modem
+
+log() { echo "rog5-stock-audio: $*" >/dev/kmsg 2>/dev/null || true; }
+
+# The section name gets its own variable: the functions it runs set others.
+emit() {
+	section=$1
+	shift
+	{
+		echo "=== BEGIN $section ==="
+		"$@" 2>&1
+		rc=$?
+		echo "=== END $section rc=$rc ==="
+	} >"$run/$section.txt"
+	cat "$run/$section.txt" >"$tty"
+}
+
+identity() {
+	echo "capture_id=$CAPTURE_ID"
+	uname -a
+	cat /proc/cmdline
+	ls /lib/modules/"$(uname -r)"/extra | wc -l
+}
+
+firmware() {
+	partition=
+	for block in /sys/class/block/*; do
+		grep -qx 'PARTNAME=modem_a' "$block/uevent" 2>/dev/null || continue
+		partition=/dev/${block##*/}
+	done
+	[ -n "$partition" ] || return 1
+	[ "$(blockdev --getro "$partition")" = 1 ] || { echo 'modem_a is writable'; return 1; }
+	mount -t vfat -o ro,shortname=lower,nodev,nosuid,noexec "$partition" /mnt/modem || return 1
+	mkdir -p /vendor/firmware /lib/firmware
+	cp /mnt/modem/image/adsp.* /vendor/firmware/ || return 1
+	cp /mnt/modem/image/adsp.* /lib/firmware/ || return 1
+	echo "copied=$(ls /vendor/firmware | wc -l)"
+	umount /mnt/modem
+}
+
+# Android's modules.load order, restricted to the audio stack.
+MODULES='slimbus slimbus-ngd btpower bt_fm_slim snd-soc-es928x wcd938x_slave_dlkm swr_ctrl_dlkm rx_macro_dlkm
+tx_macro_dlkm wcd9xxx_dlkm stub_dlkm swr_dmic_dlkm pinctrl_lpi_dlkm
+wcd937x_dlkm q6_pdr_dlkm bolero_cdc_dlkm wsa883x_dlkm q6_notifier_dlkm
+swr_haptics_dlkm apr_dlkm native_dlkm swr_dlkm wcd937x_slave_dlkm
+snd_event_dlkm adsp_loader_dlkm wsa_macro_dlkm wcd938x_dlkm q6_dlkm
+wcd_core_dlkm cs35l45_i2c_dlkm pinctrl_wcd_dlkm platform_dlkm
+machine_dlkm va_macro_dlkm hdmi_dlkm'
+
+modules() {
+	# The service locator's QMI server runs on the modem, which stays off
+	# here. With it enabled, audio_pdr_register() waits for an answer that
+	# never comes, so audio_notifier never passes "ADSP up" to its clients
+	# and the card never registers (capture a3). Disabled, audio_notifier
+	# falls back to the subsystem-restart notifications.
+	echo 0 >/sys/module/service_locator/parameters/enable
+	echo "service_locator.enable=$(cat /sys/module/service_locator/parameters/enable)"
+	depmod || return 1
+	for module in $MODULES; do
+		modprobe "$module" 2>&1 | head -3 || true
+	done
+	lsmod | wc -l
+	cut -d' ' -f1 /proc/modules | tr '\n' ' '
+	echo
+}
+
+subsys_state() {
+	for device in /sys/bus/msm_subsys/devices/*; do
+		[ "$(cat "$device/name" 2>/dev/null)" = "$1" ] || continue
+		cat "$device/state"
+	done
+}
+
+adsp_boot() {
+	lines=$(dmesg | wc -l)
+	for device in /sys/bus/msm_subsys/devices/*; do
+		[ "$(cat "$device/name" 2>/dev/null)" = adsp ] || continue
+		printf RELATED >"$device/restart_level"
+	done
+	ls -l /sys/kernel/boot_adsp 2>&1
+	echo 1 >/sys/kernel/boot_adsp/boot || return 1
+	waited=0
+	while [ "$waited" -lt 60 ]; do
+		sleep 1
+		waited=$((waited + 1))
+		[ "$(subsys_state adsp)" = ONLINE ] &&
+			grep -q . /proc/asound/cards 2>/dev/null &&
+			! grep -q 'no soundcards' /proc/asound/cards && break
+	done
+	echo "adsp=$(subsys_state adsp) after ${waited}s"
+	cat /proc/asound/cards
+	sleep 3
+	dmesg | tail -n +"$((lines + 1))" | grep -v -e snt8100fsr -e 'i2c_geni 984000' -e KTOP -e Grip | tail -150
+}
+
+card() {
+	# /dev here is populated by mdev, not by hotplug: create the ALSA nodes.
+	mdev -s
+	cat /proc/asound/cards /proc/asound/pcm
+	ls -l /dev/snd
+	# Without debugfs there is no devices_deferred list: show which audio
+	# platform devices have a driver, so an unbound one names the blocker.
+	for device in /sys/bus/platform/devices/*; do
+		node=$(readlink -f "$device/of_node" 2>/dev/null) || continue
+		case $node in
+		*audio*|*sound*|*lpass*|*q6*|*bolero*|*macro*|*apr*|*dai*|*pcm*|*swr*|*lpi*|*wcd*|*cdc*|*msm-*)
+			driver=UNBOUND
+			[ -e "$device/driver" ] && driver=$(basename "$(readlink "$device/driver")")
+			echo "$driver ${device##*/} ${node#/sys/firmware/devicetree/base}"
+			;;
+		esac
+	done | sort
+	for client in /sys/bus/i2c/devices/*; do
+		[ -e "$client/name" ] || continue
+		driver=UNBOUND
+		[ -e "$client/driver" ] && driver=$(basename "$(readlink "$client/driver")")
+		echo "i2c $driver ${client##*/} $(cat "$client/name")"
+	done
+}
+
+controls() {
+	"$probe" list 0
+}
+
+route() {
+	"$probe" set 0 'SEN_MI2S_RX Audio Mixer MultiMedia1' 1
+	for amp in RCV SPK; do
+		"$probe" get 0 "$amp AMP Enable Switch"
+		"$probe" get 0 "$amp AMP PWR Enable Switch"
+		"$probe" get 0 "$amp DACPCM Source"
+	done
+}
+
+log "capture $CAPTURE_ID starting"
+# The APR packet dumps outrun the 256 KiB log buffer: keep every record.
+cat /dev/kmsg >"$run/kmsg.log" 2>/dev/null &
+kmsg_reader=$!
+emit identity identity
+emit firmware firmware
+emit modules modules
+emit adsp-boot adsp_boot
+emit card card
+emit controls controls
+emit route route
+device=$(sed -n 's/^00-\([0-9]*\): MultiMedia1 .*/\1/p' /proc/asound/pcm | head -1)
+device=$(echo "${device:-0}" | sed 's/^0*\([0-9]\)/\1/')
+{
+	echo "=== BEGIN play ==="
+	echo "device=$device"
+	lines=$(dmesg | wc -l)
+	"$probe" play 0 "$device" 1 1000
+	echo "play rc=$?"
+	sleep 1
+	dmesg | tail -n +"$((lines + 1))" | grep -v -e snt8100fsr -e 'i2c_geni 984000' -e KTOP -e Grip | tail -80
+	echo "=== END play ==="
+} >"$tty" 2>&1
+emit dmesg-after dmesg
+sleep 1
+kill "$kmsg_reader" 2>/dev/null
+emit kmsg-full cat "$run/kmsg.log"
+echo "=== CAPTURE DONE $CAPTURE_ID ===" >"$tty"
+log "capture $CAPTURE_ID done"
+sleep 5
+exit 1
