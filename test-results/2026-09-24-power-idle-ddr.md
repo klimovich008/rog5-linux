@@ -527,3 +527,18 @@ fastboot. The next boot took the V11 fallback because the r38 record was left
 `pending`. The r38 boot before the capture had committed healthy at 27.4 s.
 After c2 and c3, V11 came back normally. The default is restored through a
 fresh bundle, r52 (below).
+
+### r52: default restored (2026-09-25)
+
+r52 is r51 without the SLPI overlay: kernel/modules r17, DTB
+`platform-periph-dtb-r3` (r38's), display-firmware-r3 and the current
+platform kit, with a fresh descriptor. The audio service stays inactive
+because there is no `sound` node. r38 itself could not be rebuilt, because
+the kit now needs the audio-module list that modules r14-b lacks.
+
+- RAM trial t52: GPU 300 wake cycles (worst 11.17 ms) and fault recovery,
+  a 300 s idle soak with no SSH misses, Wi-Fi 100 MB in 2.78 s, Bluetooth,
+  GCC/GPUCC/interconnect `sync_state`, light/proximity, logo LED. The two
+  call traces are the known DSI PHY clock reparent warnings, as in r51.
+- `install-default-kernel.py --stage` passed at 09:31Z; both ordinary reboots
+  committed healthy (`PASS production-7.2.7-r52 committed healthy`, 26 s).
