@@ -438,3 +438,33 @@ TZ refuses the SLPI image at `pas_init_image` with a generic error, while
 the same path loads the ADSP. The upstream definition and the stock PIL node
 agree (PAS 12, LPI CX/MX proxy votes at max, XO, AOP load state, region
 0x88200000/0x1500000).
+
+## r38 on battery: unplugged boot and idle power (2026-09-25)
+
+With the USB cable removed, an ordinary reboot (from the r51 trial) came up on
+the r38 default:
+- committed healthy at 28.3 s;
+- Wi-Fi radio ready at 39.8 s, Bluetooth `hci0` at 42.3 s;
+- Denial active, systemd `running`;
+- found over Wi-Fi at 192.168.1.111 (the random MAC gives a new lease each
+  boot).
+
+`rog5-bench.py power --seconds 180` (Denial blanked the screen; Wi-Fi
+associated; one SSH session open):
+
+| boot | mean current | median | power | CPU busy |
+|---|---:|---:|---:|---:|
+| r26 (WFI only) | 190.7 mA | 188 mA | 1.60 W | 1.11 % |
+| r28 (per-core CPU idle) | 136.2 mA | 135 mA | 1.14 W | 0.47 % |
+| r38 (CPU idle, DDR scaling, GCC/GPUCC sync_state) | 114.1 mA | 109 mA | 0.98 W | 1.29 % |
+
+That is 40 % below r26. Top wakeups: arch_timer 286/s, IPI function call
+143/s, arch_mem_timer 90/s, timer broadcast 75/s, ath11k CE2 13/s.
+
+The RPMh sleep counters (`qcom_stats` cxsd, ddr) are still 0: the SoC never
+collapses CX or puts DDR into self-refresh. Only per-core power collapse runs.
+The next idle step is cluster and system low-power states (OSI domains or RPMh
+sleep), which were deliberately kept off (ASUS reset after kexec in OSI mode).
+
+Haptics (three 400 ms effects) and the logo LED (red, green, blue) were run
+for the user to confirm by eye.

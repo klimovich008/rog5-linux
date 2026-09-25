@@ -1,0 +1,44 @@
+{
+  "label": "r38-ddr-scaling-cpuidle",
+  "time": "2026-09-25T08:02:33",
+  "display_off": true,
+  "blank_wait_s": 10,
+  "status": "PASS",
+  "seconds": 180,
+  "current_ma_mean": -114.1,
+  "current_ma_median": -109.0,
+  "current_ma_p10_p90": [
+    -137.0,
+    -102.0
+  ],
+  "power_mw_mean": -977.9,
+  "voltage_v": 8.567,
+  "capacity": 98,
+  "cpu_busy_pct": 1.29,
+  "top_interrupts_per_s": [
+    [
+      285.6,
+      "11 GICv3 27 Level arch_timer"
+    ],
+    [
+      142.8,
+      "IPI1 Function call interrupts"
+    ],
+    [
+      89.7,
+      "140 GICv3 38 Level arch_mem_timer"
+    ],
+    [
+      75.3,
+      "IPI4 Timer broadcast interrupts"
+    ],
+    [
+      14.0,
+      "IPI0 Rescheduling interrupts"
+    ],
+    [
+      12.9,
+      "195 DW-PCI-MSI-0000:01:00.0 5 Edge ce2"
+    ]
+  ]
+}
