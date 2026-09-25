@@ -761,3 +761,36 @@ and hw matrix before `install-default-kernel.py`.
 - **Audio idle cost** (r85, screen off, battery full, USB input): loaded vs
   unloaded was 235/231 and 251/229 mA. That run still had the IRQ storm. The
   unplugged idle-power bench on r87 is still to do.
+
+### r88: the SLPI boots with the vendor-partition firmware (2026-09-25)
+
+- The vendor partition (`super` → `vendor_a`, ext4, read-only loop) ships its
+  own `firmware/slpi.*`, `cdsp.*` and `adsp.*`. They have the same sizes as the
+  modem_a (`firmware_mnt/image`) copies but different contents: `slpi.mdt`
+  is 83c528c5… on vendor and 08183cfd… on modem, and there are 26 files
+  against 25.
+  - Every SLPI attempt so far, on the stock 5.4 wrapper and on 7.2.7, used
+    the modem_a images.
+  - Android's ueventd presumably searches `/vendor/firmware` first.
+- r88 was r87 plus the `slpi` overlay (compose features
+  `...,periph,audio,slpi`, DTB `platform-audio-slpi-dtb-r1`).
+  - At boot the kit's modem_a image failed as before (`-22`).
+  - With the vendor images and a manual `start`, **"remote processor slpi is
+    now up"**. Its glink edge came up (IPCRTR, fastrpcglink-apps-dsp,
+    LOOPBACK_CTL_DSPS).
+  - QRTR lists SNS client service 400 and service 4100 on node 9.
+- A QMI SUID lookup (hand-encoded `sns_client_request_msg`) returned no
+  sensors for accel, gyro, mag, proximity, ambient_light and the rest. The SSC
+  needs its registry and config (`/vendor/etc/sensors/config` holds 63 JSON
+  files including `lahaina_icm4x6xx_0.json`, plus `sns_reg_config` and
+  persist `sensors/registry`). It reads them over fastrpc (`sdsp`) from a
+  host listener, which is hexagonrpcd in postmarketOS. Installing that is
+  waiting for the user's decision.
+- Firmware kit `display-firmware-r4` (outside git) is r3 with the vendor
+  `slpi.*` (SHA256SUMS 390cf505…).
+- Side note: overwriting `firmware_class.path` (production value
+  `/run/rog5-charge-firmware`) broke the GPU's SQE reload until restored.
+  Put new firmware into the charge-firmware tree instead.
+- The r88 boot was later found in fastboot with no kernel log of a failure.
+  The cause is unknown (possibly a user reboot); to recheck before the SLPI
+  enters a default.

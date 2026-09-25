@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
