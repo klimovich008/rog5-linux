@@ -1,6 +1,6 @@
 {
   "format": "rog5-production-module-selection-v1",
-  "description": "The 119 modules of the production ramdisk tree: 109 from the kernel build (install paths under kernel/) and 10 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi. uinput (drivers/input/misc) added 2026-09-24 for the bench virtual touchscreen. Bluetooth (QCA6490 on uart18: bluetooth, hci_uart, btqca, btbcm, hidp; ecdh_generic, ecc, kpp) added 2026-09-24. Bluetooth profiles (uhid, rfcomm, bnep) added 2026-09-24. CPU bandwidth monitors (icc-bwmon) and RPMh sleep stats (qcom_stats) added 2026-09-24. rog5-input-boost (LLCC/DDR boost while the user interacts) added 2026-09-24. rog5-gmu-bind (empty GMU driver so GCC/GPUCC reach sync_state) added 2026-09-24. Haptics (rog5-aw8697, uses ff-memless), light/proximity (rog5-vcnl36866) and the logo LED (rog5-aura + led-class-multicolor) added 2026-09-24. Audio (APR/q6 DSP services, SENARY MI2S sound card, CS35L45 amplifiers, LPASS LPI pinctrl and their ALSA core dependencies, 34 modules) added 2026-09-24.",
+  "description": "The 119 modules of the production ramdisk tree: 109 from the kernel build (install paths under kernel/) and 10 ROG5 external modules built against the same objects. Selected on 2026-09-21 (module-selection-r1) for power, USB, UFS, display, GPU and Wi-Fi. uinput (drivers/input/misc) added 2026-09-24 for the bench virtual touchscreen. Bluetooth (QCA6490 on uart18: bluetooth, hci_uart, btqca, btbcm, hidp; ecdh_generic, ecc, kpp) added 2026-09-24. Bluetooth profiles (uhid, rfcomm, bnep) added 2026-09-24. CPU bandwidth monitors (icc-bwmon) and RPMh sleep stats (qcom_stats) added 2026-09-24. rog5-input-boost (LLCC/DDR boost while the user interacts) added 2026-09-24. rog5-gmu-bind (empty GMU driver so GCC/GPUCC reach sync_state) added 2026-09-24. Haptics (rog5-aw8697, uses ff-memless), light/proximity (rog5-vcnl36866) and the logo LED (rog5-aura + led-class-multicolor) added 2026-09-24. Audio (APR/q6 DSP services, SENARY MI2S sound card, CS35L45 amplifiers, LPASS LPI pinctrl and their ALSA core dependencies, 34 modules) added 2026-09-24. Sensor DSP support (fastrpc for the SLPI sensor registry listener, socinfo for /sys/devices/soc0) added 2026-09-26.",
   "board_modules": [
     "crypto/aes.ko",
     "crypto/ccm.ko",
@@ -34,6 +34,7 @@
     "drivers/leds/rgb/leds-qcom-lpg.ko",
     "drivers/media/cec/core/cec.ko",
     "drivers/media/mc/mc.ko",
+    "drivers/misc/fastrpc.ko",
     "drivers/net/wireless/ath/ath.ko",
     "drivers/net/wireless/ath/ath11k/ath11k.ko",
     "drivers/net/wireless/ath/ath11k/ath11k_ahb.ko",
@@ -61,6 +62,7 @@
     "drivers/soc/qcom/qcom_pd_mapper.ko",
     "drivers/soc/qcom/qcom_pdr_msg.ko",
     "drivers/soc/qcom/qcom_stats.ko",
+    "drivers/soc/qcom/socinfo.ko",
     "drivers/soc/qcom/ubwc_config.ko",
     "drivers/soundwire/soundwire-bus.ko",
     "drivers/ufs/core/ufshcd-core.ko",

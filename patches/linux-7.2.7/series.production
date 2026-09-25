@@ -23,3 +23,4 @@
 0048-ASoC-qcom-q6asm-dai-optional-IOVA-limit-for-stream-buffers.patch
 0049-iommu-arm-smmu-qcom-sm8350-high-context-banks-for-LPASS-streams.patch
 0050-ASoC-qcom-q6asm-dai-report-the-exact-hardware-pointer.patch
+0051-iommu-arm-smmu-qcom-sm8350-high-context-banks-for-all-DSP-streams.patch

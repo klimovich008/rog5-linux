@@ -1,0 +1,53 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-26 00:00:00.543751749 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-26 00:00:00.555986998 +0200
+@@ -629,30 +629,37 @@
+ };
+ 
+ /*
+- * On SM8350 the hypervisor ignores S2CR writes that route the ADSP's stream
+- * IDs (the LPASS TBU, 0x1800-0x1bff) to the lowest context banks: the stream
+- * stays FAULT and the ADSP's first access to a shared buffer wedges the SoC
+- * until it resets. Routes to banks 20 and above are accepted (the vendor
+- * kernel used 27, 40 and 52), so allocate those streams' banks from there.
++ * On SM8350 the hypervisor ignores S2CR writes that route the DSPs' stream
++ * IDs to the lowest context banks: the stream stays FAULT and the DSP's first
++ * access to a shared buffer wedges the SoC until it resets. Seen for the
++ * ADSP's LPASS TBU (0x1800-0x1bff, q6asm buffers) and for the SLPI's fastrpc
++ * compute banks (0x0541/0x0542, which crashed sensor_process). Routes to
++ * banks 20 and above are accepted (the vendor kernel used 27, 40 and 52), so
++ * allocate those streams' banks from there.
+  */
+-#define QCOM_SM8350_LPASS_SID_FIRST	0x1800
+-#define QCOM_SM8350_LPASS_SID_LAST	0x1bff
+-#define QCOM_SM8350_LPASS_FIRST_CB	20
++static const struct {
++	u16 first, last;
++} qcom_sm8350_dsp_sids[] = {
++	{ 0x0540, 0x055f },	/* SLPI fastrpc compute banks */
++	{ 0x1180, 0x119f },	/* CDSP fastrpc compute banks, second stream */
++	{ 0x1800, 0x1bff },	/* LPASS TBU: ADSP, incl. its fastrpc banks */
++	{ 0x2160, 0x217f },	/* CDSP fastrpc compute banks */
++};
++#define QCOM_SM8350_DSP_FIRST_CB	20
+ 
+ static int qcom_sm8350_smmu500_alloc_context_bank(struct arm_smmu_domain *smmu_domain,
+ 						  struct arm_smmu_device *smmu,
+ 						  struct device *dev, int start)
+ {
+ 	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
+-	int i;
++	int i, j;
+ 
+ 	for (i = 0; fwspec && i < fwspec->num_ids; i++) {
+ 		u16 sid = FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[i]);
+ 
+-		if (sid >= QCOM_SM8350_LPASS_SID_FIRST && sid <= QCOM_SM8350_LPASS_SID_LAST) {
+-			start = max(start, QCOM_SM8350_LPASS_FIRST_CB);
+-			break;
+-		}
++		for (j = 0; j < ARRAY_SIZE(qcom_sm8350_dsp_sids); j++)
++			if (sid >= qcom_sm8350_dsp_sids[j].first && sid <= qcom_sm8350_dsp_sids[j].last)
++				start = max(start, QCOM_SM8350_DSP_FIRST_CB);
+ 	}
+ 
+ 	return __arm_smmu_alloc_bitmap(smmu->context_map, start, smmu->num_context_banks);
