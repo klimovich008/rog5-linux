@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production 7.2.7 r87 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, DDR scaling (bwmon + GPU OPP votes, input boost), GCC/GPUCC sync_state, haptics (AW8697), light/proximity (VCNL36866), logo LED (rgb:logo), speaker audio (CS35L45 x2 over SENARY MI2S)",
+  "phase": "Production 7.2.7 r91 default: Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, DDR scaling (bwmon + GPU OPP votes, input boost), GCC/GPUCC sync_state, haptics (AW8697), light/proximity (VCNL36866), logo LED (rgb:logo), speaker audio (CS35L45 x2 over SENARY MI2S), motion sensors (SLPI Sensor Core: accel, gyro, mag, fusion)",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "2026-09-25: default is production-7.2.7-r87 (kernel r19, platform-audio-dtb-r5). Audio works: the upstream freeze was the hypervisor refusing S2CR routes of the ADSP stream 0x1801 to low SMMU context banks (patch 0049 allocates LPASS streams from bank 20); 0050 fixes drain -EIO; rog5-audio.service routes MultiMedia1 to both speakers at boot; the amplifier IRQ lines got their stock pull-up (IRQ storm). Both amps draw current with the signal; audible confirmation by ear still pending. r87 benches: hwcheck 16 pass incl. audio and Wi-Fi; glmark2 1644; smooth QS 1.00 / slow drag 2.12 / keyboard 1.93 dropped frames per gesture. Open: IMU/other sensors behind the SLPI (TZ rejects pas_init_image; needs a stock-Android capture with userdata backup and slot-change OK); unplugged idle power on r87; brightness full range (Iris6 PT mode); volume control in Denial; then the Wi-Fi settings UI and the QS top-bar glitch (see memory rog5-next-denial-items).",
+  "next": "2026-09-26: default is production-7.2.7-r91 (kernel r20: 0049/0051 DSP streams on SMMU banks >= 20, 0050 q6asm pointer; DTB platform-audio-slpi-dtb-r1; firmware kit r4 with the vendor-partition SLPI image; rog5-audio and rog5-sensors services). All non-cellular blocks in hwcheck pass (audio, BT, buttons, display, GPU, LEDs, sensors incl. accel/gyro/mag via the SLPI, touch, vibration, Wi-Fi); r91 perf/smooth pass. Open: replace the V11 fallback with a newer conservative 7.2.7 bundle (user request 2026-09-26; host tools hard-code V11, loader accepts any signed fallback); unplugged idle power on r91; audio by ear; brightness full range (Iris6 PT); an r87 boot stalled once after a hard reset (watch); then Denial: volume, auto-rotate, Wi-Fi settings UI, QS glitch.",
   "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",

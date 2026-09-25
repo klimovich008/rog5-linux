@@ -794,3 +794,52 @@ and hw matrix before `install-default-kernel.py`.
 - The r88 boot was later found in fastboot with no kernel log of a failure.
   The cause is unknown (possibly a user reboot); to recheck before the SLPI
   enters a default.
+
+### r89-r91: motion sensors work, default r91 (2026-09-26)
+
+- **r89** (the SLPI auto-boots with the vendor firmware from kit
+  `display-firmware-r4`):
+  - Loading `fastrpc` created `/dev/fastrpc-sdsp`. When hexagonrpcd
+    attached, `sensor_process` crashed (`frpck_0_0`, exception 0x3d).
+  - The SMMU dump showed the SLPI compute SIDs 0x541 and 0x542 at FAULT (the
+    hypervisor refuses banks 9 and 10), with 0x543 accepted on CB11. This is
+    the same refusal as the LPASS streams.
+  - Routing them live to CB60/61 stopped the crash. The registry task then
+    asserted on the missing `sns_reg_version`
+    (`sns_registry_sensor.c:154`), and the SLPI recovery re-created the
+    compute banks on 9 and 10. The next access wedged the SoC.
+  - After the hard reset, one r87 boot stalled (USB NCM up, no userspace),
+    so the selector fell back to V11.
+- **0051** widens 0049 into a table of SM8350 DSP stream ranges that start
+  at bank 20: SLPI compute 0x540-0x55f, LPASS 0x1800-0x1bff, and the CDSP
+  compute ranges 0x1180-0x119f and 0x2160-0x217f. The module selection adds
+  `fastrpc` and `socinfo` (121 modules).
+- **hexagonrpc** (user-approved) is pinned at `third_party/hexagonrpc`
+  (upstream 598b591 plus our `sns_reg_version` patch).
+  `scripts/device/install-rog5-sensors.sh` builds it on the phone
+  (reproducible, sha256 5668f659…). It also stages the stock sensor data
+  read-only: 63 vendor configs, 159 persist registry entries plus
+  `sns_reg_version`, and dsp_a. `rog5-sensors.service` loads the
+  `sensor-modules` list and runs hexagonrpcd.
+- **r90** (kernel r20, manual start): 0x541-0x543 came up on CB20-22 with no
+  crash.
+  - SUID lookup finds accel, gyro, mag, gravity, game_rv, rotv,
+    device_orient, sig_motion, step_detect and sensor_temperature.
+  - At rest, flat: accel (0.01, -0.02, 10.01) m/s², gyro about 0.01 rad/s,
+    mag (-31.6, -54.3, 49.3) µT. The stream runs at about 24 Hz when 25 Hz is
+    requested.
+  - Proximity and light stay on the VCNL36866 (IIO).
+  - Restarting hexagonrpcd does not disturb the SLPI.
+- hwcheck `sensors` now needs IIO plus SSC accel, gyro and mag, with the
+  accel magnitude plausible. It passes.
+- **r91** (r90 plus the kit's `rog5-sensors.service`):
+  - The full trial passed: health, GPU, 300 s idle soak with 0 misses,
+    Wi-Fi, BT and audio. The sensors came up by themselves with
+    NRestarts=0.
+  - hwcheck: 16 blocks pass, including sensors and audio.
+  - perf: SHA-256 751/1486/1742 MB/s, A55 memcpy 4.15 GB/s, glmark2 1645.
+  - Smooth (n=40): QS 1.30, slow drag 1.60, keyboard 1.45 and home 0.97
+    dropped frames per gesture.
+- **Default:** production-7.2.7-r91 was installed. Two ordinary reboots each
+  committed healthy, with `rog5-audio` and `rog5-sensors` active
+  automatically (NRestarts=0).
