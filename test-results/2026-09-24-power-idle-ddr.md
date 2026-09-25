@@ -703,3 +703,61 @@ Open: `SNDRV_PCM_IOCTL_DRAIN` returns -EIO after the last period (the data is
 consumed). Audible output has not yet been confirmed by ear. The audio DTB is
 not in the default yet: a new bundle with kernel r18 needs the full RAM trial
 and hw matrix before `install-default-kernel.py`.
+
+### r86-r87: audio in the default (2026-09-25)
+
+- **0050** (`q6asm_dai_pointer`): the pointer is `hw_ptr * period_size`
+  modulo the buffer. The former `- 1` left one frame of every period
+  pending, so `SNDRV_PCM_IOCTL_DRAIN` never saw an empty buffer and timed out
+  with -EIO. With the fix, r86 and r87 return `drain rc=0`.
+- **Boot route:** `rog5-audio.service` runs `ExecStartPost=audio-route`
+  (`initramfs/production-audio-route`, libasound through ctypes). The card
+  has no UCM profile, so this routes MultiMedia1 to SENARY MI2S. It sets
+  both CS35L45 to speaker mode with left ASP_RX1 on the bottom amp and right
+  ASP_RX2 on the top, both at -12 dB digital (361). The speaker-protection
+  DSP is not loaded. DAPM powers the amps only while a stream runs.
+- **Output check without a listener** (r85 boot, USB input current, screen
+  on, 1 kHz at -6 dBFS against digital silence through the same path, three
+  rounds each):
+  - bottom amp: +36 to +47 mA;
+  - top amp: +21 to +70 mA.
+
+  So both amps drive a load with the signal. Nobody has confirmed the sound
+  by ear yet.
+- **r86 (kernel r19, DTB r4):**
+  - The full trial passed: health, display, Wi-Fi, BT, GPU recovery, a 300 s
+    idle soak with 0 misses, and peripherals.
+  - hwcheck passes 16 blocks, including audio and Wi-Fi.
+  - hwcheck's Wi-Fi check now asks `iw dev link`. The kit's wpa_supplicant
+    has no `wpa_cli` socket, so the check had shown "partial".
+  - Smooth: QS 0.97, slow drag 1.10, keyboard 1.15 and home 0.60 dropped
+    frames per gesture (n=40).
+- **CS35L45 IRQ storm** (r86): A55 memcpy fell to 2.85 GB/s (4.2 on r52) and
+  A55 memset to 16.8 (20.7), and unloading the audio modules restored both.
+  - Cause: GPIO 2 and 90, the amplifiers' open-drain active-low IRQs, were
+    left at the TLMM reset pull-down. Both level IRQs fired about 73 times a
+    second with no source, and I2C17 took about 7900 interrupts a second of
+    status reads.
+  - Stock uses `bias-pull-up` (`rcv_irq_default`/`spk_irq_default`). Setting
+    the pull-up live through /dev/mem stopped it at once (0/s) and gave
+    4.21 GB/s.
+  - The audio overlay now carries both pin states (DTB r5).
+- **r87 (kernel r19, DTB r5):**
+  - The full trial passed. Both amp IRQs stay at 0, and I2C17 is idle at
+    0/s. SID 0x1801 is on CB20. Probe `play` drains with rc 0, the alsa-lib
+    tone plays, and the phone stays reachable.
+  - hwcheck: 16 blocks pass (audio, battery, BT, buttons, display, DSPs,
+    GPU, LEDs, RTC, sensors, storage, thermal, touch, USB, vibration, Wi-Fi).
+    Suspend is partial. Cameras, fingerprint and NFC are missing.
+  - perf: SHA-256 747/1483/1742 MB/s (A55/A78/X1), 8956 MB/s on all 8 cores.
+    memcpy: A55 4.21 GB/s, X1 16.6 GB/s. glmark2 1644.
+  - Smooth (n=40 per scenario): QS 1.00, slow drag 2.12, keyboard 1.93 and
+    home 1.10 dropped frames per gesture. As on r52, a few gestures spike to
+    10-15 frames.
+- **Default:** `install-default-kernel.py --stage` installed
+  production-7.2.7-r87. Two ordinary reboots each ran r87 and committed
+  healthy. On the installed default the route applies at 46 s, and the amp
+  IRQs stay at 0.
+- **Audio idle cost** (r85, screen off, battery full, USB input): loaded vs
+  unloaded was 235/231 and 251/229 mA. That run still had the IRQ storm. The
+  unplugged idle-power bench on r87 is still to do.
