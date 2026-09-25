@@ -2094,7 +2094,7 @@ prepare_platform_services() {
 	run=/run
 	[ -e "$kit" ] || [ -L "$kit" ] || return 0
 	[ -d "$kit" ] && [ ! -L "$kit" ] || return 1
-	for entry in boot-modules:444 audio-modules:444 modules:755 rtc-time:755 \
+	for entry in boot-modules:444 audio-modules:444 modules:755 rtc-time:755 audio-route:755 \
 		rog5-platform-modules.service:644 rog5-rtc-time.service:644 \
 		rog5-rtc-time-save.service:644 rog5-rtc-time-save.path:644 \
 		rog5-audio.service:644 rog5-watchdog.conf:644; do
@@ -2115,7 +2115,8 @@ prepare_platform_services() {
 		[ ! -e "$run/systemd/system/$unit" ] && [ ! -L "$run/systemd/system/$unit" ] || return 1
 	done
 	mkdir -m 0700 "$run/rog5-platform" || return 1
-	cp -p "$kit/boot-modules" "$kit/audio-modules" "$kit/modules" "$kit/rtc-time" "$run/rog5-platform/" || return 1
+	cp -p "$kit/boot-modules" "$kit/audio-modules" "$kit/modules" "$kit/rtc-time" "$kit/audio-route" \
+		"$run/rog5-platform/" || return 1
 	mkdir -p "$run/systemd/system/sysinit.target.wants" \
 		"$run/systemd/system/multi-user.target.wants" "$run/systemd/system.conf.d" || return 1
 	for unit in $units; do

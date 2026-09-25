@@ -72,6 +72,7 @@ install_platform_kit() {
 		install -m 0444 "$repo/configs/production/audio-modules.list" "$kit/audio-modules" &&
 		install -m 0755 "$repo/initramfs/production-platform-modules" "$kit/modules" &&
 		install -m 0755 "$repo/initramfs/production-rtc-time" "$kit/rtc-time" &&
+		install -m 0755 "$repo/initramfs/production-audio-route" "$kit/audio-route" &&
 		install -m 0644 "$repo/configs/systemd/rog5-watchdog.conf" "$kit/rog5-watchdog.conf" || return 1
 	for unit in rog5-platform-modules.service rog5-rtc-time.service \
 		rog5-rtc-time-save.service rog5-rtc-time-save.path rog5-audio.service; do

@@ -13,6 +13,8 @@ Conflicts=shutdown.target
 [Service]
 Type=oneshot
 ExecStart=/run/rog5-platform/modules audio-modules
+# No UCM profile: route MultiMedia1 to both speakers once the card is up.
+ExecStartPost=/run/rog5-platform/audio-route
 RemainAfterExit=yes
 
 [Install]

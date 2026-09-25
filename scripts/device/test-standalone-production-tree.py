@@ -105,7 +105,8 @@ class Builds(unittest.TestCase):
         self.assertEqual(modes['rog5-platform/boot-modules'], '-r--r--r--')
         self.assertEqual(modes['rog5-platform/audio-modules'], '-r--r--r--')
         self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
-        self.assertEqual(len(modes), 11)
+        self.assertEqual(modes['rog5-platform/audio-route'], '-rwxr-xr-x')
+        self.assertEqual(len(modes), 12)
 
     @unittest.skipUnless((WIFI_KIT/'SHA256SUMS').is_file(), 'needs the private Wi-Fi kit')
     def test_wifi_kit_is_installed_only_when_pinned(self):

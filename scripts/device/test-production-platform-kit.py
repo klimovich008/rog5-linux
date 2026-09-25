@@ -211,6 +211,7 @@ def prepare_function(kit, run):
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
 class Publish(Base):
     FILES = (('boot-modules', 0o444, LIST), ('audio-modules', 0o444, AUDIO_LIST), ('modules', 0o755, MODULES), ('rtc-time', 0o755, RTC),
+             ('audio-route', 0o755, REPO/'initramfs/production-audio-route'),
              ('rog5-watchdog.conf', 0o644, REPO/'configs/systemd/rog5-watchdog.conf')) + tuple(
                  (unit, 0o644, REPO/'configs/systemd'/unit) for unit in UNITS)
 
@@ -239,7 +240,7 @@ class Publish(Base):
     def test_kit_is_published(self):
         self.assertEqual(self.prepare(), 0)
         target = self.run/'rog5-platform'
-        self.assertEqual(sorted(p.name for p in target.iterdir()), ['audio-modules', 'boot-modules', 'modules', 'rtc-time'])
+        self.assertEqual(sorted(p.name for p in target.iterdir()), ['audio-modules', 'audio-route', 'boot-modules', 'modules', 'rtc-time'])
         self.assertEqual(oct(target.stat().st_mode & 0o777), '0o700')
         system = self.run/'systemd/system'
         for unit in UNITS:

@@ -1,0 +1,20 @@
+--- a/sound/soc/qcom/qdsp6/q6asm-dai.c	2026-09-25 20:04:30.003560549 +0200
++++ b/sound/soc/qcom/qdsp6/q6asm-dai.c	2026-09-25 20:04:30.015741526 +0200
+@@ -485,11 +485,14 @@
+ 	struct q6asm_dai_rtd *prtd = runtime->private_data;
+ 	snd_pcm_uframes_t ptr;
+ 
++	/*
++	 * hw_ptr is one past the period the DSP finished last (1..periods).
++	 * The former "ptr - 1" kept one frame of it pending, so a drain never
++	 * saw an empty buffer and timed out with -EIO.
++	 */
+ 	ptr = q6asm_get_hw_pointer(prtd->audio_client, substream->stream) * runtime->period_size;
+-	if (ptr)
+-		return ptr - 1;
+ 
+-	return 0;
++	return ptr % runtime->buffer_size;
+ }
+ 
+ static int q6asm_dai_hw_params(struct snd_soc_component *component,
