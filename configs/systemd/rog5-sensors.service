@@ -1,0 +1,21 @@
+[Unit]
+Description=Serve the sensor DSP its registry (hexagonrpcd, SLPI sensorspd)
+# The SLPI boots itself (remoteproc auto-boot, vendor firmware); its
+# sensor_process then waits for a host listener on fastrpc to read the stock
+# sensor registry and config, staged by scripts/device/install-rog5-sensors.sh.
+After=rog5-platform-modules.service rog5-audio.service
+ConditionPathExists=/proc/device-tree/soc@0/remoteproc@5c00000
+ConditionPathExists=/usr/local/bin/hexagonrpcd
+ConditionPathExists=/usr/share/qcom/sm8350/ASUS/ZS673KS/sensors/registry
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+ExecStartPre=/run/rog5-platform/modules sensor-modules
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do [ -c /dev/fastrpc-sdsp ] && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/local/bin/hexagonrpcd -f /dev/fastrpc-sdsp -d sdsp -s -R /usr/share/qcom/sm8350/ASUS/ZS673KS
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

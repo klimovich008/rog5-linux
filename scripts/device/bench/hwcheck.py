@@ -120,8 +120,23 @@ def vibration():
 
 
 def sensors():
+    # Light/proximity on I2C (IIO); motion sensors behind the SLPI (SSC over QRTR).
     iio = {os.path.basename(p): rd(p + '/name') for p in glob.glob('/sys/bus/iio/devices/iio:device*')}
-    return result('pass' if iio else 'missing', iio=iio)
+    ssc_seen = {}
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import ssc
+        for t in ('accel', 'gyro', 'mag'):
+            samples = ssc.read(t, 25, 1.5)
+            last = samples[-1][0] if samples else []
+            ssc_seen[t] = dict(samples=len(samples), last=[round(x, 3) for x in last[:3]])
+    except (OSError, SystemExit, ImportError) as e:
+        ssc_seen['error'] = repr(e)
+    accel = ssc_seen.get('accel', {}).get('last', [])
+    g = sum(x * x for x in accel) ** 0.5 if len(accel) == 3 else 0
+    motion = g > 7 and all(ssc_seen.get(t, {}).get('samples') for t in ('gyro', 'mag'))
+    return result('pass' if iio and motion else 'partial' if iio or motion else 'missing',
+                  iio=iio, ssc=ssc_seen, accel_g=round(g, 2))
 
 
 def thermal_cpufreq():

@@ -1,0 +1,9 @@
+# Sensor DSP support, loaded by rog5-sensors.service after the audio stack.
+# fastrpc gives hexagonrpcd /dev/fastrpc-sdsp, over which the SLPI's
+# sensor_process reads its registry and config; socinfo publishes
+# /sys/devices/soc0 (soc_id, revision) that the registry reads. The SLPI's
+# compute banks need patch 0051 (high SMMU context banks): on low banks the
+# hypervisor leaves them FAULT, sensor_process crashes and its recovery wedges
+# the SoC (r89). One module per line, as in boot-modules.
+fastrpc
+socinfo

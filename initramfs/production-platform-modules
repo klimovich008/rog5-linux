@@ -1,7 +1,8 @@
 #!/bin/sh
 # Load the production boot modules listed in the platform kit, in order.
 # An argument names another list in the kit (audio-modules for
-# rog5-audio.service); the one-time boot settings below apply to boot-modules.
+# rog5-audio.service, sensor-modules for rog5-sensors.service); the one-time
+# boot settings below apply to boot-modules.
 # Modules come only from the published tree /run/rog5-modules (the root's
 # /lib/modules stays empty, so nothing autoloads). A failed module is logged
 # and the rest still load; the unit fails if any module failed.
@@ -14,7 +15,7 @@ log() {
 		printf 'rog5-platform-modules: %s\n' "$*" >&2
 }
 list=${1:-boot-modules}
-case $list in boot-modules|audio-modules) ;; *) log "FAIL unknown module list $list"; exit 1 ;; esac
+case $list in boot-modules|audio-modules|sensor-modules) ;; *) log "FAIL unknown module list $list"; exit 1 ;; esac
 [ -d "$tree/lib/modules/$(uname -r)" ] || { log "FAIL no module tree for $(uname -r)"; exit 1; }
 if [ "$list" = boot-modules ]; then
 	# The loader's signed command line sets loglevel=8 ignore_loglevel with a
