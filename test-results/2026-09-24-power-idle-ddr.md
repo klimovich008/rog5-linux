@@ -349,3 +349,14 @@ On a fresh r38 boot, back to back:
 
 The kernel log after the soak has no GMU HFI timeout, GPU fault or hangcheck.
 With CPU-side GPU DDR votes (0046 dropped), no GMU stall has recurred since r35.
+
+## Cleanup (step 13)
+
+- The phone's persistent root had
+  `/etc/systemd/journald.conf.d/rog5-hang-debug.conf` (persistent storage,
+  1 s sync, no rate limit), a debugging aid from the hang hunt. It is removed,
+  and journald was restarted with the stock settings.
+- The DCS probe module is not loaded and the brightness-UI transient unit is
+  gone. The repo no longer carries either tool (git history does).
+- The laptop's USB profile is unchanged; `rog5-bench.py hw` passes (earlier
+  run, this boot).
