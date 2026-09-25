@@ -90,9 +90,11 @@ not here.
 - Phone presence (host-only, read-only): `cat /sys/bus/usb/devices/1-1.2/{idVendor,idProduct,product}`.
   Linux reports `1d6b 0104 "ROG5 persistent root"`; fastboot reports `0b05 4daf`;
   `05c6 900e` is the Qualcomm crashdump screen. `lsusb | grep 0b05` cannot see
-  Linux. Host NCM interface: `enp4s0f3u1u2` with 10.77.0.1/30. Any ordinary
-  reboot lands on V11: userdata still holds a GPU-trial record the selector
-  doesn't recognise. Manual rescue runbook: docs/development.md.
+  Linux. Host NCM interface: `enp4s0f3u1u2` with 10.77.0.1/30 (after a replug
+  run `nmcli con up rog5-standalone-shared`). An ordinary reboot boots the
+  selector's primary, or its fallback `production-7.2.7-safe-r2` after an
+  uncommitted boot (V11 was the fallback until 2026-09-26 and stays on p24).
+  Manual rescue runbook: docs/development.md.
 - External references (pmOS pdx215, sm8350-mainline OnePlus DT, old i005d DTS):
   see the Claude memory `sm8350-references`.
 
@@ -146,7 +148,7 @@ when the results justify it. Don't let process work replace phone progress.
 Standing user authorization (2026-09-23): phone tests that need no physical
 action from the user may run without asking for Ready. Examples are SSH
 probes, to-fastboot, RAM-only trials via `production-ram-trial.py`, and a
-normal `fastboot-reboot` to V11. Keep RAM-only, identity checks, one claim per
+normal `fastboot-reboot` back to the installed chain. Keep RAM-only, identity checks, one claim per
 image and evidence capture. Flashing, partition or slot changes still need
 explicit approval. Ask for Ready only when the user's hands are needed, and
 tell the user at once if a rescue press becomes necessary.

@@ -843,3 +843,38 @@ and hw matrix before `install-default-kernel.py`.
 - **Default:** production-7.2.7-r91 was installed. Two ordinary reboots each
   committed healthy, with `rog5-audio` and `rog5-sensors` active
   automatically (NRestarts=0).
+
+### New fallback: production-7.2.7-safe-r2 replaces V11 (2026-09-26)
+
+The user asked for a newer safe kernel ("V11 is no longer stable"). Once,
+after the r89 hang, a fallback to V11 showed only a black screen, because
+V11 is a headless volatile root.
+- **safe-r2:**
+  - kernel/modules r20 and the r52 DTB (`platform-periph-dtb-r4`,
+    byte-identical to r3), so no audio or SLPI overlays, which are the parts
+    that hung the phone this week;
+  - the persistent root (Denial), firmware kit r4 and the Wi-Fi kit;
+  - no trial descriptor.
+  - `rog5-audio` and `rog5-sensors` skip themselves. The sensor unit gained an
+    `ExecCondition` on the SLPI node's `status`: the safe-r1 RAM trial
+    restarted it forever, because the disabled node still exists.
+- **Tools:**
+  - `install-default-kernel.py` now takes the fallback from the phone's
+    current selector (verified with the trust key) and
+    `--fallback-bundle-dir` to install a new one in the same p24 write window.
+  - The target script checks that the new fallback is new on p24 and carries
+    no descriptor.
+  - 12 installer tests pass.
+- **Trials:** safe-r1 and safe-r2 in RAM (Denial, Wi-Fi, BT, touch, a 180 s
+  soak with 0 misses), and r92 in RAM.
+- **Install:** r92 as the default with safe-r2 as the fallback. Two reboots
+  committed healthy, and the selector names safe-r2. V11's files remain on
+  p24.
+- **Forced fallback:**
+  - With the commit unit masked, boot A ran r92 and stayed pending.
+  - Boot B ran **production-7.2.7-safe-r2**: `running`, Denial on the panel,
+    Wi-Fi up, audio and sensors off.
+  - Then the mask was removed, r93 was RAM-trialed, and r93 was installed
+    keeping safe-r2. Two reboots committed healthy.
+- **Default now:** production-7.2.7-r93 (the same content as r91/r92), with
+  fallback production-7.2.7-safe-r2.

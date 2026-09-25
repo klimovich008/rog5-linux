@@ -780,8 +780,12 @@ dtschema venv died with the removed Codex runtime.
 The slot-B loader boots the selector's primary bundle while the p23 try-once
 record (`/rog5/boot/wifi-trial-state`) is absent or healthy, and re-arms it
 to pending on each primary boot. A boot that does not mark itself healthy
-sends the next boot to the V11 fallback. The production ramdisk commits
-itself when it is built with a trial descriptor:
+sends the next boot to the selector's fallback. That is
+`production-7.2.7-safe-r2` since 2026-09-26: kernel r20, the r52 DTB (no
+audio or SLPI overlays), the persistent root with Denial, and no trial
+descriptor. It replaced V11, whose bundle stays on p24 for a manual
+rollback. The production ramdisk commits itself when it is built with a
+trial descriptor:
 
 1. Write a fresh descriptor (never reuse a trial id or bundle name):
    `format=rog5-persistent-wifi-health-v1`, `trial_id=<64 random hex>`,
@@ -794,7 +798,8 @@ itself when it is built with a trial descriptor:
 3. `install-default-kernel.py --bundle-dir <package>/bundles/<bundle>
    --descriptor <file> --trust-key <raw loader key> --evidence <new dir>`
    from any booted ROG5 system. It verifies both bundles with the trust key
-   (V11 is fetched from the phone), checks that the ramdisk carries this
+   (the fallback the current selector names is fetched from the phone),
+   checks that the ramdisk carries this
    descriptor, generates the selector, backs up the old selector and record,
    and runs the target script's `--inspect` and `--preflight` against a RAM
    copy. Add `--stage` (clean repository) for the single write window: the
@@ -802,7 +807,10 @@ itself when it is built with a trial descriptor:
    the new one is swapped in, p24 is relocked, and the old record is
    archived as `wifi-trial-state.archived-before-<bundle>-<sha>`. A 180 s
    timer relocks p24 if the script dies. Never retry a failed `--stage`:
-   inspect the phone first.
+   inspect the phone first. `--fallback-bundle-dir <package>/bundles/<name>`
+   also installs a new fallback bundle in the same window. The bundle must
+   be new on p24 and carry no trial descriptor, and the new selector names
+   it.
 4. Reboot normally. The first boot writes a pending record and boots the
    bundle, and the unit logs `PASS <bundle> committed healthy`. The next
    reboot must land on the same bundle. Persistent boots answer SSH on
@@ -811,7 +819,12 @@ itself when it is built with a trial descriptor:
    2026-09-23.
 
 Going back is a selector change: `selector.rollback-<bundle>` is the
-previous selector, which boots V11 while the new record is foreign to it.
+previous selector, which boots its fallback while the new record is foreign
+to it. To test the fallback: persistently mask
+`rog5-production-trial-commit.service` (`/etc/systemd/system` → /dev/null)
+for one boot. That boot stays pending, the next one boots the fallback, and
+you then unmask and install a fresh default (2026-09-26: safe-r2 came up
+with Denial and Wi-Fi).
 
 ### Human-assisted hardware sessions
 
@@ -856,8 +869,7 @@ prompt the operator one step at a time:
 
 Landing: a forced reset without Volume Up boots the flashed boot_b wrapper. A RAM
 trial image is gone after any reset. The slot-B loader then picks the primary
-or the V11 fallback; while the foreign GPU trial record stays in userdata, that
-is V11. A loader failure returns to fastboot. With USB connected, power-off is
+or its fallback (production-7.2.7-safe-r2 since 2026-09-26; V11 before). A loader failure returns to fastboot. With USB connected, power-off is
 not a stable state: the phone restarted into slot B by itself (S06 on 2026-09-09
 and on 2026-09-03). Record which landing occurred and the hold time the operator
 reports.
