@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Install a signed production bundle as the phone's slot-B default kernel.
 
-The bundle becomes the selector's try-once primary with the signed V11 bundle
-as fallback. Its ramdisk must carry the matching trial descriptor
+The bundle becomes the selector's try-once primary. The fallback is the one
+the phone's current selector names (V11 until 2026-09-26), verified with the
+trust key, or, with --fallback-bundle-dir, a new signed bundle installed in
+the same write window (it must not carry a trial descriptor: a fallback never
+commits a trial). Its ramdisk must carry the matching trial descriptor
 (PRODUCTION_TRIAL_DESCRIPTOR), so each healthy boot commits itself and the
 next boot takes it again; a boot that does not commit falls back to V11.
 
@@ -31,14 +34,14 @@ REPO = Path(__file__).resolve().parents[2]
 TARGET_SCRIPT = REPO/'scripts/device/install-default-kernel-on-target.sh'
 VERIFIER_SOURCE = REPO/'tools/recovery_control/rog5-bundle-verify.c'
 FILES = ('Image', 'board.dtb', 'initramfs.cpio.gz', 'manifest', 'manifest.sig')
-FALLBACK = 'persistent-native-root-v11'
+FALLBACK = 'persistent-native-root-v11'  # the original fallback (tests, history)
 TRUST_RAW_SHA256 = 'cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054'
 P24_UUID = '8b03827a-cc2d-4408-8558-e9b61195f96b'
 P24_SIZE = '34359717888'
 P23_UUID = '0892bacf-3e02-41b0-84a4-5f05c2df7ce5'
 ROOT_MOUNT = '/.rog5/root-ro'
 USERDATA_MOUNT = '/.rog5/userdata-rw'
-STAGED = 'PASS default kernel {bundle} installed; V11 fallback preserved; p24 relocked; no boot performed\n'
+STAGED = 'PASS default kernel {bundle} installed; fallback {fallback} {state}; p24 relocked; no boot performed\n'
 SHA = re.compile(r'[0-9a-f]{64}')
 NAME = re.compile(r'[a-z0-9][a-z0-9._-]{0,63}')
 VALUE = re.compile(r'[A-Za-z0-9._/:-]{1,200}')
@@ -110,6 +113,16 @@ def verify_bundle(verifier, trust, root, bundle, manifest_sha256):
     return text
 
 
+def selector_fallback(selector):
+    """(bundle, manifest sha256) of the fallback a v2 selector names."""
+    rows = dict(line.split('=', 1) for line in selector.decode('ascii').splitlines() if '=' in line)
+    need(rows.get('format') == 'rog5-slotb-selector-v2', 'current selector format')
+    name, digest = rows.get('fallback_bundle', ''), rows.get('fallback_manifest_sha256', '')
+    need(NAME.fullmatch(name) is not None and '..' not in name and SHA.fullmatch(digest) is not None,
+         'current selector fallback')
+    return name, digest
+
+
 def archive_name(bundle, old_sha256):
     return f'wifi-trial-state.archived-before-{bundle}-{old_sha256}'
 
@@ -157,6 +170,8 @@ def main():
     parser.add_argument('--descriptor', type=Path, required=True, help='trial descriptor built into the ramdisk')
     parser.add_argument('--trust-key', type=Path, required=True, help='raw Ed25519 trust key (32 bytes)')
     parser.add_argument('--evidence', type=Path, required=True, help='new directory for backups and logs')
+    parser.add_argument('--fallback-bundle-dir', type=Path,
+                        help='packaged bundles/<name> directory to install as the new fallback')
     parser.add_argument('--address', default='169.254.77.2')
     parser.add_argument('--stage', action='store_true', help='perform the persistent install')
     args = parser.parse_args()
@@ -164,7 +179,14 @@ def main():
     need(not args.evidence.exists(), 'evidence directory exists: inspect it, never retry')
     trial_id, bundle = descriptor_fields(regular(args.descriptor))
     need(args.bundle_dir.name == bundle, 'bundle directory does not match the descriptor')
-    need(bundle != FALLBACK, 'refusing to replace the fallback bundle')
+    new_fallback = None
+    if args.fallback_bundle_dir is not None:
+        need(sorted(p.name for p in args.fallback_bundle_dir.iterdir()) == sorted(FILES), 'fallback bundle inventory')
+        new_fallback = {name: regular(args.fallback_bundle_dir/name) for name in FILES}
+        need(NAME.fullmatch(args.fallback_bundle_dir.name) is not None and args.fallback_bundle_dir.name != bundle,
+             'fallback bundle name')
+        need(newc_member(new_fallback['initramfs.cpio.gz'], 'rog5-production-trial/trial-descriptor') is None,
+             'the fallback ramdisk carries a trial descriptor; a fallback must never commit a trial')
     need(sorted(p.name for p in args.bundle_dir.iterdir()) == sorted(FILES), 'bundle inventory')
     payload = {name: regular(args.bundle_dir/name) for name in FILES}
     need(sha(regular(args.trust_key)) == TRUST_RAW_SHA256, 'trust key is not the slot-B loader key')
@@ -200,6 +222,11 @@ def main():
         write_new(args.evidence/'wifi-trial-state.before', record_old)
     need(f'trial_id={trial_id}\n'.encode() not in selector_old + (record_old or b''),
          'this trial id is already in use: build a fresh descriptor')
+    current_fallback, current_fallback_sha256 = selector_fallback(selector_old)
+    need(bundle != current_fallback, 'refusing to replace the fallback bundle')
+    fallback_name = args.fallback_bundle_dir.name if new_fallback is not None else current_fallback
+    need(fallback_name == current_fallback or new_fallback is not None, 'fallback identity')
+    note(f'current fallback {current_fallback}; new selector fallback {fallback_name}')
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -210,18 +237,24 @@ def main():
         (roots/bundle).mkdir(parents=True)
         for name, data in payload.items():
             (roots/bundle/name).write_bytes(data)
-        fallback = {}
-        (roots/FALLBACK).mkdir()
-        for name in FILES:
-            fallback[name] = phone.read(f'{linux}/bundles/{FALLBACK}/{name}')
-            (roots/FALLBACK/name).write_bytes(fallback[name])
-        need(sha(fallback['manifest']) == SELECTOR.FALLBACK_MANIFEST_SHA256, 'V11 manifest changed')
-        verify_bundle(verifier, args.trust_key, roots, FALLBACK, sha(fallback['manifest']))
+        if new_fallback is None:
+            fallback = {name: phone.read(f'{linux}/bundles/{fallback_name}/{name}') for name in FILES}
+            need(sha(fallback['manifest']) == current_fallback_sha256, 'fallback manifest differs from the selector')
+        else:
+            fallback = new_fallback
+            exists = phone.run(f"test -e '{linux}/bundles/{fallback_name}' && echo present || echo absent")
+            need(exists.stdout.decode().strip() == 'absent', 'the new fallback bundle already exists on p24')
+        (roots/fallback_name).mkdir()
+        for name, data in fallback.items():
+            (roots/fallback_name/name).write_bytes(data)
+        fallback_plan = verify_bundle(verifier, args.trust_key, roots, fallback_name, sha(fallback['manifest']))
+        (args.evidence/'verified-fallback-plan.txt').write_text(fallback_plan)
         plan = verify_bundle(verifier, args.trust_key, roots, bundle, sha(payload['manifest']))
         (args.evidence/'verified-plan.txt').write_text(plan)
-    note(f'verified {bundle} and {FALLBACK} with trust key {TRUST_RAW_SHA256[:8]}')
+    note(f'verified {bundle} and {fallback_name} with trust key {TRUST_RAW_SHA256[:8]}')
 
-    selector, generated = SELECTOR.generate(regular(args.descriptor), payload['manifest'], fallback['manifest'])
+    selector, generated = SELECTOR.generate(regular(args.descriptor), payload['manifest'], fallback['manifest'],
+                                            fallback_name, sha(fallback['manifest']))
     write_new(args.evidence/'selector', selector)
     values = dict(
         boot_id=boot_id, bundle=bundle, trial_id=trial_id,
@@ -232,6 +265,7 @@ def main():
         selector_new_sha256=sha(selector),
         record_old_sha256=sha(record_old) if record_old is not None else 'absent',
         record_archive=archive_name(bundle, sha(record_old) if record_old is not None else 'none'),
+        fallback_bundle=fallback_name, fallback_install=int(new_fallback is not None),
         fallback_image=sha(fallback['Image']), fallback_dtb=sha(fallback['board.dtb']),
         fallback_initramfs=sha(fallback['initramfs.cpio.gz']), fallback_manifest=sha(fallback['manifest']),
         fallback_signature=sha(fallback['manifest.sig']),
@@ -251,7 +285,11 @@ def main():
 
     source = values['source_root']
     phone.run(f"test \"$(findmnt -n -o FSTYPE /run)\" = tmpfs && mkdir -m 700 '{source}'")
-    for name, data in list(payload.items())+[('selector', selector)]:
+    transfers = list(payload.items())+[('selector', selector)]
+    if new_fallback is not None:
+        phone.run(f"mkdir -m 700 '{source}/fallback'")
+        transfers += [('fallback/'+name, data) for name, data in new_fallback.items()]
+    for name, data in transfers:
         pushed = phone.run(f"cat > '{source}/{name}' && sha256sum '{source}/{name}'", timeout=180, data=data)
         need(pushed.stdout.decode().split()[0] == sha(data), 'transfer changed '+name)
     result = phone.script(script, '--preflight')
@@ -268,6 +306,7 @@ def main():
     head = subprocess.run(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     write_new(args.evidence/'INSTALL-ENTERED.json', json.dumps(dict(
         bundle=bundle, trial_id=trial_id, boot_id=boot_id, source_revision=head,
+        fallback=fallback_name, fallback_installed=new_fallback is not None,
         script_sha256=sha(script), selector_sha256=sha(selector),
         previous_selector_sha256=sha(selector_old), previous_record_sha256=values['record_old_sha256'],
         time=time.time()), indent=2).encode()+b'\n')
@@ -277,7 +316,9 @@ def main():
         result = phone.script(script, '--stage', timeout=240)
         write_new(args.evidence/'stage.log', result.stdout+result.stderr)
         report['returncode'] = result.returncode
-        need(result.returncode == 0 and result.stdout.endswith(STAGED.format(bundle=bundle).encode()),
+        staged = STAGED.format(bundle=bundle, fallback=fallback_name,
+                               state='installed' if new_fallback is not None else 'preserved')
+        need(result.returncode == 0 and result.stdout.endswith(staged.encode()),
              'stage failed; inspect the phone, never retry: '+(result.stdout+result.stderr).decode(errors='replace')[-300:])
         after = phone.read(linux+'/selector')
         need(after == selector, 'active selector differs after staging')

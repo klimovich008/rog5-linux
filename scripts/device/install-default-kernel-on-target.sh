@@ -1,5 +1,8 @@
 #!/bin/sh
-# Install one signed bundle as the slot-B default (try-once primary, V11 fallback).
+# Install one signed bundle as the slot-B default (try-once primary plus the
+# fallback named in the selector). With fallback_install=1 the same write
+# window also installs a new fallback bundle (from $source_root/fallback) that
+# the new selector names; otherwise the existing fallback must be unchanged.
 #
 # Runs as root on the booted ROG5 system, fed on stdin by
 # scripts/host/install-default-kernel.py, which prepends the exact values
@@ -18,6 +21,7 @@
 #   boot_id bundle trial_id payload_{image,dtb,initramfs,manifest,signature}
 #   selector_old_sha256 selector_old_size selector_new_sha256
 #   record_old_sha256 (or "absent") record_archive
+#   fallback_bundle fallback_install (0 keep, 1 install)
 #   fallback_{image,dtb,initramfs,manifest,signature}
 #   p24_uuid p23_uuid p24_size
 #   root_mount userdata_mount source_root sys_block sys_power
@@ -36,7 +40,7 @@ bundle_target=$linux/bundles/$bundle
 selector=$linux/selector
 selector_next=$linux/.selector.next-$trial_id
 selector_rollback=$linux/selector.rollback-$bundle
-fallback_dir=$linux/bundles/persistent-native-root-v11
+fallback_dir=$linux/bundles/$fallback_bundle
 record=$userdata_mount/rog5/boot/wifi-trial-state
 record_next=$userdata_mount/rog5/boot/.wifi-trial-state.next
 guard=rog5-default-kernel-guard-$(printf '%s' "$trial_id" | cut -c1-16)
@@ -75,6 +79,8 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
 
+case $fallback_install in 0|1) ;; *) fail 'fallback_install must be 0 or 1' ;; esac
+[ "$fallback_bundle" != "$bundle" ] || fail 'primary and fallback are the same bundle'
 [ "$(id -u)" = 0 ] || fail 'root required'
 [ "$(cat /proc/sys/kernel/random/boot_id)" = "$boot_id" ] || fail 'boot identity changed'
 [ "$(findmnt -n -o SOURCE "$root_mount")" = /dev/sda24 ] || fail 'p24 source changed'
@@ -119,11 +125,15 @@ capacity=$(cat "$sys_power/qcom-battmgr-bat/capacity")
 case $capacity in ''|*[!0-9]*) fail 'battery capacity invalid' ;; esac
 [ "$capacity" -ge 30 ] || fail 'battery capacity below 30 %'
 
-for pair in "Image:$fallback_image" "board.dtb:$fallback_dtb" \
-	"initramfs.cpio.gz:$fallback_initramfs" "manifest:$fallback_manifest" \
-	"manifest.sig:$fallback_signature"; do
-	[ "$(sha "$fallback_dir/${pair%%:*}")" = "${pair#*:}" ] || fail "fallback ${pair%%:*} changed"
-done
+fallback_pairs="Image:$fallback_image board.dtb:$fallback_dtb initramfs.cpio.gz:$fallback_initramfs
+	manifest:$fallback_manifest manifest.sig:$fallback_signature"
+if [ "$fallback_install" = 1 ]; then
+	[ ! -e "$fallback_dir" ] && [ ! -L "$fallback_dir" ] || fail "path exists: $fallback_dir"
+else
+	for pair in $fallback_pairs; do
+		[ "$(sha "$fallback_dir/${pair%%:*}")" = "${pair#*:}" ] || fail "fallback ${pair%%:*} changed"
+	done
+fi
 [ "$mode" != --inspect ] || { echo "PASS default kernel inspection scope=$scope"; exit 0; }
 
 for pair in "Image:$payload_image" "board.dtb:$payload_dtb" \
@@ -131,6 +141,12 @@ for pair in "Image:$payload_image" "board.dtb:$payload_dtb" \
 	"manifest.sig:$payload_signature" "selector:$selector_new_sha256"; do
 	[ "$(sha "$source_root/${pair%%:*}")" = "${pair#*:}" ] || fail "transferred ${pair%%:*} changed"
 done
+if [ "$fallback_install" = 1 ]; then
+	for pair in $fallback_pairs; do
+		[ "$(sha "$source_root/fallback/${pair%%:*}")" = "${pair#*:}" ] ||
+			fail "transferred fallback ${pair%%:*} changed"
+	done
+fi
 [ "$mode" != --preflight ] || { echo 'PASS default kernel payload preflight'; exit 0; }
 
 mutating=1
@@ -152,6 +168,15 @@ for name in Image board.dtb initramfs.cpio.gz manifest manifest.sig; do
 	cmp "$source_root/$name" "$bundle_target/$name" || fail "installed $name changed"
 done
 [ "$(find "$bundle_target" -mindepth 1 -maxdepth 1 | wc -l)" -eq 5 ] || fail 'bundle inventory changed'
+if [ "$fallback_install" = 1 ]; then
+	mkdir -m 0700 "$fallback_dir" || fail 'cannot create fallback directory'
+	for name in Image board.dtb initramfs.cpio.gz manifest manifest.sig; do
+		install -o root -g root -m 0400 "$source_root/fallback/$name" "$fallback_dir/$name" ||
+			fail "cannot install fallback $name"
+		cmp "$source_root/fallback/$name" "$fallback_dir/$name" || fail "installed fallback $name changed"
+	done
+	[ "$(find "$fallback_dir" -mindepth 1 -maxdepth 1 | wc -l)" -eq 5 ] || fail 'fallback inventory changed'
+fi
 install -o root -g root -m 0600 "$selector" "$selector_rollback" || fail 'cannot preserve previous selector'
 [ "$(sha "$selector_rollback")" = "$selector_old_sha256" ] || fail 'rollback selector changed'
 install -o root -g root -m 0600 "$source_root/selector" "$selector_next" || fail 'cannot stage selector'
@@ -173,4 +198,5 @@ sync -f "$userdata_mount"
 systemctl --job-mode=ignore-dependencies stop "$guard.timer" >/dev/null 2>&1 || true
 mutating=0
 
-echo "PASS default kernel $bundle installed; V11 fallback preserved; p24 relocked; no boot performed"
+[ "$fallback_install" = 1 ] && fallback_state=installed || fallback_state=preserved
+echo "PASS default kernel $bundle installed; fallback $fallback_bundle $fallback_state; p24 relocked; no boot performed"

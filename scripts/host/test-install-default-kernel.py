@@ -64,6 +64,15 @@ class Host(unittest.TestCase):
             with self.subTest(bad), self.assertRaises(ValueError):
                 I.render(dict(bundle=bad))
 
+    def test_selector_fallback_is_read_from_the_selector(self):
+        good = (b'format=rog5-slotb-selector-v2\ntrial_id='+b'a'*64+b'\nprimary_bundle=p\nprimary_manifest_sha256='
+                + b'b'*64+b'\nfallback_bundle=persistent-native-root-v11\nfallback_manifest_sha256='+b'c'*64+b'\nmode=try-once\n')
+        self.assertEqual(I.selector_fallback(good), ('persistent-native-root-v11', 'c'*64))
+        for bad in (good.replace(b'selector-v2', b'selector-v1'), good.replace(b'root-v11', b'../v11'),
+                    good.replace(b'c'*64, b'c'*63)):
+            with self.assertRaises(ValueError):
+                I.selector_fallback(bad)
+
     def test_archive_name_is_unique_per_bundle_and_record(self):
         self.assertEqual(I.archive_name(BUNDLE, 'f'*64), f'wifi-trial-state.archived-before-{BUNDLE}-'+'f'*64)
 
@@ -140,6 +149,7 @@ class Target(unittest.TestCase):
             selector_old_sha256=sha(self.selector_old), selector_old_size=len(self.selector_old),
             selector_new_sha256=self.payload['selector'],
             record_old_sha256=sha(self.record_old), record_archive=I.archive_name(BUNDLE, sha(self.record_old)),
+            fallback_bundle=I.FALLBACK, fallback_install=0,
             fallback_image=self.fallback['Image'], fallback_dtb=self.fallback['board.dtb'],
             fallback_initramfs=self.fallback['initramfs.cpio.gz'], fallback_manifest=self.fallback['manifest'],
             fallback_signature=self.fallback['manifest.sig'],
@@ -181,7 +191,7 @@ class Target(unittest.TestCase):
     def test_stage_installs_swaps_relocks_and_archives(self):
         code, out = self.run_target('--stage')
         self.assertEqual(code, 0, out)
-        self.assertTrue(out.endswith(I.STAGED.format(bundle=BUNDLE)))
+        self.assertTrue(out.endswith(I.STAGED.format(bundle=BUNDLE, fallback=I.FALLBACK, state='preserved')))
         target = self.linux()/'bundles'/BUNDLE
         self.assertEqual(sorted(p.name for p in target.iterdir()), sorted(I.FILES))
         for name in I.FILES:
@@ -204,6 +214,49 @@ class Target(unittest.TestCase):
         code, out = self.run_target('--stage')
         self.assertEqual(code, 1)
         self.assertIn('FAIL default kernel install: selector metadata changed', out)
+
+    def test_stage_can_install_a_new_fallback(self):
+        (self.source/'fallback').mkdir()
+        new = {}
+        for name in I.FILES:
+            data = b'safe '+name.encode()
+            (self.source/'fallback'/name).write_bytes(data)
+            new[name] = sha(data)
+        changes = dict(fallback_bundle='production-7.2.7-safe-r1', fallback_install=1,
+                       fallback_image=new['Image'], fallback_dtb=new['board.dtb'],
+                       fallback_initramfs=new['initramfs.cpio.gz'], fallback_manifest=new['manifest'],
+                       fallback_signature=new['manifest.sig'])
+        self.assertEqual(self.run_target('--preflight', **changes), (0, 'PASS default kernel payload preflight\n'))
+        code, out = self.run_target('--stage', **changes)
+        self.assertEqual(code, 0, out)
+        self.assertTrue(out.endswith(I.STAGED.format(bundle=BUNDLE, fallback='production-7.2.7-safe-r1',
+                                                     state='installed')))
+        target = self.linux()/'bundles/production-7.2.7-safe-r1'
+        self.assertEqual({n: sha((target/n).read_bytes()) for n in I.FILES}, new)
+        self.assertEqual(oct(target.stat().st_mode & 0o777), '0o700')
+        # The old fallback stays as it was, for a manual rollback.
+        for name in I.FILES:
+            self.assertEqual(sha((self.linux()/'bundles'/I.FALLBACK/name).read_bytes()), self.fallback[name])
+        self.assertEqual((self.stub/'block/sda24/ro').read_text(), '1\n')
+
+    def test_new_fallback_refusals(self):
+        cases = [
+            ('path exists', dict(fallback_install=1), None),
+            ('transferred fallback Image changed', dict(fallback_bundle='production-7.2.7-safe-r1', fallback_install=1),
+             lambda: (self.source/'fallback').mkdir()),
+            ('primary and fallback are the same bundle', dict(fallback_bundle=BUNDLE), None),
+            ('fallback_install must be 0 or 1', dict(fallback_install=2), None),
+        ]
+        for why, changes, setup in cases:
+            with self.subTest(why):
+                self.tearDown()
+                self.setUp()
+                if setup:
+                    setup()
+                code, out = self.run_target('--stage', **changes)
+                self.assertEqual(code, 1, out)
+                self.assertIn(why, out)
+                self.assertNotIn('blockdev --setrw /dev/sda24', self.calls())
 
     def test_absent_record_stages_without_archive(self):
         (self.p23/'rog5/boot/wifi-trial-state').unlink()
