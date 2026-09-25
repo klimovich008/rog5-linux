@@ -393,3 +393,28 @@ the upstream tree has working APR audio, so there is no reference to follow;
 this needs lower-level work (e.g. reading the reset reason from the PMIC/TZ
 restart registers, or testing buffers from a hypervisor-shared region like the
 stock audio CMA pool).
+
+## Sensor DSP (SLPI) for the IMU (step 11, r51)
+
+r51 was the r38 set plus the `slpi` overlay, which enables remoteproc@5c00000
+with `firmware-name = "qcom/sm8350/slpi.mdt"`. The stock NON-HLOS
+`image/slpi.*` (25 files, sizes verified against the FAT listing) went into
+firmware kit r3; the kernel was r17. Everything else passed: GPU, 300 s soak,
+Wi-Fi 100 MB in 1.88 s, Bluetooth, peripherals.
+
+The SLPI does not boot: `qcom_q6v5_pas 5c00000.remoteproc: error -22
+initializing firmware`. The secure monitor rejects `pas_init_image` with an
+invalid-argument or invalid-address error, both at boot and on a later manual
+start, so it is not an ADSP/SLPI race.
+- The metadata is well formed: header 0x354 plus hash 0x1dc0 equals the
+  8468-byte `.mdt`; entry 0x88200000 lies in the reserved 0x88200000+0x1500000
+  region, the same as stock.
+- The upstream definition matches stock: PAS ID 12, LCX/LMX proxy domains,
+  AOP load state.
+- The ASUS wrapper does not start the SLPI (its PIL only tries `ipa_fws`), so
+  it is not a second init.
+
+The QRTR service list stays ADSP (node 5) and Wi-Fi (node 7) only. Like the
+audio stream reset, this now needs insight into the TZ/hypervisor side (the
+stock kernel runs a Qualcomm trusted VM, `qcom,trustedvm@d0800000`). The
+default image does not enable the SLPI.

@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Following the user's 13-step plan. r38 default passes hwcheck (vibration, leds, sensors, buttons, display, gpu, bt, touch); GPU soak clean (3000 wake cycles, glmark2 1656-1675, no GMU errors); smoothness 0.4-3.4 dropped frames per gesture; wake to first frame 119-135 ms; journald debug drop-in and brightness tools removed. Open: audio (card and amplifiers work, but any stream run hard-resets the phone at the ADSP, r42-r49, see test-results), IMU behind the SLPI sensor DSP, idle power and an unplugged reboot on r38 (need the user to unplug), user confirmation of haptics/logo LED and the double-tap-on-wake behaviour.",
+  "next": "Following the user's 13-step plan. r38 default passes hwcheck (vibration, leds, sensors, buttons, display, gpu, bt, touch); GPU soak clean (3000 wake cycles, glmark2 1656-1675, no GMU errors); smoothness 0.4-3.4 dropped frames per gesture; wake to first frame 119-135 ms; journald debug drop-in and brightness tools removed. Open: audio (card and amplifiers work, but any stream run hard-resets the phone at the ADSP, r42-r49, see test-results), IMU behind the SLPI sensor DSP (r51: TZ rejects the stock SLPI image at pas_init_image with -EINVAL, see test-results), idle power and an unplugged reboot on r38 (need the user to unplug), user confirmation of haptics/logo LED and the double-tap-on-wake behaviour.",
   "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",
