@@ -4,6 +4,9 @@ Description=Load the ROG5 audio stack after Wi-Fi and Bluetooth
 # ahead of it and the Wi-Fi firmware load fails (r39). The amplifiers appear
 # with QUP wrapper 2, which rog5-bluetooth.service enables.
 After=rog5-platform-modules.service rog5-wifi-radio.service rog5-bluetooth.service
+# Only with the audio overlay: the stack otherwise just keeps LPASS voted on
+# (the ADSP rejects the devote) for no sound card.
+ConditionPathExists=/proc/device-tree/sound
 Before=shutdown.target
 Conflicts=shutdown.target
 
