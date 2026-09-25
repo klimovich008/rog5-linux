@@ -321,3 +321,18 @@ The upstream q6afe clock range does cover SEN_MI2S_IBIT (0x10D within
 IOVA). Still open: LPI island clocking for i2s2, the ADM/ASM topology, and the
 ADSP crash reason (SMEM), which needs a way to keep the phone alive long
 enough to read it.
+
+### r48/r49: not port- or IOVA-specific (open)
+
+- r48 used the unwired PRIMARY MI2S port with the dummy codec (no pins, no
+  LPI). It reset at stream run in the same way, so the fault is in the general
+  ASM/ADM/AFE streaming path, not SENARY or LPI.
+- r49 (kernel r17, patch 0048) limited the q6asm stream-buffer IOVAs to
+  29 bits (`qcom,iova-bits`), the stock driver's 0x10000000-0x1fffffff
+  window. It still reset at stream run. That the limit took effect is not
+  verified: the reset leaves no log.
+
+The phone resets without a Linux panic and without a remoteproc crash report.
+That points to a secure-side reset (an XPU or hypervisor stage-2 violation by
+the ADSP on first buffer access) rather than a recoverable ADSP crash. Audio
+remains open; the default (r38) carries none of these changes.
