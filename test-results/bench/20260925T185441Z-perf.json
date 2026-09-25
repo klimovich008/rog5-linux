@@ -1,0 +1,36 @@
+{
+  "label": "r86-rerun",
+  "time": "2026-09-25T18:54:27",
+  "kernel": "7.2.7-rog5-production",
+  "cpufreq_max_khz": {
+    "0": 1804800,
+    "4": 2419200,
+    "7": 2841600
+  },
+  "ebi_before": {
+    "avg_kBps": 2282910,
+    "peak_kBps": 1804000
+  },
+  "sha256_MBps": {
+    "a55_cpu0": 738.5,
+    "a78_cpu4": 1483.3,
+    "x1_cpu7": 1742.7,
+    "all_8": 8703.6
+  },
+  "memory_GBps": {
+    "memcpy_x1": 16.661335,
+    "memcpy_a55": 2.889125,
+    "memset_x1": 37.397158,
+    "memset_a55": 16.866137
+  },
+  "ebi_peak_kBps_during_memory": {
+    "memcpy_cpu7": 12784000,
+    "memcpy_cpu0": 12784000,
+    "memset_cpu7": 12784000,
+    "memset_cpu0": 12784000
+  },
+  "ebi_after": {
+    "avg_kBps": 240000,
+    "peak_kBps": 12784000
+  }
+}

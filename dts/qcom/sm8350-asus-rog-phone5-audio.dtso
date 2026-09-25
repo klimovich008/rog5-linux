@@ -118,6 +118,31 @@
 	};
 };
 
+&tlmm {
+	/*
+	 * The amplifiers' IRQ outputs are open drain, active low (stock
+	 * rcv_irq_default/spk_irq_default: bias-pull-up). Left at the reset
+	 * pull-down the lines read low, and both level IRQs fired ~73 times a
+	 * second for nothing, with ~7900 I2C interrupts a second of status reads
+	 * (r86: A55 memcpy 4.2 -> 2.9 GB/s).
+	 */
+	rog5_amp_rcv_irq: rog5-amp-rcv-irq-state {
+		pins = "gpio90";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+		input-enable;
+	};
+
+	rog5_amp_spk_irq: rog5-amp-spk-irq-state {
+		pins = "gpio2";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+		input-enable;
+	};
+};
+
 &i2c17 {
 	clock-frequency = <400000>;
 	status = "okay";
@@ -128,6 +153,8 @@
 		#sound-dai-cells = <1>;
 		reset-gpios = <&tlmm 104 GPIO_ACTIVE_HIGH>;
 		interrupts-extended = <&tlmm 90 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-0 = <&rog5_amp_rcv_irq>;
+		pinctrl-names = "default";
 		sound-name-prefix = "RCV";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
 	};
@@ -138,6 +165,8 @@
 		#sound-dai-cells = <1>;
 		reset-gpios = <&tlmm 105 GPIO_ACTIVE_HIGH>;
 		interrupts-extended = <&tlmm 2 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-0 = <&rog5_amp_spk_irq>;
+		pinctrl-names = "default";
 		sound-name-prefix = "SPK";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
 	};

@@ -1,0 +1,254 @@
+{
+  "display": {
+    "status": "pass",
+    "evidence": {
+      "connectors": {
+        "/sys/class/drm/card1-DSI-1": "connected"
+      },
+      "modes": {
+        "/sys/class/drm/card1-DSI-1": [
+          "1080x2448"
+        ]
+      },
+      "backlight": {
+        "/sys/class/backlight/ae94000.dsi.0": "0/1023"
+      }
+    }
+  },
+  "gpu": {
+    "status": "pass",
+    "evidence": {
+      "nop": "{\n  \"mode\": \"nop\",\n  \"baseline_nop_ms\": 6.6,\n  \"status\": \"PASS\"\n}\n",
+      "renderer": "OpenGL ES profile renderer: FD660",
+      "devfreq": {
+        "/sys/class/devfreq/3d00000.gpu": "315000000"
+      }
+    }
+  },
+  "touch": {
+    "status": "pass",
+    "evidence": {
+      "devices": [
+        "ASUS ROG5 MP2 front FTS3658U"
+      ]
+    }
+  },
+  "buttons": {
+    "status": "pass",
+    "evidence": {
+      "devices": [
+        "pmic_pwrkey",
+        "pmic_resin",
+        "gpio-keys"
+      ],
+      "power_key": true
+    }
+  },
+  "wifi": {
+    "status": "partial",
+    "evidence": {
+      "interface": "wlp1s0",
+      "operstate": "up",
+      "wpa": "",
+      "addr": "wlp1s0           UP             192.168.1.126/24"
+    }
+  },
+  "bluetooth": {
+    "status": "pass",
+    "evidence": {
+      "controllers": [
+        "hci0"
+      ],
+      "rfkill": ""
+    }
+  },
+  "audio": {
+    "status": "pass",
+    "evidence": {
+      "cards": [
+        "0 [ASUSROGPhone5  ]: sm8250 - ASUS-ROG-Phone-5",
+        "                      ASUS-ROG-Phone-5"
+      ],
+      "pcm": [
+        "00-00: MultiMedia1 (*) :  : playback 1 : capture 1",
+        "00-01: MultiMedia2 (*) :  : playback 1 : capture 1"
+      ]
+    }
+  },
+  "battery_charger": {
+    "status": "pass",
+    "evidence": {
+      "supplies": {
+        "qcom-battmgr-usb": {
+          "type": "USB",
+          "voltage_now": "5012000",
+          "current_now": "334000",
+          "online": "1"
+        },
+        "ucsi-source-psy-pmic_glink.ucsi.01": {
+          "type": "USB",
+          "status": "Charging",
+          "voltage_now": "5000000",
+          "current_now": "100000",
+          "online": "1"
+        },
+        "qcom-battmgr-wls": {
+          "type": "Wireless",
+          "voltage_now": "0",
+          "current_now": "341000",
+          "online": "0"
+        },
+        "qcom-battmgr-bat": {
+          "type": "Battery",
+          "status": "Full",
+          "capacity": "100",
+          "voltage_now": "8597000",
+          "current_now": "-16000",
+          "temp": "298"
+        }
+      }
+    }
+  },
+  "usb": {
+    "status": "pass",
+    "evidence": {
+      "udc": {
+        "a600000.usb": "configured"
+      },
+      "roles": {}
+    }
+  },
+  "storage": {
+    "status": "pass",
+    "evidence": {
+      "ufs": [
+        "/sys/bus/platform/drivers/ufshcd-qcom/1d84000.ufshc"
+      ],
+      "root": "overlay overlay"
+    }
+  },
+  "rtc": {
+    "status": "pass",
+    "evidence": {
+      "rtc": "rtc-pm8xxx c440000.spmi:pmic@0:rtc@6100",
+      "time_trusted": true,
+      "ntp": "yes"
+    }
+  },
+  "vibration": {
+    "status": "pass",
+    "evidence": {
+      "ff_devices": [
+        "aw8697-haptics"
+      ],
+      "leds": []
+    }
+  },
+  "sensors": {
+    "status": "pass",
+    "evidence": {
+      "iio": {
+        "iio:device0": "vcnl36866"
+      }
+    }
+  },
+  "thermal_cpufreq": {
+    "status": "pass",
+    "evidence": {
+      "zones": 34,
+      "hottest_mC": 37000,
+      "cpufreq": {
+        "policy4": [
+          "schedutil",
+          "1075200",
+          "2419200"
+        ],
+        "policy0": [
+          "schedutil",
+          "499200",
+          "1804800"
+        ],
+        "policy7": [
+          "schedutil",
+          "844800",
+          "2841600"
+        ]
+      },
+      "cpuidle_states": [
+        "WFI",
+        "cpu-sleep-0-0"
+      ]
+    }
+  },
+  "suspend": {
+    "status": "partial",
+    "evidence": {
+      "state": "freeze mem disk",
+      "mem_sleep": "s2idle [deep]",
+      "note": "entering suspend is exercised by the bench, not here"
+    }
+  },
+  "leds": {
+    "status": "pass",
+    "evidence": {
+      "leds": [
+        "rgb:logo"
+      ]
+    }
+  },
+  "dsp_remoteprocs": {
+    "status": "pass",
+    "evidence": {
+      "remoteprocs": {
+        "adsp": "running"
+      }
+    }
+  },
+  "nfc": {
+    "status": "missing",
+    "evidence": {
+      "devices": []
+    }
+  },
+  "cameras": {
+    "status": "missing",
+    "evidence": {
+      "v4l": {}
+    }
+  },
+  "fingerprint": {
+    "status": "missing",
+    "evidence": {
+      "note": "under-display fingerprint sensor has no mainline driver probe here"
+    }
+  },
+  "_summary": {
+    "pass": [
+      "audio",
+      "battery_charger",
+      "bluetooth",
+      "buttons",
+      "display",
+      "dsp_remoteprocs",
+      "gpu",
+      "leds",
+      "rtc",
+      "sensors",
+      "storage",
+      "thermal_cpufreq",
+      "touch",
+      "usb",
+      "vibration"
+    ],
+    "partial": [
+      "suspend",
+      "wifi"
+    ],
+    "missing": [
+      "cameras",
+      "fingerprint",
+      "nfc"
+    ],
+    "error": []
+  }
+}

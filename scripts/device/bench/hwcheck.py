@@ -60,11 +60,12 @@ def wifi():
     links = [p.split('/')[4] for p in glob.glob('/sys/class/net/*/wireless')]
     link = links[0] if links else ''
     state = rd(f'/sys/class/net/{link}/operstate') if link else ''
-    ssid = sh(f'wpa_cli -i {link} status 2>/dev/null | grep -E "^(wpa_state|freq)="') if link else ''
+    # The kit's wpa_supplicant has no wpa_cli socket; ask the driver instead.
+    assoc = sh(f'iw dev {link} link 2>/dev/null | grep -E "Connected to|freq:|signal:|tx bitrate:"') if link else ''
     ip = sh(f'ip -4 -br addr show {link} 2>/dev/null') if link else ''
-    ok = state == 'up' and 'COMPLETED' in ssid and '.' in ip
+    ok = state == 'up' and 'Connected to' in assoc and '.' in ip
     return result('pass' if ok else 'partial' if link else 'missing', interface=link, operstate=state,
-                  wpa=ssid, addr=ip)
+                  link=assoc, addr=ip)
 
 
 def bluetooth():

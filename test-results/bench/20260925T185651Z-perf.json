@@ -1,0 +1,30 @@
+{
+  "label": "r86-amp-irq-pullup-live",
+  "time": "2026-09-25T18:56:50",
+  "kernel": "7.2.7-rog5-production",
+  "cpufreq_max_khz": {
+    "0": 1804800,
+    "4": 2419200,
+    "7": 2841600
+  },
+  "ebi_before": {
+    "avg_kBps": 240000,
+    "peak_kBps": 800000
+  },
+  "memory_GBps": {
+    "memcpy_x1": 17.639422,
+    "memcpy_a55": 4.20646,
+    "memset_x1": 38.054067,
+    "memset_a55": 20.737251
+  },
+  "ebi_peak_kBps_during_memory": {
+    "memcpy_cpu7": 12784000,
+    "memcpy_cpu0": 12784000,
+    "memset_cpu7": 12784000,
+    "memset_cpu0": 12784000
+  },
+  "ebi_after": {
+    "avg_kBps": 240000,
+    "peak_kBps": 12784000
+  }
+}
