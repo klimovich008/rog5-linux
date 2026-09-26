@@ -7,19 +7,73 @@
 # soft_connect does not help; a driver unbind/bind (core and HS PHY re-init)
 # does, and the host enumerates the gadget at once (2026-09-26).
 #
+# Host mode has the opposite problem. When UCSI switches the running
+# controller from device to host, xHCI comes up but every attached device
+# fails with "device descriptor read/64, error -71" at full speed. After the
+# same unbind/bind and a switch to host, a hub enumerates at high speed with
+# its devices behind it (2026-09-26). So in host mode, if nothing enumerates
+# within a few seconds, the controller is re-initialised once and put back in
+# host mode.
+#
 # Run by rog5-usb-reconnect.service, which udev starts on every change of the
-# qcom-battmgr-usb power supply. On a data-capable attach (SDP/CDP) it waits
-# for the host to configure the gadget and re-initialises the controller only
-# if that does not happen. A charger (DCP) or an already configured link is
-# left alone.
+# qcom-battmgr-usb power supply and of the side port's role switch. On a
+# data-capable attach (SDP/CDP) it waits for the host to configure the gadget
+# and re-initialises the controller only if that does not happen. A charger
+# (DCP) or an already configured link is left alone.
 set -u
 udc=a600000.usb
 gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
 supply=/sys/class/power_supply/qcom-battmgr-usb
 wait_s=${ROG5_USB_RECONNECT_WAIT:-6}
 
+role=/sys/class/usb_role/$udc-role-switch/role
+stamp=/run/rog5-usb-reconnect.host
+host_wait_s=${ROG5_USB_HOST_WAIT:-4}
+
 log() { printf 'rog5-usb-reconnect: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
 state() { cat "/sys/class/udc/$udc/state" 2>/dev/null; }
+host_mode() {
+	grep -qs '^\[host\]' /sys/class/typec/port0/data_role ||
+		grep -qsx host "$role"
+}
+# Any device on the controller's root hubs (usb1-1, usb2-1, ...).
+enumerated() {
+	ls -d /sys/bus/platform/devices/$udc/xhci-hcd.*/usb*/[0-9]*-[1-9]* >/dev/null 2>&1
+}
+
+reinit() {
+	echo "$udc" >/sys/bus/platform/drivers/dwc3/unbind || { log 'FAIL unbind'; return 1; }
+	sleep 1
+	echo "$udc" >/sys/bus/platform/drivers/dwc3/bind || { log 'FAIL bind'; return 1; }
+	sleep 1
+}
+
+if host_mode; then
+	# The gadget is not in use. Re-initialise at most once per 30 s: the
+	# re-init itself changes the role twice and starts this service again.
+	waited=0
+	while [ "$waited" -lt "$host_wait_s" ]; do
+		enumerated && exit 0
+		host_mode || exit 0
+		sleep 1
+		waited=$((waited + 1))
+	done
+	now=$(cut -d. -f1 /proc/uptime)
+	last=$(cat "$stamp" 2>/dev/null || echo -100)
+	[ $((now - last)) -ge 30 ] || exit 0
+	echo "$now" >"$stamp"
+	log "host mode, nothing enumerated after ${host_wait_s}s; re-initialising $udc"
+	reinit || exit 1
+	echo host >"$role" || { log 'FAIL set host role'; exit 1; }
+	waited=0
+	while [ "$waited" -lt 10 ]; do
+		enumerated && { log 'PASS device enumerated after re-initialisation'; exit 0; }
+		sleep 1
+		waited=$((waited + 1))
+	done
+	log 'host mode: nothing enumerated after re-initialisation'
+	exit 0
+fi
 
 [ "$(cat "$supply/online" 2>/dev/null)" = 1 ] || exit 0
 case $(cat "$supply/usb_type" 2>/dev/null) in
@@ -29,14 +83,12 @@ esac
 waited=0
 while [ "$waited" -lt "$wait_s" ]; do
 	[ "$(state)" = configured ] && exit 0
+	host_mode && exit 0
 	sleep 1
 	waited=$((waited + 1))
 done
 log "gadget still $(state) ${wait_s}s after attach; re-initialising $udc"
-echo "$udc" >/sys/bus/platform/drivers/dwc3/unbind || { log 'FAIL unbind'; exit 1; }
-sleep 1
-echo "$udc" >/sys/bus/platform/drivers/dwc3/bind || { log 'FAIL bind'; exit 1; }
-sleep 1
+reinit || exit 1
 [ -n "$(cat "$gadget/UDC" 2>/dev/null)" ] || echo "$udc" >"$gadget/UDC" || { log 'FAIL gadget bind'; exit 1; }
 ip link set usb0 up 2>/dev/null
 waited=0

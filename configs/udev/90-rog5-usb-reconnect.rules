@@ -1,3 +1,5 @@
 # The battery manager reports every USB attach/detach as a change of the
-# qcom-battmgr-usb power supply; check the gadget after each one.
+# qcom-battmgr-usb power supply; check the gadget after each one. A switch of
+# the side port's role (UCSI: hub or OTG adapter attached) checks host mode.
 SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
+SUBSYSTEM=="usb_role", KERNEL=="a600000.usb-role-switch", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
