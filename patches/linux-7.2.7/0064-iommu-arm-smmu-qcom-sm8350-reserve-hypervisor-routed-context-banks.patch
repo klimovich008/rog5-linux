@@ -1,0 +1,60 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-26 22:01:41.115224051 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-26 22:02:06.096865522 +0200
+@@ -665,11 +665,56 @@
+ 	return __arm_smmu_alloc_bitmap(smmu->context_map, start, smmu->num_context_banks);
+ }
+ 
++/*
++ * The SM8350 hypervisor keeps S2CR routes of its own (streams the boot chain
++ * and the other VMs own: 0x2101-0x2104 on banks 8-10, 0x2123/0x2124 on 13/14,
++ * 0x1189/0x2169 on 26, 0x0593/0x059c-0x059e on 39 on the ROG Phone 5) and
++ * silently drops any HLOS S2CR write that routes another stream to one of
++ * those banks. The stream then stays on the bypass bank and its master DMAs
++ * with untranslated IOVAs: the Bluetooth UART and the SE17 I2C of QUP
++ * wrapper 2 (0x05e3 on bank 8) and the ADSP fastrpc compute bank 5 (0x1805 on
++ * bank 26). After the reset has rewritten every stream Linux does not own, a
++ * stream that still translates through a bank other than the bypass bank is
++ * one of the hypervisor's; keep its bank out of the allocator.
++ */
++static int qcom_sm8350_smmu500_reset(struct arm_smmu_device *smmu)
++{
++	struct qcom_smmu *qsmmu = to_qcom_smmu(smmu);
++	u32 smr, s2cr, cbndx;
++	int i, ret;
++
++	ret = arm_mmu500_reset(smmu);
++	if (ret)
++		return ret;
++
++	for (i = 0; i < smmu->num_mapping_groups; i++) {
++		if (smmu->s2crs[i].count)
++			continue;
++		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
++		if (!FIELD_GET(ARM_SMMU_SMR_VALID, smr))
++			continue;
++		s2cr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(i));
++		if (FIELD_GET(ARM_SMMU_S2CR_TYPE, s2cr) != S2CR_TYPE_TRANS)
++			continue;
++		cbndx = FIELD_GET(ARM_SMMU_S2CR_CBNDX, s2cr);
++		if (cbndx >= smmu->num_context_banks ||
++		    (qsmmu->bypass_quirk && cbndx == qsmmu->bypass_cbndx))
++			continue;
++		if (!test_and_set_bit(cbndx, smmu->context_map))
++			dev_info(smmu->dev,
++				 "context bank %u reserved: firmware routes SMR%d (id 0x%lx mask 0x%lx) to it\n",
++				 cbndx, i, FIELD_GET(ARM_SMMU_SMR_ID, smr),
++				 FIELD_GET(ARM_SMMU_SMR_MASK, smr & ~ARM_SMMU_SMR_VALID));
++	}
++
++	return 0;
++}
++
+ static const struct arm_smmu_impl qcom_sm8350_smmu_500_impl = {
+ 	.init_context = qcom_smmu_init_context,
+ 	.cfg_probe = qcom_smmu_cfg_probe,
+ 	.def_domain_type = qcom_smmu_def_domain_type,
+-	.reset = arm_mmu500_reset,
++	.reset = qcom_sm8350_smmu500_reset,
+ 	.write_s2cr = qcom_smmu_write_s2cr,
+ 	.tlb_sync = qcom_smmu_tlb_sync,
+ 	.alloc_context_bank = qcom_sm8350_smmu500_alloc_context_bank,
