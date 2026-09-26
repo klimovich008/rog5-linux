@@ -921,3 +921,32 @@ V11 is a headless volatile root.
   - `rog5-usb-reconnect` (udev on qcom-battmgr-usb change → oneshot service) re-initialises only when an SDP/CDP attach is not configured after 6 s.
   - Verified with a real replug: "gadget still default 6s after attach; re-initialising" → "PASS gadget configured", and the host enumerated.
   - A proper kernel fix (a usb-c connector under pmic-glink, a role switch, and a UDC vbus handler in drd.c) is drafted but not built.
+
+### Overlay colour band: DSI link rate; default r98 (2026-09-26)
+
+- **Root cause:** the AMS678 command-mode DSC link ran at 362 Mb/s per lane
+  (byte clock 45.2 MHz) with the port's 48-pixel horizontal blanking. Stock
+  uses 829 Mb/s for 60 Hz.
+  - Sending a frame took about 15 ms of the 16.7 ms refresh, so a late
+    kickoff (overlay animations) let the panel's scan overtake the write. It
+    then decoded a half-written 48-row DSC slice as colour noise at the top.
+  - The scanned-out framebuffer was always clean.
+- **User-observed tests** (r94/r95/r97, RAM):
+  - TE scanline 2304 moved the band lower and made it worse; 2460 brought the
+    full band back; 2432 (stock) is best.
+  - 0053 (front porch 557 → htotal 1655, clock 244.6 MHz, still 60.0 Hz;
+    byte clock 103.6 MHz, 829 Mb/s): the band became a line about 8× smaller.
+  - Adding 0054 (tear-check continue threshold 0): "a really small line,
+    almost perfect".
+- **Password and boot:** the password lock set with chpasswd failed both
+  `prepare_volatile_root_account` (init) and `rog5-p2-attest`. The init now
+  accepts a user hash on the persistent overlay (882c81e9); the attestor
+  does not yet. At the user's request the password was dropped (root back
+  to `x`).
+- **NetworkManager:** the Wi-Fi interface came up as `wlan0` on one boot, so
+  NM now manages Wi-Fi by device type.
+- **Default:** production-7.2.7-r98 (kernel r23 = r20 + 0052 test parameters
+  + 0053 + 0054), with fallback safe-r2 kept.
+  - RAM trial: `running`, 16/16 hwcheck blocks pass.
+  - `install-default-kernel.py --stage`, then two reboots, each committed
+    healthy.
