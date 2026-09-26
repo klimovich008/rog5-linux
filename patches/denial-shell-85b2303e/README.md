@@ -248,7 +248,10 @@ trees are exactly upstream + 0001 + 0004 + 0005 + 0006 + 0007 (Dart,
     sections, the launcher/dashboard overlay editors and the desktop-only
     animation controls are hidden; Touchpad appears only with a touchpad or
     mouse connected. The mobile local-app launch is shared
-    (`launcher/mobile_local_app_launch.dart`).
+    (`launcher/mobile_local_app_launch.dart`). The embedded Settings app now
+    uses the shell's Material theme (without it every toggle label, row title
+    and dropdown value was dark on the dark panel), and its Bluetooth page
+    says "No adapter" and disables the switch and Scan without a controller.
 - `0013-backlight-sysfs-fallback-and-rotation-lock.patch` (compositor, after
   0011):
   - Brightness: deniald set the backlight only through logind
@@ -270,8 +273,8 @@ trees are exactly upstream + 0001 + 0004 + 0005 + 0006 + 0007 (Dart,
 | file | content | sha256 | backup on the phone |
 | --- | --- | --- | --- |
 | `/opt/denial/deniald` | upstream + 0005 + 0006 + 0008-0011 + 0013 (compositor), build `s1` | `ed92d012...` | `/opt/denial/deniald.p13` (`252e22ee...`, before 0013), `/opt/denial/deniald.0005-0006` (`644c98c8...`), `/opt/denial/deniald.upstream` (`8698b071...`) |
-| `/opt/denial/lib/libapp.so` | upstream + 0001 + 0004 + 0006 + 0007 + 0012 (Dart), `assembly-s2` | `eaab2967...` | `/opt/denial/lib/libapp.so.r9` (`c65bb6fa...`, before 0012), `libapp.so.0001-0004-0006` (`1064f485...`) |
-| `/opt/denial/data/flutter_assets/fonts/MaterialIcons-Regular.otf` | tree-shaken icon font of `assembly-s2` | `2ea5505e...` | `MaterialIcons-Regular.otf.r1` (`e465b102...`, the r1 font every earlier deploy kept) |
+| `/opt/denial/lib/libapp.so` | upstream + 0001 + 0004 + 0006 + 0007 + 0012 (Dart), `assembly-s3` | `8fadb722...` | `/opt/denial/lib/libapp.so.r9` (`c65bb6fa...`, before 0012), `libapp.so.0001-0004-0006` (`1064f485...`) |
+| `/opt/denial/data/flutter_assets/fonts/MaterialIcons-Regular.otf` | tree-shaken icon font of `assembly-s3` (same as s2) | `2ea5505e...` | `MaterialIcons-Regular.otf.r1` (`e465b102...`, the r1 font every earlier deploy kept) |
 | `/etc/systemd/system/rog5-denial.service.d/20-restart.conf`, `30-embedded-settings.conf` | `Restart=always`; `DENIA_EMBED_SETTINGS=1` (repo `configs/systemd/rog5-denial.service.d/`) | | remove to revert |
 | `rog5-powerd` (`/usr/local/bin`, unit), `rog5-pipewire`/`-wireplumber`/`-pipewire-pulse` units, `/etc/wireplumber/wireplumber.conf.d/50-rog5-speakers.conf` | repo `scripts/device/rog5-powerd`, `configs/systemd/`, `configs/wireplumber/` | | `systemctl disable --now` and delete |
 
@@ -284,7 +287,7 @@ To go back to the state before 0012/0013: stop `rog5-denial`, copy
 files, delete the two drop-ins, `systemctl daemon-reload`, and start it.
 
 Local copies: `~/.local/state/rog5-denial-20260910-r1/cargo-arm64-settings-r1/artifacts/`
-(`deniald-s1`, `libapp-s1.so`, `libapp-s2.so`) and
+(`deniald-s1`, `libapp-s1.so`, `libapp-s2.so`, `libapp-s3.so`) and
 `cargo-arm64-power-r1/artifacts/` (`deniald-p13`, `libapp-r9.so`; before 0011: `deniald-p10`; before 0007-0010: `deniald-p4`, `libapp-r6.so`). `DENIAL_POWER_KEY_LOCK` is not set, so the
 power key only toggles the display. To lock as well once root has a
 password, add `DENIAL_POWER_KEY_LOCK=1` to the unit's `Environment=`.

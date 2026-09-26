@@ -155,7 +155,7 @@ diff -ruN a/dart_shell/lib/l10n/app_zh.arb b/dart_shell/lib/l10n/app_zh.arb
  }
 diff -ruN a/dart_shell/lib/l10n/generated/app_localizations.dart b/dart_shell/lib/l10n/generated/app_localizations.dart
 --- a/dart_shell/lib/l10n/generated/app_localizations.dart	2026-09-26 14:05:29.124282401 +0200
-+++ b/dart_shell/lib/l10n/generated/app_localizations.dart	2026-09-26 19:33:26.959513400 +0200
++++ b/dart_shell/lib/l10n/generated/app_localizations.dart	2026-09-26 20:36:18.721070570 +0200
 @@ -4915,7 +4915,7 @@
    /// Label for the Language destination in Settings navigation.
    ///
@@ -294,7 +294,7 @@ diff -ruN a/dart_shell/lib/l10n/generated/app_localizations.dart b/dart_shell/li
  class _AppLocalizationsDelegate
 diff -ruN a/dart_shell/lib/l10n/generated/app_localizations_en.dart b/dart_shell/lib/l10n/generated/app_localizations_en.dart
 --- a/dart_shell/lib/l10n/generated/app_localizations_en.dart	2026-09-26 14:05:29.024281185 +0200
-+++ b/dart_shell/lib/l10n/generated/app_localizations_en.dart	2026-09-26 19:33:26.845512005 +0200
++++ b/dart_shell/lib/l10n/generated/app_localizations_en.dart	2026-09-26 20:36:18.652069608 +0200
 @@ -2763,7 +2763,7 @@
    String get settingsNavigationDisplays => 'Displays & video';
  
@@ -380,7 +380,7 @@ diff -ruN a/dart_shell/lib/l10n/generated/app_localizations_en.dart b/dart_shell
  }
 diff -ruN a/dart_shell/lib/l10n/generated/app_localizations_zh.dart b/dart_shell/lib/l10n/generated/app_localizations_zh.dart
 --- a/dart_shell/lib/l10n/generated/app_localizations_zh.dart	2026-09-26 14:05:29.070281744 +0200
-+++ b/dart_shell/lib/l10n/generated/app_localizations_zh.dart	2026-09-26 19:33:26.899512666 +0200
++++ b/dart_shell/lib/l10n/generated/app_localizations_zh.dart	2026-09-26 20:36:18.689070124 +0200
 @@ -2635,7 +2635,7 @@
    String get settingsNavigationDisplays => '显示器与视频';
  
@@ -690,7 +690,7 @@ diff -ruN a/dart_shell/lib/src/services/power_profile_service.dart b/dart_shell/
  }
 diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/lib/src/settings/settings_application.dart
 --- a/dart_shell/lib/src/settings/settings_application.dart	2026-09-10 10:58:50.459937305 +0200
-+++ b/dart_shell/lib/src/settings/settings_application.dart	2026-09-26 19:11:05.123539389 +0200
++++ b/dart_shell/lib/src/settings/settings_application.dart	2026-09-26 20:33:28.169489265 +0200
 @@ -10,6 +10,8 @@
  import '../localization/denial_localizations.dart';
  import '../models/display_layout.dart';
@@ -700,7 +700,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
  import '../state/cursor_theme.dart';
  import '../state/output_configuration.dart';
  import '../state/ui_development.dart';
-@@ -180,6 +182,23 @@
+@@ -180,6 +182,41 @@
    @override
    Widget build(BuildContext context) {
      _scheduleRequestedPage(ref.watch(settingsPageOpenRequestProvider));
@@ -721,10 +721,28 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
 +            SettingsPageId.developer,
 +          }
 +        : const <SettingsPageId>{};
++    // Inside the shell there is no MaterialApp theme, so Material text and
++    // controls fell back to the light default: labels were dark on the dark
++    // panel. Use the shell's own Material theme, as the standalone app does.
++    return Theme(
++      data: ShellTheme.of(context).toMaterialTheme(),
++      child: _buildContent(
++        context,
++        showTouchpad: showTouchpad,
++        hiddenPages: hiddenPages,
++      ),
++    );
++  }
++
++  Widget _buildContent(
++    BuildContext context, {
++    required bool showTouchpad,
++    required Set<SettingsPageId> hiddenPages,
++  }) {
      return Semantics(
        container: true,
        role: .main,
-@@ -200,7 +219,8 @@
+@@ -200,7 +237,8 @@
                    SettingsNavigation(
                      selected: _page,
                      compact: true,
@@ -734,7 +752,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
                      onSelected: _selectPage,
                    ),
                    Divider(height: 1, color: context.shellColors.hairlineSoft),
-@@ -213,7 +233,8 @@
+@@ -213,7 +251,8 @@
                          SettingsNavigation(
                            selected: _page,
                            compact: false,
@@ -744,7 +762,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
                            onSelected: _selectPage,
                          ),
                        Expanded(
-@@ -342,6 +363,7 @@
+@@ -342,6 +381,7 @@
    @override
    Widget build(BuildContext context, WidgetRef ref) {
      final controller = ref.read(shellSettingsProvider.notifier);
@@ -752,7 +770,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
      switch (page) {
        case SettingsPageId.appearance:
          final settings = ref.watch(
-@@ -402,6 +424,7 @@
+@@ -402,6 +442,7 @@
              await ref.read(cursorThemeCatalogProvider.notifier).remove(theme);
            },
            onReset: controller.resetAppearance,
@@ -760,7 +778,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
          );
        case SettingsPageId.language:
          final settings = ref.watch(
-@@ -492,6 +515,7 @@
+@@ -492,6 +533,7 @@
            onPanelTravelChanged: controller.setPanelTravel,
            onLockAnimationChanged: controller.setLockScreenAnimationEnabled,
            onReset: controller.resetAnimations,
@@ -768,7 +786,7 @@ diff -ruN a/dart_shell/lib/src/settings/settings_application.dart b/dart_shell/l
          );
        case SettingsPageId.overlays:
          final settings = ref.watch(
-@@ -501,6 +525,7 @@
+@@ -501,6 +543,7 @@
            settings: settings,
            onChanged: controller.setOverlayPlacement,
            onReset: controller.resetOverlays,
@@ -1766,8 +1784,16 @@ diff -ruN a/dart_shell/lib/src/settings/widgets/settings_overlays_page.dart b/da
                surface: ShellOverlaySurface.notifications,
 diff -ruN a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart b/dart_shell/lib/src/settings/widgets/settings_system_pages.dart
 --- a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart	2026-09-26 10:41:48.084197426 +0200
-+++ b/dart_shell/lib/src/settings/widgets/settings_system_pages.dart	2026-09-26 19:14:28.948819850 +0200
-@@ -279,8 +279,12 @@
++++ b/dart_shell/lib/src/settings/widgets/settings_system_pages.dart	2026-09-26 20:33:45.810629608 +0200
+@@ -12,6 +12,7 @@
+ import '../../state/quick_settings.dart';
+ import '../../theme/shell_theme.dart';
+ import '../../theme/tokens.dart';
++import '../../widgets/connectivity/bluetooth_detail_surface.dart';
+ import '../../widgets/connectivity/wifi_detail_surface.dart';
+ import 'settings_controls.dart';
+ 
+@@ -279,8 +280,12 @@
                                    (network.saved ||
                                        !network.security.requiresPassword)) {
                                  controller.connect(network);
@@ -1780,7 +1806,7 @@ diff -ruN a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart b/dar
                            ),
                            if (index != snapshot.networks.length - 1)
                              Divider(
-@@ -324,6 +328,7 @@
+@@ -324,6 +329,7 @@
      required this.busy,
      required this.onToggle,
      this.onDetails,
@@ -1788,7 +1814,7 @@ diff -ruN a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart b/dar
    });
  
    final WifiNetwork network;
-@@ -331,13 +336,19 @@
+@@ -331,13 +337,19 @@
    final VoidCallback onToggle;
    final VoidCallback? onDetails;
  
@@ -1809,7 +1835,7 @@ diff -ruN a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart b/dar
      return _StatusRow(
        icon: network.connected ? Icons.wifi_rounded : Icons.wifi_outlined,
        title: network.ssid,
-@@ -346,7 +357,9 @@
+@@ -346,7 +358,9 @@
            : l10n.settingsSignalStrength(network.strength),
        actionLabel: network.connected
            ? l10n.settingsDisconnect
@@ -1820,6 +1846,36 @@ diff -ruN a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart b/dar
            ? l10n.settingsPasswordRequired
            : l10n.settingsConnect,
        actionEnabled: canConnect && !busy,
+@@ -379,19 +393,26 @@
+           children: [
+             SettingsSection(
+               title: l10n.settingsBluetoothRadioTitle,
+-              status: state.adapterName.isEmpty
++              // Same wording as the quick-settings tile: without a
++              // controller there is nothing to switch on or scan with.
++              status: !state.available || !state.serviceAvailable
++                  ? bluetoothStatusLabel(state, l10n)
++                  : state.adapterName.isEmpty
+                   ? l10n.settingsBluetoothAdapterDescription
+                   : state.adapterName,
+               trailing: SettingsTextButton(
+                 label: state.scanning
+                     ? l10n.settingsScanning
+                     : l10n.settingsScan,
+-                onPressed: controller.scan,
++                onPressed: state.available && state.powered
++                    ? controller.scan
++                    : null,
+               ),
+               child: SettingsToggle(
+                 label: l10n.settingsBluetoothEnabled,
+                 description: l10n.settingsBluetoothEnabledDescription,
+-                value: state.powered,
++                value: state.available && state.powered,
++                enabled: state.available && !state.powerChanging,
+                 onChanged: (_) => controller.togglePower(),
+               ),
+             ),
 diff -ruN a/dart_shell/lib/src/state/quick_settings.dart b/dart_shell/lib/src/state/quick_settings.dart
 --- a/dart_shell/lib/src/state/quick_settings.dart	2026-09-10 10:58:50.461862450 +0200
 +++ b/dart_shell/lib/src/state/quick_settings.dart	2026-09-26 19:08:39.924777512 +0200
