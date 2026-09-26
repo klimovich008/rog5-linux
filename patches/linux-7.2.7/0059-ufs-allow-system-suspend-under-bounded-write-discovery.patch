@@ -8,7 +8,7 @@ tried to enable auto-BKOPS, a query write the gate refuses.
 
 System suspend does not need a query write: auto-BKOPS and WriteBooster are
 never enabled in discovery mode, so the path is START STOP UNIT (allowed on
-bounded-write kernels) to the ufs-qcom spm_lvl 5 (POWERDOWN, link off), and
+bounded-write kernels) to spm_lvl (3 on sm8350: device sleep, link hibern8), and
 resume exits hibern8 and wakes the device (fDeviceInit is allowed).
 Runtime PM stays forbidden, and shutdown transitions stay rejected.
 

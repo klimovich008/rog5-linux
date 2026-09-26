@@ -33,3 +33,4 @@
 0059-ufs-allow-system-suspend-under-bounded-write-discovery.patch
 0060-clk-qcom-gcc-sm8350-keep-PCIe-GDSCs-on-across-system-suspend.patch
 0061-drm-panel-ams678-keep-brightness-set-while-the-panel-is-off.patch
+0062-ufs-discovery-skip-device-housekeeping-writes-on-resume.patch

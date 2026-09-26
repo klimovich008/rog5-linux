@@ -1,0 +1,40 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ufs: discovery containment: skip device housekeeping writes on resume
+
+With system suspend allowed (0059), every resume re-armed the device RTC
+update work, the timestamp attribute and auto-BKOPS. Discovery containment
+never configures these at probe and its query gate refuses the writes, so
+each resume logged "failed to enable bkops -30" / "Failed to update rtc
+-30". Skip them under CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY, as probe does.
+
+--- a/drivers/ufs/core/ufshcd.c	2026-09-26 21:51:35.637498352 +0200
++++ b/drivers/ufs/core/ufshcd.c	2026-09-26 21:51:35.651692749 +0200
+@@ -10623,9 +10623,18 @@
+ 		ret = ufshcd_set_dev_pwr_mode(hba, UFS_ACTIVE_PWR_MODE);
+ 		if (ret)
+ 			goto set_old_link_state;
+-		ufshcd_set_timestamp_attr(hba);
++		if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++			ufshcd_set_timestamp_attr(hba);
+ 	}
+ 
++	/*
++	 * Discovery containment never sets up the device RTC, timestamp or
++	 * auto-BKOPS at probe, and its query gate refuses those writes; do not
++	 * re-arm them on resume either (they only fail with -EROFS).
++	 */
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++		goto skip_device_housekeeping;
++
+ 	schedule_delayed_work(&hba->ufs_rtc_update_work,
+ 			      msecs_to_jiffies(UFS_RTC_UPDATE_INTERVAL_MS));
+ 
+@@ -10638,6 +10647,8 @@
+ 		 */
+ 		ufshcd_bkops_ctrl(hba);
+ 
++skip_device_housekeeping:
++
+ 	if (hba->ee_usr_mask)
+ 		ufshcd_write_ee_control(hba);
+ 
