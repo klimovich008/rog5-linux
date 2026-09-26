@@ -976,3 +976,30 @@ V11 is a headless volatile root.
     - The same skip for the boot_b wrapper is built but not flashed: `slotb-wrapper-usbdisk-r1`, flash candidate `f1069935…`, reproduces the installed `dcc487f1` from old sources. It only matters for a disk on the bottom port, which 5.4 can host through the RT1715.
   - Until the fix is installed, don't reboot with USB storage on the side port.
 - **Default:** production-7.2.7-r102 is r101's content with a new descriptor. It was installed with the Deck as USB host; two reboots each committed healthy (62 s and 59 s to SSH). The fallback is still safe-r2.
+
+### Suspend works; default r113; boot display (2026-09-26)
+
+- **Suspend bring-up**, found with pm_test levels, pm_print_times and a raw ramoops read:
+  - The production kernel's UFS discovery containment rejected every UFS power transition, so suspend aborted with `ufshcd_wl_suspend failed: -16`.
+    - 0059 allows **system** suspend on bounded-write kernels: START STOP UNIT to spm_lvl 5, link off. Runtime PM and shutdown stay rejected.
+    - No query write is needed, because auto-BKOPS and WriteBooster are never enabled. A runtime switch `ufshcd_core.rog5_ufs_system_pm` selects 0 reject, 1 no-op, 2 real.
+  - The next reset (a warm reset, no panic dump) came on resume: `pcie_0_gdsc status stuck at 'off'`. 0060 declares the gcc-sm8350 PCIe GDSCs `PWRSTS_RET_ON`, as sm8450 and sm8550 do.
+  - `CONFIG_PM_DEBUG`/`PM_SLEEP_DEBUG` are now on, for `/sys/power/pm_test`.
+  - Logging method: unbind the debug UART console (98c000.serial), set `ignore_loglevel=Y` (production-platform-modules clears it), pad the log past the wrapper's ~160 KB overwrite, then read the raw region after the reset with an out-of-tree debugfs module that vmaps 0x9b800000 write-combined. The cached linear map returns stale data.
+- **Result (r109, all services up):** s2idle and deep suspend both pass (5/5 with RTC wake). After each resume, Wi-Fi is associated, the USB gadget configured, Denial active and UFS readable.
+- **Standby power, on battery:**
+  - Awake idle with the screen off: 92–106 mA (current_now).
+  - A deep-suspend loop: about 79 mA. This is the charge counter divided by 2: the counter runs 2x the 2S pack current, as calibrated by awake idle at 200 000 µAh/h against 106 mA.
+  - The phone wakes about every 60 s from a wake-capable interrupt; PMIC RTC events match the suspend count.
+  - The RPMh counters `cxsd`, `ddr` and `aosd` stay 0: the SoC never collapses CX or DDR. That needs the cluster/system low-power states (OSI domain idle), which were kept off after the ASUS reset under OSI.
+  - Suspend is therefore reliable but saves only about 25 % for now.
+- **r110 install, first boot:** at 206 s, UFS `hibern8 exit failed -110`, PHY re-init timed out, the root filesystem got I/O errors, and an SPMI PMIC-arbiter IRQ storm followed (IRQ 130, from 217 s).
+  - The stage reports looked like a hang at `runtime`, but the Deck's NetworkManager had moved the link from 169.254.77.1 to 10.77.0.1.
+  - Recovery: a forced restart ran the fallback safe-r2.
+  - Not reproduced since: the r109 RAM trial ran 50 min including suspends, and an r111 UFS idle/active soak ran 216 cycles in 15 min without error. Treated as sporadic and kept under watch.
+- **Boot display:**
+  - The kernel fbdev/fbcon client is gone (`drm_client_lib active=`), so the ASUS splash now stays up until Denial's first commit.
+  - 0061: the panel keeps a brightness written while it's off. systemd-backlight's boot restore had failed with EPERM, and without it the panel came up at brightness 0.
+  - The remaining colour noise (user photo) is Denial's first modeset (28.6 s) scanning out a raster target Flutter hasn't drawn yet. A deniald boot animation is in progress (Denial agent).
+- **Default:** production-7.2.7-r113 = kernel r30 (0059, 0060, 0061, PM debug) plus the ramdisk with the USB-disk scope fix and no fbdev. Two reboots, each committed healthy (60 s to SSH). The fallback is still safe-r2.
+- **Host:** superseded kernel build trees r1–r19, r21, r22, r24 and r25 were deleted (the disk was full; they can be rebuilt from git).
