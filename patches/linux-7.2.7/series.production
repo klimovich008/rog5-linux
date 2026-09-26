@@ -38,3 +38,4 @@
 0064-iommu-arm-smmu-qcom-sm8350-reserve-hypervisor-routed-context-banks.patch
 0065-scsi-ufs-qcom-do-not-enable-the-lane-clocks-twice.patch
 0066-interconnect-qcom-sm8350-own-the-QUP-core-BCMs.patch
+0067-ASoC-qcom-sm8250-release-the-MI2S-bit-clock-on-shutdown.patch
