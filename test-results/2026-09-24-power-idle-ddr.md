@@ -1014,3 +1014,25 @@ The rog5-update timer (OnBootSec 15 min) ran on its own during a RAM-trial boot 
 Every later boot, including the r113 installs, runs systemd 262 with no failed units. The update kit works end to end without intervention.
 
 Also 2026-09-26: the Denial boot animation (patch 0011) replaced the first-modeset noise. On a cold boot it runs 317 ms (2 frames) before Flutter's first frame; the user sees the ASUS logo, then the UI, with no noise.
+
+### Cluster idle (OSI), Bluetooth, sleep blockers; default r120 (2026-09-26)
+
+- **Cluster idle.** OS-initiated PSCI with the upstream CPU/cluster domains, restored with compose features `osi` and `aoss` and `ARM_PSCI_CPUIDLE_DOMAIN`.
+  - r114 (APSS-off only): the OSI topology initialised with no reset after kexec. The cluster entered APSS-off 12965 times in 5 min, and the UFS soak and s2idle/deep suspend passed 5/5.
+  - r115 (plus AOSS sleep): the cluster entered both states.
+  - Standby, unplugged with the screen off: deep-suspend loop 79 → about 60 mA; awake idle unchanged at about 110 mA.
+- **Bluetooth works for the first time.** The hypervisor ignored Linux's SMMU route for QUP wrapper 2 (SID 0x5e3): the hardware S2CR read the bypass bank, so the UART's SE DMA ran untranslated (RX zeros, frame reassembly -84, and possibly stray RAM writes).
+  - 0064 reserves every context bank a firmware-routed SMR still uses (8, 9, 10, 13, 14, 26, 39). This also covers the CS35L45 I2C on SE17 and ADSP fastrpc cb5 (0x1805).
+  - The controller then registered unconfigured (no address from the bootloader). `production-wifi` now sets a stable, locally administered public address derived from the SoC serial, loading socinfo first.
+  - Result: powered, BR/EDR and LE; a 12 s scan found 11 devices, and Wi-Fi was unaffected.
+  - The hwcheck Bluetooth test now needs an initialised, powered controller. rog5-hotspot finds its uplink interface.
+- **Sleep blockers** (qcom_stats cxsd/aosd/ddr still 0):
+  - **0063:** q6afe never stored the LPASS HW vote handle, so every devote was rejected (0x100f6). Fixed; no more errors.
+  - **0065:** ufs-qcom leaked one lane-clock enable per resume, which held XO.
+  - **0066 plus compose `qupicc`:** the ASUS wrapper left QUP0/QUP1 BCM votes (0x207803c0) that upstream never manages. The sm8350 interconnect now owns them: QUP0-2 read 0x20004001 while awake and 0 in the sleep set.
+  - **USB runtime PM:** a new udev rule 91-rog5-usb-runtime-pm sets control=auto on the persistent root.
+  - **Still open:**
+    - The ADSP never sleeps after the APR audio services come up. It isn't PipeWire, the sound card, the amps, LPI pinctrl, q6asm or fastrpc (module bisect). apr/q6core/q6afe/q6adm/q6routing could not be unloaded. The unload/reload cycle left q6asm unregistered until reboot.
+    - The MDSS clocks stay enabled while MDSS is suspended.
+- **UFS on resume:** 0062 skips the RTC, timestamp and auto-BKOPS writes on resume under containment (previously -30 errors).
+- **Default:** production-7.2.7-r120 = kernel r35 (0059-0066), DTB `platform-osi-aoss-qup-dtb-r1` (33e62caa), wifi-kit-r2 (BT firmware) and the ramdisk with the BT address step. Two reboots, each committed healthy. The fallback is still safe-r2.

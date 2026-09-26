@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Production 7.2.7 r113 default (fallback production-7.2.7-safe-r2): Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, DDR scaling (bwmon + GPU OPP votes, input boost), GCC/GPUCC sync_state, haptics (AW8697), light/proximity (VCNL36866), logo LED (rgb:logo), speaker audio (CS35L45 x2 over SENARY MI2S), motion sensors (SLPI Sensor Core: accel, gyro, mag, fusion), side-port USB host (hubs, mass storage, USB Ethernet) with automatic role switch, unattended package-update kit, system suspend (s2idle and deep) with resume",
+  "phase": "Production 7.2.7 r120 default (fallback production-7.2.7-safe-r2): Denial at boot (GPU accelerated), Wi-Fi (battery-capable), hotspot, Bluetooth, power key, 3-level brightness, per-core CPU idle, DDR scaling (bwmon + GPU OPP votes, input boost), GCC/GPUCC sync_state, haptics (AW8697), light/proximity (VCNL36866), logo LED (rgb:logo), speaker audio (CS35L45 x2 over SENARY MI2S), motion sensors (SLPI Sensor Core: accel, gyro, mag, fusion), side-port USB host (hubs, mass storage, USB Ethernet) with automatic role switch, unattended package-update kit, system suspend (s2idle and deep) with resume, Bluetooth, OSI cluster idle",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,7 +9,7 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "2026-09-26: default is production-7.2.7-r113 (kernel r30: 0059 UFS system suspend, 0060 PCIe GDSC retention, 0061 panel brightness while off; ramdisk: USB disks outside the 117-node UFS scope, no kernel fbdev client; fallback production-7.2.7-safe-r2). Open: SoC-level sleep (cxsd/ddr counters 0; needs cluster/system low-power states), ~60 s periodic wake, sleep policy (rog5-server-inhibit), Denial boot animation (first-modeset noise), one-off UFS hibern8-exit failure on the r110 first boot (watch), bottom port (RT1715), package self-update end-to-end.",
+  "next": "2026-09-26: default production-7.2.7-r120 (kernel r35: 0059-0066; DTB osi,aoss,qupicc; BT working). Open: ADSP stays awake after APR audio load (blocks CX/DDR sleep), MDSS clocks held while suspended, sleep policy (auto-suspend on battery), 120 Hz panel trial, CPU boost floor/L3 voting, Denial upstream rebase (v0.4.4), lock gate (user-approved, classifier-blocked).",
   "evidence": "test-results/2026-09-24-power-idle-ddr.md",
   "phone_operation_scope": [
     "read-only identity and health checks",
