@@ -38,10 +38,50 @@ and change only the Dart shell (`libapp.so`).
   (down and up within `kTouchSlop`) closes it. The tap region is a
   `TextFieldTapRegion`, so taps on shell text fields keep it open. Touches on
   client surfaces still dismiss on touch-down, through the compositor.
+- `0004-wifi-settings-details-saved-hidden-advanced.patch` (applies after
+  0001-0003): NetworkManager-backed Wi-Fi settings pages. They are reached
+  from the quick-settings Wi-Fi surface (the (i) button on a saved or
+  connected network, and the "Saved networks" and "Add network" buttons), and
+  from Settings, Network ("Details", "Manage networks").
+  - Details: signal, link speed, band and channel, security, IPv4
+    address/prefix, gateway, DNS, IPv6, BSSID and device MAC, plus the
+    profile's auto-connect toggle, forget, and connect or disconnect.
+  - Saved networks: `Settings.ListConnections` and `GetSettings`, with an
+    auto-connect switch and forget (`Delete`) on each row.
+  - Add network: a hidden SSID with None, WPA/WPA2-Personal or
+    WPA3-Personal security, created with `AddAndActivateConnection2` and
+    `802-11-wireless.hidden`.
+  - Advanced: IPv4 DHCP or static (address, prefix, gateway, DNS), a DNS
+    override on DHCP (`ignore-auto-dns`), proxy none or auto (PAC URL), and
+    metered.
+  Saving re-reads the stored settings, changes only these fields, and writes
+  them with `Settings.Connection.Update2` (to disk, no secrets; NM keeps the
+  stored PSK). If the profile is active and the IP, proxy or metered settings
+  changed, it then calls `Device.Reapply`. If that is refused, it calls
+  `ActivateConnection` instead. The Wi-Fi surface pads itself above the
+  on-screen keyboard. With iwd (no `WifiProfileBackend`), the snapshot's
+  `profileManagement` is false and none of this is shown. Strings are in
+  `app_en.arb`/`app_zh.arb` and the regenerated `l10n/generated`. The profile
+  encoding is covered by `test/services/network_manager_profile_test.dart`.
+  `flutter test` does not run in the builder, because it has no host
+  `flutter_tester`. The same assertions passed in a pure-Dart harness.
 
 The patches are unified diffs against upstream 85b2303e. Apply them in order
 with `patch -p1` from the source root. Together, 0001-0003 reproduce the
 shipped tree's `dart_shell/lib` exactly.
+
+## Deployed state (2026-09-26)
+
+`/opt/denial/lib/libapp.so` is upstream + **0001 + 0004** (sha256 c6f72921...,
+built as `assembly-r3`). 0004 applies without 0002/0003.
+
+- 0002 is withdrawn. The user chose a password lock over "no lock without a
+  credential", so the stock PAM `login` unlock applies once root has a
+  password.
+- 0003 depends on 0002, and the user found it unreliable. The keyboard work
+  will be redone on top of 0001 + 0004.
+- 0005 (power key toggles the display; compositor) is written but not built.
+  `deniald` is still the clean upstream build.
 
 ## Rebuild and deploy libapp.so (about 1 minute)
 

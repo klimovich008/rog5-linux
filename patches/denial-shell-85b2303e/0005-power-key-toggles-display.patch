@@ -1,0 +1,137 @@
+--- a/compositor/src/bin/deniald/authentication.rs
++++ b/compositor/src/bin/deniald/authentication.rs
+@@ -1239,6 +1239,27 @@
+     }
+ }
+ 
++/// Whether the session account has a password that PAM could accept.
++///
++/// A shadow password field that matches no password (empty, `x`, `*`, or
++/// `!`-prefixed) means the device has no screen-lock secret, so locking would
++/// only add a swipe. Unknown or unreadable state keeps locking. The field is
++/// only classified, never logged or retained.
++pub(super) fn session_account_has_usable_password() -> bool {
++    let username = current_username();
++    let Ok(shadow) = std::fs::read_to_string("/etc/shadow") else {
++        return true;
++    };
++    shadow
++        .lines()
++        .filter_map(|line| line.split_once(':'))
++        .find(|(name, _)| *name == username)
++        .map(|(_, rest)| rest.split(':').next().unwrap_or_default())
++        .is_none_or(|field| {
++            !(field.is_empty() || field == "x" || field == "*" || field.starts_with('!'))
++        })
++}
++
+ #[cfg(test)]
+ #[path = "authentication/tests.rs"]
+ mod tests;
+--- a/compositor/src/bin/deniald/dpms.rs
++++ b/compositor/src/bin/deniald/dpms.rs
+@@ -194,7 +194,9 @@
+     scanouts: &[Scanout],
+     events: &mut RuntimeState,
+ ) {
+-    if !runtime.take_dpms_off_requested() {
++    let shell_requested = runtime.take_dpms_off_requested();
++    let power_key_requested = std::mem::take(&mut events.power_key_blank_requested);
++    if !shell_requested && !power_key_requested {
+         return;
+     }
+     let requests = events.idle_policy.blank_now(
+@@ -203,7 +205,10 @@
+             .map(|scanout| (scanout.output.id, scanout.powered)),
+     );
+     events.queue_idle_power_requests(requests);
+-    info!("requested immediate compositor-owned display power-off");
++    info!(
++        power_key = power_key_requested,
++        "requested immediate compositor-owned display power-off"
++    );
+ }
+ 
+ #[cfg(feature = "flutter")]
+--- a/compositor/src/bin/deniald/idle_policy.rs
++++ b/compositor/src/bin/deniald/idle_policy.rs
+@@ -264,6 +264,11 @@
+         Vec::new()
+     }
+ 
++    /// Whether the policy currently holds any output blanked.
++    pub(super) fn has_blanked_outputs(&self) -> bool {
++        !self.blanked_outputs.is_empty()
++    }
++
+     pub(super) fn note_activity(&mut self, now: Instant) -> Vec<IdlePowerRequest> {
+         self.reset_idle_interval(now);
+         self.wake_blanked_outputs()
+--- a/compositor/src/bin/deniald/runtime_state.rs
++++ b/compositor/src/bin/deniald/runtime_state.rs
+@@ -119,6 +119,8 @@
+     pub(super) pending_ui_development: VecDeque<PendingUiDevelopment>,
+     #[cfg(feature = "flutter")]
+     pub(super) idle_policy: idle_policy::IdlePolicy,
++    #[cfg(feature = "flutter")]
++    pub(super) power_key_blank_requested: bool,
+ }
+ 
+ #[cfg(feature = "flutter")]
+--- a/compositor/src/bin/deniald/wayland_frontend/input.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/input.rs
+@@ -955,6 +955,12 @@
+     key_state: KeyState,
+     time: u32,
+ ) -> bool {
++    // The power key is a compositor action, not client input. It must run
++    // before activity is noted: activity wakes blanked outputs, so the key's
++    // own release would otherwise undo the power-off it just requested.
++    if intercept_power_key(state, keycode, key_state) {
++        return false;
++    }
+     state.note_user_activity();
+     if intercept_native_escape(state, keycode.raw(), key_state) {
+         return true;
+@@ -1771,6 +1777,41 @@
+     true
+ }
+ 
++/// Linux evdev `KEY_POWER`, emitted by the PMIC power button (`pmic_pwrkey`).
++#[cfg(feature = "flutter")]
++const EVDEV_KEY_POWER: u32 = 116;
++
++/// Handles the physical power key like a phone's: while any output is
++/// blanked it wakes the displays; otherwise it blanks them through the same
++/// compositor-owned path as the shell's screen-off request, first locking
++/// the session when the account has a usable password. Both press and
++/// release are consumed so no client or shell ever sees the key.
++#[cfg(feature = "flutter")]
++fn intercept_power_key(state: &mut RuntimeState, keycode: Keycode, key_state: KeyState) -> bool {
++    // Smithay/XKB keycodes carry the conventional eight-code offset.
++    if keycode.raw().checked_sub(8) != Some(EVDEV_KEY_POWER) {
++        return false;
++    }
++    if key_state != KeyState::Pressed {
++        return true;
++    }
++    if state.idle_policy.has_blanked_outputs() {
++        state.note_user_activity();
++        info!("power key woke the displays");
++        return true;
++    }
++    if super::super::authentication::session_account_has_usable_password() {
++        if let Some(authentication) = state.authentication.as_ref() {
++            authentication.lock();
++        } else {
++            warn!("power key could not lock the session: authentication is unavailable");
++        }
++    }
++    state.power_key_blank_requested = true;
++    info!("power key requested display power-off");
++    true
++}
++
+ fn intercept_native_escape(
+     state: &mut RuntimeState,
+     xkb_keycode: u32,

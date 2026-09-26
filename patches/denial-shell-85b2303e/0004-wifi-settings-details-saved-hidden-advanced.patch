@@ -1,0 +1,5362 @@
+--- a/dart_shell/lib/l10n/app_en.arb
++++ b/dart_shell/lib/l10n/app_en.arb
+@@ -4679,6 +4679,327 @@
+   "@wifiWepRequirements": {
+     "description": "English UI text for wifiWepRequirements."
+   },
++  "wifiAddHiddenNetworkDescription": "Join a network that does not broadcast its name. It is saved as a hidden network.",
++  "@wifiAddHiddenNetworkDescription": {
++    "description": "English UI text for wifiAddHiddenNetworkDescription."
++  },
++  "wifiAddNetwork": "Add network",
++  "@wifiAddNetwork": {
++    "description": "English UI text for wifiAddNetwork."
++  },
++  "wifiAdvancedSettings": "Advanced settings",
++  "@wifiAdvancedSettings": {
++    "description": "English UI text for wifiAdvancedSettings."
++  },
++  "wifiAutoConnect": "Auto-connect",
++  "@wifiAutoConnect": {
++    "description": "English UI text for wifiAutoConnect."
++  },
++  "wifiAutoConnectDescription": "Join this network automatically when it is in range.",
++  "@wifiAutoConnectDescription": {
++    "description": "English UI text for wifiAutoConnectDescription."
++  },
++  "wifiAutoConnectFor": "Auto-connect {networkName}",
++  "@wifiAutoConnectFor": {
++    "description": "English UI text for wifiAutoConnectFor.",
++    "placeholders": {
++      "networkName": {
++        "type": "String"
++      }
++    }
++  },
++  "wifiAutoConnectOff": "Auto-connect off",
++  "@wifiAutoConnectOff": {
++    "description": "English UI text for wifiAutoConnectOff."
++  },
++  "wifiBack": "Back",
++  "@wifiBack": {
++    "description": "English UI text for wifiBack."
++  },
++  "wifiBssid": "BSSID",
++  "@wifiBssid": {
++    "description": "English UI text for wifiBssid."
++  },
++  "wifiConnectToSeeDetails": "Connect to this network to see its address and link details.",
++  "@wifiConnectToSeeDetails": {
++    "description": "English UI text for wifiConnectToSeeDetails."
++  },
++  "wifiCustomDns": "Custom DNS servers",
++  "@wifiCustomDns": {
++    "description": "English UI text for wifiCustomDns."
++  },
++  "wifiCustomDnsDescription": "Use your own DNS servers instead of the ones from DHCP.",
++  "@wifiCustomDnsDescription": {
++    "description": "English UI text for wifiCustomDnsDescription."
++  },
++  "wifiDetails": "Details",
++  "@wifiDetails": {
++    "description": "English UI text for wifiDetails."
++  },
++  "wifiDetailsUnavailable": "Network details are unavailable.",
++  "@wifiDetailsUnavailable": {
++    "description": "English UI text for wifiDetailsUnavailable."
++  },
++  "wifiDnsHint": "Separate servers with commas.",
++  "@wifiDnsHint": {
++    "description": "English UI text for wifiDnsHint."
++  },
++  "wifiDnsServers": "DNS servers",
++  "@wifiDnsServers": {
++    "description": "English UI text for wifiDnsServers."
++  },
++  "wifiForget": "Forget",
++  "@wifiForget": {
++    "description": "English UI text for wifiForget."
++  },
++  "wifiFrequency": "Frequency",
++  "@wifiFrequency": {
++    "description": "English UI text for wifiFrequency."
++  },
++  "wifiFrequencyMegahertz": "{frequency} MHz",
++  "@wifiFrequencyMegahertz": {
++    "description": "English UI text for wifiFrequencyMegahertz.",
++    "placeholders": {
++      "frequency": {
++        "type": "int"
++      }
++    }
++  },
++  "wifiFrequencyValue": "{band} GHz · channel {channel} ({frequency} MHz)",
++  "@wifiFrequencyValue": {
++    "description": "English UI text for wifiFrequencyValue.",
++    "placeholders": {
++      "band": {
++        "type": "String"
++      },
++      "channel": {
++        "type": "int"
++      },
++      "frequency": {
++        "type": "int"
++      }
++    }
++  },
++  "wifiGateway": "Gateway",
++  "@wifiGateway": {
++    "description": "English UI text for wifiGateway."
++  },
++  "wifiHiddenNetwork": "Hidden network",
++  "@wifiHiddenNetwork": {
++    "description": "English UI text for wifiHiddenNetwork."
++  },
++  "wifiInvalidAddress": "Enter a valid IPv4 address.",
++  "@wifiInvalidAddress": {
++    "description": "English UI text for wifiInvalidAddress."
++  },
++  "wifiInvalidDns": "Enter IPv4 DNS servers separated by commas.",
++  "@wifiInvalidDns": {
++    "description": "English UI text for wifiInvalidDns."
++  },
++  "wifiInvalidGateway": "Enter a valid IPv4 gateway, or leave it empty.",
++  "@wifiInvalidGateway": {
++    "description": "English UI text for wifiInvalidGateway."
++  },
++  "wifiInvalidPacUrl": "Enter an http, https or file URL.",
++  "@wifiInvalidPacUrl": {
++    "description": "English UI text for wifiInvalidPacUrl."
++  },
++  "wifiInvalidPrefix": "Enter a prefix length from 1 to 32.",
++  "@wifiInvalidPrefix": {
++    "description": "English UI text for wifiInvalidPrefix."
++  },
++  "wifiInvalidSsid": "Enter a network name of 1 to 32 bytes.",
++  "@wifiInvalidSsid": {
++    "description": "English UI text for wifiInvalidSsid."
++  },
++  "wifiIpAddress": "IP address",
++  "@wifiIpAddress": {
++    "description": "English UI text for wifiIpAddress."
++  },
++  "wifiIpDhcp": "DHCP",
++  "@wifiIpDhcp": {
++    "description": "English UI text for wifiIpDhcp."
++  },
++  "wifiIpMethodOther": "Other ({method})",
++  "@wifiIpMethodOther": {
++    "description": "English UI text for wifiIpMethodOther.",
++    "placeholders": {
++      "method": {
++        "type": "String"
++      }
++    }
++  },
++  "wifiIpMethodUnsupported": "This network uses the {method} IPv4 method, which can only be changed with nmcli.",
++  "@wifiIpMethodUnsupported": {
++    "description": "English UI text for wifiIpMethodUnsupported.",
++    "placeholders": {
++      "method": {
++        "type": "String"
++      }
++    }
++  },
++  "wifiIpSettings": "IP settings",
++  "@wifiIpSettings": {
++    "description": "English UI text for wifiIpSettings."
++  },
++  "wifiIpStatic": "Static",
++  "@wifiIpStatic": {
++    "description": "English UI text for wifiIpStatic."
++  },
++  "wifiIpv6Addresses": "IPv6 addresses",
++  "@wifiIpv6Addresses": {
++    "description": "English UI text for wifiIpv6Addresses."
++  },
++  "wifiLinkSpeed": "Link speed",
++  "@wifiLinkSpeed": {
++    "description": "English UI text for wifiLinkSpeed."
++  },
++  "wifiLinkSpeedValue": "{speed} Mbps",
++  "@wifiLinkSpeedValue": {
++    "description": "English UI text for wifiLinkSpeedValue.",
++    "placeholders": {
++      "speed": {
++        "type": "int"
++      }
++    }
++  },
++  "wifiMacAddress": "Device MAC address",
++  "@wifiMacAddress": {
++    "description": "English UI text for wifiMacAddress."
++  },
++  "wifiManageNetworks": "Manage networks",
++  "@wifiManageNetworks": {
++    "description": "English UI text for wifiManageNetworks."
++  },
++  "wifiMetered": "Metered connection",
++  "@wifiMetered": {
++    "description": "English UI text for wifiMetered."
++  },
++  "wifiMeteredAutomatic": "Automatic",
++  "@wifiMeteredAutomatic": {
++    "description": "English UI text for wifiMeteredAutomatic."
++  },
++  "wifiMeteredNo": "Unmetered",
++  "@wifiMeteredNo": {
++    "description": "English UI text for wifiMeteredNo."
++  },
++  "wifiMeteredYes": "Metered",
++  "@wifiMeteredYes": {
++    "description": "English UI text for wifiMeteredYes."
++  },
++  "wifiNetworkDetails": "Network details",
++  "@wifiNetworkDetails": {
++    "description": "English UI text for wifiNetworkDetails."
++  },
++  "wifiNetworkDetailsFor": "Details for {networkName}",
++  "@wifiNetworkDetailsFor": {
++    "description": "English UI text for wifiNetworkDetailsFor.",
++    "placeholders": {
++      "networkName": {
++        "type": "String"
++      }
++    }
++  },
++  "wifiNetworkName": "Network name (SSID)",
++  "@wifiNetworkName": {
++    "description": "English UI text for wifiNetworkName."
++  },
++  "wifiNoSavedNetworks": "No saved networks",
++  "@wifiNoSavedNetworks": {
++    "description": "English UI text for wifiNoSavedNetworks."
++  },
++  "wifiNoSavedNetworksDescription": "Networks you join are saved here.",
++  "@wifiNoSavedNetworksDescription": {
++    "description": "English UI text for wifiNoSavedNetworksDescription."
++  },
++  "wifiPacUrl": "PAC URL (optional)",
++  "@wifiPacUrl": {
++    "description": "English UI text for wifiPacUrl."
++  },
++  "wifiPassword": "Password",
++  "@wifiPassword": {
++    "description": "English UI text for wifiPassword."
++  },
++  "wifiPrefixLength": "Prefix length",
++  "@wifiPrefixLength": {
++    "description": "English UI text for wifiPrefixLength."
++  },
++  "wifiProxy": "Proxy",
++  "@wifiProxy": {
++    "description": "English UI text for wifiProxy."
++  },
++  "wifiProxyAutomatic": "Automatic",
++  "@wifiProxyAutomatic": {
++    "description": "English UI text for wifiProxyAutomatic."
++  },
++  "wifiProxyNone": "None",
++  "@wifiProxyNone": {
++    "description": "English UI text for wifiProxyNone."
++  },
++  "wifiReconnectNotice": "Saving applies the changes to the active connection, which may reconnect briefly.",
++  "@wifiReconnectNotice": {
++    "description": "English UI text for wifiReconnectNotice."
++  },
++  "wifiSave": "Save",
++  "@wifiSave": {
++    "description": "English UI text for wifiSave."
++  },
++  "wifiSavedInRange": "Saved · In range",
++  "@wifiSavedInRange": {
++    "description": "English UI text for wifiSavedInRange."
++  },
++  "wifiSavedNetworks": "Saved networks",
++  "@wifiSavedNetworks": {
++    "description": "English UI text for wifiSavedNetworks."
++  },
++  "wifiSecurity": "Security",
++  "@wifiSecurity": {
++    "description": "English UI text for wifiSecurity."
++  },
++  "wifiSecurityNone": "None",
++  "@wifiSecurityNone": {
++    "description": "English UI text for wifiSecurityNone."
++  },
++  "wifiSignal": "Signal strength",
++  "@wifiSignal": {
++    "description": "English UI text for wifiSignal."
++  },
++  "wifiSignalExcellent": "Excellent",
++  "@wifiSignalExcellent": {
++    "description": "English UI text for wifiSignalExcellent."
++  },
++  "wifiSignalFair": "Fair",
++  "@wifiSignalFair": {
++    "description": "English UI text for wifiSignalFair."
++  },
++  "wifiSignalGood": "Good",
++  "@wifiSignalGood": {
++    "description": "English UI text for wifiSignalGood."
++  },
++  "wifiSignalValue": "{quality} · {strength}%",
++  "@wifiSignalValue": {
++    "description": "English UI text for wifiSignalValue.",
++    "placeholders": {
++      "quality": {
++        "type": "String"
++      },
++      "strength": {
++        "type": "int"
++      }
++    }
++  },
++  "wifiSignalWeak": "Weak",
++  "@wifiSignalWeak": {
++    "description": "English UI text for wifiSignalWeak."
++  },
++  "wifiStatus": "Status",
++  "@wifiStatus": {
++    "description": "English UI text for wifiStatus."
++  },
++  "wifiYes": "Yes",
++  "@wifiYes": {
++    "description": "English UI text for wifiYes."
++  },
+   "windowSwitcherPosition": "{position} / {total}",
+   "@windowSwitcherPosition": {
+     "description": "English UI text for windowSwitcherPosition.",
+--- a/dart_shell/lib/l10n/app_zh.arb
++++ b/dart_shell/lib/l10n/app_zh.arb
+@@ -1001,6 +1001,74 @@
+   "wifiTurnOff": "关闭 Wi-Fi",
+   "wifiTurnOn": "开启 Wi-Fi",
+   "wifiWepRequirements": "WEP 密钥必须包含 5 到 64 个字符。",
++  "wifiAddHiddenNetworkDescription": "加入不广播名称的网络。它将保存为隐藏网络。",
++  "wifiAddNetwork": "添加网络",
++  "wifiAdvancedSettings": "高级设置",
++  "wifiAutoConnect": "自动连接",
++  "wifiAutoConnectDescription": "在范围内时自动加入此网络。",
++  "wifiAutoConnectFor": "自动连接 {networkName}",
++  "wifiAutoConnectOff": "自动连接已关闭",
++  "wifiBack": "返回",
++  "wifiBssid": "BSSID",
++  "wifiConnectToSeeDetails": "连接到此网络后可查看其地址和连接详情。",
++  "wifiCustomDns": "自定义 DNS 服务器",
++  "wifiCustomDnsDescription": "使用自己的 DNS 服务器，而不是 DHCP 提供的服务器。",
++  "wifiDetails": "详情",
++  "wifiDetailsUnavailable": "网络详情不可用。",
++  "wifiDnsHint": "多个服务器请用逗号分隔。",
++  "wifiDnsServers": "DNS 服务器",
++  "wifiForget": "忘记",
++  "wifiFrequency": "频率",
++  "wifiFrequencyMegahertz": "{frequency} MHz",
++  "wifiFrequencyValue": "{band} GHz · 信道 {channel}（{frequency} MHz）",
++  "wifiGateway": "网关",
++  "wifiHiddenNetwork": "隐藏网络",
++  "wifiInvalidAddress": "请输入有效的 IPv4 地址。",
++  "wifiInvalidDns": "请输入以逗号分隔的 IPv4 DNS 服务器。",
++  "wifiInvalidGateway": "请输入有效的 IPv4 网关，或留空。",
++  "wifiInvalidPacUrl": "请输入 http、https 或 file URL。",
++  "wifiInvalidPrefix": "请输入 1 到 32 之间的前缀长度。",
++  "wifiInvalidSsid": "请输入 1 到 32 字节的网络名称。",
++  "wifiIpAddress": "IP 地址",
++  "wifiIpDhcp": "DHCP",
++  "wifiIpMethodOther": "其他（{method}）",
++  "wifiIpMethodUnsupported": "此网络使用 {method} IPv4 方法，只能通过 nmcli 更改。",
++  "wifiIpSettings": "IP 设置",
++  "wifiIpStatic": "静态",
++  "wifiIpv6Addresses": "IPv6 地址",
++  "wifiLinkSpeed": "连接速度",
++  "wifiLinkSpeedValue": "{speed} Mbps",
++  "wifiMacAddress": "设备 MAC 地址",
++  "wifiManageNetworks": "管理网络",
++  "wifiMetered": "按流量计费",
++  "wifiMeteredAutomatic": "自动",
++  "wifiMeteredNo": "不按流量计费",
++  "wifiMeteredYes": "按流量计费",
++  "wifiNetworkDetails": "网络详情",
++  "wifiNetworkDetailsFor": "{networkName} 的详情",
++  "wifiNetworkName": "网络名称（SSID）",
++  "wifiNoSavedNetworks": "没有已保存的网络",
++  "wifiNoSavedNetworksDescription": "你加入的网络会保存在这里。",
++  "wifiPacUrl": "PAC URL（可选）",
++  "wifiPassword": "密码",
++  "wifiPrefixLength": "前缀长度",
++  "wifiProxy": "代理",
++  "wifiProxyAutomatic": "自动",
++  "wifiProxyNone": "无",
++  "wifiReconnectNotice": "保存后更改将应用到当前连接，连接可能会短暂中断。",
++  "wifiSave": "保存",
++  "wifiSavedInRange": "已保存 · 在范围内",
++  "wifiSavedNetworks": "已保存的网络",
++  "wifiSecurity": "安全性",
++  "wifiSecurityNone": "无",
++  "wifiSignal": "信号强度",
++  "wifiSignalExcellent": "极好",
++  "wifiSignalFair": "一般",
++  "wifiSignalGood": "良好",
++  "wifiSignalValue": "{quality} · {strength}%",
++  "wifiSignalWeak": "弱",
++  "wifiStatus": "状态",
++  "wifiYes": "是",
+   "windowSwitcherPosition": "{position} / {total}",
+   "windowSwitcherSelected": "已选择 {windowTitle}",
+   "windowUntitled": "窗口 {windowId}"
+--- a/dart_shell/lib/l10n/generated/app_localizations.dart
++++ b/dart_shell/lib/l10n/generated/app_localizations.dart
+@@ -6118,6 +6118,414 @@
+   /// **'WEP keys must contain between 5 and 64 characters.'**
+   String get wifiWepRequirements;
+ 
++  /// English UI text for wifiAddHiddenNetworkDescription.
++  ///
++  /// In en, this message translates to:
++  /// **'Join a network that does not broadcast its name. It is saved as a hidden network.'**
++  String get wifiAddHiddenNetworkDescription;
++
++  /// English UI text for wifiAddNetwork.
++  ///
++  /// In en, this message translates to:
++  /// **'Add network'**
++  String get wifiAddNetwork;
++
++  /// English UI text for wifiAdvancedSettings.
++  ///
++  /// In en, this message translates to:
++  /// **'Advanced settings'**
++  String get wifiAdvancedSettings;
++
++  /// English UI text for wifiAutoConnect.
++  ///
++  /// In en, this message translates to:
++  /// **'Auto-connect'**
++  String get wifiAutoConnect;
++
++  /// English UI text for wifiAutoConnectDescription.
++  ///
++  /// In en, this message translates to:
++  /// **'Join this network automatically when it is in range.'**
++  String get wifiAutoConnectDescription;
++
++  /// English UI text for wifiAutoConnectFor.
++  ///
++  /// In en, this message translates to:
++  /// **'Auto-connect {networkName}'**
++  String wifiAutoConnectFor(String networkName);
++
++  /// English UI text for wifiAutoConnectOff.
++  ///
++  /// In en, this message translates to:
++  /// **'Auto-connect off'**
++  String get wifiAutoConnectOff;
++
++  /// English UI text for wifiBack.
++  ///
++  /// In en, this message translates to:
++  /// **'Back'**
++  String get wifiBack;
++
++  /// English UI text for wifiBssid.
++  ///
++  /// In en, this message translates to:
++  /// **'BSSID'**
++  String get wifiBssid;
++
++  /// English UI text for wifiConnectToSeeDetails.
++  ///
++  /// In en, this message translates to:
++  /// **'Connect to this network to see its address and link details.'**
++  String get wifiConnectToSeeDetails;
++
++  /// English UI text for wifiCustomDns.
++  ///
++  /// In en, this message translates to:
++  /// **'Custom DNS servers'**
++  String get wifiCustomDns;
++
++  /// English UI text for wifiCustomDnsDescription.
++  ///
++  /// In en, this message translates to:
++  /// **'Use your own DNS servers instead of the ones from DHCP.'**
++  String get wifiCustomDnsDescription;
++
++  /// English UI text for wifiDetails.
++  ///
++  /// In en, this message translates to:
++  /// **'Details'**
++  String get wifiDetails;
++
++  /// English UI text for wifiDetailsUnavailable.
++  ///
++  /// In en, this message translates to:
++  /// **'Network details are unavailable.'**
++  String get wifiDetailsUnavailable;
++
++  /// English UI text for wifiDnsHint.
++  ///
++  /// In en, this message translates to:
++  /// **'Separate servers with commas.'**
++  String get wifiDnsHint;
++
++  /// English UI text for wifiDnsServers.
++  ///
++  /// In en, this message translates to:
++  /// **'DNS servers'**
++  String get wifiDnsServers;
++
++  /// English UI text for wifiForget.
++  ///
++  /// In en, this message translates to:
++  /// **'Forget'**
++  String get wifiForget;
++
++  /// English UI text for wifiFrequency.
++  ///
++  /// In en, this message translates to:
++  /// **'Frequency'**
++  String get wifiFrequency;
++
++  /// English UI text for wifiFrequencyMegahertz.
++  ///
++  /// In en, this message translates to:
++  /// **'{frequency} MHz'**
++  String wifiFrequencyMegahertz(int frequency);
++
++  /// English UI text for wifiFrequencyValue.
++  ///
++  /// In en, this message translates to:
++  /// **'{band} GHz · channel {channel} ({frequency} MHz)'**
++  String wifiFrequencyValue(String band, int channel, int frequency);
++
++  /// English UI text for wifiGateway.
++  ///
++  /// In en, this message translates to:
++  /// **'Gateway'**
++  String get wifiGateway;
++
++  /// English UI text for wifiHiddenNetwork.
++  ///
++  /// In en, this message translates to:
++  /// **'Hidden network'**
++  String get wifiHiddenNetwork;
++
++  /// English UI text for wifiInvalidAddress.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter a valid IPv4 address.'**
++  String get wifiInvalidAddress;
++
++  /// English UI text for wifiInvalidDns.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter IPv4 DNS servers separated by commas.'**
++  String get wifiInvalidDns;
++
++  /// English UI text for wifiInvalidGateway.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter a valid IPv4 gateway, or leave it empty.'**
++  String get wifiInvalidGateway;
++
++  /// English UI text for wifiInvalidPacUrl.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter an http, https or file URL.'**
++  String get wifiInvalidPacUrl;
++
++  /// English UI text for wifiInvalidPrefix.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter a prefix length from 1 to 32.'**
++  String get wifiInvalidPrefix;
++
++  /// English UI text for wifiInvalidSsid.
++  ///
++  /// In en, this message translates to:
++  /// **'Enter a network name of 1 to 32 bytes.'**
++  String get wifiInvalidSsid;
++
++  /// English UI text for wifiIpAddress.
++  ///
++  /// In en, this message translates to:
++  /// **'IP address'**
++  String get wifiIpAddress;
++
++  /// English UI text for wifiIpDhcp.
++  ///
++  /// In en, this message translates to:
++  /// **'DHCP'**
++  String get wifiIpDhcp;
++
++  /// English UI text for wifiIpMethodOther.
++  ///
++  /// In en, this message translates to:
++  /// **'Other ({method})'**
++  String wifiIpMethodOther(String method);
++
++  /// English UI text for wifiIpMethodUnsupported.
++  ///
++  /// In en, this message translates to:
++  /// **'This network uses the {method} IPv4 method, which can only be changed with nmcli.'**
++  String wifiIpMethodUnsupported(String method);
++
++  /// English UI text for wifiIpSettings.
++  ///
++  /// In en, this message translates to:
++  /// **'IP settings'**
++  String get wifiIpSettings;
++
++  /// English UI text for wifiIpStatic.
++  ///
++  /// In en, this message translates to:
++  /// **'Static'**
++  String get wifiIpStatic;
++
++  /// English UI text for wifiIpv6Addresses.
++  ///
++  /// In en, this message translates to:
++  /// **'IPv6 addresses'**
++  String get wifiIpv6Addresses;
++
++  /// English UI text for wifiLinkSpeed.
++  ///
++  /// In en, this message translates to:
++  /// **'Link speed'**
++  String get wifiLinkSpeed;
++
++  /// English UI text for wifiLinkSpeedValue.
++  ///
++  /// In en, this message translates to:
++  /// **'{speed} Mbps'**
++  String wifiLinkSpeedValue(int speed);
++
++  /// English UI text for wifiMacAddress.
++  ///
++  /// In en, this message translates to:
++  /// **'Device MAC address'**
++  String get wifiMacAddress;
++
++  /// English UI text for wifiManageNetworks.
++  ///
++  /// In en, this message translates to:
++  /// **'Manage networks'**
++  String get wifiManageNetworks;
++
++  /// English UI text for wifiMetered.
++  ///
++  /// In en, this message translates to:
++  /// **'Metered connection'**
++  String get wifiMetered;
++
++  /// English UI text for wifiMeteredAutomatic.
++  ///
++  /// In en, this message translates to:
++  /// **'Automatic'**
++  String get wifiMeteredAutomatic;
++
++  /// English UI text for wifiMeteredNo.
++  ///
++  /// In en, this message translates to:
++  /// **'Unmetered'**
++  String get wifiMeteredNo;
++
++  /// English UI text for wifiMeteredYes.
++  ///
++  /// In en, this message translates to:
++  /// **'Metered'**
++  String get wifiMeteredYes;
++
++  /// English UI text for wifiNetworkDetails.
++  ///
++  /// In en, this message translates to:
++  /// **'Network details'**
++  String get wifiNetworkDetails;
++
++  /// English UI text for wifiNetworkDetailsFor.
++  ///
++  /// In en, this message translates to:
++  /// **'Details for {networkName}'**
++  String wifiNetworkDetailsFor(String networkName);
++
++  /// English UI text for wifiNetworkName.
++  ///
++  /// In en, this message translates to:
++  /// **'Network name (SSID)'**
++  String get wifiNetworkName;
++
++  /// English UI text for wifiNoSavedNetworks.
++  ///
++  /// In en, this message translates to:
++  /// **'No saved networks'**
++  String get wifiNoSavedNetworks;
++
++  /// English UI text for wifiNoSavedNetworksDescription.
++  ///
++  /// In en, this message translates to:
++  /// **'Networks you join are saved here.'**
++  String get wifiNoSavedNetworksDescription;
++
++  /// English UI text for wifiPacUrl.
++  ///
++  /// In en, this message translates to:
++  /// **'PAC URL (optional)'**
++  String get wifiPacUrl;
++
++  /// English UI text for wifiPassword.
++  ///
++  /// In en, this message translates to:
++  /// **'Password'**
++  String get wifiPassword;
++
++  /// English UI text for wifiPrefixLength.
++  ///
++  /// In en, this message translates to:
++  /// **'Prefix length'**
++  String get wifiPrefixLength;
++
++  /// English UI text for wifiProxy.
++  ///
++  /// In en, this message translates to:
++  /// **'Proxy'**
++  String get wifiProxy;
++
++  /// English UI text for wifiProxyAutomatic.
++  ///
++  /// In en, this message translates to:
++  /// **'Automatic'**
++  String get wifiProxyAutomatic;
++
++  /// English UI text for wifiProxyNone.
++  ///
++  /// In en, this message translates to:
++  /// **'None'**
++  String get wifiProxyNone;
++
++  /// English UI text for wifiReconnectNotice.
++  ///
++  /// In en, this message translates to:
++  /// **'Saving applies the changes to the active connection, which may reconnect briefly.'**
++  String get wifiReconnectNotice;
++
++  /// English UI text for wifiSave.
++  ///
++  /// In en, this message translates to:
++  /// **'Save'**
++  String get wifiSave;
++
++  /// English UI text for wifiSavedInRange.
++  ///
++  /// In en, this message translates to:
++  /// **'Saved · In range'**
++  String get wifiSavedInRange;
++
++  /// English UI text for wifiSavedNetworks.
++  ///
++  /// In en, this message translates to:
++  /// **'Saved networks'**
++  String get wifiSavedNetworks;
++
++  /// English UI text for wifiSecurity.
++  ///
++  /// In en, this message translates to:
++  /// **'Security'**
++  String get wifiSecurity;
++
++  /// English UI text for wifiSecurityNone.
++  ///
++  /// In en, this message translates to:
++  /// **'None'**
++  String get wifiSecurityNone;
++
++  /// English UI text for wifiSignal.
++  ///
++  /// In en, this message translates to:
++  /// **'Signal strength'**
++  String get wifiSignal;
++
++  /// English UI text for wifiSignalExcellent.
++  ///
++  /// In en, this message translates to:
++  /// **'Excellent'**
++  String get wifiSignalExcellent;
++
++  /// English UI text for wifiSignalFair.
++  ///
++  /// In en, this message translates to:
++  /// **'Fair'**
++  String get wifiSignalFair;
++
++  /// English UI text for wifiSignalGood.
++  ///
++  /// In en, this message translates to:
++  /// **'Good'**
++  String get wifiSignalGood;
++
++  /// English UI text for wifiSignalValue.
++  ///
++  /// In en, this message translates to:
++  /// **'{quality} · {strength}%'**
++  String wifiSignalValue(String quality, int strength);
++
++  /// English UI text for wifiSignalWeak.
++  ///
++  /// In en, this message translates to:
++  /// **'Weak'**
++  String get wifiSignalWeak;
++
++  /// English UI text for wifiStatus.
++  ///
++  /// In en, this message translates to:
++  /// **'Status'**
++  String get wifiStatus;
++
++  /// English UI text for wifiYes.
++  ///
++  /// In en, this message translates to:
++  /// **'Yes'**
++  String get wifiYes;
++
+   /// English UI text for windowSwitcherPosition.
+   ///
+   /// In en, this message translates to:
+--- a/dart_shell/lib/l10n/generated/app_localizations_en.dart
++++ b/dart_shell/lib/l10n/generated/app_localizations_en.dart
+@@ -3445,6 +3445,233 @@
+       'WEP keys must contain between 5 and 64 characters.';
+ 
+   @override
++  String get wifiAddHiddenNetworkDescription =>
++      'Join a network that does not broadcast its name. It is saved as a hidden network.';
++
++  @override
++  String get wifiAddNetwork => 'Add network';
++
++  @override
++  String get wifiAdvancedSettings => 'Advanced settings';
++
++  @override
++  String get wifiAutoConnect => 'Auto-connect';
++
++  @override
++  String get wifiAutoConnectDescription =>
++      'Join this network automatically when it is in range.';
++
++  @override
++  String wifiAutoConnectFor(String networkName) {
++    return 'Auto-connect $networkName';
++  }
++
++  @override
++  String get wifiAutoConnectOff => 'Auto-connect off';
++
++  @override
++  String get wifiBack => 'Back';
++
++  @override
++  String get wifiBssid => 'BSSID';
++
++  @override
++  String get wifiConnectToSeeDetails =>
++      'Connect to this network to see its address and link details.';
++
++  @override
++  String get wifiCustomDns => 'Custom DNS servers';
++
++  @override
++  String get wifiCustomDnsDescription =>
++      'Use your own DNS servers instead of the ones from DHCP.';
++
++  @override
++  String get wifiDetails => 'Details';
++
++  @override
++  String get wifiDetailsUnavailable => 'Network details are unavailable.';
++
++  @override
++  String get wifiDnsHint => 'Separate servers with commas.';
++
++  @override
++  String get wifiDnsServers => 'DNS servers';
++
++  @override
++  String get wifiForget => 'Forget';
++
++  @override
++  String get wifiFrequency => 'Frequency';
++
++  @override
++  String wifiFrequencyMegahertz(int frequency) {
++    return '$frequency MHz';
++  }
++
++  @override
++  String wifiFrequencyValue(String band, int channel, int frequency) {
++    return '$band GHz · channel $channel ($frequency MHz)';
++  }
++
++  @override
++  String get wifiGateway => 'Gateway';
++
++  @override
++  String get wifiHiddenNetwork => 'Hidden network';
++
++  @override
++  String get wifiInvalidAddress => 'Enter a valid IPv4 address.';
++
++  @override
++  String get wifiInvalidDns => 'Enter IPv4 DNS servers separated by commas.';
++
++  @override
++  String get wifiInvalidGateway =>
++      'Enter a valid IPv4 gateway, or leave it empty.';
++
++  @override
++  String get wifiInvalidPacUrl => 'Enter an http, https or file URL.';
++
++  @override
++  String get wifiInvalidPrefix => 'Enter a prefix length from 1 to 32.';
++
++  @override
++  String get wifiInvalidSsid => 'Enter a network name of 1 to 32 bytes.';
++
++  @override
++  String get wifiIpAddress => 'IP address';
++
++  @override
++  String get wifiIpDhcp => 'DHCP';
++
++  @override
++  String wifiIpMethodOther(String method) {
++    return 'Other ($method)';
++  }
++
++  @override
++  String wifiIpMethodUnsupported(String method) {
++    return 'This network uses the $method IPv4 method, which can only be changed with nmcli.';
++  }
++
++  @override
++  String get wifiIpSettings => 'IP settings';
++
++  @override
++  String get wifiIpStatic => 'Static';
++
++  @override
++  String get wifiIpv6Addresses => 'IPv6 addresses';
++
++  @override
++  String get wifiLinkSpeed => 'Link speed';
++
++  @override
++  String wifiLinkSpeedValue(int speed) {
++    return '$speed Mbps';
++  }
++
++  @override
++  String get wifiMacAddress => 'Device MAC address';
++
++  @override
++  String get wifiManageNetworks => 'Manage networks';
++
++  @override
++  String get wifiMetered => 'Metered connection';
++
++  @override
++  String get wifiMeteredAutomatic => 'Automatic';
++
++  @override
++  String get wifiMeteredNo => 'Unmetered';
++
++  @override
++  String get wifiMeteredYes => 'Metered';
++
++  @override
++  String get wifiNetworkDetails => 'Network details';
++
++  @override
++  String wifiNetworkDetailsFor(String networkName) {
++    return 'Details for $networkName';
++  }
++
++  @override
++  String get wifiNetworkName => 'Network name (SSID)';
++
++  @override
++  String get wifiNoSavedNetworks => 'No saved networks';
++
++  @override
++  String get wifiNoSavedNetworksDescription =>
++      'Networks you join are saved here.';
++
++  @override
++  String get wifiPacUrl => 'PAC URL (optional)';
++
++  @override
++  String get wifiPassword => 'Password';
++
++  @override
++  String get wifiPrefixLength => 'Prefix length';
++
++  @override
++  String get wifiProxy => 'Proxy';
++
++  @override
++  String get wifiProxyAutomatic => 'Automatic';
++
++  @override
++  String get wifiProxyNone => 'None';
++
++  @override
++  String get wifiReconnectNotice =>
++      'Saving applies the changes to the active connection, which may reconnect briefly.';
++
++  @override
++  String get wifiSave => 'Save';
++
++  @override
++  String get wifiSavedInRange => 'Saved · In range';
++
++  @override
++  String get wifiSavedNetworks => 'Saved networks';
++
++  @override
++  String get wifiSecurity => 'Security';
++
++  @override
++  String get wifiSecurityNone => 'None';
++
++  @override
++  String get wifiSignal => 'Signal strength';
++
++  @override
++  String get wifiSignalExcellent => 'Excellent';
++
++  @override
++  String get wifiSignalFair => 'Fair';
++
++  @override
++  String get wifiSignalGood => 'Good';
++
++  @override
++  String wifiSignalValue(String quality, int strength) {
++    return '$quality · $strength%';
++  }
++
++  @override
++  String get wifiSignalWeak => 'Weak';
++
++  @override
++  String get wifiStatus => 'Status';
++
++  @override
++  String get wifiYes => 'Yes';
++
++  @override
+   String windowSwitcherPosition(int position, int total) {
+     return '$position / $total';
+   }
+--- a/dart_shell/lib/l10n/generated/app_localizations_zh.dart
++++ b/dart_shell/lib/l10n/generated/app_localizations_zh.dart
+@@ -3289,6 +3289,226 @@
+   String get wifiWepRequirements => 'WEP 密钥必须包含 5 到 64 个字符。';
+ 
+   @override
++  String get wifiAddHiddenNetworkDescription => '加入不广播名称的网络。它将保存为隐藏网络。';
++
++  @override
++  String get wifiAddNetwork => '添加网络';
++
++  @override
++  String get wifiAdvancedSettings => '高级设置';
++
++  @override
++  String get wifiAutoConnect => '自动连接';
++
++  @override
++  String get wifiAutoConnectDescription => '在范围内时自动加入此网络。';
++
++  @override
++  String wifiAutoConnectFor(String networkName) {
++    return '自动连接 $networkName';
++  }
++
++  @override
++  String get wifiAutoConnectOff => '自动连接已关闭';
++
++  @override
++  String get wifiBack => '返回';
++
++  @override
++  String get wifiBssid => 'BSSID';
++
++  @override
++  String get wifiConnectToSeeDetails => '连接到此网络后可查看其地址和连接详情。';
++
++  @override
++  String get wifiCustomDns => '自定义 DNS 服务器';
++
++  @override
++  String get wifiCustomDnsDescription => '使用自己的 DNS 服务器，而不是 DHCP 提供的服务器。';
++
++  @override
++  String get wifiDetails => '详情';
++
++  @override
++  String get wifiDetailsUnavailable => '网络详情不可用。';
++
++  @override
++  String get wifiDnsHint => '多个服务器请用逗号分隔。';
++
++  @override
++  String get wifiDnsServers => 'DNS 服务器';
++
++  @override
++  String get wifiForget => '忘记';
++
++  @override
++  String get wifiFrequency => '频率';
++
++  @override
++  String wifiFrequencyMegahertz(int frequency) {
++    return '$frequency MHz';
++  }
++
++  @override
++  String wifiFrequencyValue(String band, int channel, int frequency) {
++    return '$band GHz · 信道 $channel（$frequency MHz）';
++  }
++
++  @override
++  String get wifiGateway => '网关';
++
++  @override
++  String get wifiHiddenNetwork => '隐藏网络';
++
++  @override
++  String get wifiInvalidAddress => '请输入有效的 IPv4 地址。';
++
++  @override
++  String get wifiInvalidDns => '请输入以逗号分隔的 IPv4 DNS 服务器。';
++
++  @override
++  String get wifiInvalidGateway => '请输入有效的 IPv4 网关，或留空。';
++
++  @override
++  String get wifiInvalidPacUrl => '请输入 http、https 或 file URL。';
++
++  @override
++  String get wifiInvalidPrefix => '请输入 1 到 32 之间的前缀长度。';
++
++  @override
++  String get wifiInvalidSsid => '请输入 1 到 32 字节的网络名称。';
++
++  @override
++  String get wifiIpAddress => 'IP 地址';
++
++  @override
++  String get wifiIpDhcp => 'DHCP';
++
++  @override
++  String wifiIpMethodOther(String method) {
++    return '其他（$method）';
++  }
++
++  @override
++  String wifiIpMethodUnsupported(String method) {
++    return '此网络使用 $method IPv4 方法，只能通过 nmcli 更改。';
++  }
++
++  @override
++  String get wifiIpSettings => 'IP 设置';
++
++  @override
++  String get wifiIpStatic => '静态';
++
++  @override
++  String get wifiIpv6Addresses => 'IPv6 地址';
++
++  @override
++  String get wifiLinkSpeed => '连接速度';
++
++  @override
++  String wifiLinkSpeedValue(int speed) {
++    return '$speed Mbps';
++  }
++
++  @override
++  String get wifiMacAddress => '设备 MAC 地址';
++
++  @override
++  String get wifiManageNetworks => '管理网络';
++
++  @override
++  String get wifiMetered => '按流量计费';
++
++  @override
++  String get wifiMeteredAutomatic => '自动';
++
++  @override
++  String get wifiMeteredNo => '不按流量计费';
++
++  @override
++  String get wifiMeteredYes => '按流量计费';
++
++  @override
++  String get wifiNetworkDetails => '网络详情';
++
++  @override
++  String wifiNetworkDetailsFor(String networkName) {
++    return '$networkName 的详情';
++  }
++
++  @override
++  String get wifiNetworkName => '网络名称（SSID）';
++
++  @override
++  String get wifiNoSavedNetworks => '没有已保存的网络';
++
++  @override
++  String get wifiNoSavedNetworksDescription => '你加入的网络会保存在这里。';
++
++  @override
++  String get wifiPacUrl => 'PAC URL（可选）';
++
++  @override
++  String get wifiPassword => '密码';
++
++  @override
++  String get wifiPrefixLength => '前缀长度';
++
++  @override
++  String get wifiProxy => '代理';
++
++  @override
++  String get wifiProxyAutomatic => '自动';
++
++  @override
++  String get wifiProxyNone => '无';
++
++  @override
++  String get wifiReconnectNotice => '保存后更改将应用到当前连接，连接可能会短暂中断。';
++
++  @override
++  String get wifiSave => '保存';
++
++  @override
++  String get wifiSavedInRange => '已保存 · 在范围内';
++
++  @override
++  String get wifiSavedNetworks => '已保存的网络';
++
++  @override
++  String get wifiSecurity => '安全性';
++
++  @override
++  String get wifiSecurityNone => '无';
++
++  @override
++  String get wifiSignal => '信号强度';
++
++  @override
++  String get wifiSignalExcellent => '极好';
++
++  @override
++  String get wifiSignalFair => '一般';
++
++  @override
++  String get wifiSignalGood => '良好';
++
++  @override
++  String wifiSignalValue(String quality, int strength) {
++    return '$quality · $strength%';
++  }
++
++  @override
++  String get wifiSignalWeak => '弱';
++
++  @override
++  String get wifiStatus => '状态';
++
++  @override
++  String get wifiYes => '是';
++
++  @override
+   String windowSwitcherPosition(int position, int total) {
+     return '$position / $total';
+   }
+--- a/dart_shell/lib/src/services/network_backend.dart
++++ b/dart_shell/lib/src/services/network_backend.dart
+@@ -200,6 +200,7 @@
+     required this.radioPermission,
+     required this.controlPermission,
+     required this.modifyPermission,
++    this.profileManagement = false,
+   }) : networks = List<WifiNetwork>.unmodifiable(networks);
+ 
+   const NetworkSnapshot.unavailable()
+@@ -214,7 +215,8 @@
+       lastScan = -1,
+       radioPermission = NetworkPermission.unknown,
+       controlPermission = NetworkPermission.unknown,
+-      modifyPermission = NetworkPermission.unknown;
++      modifyPermission = NetworkPermission.unknown,
++      profileManagement = false;
+ 
+   final bool serviceAvailable;
+   final bool wifiDeviceAvailable;
+@@ -229,6 +231,11 @@
+   final NetworkPermission controlPermission;
+   final NetworkPermission modifyPermission;
+ 
++  /// Whether the backend exposes saved connection profiles for editing
++  /// ([WifiProfileBackend]): details, saved networks, hidden networks and
++  /// per-network IP, DNS, proxy and metered settings. NetworkManager only.
++  final bool profileManagement;
++
+   WifiNetwork? get connectedNetwork {
+     for (final network in networks) {
+       if (network.connected) {
+@@ -253,7 +260,8 @@
+           other.lastScan == lastScan &&
+           other.radioPermission == radioPermission &&
+           other.controlPermission == controlPermission &&
+-          other.modifyPermission == modifyPermission;
++          other.modifyPermission == modifyPermission &&
++          other.profileManagement == profileManagement;
+ 
+   @override
+   int get hashCode => Object.hash(
+@@ -269,6 +277,7 @@
+     radioPermission,
+     controlPermission,
+     modifyPermission,
++    profileManagement,
+   );
+ }
+ 
+@@ -366,3 +375,346 @@
+   }
+   return left ? -1 : 1;
+ }
++
++/// How a saved Wi-Fi profile obtains its IPv4 configuration. [other] covers
++/// methods the shell shows but does not edit (link-local, shared, disabled).
++enum WifiIpv4Method { auto, manual, other }
++
++enum WifiProxyMethod { none, auto }
++
++enum WifiMetered { unknown, yes, no }
++
++@immutable
++class WifiIpv4Address {
++  const WifiIpv4Address(this.address, this.prefix);
++
++  final String address;
++  final int prefix;
++
++  @override
++  bool operator ==(Object other) =>
++      other is WifiIpv4Address &&
++      other.address == address &&
++      other.prefix == prefix;
++
++  @override
++  int get hashCode => Object.hash(address, prefix);
++
++  @override
++  String toString() => '$address/$prefix';
++}
++
++/// The editable view of one saved Wi-Fi connection profile. Secrets are never
++/// part of it; the backend keeps the stored password when it writes a profile.
++@immutable
++class WifiProfile {
++  WifiProfile({
++    required this.path,
++    required this.name,
++    required this.uuid,
++    required List<int> ssidBytes,
++    required this.security,
++    required this.hidden,
++    required this.autoconnect,
++    required this.ipv4Method,
++    required this.ipv4MethodName,
++    required List<WifiIpv4Address> addresses,
++    required this.gateway,
++    required List<String> dns,
++    required this.ignoreAutoDns,
++    required this.proxyMethod,
++    required this.pacUrl,
++    required this.metered,
++    required this.timestamp,
++  }) : ssidBytes = List<int>.unmodifiable(ssidBytes),
++       addresses = List<WifiIpv4Address>.unmodifiable(addresses),
++       dns = List<String>.unmodifiable(dns);
++
++  final String path;
++  final String name;
++  final String uuid;
++  final List<int> ssidBytes;
++  final WifiSecurity security;
++  final bool hidden;
++  final bool autoconnect;
++  final WifiIpv4Method ipv4Method;
++  final String ipv4MethodName;
++  final List<WifiIpv4Address> addresses;
++  final String gateway;
++  final List<String> dns;
++  final bool ignoreAutoDns;
++  final WifiProxyMethod proxyMethod;
++  final String pacUrl;
++  final WifiMetered metered;
++
++  /// Seconds since the epoch of the last successful activation, or 0.
++  final int timestamp;
++
++  String get ssid => utf8.decode(ssidBytes, allowMalformed: true);
++
++  String get identity => WifiNetwork.identityFor(ssidBytes, security);
++
++  WifiProfile copyWith({
++    bool? autoconnect,
++    WifiIpv4Method? ipv4Method,
++    List<WifiIpv4Address>? addresses,
++    String? gateway,
++    List<String>? dns,
++    bool? ignoreAutoDns,
++    WifiProxyMethod? proxyMethod,
++    String? pacUrl,
++    WifiMetered? metered,
++  }) {
++    final method = ipv4Method ?? this.ipv4Method;
++    return WifiProfile(
++      path: path,
++      name: name,
++      uuid: uuid,
++      ssidBytes: ssidBytes,
++      security: security,
++      hidden: hidden,
++      autoconnect: autoconnect ?? this.autoconnect,
++      ipv4Method: method,
++      ipv4MethodName: switch (method) {
++        WifiIpv4Method.auto => 'auto',
++        WifiIpv4Method.manual => 'manual',
++        WifiIpv4Method.other => ipv4MethodName,
++      },
++      addresses: addresses ?? this.addresses,
++      gateway: gateway ?? this.gateway,
++      dns: dns ?? this.dns,
++      ignoreAutoDns: ignoreAutoDns ?? this.ignoreAutoDns,
++      proxyMethod: proxyMethod ?? this.proxyMethod,
++      pacUrl: pacUrl ?? this.pacUrl,
++      metered: metered ?? this.metered,
++      timestamp: timestamp,
++    );
++  }
++
++  /// Whether applying [other] over this profile changes how an active
++  /// connection is configured (so it must be reapplied or reactivated).
++  bool differsInLinkConfiguration(WifiProfile other) =>
++      other.ipv4Method != ipv4Method ||
++      !listEquals(other.addresses, addresses) ||
++      other.gateway != gateway ||
++      !listEquals(other.dns, dns) ||
++      other.ignoreAutoDns != ignoreAutoDns ||
++      other.proxyMethod != proxyMethod ||
++      other.pacUrl != pacUrl ||
++      other.metered != metered;
++
++  @override
++  bool operator ==(Object other) =>
++      identical(this, other) ||
++      other is WifiProfile &&
++          other.path == path &&
++          other.name == name &&
++          other.uuid == uuid &&
++          listEquals(other.ssidBytes, ssidBytes) &&
++          other.security == security &&
++          other.hidden == hidden &&
++          other.autoconnect == autoconnect &&
++          other.ipv4Method == ipv4Method &&
++          other.ipv4MethodName == ipv4MethodName &&
++          listEquals(other.addresses, addresses) &&
++          other.gateway == gateway &&
++          listEquals(other.dns, dns) &&
++          other.ignoreAutoDns == ignoreAutoDns &&
++          other.proxyMethod == proxyMethod &&
++          other.pacUrl == pacUrl &&
++          other.metered == metered &&
++          other.timestamp == timestamp;
++
++  @override
++  int get hashCode => Object.hash(
++    path,
++    name,
++    uuid,
++    Object.hashAll(ssidBytes),
++    security,
++    hidden,
++    autoconnect,
++    ipv4Method,
++    ipv4MethodName,
++    Object.hashAll(addresses),
++    gateway,
++    Object.hashAll(dns),
++    ignoreAutoDns,
++    proxyMethod,
++    pacUrl,
++    metered,
++    timestamp,
++  );
++}
++
++/// Live link information for one network: the radio side from the access
++/// point and device, the IP side only while the network is connected.
++@immutable
++class WifiConnectionDetails {
++  WifiConnectionDetails({
++    required this.connected,
++    required this.strength,
++    required this.frequency,
++    required this.bitrateKbps,
++    required this.security,
++    required this.bssid,
++    required this.hardwareAddress,
++    required List<WifiIpv4Address> ipv4Addresses,
++    required this.ipv4Gateway,
++    required List<String> ipv4Dns,
++    required List<String> ipv6Addresses,
++    required this.ipv6Gateway,
++    required this.activeProfilePath,
++  }) : ipv4Addresses = List<WifiIpv4Address>.unmodifiable(ipv4Addresses),
++       ipv4Dns = List<String>.unmodifiable(ipv4Dns),
++       ipv6Addresses = List<String>.unmodifiable(ipv6Addresses);
++
++  final bool connected;
++  final int strength;
++  final int frequency;
++  final int bitrateKbps;
++  final WifiSecurity? security;
++  final String bssid;
++  final String hardwareAddress;
++  final List<WifiIpv4Address> ipv4Addresses;
++  final String ipv4Gateway;
++  final List<String> ipv4Dns;
++  final List<String> ipv6Addresses;
++  final String ipv6Gateway;
++  final String? activeProfilePath;
++
++  @override
++  bool operator ==(Object other) =>
++      identical(this, other) ||
++      other is WifiConnectionDetails &&
++          other.connected == connected &&
++          other.strength == strength &&
++          other.frequency == frequency &&
++          other.bitrateKbps == bitrateKbps &&
++          other.security == security &&
++          other.bssid == bssid &&
++          other.hardwareAddress == hardwareAddress &&
++          listEquals(other.ipv4Addresses, ipv4Addresses) &&
++          other.ipv4Gateway == ipv4Gateway &&
++          listEquals(other.ipv4Dns, ipv4Dns) &&
++          listEquals(other.ipv6Addresses, ipv6Addresses) &&
++          other.ipv6Gateway == ipv6Gateway &&
++          other.activeProfilePath == activeProfilePath;
++
++  @override
++  int get hashCode => Object.hash(
++    connected,
++    strength,
++    frequency,
++    bitrateKbps,
++    security,
++    bssid,
++    hardwareAddress,
++    Object.hashAll(ipv4Addresses),
++    ipv4Gateway,
++    Object.hashAll(ipv4Dns),
++    Object.hashAll(ipv6Addresses),
++    ipv6Gateway,
++    activeProfilePath,
++  );
++}
++
++/// Saved-profile management offered by NetworkManager. Backends without
++/// editable profiles (iwd) do not implement it, and their snapshots report
++/// [NetworkSnapshot.profileManagement] as false.
++abstract interface class WifiProfileBackend {
++  Future<List<WifiProfile>> readWifiProfiles();
++
++  Future<WifiProfile?> readWifiProfile(String path);
++
++  Future<WifiConnectionDetails> readConnectionDetails(WifiNetwork network);
++
++  /// Writes the editable fields of [profile] to its stored connection. When
++  /// [reapply] is set and the profile is active, the running connection is
++  /// updated too (reapplied in place, or reactivated if that is refused).
++  Future<void> updateWifiProfile(WifiProfile profile, {required bool reapply});
++
++  Future<void> deleteWifiProfile(String path);
++
++  Future<void> addHiddenNetwork({
++    required String ssid,
++    required WifiSecurity security,
++    String? password,
++  });
++}
++
++/// The 802.11 channel number for a centre frequency in MHz, or 0.
++int wifiChannelForFrequency(int frequency) {
++  if (frequency == 2484) {
++    return 14;
++  }
++  if (frequency >= 2412 && frequency < 2484) {
++    return (frequency - 2407) ~/ 5;
++  }
++  if (frequency == 5935) {
++    return 2;
++  }
++  if (frequency >= 5955 && frequency <= 7115) {
++    return (frequency - 5950) ~/ 5;
++  }
++  if (frequency >= 4910 && frequency < 5000) {
++    return (frequency - 4000) ~/ 5;
++  }
++  if (frequency >= 5000 && frequency <= 5895) {
++    return (frequency - 5000) ~/ 5;
++  }
++  if (frequency >= 58320 && frequency <= 70200) {
++    return (frequency - 56160) ~/ 2160;
++  }
++  return 0;
++}
++
++/// The band of a centre frequency in MHz as a GHz label ("2.4", "5", "6"), or
++/// null when it is unknown.
++String? wifiBandForFrequency(int frequency) {
++  if (frequency >= 2400 && frequency < 2500) {
++    return '2.4';
++  }
++  if (frequency == 5935 || (frequency >= 5955 && frequency <= 7125)) {
++    return '6';
++  }
++  if (frequency >= 4900 && frequency < 5950) {
++    return '5';
++  }
++  if (frequency >= 57000 && frequency <= 71000) {
++    return '60';
++  }
++  return null;
++}
++
++final RegExp _ipv4Pattern = RegExp(
++  r'^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$',
++);
++
++bool isValidIpv4Address(String value) => _ipv4Pattern.hasMatch(value.trim());
++
++/// Parses an IPv4 prefix length (1-32), or returns null.
++int? parseIpv4Prefix(String value) {
++  final prefix = int.tryParse(value.trim());
++  return prefix == null || prefix < 1 || prefix > 32 ? null : prefix;
++}
++
++/// Parses a comma-, space- or semicolon-separated list of IPv4 DNS servers.
++/// Returns null when any entry is invalid; an empty input gives an empty list.
++List<String>? parseIpv4DnsList(String value) {
++  final entries = value
++      .split(RegExp(r'[\s,;]+'))
++      .map((entry) => entry.trim())
++      .where((entry) => entry.isNotEmpty)
++      .toList(growable: false);
++  if (entries.any((entry) => !isValidIpv4Address(entry))) {
++    return null;
++  }
++  final unique = <String>[];
++  for (final entry in entries) {
++    if (!unique.contains(entry)) {
++      unique.add(entry);
++    }
++  }
++  return unique;
++}
+--- a/dart_shell/lib/src/services/network_manager_service.dart
++++ b/dart_shell/lib/src/services/network_manager_service.dart
+@@ -8,7 +8,7 @@
+ 
+ export 'network_backend.dart';
+ 
+-class NetworkManagerService implements NetworkBackend {
++class NetworkManagerService implements NetworkBackend, WifiProfileBackend {
+   factory NetworkManagerService({DBusClient? client}) {
+     return NetworkManagerService._(client ?? DBusClient.system());
+   }
+@@ -39,6 +39,12 @@
+       'org.freedesktop.NetworkManager.Settings';
+   static const String _settingsConnectionInterface =
+       'org.freedesktop.NetworkManager.Settings.Connection';
++  static const String _activeConnectionInterface =
++      'org.freedesktop.NetworkManager.Connection.Active';
++  static const String _ip4ConfigInterface =
++      'org.freedesktop.NetworkManager.IP4Config';
++  static const String _ip6ConfigInterface =
++      'org.freedesktop.NetworkManager.IP6Config';
+ 
+   static const Duration _readTimeout = Duration(seconds: 4);
+   static const Duration _methodTimeout = Duration(seconds: 25);
+@@ -47,6 +53,7 @@
+   static const int _maxAccessPoints = 128;
+   static const int _maxSavedConnections = 128;
+   static const int _readBatchSize = 12;
++  static const int _update2ToDisk = 0x1;
+ 
+   final DBusClient _client;
+   final DBusRemoteObject _root;
+@@ -279,6 +286,7 @@
+         radioPermission: permissions.radio,
+         controlPermission: permissions.control,
+         modifyPermission: permissions.modify,
++        profileManagement: true,
+       );
+     }
+ 
+@@ -369,9 +377,291 @@
+       radioPermission: permissions.radio,
+       controlPermission: permissions.control,
+       modifyPermission: permissions.modify,
++      profileManagement: true,
+     );
+   }
+ 
++  @override
++  Future<List<WifiProfile>> readWifiProfiles() => _guard(() async {
++    final reply = await _settings
++        .callMethod(
++          _settingsInterface,
++          'ListConnections',
++          const <DBusValue>[],
++          replySignature: DBusSignature('ao'),
++        )
++        .timeout(_readTimeout);
++    final paths = reply.returnValues.first.asObjectPathArray().take(
++      _maxSavedConnections,
++    );
++    final profiles = await _mapInBatches(paths, _readBatchSize, (path) async {
++      try {
++        return parseWifiProfile(
++          path.value,
++          await _readConnectionSettings(path.value),
++        );
++      } on Object {
++        return null;
++      }
++    });
++    return profiles.whereType<WifiProfile>().toList(growable: false)
++      ..sort((left, right) {
++        final result = right.timestamp.compareTo(left.timestamp);
++        return result != 0
++            ? result
++            : left.name.toLowerCase().compareTo(right.name.toLowerCase());
++      });
++  });
++
++  @override
++  Future<WifiProfile?> readWifiProfile(String path) => _guard(
++    () async => parseWifiProfile(path, await _readConnectionSettings(path)),
++  );
++
++  @override
++  Future<WifiConnectionDetails> readConnectionDetails(WifiNetwork network) =>
++      _guard(() async {
++        final devicePath = network.devicePath.isEmpty
++            ? _current.devicePath
++            : network.devicePath;
++        final device = devicePath == null
++            ? const <String, DBusValue>{}
++            : await _tryGetAll(devicePath, _deviceInterface);
++        final wireless = devicePath == null
++            ? const <String, DBusValue>{}
++            : await _tryGetAll(devicePath, _wirelessInterface);
++        final activeAccessPoint = _objectPath(wireless, 'ActiveAccessPoint');
++        final connected = network.connected && activeAccessPoint != null;
++        final accessPointPath = network.connected
++            ? activeAccessPoint
++            : network.networkPath.isEmpty || network.networkPath == '/'
++            ? null
++            : network.networkPath;
++        final accessPoint = accessPointPath == null
++            ? const <String, DBusValue>{}
++            : await _tryGetAll(accessPointPath, _accessPointInterface);
++        var hardwareAddress = _string(device, 'HwAddress');
++        if (hardwareAddress.isEmpty) {
++          hardwareAddress = _string(wireless, 'HwAddress');
++        }
++
++        String? activeProfilePath;
++        var ip4 = const <String, DBusValue>{};
++        var ip6 = const <String, DBusValue>{};
++        if (network.connected) {
++          final activeConnection = _objectPath(device, 'ActiveConnection');
++          if (activeConnection != null) {
++            final active = await _tryGetAll(
++              activeConnection,
++              _activeConnectionInterface,
++            );
++            activeProfilePath = _objectPath(active, 'Connection');
++          }
++          if (_objectPath(device, 'Ip4Config') case final path?) {
++            ip4 = await _tryGetAll(path, _ip4ConfigInterface);
++          }
++          if (_objectPath(device, 'Ip6Config') case final path?) {
++            ip6 = await _tryGetAll(path, _ip6ConfigInterface);
++          }
++        }
++
++        return WifiConnectionDetails(
++          connected: connected,
++          strength: accessPoint.isEmpty
++              ? network.strength
++              : _byte(accessPoint, 'Strength'),
++          frequency: accessPoint.isEmpty
++              ? network.frequency
++              : _uint32(accessPoint, 'Frequency'),
++          bitrateKbps: connected ? _uint32(wireless, 'Bitrate') : 0,
++          security: accessPoint.isEmpty
++              ? null
++              : classifyWifiSecurity(
++                  flags: _uint32(accessPoint, 'Flags'),
++                  wpaFlags: _uint32(accessPoint, 'WpaFlags'),
++                  rsnFlags: _uint32(accessPoint, 'RsnFlags'),
++                ),
++          bssid: _string(accessPoint, 'HwAddress'),
++          hardwareAddress: hardwareAddress,
++          ipv4Addresses: _addressData(ip4, 'AddressData')
++              .map((entry) => WifiIpv4Address(entry.$1, entry.$2))
++              .toList(growable: false),
++          ipv4Gateway: _string(ip4, 'Gateway'),
++          ipv4Dns: _ipv4Nameservers(ip4),
++          ipv6Addresses: _addressData(
++            ip6,
++            'AddressData',
++          ).map((entry) => '${entry.$1}/${entry.$2}').toList(growable: false),
++          ipv6Gateway: _string(ip6, 'Gateway'),
++          activeProfilePath: activeProfilePath,
++        );
++      });
++
++  @override
++  Future<void> updateWifiProfile(
++    WifiProfile profile, {
++    required bool reapply,
++  }) => _guard(() async {
++    final current = await _readConnectionSettings(profile.path);
++    await _object(profile.path)
++        .callMethod(
++          _settingsConnectionInterface,
++          'Update2',
++          <DBusValue>[
++            buildWifiProfileSettings(current, profile),
++            const DBusUint32(_update2ToDisk),
++            DBusDict.stringVariant(const <String, DBusValue>{}),
++          ],
++          replySignature: DBusSignature('a{sv}'),
++        )
++        .timeout(_methodTimeout);
++    if (reapply) {
++      await _reapplyIfActive(profile.path);
++    }
++    await refresh();
++  });
++
++  @override
++  Future<void> deleteWifiProfile(String path) => _guard(() async {
++    await _object(path)
++        .callMethod(
++          _settingsConnectionInterface,
++          'Delete',
++          const <DBusValue>[],
++          replySignature: DBusSignature(''),
++        )
++        .timeout(_methodTimeout);
++    await refresh();
++  });
++
++  @override
++  Future<void> addHiddenNetwork({
++    required String ssid,
++    required WifiSecurity security,
++    String? password,
++  }) => _guard(() async {
++    final devicePath = _current.devicePath;
++    if (devicePath == null) {
++      throw StateError('No Wi-Fi adapter is available');
++    }
++    final ssidBytes = utf8.encode(ssid);
++    if (ssidBytes.isEmpty || ssidBytes.length > 32) {
++      throw ArgumentError.value(
++        ssid,
++        'ssid',
++        'Network names must contain 1–32 bytes',
++      );
++    }
++    final network = WifiNetwork(
++      ssid: ssid,
++      ssidBytes: ssidBytes,
++      security: security,
++      strength: 0,
++      frequency: 0,
++      devicePath: devicePath,
++      networkPath: '/',
++      savedNetworkPath: null,
++      connected: false,
++      available: true,
++    );
++    await _root
++        .callMethod(
++          _managerInterface,
++          'AddAndActivateConnection2',
++          <DBusValue>[
++            buildWifiConnectionSettings(
++              network,
++              password: password,
++              hidden: true,
++            ),
++            DBusObjectPath(devicePath),
++            DBusObjectPath('/'),
++            DBusDict.stringVariant(const <String, DBusValue>{}),
++          ],
++          replySignature: DBusSignature('ooa{sv}'),
++        )
++        .timeout(_methodTimeout);
++  });
++
++  /// Finds the active connection that uses the profile at [profilePath] and
++  /// pushes the stored settings to it: Device.Reapply keeps the association,
++  /// and a refused reapply falls back to reactivating the profile.
++  Future<void> _reapplyIfActive(String profilePath) async {
++    final rootProperties = await _root
++        .getAllProperties(_managerInterface)
++        .timeout(_readTimeout);
++    for (final active in _objectPaths(rootProperties, 'ActiveConnections')) {
++      final properties = await _tryGetAll(active, _activeConnectionInterface);
++      if (_objectPath(properties, 'Connection') != profilePath) {
++        continue;
++      }
++      final devices = _objectPaths(properties, 'Devices');
++      if (devices.isEmpty) {
++        return;
++      }
++      try {
++        await _object(devices.first)
++            .callMethod(_deviceInterface, 'Reapply', <DBusValue>[
++              DBusDict(
++                DBusSignature('s'),
++                DBusSignature('a{sv}'),
++                const <DBusValue, DBusValue>{},
++              ),
++              const DBusUint64(0),
++              const DBusUint32(0),
++            ], replySignature: DBusSignature(''))
++            .timeout(_methodTimeout);
++      } on DBusMethodResponseException {
++        await _root
++            .callMethod(
++              _managerInterface,
++              'ActivateConnection',
++              <DBusValue>[
++                DBusObjectPath(profilePath),
++                DBusObjectPath(devices.first),
++                DBusObjectPath('/'),
++              ],
++              replySignature: DBusSignature('o'),
++            )
++            .timeout(_methodTimeout);
++      }
++      return;
++    }
++  }
++
++  Future<Map<String, Map<String, DBusValue>>> _readConnectionSettings(
++    String path,
++  ) async {
++    final reply = await _object(path)
++        .callMethod(
++          _settingsConnectionInterface,
++          'GetSettings',
++          const <DBusValue>[],
++          replySignature: DBusSignature('a{sa{sv}}'),
++        )
++        .timeout(_readTimeout);
++    return _settingsMap(reply.returnValues.first);
++  }
++
++  /// Turns NetworkManager's D-Bus errors into [StateError]s carrying its
++  /// message (for example which property it rejected), and timeouts into a
++  /// readable error, so the shell can show why a change failed.
++  Future<T> _guard<T>(Future<T> Function() operation) async {
++    try {
++      return await operation();
++    } on DBusMethodResponseException catch (error) {
++      final values = error.response.values;
++      final message = values.isNotEmpty && values.first is DBusString
++          ? values.first.asString().trim()
++          : '';
++      throw StateError(
++        message.isEmpty ? error.errorName.split('.').last : message,
++      );
++    } on TimeoutException {
++      throw StateError('NetworkManager did not respond in time');
++    }
++  }
++
+   Future<_NetworkPermissions> _readPermissions() async {
+     try {
+       final reply = await _root
+@@ -583,7 +873,11 @@
+ }
+ 
+ @visibleForTesting
+-DBusDict buildWifiConnectionSettings(WifiNetwork network, {String? password}) {
++DBusDict buildWifiConnectionSettings(
++  WifiNetwork network, {
++  String? password,
++  bool hidden = false,
++}) {
+   final value = password ?? '';
+   final sections = <String, Map<String, DBusValue>>{
+     'connection': <String, DBusValue>{
+@@ -594,6 +888,7 @@
+     '802-11-wireless': <String, DBusValue>{
+       'ssid': DBusArray.byte(network.ssidBytes),
+       'mode': const DBusString('infrastructure'),
++      if (hidden) 'hidden': const DBusBoolean(true),
+     },
+     'ipv4': <String, DBusValue>{'method': const DBusString('auto')},
+     'ipv6': <String, DBusValue>{'method': const DBusString('auto')},
+@@ -657,6 +952,238 @@
+   }
+ }
+ 
++/// Reads the editable view of a stored connection, or null when it is not a
++/// usable Wi-Fi profile. NetworkManager omits properties at their default
++/// value, so absent keys mean the default (autoconnect on, metered unknown).
++@visibleForTesting
++WifiProfile? parseWifiProfile(
++  String path,
++  Map<String, Map<String, DBusValue>> settings,
++) {
++  final connection = settings['connection'];
++  final wireless = settings['802-11-wireless'];
++  if (_string(connection, 'type') != '802-11-wireless' || wireless == null) {
++    return null;
++  }
++  final ssid = _bytes(wireless, 'ssid');
++  if (ssid.isEmpty || ssid.length > 32) {
++    return null;
++  }
++  final ipv4 = settings['ipv4'];
++  final methodName = _string(ipv4, 'method', fallback: 'auto');
++  final method = switch (methodName) {
++    'auto' => WifiIpv4Method.auto,
++    'manual' => WifiIpv4Method.manual,
++    _ => WifiIpv4Method.other,
++  };
++  var addresses = _addressData(
++    ipv4,
++    'address-data',
++  ).map((entry) => WifiIpv4Address(entry.$1, entry.$2)).toList(growable: false);
++  if (addresses.isEmpty) {
++    final legacy = ipv4?['addresses'];
++    if (legacy is DBusArray && legacy.signature == DBusSignature('aau')) {
++      addresses = <WifiIpv4Address>[
++        for (final entry in legacy.children)
++          if (entry is DBusArray && entry.children.length >= 2)
++            WifiIpv4Address(
++              _ipv4FromUint32(entry.asUint32Array().first),
++              entry.asUint32Array().elementAt(1),
++            ),
++      ];
++    }
++  }
++  var dns = const <String>[];
++  final dnsData = ipv4?['dns-data'];
++  if (dnsData is DBusArray && dnsData.signature == DBusSignature('as')) {
++    dns = dnsData.asStringArray().toList(growable: false);
++  } else {
++    final legacyDns = ipv4?['dns'];
++    if (legacyDns is DBusArray && legacyDns.signature == DBusSignature('au')) {
++      dns = legacyDns.asUint32Array().map(_ipv4FromUint32).toList();
++    }
++  }
++  final proxy = settings['proxy'];
++  final ignoreAutoDns = ipv4?['ignore-auto-dns'];
++  final autoconnect = connection?['autoconnect'];
++  final hidden = wireless['hidden'];
++  return WifiProfile(
++    path: path,
++    name: _string(
++      connection,
++      'id',
++      fallback: utf8.decode(ssid, allowMalformed: true),
++    ),
++    uuid: _string(connection, 'uuid'),
++    ssidBytes: ssid,
++    security: _savedSecurity(settings),
++    hidden: hidden is DBusBoolean && hidden.value,
++    autoconnect: autoconnect is! DBusBoolean || autoconnect.value,
++    ipv4Method: method,
++    ipv4MethodName: methodName,
++    addresses: addresses,
++    gateway: _string(ipv4, 'gateway'),
++    dns: dns,
++    ignoreAutoDns: ignoreAutoDns is DBusBoolean && ignoreAutoDns.value,
++    proxyMethod: _int32(proxy, 'method') == 1
++        ? WifiProxyMethod.auto
++        : WifiProxyMethod.none,
++    pacUrl: _string(proxy, 'pac-url'),
++    metered: switch (_int32(connection, 'metered')) {
++      1 || 3 => WifiMetered.yes,
++      2 || 4 => WifiMetered.no,
++      _ => WifiMetered.unknown,
++    },
++    timestamp: _uint64(connection, 'timestamp'),
++  );
++}
++
++/// Builds the complete settings for Settings.Connection.Update2 from the
++/// stored [current] settings with the editable fields of [profile] applied.
++/// Every other section and property is passed back unchanged. Secrets are
++/// not included; NetworkManager keeps the stored ones when an update carries
++/// none.
++@visibleForTesting
++DBusDict buildWifiProfileSettings(
++  Map<String, Map<String, DBusValue>> current,
++  WifiProfile profile,
++) {
++  final sections = <String, Map<String, DBusValue>>{
++    for (final entry in current.entries)
++      entry.key: Map<String, DBusValue>.of(entry.value),
++  };
++  final connection = sections.putIfAbsent(
++    'connection',
++    () => <String, DBusValue>{},
++  );
++  connection['autoconnect'] = DBusBoolean(profile.autoconnect);
++  connection['metered'] = DBusInt32(switch (profile.metered) {
++    WifiMetered.unknown => 0,
++    WifiMetered.yes => 1,
++    WifiMetered.no => 2,
++  });
++
++  if (profile.ipv4Method != WifiIpv4Method.other) {
++    final ipv4 = sections.putIfAbsent('ipv4', () => <String, DBusValue>{});
++    for (final key in const <String>[
++      'addresses',
++      'address-data',
++      'gateway',
++      'dns',
++      'dns-data',
++    ]) {
++      ipv4.remove(key);
++    }
++    final manual = profile.ipv4Method == WifiIpv4Method.manual;
++    ipv4['method'] = DBusString(manual ? 'manual' : 'auto');
++    ipv4['ignore-auto-dns'] = DBusBoolean(!manual && profile.ignoreAutoDns);
++    if (manual) {
++      if (profile.addresses.isEmpty) {
++        throw ArgumentError('A static configuration needs an IPv4 address');
++      }
++      ipv4['address-data'] = DBusArray(DBusSignature('a{sv}'), <DBusValue>[
++        for (final address in profile.addresses)
++          DBusDict.stringVariant(<String, DBusValue>{
++            'address': DBusString(address.address),
++            'prefix': DBusUint32(address.prefix),
++          }),
++      ]);
++      if (profile.gateway.trim().isNotEmpty) {
++        ipv4['gateway'] = DBusString(profile.gateway.trim());
++      }
++    }
++    final dns = manual || profile.ignoreAutoDns
++        ? profile.dns
++        : const <String>[];
++    if (dns.isNotEmpty) {
++      ipv4['dns'] = DBusArray.uint32(dns.map(_ipv4ToUint32));
++    }
++  }
++
++  final proxy = sections.putIfAbsent('proxy', () => <String, DBusValue>{});
++  if (profile.proxyMethod == WifiProxyMethod.auto) {
++    proxy['method'] = const DBusInt32(1);
++    if (profile.pacUrl.trim().isEmpty) {
++      proxy.remove('pac-url');
++    } else {
++      proxy['pac-url'] = DBusString(profile.pacUrl.trim());
++    }
++  } else {
++    proxy['method'] = const DBusInt32(0);
++    proxy
++      ..remove('pac-url')
++      ..remove('pac-script');
++  }
++
++  return DBusDict(
++    DBusSignature('s'),
++    DBusSignature('a{sv}'),
++    <DBusValue, DBusValue>{
++      for (final section in sections.entries)
++        DBusString(section.key): DBusDict.stringVariant(section.value),
++    },
++  );
++}
++
++/// NetworkManager's legacy `au` IPv4 values hold the address in network
++/// byte order in a host-order integer; D-Bus carries the host value.
++String _ipv4FromUint32(int value) {
++  final bytes = ByteData(4)..setUint32(0, value, Endian.host);
++  return List<int>.generate(4, bytes.getUint8).join('.');
++}
++
++int _ipv4ToUint32(String address) {
++  final bytes = ByteData(4);
++  final octets = address.trim().split('.').map(int.parse).toList();
++  if (octets.length != 4 || octets.any((octet) => octet < 0 || octet > 255)) {
++    throw ArgumentError.value(address, 'address', 'Invalid IPv4 address');
++  }
++  for (var index = 0; index < 4; index++) {
++    bytes.setUint8(index, octets[index]);
++  }
++  return bytes.getUint32(0, Endian.host);
++}
++
++/// Reads NetworkManager `aa{sv}` address data as (address, prefix) pairs.
++List<(String, int)> _addressData(Map<String, DBusValue>? values, String key) {
++  final value = values?[key];
++  if (value is! DBusArray || value.signature != DBusSignature('aa{sv}')) {
++    return const <(String, int)>[];
++  }
++  final result = <(String, int)>[];
++  for (final entry in value.children) {
++    if (entry is! DBusDict) {
++      continue;
++    }
++    final data = entry.asStringVariantDict();
++    final address = _string(data, 'address');
++    if (address.isNotEmpty) {
++      result.add((address, _uint32(data, 'prefix')));
++    }
++  }
++  return result;
++}
++
++/// IPv4 name servers of an IP4Config object: `NameserverData` when present,
++/// otherwise the deprecated `Nameservers` array.
++List<String> _ipv4Nameservers(Map<String, DBusValue> values) {
++  final data = values['NameserverData'];
++  if (data is DBusArray && data.signature == DBusSignature('aa{sv}')) {
++    return <String>[
++      for (final entry in data.children)
++        if (entry is DBusDict)
++          if (_string(entry.asStringVariantDict(), 'address') case final address
++              when address.isNotEmpty)
++            address,
++    ];
++  }
++  final legacy = values['Nameservers'];
++  if (legacy is DBusArray && legacy.signature == DBusSignature('au')) {
++    return legacy.asUint32Array().map(_ipv4FromUint32).toList();
++  }
++  return const <String>[];
++}
++
+ WifiSecurity _savedSecurity(Map<String, Map<String, DBusValue>> settings) {
+   final security = settings['802-11-wireless-security'];
+   final keyManagement = _string(security, 'key-mgmt');
+@@ -694,6 +1221,16 @@
+   return value is DBusUint32 ? value.value : 0;
+ }
+ 
++int _int32(Map<String, DBusValue>? values, String key) {
++  final value = values?[key];
++  return value is DBusInt32 ? value.value : 0;
++}
++
++int _uint64(Map<String, DBusValue>? values, String key) {
++  final value = values?[key];
++  return value is DBusUint64 ? value.value : 0;
++}
++
+ int _int64(
+   Map<String, DBusValue>? values,
+   String key, {
+--- a/dart_shell/lib/src/services/network_service.dart
++++ b/dart_shell/lib/src/services/network_service.dart
+@@ -17,7 +17,7 @@
+ /// Selects one authoritative Wi-Fi manager for the lifetime of each service
+ /// owner. NetworkManager wins when both names exist because it may itself be
+ /// using iwd; direct iwd access is enabled only when NetworkManager is absent.
+-class NetworkService implements NetworkBackend {
++class NetworkService implements NetworkBackend, WifiProfileBackend {
+   factory NetworkService({DBusClient? client}) {
+     return NetworkService._(client ?? DBusClient.system());
+   }
+@@ -185,6 +185,60 @@
+     await (await _activeBackend()).forget(network);
+   }
+ 
++  Future<WifiProfileBackend> _profileBackend() async {
++    final backend = await _activeBackend();
++    if (backend is WifiProfileBackend) {
++      return backend as WifiProfileBackend;
++    }
++    throw StateError('Saved-network settings need NetworkManager');
++  }
++
++  @override
++  Future<List<WifiProfile>> readWifiProfiles() async {
++    return (await _profileBackend()).readWifiProfiles();
++  }
++
++  @override
++  Future<WifiProfile?> readWifiProfile(String path) async {
++    return (await _profileBackend()).readWifiProfile(path);
++  }
++
++  @override
++  Future<WifiConnectionDetails> readConnectionDetails(
++    WifiNetwork network,
++  ) async {
++    return (await _profileBackend()).readConnectionDetails(network);
++  }
++
++  @override
++  Future<void> updateWifiProfile(
++    WifiProfile profile, {
++    required bool reapply,
++  }) async {
++    await (await _profileBackend()).updateWifiProfile(
++      profile,
++      reapply: reapply,
++    );
++  }
++
++  @override
++  Future<void> deleteWifiProfile(String path) async {
++    await (await _profileBackend()).deleteWifiProfile(path);
++  }
++
++  @override
++  Future<void> addHiddenNetwork({
++    required String ssid,
++    required WifiSecurity security,
++    String? password,
++  }) async {
++    await (await _profileBackend()).addHiddenNetwork(
++      ssid: ssid,
++      security: security,
++      password: password,
++    );
++  }
++
+   void _emit(NetworkSnapshot snapshot) {
+     if (snapshot == _current) {
+       return;
+--- a/dart_shell/lib/src/state/network_connectivity.dart
++++ b/dart_shell/lib/src/state/network_connectivity.dart
+@@ -230,6 +230,119 @@
+     }
+   }
+ 
++  /// Whether saved-profile features (details, saved networks, hidden
++  /// networks, advanced settings) are available: NetworkManager only.
++  bool get profileManagementAvailable =>
++      state.snapshot.profileManagement && _service is WifiProfileBackend;
++
++  WifiProfileBackend? get _profiles {
++    final service = _service;
++    return service is WifiProfileBackend ? service as WifiProfileBackend : null;
++  }
++
++  /// Saved Wi-Fi profiles, most recently used first. Null when they cannot
++  /// be read.
++  Future<List<WifiProfile>?> readSavedProfiles() async {
++    final profiles = _profiles;
++    if (profiles == null) {
++      return null;
++    }
++    try {
++      return await profiles.readWifiProfiles();
++    } on Object {
++      return null;
++    }
++  }
++
++  Future<WifiProfile?> readProfile(String path) async {
++    final profiles = _profiles;
++    if (profiles == null) {
++      return null;
++    }
++    try {
++      return await profiles.readWifiProfile(path);
++    } on Object {
++      return null;
++    }
++  }
++
++  Future<WifiConnectionDetails?> readConnectionDetails(
++    WifiNetwork network,
++  ) async {
++    final profiles = _profiles;
++    if (profiles == null) {
++      return null;
++    }
++    try {
++      return await profiles.readConnectionDetails(network);
++    } on Object {
++      return null;
++    }
++  }
++
++  /// Stores [profile]. When [reapply] is set and the profile is active, its
++  /// running connection is updated as well. Returns an error message, or
++  /// null on success.
++  Future<String?> updateProfile(WifiProfile profile, {required bool reapply}) {
++    return _profileOperation(
++      profile.identity,
++      (profiles) => profiles.updateWifiProfile(profile, reapply: reapply),
++    );
++  }
++
++  Future<String?> deleteProfile(WifiProfile profile) {
++    return _profileOperation(
++      profile.identity,
++      (profiles) => profiles.deleteWifiProfile(profile.path),
++    );
++  }
++
++  Future<String?> addHiddenNetwork({
++    required String ssid,
++    required WifiSecurity security,
++    String? password,
++  }) {
++    if (state.snapshot.controlPermission == NetworkPermission.denied) {
++      return Future<String?>.value('Wi-Fi changes are not permitted');
++    }
++    return _profileOperation(
++      'hidden:$ssid',
++      (profiles) => profiles.addHiddenNetwork(
++        ssid: ssid,
++        security: security,
++        password: password,
++      ),
++    );
++  }
++
++  Future<String?> _profileOperation(
++    String busyKey,
++    Future<void> Function(WifiProfileBackend profiles) operation,
++  ) async {
++    final profiles = _profiles;
++    if (profiles == null || !state.snapshot.profileManagement) {
++      return 'Saved-network settings need NetworkManager';
++    }
++    if (state.snapshot.modifyPermission == NetworkPermission.denied) {
++      return 'Saved networks cannot be modified';
++    }
++    final generation = _buildGeneration;
++    final busy = Set<String>.of(state.busyNetworks)..add(busyKey);
++    state = state.copyWith(busyNetworks: busy, clearError: true);
++    try {
++      await operation(profiles);
++      await _service.refresh();
++      return null;
++    } on Object catch (error) {
++      return _safeMessage(error);
++    } finally {
++      if (isBuildGenerationActive(generation)) {
++        final remaining = Set<String>.of(state.busyNetworks)..remove(busyKey);
++        state = state.copyWith(busyNetworks: remaining);
++      }
++    }
++  }
++
+   void clearError() {
+     if (state.error != null) {
+       state = state.copyWith(clearError: true);
+@@ -272,6 +385,9 @@
+     if (error is ArgumentError) {
+       return error.message?.toString() ?? 'Invalid network settings';
+     }
++    if (error is UnsupportedError) {
++      return error.message ?? 'This network service does not support that';
++    }
+     return 'The network service could not complete the request';
+   }
+ }
+--- a/dart_shell/lib/src/settings/widgets/settings_system_pages.dart
++++ b/dart_shell/lib/src/settings/widgets/settings_system_pages.dart
+@@ -12,6 +12,7 @@
+ import '../../state/quick_settings.dart';
+ import '../../theme/shell_theme.dart';
+ import '../../theme/tokens.dart';
++import '../../widgets/connectivity/wifi_detail_surface.dart';
+ import 'settings_controls.dart';
+ 
+ class SettingsAudioPage extends ConsumerStatefulWidget {
+@@ -153,15 +154,65 @@
+   }
+ }
+ 
+-class SettingsNetworkPage extends ConsumerWidget {
++class SettingsNetworkPage extends ConsumerStatefulWidget {
+   const SettingsNetworkPage({super.key});
+ 
+   @override
+-  Widget build(BuildContext context, WidgetRef ref) {
++  ConsumerState<SettingsNetworkPage> createState() =>
++      _SettingsNetworkPageState();
++}
++
++class _SettingsNetworkPageState extends ConsumerState<SettingsNetworkPage> {
++  final List<WifiSettingsRoute> _routes = <WifiSettingsRoute>[];
++
++  void _push(WifiSettingsRoute route) {
++    FocusManager.instance.primaryFocus?.unfocus();
++    setState(() => _routes.add(route));
++  }
++
++  void _pop() {
++    FocusManager.instance.primaryFocus?.unfocus();
++    if (_routes.isNotEmpty) {
++      setState(_routes.removeLast);
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
+     final l10n = context.l10n;
+     final state = ref.watch(networkConnectivityProvider);
+     final controller = ref.read(networkConnectivityProvider.notifier);
+     final snapshot = state.snapshot;
++    final profileManagement =
++        snapshot.profileManagement && controller.profileManagementAvailable;
++    final route = profileManagement && _routes.isNotEmpty ? _routes.last : null;
++    if (route != null) {
++      return SettingsPageLayout(
++        icon: Icons.wifi_rounded,
++        eyebrow: l10n.settingsNetworkSection,
++        title: wifiSettingsRouteTitle(route, l10n),
++        children: [
++          Row(
++            children: [
++              SettingsTextButton(label: l10n.wifiBack, onPressed: _pop),
++              const SizedBox(width: 12),
++              Expanded(
++                child: Text(
++                  wifiSettingsRouteSubtitle(route, l10n),
++                  maxLines: 1,
++                  overflow: TextOverflow.ellipsis,
++                  style: ShellText.base.copyWith(
++                    color: context.shellColors.textTertiary,
++                    fontSize: 11,
++                  ),
++                ),
++              ),
++            ],
++          ),
++          WifiSettingsRouteView(route: route, onNavigate: _push, onBack: _pop),
++        ],
++      );
++    }
+     return SettingsPageLayout(
+       icon: Icons.wifi_rounded,
+       eyebrow: l10n.settingsNetworkSection,
+@@ -210,6 +261,16 @@
+                             busy: state.busyNetworks.contains(
+                               snapshot.networks[index].identity,
+                             ),
++                            onDetails:
++                                profileManagement &&
++                                    (snapshot.networks[index].saved ||
++                                        snapshot.networks[index].connected)
++                                ? () => _push(
++                                    WifiNetworkDetailsRoute.forNetwork(
++                                      snapshot.networks[index],
++                                    ),
++                                  )
++                                : null,
+                             onToggle: () {
+                               final network = snapshot.networks[index];
+                               if (network.connected) {
+@@ -230,6 +291,26 @@
+                       ],
+                     ),
+             ),
++            if (profileManagement)
++              SettingsSection(
++                title: l10n.wifiManageNetworks,
++                child: Wrap(
++                  spacing: 8,
++                  runSpacing: 8,
++                  children: [
++                    SettingsTextButton(
++                      label: l10n.wifiSavedNetworks,
++                      onPressed: () => _push(const WifiSavedNetworksRoute()),
++                    ),
++                    SettingsTextButton(
++                      label: l10n.wifiAddNetwork,
++                      onPressed: snapshot.wirelessEnabled
++                          ? () => _push(const WifiAddNetworkRoute())
++                          : null,
++                    ),
++                  ],
++                ),
++              ),
+           ],
+         ),
+       ],
+@@ -242,11 +323,13 @@
+     required this.network,
+     required this.busy,
+     required this.onToggle,
++    this.onDetails,
+   });
+ 
+   final WifiNetwork network;
+   final bool busy;
+   final VoidCallback onToggle;
++  final VoidCallback? onDetails;
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -268,6 +351,8 @@
+           : l10n.settingsConnect,
+       actionEnabled: canConnect && !busy,
+       onAction: onToggle,
++      secondaryActionLabel: onDetails == null ? null : l10n.wifiDetails,
++      onSecondaryAction: onDetails,
+     );
+   }
+ }
+@@ -415,6 +500,8 @@
+     this.actionLabel,
+     this.actionEnabled = true,
+     this.onAction,
++    this.secondaryActionLabel,
++    this.onSecondaryAction,
+   });
+ 
+   final IconData icon;
+@@ -423,6 +510,8 @@
+   final String? actionLabel;
+   final bool actionEnabled;
+   final VoidCallback? onAction;
++  final String? secondaryActionLabel;
++  final VoidCallback? onSecondaryAction;
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -447,6 +536,10 @@
+             ],
+           ),
+         ),
++        if (secondaryActionLabel case final label?) ...[
++          SettingsTextButton(label: label, onPressed: onSecondaryAction),
++          const SizedBox(width: 8),
++        ],
+         if (actionLabel case final label?)
+           Opacity(
+             opacity: actionEnabled ? 1 : 0.45,
+--- a/dart_shell/lib/src/widgets/connectivity/wifi_detail_controls.dart
++++ b/dart_shell/lib/src/widgets/connectivity/wifi_detail_controls.dart
+@@ -430,11 +430,15 @@
+     required this.label,
+     required this.onPressed,
+     this.emphasized = false,
++    this.enabled = true,
++    this.centered = false,
+   });
+ 
+   final String label;
+   final VoidCallback onPressed;
+   final bool emphasized;
++  final bool enabled;
++  final bool centered;
+ 
+   @override
+   State<_WifiTextButton> createState() => _WifiTextButtonState();
+@@ -446,11 +450,27 @@
+   @override
+   Widget build(BuildContext context) {
+     final accent = ShellTheme.of(context).accent;
++    final enabled = widget.enabled;
++    final text = Text(
++      widget.label,
++      maxLines: 1,
++      overflow: TextOverflow.ellipsis,
++      style: ShellText.cardTitle.copyWith(
++        color: widget.emphasized
++            ? context.shellTheme.accentPalette.onContainer
++            : context.shellColors.textSecondary,
++        fontSize: 11.5,
++      ),
++    );
+     return Semantics(
+       button: true,
++      enabled: enabled,
+       label: widget.label,
+       child: FocusableActionDetector(
+-        mouseCursor: SystemMouseCursors.click,
++        enabled: enabled,
++        mouseCursor: enabled
++            ? SystemMouseCursors.click
++            : SystemMouseCursors.basic,
+         onShowFocusHighlight: (value) => setState(() => _focused = value),
+         shortcuts: const <ShortcutActivator, Intent>{
+           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+@@ -459,37 +479,42 @@
+         actions: <Type, Action<Intent>>{
+           ActivateIntent: CallbackAction<ActivateIntent>(
+             onInvoke: (_) {
+-              widget.onPressed();
++              if (enabled) {
++                widget.onPressed();
++              }
+               return null;
+             },
+           ),
+         },
+         child: GestureDetector(
+           behavior: HitTestBehavior.opaque,
+-          onTap: widget.onPressed,
+-          child: AnimatedContainer(
++          onTap: enabled ? widget.onPressed : null,
++          child: AnimatedOpacity(
+             duration: MediaQuery.disableAnimationsOf(context)
+                 ? Duration.zero
+                 : Motion.pill,
+-            decoration: BoxDecoration(
+-              color: widget.emphasized
+-                  ? context.shellTheme.accentPalette.container
+-                  : context.shellColors.surfaceContainerHighest,
+-              borderRadius: context.shellTheme.borderRadius(11),
+-              border: Border.all(
+-                color: _focused ? accent : context.shellColors.hairlineSoft,
++            opacity: enabled ? 1 : 0.46,
++            child: AnimatedContainer(
++              duration: MediaQuery.disableAnimationsOf(context)
++                  ? Duration.zero
++                  : Motion.pill,
++              decoration: BoxDecoration(
++                color: widget.emphasized
++                    ? context.shellTheme.accentPalette.container
++                    : context.shellColors.surfaceContainerHighest,
++                borderRadius: context.shellTheme.borderRadius(11),
++                border: Border.all(
++                  color: _focused ? accent : context.shellColors.hairlineSoft,
++                ),
+               ),
+-            ),
+-            child: Padding(
+-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+-              child: Text(
+-                widget.label,
+-                style: ShellText.cardTitle.copyWith(
+-                  color: widget.emphasized
+-                      ? context.shellTheme.accentPalette.onContainer
+-                      : context.shellColors.textSecondary,
+-                  fontSize: 11.5,
++              child: Padding(
++                padding: const EdgeInsets.symmetric(
++                  horizontal: 13,
++                  vertical: 8,
+                 ),
++                child: widget.centered
++                    ? Center(heightFactor: 1, child: text)
++                    : text,
+               ),
+             ),
+           ),
+--- a/dart_shell/lib/src/widgets/connectivity/wifi_detail_surface.dart
++++ b/dart_shell/lib/src/widgets/connectivity/wifi_detail_surface.dart
+@@ -1,14 +1,19 @@
+ import 'dart:async';
++import 'dart:convert';
+ 
++import 'package:flutter/foundation.dart' show listEquals;
+ import 'package:flutter/material.dart' show CircularProgressIndicator, Icons;
+ import 'package:flutter/services.dart';
+ import 'package:flutter/widgets.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../../../l10n/generated/app_localizations.dart';
++import '../../input/input_layout.dart';
+ import '../../localization/denial_localizations.dart';
+ import '../../services/network_backend.dart';
++import '../../settings/widgets/settings_controls.dart';
+ import '../../state/network_connectivity.dart';
++import '../../state/shell_controller.dart';
+ import '../../theme/motion.dart';
+ import '../../theme/shell_theme.dart';
+ import '../../theme/tokens.dart';
+@@ -16,6 +21,7 @@
+ 
+ part 'wifi_detail_controls.dart';
+ part 'wifi_network_list.dart';
++part 'wifi_settings_pages.dart';
+ 
+ class WifiDetailSurface extends ConsumerStatefulWidget {
+   const WifiDetailSurface({required this.onClose, super.key});
+@@ -31,6 +37,23 @@
+   final FocusNode _passwordFocus = FocusNode(debugLabel: 'wifi-password');
+   WifiNetwork? _credentialNetwork;
+   String? _credentialError;
++  final List<WifiSettingsRoute> _routes = <WifiSettingsRoute>[];
++
++  void _push(WifiSettingsRoute route) {
++    FocusManager.instance.primaryFocus?.unfocus();
++    setState(() {
++      _routes.add(route);
++      _credentialNetwork = null;
++      _credentialError = null;
++    });
++  }
++
++  void _pop() {
++    FocusManager.instance.primaryFocus?.unfocus();
++    if (_routes.isNotEmpty) {
++      setState(_routes.removeLast);
++    }
++  }
+ 
+   @override
+   void initState() {
+@@ -131,9 +154,21 @@
+         !state.scanning;
+     final theme = ShellTheme.of(context);
+     final l10n = context.l10n;
++    final profileManagement =
++        snapshot.profileManagement && controller.profileManagementAvailable;
++    final route = profileManagement && _routes.isNotEmpty ? _routes.last : null;
++    // Shell surfaces are not moved by the mobile keyboard viewport, so the
++    // panel keeps clear of the on-screen keyboard itself; its scroll views
++    // then bring the focused field into view.
++    final keyboardProgress = ref.watch(
++      shellControllerProvider.select((state) => state.edgePanelDragProgress),
++    );
++    final keyboardInset =
++        ShellMetrics.edgePanelHeight(MediaQuery.sizeOf(context)) *
++        keyboardProgress.clamp(0.0, 1.0);
+ 
+     return SafeArea(
+-      minimum: const EdgeInsets.all(16),
++      minimum: EdgeInsets.fromLTRB(16, 16, 16, 16 + keyboardInset),
+       child: Center(
+         child: ConstrainedBox(
+           constraints: const BoxConstraints(maxWidth: 540, maxHeight: 720),
+@@ -152,67 +187,75 @@
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.stretch,
+                     children: [
+-                      Row(
+-                        children: [
+-                          Icon(
+-                            Icons.wifi_rounded,
+-                            size: 23,
+-                            color: theme.accent,
+-                          ),
+-                          const SizedBox(width: 10),
+-                          Expanded(
+-                            child: Column(
+-                              crossAxisAlignment: CrossAxisAlignment.start,
+-                              children: [
+-                                Text(
+-                                  l10n.commonWifi,
+-                                  style: ShellText.statusClock.copyWith(
+-                                    fontSize: 20,
++                      if (route != null)
++                        _WifiRouteHeader(
++                          title: wifiSettingsRouteTitle(route, l10n),
++                          subtitle: wifiSettingsRouteSubtitle(route, l10n),
++                          onBack: _pop,
++                          onClose: widget.onClose,
++                        )
++                      else
++                        Row(
++                          children: [
++                            Icon(
++                              Icons.wifi_rounded,
++                              size: 23,
++                              color: theme.accent,
++                            ),
++                            const SizedBox(width: 10),
++                            Expanded(
++                              child: Column(
++                                crossAxisAlignment: CrossAxisAlignment.start,
++                                children: [
++                                  Text(
++                                    l10n.commonWifi,
++                                    style: ShellText.statusClock.copyWith(
++                                      fontSize: 20,
++                                    ),
+                                   ),
+-                                ),
+-                                const SizedBox(height: 2),
+-                                Text(
+-                                  wifiStatusLabel(state, l10n),
+-                                  maxLines: 1,
+-                                  overflow: TextOverflow.ellipsis,
+-                                  style: ShellText.base.copyWith(
+-                                    color: context.shellColors.textTertiary,
+-                                    fontSize: 11.5,
+-                                    fontWeight: FontWeight.w600,
++                                  const SizedBox(height: 2),
++                                  Text(
++                                    wifiStatusLabel(state, l10n),
++                                    maxLines: 1,
++                                    overflow: TextOverflow.ellipsis,
++                                    style: ShellText.base.copyWith(
++                                      color: context.shellColors.textTertiary,
++                                      fontSize: 11.5,
++                                      fontWeight: FontWeight.w600,
++                                    ),
+                                   ),
+-                                ),
+-                              ],
++                                ],
++                              ),
+                             ),
+-                          ),
+-                          _WifiIconButton(
+-                            label: snapshot.wirelessEnabled
+-                                ? l10n.wifiTurnOff
+-                                : l10n.wifiTurnOn,
+-                            icon: Icons.power_settings_new_rounded,
+-                            active: snapshot.wirelessEnabled,
+-                            busy: state.radioChanging,
+-                            enabled: radioEnabled && !state.radioChanging,
+-                            onPressed: controller.toggleWireless,
+-                          ),
+-                          const SizedBox(width: 7),
+-                          _WifiIconButton(
+-                            label: state.scanning
+-                                ? l10n.wifiScanningNetworks
+-                                : l10n.wifiScanNetworks,
+-                            icon: Icons.refresh_rounded,
+-                            active: state.scanning,
+-                            busy: state.scanning,
+-                            enabled: scanEnabled,
+-                            onPressed: controller.scan,
+-                          ),
+-                          const SizedBox(width: 7),
+-                          _WifiIconButton(
+-                            label: l10n.wifiCloseDetails,
+-                            icon: Icons.close_rounded,
+-                            onPressed: widget.onClose,
+-                          ),
+-                        ],
+-                      ),
++                            _WifiIconButton(
++                              label: snapshot.wirelessEnabled
++                                  ? l10n.wifiTurnOff
++                                  : l10n.wifiTurnOn,
++                              icon: Icons.power_settings_new_rounded,
++                              active: snapshot.wirelessEnabled,
++                              busy: state.radioChanging,
++                              enabled: radioEnabled && !state.radioChanging,
++                              onPressed: controller.toggleWireless,
++                            ),
++                            const SizedBox(width: 7),
++                            _WifiIconButton(
++                              label: state.scanning
++                                  ? l10n.wifiScanningNetworks
++                                  : l10n.wifiScanNetworks,
++                              icon: Icons.refresh_rounded,
++                              active: state.scanning,
++                              busy: state.scanning,
++                              enabled: scanEnabled,
++                              onPressed: controller.scan,
++                            ),
++                            const SizedBox(width: 7),
++                            _WifiIconButton(
++                              label: l10n.wifiCloseDetails,
++                              icon: Icons.close_rounded,
++                              onPressed: widget.onClose,
++                            ),
++                          ],
++                        ),
+                       if (snapshot.radioPermission ==
+                               NetworkPermission.authenticationRequired ||
+                           snapshot.controlPermission ==
+@@ -253,13 +296,60 @@
+                       ],
+                       const SizedBox(height: 12),
+                       Expanded(
+-                        child: _WifiNetworkList(
+-                          state: state,
+-                          onActivate: _activate,
+-                          onForget: (network) =>
+-                              unawaited(controller.forget(network)),
+-                        ),
++                        child: route != null
++                            ? SingleChildScrollView(
++                                child: WifiSettingsRouteView(
++                                  route: route,
++                                  onNavigate: _push,
++                                  onBack: _pop,
++                                ),
++                              )
++                            : _WifiNetworkList(
++                                state: state,
++                                onActivate: _activate,
++                                onForget: (network) =>
++                                    unawaited(controller.forget(network)),
++                                onDetails: profileManagement
++                                    ? (network) => _push(
++                                        WifiNetworkDetailsRoute.forNetwork(
++                                          network,
++                                        ),
++                                      )
++                                    : null,
++                              ),
+                       ),
++                      if (route == null &&
++                          profileManagement &&
++                          snapshot.wifiDeviceAvailable) ...[
++                        const SizedBox(height: 10),
++                        Row(
++                          children: [
++                            Expanded(
++                              child: _WifiTextButton(
++                                label: l10n.wifiSavedNetworks,
++                                centered: true,
++                                onPressed: () =>
++                                    _push(const WifiSavedNetworksRoute()),
++                              ),
++                            ),
++                            const SizedBox(width: 8),
++                            Expanded(
++                              child: _WifiTextButton(
++                                label: l10n.wifiAddNetwork,
++                                centered: true,
++                                enabled:
++                                    snapshot.wirelessEnabled &&
++                                    snapshot.controlPermission !=
++                                        NetworkPermission.denied &&
++                                    snapshot.modifyPermission !=
++                                        NetworkPermission.denied,
++                                onPressed: () =>
++                                    _push(const WifiAddNetworkRoute()),
++                              ),
++                            ),
++                          ],
++                        ),
++                      ],
+                     ],
+                   ),
+                 ),
+@@ -282,6 +372,65 @@
+   }
+ }
+ 
++class _WifiRouteHeader extends StatelessWidget {
++  const _WifiRouteHeader({
++    required this.title,
++    required this.subtitle,
++    required this.onBack,
++    required this.onClose,
++  });
++
++  final String title;
++  final String subtitle;
++  final VoidCallback onBack;
++  final VoidCallback onClose;
++
++  @override
++  Widget build(BuildContext context) {
++    final l10n = context.l10n;
++    return Row(
++      children: [
++        _WifiIconButton(
++          label: l10n.wifiBack,
++          icon: Icons.arrow_back_rounded,
++          onPressed: onBack,
++        ),
++        const SizedBox(width: 10),
++        Expanded(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(
++                title,
++                maxLines: 1,
++                overflow: TextOverflow.ellipsis,
++                style: ShellText.statusClock.copyWith(fontSize: 20),
++              ),
++              const SizedBox(height: 2),
++              Text(
++                subtitle,
++                maxLines: 1,
++                overflow: TextOverflow.ellipsis,
++                style: ShellText.base.copyWith(
++                  color: context.shellColors.textTertiary,
++                  fontSize: 11.5,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ],
++          ),
++        ),
++        const SizedBox(width: 7),
++        _WifiIconButton(
++          label: l10n.wifiCloseDetails,
++          icon: Icons.close_rounded,
++          onPressed: onClose,
++        ),
++      ],
++    );
++  }
++}
++
+ String wifiStatusLabel(NetworkConnectivityState state, AppLocalizations l10n) {
+   final snapshot = state.snapshot;
+   if (state.initializing) {
+--- a/dart_shell/lib/src/widgets/connectivity/wifi_network_list.dart
++++ b/dart_shell/lib/src/widgets/connectivity/wifi_network_list.dart
+@@ -5,12 +5,17 @@
+     required this.state,
+     required this.onActivate,
+     required this.onForget,
++    this.onDetails,
+   });
+ 
+   final NetworkConnectivityState state;
+   final ValueChanged<WifiNetwork> onActivate;
+   final ValueChanged<WifiNetwork> onForget;
+ 
++  /// Opens the details page of a saved or connected network; null when the
++  /// backend has no editable profiles (iwd).
++  final ValueChanged<WifiNetwork>? onDetails;
++
+   @override
+   Widget build(BuildContext context) {
+     final snapshot = state.snapshot;
+@@ -82,6 +87,9 @@
+                   state.snapshot.modifyPermission != NetworkPermission.denied
+               ? () => onForget(network)
+               : null,
++          onDetails: onDetails != null && (network.saved || network.connected)
++              ? () => onDetails!(network)
++              : null,
+         );
+       },
+     );
+@@ -95,6 +103,7 @@
+     required this.activationEnabled,
+     required this.onActivate,
+     required this.onForget,
++    this.onDetails,
+   });
+ 
+   final WifiNetwork network;
+@@ -102,6 +111,7 @@
+   final bool activationEnabled;
+   final VoidCallback onActivate;
+   final VoidCallback? onForget;
++  final VoidCallback? onDetails;
+ 
+   @override
+   State<_WifiNetworkRow> createState() => _WifiNetworkRowState();
+@@ -127,7 +137,7 @@
+         : _wifiSecurityLabel(l10n, network.security);
+     return Semantics(
+       button: true,
+-      explicitChildNodes: widget.onForget != null,
++      explicitChildNodes: widget.onForget != null || widget.onDetails != null,
+       enabled: enabled && !widget.busy,
+       label: network.connected
+           ? l10n.wifiDisconnectNetwork(network.ssid)
+@@ -229,6 +239,14 @@
+                         ? context.shellTheme.accentPalette.onContainerSecondary
+                         : context.shellColors.textTertiary,
+                   ),
++                if (widget.onDetails != null) ...[
++                  const SizedBox(width: 7),
++                  _WifiInlineButton(
++                    label: l10n.wifiNetworkDetailsFor(network.ssid),
++                    icon: Icons.info_outline_rounded,
++                    onPressed: widget.onDetails!,
++                  ),
++                ],
+                 if (widget.onForget != null) ...[
+                   const SizedBox(width: 7),
+                   _WifiInlineButton(
+--- /dev/null
++++ b/dart_shell/lib/src/widgets/connectivity/wifi_settings_pages.dart
+@@ -0,0 +1,1946 @@
++part of 'wifi_detail_surface.dart';
++
++/// A Wi-Fi settings sub-page. Hosts (the quick-settings Wi-Fi surface and the
++/// Settings network page) keep a stack of routes and render the top one with
++/// [WifiSettingsRouteView]. All routes need NetworkManager
++/// ([NetworkSnapshot.profileManagement]).
++sealed class WifiSettingsRoute {
++  const WifiSettingsRoute();
++}
++
++final class WifiNetworkDetailsRoute extends WifiSettingsRoute {
++  const WifiNetworkDetailsRoute({
++    required this.identity,
++    required this.ssid,
++    this.profilePath,
++  });
++
++  factory WifiNetworkDetailsRoute.forNetwork(WifiNetwork network) =>
++      WifiNetworkDetailsRoute(
++        identity: network.identity,
++        ssid: network.ssid,
++        profilePath: network.connected ? null : network.savedNetworkPath,
++      );
++
++  final String identity;
++  final String ssid;
++
++  /// The saved profile to show; null follows the active (or matching saved)
++  /// profile of the network.
++  final String? profilePath;
++}
++
++final class WifiAdvancedSettingsRoute extends WifiSettingsRoute {
++  const WifiAdvancedSettingsRoute({
++    required this.profilePath,
++    required this.ssid,
++  });
++
++  final String profilePath;
++  final String ssid;
++}
++
++final class WifiSavedNetworksRoute extends WifiSettingsRoute {
++  const WifiSavedNetworksRoute();
++}
++
++final class WifiAddNetworkRoute extends WifiSettingsRoute {
++  const WifiAddNetworkRoute();
++}
++
++String wifiSettingsRouteTitle(WifiSettingsRoute route, AppLocalizations l10n) {
++  return switch (route) {
++    WifiNetworkDetailsRoute(:final ssid) => ssid,
++    WifiAdvancedSettingsRoute() => l10n.wifiAdvancedSettings,
++    WifiSavedNetworksRoute() => l10n.wifiSavedNetworks,
++    WifiAddNetworkRoute() => l10n.wifiAddNetwork,
++  };
++}
++
++String wifiSettingsRouteSubtitle(
++  WifiSettingsRoute route,
++  AppLocalizations l10n,
++) {
++  return switch (route) {
++    WifiNetworkDetailsRoute() => l10n.wifiNetworkDetails,
++    WifiAdvancedSettingsRoute(:final ssid) => ssid,
++    WifiSavedNetworksRoute() => l10n.commonWifi,
++    WifiAddNetworkRoute() => l10n.wifiHiddenNetwork,
++  };
++}
++
++/// The body of one Wi-Fi settings sub-page. It does not scroll by itself, so
++/// the host places it in its own scroll view (which also keeps focused text
++/// fields visible above the on-screen keyboard).
++class WifiSettingsRouteView extends StatelessWidget {
++  const WifiSettingsRouteView({
++    required this.route,
++    required this.onNavigate,
++    required this.onBack,
++    super.key,
++  });
++
++  final WifiSettingsRoute route;
++  final ValueChanged<WifiSettingsRoute> onNavigate;
++  final VoidCallback onBack;
++
++  @override
++  Widget build(BuildContext context) {
++    return switch (route) {
++      final WifiNetworkDetailsRoute details => _WifiNetworkDetailsPage(
++        key: ValueKey<Object>(details),
++        route: details,
++        onNavigate: onNavigate,
++        onBack: onBack,
++      ),
++      final WifiAdvancedSettingsRoute advanced => _WifiAdvancedSettingsPage(
++        key: ValueKey<Object>(advanced),
++        route: advanced,
++        onBack: onBack,
++      ),
++      WifiSavedNetworksRoute() => _WifiSavedNetworksPage(
++        key: ValueKey<Object>(route),
++        onNavigate: onNavigate,
++      ),
++      WifiAddNetworkRoute() => _WifiAddNetworkPage(
++        key: ValueKey<Object>(route),
++        onBack: onBack,
++      ),
++    };
++  }
++}
++
++WifiNetwork? _networkWithIdentity(NetworkSnapshot snapshot, String identity) {
++  for (final network in snapshot.networks) {
++    if (network.identity == identity) {
++      return network;
++    }
++  }
++  return null;
++}
++
++// Network details ------------------------------------------------------------
++
++class _WifiNetworkDetailsPage extends ConsumerStatefulWidget {
++  const _WifiNetworkDetailsPage({
++    required this.route,
++    required this.onNavigate,
++    required this.onBack,
++    super.key,
++  });
++
++  final WifiNetworkDetailsRoute route;
++  final ValueChanged<WifiSettingsRoute> onNavigate;
++  final VoidCallback onBack;
++
++  @override
++  ConsumerState<_WifiNetworkDetailsPage> createState() =>
++      _WifiNetworkDetailsPageState();
++}
++
++class _WifiNetworkDetailsPageState
++    extends ConsumerState<_WifiNetworkDetailsPage> {
++  static const Duration _pollInterval = Duration(seconds: 4);
++
++  WifiProfile? _profile;
++  WifiConnectionDetails? _details;
++  WifiNetwork? _lastNetwork;
++  Timer? _poll;
++  bool _loading = true;
++  bool _profileBusy = false;
++  bool _reloadQueued = false;
++  String? _error;
++  int _generation = 0;
++
++  @override
++  void initState() {
++    super.initState();
++    _lastNetwork = _networkWithIdentity(
++      ref.read(networkConnectivityProvider).snapshot,
++      widget.route.identity,
++    );
++    unawaited(_reload());
++    _poll = Timer.periodic(_pollInterval, (_) {
++      if (_lastNetwork?.connected ?? false) {
++        unawaited(_reload());
++      }
++    });
++  }
++
++  @override
++  void dispose() {
++    _poll?.cancel();
++    super.dispose();
++  }
++
++  Future<void> _reload() async {
++    final generation = ++_generation;
++    final controller = ref.read(networkConnectivityProvider.notifier);
++    final network = _networkWithIdentity(
++      ref.read(networkConnectivityProvider).snapshot,
++      widget.route.identity,
++    );
++    final details = network == null
++        ? null
++        : await controller.readConnectionDetails(network);
++    final path =
++        widget.route.profilePath ??
++        details?.activeProfilePath ??
++        network?.savedNetworkPath;
++    final profile = path == null ? null : await controller.readProfile(path);
++    if (!mounted || generation != _generation) {
++      return;
++    }
++    setState(() {
++      _details = details;
++      _profile = profile;
++      _loading = false;
++    });
++  }
++
++  void _queueReload() {
++    if (_reloadQueued) {
++      return;
++    }
++    _reloadQueued = true;
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      _reloadQueued = false;
++      if (mounted) {
++        unawaited(_reload());
++      }
++    });
++  }
++
++  Future<void> _setAutoconnect(bool value) async {
++    final profile = _profile;
++    if (profile == null || _profileBusy) {
++      return;
++    }
++    setState(() {
++      _profileBusy = true;
++      _error = null;
++      _profile = profile.copyWith(autoconnect: value);
++    });
++    final error = await ref
++        .read(networkConnectivityProvider.notifier)
++        .updateProfile(profile.copyWith(autoconnect: value), reapply: false);
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _profileBusy = false;
++      _error = error;
++      if (error != null) {
++        _profile = profile;
++      }
++    });
++    unawaited(_reload());
++  }
++
++  Future<void> _forget(WifiNetwork? network) async {
++    final controller = ref.read(networkConnectivityProvider.notifier);
++    final profile = _profile;
++    setState(() {
++      _profileBusy = true;
++      _error = null;
++    });
++    String? error;
++    if (profile != null) {
++      error = await controller.deleteProfile(profile);
++    } else if (network != null && network.saved) {
++      await controller.forget(network);
++    }
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _profileBusy = false;
++      _error = error;
++    });
++    if (error == null) {
++      widget.onBack();
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final state = ref.watch(networkConnectivityProvider);
++    final controller = ref.read(networkConnectivityProvider.notifier);
++    final snapshot = state.snapshot;
++    final network = _networkWithIdentity(snapshot, widget.route.identity);
++    if (network != _lastNetwork) {
++      _lastNetwork = network;
++      _queueReload();
++    }
++    final l10n = context.l10n;
++    final accent = ShellTheme.of(context).accent;
++    final profile = _profile;
++    final details = _details;
++    final busy =
++        _profileBusy ||
++        (network != null && state.busyNetworks.contains(network.identity)) ||
++        (profile != null && state.busyNetworks.contains(profile.identity));
++    final canModify = snapshot.modifyPermission != NetworkPermission.denied;
++    final canControl = snapshot.controlPermission != NetworkPermission.denied;
++    final connected = network?.connected ?? false;
++    final security =
++        details?.security ?? profile?.security ?? network?.security;
++    final strength = details?.strength ?? network?.strength ?? 0;
++    final frequency = details?.frequency ?? network?.frequency ?? 0;
++
++    final status = connected
++        ? l10n.settingsConnected
++        : network == null || !network.available
++        ? l10n.wifiSavedOutOfRange
++        : network.saved
++        ? l10n.wifiSavedInRange
++        : _wifiSecurityLabel(l10n, network.security);
++
++    final rows = <(String, String)>[
++      (l10n.wifiStatus, status),
++      if (strength > 0)
++        (
++          l10n.wifiSignal,
++          l10n.wifiSignalValue(_signalQuality(l10n, strength), strength),
++        ),
++      if (details != null && details.bitrateKbps > 0)
++        (
++          l10n.wifiLinkSpeed,
++          l10n.wifiLinkSpeedValue((details.bitrateKbps / 1000).round()),
++        ),
++      if (frequency > 0) (l10n.wifiFrequency, _frequencyLabel(l10n, frequency)),
++      if (security != null)
++        (l10n.wifiSecurity, _wifiSecurityLabel(l10n, security)),
++      if (details != null && details.ipv4Addresses.isNotEmpty)
++        (l10n.wifiIpAddress, details.ipv4Addresses.join('\n')),
++      if (details != null && details.ipv4Gateway.isNotEmpty)
++        (l10n.wifiGateway, details.ipv4Gateway),
++      if (details != null && details.ipv4Dns.isNotEmpty)
++        (l10n.wifiDnsServers, details.ipv4Dns.join('\n')),
++      if (details != null && details.ipv6Addresses.isNotEmpty)
++        (l10n.wifiIpv6Addresses, details.ipv6Addresses.join('\n')),
++      if (details != null && details.bssid.isNotEmpty)
++        (l10n.wifiBssid, details.bssid),
++      if (details != null && details.hardwareAddress.isNotEmpty)
++        (l10n.wifiMacAddress, details.hardwareAddress),
++      if (profile != null) ...[
++        (l10n.wifiIpSettings, _ipMethodLabel(l10n, profile)),
++        if (profile.ipv4Method == WifiIpv4Method.auto &&
++            profile.ignoreAutoDns &&
++            profile.dns.isNotEmpty &&
++            !connected)
++          (l10n.wifiDnsServers, profile.dns.join('\n')),
++        (
++          l10n.wifiProxy,
++          profile.proxyMethod == WifiProxyMethod.auto
++              ? l10n.wifiProxyAutomatic
++              : l10n.wifiProxyNone,
++        ),
++        (l10n.wifiMetered, _meteredLabel(l10n, profile.metered)),
++        if (profile.hidden) (l10n.wifiHiddenNetwork, l10n.wifiYes),
++      ],
++    ];
++
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        _WifiCard(
++          child: Row(
++            children: [
++              Icon(
++                _strengthIcon(strength),
++                size: 26,
++                color: connected ? accent : context.shellColors.textSecondary,
++              ),
++              const SizedBox(width: 12),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      profile?.ssid ?? network?.ssid ?? widget.route.ssid,
++                      maxLines: 2,
++                      overflow: TextOverflow.ellipsis,
++                      style: ShellText.cardTitle.copyWith(fontSize: 15),
++                    ),
++                    const SizedBox(height: 3),
++                    Text(
++                      status,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: ShellText.base.copyWith(
++                        color: context.shellColors.textTertiary,
++                        fontSize: 11,
++                        fontWeight: FontWeight.w600,
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              if (busy)
++                SizedBox.square(
++                  dimension: 20,
++                  child: CircularProgressIndicator(
++                    strokeWidth: 2,
++                    color: accent,
++                  ),
++                ),
++            ],
++          ),
++        ),
++        const SizedBox(height: 9),
++        Wrap(
++          spacing: 8,
++          runSpacing: 8,
++          children: [
++            if (network != null && (connected || network.connectable))
++              _WifiTextButton(
++                label: connected
++                    ? l10n.settingsDisconnect
++                    : l10n.settingsConnect,
++                emphasized: !connected,
++                enabled: canControl && !busy,
++                onPressed: () => unawaited(
++                  connected
++                      ? controller.disconnect(network)
++                      : controller.connect(network),
++                ),
++              ),
++            if (profile != null || (network?.saved ?? false))
++              _WifiTextButton(
++                label: l10n.wifiForget,
++                enabled: canModify && !busy,
++                onPressed: () => unawaited(_forget(network)),
++              ),
++            if (profile != null)
++              _WifiTextButton(
++                label: l10n.wifiAdvancedSettings,
++                enabled: canModify && !busy,
++                onPressed: () => widget.onNavigate(
++                  WifiAdvancedSettingsRoute(
++                    profilePath: profile.path,
++                    ssid: profile.ssid,
++                  ),
++                ),
++              ),
++          ],
++        ),
++        if (_error case final message?) ...[
++          const SizedBox(height: 9),
++          _WifiInlineError(message: message),
++        ],
++        if (profile != null) ...[
++          const SizedBox(height: 9),
++          _WifiCard(
++            child: SettingsToggle(
++              label: l10n.wifiAutoConnect,
++              description: l10n.wifiAutoConnectDescription,
++              value: profile.autoconnect,
++              enabled: canModify && !busy,
++              onChanged: (value) => unawaited(_setAutoconnect(value)),
++            ),
++          ),
++        ],
++        const SizedBox(height: 9),
++        if (_loading)
++          Padding(
++            padding: const EdgeInsets.symmetric(vertical: 18),
++            child: Center(
++              child: SizedBox.square(
++                dimension: 22,
++                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
++              ),
++            ),
++          )
++        else ...[
++          if (!connected) ...[
++            _WifiNotice(
++              icon: Icons.info_outline_rounded,
++              message: l10n.wifiConnectToSeeDetails,
++            ),
++            const SizedBox(height: 9),
++          ] else if (details == null) ...[
++            _WifiNotice(
++              icon: Icons.error_outline_rounded,
++              message: l10n.wifiDetailsUnavailable,
++            ),
++            const SizedBox(height: 9),
++          ],
++          _WifiCard(
++            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.stretch,
++              children: [
++                for (var index = 0; index < rows.length; index++) ...[
++                  if (index > 0)
++                    Container(
++                      height: 1,
++                      color: context.shellColors.hairlineSoft,
++                    ),
++                  _WifiInfoRow(label: rows[index].$1, value: rows[index].$2),
++                ],
++              ],
++            ),
++          ),
++        ],
++      ],
++    );
++  }
++}
++
++String _signalQuality(AppLocalizations l10n, int strength) {
++  if (strength >= 75) {
++    return l10n.wifiSignalExcellent;
++  }
++  if (strength >= 50) {
++    return l10n.wifiSignalGood;
++  }
++  if (strength >= 25) {
++    return l10n.wifiSignalFair;
++  }
++  return l10n.wifiSignalWeak;
++}
++
++String _frequencyLabel(AppLocalizations l10n, int frequency) {
++  final band = wifiBandForFrequency(frequency);
++  final channel = wifiChannelForFrequency(frequency);
++  if (band == null || channel == 0) {
++    return l10n.wifiFrequencyMegahertz(frequency);
++  }
++  return l10n.wifiFrequencyValue(band, channel, frequency);
++}
++
++String _ipMethodLabel(AppLocalizations l10n, WifiProfile profile) {
++  return switch (profile.ipv4Method) {
++    WifiIpv4Method.auto => l10n.wifiIpDhcp,
++    WifiIpv4Method.manual =>
++      profile.addresses.isEmpty
++          ? l10n.wifiIpStatic
++          : '${l10n.wifiIpStatic} · ${profile.addresses.first}',
++    WifiIpv4Method.other => l10n.wifiIpMethodOther(profile.ipv4MethodName),
++  };
++}
++
++String _meteredLabel(AppLocalizations l10n, WifiMetered metered) {
++  return switch (metered) {
++    WifiMetered.unknown => l10n.wifiMeteredAutomatic,
++    WifiMetered.yes => l10n.wifiMeteredYes,
++    WifiMetered.no => l10n.wifiMeteredNo,
++  };
++}
++
++// Advanced settings -----------------------------------------------------------
++
++enum _WifiField { address, prefix, gateway, dns, pacUrl }
++
++class _WifiAdvancedSettingsPage extends ConsumerStatefulWidget {
++  const _WifiAdvancedSettingsPage({
++    required this.route,
++    required this.onBack,
++    super.key,
++  });
++
++  final WifiAdvancedSettingsRoute route;
++  final VoidCallback onBack;
++
++  @override
++  ConsumerState<_WifiAdvancedSettingsPage> createState() =>
++      _WifiAdvancedSettingsPageState();
++}
++
++class _WifiAdvancedSettingsPageState
++    extends ConsumerState<_WifiAdvancedSettingsPage> {
++  final Map<_WifiField, TextEditingController> _controllers = {
++    for (final field in _WifiField.values) field: TextEditingController(),
++  };
++  final Map<_WifiField, FocusNode> _focusNodes = {
++    for (final field in _WifiField.values)
++      field: FocusNode(debugLabel: 'wifi-${field.name}'),
++  };
++  final Map<_WifiField, String> _fieldErrors = <_WifiField, String>{};
++
++  WifiProfile? _profile;
++  WifiConnectionDetails? _details;
++  bool _loading = true;
++  bool _saving = false;
++  bool _active = false;
++  String? _error;
++  WifiIpv4Method _method = WifiIpv4Method.auto;
++  bool _customDns = false;
++  WifiProxyMethod _proxy = WifiProxyMethod.none;
++  WifiMetered _metered = WifiMetered.unknown;
++
++  TextEditingController _text(_WifiField field) => _controllers[field]!;
++
++  @override
++  void initState() {
++    super.initState();
++    unawaited(_load());
++  }
++
++  @override
++  void dispose() {
++    for (final controller in _controllers.values) {
++      controller.dispose();
++    }
++    for (final node in _focusNodes.values) {
++      node.dispose();
++    }
++    super.dispose();
++  }
++
++  Future<void> _load() async {
++    final controller = ref.read(networkConnectivityProvider.notifier);
++    final profile = await controller.readProfile(widget.route.profilePath);
++    WifiConnectionDetails? details;
++    final connected = ref
++        .read(networkConnectivityProvider)
++        .snapshot
++        .connectedNetwork;
++    if (profile != null &&
++        connected != null &&
++        connected.identity == profile.identity) {
++      details = await controller.readConnectionDetails(connected);
++    }
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _loading = false;
++      _profile = profile;
++      _details = details;
++      _active =
++          details != null &&
++          (details.activeProfilePath == null ||
++              details.activeProfilePath == profile?.path);
++      if (profile == null) {
++        return;
++      }
++      _method = profile.ipv4Method;
++      _customDns = profile.ignoreAutoDns;
++      _proxy = profile.proxyMethod;
++      _metered = profile.metered;
++      final address = profile.addresses.firstOrNull;
++      _text(_WifiField.address).text = address?.address ?? '';
++      _text(_WifiField.prefix).text = address == null
++          ? ''
++          : '${address.prefix}';
++      _text(_WifiField.gateway).text = profile.gateway;
++      _text(_WifiField.dns).text = profile.dns.join(', ');
++      _text(_WifiField.pacUrl).text = profile.pacUrl;
++    });
++  }
++
++  void _selectMethod(WifiIpv4Method method) {
++    setState(() {
++      _method = method;
++      _fieldErrors.clear();
++      if (method != WifiIpv4Method.manual) {
++        return;
++      }
++      // Start a static configuration from the current lease, as a safe
++      // default the user only has to adjust.
++      final details = _details;
++      if (_text(_WifiField.address).text.trim().isEmpty && details != null) {
++        final lease = details.ipv4Addresses.firstOrNull;
++        if (lease != null) {
++          _text(_WifiField.address).text = lease.address;
++          _text(_WifiField.prefix).text = '${lease.prefix}';
++        }
++        if (_text(_WifiField.gateway).text.trim().isEmpty) {
++          _text(_WifiField.gateway).text = details.ipv4Gateway;
++        }
++        if (_text(_WifiField.dns).text.trim().isEmpty) {
++          _text(_WifiField.dns).text = details.ipv4Dns.join(', ');
++        }
++      }
++      if (_text(_WifiField.prefix).text.trim().isEmpty) {
++        _text(_WifiField.prefix).text = '24';
++      }
++    });
++  }
++
++  void _selectCustomDns(bool value) {
++    setState(() {
++      _customDns = value;
++      _fieldErrors.remove(_WifiField.dns);
++      final details = _details;
++      if (value &&
++          _text(_WifiField.dns).text.trim().isEmpty &&
++          details != null) {
++        _text(_WifiField.dns).text = details.ipv4Dns.join(', ');
++      }
++    });
++  }
++
++  /// Validates the form and returns the edited profile, or null after
++  /// recording field errors.
++  WifiProfile? _editedProfile(AppLocalizations l10n) {
++    final profile = _profile;
++    if (profile == null) {
++      return null;
++    }
++    final errors = <_WifiField, String>{};
++    var addresses = profile.addresses;
++    var gateway = profile.gateway;
++    var dns = profile.dns;
++    if (_method == WifiIpv4Method.manual) {
++      final address = _text(_WifiField.address).text.trim();
++      final prefix = parseIpv4Prefix(_text(_WifiField.prefix).text);
++      if (!isValidIpv4Address(address)) {
++        errors[_WifiField.address] = l10n.wifiInvalidAddress;
++      }
++      if (prefix == null) {
++        errors[_WifiField.prefix] = l10n.wifiInvalidPrefix;
++      }
++      gateway = _text(_WifiField.gateway).text.trim();
++      if (gateway.isNotEmpty && !isValidIpv4Address(gateway)) {
++        errors[_WifiField.gateway] = l10n.wifiInvalidGateway;
++      }
++      if (prefix != null && isValidIpv4Address(address)) {
++        addresses = <WifiIpv4Address>[WifiIpv4Address(address, prefix)];
++      }
++    } else if (_method == WifiIpv4Method.auto) {
++      addresses = const <WifiIpv4Address>[];
++      gateway = '';
++    }
++    if (_method == WifiIpv4Method.manual ||
++        (_method == WifiIpv4Method.auto && _customDns)) {
++      final parsed = parseIpv4DnsList(_text(_WifiField.dns).text);
++      if (parsed == null ||
++          (_method == WifiIpv4Method.auto && parsed.isEmpty)) {
++        errors[_WifiField.dns] = l10n.wifiInvalidDns;
++      } else {
++        dns = parsed;
++      }
++    } else if (_method == WifiIpv4Method.auto) {
++      dns = const <String>[];
++    }
++    var pacUrl = '';
++    if (_proxy == WifiProxyMethod.auto) {
++      pacUrl = _text(_WifiField.pacUrl).text.trim();
++      final uri = Uri.tryParse(pacUrl);
++      if (pacUrl.isNotEmpty &&
++          (uri == null ||
++              !const <String>{'http', 'https', 'file'}.contains(uri.scheme))) {
++        errors[_WifiField.pacUrl] = l10n.wifiInvalidPacUrl;
++      }
++    }
++    setState(() {
++      _fieldErrors
++        ..clear()
++        ..addAll(errors);
++    });
++    if (errors.isNotEmpty) {
++      _focusNodes[errors.keys.first]!.requestFocus();
++      return null;
++    }
++    return profile.copyWith(
++      ipv4Method: _method,
++      addresses: addresses,
++      gateway: gateway,
++      dns: dns,
++      ignoreAutoDns: _method == WifiIpv4Method.auto && _customDns,
++      proxyMethod: _proxy,
++      pacUrl: pacUrl,
++      metered: _metered,
++    );
++  }
++
++  Future<void> _save() async {
++    final profile = _profile;
++    if (profile == null || _saving) {
++      return;
++    }
++    final edited = _editedProfile(context.l10n);
++    if (edited == null) {
++      return;
++    }
++    if (edited == profile) {
++      widget.onBack();
++      return;
++    }
++    setState(() {
++      _saving = true;
++      _error = null;
++    });
++    final error = await ref
++        .read(networkConnectivityProvider.notifier)
++        .updateProfile(
++          edited,
++          reapply: profile.differsInLinkConfiguration(edited),
++        );
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _saving = false;
++      _error = error;
++    });
++    if (error == null) {
++      widget.onBack();
++    }
++  }
++
++  Widget _field(
++    _WifiField field,
++    String label, {
++    _WifiField? next,
++    String? hint,
++    TextInputType keyboardType = TextInputType.text,
++  }) {
++    return _WifiTextField(
++      label: label,
++      controller: _text(field),
++      focusNode: _focusNodes[field]!,
++      error: _fieldErrors[field],
++      hint: hint,
++      enabled: !_saving,
++      keyboardType: keyboardType,
++      textInputAction: next == null
++          ? TextInputAction.done
++          : TextInputAction.next,
++      onSubmitted: next == null
++          ? () => unawaited(_save())
++          : () => _focusNodes[next]!.requestFocus(),
++      onChanged: () {
++        if (_fieldErrors.containsKey(field)) {
++          setState(() => _fieldErrors.remove(field));
++        }
++      },
++    );
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final l10n = context.l10n;
++    final accent = ShellTheme.of(context).accent;
++    if (_loading) {
++      return Padding(
++        padding: const EdgeInsets.symmetric(vertical: 24),
++        child: Center(
++          child: SizedBox.square(
++            dimension: 22,
++            child: CircularProgressIndicator(strokeWidth: 2, color: accent),
++          ),
++        ),
++      );
++    }
++    final profile = _profile;
++    if (profile == null) {
++      return _WifiNotice(
++        icon: Icons.error_outline_rounded,
++        message: l10n.wifiDetailsUnavailable,
++      );
++    }
++    const addressKeyboard = TextInputType.numberWithOptions(decimal: true);
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        _WifiCard(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              _WifiSectionTitle(l10n.wifiIpSettings),
++              if (_method == WifiIpv4Method.other)
++                _WifiNotice(
++                  icon: Icons.info_outline_rounded,
++                  message: l10n.wifiIpMethodUnsupported(profile.ipv4MethodName),
++                )
++              else ...[
++                SettingsSegmentedControl<WifiIpv4Method>(
++                  value: _method,
++                  choices: [
++                    SettingsChoice(WifiIpv4Method.auto, l10n.wifiIpDhcp),
++                    SettingsChoice(WifiIpv4Method.manual, l10n.wifiIpStatic),
++                  ],
++                  onChanged: _saving ? (_) {} : _selectMethod,
++                ),
++                const SizedBox(height: 12),
++                if (_method == WifiIpv4Method.manual) ...[
++                  _field(
++                    _WifiField.address,
++                    l10n.wifiIpAddress,
++                    next: _WifiField.prefix,
++                    hint: '192.168.1.50',
++                    keyboardType: addressKeyboard,
++                  ),
++                  const SizedBox(height: 10),
++                  _field(
++                    _WifiField.prefix,
++                    l10n.wifiPrefixLength,
++                    next: _WifiField.gateway,
++                    hint: '24',
++                    keyboardType: TextInputType.number,
++                  ),
++                  const SizedBox(height: 10),
++                  _field(
++                    _WifiField.gateway,
++                    l10n.wifiGateway,
++                    next: _WifiField.dns,
++                    hint: '192.168.1.1',
++                    keyboardType: addressKeyboard,
++                  ),
++                  const SizedBox(height: 10),
++                  _field(
++                    _WifiField.dns,
++                    l10n.wifiDnsServers,
++                    hint: l10n.wifiDnsHint,
++                    keyboardType: addressKeyboard,
++                  ),
++                ] else ...[
++                  SettingsToggle(
++                    label: l10n.wifiCustomDns,
++                    description: l10n.wifiCustomDnsDescription,
++                    value: _customDns,
++                    enabled: !_saving,
++                    onChanged: _selectCustomDns,
++                  ),
++                  if (_customDns) ...[
++                    const SizedBox(height: 10),
++                    _field(
++                      _WifiField.dns,
++                      l10n.wifiDnsServers,
++                      hint: l10n.wifiDnsHint,
++                      keyboardType: addressKeyboard,
++                    ),
++                  ],
++                ],
++              ],
++            ],
++          ),
++        ),
++        const SizedBox(height: 9),
++        _WifiCard(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              _WifiSectionTitle(l10n.wifiProxy),
++              SettingsSegmentedControl<WifiProxyMethod>(
++                value: _proxy,
++                choices: [
++                  SettingsChoice(WifiProxyMethod.none, l10n.wifiProxyNone),
++                  SettingsChoice(WifiProxyMethod.auto, l10n.wifiProxyAutomatic),
++                ],
++                onChanged: _saving
++                    ? (_) {}
++                    : (value) => setState(() {
++                        _proxy = value;
++                        _fieldErrors.remove(_WifiField.pacUrl);
++                      }),
++              ),
++              if (_proxy == WifiProxyMethod.auto) ...[
++                const SizedBox(height: 12),
++                _field(
++                  _WifiField.pacUrl,
++                  l10n.wifiPacUrl,
++                  hint: 'http://wpad/wpad.dat',
++                  keyboardType: TextInputType.url,
++                ),
++              ],
++            ],
++          ),
++        ),
++        const SizedBox(height: 9),
++        _WifiCard(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              _WifiSectionTitle(l10n.wifiMetered),
++              SettingsSegmentedControl<WifiMetered>(
++                value: _metered,
++                choices: [
++                  SettingsChoice(
++                    WifiMetered.unknown,
++                    l10n.wifiMeteredAutomatic,
++                  ),
++                  SettingsChoice(WifiMetered.yes, l10n.wifiMeteredYes),
++                  SettingsChoice(WifiMetered.no, l10n.wifiMeteredNo),
++                ],
++                onChanged: _saving
++                    ? (_) {}
++                    : (value) => setState(() => _metered = value),
++              ),
++            ],
++          ),
++        ),
++        if (_active) ...[
++          const SizedBox(height: 9),
++          _WifiNotice(
++            icon: Icons.sync_rounded,
++            message: l10n.wifiReconnectNotice,
++          ),
++        ],
++        if (_error case final message?) ...[
++          const SizedBox(height: 9),
++          _WifiInlineError(message: message),
++        ],
++        const SizedBox(height: 12),
++        Row(
++          mainAxisAlignment: MainAxisAlignment.end,
++          children: [
++            if (_saving) ...[
++              SizedBox.square(
++                dimension: 20,
++                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
++              ),
++              const SizedBox(width: 12),
++            ],
++            _WifiTextButton(
++              label: l10n.commonCancel,
++              enabled: !_saving,
++              onPressed: widget.onBack,
++            ),
++            const SizedBox(width: 8),
++            _WifiTextButton(
++              label: l10n.wifiSave,
++              emphasized: true,
++              enabled: !_saving,
++              onPressed: () => unawaited(_save()),
++            ),
++          ],
++        ),
++      ],
++    );
++  }
++}
++
++// Saved networks ---------------------------------------------------------------
++
++class _WifiSavedNetworksPage extends ConsumerStatefulWidget {
++  const _WifiSavedNetworksPage({required this.onNavigate, super.key});
++
++  final ValueChanged<WifiSettingsRoute> onNavigate;
++
++  @override
++  ConsumerState<_WifiSavedNetworksPage> createState() =>
++      _WifiSavedNetworksPageState();
++}
++
++class _WifiSavedNetworksPageState
++    extends ConsumerState<_WifiSavedNetworksPage> {
++  List<WifiProfile>? _profiles;
++  List<WifiNetwork>? _lastNetworks;
++  final Set<String> _busy = <String>{};
++  bool _loading = true;
++  bool _reloadQueued = false;
++  bool _failed = false;
++  String? _error;
++  int _generation = 0;
++
++  @override
++  void initState() {
++    super.initState();
++    _lastNetworks = ref.read(networkConnectivityProvider).snapshot.networks;
++    unawaited(_reload());
++  }
++
++  Future<void> _reload() async {
++    final generation = ++_generation;
++    final profiles = await ref
++        .read(networkConnectivityProvider.notifier)
++        .readSavedProfiles();
++    if (!mounted || generation != _generation) {
++      return;
++    }
++    setState(() {
++      _loading = false;
++      _failed = profiles == null;
++      if (profiles != null) {
++        _profiles = profiles;
++      }
++    });
++  }
++
++  void _queueReload() {
++    if (_reloadQueued) {
++      return;
++    }
++    _reloadQueued = true;
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      _reloadQueued = false;
++      if (mounted) {
++        unawaited(_reload());
++      }
++    });
++  }
++
++  Future<void> _setAutoconnect(WifiProfile profile, bool value) async {
++    if (_busy.contains(profile.path)) {
++      return;
++    }
++    setState(() {
++      _busy.add(profile.path);
++      _error = null;
++      _replace(profile.copyWith(autoconnect: value));
++    });
++    final error = await ref
++        .read(networkConnectivityProvider.notifier)
++        .updateProfile(profile.copyWith(autoconnect: value), reapply: false);
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _busy.remove(profile.path);
++      _error = error;
++      if (error != null) {
++        _replace(profile);
++      }
++    });
++  }
++
++  Future<void> _forget(WifiProfile profile) async {
++    if (_busy.contains(profile.path)) {
++      return;
++    }
++    setState(() {
++      _busy.add(profile.path);
++      _error = null;
++    });
++    final error = await ref
++        .read(networkConnectivityProvider.notifier)
++        .deleteProfile(profile);
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _busy.remove(profile.path);
++      _error = error;
++      if (error == null) {
++        _profiles = _profiles
++            ?.where((candidate) => candidate.path != profile.path)
++            .toList(growable: false);
++      }
++    });
++  }
++
++  void _replace(WifiProfile profile) {
++    _profiles = _profiles
++        ?.map(
++          (candidate) => candidate.path == profile.path ? profile : candidate,
++        )
++        .toList(growable: false);
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final state = ref.watch(networkConnectivityProvider);
++    final snapshot = state.snapshot;
++    if (!identical(snapshot.networks, _lastNetworks) &&
++        !listEquals(snapshot.networks, _lastNetworks)) {
++      _lastNetworks = snapshot.networks;
++      _queueReload();
++    }
++    final l10n = context.l10n;
++    final accent = ShellTheme.of(context).accent;
++    final profiles = _profiles;
++    if (_loading && profiles == null) {
++      return Padding(
++        padding: const EdgeInsets.symmetric(vertical: 24),
++        child: Center(
++          child: SizedBox.square(
++            dimension: 22,
++            child: CircularProgressIndicator(strokeWidth: 2, color: accent),
++          ),
++        ),
++      );
++    }
++    if (profiles == null) {
++      return _WifiNotice(
++        icon: Icons.error_outline_rounded,
++        message: l10n.wifiDetailsUnavailable,
++      );
++    }
++    if (profiles.isEmpty) {
++      return Padding(
++        padding: const EdgeInsets.symmetric(vertical: 24),
++        child: _WifiEmptyState(
++          icon: Icons.bookmark_border_rounded,
++          title: l10n.wifiNoSavedNetworks,
++          body: l10n.wifiNoSavedNetworksDescription,
++        ),
++      );
++    }
++    final canModify = snapshot.modifyPermission != NetworkPermission.denied;
++    final connected = snapshot.connectedNetwork;
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        if (_error case final message?) ...[
++          _WifiInlineError(message: message),
++          const SizedBox(height: 9),
++        ],
++        if (_failed) ...[
++          _WifiNotice(
++            icon: Icons.error_outline_rounded,
++            message: l10n.wifiDetailsUnavailable,
++          ),
++          const SizedBox(height: 9),
++        ],
++        for (var index = 0; index < profiles.length; index++) ...[
++          if (index > 0) const SizedBox(height: 7),
++          Builder(
++            builder: (context) {
++              final profile = profiles[index];
++              final network = _networkWithIdentity(snapshot, profile.identity);
++              final isConnected =
++                  connected != null && connected.identity == profile.identity;
++              final status = isConnected
++                  ? l10n.settingsConnected
++                  : network != null && network.available
++                  ? l10n.wifiSavedInRange
++                  : _wifiSecurityLabel(l10n, profile.security);
++              return _WifiSavedProfileRow(
++                profile: profile,
++                status: profile.autoconnect
++                    ? status
++                    : '$status · ${l10n.wifiAutoConnectOff}',
++                connected: isConnected,
++                strength: network?.strength ?? 0,
++                busy:
++                    _busy.contains(profile.path) ||
++                    state.busyNetworks.contains(profile.identity),
++                canModify: canModify,
++                onOpen: () => widget.onNavigate(
++                  WifiNetworkDetailsRoute(
++                    identity: profile.identity,
++                    ssid: profile.ssid,
++                    profilePath: profile.path,
++                  ),
++                ),
++                onAutoconnect: (value) =>
++                    unawaited(_setAutoconnect(profile, value)),
++                onForget: () => unawaited(_forget(profile)),
++              );
++            },
++          ),
++        ],
++      ],
++    );
++  }
++}
++
++class _WifiSavedProfileRow extends StatelessWidget {
++  const _WifiSavedProfileRow({
++    required this.profile,
++    required this.status,
++    required this.connected,
++    required this.strength,
++    required this.busy,
++    required this.canModify,
++    required this.onOpen,
++    required this.onAutoconnect,
++    required this.onForget,
++  });
++
++  final WifiProfile profile;
++  final String status;
++  final bool connected;
++  final int strength;
++  final bool busy;
++  final bool canModify;
++  final VoidCallback onOpen;
++  final ValueChanged<bool> onAutoconnect;
++  final VoidCallback onForget;
++
++  @override
++  Widget build(BuildContext context) {
++    final l10n = context.l10n;
++    final accent = ShellTheme.of(context).accent;
++    final palette = context.shellTheme.accentPalette;
++    return Semantics(
++      button: true,
++      explicitChildNodes: true,
++      label: l10n.wifiNetworkDetailsFor(profile.ssid),
++      child: GestureDetector(
++        behavior: HitTestBehavior.opaque,
++        onTap: onOpen,
++        child: Container(
++          constraints: const BoxConstraints(minHeight: 58),
++          padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
++          decoration: BoxDecoration(
++            color: connected
++                ? palette.container
++                : context.shellColors.surfaceContainer,
++            borderRadius: context.shellTheme.borderRadius(16),
++            border: Border.all(color: context.shellColors.hairlineSoft),
++          ),
++          child: Row(
++            children: [
++              Icon(
++                connected ? _strengthIcon(strength) : Icons.wifi_rounded,
++                size: 21,
++                color: connected
++                    ? palette.onContainer
++                    : context.shellColors.textSecondary,
++              ),
++              const SizedBox(width: 11),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      profile.name,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: ShellText.cardTitle.copyWith(
++                        color: connected ? palette.onContainer : null,
++                      ),
++                    ),
++                    const SizedBox(height: 3),
++                    Text(
++                      status,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: ShellText.base.copyWith(
++                        color: connected
++                            ? palette.onContainerSecondary
++                            : context.shellColors.textTertiary,
++                        fontSize: 10.5,
++                        fontWeight: FontWeight.w600,
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              const SizedBox(width: 6),
++              if (busy)
++                Padding(
++                  padding: const EdgeInsets.symmetric(horizontal: 12),
++                  child: SizedBox.square(
++                    dimension: 18,
++                    child: CircularProgressIndicator(
++                      strokeWidth: 2,
++                      color: accent,
++                    ),
++                  ),
++                )
++              else
++                _WifiSwitch(
++                  label: l10n.wifiAutoConnectFor(profile.ssid),
++                  value: profile.autoconnect,
++                  enabled: canModify,
++                  onChanged: onAutoconnect,
++                ),
++              const SizedBox(width: 4),
++              _WifiInlineButton(
++                label: l10n.wifiForgetNetwork(profile.ssid),
++                icon: Icons.delete_outline_rounded,
++                enabled: canModify && !busy,
++                onPressed: onForget,
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++// Add (hidden) network ----------------------------------------------------------
++
++class _WifiAddNetworkPage extends ConsumerStatefulWidget {
++  const _WifiAddNetworkPage({required this.onBack, super.key});
++
++  final VoidCallback onBack;
++
++  @override
++  ConsumerState<_WifiAddNetworkPage> createState() =>
++      _WifiAddNetworkPageState();
++}
++
++class _WifiAddNetworkPageState extends ConsumerState<_WifiAddNetworkPage> {
++  final TextEditingController _ssid = TextEditingController();
++  final TextEditingController _password = TextEditingController();
++  final FocusNode _ssidFocus = FocusNode(debugLabel: 'wifi-hidden-ssid');
++  final FocusNode _passwordFocus = FocusNode(
++    debugLabel: 'wifi-hidden-password',
++  );
++  WifiSecurity _security = WifiSecurity.wpaPersonal;
++  String? _ssidError;
++  String? _passwordError;
++  String? _error;
++  bool _busy = false;
++
++  @override
++  void initState() {
++    super.initState();
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (mounted) {
++        _ssidFocus.requestFocus();
++      }
++    });
++  }
++
++  @override
++  void dispose() {
++    _ssid.dispose();
++    _password
++      ..clear()
++      ..dispose();
++    _ssidFocus.dispose();
++    _passwordFocus.dispose();
++    super.dispose();
++  }
++
++  Future<void> _submit() async {
++    if (_busy) {
++      return;
++    }
++    final l10n = context.l10n;
++    final ssid = _ssid.text;
++    final bytes = utf8.encode(ssid);
++    final secret = _password.text;
++    final secured = _security != WifiSecurity.open;
++    setState(() {
++      _ssidError = bytes.isEmpty || bytes.length > 32 || ssid.trim().isEmpty
++          ? l10n.wifiInvalidSsid
++          : null;
++      _passwordError = secured && !_validPersonalPassword(secret)
++          ? l10n.wifiPasswordRequirements
++          : null;
++      _error = null;
++    });
++    if (_ssidError != null) {
++      _ssidFocus.requestFocus();
++      return;
++    }
++    if (_passwordError != null) {
++      _passwordFocus.requestFocus();
++      return;
++    }
++    setState(() => _busy = true);
++    final error = await ref
++        .read(networkConnectivityProvider.notifier)
++        .addHiddenNetwork(
++          ssid: ssid,
++          security: _security,
++          password: secured ? secret : null,
++        );
++    if (!mounted) {
++      return;
++    }
++    setState(() {
++      _busy = false;
++      _error = error;
++    });
++    if (error == null) {
++      _password.clear();
++      widget.onBack();
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final l10n = context.l10n;
++    final accent = ShellTheme.of(context).accent;
++    final secured = _security != WifiSecurity.open;
++    final snapshot = ref.watch(
++      networkConnectivityProvider.select((state) => state.snapshot),
++    );
++    final radioReady =
++        snapshot.wirelessEnabled &&
++        snapshot.wifiDeviceAvailable &&
++        snapshot.devicePath != null;
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        _WifiCard(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              Text(
++                l10n.wifiAddHiddenNetworkDescription,
++                style: ShellText.base.copyWith(
++                  color: context.shellColors.textTertiary,
++                  fontSize: 11.5,
++                  height: 1.35,
++                ),
++              ),
++              const SizedBox(height: 12),
++              _WifiTextField(
++                label: l10n.wifiNetworkName,
++                controller: _ssid,
++                focusNode: _ssidFocus,
++                error: _ssidError,
++                enabled: !_busy,
++                textInputAction: secured
++                    ? TextInputAction.next
++                    : TextInputAction.done,
++                onSubmitted: secured
++                    ? _passwordFocus.requestFocus
++                    : () => unawaited(_submit()),
++                onChanged: () {
++                  if (_ssidError != null) {
++                    setState(() => _ssidError = null);
++                  }
++                },
++              ),
++              const SizedBox(height: 12),
++              _WifiSectionTitle(l10n.wifiSecurity),
++              SettingsSegmentedControl<WifiSecurity>(
++                value: _security,
++                choices: [
++                  SettingsChoice(WifiSecurity.open, l10n.wifiSecurityNone),
++                  SettingsChoice(
++                    WifiSecurity.wpaPersonal,
++                    l10n.wifiSecurityWpaPersonal,
++                  ),
++                  SettingsChoice(
++                    WifiSecurity.wpa3Personal,
++                    l10n.wifiSecurityWpa3Personal,
++                  ),
++                ],
++                onChanged: _busy
++                    ? (_) {}
++                    : (value) => setState(() {
++                        _security = value;
++                        _passwordError = null;
++                      }),
++              ),
++              if (secured) ...[
++                const SizedBox(height: 12),
++                _WifiTextField(
++                  label: l10n.wifiPassword,
++                  controller: _password,
++                  focusNode: _passwordFocus,
++                  error: _passwordError,
++                  obscureText: true,
++                  enabled: !_busy,
++                  keyboardType: TextInputType.visiblePassword,
++                  onSubmitted: () => unawaited(_submit()),
++                  onChanged: () {
++                    if (_passwordError != null) {
++                      setState(() => _passwordError = null);
++                    }
++                  },
++                ),
++              ],
++            ],
++          ),
++        ),
++        if (!radioReady) ...[
++          const SizedBox(height: 9),
++          _WifiNotice(
++            icon: Icons.wifi_off_rounded,
++            message: l10n.wifiOffDescription,
++          ),
++        ],
++        if (_error case final message?) ...[
++          const SizedBox(height: 9),
++          _WifiInlineError(message: message),
++        ],
++        const SizedBox(height: 12),
++        Row(
++          mainAxisAlignment: MainAxisAlignment.end,
++          children: [
++            if (_busy) ...[
++              SizedBox.square(
++                dimension: 20,
++                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
++              ),
++              const SizedBox(width: 12),
++            ],
++            _WifiTextButton(
++              label: l10n.commonCancel,
++              enabled: !_busy,
++              onPressed: widget.onBack,
++            ),
++            const SizedBox(width: 8),
++            _WifiTextButton(
++              label: l10n.settingsConnect,
++              emphasized: true,
++              enabled: !_busy && radioReady,
++              onPressed: () => unawaited(_submit()),
++            ),
++          ],
++        ),
++      ],
++    );
++  }
++}
++
++// Shared pieces ----------------------------------------------------------------
++
++class _WifiCard extends StatelessWidget {
++  const _WifiCard({
++    required this.child,
++    this.padding = const EdgeInsets.all(12),
++  });
++
++  final Widget child;
++  final EdgeInsetsGeometry padding;
++
++  @override
++  Widget build(BuildContext context) {
++    return DecoratedBox(
++      decoration: BoxDecoration(
++        color: context.shellColors.surfaceContainer,
++        borderRadius: context.shellTheme.borderRadius(16),
++        border: Border.all(color: context.shellColors.hairlineSoft),
++      ),
++      child: Padding(padding: padding, child: child),
++    );
++  }
++}
++
++class _WifiSectionTitle extends StatelessWidget {
++  const _WifiSectionTitle(this.title);
++
++  final String title;
++
++  @override
++  Widget build(BuildContext context) {
++    return Padding(
++      padding: const EdgeInsets.only(bottom: 9),
++      child: Text(
++        title,
++        style: ShellText.cardTitle.copyWith(
++          color: context.shellColors.textSecondary,
++        ),
++      ),
++    );
++  }
++}
++
++class _WifiInfoRow extends StatelessWidget {
++  const _WifiInfoRow({required this.label, required this.value});
++
++  final String label;
++  final String value;
++
++  @override
++  Widget build(BuildContext context) {
++    return Semantics(
++      container: true,
++      label: '$label: $value',
++      excludeSemantics: true,
++      child: Padding(
++        padding: const EdgeInsets.symmetric(vertical: 9),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            SizedBox(
++              width: 118,
++              child: Text(
++                label,
++                style: ShellText.base.copyWith(
++                  color: context.shellColors.textTertiary,
++                  fontSize: 11.5,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ),
++            const SizedBox(width: 10),
++            Expanded(
++              child: Text(
++                value,
++                textAlign: TextAlign.right,
++                style: ShellText.base.copyWith(
++                  color: context.shellColors.textPrimary,
++                  fontSize: 12,
++                  height: 1.35,
++                ),
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _WifiInlineError extends StatelessWidget {
++  const _WifiInlineError({required this.message});
++
++  final String message;
++
++  @override
++  Widget build(BuildContext context) {
++    return DecoratedBox(
++      decoration: BoxDecoration(
++        color: context.shellColors.surfaceContainerHigh,
++        borderRadius: context.shellTheme.borderRadius(12),
++        border: Border.all(color: context.shellColors.performanceBad),
++      ),
++      child: Padding(
++        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Icon(
++              Icons.error_outline_rounded,
++              size: 17,
++              color: context.shellColors.performanceBad,
++            ),
++            const SizedBox(width: 8),
++            Expanded(
++              child: Text(
++                message,
++                maxLines: 4,
++                overflow: TextOverflow.ellipsis,
++                style: ShellText.base.copyWith(
++                  color: context.shellColors.performanceBad,
++                  fontSize: 10.5,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _WifiTextField extends StatefulWidget {
++  const _WifiTextField({
++    required this.label,
++    required this.controller,
++    required this.focusNode,
++    required this.onSubmitted,
++    this.onChanged,
++    this.error,
++    this.hint,
++    this.obscureText = false,
++    this.enabled = true,
++    this.keyboardType = TextInputType.text,
++    this.textInputAction = TextInputAction.done,
++  });
++
++  final String label;
++  final TextEditingController controller;
++  final FocusNode focusNode;
++  final VoidCallback onSubmitted;
++  final VoidCallback? onChanged;
++  final String? error;
++  final String? hint;
++  final bool obscureText;
++  final bool enabled;
++  final TextInputType keyboardType;
++  final TextInputAction textInputAction;
++
++  @override
++  State<_WifiTextField> createState() => _WifiTextFieldState();
++}
++
++class _WifiTextFieldState extends State<_WifiTextField> {
++  @override
++  void initState() {
++    super.initState();
++    widget.focusNode.addListener(_changed);
++    widget.controller.addListener(_changed);
++  }
++
++  @override
++  void didUpdateWidget(covariant _WifiTextField oldWidget) {
++    super.didUpdateWidget(oldWidget);
++    if (oldWidget.focusNode != widget.focusNode) {
++      oldWidget.focusNode.removeListener(_changed);
++      widget.focusNode.addListener(_changed);
++    }
++    if (oldWidget.controller != widget.controller) {
++      oldWidget.controller.removeListener(_changed);
++      widget.controller.addListener(_changed);
++    }
++  }
++
++  @override
++  void dispose() {
++    widget.focusNode.removeListener(_changed);
++    widget.controller.removeListener(_changed);
++    super.dispose();
++  }
++
++  void _changed() {
++    if (mounted) {
++      setState(() {});
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final theme = ShellTheme.of(context);
++    final error = widget.error;
++    final focused = widget.focusNode.hasFocus;
++    final hint = widget.hint;
++    final textStyle = context.shellTheme.text.base;
++    return Semantics(
++      textField: true,
++      obscured: widget.obscureText,
++      label: widget.label,
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Text(
++            widget.label,
++            style: ShellText.base.copyWith(
++              color: context.shellColors.textSecondary,
++              fontSize: 11.5,
++              fontWeight: FontWeight.w600,
++            ),
++          ),
++          const SizedBox(height: 6),
++          IgnorePointer(
++            ignoring: !widget.enabled,
++            child: DecoratedBox(
++              decoration: BoxDecoration(
++                color: theme.cardColor(context.shellColors.panelBackground),
++                borderRadius: context.shellTheme.borderRadius(12),
++                border: Border.all(
++                  color: error != null
++                      ? context.shellColors.performanceBad
++                      : focused
++                      ? theme.accent
++                      : context.shellColors.hairline,
++                ),
++              ),
++              child: Padding(
++                padding: const EdgeInsets.symmetric(
++                  horizontal: 12,
++                  vertical: 10,
++                ),
++                child: Stack(
++                  children: [
++                    if (hint != null && widget.controller.text.isEmpty)
++                      Positioned.fill(
++                        child: IgnorePointer(
++                          child: Text(
++                            hint,
++                            maxLines: 1,
++                            overflow: TextOverflow.ellipsis,
++                            style: textStyle.copyWith(
++                              color: context.shellColors.textTertiary,
++                            ),
++                          ),
++                        ),
++                      ),
++                    EditableText(
++                      controller: widget.controller,
++                      focusNode: widget.focusNode,
++                      readOnly: !widget.enabled,
++                      obscureText: widget.obscureText,
++                      enableSuggestions: false,
++                      autocorrect: false,
++                      keyboardType: widget.keyboardType,
++                      textInputAction: widget.textInputAction,
++                      onChanged: (_) => widget.onChanged?.call(),
++                      onSubmitted: (_) => widget.onSubmitted(),
++                      style: textStyle,
++                      cursorColor: theme.accent,
++                      backgroundCursorColor: context.shellColors.textSecondary,
++                      selectionColor:
++                          context.shellTheme.accentPalette.container,
++                      scrollPadding: const EdgeInsets.all(32),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++          ),
++          if (error != null) ...[
++            const SizedBox(height: 5),
++            Text(
++              error,
++              style: ShellText.base.copyWith(
++                color: context.shellColors.performanceBad,
++                fontSize: 10.5,
++                fontWeight: FontWeight.w600,
++              ),
++            ),
++          ] else if (hint != null && hint.length > 16) ...[
++            const SizedBox(height: 5),
++            Text(
++              hint,
++              style: ShellText.base.copyWith(
++                color: context.shellColors.textTertiary,
++                fontSize: 10.5,
++              ),
++            ),
++          ],
++        ],
++      ),
++    );
++  }
++}
++
++class _WifiSwitch extends StatelessWidget {
++  const _WifiSwitch({
++    required this.label,
++    required this.value,
++    required this.onChanged,
++    this.enabled = true,
++  });
++
++  final String label;
++  final bool value;
++  final ValueChanged<bool> onChanged;
++  final bool enabled;
++
++  @override
++  Widget build(BuildContext context) {
++    final theme = ShellTheme.of(context);
++    final accent = theme.accent;
++    return Semantics(
++      button: true,
++      toggled: value,
++      enabled: enabled,
++      label: label,
++      child: FocusableActionDetector(
++        enabled: enabled,
++        mouseCursor: enabled
++            ? SystemMouseCursors.click
++            : SystemMouseCursors.basic,
++        shortcuts: const <ShortcutActivator, Intent>{
++          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
++          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
++        },
++        actions: <Type, Action<Intent>>{
++          ActivateIntent: CallbackAction<ActivateIntent>(
++            onInvoke: (_) {
++              if (enabled) {
++                onChanged(!value);
++              }
++              return null;
++            },
++          ),
++        },
++        child: GestureDetector(
++          behavior: HitTestBehavior.opaque,
++          onTap: enabled ? () => onChanged(!value) : null,
++          child: Padding(
++            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
++            child: Opacity(
++              opacity: enabled ? 1 : 0.46,
++              child: AnimatedContainer(
++                duration: MediaQuery.disableAnimationsOf(context)
++                    ? Duration.zero
++                    : Motion.tile,
++                width: 40,
++                height: 23,
++                padding: const EdgeInsets.all(3),
++                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
++                decoration: BoxDecoration(
++                  color: value
++                      ? accent
++                      : context.shellColors.surfaceContainerHighest,
++                  borderRadius: context.shellTheme.borderRadius(99),
++                  border: Border.all(
++                    color: value ? accent : context.shellColors.hairline,
++                  ),
++                ),
++                child: DecoratedBox(
++                  decoration: BoxDecoration(
++                    color: context.shellColors.sliderThumb,
++                    borderRadius: theme.borderRadius(7.5),
++                  ),
++                  child: const SizedBox.square(dimension: 15),
++                ),
++              ),
++            ),
++          ),
++        ),
++      ),
++    );
++  }
++}
+--- /dev/null
++++ b/dart_shell/test/services/network_manager_profile_test.dart
+@@ -0,0 +1,213 @@
++import 'dart:typed_data';
++
++import 'package:dbus/dbus.dart';
++import 'package:denial_dart_shell/src/services/network_manager_service.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++/// NetworkManager's legacy `au` IPv4 encoding: network byte order in a
++/// host-order integer.
++int _nmIpv4(List<int> octets) =>
++    ByteData.sublistView(Uint8List.fromList(octets)).getUint32(0, Endian.host);
++
++Map<String, Map<String, DBusValue>> _storedProfile() {
++  return <String, Map<String, DBusValue>>{
++    'connection': <String, DBusValue>{
++      'id': const DBusString('Home'),
++      'uuid': const DBusString('0b8e1f5c-5b0a-4c1e-9d0e-1f2a3b4c5d6e'),
++      'type': const DBusString('802-11-wireless'),
++      'timestamp': const DBusUint64(1790000000),
++    },
++    '802-11-wireless': <String, DBusValue>{
++      'ssid': DBusArray.byte('Home'.codeUnits),
++      'mode': const DBusString('infrastructure'),
++      'seen-bssids': DBusArray.string(const <String>['AA:BB:CC:DD:EE:FF']),
++    },
++    '802-11-wireless-security': <String, DBusValue>{
++      'key-mgmt': const DBusString('wpa-psk'),
++    },
++    'ipv4': <String, DBusValue>{
++      'method': const DBusString('auto'),
++      'dns-data': DBusArray.string(const <String>['9.9.9.9']),
++      'dns': DBusArray.uint32(<int>[
++        _nmIpv4(const <int>[9, 9, 9, 9]),
++      ]),
++      'ignore-auto-dns': const DBusBoolean(true),
++      'addresses': DBusArray(DBusSignature('au'), const <DBusValue>[]),
++    },
++    'ipv6': <String, DBusValue>{'method': const DBusString('auto')},
++    'proxy': <String, DBusValue>{
++      'method': const DBusInt32(1),
++      'pac-url': const DBusString('http://wpad/wpad.dat'),
++      'pac-script': const DBusString('function FindProxyForURL() {}'),
++    },
++  };
++}
++
++Map<String, Map<String, DBusValue>> _decode(DBusDict value) {
++  return <String, Map<String, DBusValue>>{
++    for (final entry in value.asDict().entries)
++      entry.key.asString(): entry.value.asStringVariantDict(),
++  };
++}
++
++void main() {
++  test('reads NetworkManager defaults for omitted profile properties', () {
++    final profile = parseWifiProfile('/p/1', _storedProfile())!;
++
++    expect(profile.ssid, 'Home');
++    expect(profile.security, WifiSecurity.wpaPersonal);
++    expect(profile.autoconnect, isTrue);
++    expect(profile.metered, WifiMetered.unknown);
++    expect(profile.hidden, isFalse);
++    expect(profile.ipv4Method, WifiIpv4Method.auto);
++    expect(profile.ignoreAutoDns, isTrue);
++    expect(profile.dns, <String>['9.9.9.9']);
++    expect(profile.proxyMethod, WifiProxyMethod.auto);
++    expect(profile.pacUrl, 'http://wpad/wpad.dat');
++    expect(profile.timestamp, 1790000000);
++  });
++
++  test('a static IPv4 update keeps every other stored setting', () {
++    final stored = _storedProfile();
++    final profile = parseWifiProfile('/p/1', stored)!;
++    final edited = profile.copyWith(
++      ipv4Method: WifiIpv4Method.manual,
++      addresses: const <WifiIpv4Address>[WifiIpv4Address('192.168.1.50', 24)],
++      gateway: '192.168.1.1',
++      dns: const <String>['1.1.1.1', '8.8.8.8'],
++      metered: WifiMetered.yes,
++      autoconnect: false,
++    );
++
++    final settings = _decode(buildWifiProfileSettings(stored, edited));
++    final ipv4 = settings['ipv4']!;
++
++    expect(ipv4['method'], const DBusString('manual'));
++    expect(ipv4['gateway'], const DBusString('192.168.1.1'));
++    expect(ipv4.containsKey('addresses'), isFalse);
++    expect(ipv4.containsKey('dns-data'), isFalse);
++    expect(ipv4['ignore-auto-dns'], const DBusBoolean(false));
++    final addressData = (ipv4['address-data']! as DBusArray).children.single
++        .asStringVariantDict();
++    expect(addressData['address'], const DBusString('192.168.1.50'));
++    expect(addressData['prefix'], const DBusUint32(24));
++    expect(ipv4['dns']!.asUint32Array().toList(), <int>[
++      _nmIpv4(const <int>[1, 1, 1, 1]),
++      _nmIpv4(const <int>[8, 8, 8, 8]),
++    ]);
++    expect(settings['connection']!['autoconnect'], const DBusBoolean(false));
++    expect(settings['connection']!['metered'], const DBusInt32(1));
++    expect(settings['connection']!['uuid'], stored['connection']!['uuid']);
++    expect(settings['802-11-wireless'], stored['802-11-wireless']);
++    expect(settings['802-11-wireless-security'], <String, DBusValue>{
++      'key-mgmt': const DBusString('wpa-psk'),
++    });
++    expect(settings['ipv6'], stored['ipv6']);
++
++    final reread = parseWifiProfile('/p/1', settings)!;
++    expect(reread.addresses, edited.addresses);
++    expect(reread.gateway, '192.168.1.1');
++    expect(reread.dns, edited.dns);
++  });
++
++  test('returning to DHCP clears the static configuration', () {
++    final stored = _storedProfile();
++    final profile = parseWifiProfile('/p/1', stored)!.copyWith(
++      ipv4Method: WifiIpv4Method.auto,
++      addresses: const <WifiIpv4Address>[],
++      gateway: '',
++      dns: const <String>[],
++      ignoreAutoDns: false,
++      proxyMethod: WifiProxyMethod.none,
++      pacUrl: '',
++    );
++
++    final settings = _decode(buildWifiProfileSettings(stored, profile));
++    final ipv4 = settings['ipv4']!;
++
++    expect(ipv4['method'], const DBusString('auto'));
++    expect(ipv4['ignore-auto-dns'], const DBusBoolean(false));
++    for (final key in <String>[
++      'address-data',
++      'addresses',
++      'gateway',
++      'dns',
++      'dns-data',
++    ]) {
++      expect(ipv4.containsKey(key), isFalse, reason: key);
++    }
++    expect(settings['proxy'], <String, DBusValue>{
++      'method': const DBusInt32(0),
++    });
++  });
++
++  test('a DHCP DNS override ignores automatic servers', () {
++    final stored = _storedProfile();
++    final profile = parseWifiProfile(
++      '/p/1',
++      stored,
++    )!.copyWith(dns: const <String>['1.0.0.1'], ignoreAutoDns: true);
++
++    final ipv4 = _decode(buildWifiProfileSettings(stored, profile))['ipv4']!;
++
++    expect(ipv4['ignore-auto-dns'], const DBusBoolean(true));
++    expect(ipv4['dns']!.asUint32Array().toList(), <int>[
++      _nmIpv4(const <int>[1, 0, 0, 1]),
++    ]);
++  });
++
++  test('hidden network profiles are marked hidden', () {
++    final network = WifiNetwork(
++      ssid: 'Lab',
++      ssidBytes: 'Lab'.codeUnits,
++      security: WifiSecurity.wpa3Personal,
++      strength: 0,
++      frequency: 0,
++      devicePath: '/d/1',
++      networkPath: '/',
++      savedNetworkPath: null,
++      connected: false,
++      available: true,
++    );
++
++    final settings = _decode(
++      buildWifiConnectionSettings(
++        network,
++        password: 'correct horse',
++        hidden: true,
++      ),
++    );
++
++    expect(settings['802-11-wireless']!['hidden'], const DBusBoolean(true));
++    expect(
++      settings['802-11-wireless-security']!['key-mgmt'],
++      const DBusString('sae'),
++    );
++  });
++
++  test('maps frequencies to bands and channels', () {
++    expect(wifiChannelForFrequency(2412), 1);
++    expect(wifiChannelForFrequency(2484), 14);
++    expect(wifiChannelForFrequency(5180), 36);
++    expect(wifiChannelForFrequency(5955), 1);
++    expect(wifiChannelForFrequency(6115), 33);
++    expect(wifiBandForFrequency(2437), '2.4');
++    expect(wifiBandForFrequency(5745), '5');
++    expect(wifiBandForFrequency(6115), '6');
++  });
++
++  test('validates IPv4 form input', () {
++    expect(isValidIpv4Address('192.168.1.50'), isTrue);
++    expect(isValidIpv4Address('192.168.1.256'), isFalse);
++    expect(isValidIpv4Address('01.2.3.4'), isFalse);
++    expect(parseIpv4Prefix('24'), 24);
++    expect(parseIpv4Prefix('0'), isNull);
++    expect(parseIpv4Prefix('33'), isNull);
++    expect(parseIpv4DnsList('1.1.1.1, 8.8.8.8;1.1.1.1'), <String>[
++      '1.1.1.1',
++      '8.8.8.8',
++    ]);
++    expect(parseIpv4DnsList(''), isEmpty);
++    expect(parseIpv4DnsList('1.1.1.1, example.com'), isNull);
++  });
++}
