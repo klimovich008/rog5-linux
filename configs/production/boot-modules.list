@@ -12,9 +12,13 @@ rog5_gmu_bind
 # No kernel fbdev/fbcon client: at msm probe (~24 s) it modesets the panel,
 # which shows glitches until Denial's first frame. Without it the bootloader
 # splash stays up until Denial takes the display over.
+# The panel driver goes first: it probes as soon as msm registers the DSI
+# host and holds the panel in reset (black) until the first modeset. Loaded
+# after msm, the bootloader's still-running scanout showed colour noise for
+# a few seconds while msm took the DSI PLL over.
+panel_asus_rog5_ams678
 drm_client_lib active=
 msm separate_gpu_kms=1
-panel_asus_rog5_ams678
 # Front touch (milestone 4): GPI DMA for the GENI SE, then the FTS3658U driver.
 # Without the touch DT node the driver loads and binds nothing.
 gpi

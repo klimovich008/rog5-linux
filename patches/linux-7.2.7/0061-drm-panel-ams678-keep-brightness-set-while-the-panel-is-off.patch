@@ -1,0 +1,29 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/panel: asus-rog5-ams678: keep a brightness set while the panel is off
+
+update_status returned -EPERM before the panel was prepared. Once the kernel
+fbdev client was dropped (its modeset at msm probe lit the panel early), the
+boot-time systemd-backlight restore always hit that, failed and retried to
+its start limit, and the panel came up at brightness 0. Report success
+instead: the backlight core already stored the level, and drm_panel_enable()
+applies it through backlight_enable() once the panel is on.
+
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 18:19:02.736903014 +0200
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 18:19:02.749424985 +0200
+@@ -398,8 +398,15 @@
+ 
+ 	mutex_lock(&ctx->lock);
+ 	if (!ctx->initialized) {
++		/*
++		 * Panel off: keep the requested level (the core stored it in
++		 * props) and report success. drm_panel_enable() applies it via
++		 * backlight_enable() once the panel is on, so a brightness
++		 * restore before the first modeset (systemd-backlight at boot)
++		 * is not lost and does not fail.
++		 */
+ 		mutex_unlock(&ctx->lock);
+-		return -EPERM;
++		return 0;
+ 	}
+ 	mode_flags = dsi->mode_flags;
+ 	/*

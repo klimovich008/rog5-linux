@@ -32,3 +32,4 @@
 0058-ucsi-retry-role-switch-lookup-q6v5-quiet-repeated-handover.patch
 0059-ufs-allow-system-suspend-under-bounded-write-discovery.patch
 0060-clk-qcom-gcc-sm8350-keep-PCIe-GDSCs-on-across-system-suspend.patch
+0061-drm-panel-ams678-keep-brightness-set-while-the-panel-is-off.patch
