@@ -2158,6 +2158,15 @@ prepare_volatile_systemd_state() {
 	[ -L "$vconsole_mask" ] &&
 		[ "$(readlink "$vconsole_mask")" = /dev/null ] || return 1
 
+	# The panel starts dark at enable and Denial sets its brightness. Without
+	# the kernel fbdev client the panel is off until Denial's first frame, so
+	# systemd-backlight's early restore gets EPERM, retries and fails the boot.
+	backlight_mask="$runtime/systemd/system/systemd-backlight@backlight:ae94000.dsi.0.service"
+	[ ! -e "$backlight_mask" ] && [ ! -L "$backlight_mask" ] || return 1
+	ln -s /dev/null "$backlight_mask" || return 1
+	[ -L "$backlight_mask" ] &&
+		[ "$(readlink "$backlight_mask")" = /dev/null ] || return 1
+
 	sshdgenkeys_mask=$runtime/systemd/system/sshdgenkeys.service
 	stock_sshd_mask=$runtime/systemd/system/sshd.service
 	ed25519_unit=$runtime/systemd/system/rog5-sshd-ed25519-key.service
