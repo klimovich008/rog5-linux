@@ -1,0 +1,60 @@
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c	2026-09-26 02:59:05.924813955 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c	2026-09-26 02:59:05.946520304 +0200
+@@ -39,6 +39,20 @@
+ #define DEFAULT_TEARCHECK_SYNC_THRESH_START	4
+ #define DEFAULT_TEARCHECK_SYNC_THRESH_CONTINUE	4
+ 
++/*
++ * ROG5 tear-check experiments (RAM trials only): the command-mode tear check
++ * is programmed on every encoder enable, so these apply after a display
++ * off/on. Defaults reproduce the values above.
++ */
++static unsigned int dpu_tc_start_thresh = DEFAULT_TEARCHECK_SYNC_THRESH_START;
++module_param(dpu_tc_start_thresh, uint, 0644);
++static unsigned int dpu_tc_continue_thresh = DEFAULT_TEARCHECK_SYNC_THRESH_CONTINUE;
++module_param(dpu_tc_continue_thresh, uint, 0644);
++static int dpu_tc_start_pos_delta;
++module_param(dpu_tc_start_pos_delta, int, 0644);
++static int dpu_tc_init_val_delta;
++module_param(dpu_tc_init_val_delta, int, 0644);
++
+ static void dpu_encoder_phys_cmd_enable_te(struct dpu_encoder_phys *phys_enc);
+ 
+ static bool dpu_encoder_phys_cmd_is_master(struct dpu_encoder_phys *phys_enc)
+@@ -393,10 +407,10 @@
+ 	 */
+ 	tc_cfg.hw_vsync_mode = 1;
+ 	tc_cfg.sync_cfg_height = mode->vtotal * 2;
+-	tc_cfg.vsync_init_val = mode->vdisplay;
+-	tc_cfg.sync_threshold_start = DEFAULT_TEARCHECK_SYNC_THRESH_START;
+-	tc_cfg.sync_threshold_continue = DEFAULT_TEARCHECK_SYNC_THRESH_CONTINUE;
+-	tc_cfg.start_pos = mode->vdisplay;
++	tc_cfg.vsync_init_val = mode->vdisplay + dpu_tc_init_val_delta;
++	tc_cfg.sync_threshold_start = dpu_tc_start_thresh;
++	tc_cfg.sync_threshold_continue = dpu_tc_continue_thresh;
++	tc_cfg.start_pos = mode->vdisplay + dpu_tc_start_pos_delta;
+ 	tc_cfg.rd_ptr_irq = mode->vdisplay + 1;
+ 
+ 	DPU_DEBUG_CMDENC(cmd_enc,
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 02:59:05.932334043 +0200
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 02:59:05.946615875 +0200
+@@ -97,6 +97,10 @@
+ 	return -ETIMEDOUT;
+ }
+ 
++/* ROG5 tear-check experiments: TE scanline sent at every panel on (stock 0x980). */
++static unsigned int te_scanline = 0x0980;
++module_param(te_scanline, uint, 0644);
++
+ static int ams678_er2_plus_dsc_on(struct ams678_er2_plus_dsc *ctx)
+ {
+ 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
+@@ -106,7 +110,7 @@
+ 	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
+ 	mipi_dsi_usleep_range(&dsi_ctx, 10000, 11000);
+ 	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
+-	mipi_dsi_dcs_set_tear_scanline_multi(&dsi_ctx, 0x0980);
++	mipi_dsi_dcs_set_tear_scanline_multi(&dsi_ctx, te_scanline);
+ 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
+ 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0x5a, 0x5a);
+ 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x13);
