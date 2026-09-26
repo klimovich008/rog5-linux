@@ -1,0 +1,116 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: q6afe: keep the LPASS core HW vote handle for the devote
+
+AFE_CMD_REMOTE_LPASS_CORE_HW_VOTE_REQUEST (0x100f4) is answered with
+AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST (0x100f5), whose payload is a
+single u32 client handle. The devote (0x100f6) must quote that handle. The
+callback never stored it (and read a "status" word past the 4-byte payload),
+so q6dsp-lpass-clocks always devoted with handle 0 and the ADSP rejected every
+devote. Stock audio-kernel q6afe.c keeps lpass_hw_core_client_hdl[token] from
+the response and refuses to devote with handle 0.
+
+Evidence on ROG5 (r31, 2026-09-26): the audio modules load at 48.0 s; LPI
+pinctrl prepares LPASS_HW_MACRO/LPASS_HW_DCODEC (vote OK) and runtime-suspends
+(devote):
+  qcom-q6afe aprsvc:service:4:4: cmd = 0x100f6 returned error = 0x1
+  qcom-q6afe aprsvc:service:4:4: Unknown cmd 0x100f6   (twice)
+/sys/kernel/debug/qcom_stats/adsp stops at Count 83, last exit at counter
+85.09 s = uptime 47.96 s, and never enters sleep again (checked 35 min later,
+no PCM open). An ADSP that never sleeps keeps its DRV's CX/DDR/XO votes, so
+cxsd/aosd/ddr cannot count.
+
+Store the handle per hw_block_id (the request token), return it to the
+caller, end the wait early with the DSP status if the vote itself is
+rejected, recognise the devote result, and refuse to devote without a handle.
+
+--- a/sound/soc/qcom/qdsp6/q6afe.c
++++ b/sound/soc/qcom/qdsp6/q6afe.c
+@@ -50,6 +50,8 @@
+ #define AFE_CMD_REMOTE_LPASS_CORE_HW_VOTE_REQUEST	0x000100f4
+ #define AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST   0x000100f5
+ #define AFE_CMD_REMOTE_LPASS_CORE_HW_DEVOTE_REQUEST	0x000100f6
++/* hdr.token of a vote request is the hw_block_id (2..4 today). */
++#define AFE_LPASS_CORE_HW_BLOCK_MAX			8
+ 
+ /* I2S config specific */
+ #define AFE_API_VERSION_I2S_CONFIG	0x1
+@@ -382,6 +384,8 @@
+ 	wait_queue_head_t wait;
+ 	struct list_head port_list;
+ 	spinlock_t port_list_lock;
++	/* Handle the DSP returned for the last vote, per hw_block_id. */
++	u32 lpass_hw_handle[AFE_LPASS_CORE_HW_BLOCK_MAX];
+ };
+ 
+ struct afe_port_cmd_device_start {
+@@ -994,6 +998,19 @@
+ 				wake_up(&afe->wait);
+ 			}
+ 			break;
++		case AFE_CMD_REMOTE_LPASS_CORE_HW_VOTE_REQUEST:
++			/*
++			 * A rejected vote gets a basic result instead of the
++			 * handle response; end the wait with the DSP status.
++			 */
++			afe->result.opcode =
++				AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST;
++			afe->result.status = res->status ? res->status : 1;
++			wake_up(&afe->wait);
++			break;
++		case AFE_CMD_REMOTE_LPASS_CORE_HW_DEVOTE_REQUEST:
++			/* Nobody waits for a devote; a failure is logged above. */
++			break;
+ 		default:
+ 			dev_err(afe->dev, "Unknown cmd 0x%x\n",	res->opcode);
+ 			break;
+@@ -1001,8 +1018,17 @@
+ 	}
+ 		break;
+ 	case AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST:
++		/*
++		 * The payload is a single u32: the client handle that the
++		 * devote request must quote. It is not a basic result, so
++		 * there is no status word to read.
++		 */
++		if (data->payload_size >= sizeof(u32) &&
++		    hdr->token < AFE_LPASS_CORE_HW_BLOCK_MAX)
++			afe->lpass_hw_handle[hdr->token] =
++				*(const u32 *)data->payload;
+ 		afe->result.opcode = hdr->opcode;
+-		afe->result.status = res->status;
++		afe->result.status = 0;
+ 		wake_up(&afe->wait);
+ 		break;
+ 	default:
+@@ -1841,6 +1867,13 @@
+ 	int ret = 0;
+ 	int pkt_size = APR_HDR_SIZE + sizeof(*vote_cfg);
+ 
++	/* The DSP never hands out handle 0; a devote quoting it fails. */
++	if (!client_handle) {
++		dev_err(afe->dev, "no handle to unvote hw block %u\n",
++			hw_block_id);
++		return -EINVAL;
++	}
++
+ 	void *p __free(kfree) = kzalloc(pkt_size, GFP_KERNEL);
+ 	if (!p)
+ 		return -ENOMEM;
+@@ -1895,10 +1928,17 @@
+ 	strscpy(vote_cfg->client_name, client_name,
+ 			sizeof(vote_cfg->client_name));
+ 
++	if (hw_block_id >= AFE_LPASS_CORE_HW_BLOCK_MAX)
++		return -EINVAL;
++
++	/* CCF prepare_lock serialises votes, so the slot is ours until read. */
++	afe->lpass_hw_handle[hw_block_id] = 0;
+ 	ret = afe_apr_send_pkt(afe, pkt, NULL,
+ 			       AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST);
+ 	if (ret)
+ 		dev_err(afe->dev, "AFE failed to vote (%d)\n", hw_block_id);
++	else
++		*client_handle = afe->lpass_hw_handle[hw_block_id];
+ 
+ 	return ret;
+ }

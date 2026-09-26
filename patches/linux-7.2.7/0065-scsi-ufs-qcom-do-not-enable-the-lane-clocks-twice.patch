@@ -1,0 +1,38 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] scsi: ufs: qcom: do not enable the lane clocks twice
+
+ufs_qcom_enable_lane_clks() lost its is_lane_clks_enabled check when it moved
+to clk_bulk (the bulk covers every clock of the UFS node, ref_clk included),
+but its callers overlap. After a system suspend at spm_lvl 3 (link hibern8),
+ufshcd_setup_clocks(on) PRE_CHANGE enables the bulk because the link is in
+hibern8, then ufs_qcom_resume() enables it again, while the suspend path
+disabled it once. Every resume leaks one enable of every UFS clock.
+
+Evidence on ROG5 (r31, 2026-09-26, 16 successful suspends): clk_summary shows
+gcc_ufs_phy_axi_clk, unipro_core, ahb, the three symbol clocks at
+enable/prepare count 16 while UFS is clock-gated (18 while ungated), and
+bi_tcxo at 22, 16 of them from 1d84000.ufshc ref_clk. So UFS clock gating no
+longer gates anything, GPLL0 stays on, and the XO (bi_tcxo is the non-AO
+RPMh XO vote, which covers the sleep set) is held through suspend and idle.
+
+Make the enable idempotent, matching ufs_qcom_disable_lane_clks().
+
+--- a/drivers/ufs/host/ufs-qcom.c
++++ b/drivers/ufs/host/ufs-qcom.c
+@@ -356,6 +356,16 @@
+ {
+ 	int err;
+ 
++	/*
++	 * Callers overlap: after a hibern8 system suspend, setup_clocks(on)
++	 * PRE_CHANGE enables the clocks and ufs_qcom_resume() enables them
++	 * again, while suspend disables them once. Keep this idempotent like
++	 * ufs_qcom_disable_lane_clks(), or every resume leaks one enable of
++	 * every UFS clock (bi_tcxo included) and clock gating stops working.
++	 */
++	if (host->is_lane_clks_enabled)
++		return 0;
++
+ 	err = clk_bulk_prepare_enable(host->num_clks, host->clks);
+ 	if (err)
+ 		return err;
