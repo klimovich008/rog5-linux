@@ -1,0 +1,32 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] clk: qcom: gcc-sm8350: keep the PCIe GDSCs on across system suspend
+
+System suspend reset the phone on resume: genpd powered pcie_0_gdsc off in
+suspend_noirq, and on resume_noirq "pcie_0_gdsc status stuck at 'off'"
+(gdsc_toggle_logic), after which the PCIe controller (Wi-Fi, ath11k) was
+accessed with its domain down and the SoC took a warm reset.
+
+The PCIe controller cannot resume from a collapsed GDSC. Like gcc-sm8450
+and gcc-sm8550, declare the PCIe GDSCs PWRSTS_RET_ON so genpd leaves them
+powered through suspend.
+
+--- a/drivers/clk/qcom/gcc-sm8350.c	2026-09-26 16:27:21.934489552 +0200
++++ b/drivers/clk/qcom/gcc-sm8350.c	2026-09-26 16:27:21.947416261 +0200
+@@ -3421,7 +3421,7 @@
+ 	.pd = {
+ 		.name = "pcie_0_gdsc",
+ 	},
+-	.pwrsts = PWRSTS_OFF_ON,
++	.pwrsts = PWRSTS_RET_ON,
+ };
+ 
+ static struct gdsc pcie_1_gdsc = {
+@@ -3429,7 +3429,7 @@
+ 	.pd = {
+ 		.name = "pcie_1_gdsc",
+ 	},
+-	.pwrsts = PWRSTS_OFF_ON,
++	.pwrsts = PWRSTS_RET_ON,
+ };
+ 
+ static struct gdsc ufs_card_gdsc = {
