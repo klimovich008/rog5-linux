@@ -12,37 +12,101 @@ bounded-write kernels) to the ufs-qcom spm_lvl 5 (POWERDOWN, link off), and
 resume re-initialises the link as at boot (fDeviceInit is allowed).
 Runtime PM stays forbidden, and shutdown transitions stay rejected.
 
+ufshcd_core.rog5_ufs_system_pm (0644) selects the behaviour at run time:
+0 rejects as before, 1 reports success without any power transition (to
+isolate the rest of the suspend path), 2 (default) takes the device and link
+to spm_lvl. Resume undoes exactly what the last suspend did.
+
 --- a/drivers/ufs/core/ufshcd.c	2026-09-26 15:11:35.756911463 +0200
-+++ b/drivers/ufs/core/ufshcd.c	2026-09-26 15:11:35.771523585 +0200
-@@ -10353,7 +10353,15 @@
++++ b/drivers/ufs/core/ufshcd.c	2026-09-26 15:33:41.452528215 +0200
+@@ -155,6 +155,20 @@
+ MODULE_PARM_DESC(dev_cmd_timeout,
+ 		 "UFS Device command timeout in milliseconds. Defaults to 1.5s. Supported values range from 1ms to 30 seconds inclusively");
+ 
++/*
++ * ROG5: system suspend of the UFS under discovery containment.
++ * 0: reject (-EBUSY, the containment default before 0059).
++ * 1: report success without any power transition; device, link, clocks and
++ *    regulators stay on (isolates the rest of the suspend path).
++ * 2: take the device and link to spm_lvl (bounded-write kernels only).
++ */
++static int rog5_ufs_system_pm = 2;
++module_param(rog5_ufs_system_pm, int, 0644);
++MODULE_PARM_DESC(rog5_ufs_system_pm,
++		 "ROG5 UFS system suspend: 0 reject, 1 no-op, 2 spm_lvl");
++/* The mode the last system suspend used, so resume undoes exactly that. */
++static bool rog5_ufs_pm_noop;
++
+ static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn, u8 index,
+ 					   u8 selector)
+ {
+@@ -10353,10 +10367,22 @@
  	enum ufs_dev_pwr_mode req_dev_pwr_mode;
  	enum uic_link_state req_link_state;
  
--	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
 +	/*
 +	 * Bounded-write kernels may take the device and link through system
 +	 * suspend (spm_lvl: START STOP UNIT to POWERDOWN, link off). That needs
 +	 * no query write: auto-BKOPS and WriteBooster are never enabled in
 +	 * discovery mode. Runtime PM and shutdown transitions stay rejected.
 +	 */
+ 	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
+-		dev_warn_once(hba->dev,
+-			"ROG5 UFS discovery: WL power transition rejected\n");
+-		return -EBUSY;
++		if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) ||
++		    pm_op != UFS_SYSTEM_PM || rog5_ufs_system_pm <= 0) {
++			dev_warn_once(hba->dev,
++				"ROG5 UFS discovery: WL power transition rejected\n");
++			return -EBUSY;
++		}
++		rog5_ufs_pm_noop = rog5_ufs_system_pm == 1;
++		if (rog5_ufs_pm_noop)
++			return 0;
+ 	}
+ 
+ 	hba->pm_op_in_progress = true;
+@@ -10542,6 +10568,10 @@
+ 	int ret;
+ 	enum uic_link_state old_link_state = hba->uic_link_state;
+ 
 +	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
-+	    !(IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) &&
-+	      pm_op == UFS_SYSTEM_PM)) {
- 		dev_warn_once(hba->dev,
- 			"ROG5 UFS discovery: WL power transition rejected\n");
- 		return -EBUSY;
-@@ -10747,7 +10755,13 @@
++	    pm_op == UFS_SYSTEM_PM && rog5_ufs_pm_noop)
++		return 0;
++
+ 	hba->pm_op_in_progress = true;
+ 
+ 	/*
+@@ -10747,10 +10777,19 @@
  {
  	int ret;
  
--	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
 +	/*
 +	 * Only the host half of a system suspend whose device WLUN already
 +	 * suspended (see __ufshcd_wl_suspend) may power the host down.
 +	 */
-+	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
-+	    !(IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) &&
-+	      hba->is_sys_suspended)) {
- 		dev_warn_once(hba->dev,
- 			"ROG5 UFS discovery: host power transition rejected\n");
- 		return -EBUSY;
+ 	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
+-		dev_warn_once(hba->dev,
+-			"ROG5 UFS discovery: host power transition rejected\n");
+-		return -EBUSY;
++		if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) ||
++		    !hba->is_sys_suspended) {
++			dev_warn_once(hba->dev,
++				"ROG5 UFS discovery: host power transition rejected\n");
++			return -EBUSY;
++		}
++		if (rog5_ufs_pm_noop)
++			return 0;
+ 	}
+ 
+ 	if (!hba->is_powered)
+@@ -10798,6 +10837,9 @@
+ 	if (!hba->is_powered)
+ 		return 0;
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) && rog5_ufs_pm_noop)
++		return 0;
++
+ 	ufshcd_hba_vreg_set_hpm(hba);
+ 	ret = ufshcd_vreg_set_hpm(hba);
+ 	if (ret)

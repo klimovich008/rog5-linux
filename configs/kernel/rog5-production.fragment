@@ -76,3 +76,7 @@ CONFIG_UCLAMP_TASK_GROUP=y
 # Audio (plan step 10): the two Cirrus CS35L45 amplifiers (earpiece and
 # speaker) on QUP SE17 I2C, fed over SENARY MI2S from the ADSP.
 CONFIG_SND_SOC_CS35L45_I2C=m
+# Suspend bring-up: /sys/power/pm_test (freezer/devices/platform/processors/
+# core) and pm_print_times/pm_debug_messages. No behaviour change unless used.
+CONFIG_PM_DEBUG=y
+CONFIG_PM_SLEEP_DEBUG=y
