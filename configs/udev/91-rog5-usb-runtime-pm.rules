@@ -1,0 +1,8 @@
+# Let the side-port USB controller runtime-suspend when nothing is attached.
+# With power/control=on (the default) dwc3 and its legacy Qualcomm glue stay
+# active while unplugged and keep DDR/CNOC interconnect votes (tag 0 = also
+# in the RPMh sleep set), the USB GDSC and the PHY's XO reference: the SoC
+# can never collapse DDR or CX. With "auto" dwc3 autosuspends after detach
+# (0055 already drops the pull-up on role NONE) and the glue disables its
+# clocks and interconnect paths.
+ACTION=="add|change", SUBSYSTEM=="platform", KERNEL=="a6f8800.usb|a600000.usb", ATTR{power/control}="auto"

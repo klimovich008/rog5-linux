@@ -34,4 +34,6 @@
 0060-clk-qcom-gcc-sm8350-keep-PCIe-GDSCs-on-across-system-suspend.patch
 0061-drm-panel-ams678-keep-brightness-set-while-the-panel-is-off.patch
 0062-ufs-discovery-skip-device-housekeeping-writes-on-resume.patch
+0063-ASoC-qcom-q6afe-keep-the-LPASS-core-HW-vote-handle.patch
 0064-iommu-arm-smmu-qcom-sm8350-reserve-hypervisor-routed-context-banks.patch
+0065-scsi-ufs-qcom-do-not-enable-the-lane-clocks-twice.patch
