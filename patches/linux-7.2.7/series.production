@@ -25,3 +25,4 @@
 0050-ASoC-qcom-q6asm-dai-report-the-exact-hardware-pointer.patch
 0051-iommu-arm-smmu-qcom-sm8350-high-context-banks-for-all-DSP-streams.patch
 0052-ROG5-TEST-tear-check-module-parameters.patch
+0053-drm-panel-asus-rog5-ams678-stock-60-Hz-DSI-link-rate.patch

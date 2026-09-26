@@ -1,0 +1,30 @@
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 11:01:45.867868880 +0200
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-26 11:02:03.204689914 +0200
+@@ -349,12 +349,23 @@
+ 	return ret;
+ }
+ 
++/*
++ * Command mode: the horizontal blanking only sets the DSI link rate. With the
++ * 48-pixel blanking of the first port the link ran at ~362 Mb/s per lane, so
++ * sending a DSC frame took ~15 ms of the 16.7 ms refresh; a late kickoff let
++ * the panel's scan overtake the transfer and decode a half-written 48-row
++ * slice as a band of colour noise at the top (overlay animations). The front
++ * porch below gives the 60 Hz link rate stock uses (829 Mb/s per lane: byte
++ * clock 103.6 MHz), so a frame goes out in ~6.5 ms. Refresh stays 60 Hz.
++ */
++#define AMS678_HFP	557
++
+ static const struct drm_display_mode ams678_er2_plus_dsc_mode = {
+-	.clock = (1080 + 30 + 4 + 14) * (2448 + 2 + 1 + 12) * 60 / 1000,
++	.clock = (1080 + AMS678_HFP + 4 + 14) * (2448 + 2 + 1 + 12) * 60 / 1000,
+ 	.hdisplay = 1080,
+-	.hsync_start = 1080 + 30,
+-	.hsync_end = 1080 + 30 + 4,
+-	.htotal = 1080 + 30 + 4 + 14,
++	.hsync_start = 1080 + AMS678_HFP,
++	.hsync_end = 1080 + AMS678_HFP + 4,
++	.htotal = 1080 + AMS678_HFP + 4 + 14,
+ 	.vdisplay = 2448,
+ 	.vsync_start = 2448 + 2,
+ 	.vsync_end = 2448 + 2 + 1,
