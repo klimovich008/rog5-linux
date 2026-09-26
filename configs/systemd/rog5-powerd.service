@@ -1,0 +1,15 @@
+# Power profiles for Denial's Performance tile (denia-powerd protocol on
+# /run/denia-powerd/profile.sock). Frequency limits only; see
+# /usr/local/bin/rog5-powerd.
+[Unit]
+Description=ROG5 power profiles for the Denial session
+After=rog5-platform-modules.service
+Before=rog5-denial.service
+
+[Service]
+ExecStart=/usr/local/bin/rog5-powerd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

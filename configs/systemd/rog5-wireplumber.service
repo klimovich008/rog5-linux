@@ -1,0 +1,15 @@
+# WirePlumber session manager for rog5-pipewire (root, no logind session).
+[Unit]
+Description=WirePlumber for the Denial root session
+BindsTo=rog5-pipewire.service
+After=rog5-pipewire.service
+Before=rog5-denial.service
+
+[Service]
+Environment=XDG_RUNTIME_DIR=/run/user/0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus HOME=/root
+ExecStart=/usr/bin/wireplumber
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=rog5-pipewire.service

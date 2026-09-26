@@ -258,6 +258,7 @@ active_tests=(
 	scripts/host/test-soak-runtime-evidence.py
 	scripts/device/test-soak-file-window.py
 	scripts/device/test-cpu-frequency-cap.py
+	scripts/device/test-rog5-powerd.py
 	scripts/device/test-headless-cpu-policy.py
 	scripts/host/test-server-runtime-evidence.py
 	scripts/host/test-check-rescue-startup.py

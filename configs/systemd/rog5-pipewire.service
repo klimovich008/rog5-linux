@@ -1,0 +1,18 @@
+# PipeWire for the Denial session, which runs as root without a logind
+# session (so there is no systemd --user manager to start it). It shares
+# the session's runtime directory and D-Bus with Denial and its apps.
+[Unit]
+Description=PipeWire for the Denial root session
+Wants=rog5-session-bus.service
+After=rog5-session-bus.service rog5-audio.service
+Before=rog5-denial.service
+
+[Service]
+Environment=XDG_RUNTIME_DIR=/run/user/0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus HOME=/root
+ExecStartPre=/usr/bin/install -d -m 0700 /run/user/0
+ExecStart=/usr/bin/pipewire
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

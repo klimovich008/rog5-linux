@@ -1,0 +1,215 @@
+#!/usr/bin/python3
+"""ROG Phone 5 power profiles for Denial's quick-settings Performance tile.
+
+Denial's shell speaks the small denia-powerd protocol:
+  /run/denia-powerd/profile.sock   one line "power-save|balanced|performance"
+  /run/denia-powerd/power_profile.env   POWER_PROFILE=<applied profile>
+This daemon implements it on the SM8350 with frequency limits only (no
+governor, voltage, thermal or charging changes):
+  power-save   caps the CPU clusters and the GPU below their top frequencies
+  balanced     the full hardware range (the boot state)
+  performance  the full range with raised minimum frequencies
+The choice is kept in /var/lib/rog5-powerd/profile. On stop the full range is
+restored. Other files in /run/denia-powerd (rog5-battery-log's
+battery_discharge.tsv) are left alone.
+
+ROG5_POWERD_SYSFS, ROG5_POWERD_RUN and ROG5_POWERD_STATE override the roots
+for tests.
+"""
+import os
+import signal
+import socket
+import sys
+
+SYSFS = os.environ.get('ROG5_POWERD_SYSFS', '/sys')
+RUN = os.environ.get('ROG5_POWERD_RUN', '/run/denia-powerd')
+STATE = os.environ.get('ROG5_POWERD_STATE', '/var/lib/rog5-powerd')
+SOCKET = os.path.join(RUN, 'profile.sock')
+ENV = os.path.join(RUN, 'power_profile.env')
+CHOICE = os.path.join(STATE, 'profile')
+
+PROFILES = ('power-save', 'balanced', 'performance')
+ALIASES = {'power-saver': 'power-save', 'powersave': 'power-save', 'power_save': 'power-save'}
+CPUFREQ = 'devices/system/cpu/cpufreq'
+GPU = 'class/devfreq/3d00000.gpu'
+
+# Per profile: (maximum, minimum) caps in kHz for each cpufreq policy and in Hz
+# for the GPU. None means the hardware limit. A cap selects the highest
+# available frequency not above it.
+LIMITS = {
+    'power-save': {
+        'policy0': (1497600, None), 'policy4': (1766400, None), 'policy7': (1900800, None),
+        'gpu': (540000000, None),
+    },
+    'balanced': {},
+    'performance': {
+        'policy0': (None, 998400), 'policy4': (None, 1209600), 'policy7': (None, 1305600),
+        'gpu': (None, 443000000),
+    },
+}
+
+
+def log(message):
+    print('rog5-powerd: ' + message, file=sys.stderr, flush=True)
+
+
+def read(path):
+    with open(path) as handle:
+        return handle.read().strip()
+
+
+def write(path, value):
+    with open(path, 'w') as handle:
+        handle.write(str(value))
+
+
+def normalize(value):
+    value = value.strip().lower()
+    value = ALIASES.get(value, value)
+    return value if value in PROFILES else None
+
+
+def pick(available, cap, default):
+    """Highest available frequency not above cap (the lowest one if none is)."""
+    if cap is None:
+        return default
+    below = [f for f in available if f <= cap]
+    return max(below) if below else min(available)
+
+
+class Domain:
+    """One frequency domain: a cpufreq policy or the GPU devfreq device."""
+
+    def __init__(self, name, path, minimum, maximum, available):
+        self.name, self.path, self.available = name, path, sorted(available)
+        self.min_file, self.max_file = minimum, maximum
+        self.low, self.high = self.available[0], self.available[-1]
+
+    def apply(self, cap_max, cap_min):
+        maximum = pick(self.available, cap_max, self.high)
+        minimum = min(pick(self.available, cap_min, self.low), maximum)
+        # Open the range first so neither write is refused by the other bound.
+        write(os.path.join(self.path, self.min_file), self.low)
+        write(os.path.join(self.path, self.max_file), maximum)
+        write(os.path.join(self.path, self.min_file), minimum)
+        return minimum, maximum
+
+
+def domains():
+    found = []
+    root = os.path.join(SYSFS, CPUFREQ)
+    for name in sorted(os.listdir(root)) if os.path.isdir(root) else []:
+        path = os.path.join(root, name)
+        try:
+            available = [int(v) for v in read(os.path.join(path, 'scaling_available_frequencies')).split()]
+        except (OSError, ValueError):
+            available = []
+        if not available:
+            try:
+                available = [int(read(os.path.join(path, 'cpuinfo_min_freq'))),
+                             int(read(os.path.join(path, 'cpuinfo_max_freq')))]
+            except (OSError, ValueError):
+                continue
+        found.append(Domain(name, path, 'scaling_min_freq', 'scaling_max_freq', available))
+    gpu = os.path.join(SYSFS, GPU)
+    try:
+        available = [int(v) for v in read(os.path.join(gpu, 'available_frequencies')).split()]
+        if available:
+            found.append(Domain('gpu', gpu, 'min_freq', 'max_freq', available))
+    except (OSError, ValueError):
+        pass
+    return found
+
+
+def apply(profile, targets):
+    limits = LIMITS[profile]
+    for domain in targets:
+        cap_max, cap_min = limits.get(domain.name, (None, None))
+        try:
+            minimum, maximum = domain.apply(cap_max, cap_min)
+        except OSError as error:
+            log(f'{profile}: {domain.name}: {error}')
+            continue
+        log(f'{profile}: {domain.name} {minimum}..{maximum}')
+
+
+def publish(profile):
+    temporary = ENV + '.tmp'
+    write(temporary, f'POWER_PROFILE={profile}\n')
+    os.replace(temporary, ENV)
+
+
+def remember(profile):
+    os.makedirs(STATE, exist_ok=True)
+    temporary = CHOICE + '.tmp'
+    write(temporary, profile + '\n')
+    os.replace(temporary, CHOICE)
+
+
+def recalled():
+    try:
+        return normalize(read(CHOICE)) or 'balanced'
+    except OSError:
+        return 'balanced'
+
+
+def serve(server, targets, current):
+    while True:
+        connection, _ = server.accept()
+        with connection:
+            connection.settimeout(2)
+            try:
+                data = connection.recv(64).decode('ascii', 'replace')
+            except (OSError, socket.timeout):
+                continue
+            profile = normalize(data.splitlines()[0] if data.strip() else '')
+            if profile is None:
+                connection.sendall(b'error unknown profile\n')
+                continue
+            if profile != current:
+                apply(profile, targets)
+                remember(profile)
+                publish(profile)
+                current = profile
+            try:
+                connection.sendall(f'ok {profile}\n'.encode())
+            except OSError:
+                pass
+
+
+def main():
+    targets = domains()
+    if not targets:
+        log('no cpufreq or devfreq domains found')
+        return 1
+    os.makedirs(RUN, exist_ok=True)
+    profile = recalled()
+    apply(profile, targets)
+    publish(profile)
+
+    def stop(*_):
+        apply('balanced', targets)
+        for path in (SOCKET, ENV):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    try:
+        os.unlink(SOCKET)
+    except FileNotFoundError:
+        pass
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    old = os.umask(0o077)
+    server.bind(SOCKET)
+    os.umask(old)
+    server.listen(4)
+    log(f'listening on {SOCKET}, profile {profile}')
+    serve(server, targets, profile)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

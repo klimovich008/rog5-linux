@@ -210,24 +210,82 @@ compositor (`deniald`); 0006 changes both.
 
 The patches are unified diffs against upstream 85b2303e. Apply them in order
 with `patch -p1` from the source root: 0001, 0004, 0005, 0006, 0007, 0008,
-0009, 0010, 0011 (0002/0003 are withdrawn and do not combine with 0006). The build
+0009, 0010, 0011, 0012, 0013 (0002/0003 are withdrawn and do not combine with 0006). The build
 trees are exactly upstream + 0001 + 0004 + 0005 + 0006 + 0007 (Dart,
 `engine-build-r1/denial/dart_shell/lib`; the base without 0006 is kept at
 `engine-build-r1/dart_shell-lib.base-0001-0004`) and upstream + 0005 + 0006 +
 0008 + 0009 + 0010 + 0011 (`cargo-arm64-power-r1/source/compositor`).
 
-## Deployed state (2026-09-26, after 0007-0010)
+- `0012-settings-and-top-bar-real-backends.patch` (shell, applies after
+  0001/0004/0006/0007; audit in `test-results/2026-09-26-denial-settings-top-bar.md`):
+  - Status bar and shade header: the cellular bars and the Wi-Fi fan were
+    hard-coded "connected". There is no cellular glyph now (no modem). Wi-Fi
+    follows the network service: hidden without service or adapter, crossed
+    out when off, an empty fan while disconnected, 1-4 bars from the
+    connected network's strength. Also a do-not-disturb icon, a Bluetooth
+    icon while a device is connected, an unread-notification icon, and a
+    charging bolt on the battery (lock screen cluster included).
+  - Quick settings: the rotation tile is the persisted `layout.rotationLock`
+    (default locked) that deniald applies (0013), instead of local state.
+    The Performance tile is shown only while a power-profile daemon's socket
+    (`/run/denia-powerd/profile.sock`, see `rog5-powerd`) exists; after a
+    change it shows the profile the daemon applied. The Settings gear opens
+    Settings (it was a disabled "Settings are unavailable" button); it stays
+    disabled unless Settings is registered as an in-shell app, which needs
+    `DENIA_EMBED_SETTINGS=1` (drop-in `30-embedded-settings.conf`). Without
+    it the shell only knows the desktop binary `/usr/bin/denial-settings`,
+    which the phone lacks, so Settings was unreachable before.
+    Notification history is shown below the controls (the mobile shell only
+    had transient banners); opening the shade marks it read.
+  - Settings: the Network page joins a secured network with no saved profile
+    through a password page (`WifiJoinNetworkRoute`) instead of a disabled
+    "Password required". Language is "Language & time" with a Date & time
+    section (systemd-timedated: time zone search/list via `SetTimezone`,
+    `SetNTP`, sync status; the running shell's clock follows a new zone after
+    the session restarts, as glibc reads `/etc/localtime` once). About shows
+    device, OS, kernel, processor, memory and host name. In the mobile profile
+    the Desktop layout and Developer pages, the cursor and window-opacity
+    sections, the launcher/dashboard overlay editors and the desktop-only
+    animation controls are hidden; Touchpad appears only with a touchpad or
+    mouse connected. The mobile local-app launch is shared
+    (`launcher/mobile_local_app_launch.dart`).
+- `0013-backlight-sysfs-fallback-and-rotation-lock.patch` (compositor, after
+  0011):
+  - Brightness: deniald set the backlight only through logind
+    `Session.SetBrightness` on `session/auto`; the phone session has no logind
+    session, so every write failed (UnknownObject). A root deniald now falls
+    back to writing `/sys/class/backlight/<dev>/brightness` (the panel
+    driver's own 0x51 path, unchanged), never rounding a non-zero level to 0.
+  - Rotation: automatic orientation from iio-sensor-proxy is applied only
+    while `layout.rotationLock` in settings.json is false (missing = locked);
+    unlocking applies the last sensor reading at once.
+- Proposal, not applied (blocked by the auto-mode classifier; the user
+  decides): a compositor gate that ignores lock requests while the PAM
+  account's shadow field is unusable (empty, `x`, `!`/`*`), covering a stale
+  `/run/user/0/denia-lock-request` "1". Saved as
+  `scratchpad/st/proposal-lock-gate-authentication.diff` (session scratchpad).
+
+## Deployed state (2026-09-26, after 0012/0013)
 
 | file | content | sha256 | backup on the phone |
 | --- | --- | --- | --- |
-| `/opt/denial/deniald` | upstream + 0005 + 0006 + 0008 + 0009 + 0010 + 0011 (compositor), build `p13` | `252e22ee...` | `/opt/denial/deniald.0005-0006` (`644c98c8...`), `/opt/denial/deniald.upstream` (`8698b071...`); p10 without 0011: `artifacts/deniald-p10` (`51959007...`) |
-| `/opt/denial/lib/libapp.so` | upstream + 0001 + 0004 + 0006 + 0007 (Dart), `assembly-r9` | `c65bb6fa...` | `/opt/denial/lib/libapp.so.0001-0004-0006` (`1064f485...`), `/opt/denial/lib/libapp.so.0001-0004` (`c6f72921...`) |
+| `/opt/denial/deniald` | upstream + 0005 + 0006 + 0008-0011 + 0013 (compositor), build `s1` | `ed92d012...` | `/opt/denial/deniald.p13` (`252e22ee...`, before 0013), `/opt/denial/deniald.0005-0006` (`644c98c8...`), `/opt/denial/deniald.upstream` (`8698b071...`) |
+| `/opt/denial/lib/libapp.so` | upstream + 0001 + 0004 + 0006 + 0007 + 0012 (Dart), `assembly-s2` | `eaab2967...` | `/opt/denial/lib/libapp.so.r9` (`c65bb6fa...`, before 0012), `libapp.so.0001-0004-0006` (`1064f485...`) |
+| `/opt/denial/data/flutter_assets/fonts/MaterialIcons-Regular.otf` | tree-shaken icon font of `assembly-s2` | `2ea5505e...` | `MaterialIcons-Regular.otf.r1` (`e465b102...`, the r1 font every earlier deploy kept) |
+| `/etc/systemd/system/rog5-denial.service.d/20-restart.conf`, `30-embedded-settings.conf` | `Restart=always`; `DENIA_EMBED_SETTINGS=1` (repo `configs/systemd/rog5-denial.service.d/`) | | remove to revert |
+| `rog5-powerd` (`/usr/local/bin`, unit), `rog5-pipewire`/`-wireplumber`/`-pipewire-pulse` units, `/etc/wireplumber/wireplumber.conf.d/50-rog5-speakers.conf` | repo `scripts/device/rog5-powerd`, `configs/systemd/`, `configs/wireplumber/` | | `systemctl disable --now` and delete |
 
-To go back to the 0005/0006 state: stop `rog5-denial`, copy the two
-`.0005-0006`/`.0001-0004-0006` backups over the live files, and start it.
+Packages installed for the volume controls: `pipewire-pulse wireplumber
+pipewire-alsa` (`pacman -S --needed`, no upgrades). Time zone set to
+Europe/Paris (the Steam Deck host's), NTP on.
 
-Local copies: `~/.local/state/rog5-denial-20260910-r1/cargo-arm64-power-r1/artifacts/`
-(`deniald-p13`, `libapp-r9.so`; before 0011: `deniald-p10`; before 0007-0010: `deniald-p4`, `libapp-r6.so`). `DENIAL_POWER_KEY_LOCK` is not set, so the
+To go back to the state before 0012/0013: stop `rog5-denial`, copy
+`deniald.p13`, `libapp.so.r9` and `MaterialIcons-Regular.otf.r1` over the live
+files, delete the two drop-ins, `systemctl daemon-reload`, and start it.
+
+Local copies: `~/.local/state/rog5-denial-20260910-r1/cargo-arm64-settings-r1/artifacts/`
+(`deniald-s1`, `libapp-s1.so`, `libapp-s2.so`) and
+`cargo-arm64-power-r1/artifacts/` (`deniald-p13`, `libapp-r9.so`; before 0011: `deniald-p10`; before 0007-0010: `deniald-p4`, `libapp-r6.so`). `DENIAL_POWER_KEY_LOCK` is not set, so the
 power key only toggles the display. To lock as well once root has a
 password, add `DENIAL_POWER_KEY_LOCK=1` to the unit's `Environment=`.
 
@@ -313,4 +371,12 @@ The current build used `$EB/assemble-r6.sh` (the same, plus `flutter analyze
 Output: `$EB/assembly-r2/lib/libapp.so`. The script uses `pub get --offline`,
 because the builder has no network and the pub cache is already filled.
 Deploy it over SSH to `/opt/denial/lib/libapp.so` (the shipped copy is kept as
-`libapp.so.r1`), then run `systemctl restart rog5-denial.service`.
+`libapp.so.r1`), **together with the build's
+`flutter_assets/fonts/MaterialIcons-Regular.otf`** to
+`/opt/denial/data/flutter_assets/fonts/`, then run `systemctl restart
+rog5-denial.service`. Flutter tree-shakes the icon font per build, so a
+libapp.so with the old font draws any newly used icon as blank or as the
+wrong glyph (every deploy before 0012 kept the r1 font). Diff the whole
+`flutter_assets` against the phone when in doubt. For builds that add
+strings, run `flutter gen-l10n` before `flutter analyze` (see
+`$EB/assemble-s2.sh`).
