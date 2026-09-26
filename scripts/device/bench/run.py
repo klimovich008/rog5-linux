@@ -45,9 +45,10 @@ def mark(text):
 
 
 # Each scenario: list of (gesture, args, settle seconds). Coordinates are panel pixels,
-# checked against screenshots (rog5-bench.py gesture ...): the open shade ends
-# near y=1180 with its drag handle at y~1155.
-QS_HANDLE_Y = 1155
+# checked against screenshots (rog5-bench.py gesture ...): the open shade is
+# as tall as its contents (Denial shell patch 0001) and ends near y=1400 with
+# its drag handle at y~1350 (y~1155 while the panel was a fixed 488 px).
+QS_HANDLE_Y = 1350
 SCENARIOS = {
     'idle': [('wait', (), 2.0)],
     'quick_settings': [('swipe', (540, 0.5 * 48 * S, 540, 0.5 * 48 * S + 488 * S, 0.30), 1.5),
