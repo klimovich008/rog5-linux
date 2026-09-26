@@ -1036,3 +1036,17 @@ Also 2026-09-26: the Denial boot animation (patch 0011) replaced the first-modes
     - The MDSS clocks stay enabled while MDSS is suspended.
 - **UFS on resume:** 0062 skips the RTC, timestamp and auto-BKOPS writes on resume under containment (previously -30 errors).
 - **Default:** production-7.2.7-r120 = kernel r35 (0059-0066), DTB `platform-osi-aoss-qup-dtb-r1` (33e62caa), wifi-kit-r2 (BT firmware) and the ramdisk with the BT address step. Two reboots, each committed healthy. The fallback is still safe-r2.
+
+### The ADSP sleeps again (0067); default r121 (2026-09-27)
+
+- **Root cause.** `sm8250_snd_startup()` enables the MI2S bit clock (SENARY for the ROG5 speakers) through the AFE, but the backend `.shutdown` never sends frequency 0. After the first stream, which is PipeWire's probe open at about 48 s, the ADSP kept the LPASS clock voted and never power-collapsed again (qcom_stats/adsp frozen from about 49 s).
+- **How it was found.** A bisect unloading the audio stack (including apr) never let a stuck ADSP sleep. After an ADSP remoteproc restart it slept through every module load, the audio route and the service-style load, and stopped for good once PipeWire opened the PCM.
+- **Fix: 0067** adds a shutdown that disables the MI2S bit clock.
+  - Tested first as a hot-swapped module after an ADSP restart: the ADSP kept sleeping through PipeWire start and after a stream closed.
+  - On r121 at uptime 170 s the ADSP counts 140 → 157 in 30 s.
+- **Standby, unplugged with the screen off, still with no RPMh collapse** (cxsd/aosd/ddr 0):
+  - awake idle about 89–106 mA;
+  - deep-suspend loop about 59 mA.
+  - A suspend loop with the Wi-Fi radio off (nmcli radio off) read about 107 mA, so Wi-Fi is not the main blocker.
+  - Remaining suspected holders: the MDSS clocks stay enabled while MDSS is suspended, and the PCIe link and GDSC are kept on in suspend (0060).
+- **Default:** production-7.2.7-r121 = kernel r36 (0059-0067) with the r120 DTB and ramdisk. Two reboots, each committed healthy.
