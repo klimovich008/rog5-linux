@@ -173,6 +173,27 @@ bluetooth() {
 		[ "$waited" -le 30 ] || fail 'no hci0 30 s after hci_uart'
 		sleep 1
 	done
+	# The QCA controller has no public address of its own and the stock
+	# bootloader never passes one to this kernel, so hci0 registers
+	# unconfigured and BlueZ cannot use it. Give it a stable, locally
+	# administered address derived from the SoC serial (the same on every
+	# boot, unique per phone), as postmarketOS bootmac does.
+	serial=$(cat "$sys/devices/soc0/serial_number" 2>/dev/null)
+	if ! command -v btmgmt >/dev/null; then
+		log 'WARN btmgmt missing; hci0 stays unconfigured'
+	elif [ -z "$serial" ]; then
+		log 'WARN no SoC serial; hci0 stays unconfigured'
+	else
+		hash=$(printf 'rog5-bt-%s' "$serial" | sha256sum | cut -c1-12)
+		first=$(printf '%02x' $(( (0x${hash%??????????} | 0x02) & 0xfe )))
+		addr="$first:$(printf '%s' "${hash#??}" | sed 's/../&:/g; s/:$//')"
+		waited=0
+		until timeout 10 btmgmt --index 0 public-addr "$addr" 2>/dev/null | grep -q 'complete'; do
+			waited=$((waited + 1))
+			[ "$waited" -le 10 ] || { log 'WARN could not set the Bluetooth public address'; break; }
+			sleep 1
+		done
+	fi
 	log 'PASS bluetooth hci0'
 }
 
