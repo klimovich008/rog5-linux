@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -16,6 +17,12 @@ NETWORK_ROOT = REPO / "initramfs" / "network-root-init"
 PERSISTENT_ROOT = REPO / "initramfs" / "persistent-root-init"
 RECOVERY_CONTROL = REPO / "tools/recovery_control/rog5-recovery-control.c"
 RECOVERY_FETCH = REPO / "tools/recovery_control/rog5-bundle-fetch.c"
+SLOTB_LOADER = REPO / "initramfs" / "persistent-slotb-loader-init"
+UFS_DISK = "devices/platform/soc/1d84000.ufshc/host0/target0:0:0/0:0:0:0/block"
+USB_DISK = (
+    "devices/platform/soc/a600000.ssusb/a600000.dwc3/xhci-hcd.0.auto/usb1/1-1/"
+    "1-1.1/1-1.1:1.0/host1/target1:0:0/1:0:0:0/block"
+)
 
 
 class InitPolicyTest(unittest.TestCase):
@@ -161,6 +168,218 @@ class InitPolicyTest(unittest.TestCase):
         )
         self.assertEqual(network.count("functions/acm.usb0"), 2)
         self.assertEqual(guarded_acm.group(0).count("functions/acm.usb0"), 2)
+
+    def functions(self, path: Path, names: tuple[str, ...]) -> str:
+        source = self.source(path)
+        found = []
+        for name in names:
+            match = re.search(
+                rf"^{name}\(\) \{{\n.*?^\}}\n",
+                source,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+            self.assertIsNotNone(match, name)
+            found.append(match.group(0))
+        return "\n".join(found)
+
+    @staticmethod
+    def fake_block(root: Path, parent: str, disk: str, partitions: int) -> None:
+        """One sysfs disk (with device link) and its partitions, plus /dev nodes."""
+        disk_dir = root / "sys" / parent / disk
+        (disk_dir / "device").mkdir(parents=True)
+        nodes = [(disk_dir, disk)]
+        for number in range(1, partitions + 1):
+            name = f"{disk}{number}"
+            (disk_dir / name).mkdir()
+            (disk_dir / name / "partition").write_text(f"{number}\n")
+            nodes.append((disk_dir / name, name))
+        for directory, name in nodes:
+            (directory / "dev").write_text("8:0\n")
+            (directory / "ro").write_text("0\n")
+            (root / "sys/class/block" / name).symlink_to(directory)
+            (root / "dev" / name).write_text("")
+
+    @staticmethod
+    def drop_ufs_partition(root: Path) -> None:
+        partition = root / "sys" / UFS_DISK / "sda/sda116"
+        for name in ("dev", "ro", "partition"):
+            (partition / name).unlink()
+        partition.rmdir()
+        (root / "sys/class/block/sda116").unlink()
+
+    def storage_fixture(self, root: Path, extra_ufs: bool = False) -> None:
+        (root / "sys/class/block").mkdir(parents=True)
+        (root / "dev").mkdir()
+        (root / "mountinfo").write_text("")
+        # 117 UFS nodes: one disk with 116 partitions.
+        self.fake_block(root, UFS_DISK, "sda", 116)
+        # A hub card reader and a flash drive with one partition.
+        self.fake_block(root, USB_DISK, "sdh", 0)
+        self.fake_block(root, USB_DISK.replace("1-1.1", "1-1.2"), "sdi", 1)
+        if extra_ufs:
+            self.fake_block(root, UFS_DISK.replace("0:0:0:0", "0:0:0:7"), "sdj", 0)
+
+    def run_storage_case(self, path: Path, names: tuple[str, ...], root: Path,
+                         body: str) -> subprocess.CompletedProcess[str]:
+        text = self.functions(path, names)
+        for old, new in (
+            ("/sys/class/block", f"{root}/sys/class/block"),
+            ("/sys/dev/block", f"{root}/sys/dev/block"),
+            ("</proc/self/mountinfo", f"<{root}/mountinfo"),
+            ("/run/rog5-physical-block-count", f"{root}/count"),
+            ("device=/dev/$(basename", f"device={root}/dev/$(basename"),
+            ('[ -b "$device" ]', '[ -e "$device" ]'),
+        ):
+            text = text.replace(old, new)
+        # blockdev models the sysfs ro flag; an empty USB card reader cannot be
+        # opened (ENOMEDIUM), so any open of a USB node fails.
+        stub = (
+            f"root={root}\n"
+            "log() { :; }\n"
+            "blockdev() {\n"
+            '\tname=${2##*/}\n'
+            '\tprintf "%s %s\\n" "$1" "$name" >>"$root/blockdev.log"\n'
+            '\tcase $name in sdh*|sdi*) return 1 ;; esac\n'
+            '\tflag=$(readlink -f "$root/sys/class/block/$name")/ro\n'
+            "\tcase $1 in\n"
+            '\t\t--setro) echo 1 >"$flag" ;;\n'
+            '\t\t--setrw) echo 0 >"$flag" ;;\n'
+            '\t\t--getro) cat "$flag" ;;\n'
+            "\t\t*) return 1 ;;\n"
+            "\tesac\n"
+            "}\n"
+        )
+        # ROG5_TEST_BUSYBOX/ROG5_TEST_QEMU run the functions under the wrapper's
+        # real ARM64 BusyBox, with its readlink/cat/basename applets.
+        shell = ["/bin/sh"]
+        env = dict(os.environ)
+        if os.environ.get("ROG5_TEST_BUSYBOX"):
+            qemu = os.environ["ROG5_TEST_QEMU"]
+            busybox = os.environ["ROG5_TEST_BUSYBOX"]
+            applets = root / "applets"
+            applets.mkdir()
+            for name in ("readlink", "cat", "basename"):
+                (applets / name).write_text(
+                    f'#!/bin/sh\nexec {qemu} {busybox} {name} "$@"\n'
+                )
+                (applets / name).chmod(0o755)
+            shell = [qemu, busybox, "sh"]
+            env["PATH"] = f"{applets}:{env['PATH']}"
+        return subprocess.run(
+            shell,
+            input="set -u\n" + stub + text + "\n" + body,
+            text=True,
+            capture_output=True,
+            check=False,
+            env=env,
+        )
+
+    def test_recovery_ufs_topology_ignores_usb_disks_and_stays_exact(self) -> None:
+        names = (
+            "usb_attached_block",
+            "isolate_storage",
+            "physical_topology_count",
+            "verify_wrapper_storage_contract",
+        )
+        source = self.source(RECOVERY)
+        for name in names[1:3]:
+            body = self.functions(RECOVERY, (name,))
+            self.assertIn('! usb_attached_block "$sys_disk" || continue', body)
+        self.assertIn("*/usb[0-9]*/*) return 0 ;;", source)
+        contract = (
+            "release=5.4.210-qgki\n"
+            "recovery_mode=persistent-slotb-loader-v1\n"
+            "stage2_readonly_preflight=0\n"
+            "expected_wrapper_physical_count=117\n"
+            "expected_stage2_physical_count=117\n"
+            "isolate_storage || exit 10\n"
+            "physical_topology_count\n"
+            "verify_wrapper_storage_contract || exit 11\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.storage_fixture(root)
+            result = self.run_storage_case(RECOVERY, names, root, contract)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, "117\n")
+            self.assertEqual((root / "count").read_text(), "117\n")
+            log = (root / "blockdev.log").read_text()
+            self.assertEqual(log.count("--setro sda"), 117)
+            self.assertNotIn("sdh", log)
+            self.assertNotIn("sdi", log)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.storage_fixture(root, extra_ufs=True)
+            result = self.run_storage_case(RECOVERY, names, root, contract)
+            self.assertEqual(result.returncode, 11, result.stderr)
+            self.assertEqual((root / "count").read_text(), "118\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.storage_fixture(root)
+            self.drop_ufs_partition(root)
+            result = self.run_storage_case(RECOVERY, names, root, contract)
+            self.assertEqual(result.returncode, 11, result.stderr)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.storage_fixture(root)
+            (root / "mountinfo").write_text(
+                "36 25 8:0 / /mnt rw - vfat /dev/sdi1 rw\n"
+            )
+            (root / "sys/dev/block/8:0").mkdir(parents=True)
+            result = self.run_storage_case(RECOVERY, names, root, contract)
+            self.assertEqual(result.returncode, 10, result.stderr)
+            self.assertFalse((root / "blockdev.log").exists())
+
+    def test_slotb_loader_storage_scope_ignores_usb_disks_and_stays_exact(self) -> None:
+        names = (
+            "usb_attached_block",
+            "verify_all_storage_read_only",
+            "relock_all_storage",
+            "verify_trial_write_window",
+        )
+        for name in names[1:]:
+            body = self.functions(SLOTB_LOADER, (name,))
+            self.assertIn('! usb_attached_block "$sys_block" || continue', body)
+            if name != "relock_all_storage":
+                self.assertIn('[ "$count" -eq 117 ]', body)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.storage_fixture(root)
+            result = self.run_storage_case(
+                SLOTB_LOADER,
+                names,
+                root,
+                "relock_all_storage || exit 10\n"
+                "verify_all_storage_read_only || exit 11\n"
+                f"disk={root}/dev/sda\n"
+                f"userdata={root}/dev/sda23\n"
+                'blockdev --setrw "$disk" && blockdev --setrw "$userdata" || exit 12\n'
+                "verify_trial_write_window || exit 13\n"
+                "relock_all_storage || exit 14\n",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            log = (root / "blockdev.log").read_text()
+            self.assertNotIn("sdh", log)
+            self.assertNotIn("sdi", log)
+            self.assertEqual((root / "sys" / USB_DISK / "sdh/ro").read_text(), "0\n")
+        for mutation in ("extra-ufs", "missing-ufs"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.storage_fixture(root, extra_ufs=mutation == "extra-ufs")
+                if mutation == "missing-ufs":
+                    self.drop_ufs_partition(root)
+                result = self.run_storage_case(
+                    SLOTB_LOADER,
+                    names,
+                    root,
+                    "relock_all_storage && exit 10\n"
+                    "verify_all_storage_read_only && exit 11\n"
+                    f"disk={root}/dev/sda\n"
+                    f"userdata={root}/dev/sda23\n"
+                    "verify_trial_write_window && exit 12\n"
+                    "exit 0\n",
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_recovery_mints_session_after_isolation_before_usb_bind(self) -> None:
         source = self.source(RECOVERY)

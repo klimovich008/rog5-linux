@@ -233,6 +233,22 @@ if [ "$recovery_mode" = storage-layout-stage2-v1 ] &&
 	stage2_readonly_preflight=1
 fi
 
+# USB mass storage (a flash drive, a hub's card reader on the side port) is
+# not the phone's UFS: its resolved sysfs path lies under a usbN bus. It is
+# not counted toward the exact UFS topology, so the UFS contract stays exact.
+# It is left alone rather than locked: locking opens the device, and an
+# empty card reader then fails with ENOMEDIUM, which would turn a harmless
+# reader into a failed boot. No wrapper or slot-B loader path mounts or writes
+# a block device other than the UFS disk and partitions it resolves by exact
+# geometry, the block-backed mount check below still covers every block
+# device, and the read-only flag would not survive kexec anyway.
+usb_attached_block() {
+	case $(readlink -f "$1") in
+		*/usb[0-9]*/*) return 0 ;;
+	esac
+	return 1
+}
+
 isolate_storage() {
 	while read -r _ _ device _ mountpoint _ rest; do
 		[ -e "/sys/dev/block/$device" ] || continue
@@ -244,6 +260,7 @@ isolate_storage() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -274,6 +291,7 @@ physical_topology_count() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -444,6 +462,7 @@ write_ufs_inventory() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		logical_block_bytes=$(cat "$sys_disk/queue/logical_block_size")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do

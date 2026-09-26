@@ -207,6 +207,13 @@ case $contract in
 					fail 'observation-only recovery mode identity mismatch'
 				;;
 		esac
+		# USB mass storage stays outside the exact UFS topology: the
+		# isolation, count and inventory loops each skip USB-attached disks.
+		grep -Fxq 'usb_attached_block() {' "$stage/init" &&
+			grep -Fxq '		*/usb[0-9]*/*) return 0 ;;' "$stage/init" &&
+			[ "$(grep -Fxc '		! usb_attached_block "$sys_disk" || continue' \
+				"$stage/init")" -eq 3 ] ||
+			fail 'current recovery does not keep USB disks out of the UFS topology'
 		grep -Fxq 'expected_udc=a600000.dwc3' "$stage/init" ||
 			fail 'stable recovery lacks the exact expected UDC identity'
 		grep -Fxq 'expected_udc_companion=a800000.dwc3' "$stage/init" ||

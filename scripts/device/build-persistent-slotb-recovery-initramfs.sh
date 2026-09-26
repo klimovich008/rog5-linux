@@ -11,6 +11,17 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
 selector_loader=$repo/initramfs/persistent-slotb-loader-init
 trial_helper=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
+# A persistent boot_b rebuild keeps the helper release the installed wrapper
+# carries (ROG5_TRIAL_HELPER=artifacts/persistent-trial-state-vN/...), so a
+# fix to init or the loader does not also change the trial-state helper.
+if [ -n "${ROG5_TRIAL_HELPER:-}" ]; then
+	printf '%s\n' "$ROG5_TRIAL_HELPER" |
+		grep -Eqx 'artifacts/persistent-trial-state-v[1-9][0-9]*/rog5-persistent-trial-state' || {
+		echo 'FAIL ROG5_TRIAL_HELPER is not a retained trial-state helper' >&2
+		exit 1
+	}
+	trial_helper=$repo/$ROG5_TRIAL_HELPER
+fi
 expected_base=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
 expected_trial_helper=$(cut -d ' ' -f 1 "$(dirname "$trial_helper")/SHA256SUMS")
 epoch=1681862400

@@ -309,10 +309,21 @@ apply_fallback_request() {
 	selector_format=format=rog5-slotb-selector-v1
 }
 
+# USB mass storage on the side port (resolved sysfs path under a usbN bus) is
+# not the UFS: it neither counts toward the exact 117 UFS nodes nor is locked
+# (an empty card reader cannot be opened). The recovery init documents why.
+usb_attached_block() {
+	case $(readlink -f "$1") in
+		*/usb[0-9]*/*) return 0 ;;
+	esac
+	return 1
+}
+
 verify_all_storage_read_only() {
 	count=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(basename "$sys_block")
 		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = 1 ] &&
 			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
@@ -325,6 +336,7 @@ relock_all_storage() {
 	status=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(basename "$sys_block")
 		[ -b "$device" ] && blockdev --setro "$device" || status=1
 	done
@@ -337,6 +349,7 @@ verify_trial_write_window() {
 	writable=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(basename "$sys_block")
 		expected=1
 		case $device in

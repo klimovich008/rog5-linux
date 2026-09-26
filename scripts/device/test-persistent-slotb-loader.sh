@@ -81,6 +81,12 @@ for contract in \
 	'set_stage terminal FAIL "$1"'; do
 	grep -Fq "$contract" "$init"
 done
+# USB disks (resolved sysfs path under usbN) stay outside the exact 117-node
+# UFS scope in all three storage-scope loops; behaviour is covered by
+# scripts/host/test-recovery-init-policy.py.
+grep -Fxq '		*/usb[0-9]*/*) return 0 ;;' "$init"
+[ "$(grep -Fxc '		! usb_attached_block "$sys_block" || continue' "$init")" -eq 3 ]
+[ "$(grep -Fc '[ "$count" -eq 117 ]' "$init")" -eq 2 ]
 s65_line=$(grep -n 'set_stage S65 PASS "$trial_selection_detail"' "$init" | cut -d: -f1)
 selection_delay_line=$(grep -n 'sleep "$selection_report_delay"' "$init" | cut -d: -f1)
 s60_line=$(grep -n 'set_stage S60 PASS bundle_verified' "$init" | cut -d: -f1)
