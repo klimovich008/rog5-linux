@@ -1,0 +1,201 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] interconnect: qcom: sm8350: own the QUP core BCMs (clk-virt)
+
+SM8350 has three QUP core clock BCMs (cmd-db QUP0/QUP1/QUP2 at 0x50080,
+0x50084, 0x50088; the stock lahaina clk_virt provider drives them), but the
+upstream driver has no provider for them, so Linux never writes them. On the
+ROG Phone 5 the ASUS 5.4 wrapper kernel runs before kexec and its geni
+drivers leave QUP votes in the APPS DRV. A DRV vote for a resource that the
+sleep TCS does not carry is also the vote during sleep, so the leftover keeps
+the QUP core clock plan, and with it CX, up while the SoC should sleep.
+
+Evidence on r118 (kernel r33), read back with rpmh_read (patch 0035) by
+tools/rpmh_sleep_blockers: QUP0 = QUP1 = 0x207803c0 (valid, x=480, y=960,
+the stock 19.2 MHz core-2x vote), QUP2 = 0. The enabled SEs on wrapper 2
+(BT UART, amplifier I2C) work with QUP2 at 0.
+
+Add a clk-virt provider as on sm8450: qup0/1/2 core master/slave nodes and
+bcm_qup0/1/2 with keepalive. Probe votes INT_MAX as for every node; after the
+interconnect sync_state the BCMs carry the keepalive floor (lowest plan) in
+the active and wake sets and 0 in the sleep set, replacing the wrapper's
+votes. No consumer needs a qup-core path: keepalive gives SEs the same floor
+that geni's own GENI_DEFAULT_BW vote would, and it never reaches the sleep
+set, so an open console or BT UART does not hold CX.
+
+The DT node (compatible "qcom,sm8350-clk-virt", #interconnect-cells = <2>,
+qcom,bcm-voters) is added by the ROG5 overlay
+dts/qcom/sm8350-asus-rog-phone5-qup-icc.dtso, not in sm8350.dtsi, because
+the production base DTB is hash-pinned.
+
+diff -ru a/Documentation/devicetree/bindings/interconnect/qcom,rpmh.yaml b/Documentation/devicetree/bindings/interconnect/qcom,rpmh.yaml
+--- a/Documentation/devicetree/bindings/interconnect/qcom,rpmh.yaml	2026-09-26 22:30:07.651598848 +0200
++++ b/Documentation/devicetree/bindings/interconnect/qcom,rpmh.yaml	2026-09-26 22:30:27.287909270 +0200
+@@ -92,6 +92,7 @@
+       - qcom,sm8250-system-noc
+       - qcom,sm8350-aggre1-noc
+       - qcom,sm8350-aggre2-noc
++      - qcom,sm8350-clk-virt
+       - qcom,sm8350-config-noc
+       - qcom,sm8350-dc-noc
+       - qcom,sm8350-gem-noc
+@@ -118,6 +119,7 @@
+               - qcom,sc8180x-qup-virt
+               - qcom,sdx65-mc-virt
+               - qcom,sm8250-qup-virt
++              - qcom,sm8350-clk-virt
+     then:
+       required:
+         - reg
+diff -ru a/drivers/interconnect/qcom/sm8350.c b/drivers/interconnect/qcom/sm8350.c
+--- a/drivers/interconnect/qcom/sm8350.c	2026-09-26 22:30:07.636334850 +0200
++++ b/drivers/interconnect/qcom/sm8350.c	2026-09-26 22:30:27.288233965 +0200
+@@ -14,6 +14,12 @@
+ #include "icc-rpmh.h"
+ 
+ static struct qcom_icc_node qhm_qspi;
++static struct qcom_icc_node qup0_core_master;
++static struct qcom_icc_node qup1_core_master;
++static struct qcom_icc_node qup2_core_master;
++static struct qcom_icc_node qup0_core_slave;
++static struct qcom_icc_node qup1_core_slave;
++static struct qcom_icc_node qup2_core_slave;
+ static struct qcom_icc_node qhm_qup0;
+ static struct qcom_icc_node qhm_qup1;
+ static struct qcom_icc_node qhm_qup2;
+@@ -1087,6 +1093,48 @@
+ 	.buswidth = 8,
+ };
+ 
++static struct qcom_icc_node qup0_core_master = {
++	.name = "qup0_core_master",
++	.channels = 1,
++	.buswidth = 4,
++	.num_links = 1,
++	.link_nodes = { &qup0_core_slave },
++};
++
++static struct qcom_icc_node qup1_core_master = {
++	.name = "qup1_core_master",
++	.channels = 1,
++	.buswidth = 4,
++	.num_links = 1,
++	.link_nodes = { &qup1_core_slave },
++};
++
++static struct qcom_icc_node qup2_core_master = {
++	.name = "qup2_core_master",
++	.channels = 1,
++	.buswidth = 4,
++	.num_links = 1,
++	.link_nodes = { &qup2_core_slave },
++};
++
++static struct qcom_icc_node qup0_core_slave = {
++	.name = "qup0_core_slave",
++	.channels = 1,
++	.buswidth = 4,
++};
++
++static struct qcom_icc_node qup1_core_slave = {
++	.name = "qup1_core_slave",
++	.channels = 1,
++	.buswidth = 4,
++};
++
++static struct qcom_icc_node qup2_core_slave = {
++	.name = "qup2_core_slave",
++	.channels = 1,
++	.buswidth = 4,
++};
++
+ static struct qcom_icc_node qhs_llcc = {
+ 	.name = "qhs_llcc",
+ 	.channels = 1,
+@@ -1466,6 +1514,35 @@
+ 	.nodes = { &qnm_aggre1_noc },
+ };
+ 
++/*
++ * QUP core clock BCMs, as on sm8450. keepalive keeps the lowest clock plan in
++ * the active and wake sets for SEs that have no qup-core path; the sleep set
++ * is 0, so an idle QUP no longer holds CX.
++ */
++static struct qcom_icc_bcm bcm_qup0 = {
++	.name = "QUP0",
++	.keepalive = true,
++	.vote_scale = 1,
++	.num_nodes = 1,
++	.nodes = { &qup0_core_slave },
++};
++
++static struct qcom_icc_bcm bcm_qup1 = {
++	.name = "QUP1",
++	.keepalive = true,
++	.vote_scale = 1,
++	.num_nodes = 1,
++	.nodes = { &qup1_core_slave },
++};
++
++static struct qcom_icc_bcm bcm_qup2 = {
++	.name = "QUP2",
++	.keepalive = true,
++	.vote_scale = 1,
++	.num_nodes = 1,
++	.nodes = { &qup2_core_slave },
++};
++
+ static struct qcom_icc_bcm bcm_sn8 = {
+ 	.name = "SN8",
+ 	.keepalive = false,
+@@ -1533,6 +1610,28 @@
+ 	.num_bcms = ARRAY_SIZE(aggre2_noc_bcms),
+ };
+ 
++static struct qcom_icc_bcm * const clk_virt_bcms[] = {
++	&bcm_qup0,
++	&bcm_qup1,
++	&bcm_qup2,
++};
++
++static struct qcom_icc_node * const clk_virt_nodes[] = {
++	[MASTER_QUP_CORE_0] = &qup0_core_master,
++	[MASTER_QUP_CORE_1] = &qup1_core_master,
++	[MASTER_QUP_CORE_2] = &qup2_core_master,
++	[SLAVE_QUP_CORE_0] = &qup0_core_slave,
++	[SLAVE_QUP_CORE_1] = &qup1_core_slave,
++	[SLAVE_QUP_CORE_2] = &qup2_core_slave,
++};
++
++static const struct qcom_icc_desc sm8350_clk_virt = {
++	.nodes = clk_virt_nodes,
++	.num_nodes = ARRAY_SIZE(clk_virt_nodes),
++	.bcms = clk_virt_bcms,
++	.num_bcms = ARRAY_SIZE(clk_virt_bcms),
++};
++
+ static struct qcom_icc_bcm * const config_noc_bcms[] = {
+ 	&bcm_cn0,
+ 	&bcm_cn1,
+@@ -1778,6 +1877,7 @@
+ static const struct of_device_id qnoc_of_match[] = {
+ 	{ .compatible = "qcom,sm8350-aggre1-noc", .data = &sm8350_aggre1_noc},
+ 	{ .compatible = "qcom,sm8350-aggre2-noc", .data = &sm8350_aggre2_noc},
++	{ .compatible = "qcom,sm8350-clk-virt", .data = &sm8350_clk_virt},
+ 	{ .compatible = "qcom,sm8350-config-noc", .data = &sm8350_config_noc},
+ 	{ .compatible = "qcom,sm8350-dc-noc", .data = &sm8350_dc_noc},
+ 	{ .compatible = "qcom,sm8350-gem-noc", .data = &sm8350_gem_noc},
+diff -ru a/include/dt-bindings/interconnect/qcom,sm8350.h b/include/dt-bindings/interconnect/qcom,sm8350.h
+--- a/include/dt-bindings/interconnect/qcom,sm8350.h	2026-09-26 22:30:07.643184431 +0200
++++ b/include/dt-bindings/interconnect/qcom,sm8350.h	2026-09-26 22:30:27.287993231 +0200
+@@ -159,4 +159,11 @@
+ #define SLAVE_SNOC_GEM_NOC_SF		6
+ #define SLAVE_SERVICE_SNOC		7
+ 
++#define MASTER_QUP_CORE_0		0
++#define MASTER_QUP_CORE_1		1
++#define MASTER_QUP_CORE_2		2
++#define SLAVE_QUP_CORE_0		3
++#define SLAVE_QUP_CORE_1		4
++#define SLAVE_QUP_CORE_2		5
++
+ #endif

@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * QUP core clock BCMs (QUP0/1/2) under Linux control: needs kernel patch
+ * 0066 (qcom,sm8350-clk-virt in the sm8350 interconnect driver).
+ *
+ * Upstream sm8350 has no provider for these BCMs, so this kernel never writes
+ * them, and the votes the ASUS 5.4 wrapper left in the APPS DRV before kexec
+ * stay forever: rog5-rpmh-sleep-blockers read QUP0 = QUP1 = 0x207803c0 on
+ * r118 (x=480, y=960: the stock 19.2 MHz core-2x vote). A DRV vote the
+ * sleep TCS does not carry is also the sleep vote, so it holds CX.
+ * With this provider, sync_state commits keepalive (lowest plan) to the
+ * active/wake sets and 0 to the sleep set.
+ *
+ * Never compose this with a kernel lacking 0066: the node is counted as an
+ * interconnect provider, and a provider that never reaches sync_state keeps
+ * every interconnect node at its INT_MAX boot vote.
+ */
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	clk_virt: interconnect-clk-virt {
+		compatible = "qcom,sm8350-clk-virt";
+		#interconnect-cells = <2>;
+		qcom,bcm-voters = <&apps_bcm_voter>;
+	};
+};
