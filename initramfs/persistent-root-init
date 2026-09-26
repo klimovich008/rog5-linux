@@ -1788,12 +1788,24 @@ prepare_volatile_root_account() {
 	case $root_password in !*) ;; *) return 1 ;; esac
 	merged_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow") ||
 		return 1
+	user_password=0
 	case $merged_password in
 		"$root_password") sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1 ;;
 		x) [ "$expected_persistent_overlay_mode" -eq 1 ] || return 1 ;;
+		# A crypt hash the phone's user set (passwd/chpasswd) for the Denial
+		# lock screen and local console, kept only on the persistent overlay.
+		# SSH stays key-only: the volatile sshd policy adds UsePAM no.
+		'$'*)
+			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+			user_password=1
+			;;
 		*) return 1 ;;
 	esac
-	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
+	if [ "$user_password" -eq 1 ]; then
+		grep -Eq '^root:[$][^:]+:[0-9]*:([^:]*:){5}[^:]*$' "$shadow" || return 1
+	else
+		grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
+	fi
 	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
 		return 1
 	[ "$root_password_after" = "$root_password" ]

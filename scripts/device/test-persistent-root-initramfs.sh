@@ -208,6 +208,16 @@ grep -Fq 'sshd -T >"$sshd_effective_next"' "$attest" ||
 	expected_persistent_overlay_mode=1
 	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
 	grep -Fxq 'root:x:20610::::::' "$account_work/root/etc/shadow"
+	# A password the user set on the persistent overlay is kept as is.
+	printf '%s\n' 'root:$6$fixture$hash:20722:0:99999:7:::' >"$account_work/root/etc/shadow"
+	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
+	grep -Fxq 'root:$6$fixture$hash:20722:0:99999:7:::' "$account_work/root/etc/shadow"
+	# ... but never on a volatile root, and never an unknown form.
+	expected_persistent_overlay_mode=0
+	! prepare_volatile_root_account "$account_work/root" "$account_work/lower"
+	expected_persistent_overlay_mode=1
+	printf '%s\n' 'root::20722:0:99999:7:::' >"$account_work/root/etc/shadow"
+	! prepare_volatile_root_account "$account_work/root" "$account_work/lower"
 )
 (
 	policy_work=$(mktemp -d)
