@@ -968,7 +968,11 @@ V11 is a headless volatile root.
 - **r101 install:** the first try stopped at inspection with `write scope is sda sda23 sdh`, the hub's card reader.
   - The installer now leaves USB disks out of the UFS write scope (13 tests pass).
   - The install then passed, but the first boot ended in the ASUS bootloader. The phone was the hub's USB host at boot.
-  - The slot-B wrapper (`recovery-init`, persistent loader mode) requires exactly 117 physical block nodes. A USB disk makes 118, which leads to `force_rollback` and a reboot into the bootloader.
-  - `fastboot reboot` then ran the fallback safe-r2, as designed after an uncommitted try.
-  - Until the wrapper leaves USB disks out of its count (prepared offline; a boot_b flash needs approval), don't reboot with USB storage on the side port.
+  - Cause: not the slot-B wrapper. The r101 record was left `pending`, which only the loader's decision writes, after the wrapper and loader checks passed.
+    - The 7.2.7 production ramdisk starts pmic_glink/UCSI and the ADSP. Since 0058, the side port then turns host, and the hub's card reader (USB_STORAGE=y) appears as an extra sd disk.
+    - The init's `wait_for_ufs_discovery` needs a stable 117 physical nodes. It timed out, then `force_rollback` rebooted into the bootloader.
+    - `fastboot reboot` then ran the fallback safe-r2, as designed after an uncommitted try.
+  - Fix: the production ramdisk's exact-117 checks skip USB disks. It goes through a RAM trial and install; no flash.
+    - The same skip for the boot_b wrapper is built but not flashed: `slotb-wrapper-usbdisk-r1`, flash candidate `f1069935…`, reproduces the installed `dcc487f1` from old sources. It only matters for a disk on the bottom port, which 5.4 can host through the RT1715.
+  - Until the fix is installed, don't reboot with USB storage on the side port.
 - **Default:** production-7.2.7-r102 is r101's content with a new descriptor. It was installed with the Deck as USB host; two reboots each committed healthy (62 s and 59 s to SSH). The fallback is still safe-r2.
