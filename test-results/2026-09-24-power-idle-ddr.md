@@ -950,3 +950,25 @@ V11 is a headless volatile root.
   - RAM trial: `running`, 16/16 hwcheck blocks pass.
   - `install-default-kernel.py --stage`, then two reboots, each committed
     healthy.
+
+### r99-r102: side-port USB host, audio seek fix; default r102 (2026-09-26)
+
+- **Kernel r24-r26:**
+  - 0055: the dwc3 drd gates the pull-up on the role for the legacy glue.
+  - 0057: q6asm resets the queue pointer and DSP buffer index on prepare. Playback no longer freezes after a seek.
+  - 0058: UCSI re-fetches the role switch and retries.
+  - USB Ethernet modules added: cdc_ether, cdc_ncm, r8152, ax88179_178a.
+  - DTB `platform-usbotg-dtb-r1`: a usb-c connector under pmic-glink; usb_1 is OTG with a role switch, defaulting to peripheral.
+- **Side-port host mode:** since 0058, UCSI switches usb_1 to host by itself when a hub is attached.
+  - After a gadget session, every device then failed at full speed: `device descriptor read/64, error -71`.
+  - A dwc3 unbind/bind plus a switch to host fixed it: the hub (4 ports) and its card reader came up at high speed.
+  - `rog5-usb-reconnect` now also runs on usb_role changes. In host mode it waits 4 s. If nothing enumerated, it re-initialises once (at most every 30 s) and restores host. It never re-initialises the gadget while in host mode.
+  - Verified on two real replugs: -71, then re-init, then the hub and card reader at high speed.
+- **The bottom port (usb_2)** is still disabled. It needs the RT1715 Type-C controller and an OTG VBUS regulator (drafted, not built).
+- **r101 install:** the first try stopped at inspection with `write scope is sda sda23 sdh`, the hub's card reader.
+  - The installer now leaves USB disks out of the UFS write scope (13 tests pass).
+  - The install then passed, but the first boot ended in the ASUS bootloader. The phone was the hub's USB host at boot.
+  - The slot-B wrapper (`recovery-init`, persistent loader mode) requires exactly 117 physical block nodes. A USB disk makes 118, which leads to `force_rollback` and a reboot into the bootloader.
+  - `fastboot reboot` then ran the fallback safe-r2, as designed after an uncommitted try.
+  - Until the wrapper leaves USB disks out of its count (prepared offline; a boot_b flash needs approval), don't reboot with USB storage on the side port.
+- **Default:** production-7.2.7-r102 is r101's content with a new descriptor. It was installed with the Deck as USB host; two reboots each committed healthy (62 s and 59 s to SSH). The fallback is still safe-r2.
