@@ -174,26 +174,60 @@ compositor (`deniald`); 0006 changes both.
   were only flushed with unrelated client traffic, 1.3-2.8 s later. They are
   now flushed right after the commands are applied (about 30 ms).
 
+- `0011-boot-animation-until-first-flutter-frame.patch` (compositor): ends
+  the coloured noise at boot and replaces it with a boot animation.
+  - The cause: startup's first modeset committed a placeholder scanout
+    buffer, a UBWC pool buffer that had only been GL-cleared, which Flutter
+    had not drawn. It stayed on the panel until Flutter's first frame, 2-5 s
+    on a cold boot, and the user saw it as full-screen coloured stripes.
+  - What changed: startup no longer commits that buffer (`startup.rs`). The
+    scheduler instead makes Flutter's first rendered frame perform the
+    initial modeset through the DPMS-wake path
+    (`OutputScheduler::defer_initial_modeset`).
+  - The animation (`boot_animation.rs`): until Flutter's frame is ready,
+    deniald draws a boot animation on the CPU. It uses two linear XRGB8888
+    dumb buffers of its own, so no GPU or Flutter work is involved. It is an
+    accent-coloured ring (the persisted portal accent, or Denial's default)
+    with a comet arc sweeping round once every 1.1 s, fading in over 0.4 s
+    on black. It uses the panel's 60 Hz, and drawing costs well under 1 ms.
+    The first scanout is already a rendered animation frame (a blocking
+    modeset commit); later frames are page flips.
+  - Handover: when Flutter's first frame is ready, the animation stops
+    flipping. The wake commit waits for the animation's last flip
+    (`RuntimeState::boot_animation_crtcs`), then Flutter's frame is committed
+    (a clean cut), and the dumb buffers are freed.
+  - Timing: each run logs "boot animation performed the initial modeset"
+    (setup) and "boot animation handed over to Flutter's first frame
+    duration_ms=... frames=...".
+  - If Flutter never produces a frame, the animation keeps running and
+    logs a warning after 20 s. On any error it stops and Flutter's first
+    frame performs the modeset; nothing unrendered is ever scanned out.
+  - `DENIAL_BOOT_ANIMATION_MIN_MS=N` (a test hook, at most 10000) holds the
+    animation at least N ms. Leave it unset in production.
+  - DPMS power-on was already safe and is unchanged. The wake commit only
+    takes a frame Flutter rendered after the wake request, and only once
+    its fence has signalled.
+
 The patches are unified diffs against upstream 85b2303e. Apply them in order
 with `patch -p1` from the source root: 0001, 0004, 0005, 0006, 0007, 0008,
-0009, 0010 (0002/0003 are withdrawn and do not combine with 0006). The build
+0009, 0010, 0011 (0002/0003 are withdrawn and do not combine with 0006). The build
 trees are exactly upstream + 0001 + 0004 + 0005 + 0006 + 0007 (Dart,
 `engine-build-r1/denial/dart_shell/lib`; the base without 0006 is kept at
 `engine-build-r1/dart_shell-lib.base-0001-0004`) and upstream + 0005 + 0006 +
-0008 + 0009 + 0010 (`cargo-arm64-power-r1/source/compositor`).
+0008 + 0009 + 0010 + 0011 (`cargo-arm64-power-r1/source/compositor`).
 
 ## Deployed state (2026-09-26, after 0007-0010)
 
 | file | content | sha256 | backup on the phone |
 | --- | --- | --- | --- |
-| `/opt/denial/deniald` | upstream + 0005 + 0006 + 0008 + 0009 + 0010 (compositor), build `p10` | `51959007...` | `/opt/denial/deniald.0005-0006` (`644c98c8...`), `/opt/denial/deniald.upstream` (`8698b071...`) |
+| `/opt/denial/deniald` | upstream + 0005 + 0006 + 0008 + 0009 + 0010 + 0011 (compositor), build `p13` | `252e22ee...` | `/opt/denial/deniald.0005-0006` (`644c98c8...`), `/opt/denial/deniald.upstream` (`8698b071...`); p10 without 0011: `artifacts/deniald-p10` (`51959007...`) |
 | `/opt/denial/lib/libapp.so` | upstream + 0001 + 0004 + 0006 + 0007 (Dart), `assembly-r9` | `c65bb6fa...` | `/opt/denial/lib/libapp.so.0001-0004-0006` (`1064f485...`), `/opt/denial/lib/libapp.so.0001-0004` (`c6f72921...`) |
 
 To go back to the 0005/0006 state: stop `rog5-denial`, copy the two
 `.0005-0006`/`.0001-0004-0006` backups over the live files, and start it.
 
 Local copies: `~/.local/state/rog5-denial-20260910-r1/cargo-arm64-power-r1/artifacts/`
-(`deniald-p10`, `libapp-r9.so`; before 0007-0010: `deniald-p4`, `libapp-r6.so`). `DENIAL_POWER_KEY_LOCK` is not set, so the
+(`deniald-p13`, `libapp-r9.so`; before 0011: `deniald-p10`; before 0007-0010: `deniald-p4`, `libapp-r6.so`). `DENIAL_POWER_KEY_LOCK` is not set, so the
 power key only toggles the display. To lock as well once root has a
 password, add `DENIAL_POWER_KEY_LOCK=1` to the unit's `Environment=`.
 
@@ -227,6 +261,23 @@ screenshots under the session scratchpad, `ufx/shots/`):
   432x243 is centred, not stretched.
 - A swipe up from the pill (y 952 of 979) still goes home with an app in
   front.
+Boot animation (0011, verified on production-7.2.7-r113 by restarting
+`rog5-denial`, 2026-09-26):
+- Warm restart: setup took 3-5 ms, or about 105 ms when the modeset has to
+  power the panel back on. The handover to Flutter's first frame came after
+  39-220 ms and 2-7 animation frames. The journal then shows "submitted fresh
+  KMS frame to power on output framebuffer_index=1".
+- With `DENIAL_BOOT_ANIMATION_MIN_MS=4000`/`5000` (a runtime drop-in in
+  `/run`, removed afterwards), the animation ran 4006 ms / 239 frames and
+  5012 ms / 299 frames, about 60 fps. The scanout captures show the ring on
+  black: a linear dumb buffer, modifier 0. After the handover they show the
+  Flutter UI (UBWC pool buffer).
+- DPMS power key off/on: the wake commit used Flutter's fresh frame
+  (`framebuffer_index=0`) and the UI came straight back.
+- Not yet measured: a real cold boot, which could not be done here without
+  a reboot. On the next boot, check the "boot animation handed over ...
+  duration_ms" line.
+
 Not verified: Text Editor typing (key events reach it, but no text appeared
 in the restored draft in this run, with or without the OSK). Known and
 older than this change: the right-hand keyboard edge-swipe target (the
