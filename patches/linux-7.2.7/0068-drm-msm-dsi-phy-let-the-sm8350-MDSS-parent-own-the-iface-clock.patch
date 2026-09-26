@@ -1,0 +1,84 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dsi: phy: let the sm8350 MDSS parent own the iface clock
+
+The DSI PHY adds its "iface" clock (disp_cc_mdss_ahb_clk) with pm_clk.
+pm_clk_add() prepares a clock that has an enable op and keeps it prepared
+until the device is removed; pm_clk_suspend() only disables it. A prepared
+dispcc clock holds dispcc runtime-active through the CCF provider runtime PM,
+so the dispcc power domain MMCX stays on at its enable corner, and the prepare
+chain keeps bi_tcxo (the non-AO RPMh XO vote, which covers the sleep set)
+prepared, all with the display off.
+
+Evidence on r121 (kernel r36), screen off since Denial's DPMS off at 111 s,
+read from per-clock debugfs files (clk_summary is not usable for this: it
+runtime-resumes every clock provider, including the DSI PHY PLL and so its
+MDSS parent, and shows the MDSS clocks enabled while it prints):
+  disp_cc_mdss_ahb_clk  enable 0  prepare 1
+  disp_cc_mdss_mdp_clk, gcc_disp_hf/sf_axi_clk, disp_cc_pll1  0/0
+  ae00000.display-subsystem, ae94400.phy: suspended; mdss_gdsc off
+  af00000.clock-controller (dispcc): active; genpd mmcx: on
+The one remaining prepare is the PHY's pm_clk entry (PCE_STATUS_PREPARED).
+A clk trace of the MDSS clocks shows mdss_runtime_resume/suspend enabling
+and disabling them symmetrically; there is no MDSS enable leak.
+
+The PHY is a child of the MDSS node, the MDSS lists "iface" and enables it in
+mdss_runtime_resume(), and runtime PM keeps the parent active whenever the PHY
+is (including when the CCF resumes the PHY for its PLL clock ops). So on
+sm8350 the PHY's own reference is redundant. Skip the pm_clk entry there; the
+runtime PM ops then have no clock list and only propagate to the parent.
+
+Replacing pm_clk with clk_prepare_enable()/clk_disable_unprepare() in the
+PHY's runtime PM callbacks would release the prepare too, but unprepare takes
+the CCF prepare_lock from the runtime-PM worker while a prepare_lock holder
+can be waiting in rpm_resume() for that same PHY: an ABBA deadlock.
+
+--- a/drivers/gpu/drm/msm/dsi/phy/dsi_phy.c
++++ b/drivers/gpu/drm/msm/dsi/phy/dsi_phy.c
+@@ -610,6 +610,14 @@
+ 	return -EINVAL;
+ }
+ 
++static bool dsi_phy_parent_provides_iface(struct device *dev)
++{
++	struct device_node *np = dev->parent ? dev->parent->of_node : NULL;
++
++	return np && of_device_is_compatible(np, "qcom,sm8350-mdss") &&
++	       of_property_match_string(np, "clock-names", "iface") >= 0;
++}
++
+ static int dsi_phy_driver_probe(struct platform_device *pdev)
+ {
+ 	struct msm_dsi_phy *phy;
+@@ -687,13 +695,26 @@
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = devm_pm_clk_create(dev);
+-	if (ret)
+-		return ret;
++	/*
++	 * pm_clk keeps a clock that has an enable op prepared from pm_clk_add()
++	 * until the device goes away; runtime suspend only disables it. For the
++	 * dispcc "iface" (MDSS AHB) clock that prepare holds dispcc
++	 * runtime-active (so MMCX stays voted, in the RPMh sleep set too) and
++	 * keeps bi_tcxo, the RPMh XO vote, prepared with the display off.
++	 *
++	 * When the parent MDSS lists "iface" it already enables that clock in
++	 * its runtime resume, and runtime PM keeps the parent active whenever
++	 * this PHY is, so the PHY does not need its own reference.
++	 */
++	if (!dsi_phy_parent_provides_iface(dev)) {
++		ret = devm_pm_clk_create(dev);
++		if (ret)
++			return ret;
+ 
+-	ret = pm_clk_add(dev, "iface");
+-	if (ret < 0)
+-		return dev_err_probe(dev, ret, "Unable to get iface clk\n");
++		ret = pm_clk_add(dev, "iface");
++		if (ret < 0)
++			return dev_err_probe(dev, ret, "Unable to get iface clk\n");
++	}
+ 
+ 	if (phy->cfg->ops.pll_init) {
+ 		ret = phy->cfg->ops.pll_init(phy);
