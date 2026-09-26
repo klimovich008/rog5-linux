@@ -1,0 +1,245 @@
+--- a/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/service_bridge.rs
+@@ -299,6 +299,17 @@
+             content_purpose,
+         )?;
+         engine.send_platform_message(wire::TO_FLUTTER_CHANNEL, update)?;
++        let previous = self
++            .published_text_input_state
++            .map(|(active, visible, legacy, ..)| (active, visible, legacy));
++        if previous != Some((active, input_panel_visible, legacy)) {
++            tracing::info!(
++                active,
++                input_panel_visible,
++                legacy,
++                "published software-keyboard state"
++            );
++        }
+         self.published_text_input_state = Some(state);
+         Ok(())
+     }
+--- a/compositor/src/bin/deniald/wayland_frontend/input/flutter_route.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/input/flutter_route.rs
+@@ -606,6 +606,12 @@
+             event: touch_event, ..
+         } => {
+             let slot = i32::from(touch_event.slot());
++            state
++                .wayland
++                .as_mut()
++                .expect("missing Wayland frontend")
++                .text_input
++                .note_touch_released();
+             let native_routed = state.native_app_plugins.as_mut().map(|manager| {
+                 manager.touch_up(slot, touch_event.time_usec().saturating_mul(1_000))
+             });
+--- a/compositor/src/bin/deniald/wayland_frontend/text_input.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/text_input.rs
+@@ -32,7 +32,12 @@
+ const MAX_TEXT_INPUTS: usize = 1024;
+ const MAX_TEXT_INPUTS_PER_CLIENT: usize = 16;
+ const MAX_SURROUNDING_TEXT_BYTES: usize = 4000;
+-const TOUCH_AUTHORIZATION_WINDOW: Duration = Duration::from_millis(250);
++/// How long after a touch is lifted an editor may still claim it.
++///
++/// Editors usually move focus or the caret on release, and a Flutter or
++/// Wayland round trip follows, so the window is measured from the touch-up
++/// (see [`TextInputManager::note_touch_released`]), not from touch-down.
++const TOUCH_AUTHORIZATION_WINDOW: Duration = Duration::from_millis(350);
+ 
+ #[cfg(feature = "flutter")]
+ fn finite_i32(value: f64) -> i32 {
+@@ -290,23 +295,24 @@
+             if instance.input_panel_visible_hint != Some(visible) {
+                 instance.input_panel_visible_hint = Some(visible);
+             }
+-            let touch_authorized = instance
+-                .touch_authorization_deadline
+-                .is_some_and(|deadline| Instant::now() <= deadline);
+-            if visible && touch_authorized {
++            // An explicit show request is the editor asking for the keyboard,
++            // exactly like gaining focus; it needs no touch authorization.
++            if visible {
+                 instance.touch_dismissed = false;
+-            } else if !visible {
++            } else {
+                 instance.touch_authorization_deadline = None;
+                 instance.touch_dismissed = true;
+             }
+         }
+     }
+ 
+-    /// Start a short-lived authorization transaction for a client touch.
++    /// Start a short-lived authorization transaction for a touch.
+     ///
+-    /// The client gets the touch immediately afterward. An editor must commit
+-    /// fresh state before the authorization expires. Programmatic focus and
+-    /// delayed lifecycle updates therefore cannot open the software keyboard.
++    /// Any touch outside the software keyboard dismisses it. The client gets
++    /// the touch immediately afterward; an already focused editor that
++    /// commits fresh editing state (text, caret or content type) within the
++    /// window after the touch is lifted reopens the keyboard. Focus changes
++    /// (enable) and explicit show requests open it without a touch.
+     fn begin_touch_authorization(&mut self) -> bool {
+         let deadline = Instant::now() + TOUCH_AUTHORIZATION_WINDOW;
+         let active = self.active.clone();
+@@ -325,6 +331,15 @@
+         has_protocol_endpoint
+     }
+ 
++    /// Restart pending authorizations when a touch is lifted.
++    fn extend_touch_authorization(&mut self, deadline: Instant) {
++        for instance in &mut self.instances {
++            if instance.touch_authorization_deadline.is_some() {
++                instance.touch_authorization_deadline = Some(deadline);
++            }
++        }
++    }
++
+     fn consume_touch_authorization(instance: &mut Instance<I, C>) -> bool {
+         instance
+             .touch_authorization_deadline
+@@ -346,11 +361,14 @@
+         }
+ 
+         let pending = mem::take(&mut self.instances[index].pending);
+-        let touch_authorized = Self::consume_touch_authorization(&mut self.instances[index]);
++        // A caret-rectangle-only update is routine redraw traffic (terminals
++        // send one whenever their cursor moves), not the user engaging the
++        // editor, so it neither claims nor spends a touch authorization.
+         let editor_engaged = pending.enabled == Some(true)
+             || pending.surrounding.is_some()
+-            || pending.content_type.is_some()
+-            || pending.cursor_rectangle.is_some();
++            || pending.content_type.is_some();
++        let touch_authorized =
++            editor_engaged && Self::consume_touch_authorization(&mut self.instances[index]);
+         match pending.enabled {
+             Some(true) => {
+                 if self.active.as_ref().is_some_and(|active| active != id) {
+@@ -359,7 +377,8 @@
+                 self.active = Some(id.clone());
+                 self.instances[index].current = EditorState::default();
+                 Self::apply_pending(&mut self.instances[index], pending);
+-                self.instances[index].touch_dismissed = !touch_authorized;
++                // An editor gaining focus opens the software keyboard.
++                self.instances[index].touch_dismissed = false;
+                 CommitEffect::Activated
+             }
+             Some(false) => {
+@@ -496,6 +515,12 @@
+             Some(Instant::now() + TOUCH_AUTHORIZATION_WINDOW);
+     }
+ 
++    fn extend_touch_authorization(&mut self, deadline: Instant) {
++        if self.flutter_touch_authorization_deadline.is_some() {
++            self.flutter_touch_authorization_deadline = Some(deadline);
++        }
++    }
++
+     fn retire_flutter_generation(&mut self) {
+         self.flutter = None;
+         self.flutter_panel_authorized = false;
+@@ -517,9 +542,23 @@
+             self.flutter_touch_authorization_deadline = None;
+         }
+         if snapshot.active && snapshot.input_panel_visible {
+-            if self.flutter_touch_authorization_deadline.take().is_some() {
++            // A shell editor that gains focus, or asks for the panel again,
++            // opens the keyboard even without a recent touch (autofocus,
++            // field-to-field moves, a slow tap). A touch still authorizes a
++            // re-show of the same editor.
++            let newly_shown = self.flutter.as_ref().is_none_or(|current| {
++                !current.active
++                    || !current.input_panel_visible
++                    || current.generation != generation
++                    || current.client_id != snapshot.client_id
++                    || current.lifecycle != snapshot.lifecycle_revision
++            });
++            let touched = self.flutter_touch_authorization_deadline.take().is_some();
++            if newly_shown || touched {
++                if !self.flutter_panel_authorized {
++                    self.activation_serial = self.activation_serial.wrapping_add(1);
++                }
+                 self.flutter_panel_authorized = true;
+-                self.activation_serial = self.activation_serial.wrapping_add(1);
+             }
+         } else {
+             self.flutter_panel_authorized = false;
+@@ -686,6 +725,14 @@
+         self.broker.note_flutter_touch();
+     }
+ 
++    /// Restart the editor claim window when any touch is lifted, so a long
++    /// press or a slow client cannot miss it.
++    pub(super) fn note_touch_released(&mut self) {
++        let deadline = Instant::now() + TOUCH_AUTHORIZATION_WINDOW;
++        self.sessions.extend_touch_authorization(deadline);
++        self.broker.extend_touch_authorization(deadline);
++    }
++
+     pub(super) fn software_keyboard_state(&self) -> SoftwareKeyboardState {
+         if self.broker.shell_capture {
+             return self.flutter_software_keyboard_state();
+--- a/dart_shell/lib/src/widgets/edge_panel_layer.dart
++++ b/dart_shell/lib/src/widgets/edge_panel_layer.dart
+@@ -1,3 +1,4 @@
++import 'package:flutter/gestures.dart' show kTouchSlop;
+ import 'package:flutter/widgets.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+@@ -74,6 +75,30 @@
+ class _EdgePanelLayerState extends ConsumerState<EdgePanelLayer>
+     with SingleTickerProviderStateMixin {
+   late final AnimationController _controller;
++  int? _outsidePointer;
++  Offset _outsideDownPosition = Offset.zero;
++
++  /// A tap (not a drag or a scroll) on the shell outside the keyboard sheet
++  /// and its viewport strip closes the keyboard, with or without a focused
++  /// editor. The region joins [EditableText]'s tap group, so a tap on a shell
++  /// text field keeps it open. Touches on application surfaces never reach
++  /// Flutter; the compositor dismisses the keyboard for those.
++  void _handleTapDownOutside(PointerDownEvent event) {
++    _outsidePointer = event.pointer;
++    _outsideDownPosition = event.position;
++  }
++
++  void _handleTapUpOutside(PointerUpEvent event) {
++    final pointer = _outsidePointer;
++    _outsidePointer = null;
++    if (pointer != event.pointer ||
++        (event.position - _outsideDownPosition).distance > kTouchSlop) {
++      return;
++    }
++    if (ref.read(shellControllerProvider).edgePanelVisible) {
++      ref.read(shellControllerProvider.notifier).closeEdgePanel();
++    }
++  }
+ 
+   @override
+   void initState() {
+@@ -131,12 +156,17 @@
+               if (progress <= 0.001) {
+                 return const SizedBox.expand();
+               }
+-              return Stack(
+-                fit: StackFit.expand,
+-                children: [
+-                  _EdgePanelScrollStrip(progress: progress),
+-                  _EdgePanelSheet(progress: progress),
+-                ],
++              return TextFieldTapRegion(
++                debugLabel: 'software keyboard',
++                onTapOutside: _handleTapDownOutside,
++                onTapUpOutside: _handleTapUpOutside,
++                child: Stack(
++                  fit: StackFit.expand,
++                  children: [
++                    _EdgePanelScrollStrip(progress: progress),
++                    _EdgePanelSheet(progress: progress),
++                  ],
++                ),
+               );
+             },
+           ),

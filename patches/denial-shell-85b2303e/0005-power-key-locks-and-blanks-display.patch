@@ -1,0 +1,123 @@
+--- a/compositor/src/bin/deniald.rs
++++ b/compositor/src/bin/deniald.rs
+@@ -181,7 +181,7 @@
+ #[cfg(feature = "flutter")]
+ use dpms::{
+     apply_output_power_requests, collect_output_power_requests, synchronize_idle_dpms,
+-    synchronize_idle_dpms_configuration, synchronize_requested_dpms_off,
++    synchronize_idle_dpms_configuration, synchronize_power_key, synchronize_requested_dpms_off,
+ };
+ #[cfg(feature = "flutter")]
+ use flutter_event_loop::{FlutterEventLoopContext, run_flutter_event_loop};
+--- a/compositor/src/bin/deniald/dpms.rs
++++ b/compositor/src/bin/deniald/dpms.rs
+@@ -206,6 +206,42 @@
+     info!("requested immediate compositor-owned display power-off");
+ }
+ 
++/// Applies a queued physical power-key press at the DPMS boundary.
++///
++/// With any output lit, the press locks the session and blanks every output
++/// through the same compositor-owned path as the shell's screen-off request.
++/// With every output already off, it counts as user activity, which wakes the
++/// outputs the idle policy blanked. The session stays locked, so the wake
++/// shows the lock screen.
++#[cfg(feature = "flutter")]
++pub(super) fn synchronize_power_key(scanouts: &[Scanout], events: &mut RuntimeState) {
++    if !std::mem::take(&mut events.power_key_pending) {
++        return;
++    }
++    if !scanouts.iter().any(|scanout| scanout.powered) {
++        events.note_user_activity();
++        info!("power key woke the displays");
++        return;
++    }
++    let locked = if let Some(authentication) = events.authentication.as_ref() {
++        authentication.lock();
++        true
++    } else {
++        warn!("power key could not lock the session: authentication is unavailable");
++        false
++    };
++    let requests = events.idle_policy.blank_now(
++        scanouts
++            .iter()
++            .map(|scanout| (scanout.output.id, scanout.powered)),
++    );
++    events.queue_idle_power_requests(requests);
++    info!(
++        locked,
++        "power key requested immediate compositor-owned display power-off"
++    );
++}
++
+ #[cfg(feature = "flutter")]
+ pub(super) fn apply_output_power_requests(
+     runtime: &mut flutter_runtime::FlutterRuntime,
+--- a/compositor/src/bin/deniald/flutter_event_loop.rs
++++ b/compositor/src/bin/deniald/flutter_event_loop.rs
+@@ -686,6 +686,9 @@
+         if background_maintenance_due {
+             synchronize_idle_dpms(scanouts, &mut events, background_started);
+         }
++        // The power key is not throttled by the service cadence: its
++        // power-off is queued and applied in this same iteration.
++        synchronize_power_key(scanouts, &mut events);
+         // The synchronous VT-resume commit invalidated the old scheduler's
+         // per-output buffer ownership. Preserve requests until the topology
+         // path below recreates that scheduler.
+--- a/compositor/src/bin/deniald/runtime_state.rs
++++ b/compositor/src/bin/deniald/runtime_state.rs
+@@ -119,6 +119,9 @@
+     pub(super) pending_ui_development: VecDeque<PendingUiDevelopment>,
+     #[cfg(feature = "flutter")]
+     pub(super) idle_policy: idle_policy::IdlePolicy,
++    /// A physical power-key press waiting for the event loop's DPMS boundary.
++    #[cfg(feature = "flutter")]
++    pub(super) power_key_pending: bool,
+ }
+ 
+ #[cfg(feature = "flutter")]
+--- a/compositor/src/bin/deniald/wayland_frontend/input.rs
++++ b/compositor/src/bin/deniald/wayland_frontend/input.rs
+@@ -1279,6 +1279,9 @@
+         event: key_event, ..
+     } = &event
+     {
++        if intercept_power_key(state, key_event.key_code(), key_event.state()) {
++            return false;
++        }
+         return process_keyboard_transition(
+             state,
+             key_event.key_code(),
+@@ -1771,6 +1774,30 @@
+     true
+ }
+ 
++/// Linux evdev `KEY_POWER`, emitted by the PMIC power button (`pmic_pwrkey`).
++#[cfg(feature = "flutter")]
++const EVDEV_KEY_POWER: u32 = 116;
++
++/// Claims the physical power key for the compositor, like a phone's.
++///
++/// A press is queued for the event loop, which either locks the session and
++/// blanks every output or, when the outputs are already off, wakes them to
++/// the lock screen. Press and release are both consumed before activity is
++/// noted, so neither the shell nor a client ever sees `KEY_POWER`, and the
++/// release cannot undo the power-off. logind keeps its own reading of the
++/// device (`HandlePowerKey=ignore`, long-press power-off).
++#[cfg(feature = "flutter")]
++fn intercept_power_key(state: &mut RuntimeState, keycode: Keycode, key_state: KeyState) -> bool {
++    // Smithay/XKB keycodes carry the conventional eight-code offset.
++    if keycode.raw().checked_sub(8) != Some(EVDEV_KEY_POWER) {
++        return false;
++    }
++    if key_state == KeyState::Pressed {
++        state.power_key_pending = true;
++    }
++    true
++}
++
+ fn intercept_native_escape(
+     state: &mut RuntimeState,
+     xkb_keycode: u32,
