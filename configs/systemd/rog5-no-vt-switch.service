@@ -1,0 +1,19 @@
+# Bridge until a kernel with patch 0069 (drm/msm/kms: suspend without the PM
+# console VT switch) is the default: load the same fix as a module built for
+# the running kernel. Without it every suspend switched VTs, which paused the
+# seat session (Denial lost its input devices, phoc re-created DSI-1 and phosh
+# crashed). Loading it on a kernel that has 0069 is harmless.
+[Unit]
+Description=ROG5 suspend without the PM console VT switch (module bridge)
+DefaultDependencies=no
+After=systemd-modules-load.service
+Before=sysinit.target rog5-phosh.service rog5-denial.service
+ConditionPathExists=/usr/local/lib/rog5/modules/%v/rog5_no_vt_switch.ko
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'grep -q "^rog5_no_vt_switch " /proc/modules || insmod /usr/local/lib/rog5/modules/%v/rog5_no_vt_switch.ko'
+
+[Install]
+WantedBy=sysinit.target

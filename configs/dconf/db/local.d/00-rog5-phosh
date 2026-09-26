@@ -1,0 +1,30 @@
+# ROG5 Phosh defaults. The "phone" account has a numeric PIN (set by the
+# user 2026-09-27; SSH stays key-only), so Phosh locks as designed: on blank
+# and on suspend (phosh always locks on logind PrepareForSleep).
+[org/gnome/desktop/screensaver]
+lock-enabled=true
+lock-delay=uint32 0
+
+[org/gnome/desktop/session]
+idle-delay=uint32 60
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+
+[sm/puri/phosh]
+favorites=['org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']
+
+# rog5-sleep-policy owns suspend (battery only, never on USB power).
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-battery-type='nothing'
+sleep-inactive-ac-type='nothing'
+
+# No wallpaper package is installed (the GNOME default adwaita-d.jxl is
+# missing), so phosh fell back to the default blue after a rotation. Solid
+# black also costs the OLED nothing.
+[org/gnome/desktop/background]
+picture-options='none'
+picture-uri=''
+picture-uri-dark=''
+primary-color='#000000'
+color-shading-type='solid'

@@ -1,0 +1,152 @@
+#!/bin/sh
+# ROG5 standby policy: suspend on battery when the screen has been off for a
+# while; stay awake on external power (server mode).
+#
+# rog5-server-inhibit keeps logind from sleeping at all, which is right on
+# USB power. On battery this daemon decides instead:
+#   - USB power online, screen on, /run/rog5-stay-awake present, or an SSH
+#     session open (unless ROG5_SLEEP_SSH_BLOCKS=0): stay awake;
+#   - otherwise, after ROG5_SLEEP_IDLE seconds (default 60) with the screen
+#     off, suspend (the server inhibitor is overridden deliberately).
+# After every wake the phone stays up at least ROG5_SLEEP_AWAKE seconds
+# (default 15) so network and timers get a window, then suspends again if
+# nothing changed. Plugging USB in keeps it awake. The power key (a PMIC
+# wakeup source) wakes the phone, but Denial re-activates its seat session on
+# resume and drops key events that arrive meanwhile, so when the power key
+# was the wake reason this daemon replays one KEY_POWER press through uinput
+# (only while the display is still off, so it can never switch it back off).
+# Suspend uses s2idle: a power-key wake from PSCI deep suspend warm-reset the
+# phone (2026-09-27).
+#
+#   rog5-sleep-policy          run the loop (rog5-sleep-policy.service)
+#   rog5-sleep-policy --once   evaluate once and print the decision (tests)
+set -u
+idle_s=${ROG5_SLEEP_IDLE:-60}
+awake_s=${ROG5_SLEEP_AWAKE:-15}
+poll_s=${ROG5_SLEEP_POLL:-5}
+usb=${ROG5_SLEEP_USB:-/sys/class/power_supply/qcom-battmgr-usb/online}
+dpms=${ROG5_SLEEP_DPMS:-/sys/class/drm/card1-DSI-1/dpms}
+stay=${ROG5_SLEEP_STAY:-/run/rog5-stay-awake}
+ssh_blocks=${ROG5_SLEEP_SSH_BLOCKS:-1}
+suspend_cmd=${ROG5_SLEEP_SUSPEND_CMD:-systemctl suspend --check-inhibitors=no}
+state=${ROG5_SLEEP_STATE:-/run/rog5-sleep-policy}
+mem_sleep=${ROG5_SLEEP_MEM_SLEEP:-/sys/power/mem_sleep}
+kmsg=${ROG5_SLEEP_KMSG:-/dev/kmsg}
+stats=${ROG5_SLEEP_STATS:-/sys/power/suspend_stats}
+wake_irq=${ROG5_SLEEP_WAKE_IRQ:-/sys/power/pm_wakeup_irq}
+
+log() { printf 'rog5-sleep-policy: %s\n' "$*" >"$kmsg" 2>/dev/null || true; }
+now() { cut -d. -f1 /proc/uptime; }
+
+# Prints why the phone must stay awake, or nothing.
+awake_reason() {
+	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return; }
+	[ "$(cat "$dpms" 2>/dev/null)" = Off ] || { echo screen-on; return; }
+	[ -e "$stay" ] && { echo stay-awake-file; return; }
+	if [ "$ssh_blocks" = 1 ] &&
+		[ -n "$(ss -Htn state established '( sport = :22 )' 2>/dev/null)" ]; then
+		echo ssh-session; return
+	fi
+}
+
+# Number of finished suspend attempts (successful or failed).
+attempts() { echo $(( $(cat "$stats/success" 2>/dev/null || echo 0) + $(cat "$stats/fail" 2>/dev/null || echo 0) )); }
+
+# Suspends once and waits until the kernel has finished that attempt.
+# systemctl returns as soon as the job is queued, so pm_wakeup_irq read right
+# after it still belonged to the previous wake (2026-09-27: a stale power-key
+# reading replayed KEY_POWER with the screen on). Returns 0 only when the
+# kernel counted a successful suspend.
+suspend_once() {
+	before=$(attempts)
+	ok_before=$(cat "$stats/success" 2>/dev/null || echo 0)
+	$suspend_cmd || { log 'WARN suspend command failed'; return 1; }
+	waited=0
+	while [ "$(attempts)" = "$before" ]; do
+		[ "$waited" -lt 60 ] || { log 'WARN no suspend attempt within 60 s'; return 1; }
+		sleep 1
+		waited=$((waited + 1))
+	done
+	[ "$(cat "$stats/success" 2>/dev/null || echo 0)" != "$ok_before" ] ||
+		{ log "WARN suspend failed at $(cat "$stats/last_failed_step" 2>/dev/null)"; return 1; }
+}
+
+# The IRQ number of the PMIC power key, from /proc/interrupts.
+pwrkey_irq() { awk '/pwrkey/{sub(":", "", $1); print $1; exit}' /proc/interrupts; }
+
+# Replays one KEY_POWER press/release through uinput.
+press_power_key() {
+	python3 - <<'PY'
+import fcntl, os, struct, time
+UI_SET_EVBIT, UI_SET_KEYBIT, UI_DEV_CREATE, UI_DEV_DESTROY = 0x40045564, 0x40045565, 0x5501, 0x5502
+EV_SYN, EV_KEY, KEY_POWER = 0, 1, 116
+fd = os.open('/dev/uinput', os.O_WRONLY | os.O_NONBLOCK)
+fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
+fcntl.ioctl(fd, UI_SET_KEYBIT, KEY_POWER)
+os.write(fd, struct.pack('80sHHHHi', b'rog5-sleep-policy wake key', 0x19, 1, 1, 1, 0) + bytes(256 * 4))
+fcntl.ioctl(fd, UI_DEV_CREATE)
+time.sleep(1.0)  # let the compositor pick the new device up
+for value in (1, 0):
+    os.write(fd, struct.pack('llHHi', 0, 0, EV_KEY, KEY_POWER, value))
+    os.write(fd, struct.pack('llHHi', 0, 0, EV_SYN, 0, 0))
+time.sleep(0.5)
+fcntl.ioctl(fd, UI_DEV_DESTROY)
+os.close(fd)
+PY
+}
+
+# After a power-key wake: turn the display on once Denial listens again.
+wake_display() {
+	[ -e /dev/uinput ] || modprobe -d /run/rog5-modules uinput 2>/dev/null || modprobe uinput 2>/dev/null
+	tries=0
+	while [ "$tries" -lt 8 ] && [ "$(cat "$dpms" 2>/dev/null)" = Off ]; do
+		sleep 1
+		press_power_key || log 'WARN could not replay the power key'
+		sleep 1
+		tries=$((tries + 1))
+	done
+	log "display after power-key wake: $(cat "$dpms" 2>/dev/null) ($tries replays)"
+}
+
+if [ "${1:-}" = --once ]; then
+	reason=$(awake_reason)
+	echo "${reason:-sleep-eligible}"
+	exit 0
+fi
+
+mkdir -p "$state"
+[ ! -w "$mem_sleep" ] || echo s2idle >"$mem_sleep" 2>/dev/null || log 'WARN could not select s2idle'
+off_since=0
+log "started: idle ${idle_s}s, awake after wake ${awake_s}s"
+while :; do
+	reason=$(awake_reason)
+	if [ -n "$reason" ]; then
+		[ "$off_since" = 0 ] || log "stay awake: $reason"
+		off_since=0
+	else
+		t=$(now)
+		[ "$off_since" != 0 ] || off_since=$t
+		if [ $((t - off_since)) -ge "$idle_s" ]; then
+			log "suspend: on battery, screen off for $((t - off_since)) s"
+			date -u +%FT%TZ >"$state/last-suspend"
+			wake=
+			if suspend_once; then
+				wake=$(cat "$wake_irq" 2>/dev/null)
+				log "resumed, wake irq ${wake:-unknown}"
+			fi
+			if [ -n "$wake" ] && [ "$wake" = "$(pwrkey_irq)" ]; then
+				log 'woken by the power key'
+				wake_display
+				off_since=0
+				sleep "$poll_s"
+				continue
+			fi
+			# Back from suspend (or the command failed): keep a short awake
+			# window, then re-evaluate with the timer already expired.
+			sleep "$awake_s"
+			off_since=$(( $(now) - idle_s ))
+			continue
+		fi
+	fi
+	sleep "$poll_s"
+done

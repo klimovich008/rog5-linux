@@ -1,0 +1,50 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/kms: suspend without the PM console VT switch
+
+kernel/power/console.c switches to the suspend console on every system
+suspend unless a registered device says pm_vt_switch_required(dev, false).
+register_framebuffer() normally does that, but the ROG5 boots without an
+fbdev client, so every suspend switched VTs. That deactivated the graphical
+seat session: seatd disabled Denial (which then never re-added its libinput
+devices, so touch and keys were dead after a wake), and logind paused phoc,
+which re-created DSI-1 on resume and crashed phosh.
+
+The compositors restore the display themselves, so msm KMS registers that the
+switch is not required. Verified on SM8350 with the same call from an
+out-of-tree module: s2idle suspend and power-key wake keep the phosh session
+active, no seat pause, touch and keys work.
+
+--- a/drivers/gpu/drm/msm/msm_kms.c	2026-09-27 01:49:39.342280351 +0200
++++ b/drivers/gpu/drm/msm/msm_kms.c	2026-09-27 01:49:39.355586391 +0200
+@@ -7,6 +7,7 @@
+ 
+ #include <linux/aperture.h>
+ #include <linux/kthread.h>
++#include <linux/pm.h>
+ #include <linux/sched/mm.h>
+ #include <uapi/linux/sched/types.h>
+ 
+@@ -256,6 +257,8 @@
+ 	msm_irq_uninstall(ddev);
+ 	pm_runtime_put_sync(dev);
+ 
++	pm_vt_switch_unregister(dev);
++
+ 	if (kms && kms->funcs)
+ 		kms->funcs->destroy(kms);
+ }
+@@ -333,6 +336,14 @@
+ 
+ 	drm_mode_config_reset(ddev);
+ 
++	/*
++	 * Userspace compositors restore the display after resume, so the PM
++	 * core does not need to switch to the suspend console. Without an
++	 * fbdev client nothing else says so, and the VT switch deactivated the
++	 * seat session on every suspend.
++	 */
++	pm_vt_switch_required(dev, false);
++
+ 	return 0;
+ 
+ err_msm_uninit:

@@ -1,0 +1,11 @@
+[Unit]
+Description=ROG5 standby policy: suspend on battery with the screen off
+After=rog5-denial.service rog5-server-inhibit.service
+
+[Service]
+ExecStart=/usr/local/sbin/rog5-sleep-policy
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

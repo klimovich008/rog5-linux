@@ -1,0 +1,7 @@
+# Expose the SLPI accelerometer and proximity sensor to iio-sensor-proxy
+# (libssc) for auto-rotate (2026-09-26). The SSC reports no mount matrix, so
+# iio-sensor-proxy assumed identity and Phosh saw "bottom-up" with the phone
+# upright (2026-09-27): the sensor is mounted rotated 180 degrees about the
+# screen normal, so X and Y are negated.
+SUBSYSTEM=="misc", KERNEL=="fastrpc-sdsp*", ENV{IIO_SENSOR_PROXY_TYPE}+="ssc-accel ssc-proximity"
+SUBSYSTEM=="misc", KERNEL=="fastrpc-sdsp*", ENV{ACCEL_MOUNT_MATRIX}="-1, 0, 0; 0, -1, 0; 0, 0, 1"
