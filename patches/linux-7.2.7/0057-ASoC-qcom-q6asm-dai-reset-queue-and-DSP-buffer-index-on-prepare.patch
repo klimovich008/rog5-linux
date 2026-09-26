@@ -1,0 +1,108 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: q6asm-dai: reset the write queue and DSP buffer index on prepare
+
+After any stop/start of the same PCM (mpv seek or loop, snd_pcm_drop +
+prepare, xrun recovery) playback never advanced again: either nothing was
+queued, or "Error queuing playback buffer -16" repeated until close.
+
+snd_pcm_prepare() restarts the stream at frame 0 (snd_pcm_post_prepare()
+sets appl_ptr = hw_ptr = 0), but q6asm_dai_prepare() kept prtd->queue_ptr
+from the previous run. In .ack, appl_ptr - queue_ptr then wraps
+(unsigned) and the int period count is garbage: when negative nothing is
+queued and the stream stalls; when positive WRITE_V2 packets are sent
+until GLINK has no free intents and rpmsg_trysend() returns -EBUSY, on
+every later ack too.
+
+q6asm.c had the same stale state one layer down: the port's dsp_buf
+(next buffer index to write) and hw_ptr (last completed period) survived
+the unmap/remap that every re-prepare does, so the first write after a
+restart came from the wrong period and the pointer reported the previous
+run's position.
+
+Reset queue_ptr in prepare, and dsp_buf/hw_ptr when a new buffer table
+is mapped. Also keep queue_ptr in appl_ptr's boundary range and report
+an xrun instead of flooding the DSP if appl_ptr ever falls behind it.
+Pause/resume (CMD_PAUSE / RUN) was not affected.
+
+Tested on the ROG Phone 5 (SM8350): hw:0,0 drop+prepare+restart x8 with
+pause/resume after each, mpv audio-only with --loop-file and IPC seeks,
+mpv 1080p video with seeks/pause; hw_ptr advances every time, no -EBUSY.
+
+--- a/sound/soc/qcom/qdsp6/q6asm-dai.c	2026-09-26 13:26:25.297576098 +0200
++++ b/sound/soc/qcom/qdsp6/q6asm-dai.c	2026-09-26 13:27:04.014863968 +0200
+@@ -243,6 +243,16 @@
+ 		prtd->state = Q6ASM_STREAM_STOPPED;
+ 	}
+ 
++	/*
++	 * The core restarts the stream at frame 0: snd_pcm_post_prepare() sets
++	 * appl_ptr = hw_ptr = 0 after this callback. A queue_ptr left over from
++	 * the previous run (stop/drop, xrun, seek) is then ahead of appl_ptr,
++	 * .ack computes a bogus period count and either queues nothing or floods
++	 * the DSP until the APR/GLINK queue is full (-EBUSY); the stream never
++	 * advances again.
++	 */
++	prtd->queue_ptr = 0;
++
+ 	ret = q6asm_map_memory_regions(substream->stream, prtd->audio_client,
+ 				       prtd->phys,
+ 				       (prtd->pcm_size / prtd->periods),
+@@ -313,10 +323,30 @@
+ {
+ 	struct snd_pcm_runtime *runtime = substream->runtime;
+ 	struct q6asm_dai_rtd *prtd = runtime->private_data;
++	snd_pcm_uframes_t appl_ptr, pending;
+ 	int i, ret = 0, avail_periods;
+ 
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK && prtd->state == Q6ASM_STREAM_RUNNING) {
+-		avail_periods = (runtime->control->appl_ptr - prtd->queue_ptr)/runtime->period_size;
++		/* appl_ptr wraps at the boundary; keep queue_ptr in the same range */
++		appl_ptr = READ_ONCE(runtime->control->appl_ptr);
++		if (appl_ptr >= prtd->queue_ptr)
++			pending = appl_ptr - prtd->queue_ptr;
++		else
++			pending = runtime->boundary - prtd->queue_ptr + appl_ptr;
++
++		/*
++		 * More than a buffer ahead means appl_ptr moved back without a
++		 * prepare (e.g. SNDRV_PCM_IOCTL_RESET while running). Report an
++		 * xrun so the application re-prepares instead of queuing garbage.
++		 */
++		if (pending > runtime->buffer_size) {
++			dev_err_ratelimited(component->dev,
++					    "playback queue out of sync (appl %lu queued %lu)\n",
++					    appl_ptr, prtd->queue_ptr);
++			return -EPIPE;
++		}
++
++		avail_periods = pending / runtime->period_size;
+ 		for (i = 0; i < avail_periods; i++) {
+ 			ret = q6asm_write_async(prtd->audio_client, prtd->stream_id,
+ 					   prtd->pcm_count, 0, 0, 0);
+@@ -326,6 +356,8 @@
+ 				return ret;
+ 			}
+ 			prtd->queue_ptr += runtime->period_size;
++			if (prtd->queue_ptr >= runtime->boundary)
++				prtd->queue_ptr -= runtime->boundary;
+ 		}
+ 	}
+ 
+--- a/sound/soc/qcom/qdsp6/q6asm.c	2026-09-26 13:26:25.297474657 +0200
++++ b/sound/soc/qcom/qdsp6/q6asm.c	2026-09-26 13:26:42.198827995 +0200
+@@ -525,6 +525,15 @@
+ 		}
+ 	}
+ 	ac->port[dir].num_periods = periods;
++	/*
++	 * A new mapping starts a new stream (every q6asm-dai prepare remaps):
++	 * the first buffer the client fills is period 0 and no period has
++	 * completed yet. Without this, a stream restarted after stop/drop sent
++	 * its first write from where the previous run left off and reported
++	 * that run's hardware pointer.
++	 */
++	ac->port[dir].dsp_buf = 0;
++	atomic_set(&ac->port[dir].hw_ptr, 0);
+ 
+ 	spin_unlock_irqrestore(&ac->lock, flags);
+ 

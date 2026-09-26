@@ -28,3 +28,4 @@
 0053-drm-panel-asus-rog5-ams678-stock-60-Hz-DSI-link-rate.patch
 0054-drm-msm-dpu-ROG5-tear-check-continue-threshold-0.patch
 0055-usb-dwc3-drd-gate-pullup-on-role-for-legacy-glue.patch
+0057-ASoC-qcom-q6asm-dai-reset-queue-and-DSP-buffer-index-on-prepare.patch
