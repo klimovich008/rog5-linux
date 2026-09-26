@@ -107,7 +107,10 @@ plugins=keyfile
 dns=systemd-resolved
 
 [keyfile]
-unmanaged-devices=except:interface-name:wlp1s0
+# By type, not name: the radio's interface is wlp1s0 on most boots but can
+# keep the kernel name wlan0 (seen 2026-09-26). The hotspot's AP interface
+# stays unmanaged.
+unmanaged-devices=except:type:wifi;interface-name:wlp1s0ap
 
 [connection]
 wifi.powersave=2
