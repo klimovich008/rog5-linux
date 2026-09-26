@@ -826,6 +826,85 @@ for one boot. That boot stays pending, the next one boots the fallback, and
 you then unmask and install a fresh default (2026-09-26: safe-r2 came up
 with Denial and Wi-Fi).
 
+### Unattended package updates (rog5-update)
+
+pacman owns only userspace. Kernel, modules and firmware come from the
+signed bundle. The primary and the fallback boot the same persistent upper,
+so a bad upgrade breaks both. `rog5-update` guards upgrades with a full copy
+of that upper:
+
+- **Build.** The init's snapshot restore is always compiled in. It does
+  nothing until a pending record exists. `PRODUCTION_UPDATE_KIT=1` (with
+  `PERSISTENT_ROOT_OVERLAY=1`) adds the `/rog5-update` kit: the tool, the
+  hourly `rog5-update.timer` and the per-boot `rog5-update-commit.service`.
+  The init publishes the kit to `/run`, like the trial kit. Build both the
+  primary and the fallback bundle from this init. A fallback without it
+  cannot restore a snapshot.
+- **run** (hourly, at most one attempt per `ROG5_UPDATE_INTERVAL`). It needs
+  a default route, `rog5-package-keyring` active, the battery below 45 °C,
+  and either external power or battery above `ROG5_UPDATE_MIN_BATTERY`. The
+  current root must pass `verify-root`. Then it does `pacman -Sy` and plans
+  `-Su --print`. A plan that pulls in a package from `ROG5_UPDATE_HOLD` is
+  skipped. Next it takes a snapshot: it holds `db.lck`, runs `sync`, and does
+  `cp -dR --preserve=…,links,xattr` of upper into
+  `/.rog5/state/snapshots/<id>/upper`, sealed with an entry count and a hash
+  of the name list. It writes `pending action=restore`, upgrades the
+  keyring first, then `pacman -Su`, then runs `verify-root`. On a pass it
+  rewrites pending to `action=verify` and reboots once the backlight is
+  off (`ROG5_UPDATE_REBOOT=idle|now|never`). On a failure the restore stays
+  armed and the phone reboots at once. A transaction that changed nothing is
+  discarded without a reboot.
+- **Init.** Before the overlay mounts, the first boot with a `verify` pending
+  record writes `attempt`. A second boot without a commit, or any `restore`
+  record, renames the sealed snapshot into place. It keeps the old upper as
+  `snapshots/<id>/failed-upper` and writes `rog5-update/last-result`. The
+  renames are journaled, and a later boot finishes an interrupted restore.
+  The init acts only on exact records (0:0 0444, fixed grammar) and on a
+  snapshot that matches its seal. Anything else leaves upper as it is. All
+  the existing checks then run on the result.
+- **commit** runs after the trial commit and after `systemd-update-done`. It
+  waits for the trial commit's health gate, then reruns `verify-root`. On a
+  pass it records `committed`, keeps only this update's snapshot as the last
+  good root, and empties the package cache. A root that fails is armed for
+  restore and rebooted.
+- **Operate:** `/run/rog5-update/rog5-update status|verify-root|resume|rollback`.
+  After two failed updates in a row, the same plan waits for new package
+  versions. After three, updates pause until `resume`. `rollback` arms a
+  manual restore to the kept snapshot.
+
+`verify-root` checks the merged-root conditions that the next boot enforces.
+A package can trip them:
+
+- **`filesystem`, `shadow`, `systemd` (sysusers):** `/etc/shadow` must be
+  0:0 600 with one hard link and exactly `root:x:<n>::::::` (P2). A root
+  crypt hash passes the init but fails P2.
+- **`openssh`:** the effective `sshd -T` policy must still be key-only root
+  with `usepam no`. `ssh-keygen -y` and `-lf` must work. `/usr/bin/sshd`
+  must stay the listener. The `10-rog5-server.conf` drop-in is unowned and
+  must stay the pinned 201/211-byte file.
+- **`systemd`:** both `/etc/.updated` and `/var/.updated` must use the exact
+  `systemd-update-done` template. A new wording breaks the second boot after
+  the upgrade, so `verify-root` greps the installed binary for the template.
+  `/sbin/init` must still resolve.
+- **`glibc`:** `/etc/ld.so.cache` must be 0:0 644, 1 B–1 MiB.
+- **`archlinuxarm-keyring`:** its three keyring files must be 0:0 644.
+- **`coreutils`, `util-linux`, `iproute2`, `gawk`, `grep`, `sed`, `gnupg`,
+  `pacman`, `systemd`:** the attestor and helpers run these from the root, so
+  each is smoke-tested.
+
+The lower's hash pins (sshd, systemd, sshdgenkeys, `authorized_keys`) are on
+read-only p24, and pacman cannot change them.
+
+Limits:
+
+- A boot that fails inside the init restarts into fastboot. Someone must
+  press START (or run `fastboot reboot`). The loader then boots the
+  fallback, which restores the snapshot. The fallback stays selected until
+  the default is installed again.
+- `/persist` (keyring, SSH identity, Tailscale, clock) is not in the snapshot.
+- Files that services rewrite during the copy can be torn. pacman's own
+  files are consistent.
+
 ### Human-assisted hardware sessions
 
 Complete the builds, focused tests, review, staging and no-press runtime checks

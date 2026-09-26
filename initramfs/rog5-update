@@ -1,0 +1,703 @@
+#!/bin/sh
+# Unattended pacman upgrades of the persistent root, guarded by a full copy of
+# the overlay upper. Published from the ramdisk's /rog5-update kit to
+# /run/rog5-update, so the updater always matches the init that restores its
+# snapshots and is not itself changed by an upgrade.
+#
+#   run          hourly timer. Reboots into a verified update when the display
+#                is off; otherwise, at most once per interval, when on external
+#                power or battery > ROG5_UPDATE_MIN_BATTERY and online:
+#                snapshot upper, pacman -Syu, then verify-root. A failed
+#                upgrade or check arms a restore and reboots at once.
+#   commit       every boot (rog5-update-commit.service). Commits the update
+#                this boot started once the boot is healthy and verify-root
+#                still passes after systemd-update-done; otherwise arms a
+#                restore and reboots.
+#   verify-root  the merged-root conditions that the init, the P2 attestor and
+#                the SSH identity helper enforce at the next boot.
+#   status | resume | rollback
+#
+# State lives beside upper/ on the overlay filesystem (see the init's
+# apply_update_rollback): rog5-update/{pending,attempt,last-result,...} and
+# snapshots/<id>/{seal,upper}. Records are root 0444, written atomically.
+set -u
+umask 077
+
+root=${ROG5_UPDATE_ROOT:-}
+lower=${ROG5_UPDATE_LOWER:-/.rog5/root-ro}
+state=${ROG5_UPDATE_STATE:-/.rog5/state}
+run=${ROG5_UPDATE_RUN:-/run}
+sys=${ROG5_UPDATE_SYS:-/sys}
+proc=${ROG5_UPDATE_PROC:-/proc}
+mounts=${ROG5_UPDATE_MOUNTS:-$proc/mounts}
+kmsg=${ROG5_UPDATE_KMSG:-/dev/kmsg}
+limit=${ROG5_UPDATE_WAIT:-180}
+hold=${ROG5_UPDATE_HOLD:-}
+min_battery=${ROG5_UPDATE_MIN_BATTERY:-50}
+interval=${ROG5_UPDATE_INTERVAL:-86400}
+reboot_policy=${ROG5_UPDATE_REBOOT:-idle}
+reserve_mib=${ROG5_UPDATE_RESERVE_MIB:-3072}
+dir=$state/rog5-update
+snapshots=$state/snapshots
+upper=$state/upper
+pacman_lock=$root/var/lib/pacman/db.lck
+commit_failed=$run/rog5-update-commit.failed
+
+log() {
+	printf 'rog5-update: %s\n' "$*" >>"$kmsg" 2>/dev/null ||
+		printf 'rog5-update: %s\n' "$*" >&2
+}
+
+fail() {
+	log "FAIL $*"
+	history "FAIL $*"
+	exit 1
+}
+
+for value in "$limit" "$min_battery" "$interval" "$reserve_mib"; do
+	case $value in ''|*[!0-9]*) log 'FAIL invalid numeric setting'; exit 1 ;; esac
+done
+case $reboot_policy in idle|now|never) ;; *) log 'FAIL ROG5_UPDATE_REBOOT must be idle, now or never'; exit 1 ;; esac
+ignore_args=
+for package in $hold; do
+	printf '%s\n' "$package" | grep -Eq '^[a-z0-9@_+][a-z0-9@._+-]*$' ||
+		{ log "FAIL invalid held package name"; exit 1; }
+	ignore_args="$ignore_args --ignore $package"
+done
+
+# After a failed upgrade the system's own tools may not start; the ramdisk's
+# retained static busybox still does.
+bb() {
+	loader=$run/initramfs/lib/ld-musl-aarch64.so.1
+	busybox=$run/initramfs/bin/busybox
+	if [ -f "$loader" ] && [ -x "$loader" ] && [ -f "$busybox" ] && [ -x "$busybox" ]; then
+		"$loader" "$busybox" "$@"
+	else
+		"$@"
+	fi
+}
+
+history() {
+	[ -d "$dir" ] && [ ! -L "$dir" ] || return 0
+	line="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown) $*"
+	{ tail -n 199 "$dir/history" 2>/dev/null; printf '%s\n' "$line"; } >"$dir/history.next" &&
+		bb mv -f "$dir/history.next" "$dir/history" || true
+}
+
+write_record() {
+	record=$1
+	shift
+	next=$record.next
+	bb rm -f "$next" || return 1
+	printf '%s\n' "$@" >"$next" || return 1
+	bb chown 0:0 "$next" && bb chmod 0444 "$next" || return 1
+	bb mv -f "$next" "$record" || return 1
+	bb sync
+}
+
+record_exact() {
+	[ -f "$1" ] && [ ! -L "$1" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$1")" = 0:0:444:1 ] || return 1
+	size=$(stat -c %s "$1") || return 1
+	[ "$size" -gt 0 ] && [ "$size" -le 512 ] || return 1
+	[ "$(wc -l <"$1")" -eq "$2" ]
+}
+
+# Same grammar as the init's update_pending_fields: prints "<id> <action>".
+pending_fields() {
+	record_exact "$dir/pending" 3 || return 1
+	awk '
+	NR == 1 && $0 != "format=rog5-update-pending-v1" { bad = 1 }
+	NR == 2 { if ($0 !~ /^update_id=[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$/) bad = 1; id = substr($0, 11) }
+	NR == 3 { if ($0 != "action=verify" && $0 != "action=restore") bad = 1; action = substr($0, 8) }
+	END { if (bad || NR != 3) exit 1; print id " " action }' "$dir/pending"
+}
+
+attempt_boot() {
+	record_exact "$dir/attempt" 3 || return 1
+	awk -v id="$1" '
+	NR == 1 && $0 != "format=rog5-update-attempt-v1" { bad = 1 }
+	NR == 2 && $0 != "update_id=" id { bad = 1 }
+	NR == 3 { if ($0 !~ /^boot_id=[0-9a-f-]{36}$/) bad = 1; boot = substr($0, 9) }
+	END { if (bad || NR != 3) exit 1; print boot }' "$dir/attempt"
+}
+
+arm_pending() {
+	write_record "$dir/pending" format=rog5-update-pending-v1 "update_id=$1" "action=$2"
+}
+
+directory_exact() {
+	[ -d "$1" ] && [ ! -L "$1" ] && [ "$(stat -c '%u:%g:%a' "$1")" = "0:0:$2" ]
+}
+
+tree_names() {
+	(cd "$1" && find . -mindepth 1 | LC_ALL=C sort)
+}
+
+# Same checks as the init's verify_update_snapshot.
+snapshot_valid() {
+	id=$1
+	snapshot=$snapshots/$id
+	directory_exact "$snapshots" 700 && directory_exact "$snapshot" 700 || return 1
+	record_exact "$snapshot/seal" 4 || return 1
+	fields=$(awk -v id="$id" '
+	NR == 1 && $0 != "format=rog5-overlay-snapshot-v1" { bad = 1 }
+	NR == 2 && $0 != "update_id=" id { bad = 1 }
+	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
+	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
+	END { if (bad || NR != 4) exit 1; print entries " " names }' "$snapshot/seal") || return 1
+	[ -d "$snapshot/upper" ] && [ ! -L "$snapshot/upper" ] || return 1
+	case $(stat -c '%u:%g:%a' "$snapshot/upper") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
+	[ "$(tree_names "$snapshot/upper" | wc -l | tr -d ' ')" = "${fields%% *}" ] &&
+		[ "$(tree_names "$snapshot/upper" | sha256sum | cut -d ' ' -f 1)" = "${fields#* }" ]
+}
+
+prune_snapshots() {
+	keep=$1
+	[ -d "$snapshots" ] || return 0
+	for entry in "$snapshots"/* "$snapshots"/.[!.]*; do
+		[ -e "$entry" ] || [ -L "$entry" ] || continue
+		[ "${entry##*/}" = "$keep" ] && continue
+		rm -rf -- "$entry" || return 1
+	done
+}
+
+make_snapshot() {
+	id=$1
+	if [ -e "$snapshots" ] || [ -L "$snapshots" ]; then
+		directory_exact "$snapshots" 700 || return 1
+	else
+		mkdir -m 0700 "$snapshots" || return 1
+	fi
+	tmp=$snapshots/.tmp-$id
+	mkdir -m 0700 "$tmp" || return 1
+	# Hold pacman's own lock so no transaction runs during the copy. The copy
+	# is a full one: a hard-link tree would share files that pacman and
+	# services later rewrite in place. The lock file itself is not kept.
+	( set -C; : >"$pacman_lock" ) 2>/dev/null || { rm -rf -- "$tmp"; return 1; }
+	sync
+	cp -dR --preserve=mode,ownership,timestamps,links,xattr "$upper" "$tmp/upper"
+	copied=$?
+	rm -f "$pacman_lock"
+	rm -f "$tmp/upper/var/lib/pacman/db.lck"
+	if [ "$copied" -ne 0 ]; then
+		rm -rf -- "$tmp"
+		return 1
+	fi
+	entries=$(tree_names "$tmp/upper" | wc -l | tr -d ' ')
+	names=$(tree_names "$tmp/upper" | sha256sum | cut -d ' ' -f 1)
+	write_record "$tmp/seal" format=rog5-overlay-snapshot-v1 "update_id=$id" \
+		"entries=$entries" "names_sha256=$names" || { rm -rf -- "$tmp"; return 1; }
+	mv "$tmp" "$snapshots/$id" || { rm -rf -- "$tmp"; return 1; }
+	sync
+	snapshot_valid "$id"
+}
+
+# ---- verify-root: what the next boot's verifiers require of the merged root.
+
+exact_regular() {
+	[ -f "$1" ] && [ ! -L "$1" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$1")" = "$2:$3:$4:$5:1" ] || return 1
+	[ "$(sha256sum "$1" | cut -d ' ' -f 1)" = "$6" ]
+}
+
+# init prepare_volatile_root_account + attestor: key-only root, root:x:<n>::::::
+check_shadow() {
+	shadow=$root/etc/shadow
+	lower_shadow=$lower/etc/shadow
+	for path in "$shadow" "$lower_shadow"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:600:1 ] || return 1
+		[ "$(grep -c '^root:' "$path")" -eq 1 ] || return 1
+	done
+	lower_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow")
+	case $lower_password in !*) ;; *) return 1 ;; esac
+	password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow")
+	line=$(grep '^root:' "$shadow")
+	if [ "$password" = "$lower_password" ]; then
+		line=$(printf '%s\n' "$line" | sed 's/^root:[^:]*/root:x/')
+	elif [ "$password" != x ]; then
+		# The init keeps a user crypt hash, but the P2 attestor rejects it.
+		return 1
+	fi
+	printf '%s\n' "$line" | grep -Eq '^root:x:[0-9]+:{6}$'
+}
+
+# init prepare_volatile_ssh_policy (and verify_persistent_root for the lower).
+check_ssh_policy() {
+	policy=$root/etc/ssh/sshd_config.d/10-rog5-server.conf
+	lower_policy=$lower/etc/ssh/sshd_config.d/10-rog5-server.conf
+	original=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+	volatile=37372388916a09c2457c3bf612de9bfe9b5bcba0fe9e01d1e3aa5b98dc903db1
+	exact_regular "$lower_policy" 0 0 644 201 "$original" || return 1
+	[ "$(grep -c '^UsePAM ' "$lower_policy")" -eq 0 ] || return 1
+	if exact_regular "$policy" 0 0 644 201 "$original"; then
+		[ "$(grep -c '^UsePAM ' "$policy")" -eq 0 ]
+	else
+		exact_regular "$policy" 0 0 644 211 "$volatile" &&
+			[ "$(grep -c '^UsePAM no$' "$policy")" -eq 1 ]
+	fi
+}
+
+# init prepare_volatile_systemd_state (persistent overlay): the merged cache.
+check_ld_cache() {
+	cache=$root/etc/ld.so.cache
+	[ -f "$cache" ] && [ ! -L "$cache" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$cache")" = 0:0:644:1 ] || return 1
+	cache_size=$(stat -c %s "$cache") || return 1
+	[ "$cache_size" -gt 0 ] && [ "$cache_size" -le 1048576 ]
+}
+
+# Verbatim rules of the init's verify_systemd_update_marker.
+check_marker_pair() {
+	subtree=$1
+	merged=$root/$subtree/.updated
+	physical=$upper/$subtree/.updated
+	for path in "$merged" "$physical"; do
+		[ -f "$path" ] && [ ! -L "$path" ] || return 1
+		size=$(stat -c %s "$path") || return 1
+		[ "$size" -le 512 ] || return 1
+		[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:644:1 ] || return 1
+	done
+	cmp -s "$merged" "$physical" || return 1
+	[ -s "$merged" ] || return 0
+	[ "$(wc -l <"$merged")" -eq 4 ] || return 1
+	[ "$(sed -n '1p' "$merged")" = \
+		'# This file was created by systemd-update-done. The timestamp below is the' ] ||
+		return 1
+	[ "$(sed -n '2p' "$merged")" = \
+		"# modification time of /usr/ for which the most recent updates of /$subtree/ have" ] ||
+		return 1
+	[ "$(sed -n '3p' "$merged")" = \
+		'# been applied. See man:systemd-update-done.service(8) for details.' ] ||
+		return 1
+	[ "$(grep -c '^TIMESTAMP_NSEC=' "$merged")" -eq 1 ] || return 1
+	timestamp=$(sed -n 's/^TIMESTAMP_NSEC=//p' "$merged")
+	printf '%s\n' "$timestamp" | grep -Eq '^(0|[1-9][0-9]{0,19})$' || return 1
+	[ "$(sed -n '4p' "$merged")" = "TIMESTAMP_NSEC=$timestamp" ]
+}
+
+check_update_markers() {
+	for subtree in etc var; do
+		[ ! -e "$lower/$subtree/.updated" ] && [ ! -L "$lower/$subtree/.updated" ] ||
+			return 1
+		if [ ! -e "$root/$subtree/.updated" ] && [ ! -L "$root/$subtree/.updated" ]; then
+			[ ! -e "$upper/$subtree/.updated" ] && [ ! -L "$upper/$subtree/.updated" ] ||
+				return 1
+		else
+			check_marker_pair "$subtree" || return 1
+		fi
+	done
+}
+
+# systemd-update-done rewrites both markers on the first boot after /usr
+# changed; the boot after that runs check_marker_pair on what it wrote. The
+# installed systemd must therefore still carry the exact template.
+check_update_done_template() {
+	binary=$root/usr/lib/systemd/systemd-update-done
+	[ -e "$binary" ] || [ -L "$binary" ] || return 0
+	set -- "$binary"
+	for library in "$root"/usr/lib/systemd/libsystemd-shared-*.so \
+		"$root"/usr/lib/systemd/libsystemd-core-*.so; do
+		[ -f "$library" ] && set -- "$@" "$library"
+	done
+	grep -a -F -q -- '# This file was created by systemd-update-done. The timestamp below is the' "$@" &&
+		grep -a -F -q -- '# been applied. See man:systemd-update-done.service(8) for details.' "$@" || return 1
+	grep -a -F -q -- '# modification time of /usr/ for which the most recent updates of %s have' "$@" && return 0
+	grep -a -F -q -- '# modification time of /usr/ for which the most recent updates of /etc/ have' "$@" &&
+		grep -a -F -q -- '# modification time of /usr/ for which the most recent updates of /var/ have' "$@"
+}
+
+check_boot_files() {
+	# init verify_persistent_overlay_tree and mount_overlay_root.
+	[ -d "$upper" ] && [ ! -L "$upper" ] || return 1
+	case $(stat -c '%u:%g:%a' "$upper") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
+	[ -x "$root/sbin/init" ] && [ -x "$root/usr/lib/systemd/systemd" ] || return 1
+	[ -f "$root/usr/bin/sshd" ] && [ -x "$root/usr/bin/sshd" ] || return 1
+	for suffix in .gpg -trusted -revoked; do
+		file=$root/usr/share/pacman/keyrings/archlinuxarm$suffix
+		[ -f "$file" ] && [ ! -L "$file" ] &&
+			[ "$(stat -c '%u:%g:%a' "$file")" = 0:0:644 ] || return 1
+	done
+}
+
+# The P2 attestor, the SSH identity helper and the package keyring helper
+# run these from the booted root; a broken library shows up here.
+check_tools() {
+	awk 'BEGIN { exit 0 }' &&
+		sed -n 1p /dev/null &&
+		printf 'x\n' | grep -q x &&
+		cut -c 1 /dev/null &&
+		stat -c %a / >/dev/null &&
+		sha256sum /dev/null >/dev/null &&
+		blkid -V >/dev/null 2>&1 &&
+		findmnt -V >/dev/null 2>&1 &&
+		dmesg -V >/dev/null 2>&1 &&
+		ip -V >/dev/null 2>&1 &&
+		systemctl --version >/dev/null 2>&1 &&
+		gpg --version >/dev/null 2>&1 &&
+		pacman -V >/dev/null 2>&1 &&
+		"$root/usr/lib/systemd/systemd" --version >/dev/null 2>&1
+}
+
+sshd_option() {
+	printf '%s\n' "$effective" | awk -v option="$1" '
+	tolower($1) == option { count++; if (NF != 2) invalid = 1; value = tolower($2) }
+	END { if (invalid || count != 1) exit 1; print value }'
+}
+
+# The attestor's effective policy, from the installed sshd.
+check_sshd() {
+	sshd -t >/dev/null 2>&1 || return 1
+	effective=$(sshd -T 2>/dev/null) || return 1
+	[ "$(sshd_option passwordauthentication)" = no ] || return 1
+	case $(sshd_option permitrootlogin) in without-password|prohibit-password) ;; *) return 1 ;; esac
+	[ "$(sshd_option pubkeyauthentication)" = yes ] &&
+		[ "$(sshd_option kbdinteractiveauthentication)" = no ] &&
+		[ "$(sshd_option usepam)" = no ]
+}
+
+# The persistent SSH identity helper's key derivation and fingerprint.
+check_host_key() {
+	key=$root/etc/ssh/ssh_host_ed25519_key
+	[ -f "$key" ] && [ -f "$key.pub" ] || return 1
+	derived=$(ssh-keygen -y -f "$key" 2>/dev/null) || return 1
+	case $derived in 'ssh-ed25519 '*) ;; *) return 1 ;; esac
+	ssh-keygen -E sha256 -lf "$key.pub" 2>/dev/null | awk '{ print $2 }' |
+		grep -Eq '^SHA256:[A-Za-z0-9+/]{43}$'
+}
+
+verify_root() {
+	failed=
+	for check in shadow ssh_policy ld_cache update_markers update_done_template \
+		boot_files tools sshd host_key; do
+		"check_$check" || failed="$failed $check"
+	done
+	if [ -n "$failed" ]; then
+		printf '%s\n' "${failed# }"
+		return 1
+	fi
+}
+
+# ---- conditions
+
+display_idle() {
+	for brightness in "$sys"/class/backlight/*/brightness; do
+		[ -e "$brightness" ] || continue
+		[ "$(cat "$brightness" 2>/dev/null)" = 0 ] || return 1
+	done
+}
+
+power_ok() {
+	external=0
+	capacity=
+	temperature=
+	for supply in "$sys"/class/power_supply/*; do
+		[ -f "$supply/type" ] || continue
+		case $(cat "$supply/type") in
+			Battery)
+				capacity=$(cat "$supply/capacity" 2>/dev/null) || capacity=
+				temperature=$(cat "$supply/temp" 2>/dev/null) || temperature=
+				;;
+			USB*|Mains|Wireless)
+				[ "$(cat "$supply/online" 2>/dev/null)" = 1 ] && external=1
+				;;
+		esac
+	done
+	case $temperature in ''|*[!0-9-]*) ;; *) [ "$temperature" -lt 450 ] || return 1 ;; esac
+	[ "$external" -eq 1 ] && return 0
+	case $capacity in ''|*[!0-9]*) return 1 ;; esac
+	[ "$capacity" -gt "$min_battery" ]
+}
+
+network_up() {
+	awk 'NR > 1 && $2 == "00000000" && $8 == "00000000" { found = 1 }
+		END { exit !found }' "$proc/net/route" 2>/dev/null
+}
+
+overlay_ok() {
+	awk '$2 == "/" && $3 == "overlay" {
+		count++
+		if ($4 !~ /(^|,)upperdir=\/mnt\/state\/upper(,|$)/ ||
+			$4 ~ /(^|,)(index|metacopy)=on(,|$)/) bad = 1
+	}
+	END { exit (count != 1 || bad) }' "$mounts" || return 1
+	awk -v state="$state" '$2 == state && $3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ { count++ }
+		END { exit count != 1 }' "$mounts" || return 1
+	[ -d "$upper" ] && [ ! -L "$upper" ] || return 1
+	case $(stat -c '%u:%g:%a' "$upper") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
+	if [ -e "$dir" ] || [ -L "$dir" ]; then
+		directory_exact "$dir" 700
+	else
+		mkdir -m 0700 "$dir"
+	fi
+}
+
+# The health gate of production-trial-commit.
+ready() {
+	p2=$run/rog5-p2-ready
+	identity=$run/rog5-persistent-ssh-identity.record
+	[ -f "$p2" ] && [ ! -L "$p2" ] && [ "$(stat -c '%u:%g:%a' "$p2")" = 0:0:444 ] &&
+		grep -Fxq status=PASS "$p2" &&
+		grep -Fxq "attested_boot_id=$boot_id" "$p2" || return 1
+	[ -f "$identity" ] && [ ! -L "$identity" ] &&
+		[ "$(stat -c '%u:%g:%a' "$identity")" = 0:0:444 ] &&
+		grep -Fxq "identity_boot_id=$boot_id" "$identity" || return 1
+	grep -q ': 00000000:0016 00000000:0000 0A ' "$proc/net/tcp" || return 1
+	for node in "$sys"/class/block/sd*; do
+		[ -e "$node/ro" ] || continue
+		[ "$(cat "$node/ro")" = 1 ] && continue
+		case ${node##*/} in sda|sda23) ;; *) return 1 ;; esac
+	done
+	temp=$(cat "$sys/class/power_supply/qcom-battmgr-bat/temp" 2>/dev/null) || temp=
+	case $temp in ''|*[!0-9-]*) ;; *) [ "$temp" -lt 450 ] || return 1 ;; esac
+	return 0
+}
+
+# reboot_now STATUS MESSAGE: the unit's exit status once the reboot is queued.
+reboot_now() {
+	reboot_status=$1
+	shift
+	log "rebooting: $*"
+	history "reboot: $*"
+	bb sync
+	systemctl reboot && exit "$reboot_status"
+	log 'systemctl reboot failed; forcing a reboot'
+	bb sync
+	bb reboot -f
+	exit 1
+}
+
+lock() {
+	exec 9>"$run/rog5-update.lock" || exit 1
+	flock -n 9 || { log 'SKIP another rog5-update action is running'; exit 0; }
+}
+
+# ---- bookkeeping of a previous update that did not commit
+
+settle_previous() {
+	[ -f "$dir/targets" ] || return 0
+	target_id=$(sed -n 's/^update_id=//p' "$dir/targets")
+	result=$(sed -n 's/^result=//p' "$dir/last-result" 2>/dev/null)
+	result_id=$(sed -n 's/^update_id=//p' "$dir/last-result" 2>/dev/null)
+	[ -n "$target_id" ] && [ "$target_id" = "$result_id" ] || return 0
+	[ ! -e "$dir/pending" ] || return 0
+	if [ "$result" = committed ]; then
+		rm -f "$dir/targets"
+		return 0
+	fi
+	# failures counts consecutive updates that did not commit; a commit
+	# resets it. failed-targets is the latest such upgrade plan.
+	sed '1,2d' "$dir/targets" | LC_ALL=C sort >"$dir/failed-targets.next" || return 1
+	failures=$(cat "$dir/failures" 2>/dev/null || echo 0)
+	case $failures in ''|*[!0-9]*) failures=0 ;; esac
+	failures=$((failures + 1))
+	mv -f "$dir/failed-targets.next" "$dir/failed-targets" || return 1
+	printf '%s\n' "$failures" >"$dir/failures" || return 1
+	rm -f "$dir/targets"
+	history "update $target_id was not committed ($result); failures=$failures"
+}
+
+# ---- actions
+
+action_run() {
+	lock
+	overlay_ok || fail 'the root is not the expected persistent overlay'
+	settle_previous || fail 'cannot record the previous update result'
+	if [ -e "$dir/pending" ] || [ -L "$dir/pending" ]; then
+		fields=$(pending_fields) || fail 'pending record is not exact'
+		id=${fields%% *}
+		action=${fields#* }
+		if [ -e "$dir/attempt" ]; then
+			# This boot runs the update; rog5-update-commit decides. After a
+			# failed commit, reboot (when idle) so the init restores.
+			if [ -e "$commit_failed" ] && [ "$reboot_policy" != never ] && display_idle; then
+				reboot_now 0 "update $id did not commit; the next boot restores its snapshot"
+			fi
+			exit 0
+		fi
+		if [ "$action" = restore ]; then
+			[ "$reboot_policy" = never ] || reboot_now 0 "restore of update $id is armed"
+		elif [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && display_idle; }; then
+			reboot_now 0 "verification boot of update $id"
+		fi
+		log "update $id waits for its $action reboot"
+		exit 0
+	fi
+	failures=$(cat "$dir/failures" 2>/dev/null || echo 0)
+	case $failures in ''|*[!0-9]*) failures=3 ;; esac
+	if [ "$failures" -ge 3 ]; then
+		log 'SKIP paused after repeated rollbacks; run rog5-update resume'
+		exit 0
+	fi
+	now=$(date +%s)
+	last=$(cat "$dir/last-check" 2>/dev/null || echo 0)
+	case $last in ''|*[!0-9]*) last=0 ;; esac
+	[ $((now - last)) -ge "$interval" ] || exit 0
+	power_ok || { log 'SKIP needs external power or more battery, and a cool battery'; exit 0; }
+	network_up || { log 'SKIP no default route'; exit 0; }
+	systemctl is-active --quiet rog5-package-keyring.service ||
+		{ log 'SKIP package keyring is not active'; exit 0; }
+	[ ! -e "$pacman_lock" ] || { log 'SKIP pacman is locked'; exit 0; }
+	# One real attempt per interval; a mirror or network failure retries hourly.
+	printf '%s\n' "$now" >"$dir/last-check"
+	if ! baseline=$(verify_root); then
+		fail "the current root already fails verify-root ($baseline); not updating"
+	fi
+	pacman -Sy --noconfirm || { rm -f "$dir/last-check"; fail 'pacman -Sy failed'; }
+	# shellcheck disable=SC2086
+	plan=$(pacman -Su --print --print-format '%n %v' --noconfirm $ignore_args) ||
+		fail 'cannot plan the upgrade'
+	plan=$(printf '%s\n' "$plan" | awk 'NF == 2' | LC_ALL=C sort)
+	if [ -z "$plan" ]; then
+		log 'PASS up to date'
+		exit 0
+	fi
+	for package in $hold; do
+		if printf '%s\n' "$plan" | awk -v name="$package" '$1 == name { found = 1 } END { exit !found }'; then
+			log "SKIP held package $package is required by this upgrade"
+			history "skip: held $package required"
+			exit 0
+		fi
+	done
+	if [ "$failures" -ge 2 ] && [ -s "$dir/failed-targets" ] &&
+		[ -z "$(printf '%s\n' "$plan" | LC_ALL=C comm -13 - "$dir/failed-targets")" ]; then
+		log 'SKIP this upgrade failed twice; waiting for new package versions'
+		exit 0
+	fi
+	used=$(du -sk "$upper" | cut -f 1)
+	kept=0
+	[ ! -d "$snapshots" ] || kept=$(du -sk "$snapshots" | cut -f 1)
+	available=$(stat -f -c '%a %S' "$state" | awk '{ printf "%d", $1 * $2 / 1024 }')
+	[ $((available + kept)) -ge $((used + reserve_mib * 1024)) ] ||
+		fail "not enough space for a snapshot of upper (${used} KiB)"
+	prune_snapshots '' || fail 'cannot remove old snapshots'
+	id=$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')
+	printf '%s\n' "$id" | grep -Eq '^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$' || fail 'update id'
+	make_snapshot "$id" || fail 'snapshot of upper failed'
+	{ printf 'format=rog5-update-targets-v1\nupdate_id=%s\n' "$id"; printf '%s\n' "$plan"; } \
+		>"$dir/targets" || fail 'cannot record the targets'
+	# Until verify-root passes, any interruption restores at the next boot.
+	arm_pending "$id" restore || fail 'cannot arm the pending update'
+	history "update $id: $(printf '%s\n' "$plan" | wc -l | tr -d ' ') packages"
+	pacman -Q >"$dir/packages-before" 2>/dev/null || true
+	upgraded=0
+	if printf '%s\n' "$plan" | grep -q '^archlinuxarm-keyring '; then
+		pacman -S --needed --noconfirm archlinuxarm-keyring || upgraded=1
+	fi
+	if [ "$upgraded" -eq 0 ]; then
+		# shellcheck disable=SC2086
+		pacman -Su --noconfirm $ignore_args || upgraded=1
+	fi
+	pacman -Q >"$dir/packages-after" 2>/dev/null || true
+	if [ "$upgraded" -ne 0 ] && cmp -s "$dir/packages-before" "$dir/packages-after"; then
+		bb rm -f "$dir/pending" "$dir/targets"
+		prune_snapshots '' || true
+		bb sync
+		fail "pacman failed before changing packages (update $id)"
+	fi
+	if [ "$upgraded" -eq 0 ] && problems=$(verify_root); then
+		arm_pending "$id" verify || fail 'cannot mark the update verified'
+		log "PASS update $id installed and verified; it commits after one healthy boot"
+		history "update $id installed; verify-root PASS"
+		if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && display_idle; }; then
+			reboot_now 0 "verification boot of update $id"
+		fi
+		exit 0
+	fi
+	[ "$upgraded" -eq 0 ] || problems=pacman
+	log "FAIL update $id: $problems; the next boot restores the snapshot"
+	history "update $id failed ($problems); restore armed"
+	[ "$reboot_policy" = never ] || reboot_now 1 "restore of update $id"
+	exit 1
+}
+
+action_commit() {
+	lock
+	rm -f "$commit_failed"
+	[ -e "$dir/pending" ] || [ -L "$dir/pending" ] || { log 'SKIP no pending package update'; exit 0; }
+	fields=$(pending_fields) || fail 'pending record is not exact'
+	id=${fields%% *}
+	action=${fields#* }
+	boot_id=$(cat "$proc/sys/kernel/random/boot_id") || fail 'boot id'
+	if [ "$action" = restore ]; then
+		: >"$commit_failed"
+		fail "update $id is armed for restore but this boot kept it; the init lacks update rollback"
+	fi
+	attempt=$(attempt_boot "$id") || {
+		: >"$commit_failed"
+		fail "update $id has no exact attempt record; the init lacks update rollback"
+	}
+	if [ "$attempt" != "$boot_id" ]; then
+		: >"$commit_failed"
+		fail "update $id was started by another boot"
+	fi
+	waited=0
+	until ready; do
+		waited=$((waited + 1))
+		if [ "$waited" -ge "$limit" ]; then
+			: >"$commit_failed"
+			fail "update $id: health not reached in $limit s; the next boot restores its snapshot"
+		fi
+		sleep 1
+	done
+	if ! problems=$(verify_root); then
+		arm_pending "$id" restore || fail 'cannot arm the restore'
+		log "FAIL update $id booted but verify-root fails ($problems); restoring"
+		history "update $id failed after boot ($problems); restore armed"
+		[ "$reboot_policy" = never ] || reboot_now 1 "restore of update $id"
+		exit 1
+	fi
+	write_record "$dir/last-result" format=rog5-update-result-v1 "update_id=$id" \
+		result=committed reason=healthy "boot_id=$boot_id" || fail 'result record'
+	bb rm -f "$dir/pending" "$dir/attempt" "$dir/targets" "$dir/failed-targets" \
+		"$dir/failures" "$dir/packages-before" "$dir/packages-after" || fail 'cannot clear the update'
+	bb sync
+	# Keep this update's snapshot as the last good root for a manual rollback.
+	prune_snapshots "$id" || log 'older snapshots could not be removed'
+	find "$root/var/cache/pacman/pkg" -maxdepth 1 -type f -name '*.pkg.tar*' -delete 2>/dev/null || true
+	log "PASS update $id committed healthy after $waited s"
+	history "update $id committed"
+}
+
+action_status() {
+	for name in pending attempt restoring last-result failures last-check; do
+		[ -f "$dir/$name" ] || continue
+		printf '== %s\n' "$name"
+		cat "$dir/$name"
+	done
+	printf '== snapshots\n'
+	ls -1 "$snapshots" 2>/dev/null || true
+	[ ! -f "$dir/failed-targets" ] || { printf '== failed-targets\n'; cat "$dir/failed-targets"; }
+	[ ! -f "$dir/history" ] || { printf '== history\n'; tail -n 20 "$dir/history"; }
+}
+
+action_rollback() {
+	lock
+	overlay_ok || fail 'the root is not the expected persistent overlay'
+	[ ! -e "$dir/pending" ] && [ ! -L "$dir/pending" ] || fail 'an update is pending'
+	count=0
+	for entry in "$snapshots"/*; do
+		[ -e "$entry/seal" ] || continue
+		count=$((count + 1))
+		id=${entry##*/}
+	done
+	[ "$count" -eq 1 ] || fail 'expected exactly one kept snapshot'
+	snapshot_valid "$id" || fail "snapshot $id is not exact"
+	arm_pending "$id" restore || fail 'cannot arm the restore'
+	log "PASS the next boot restores the root from before update $id"
+	history "manual rollback to before $id armed"
+}
+
+[ "$#" -eq 1 ] || { log 'FAIL usage: rog5-update run|commit|verify-root|status|resume|rollback'; exit 1; }
+case $1 in
+	run) action_run ;;
+	commit) action_commit ;;
+	verify-root)
+		if problems=$(verify_root); then echo 'PASS verify-root'; else echo "FAIL verify-root: $problems"; exit 1; fi
+		;;
+	status) action_status ;;
+	resume) rm -f "$dir/failures" "$dir/failed-targets"; log 'PASS automatic updates resumed' ;;
+	rollback) action_rollback ;;
+	*) log 'FAIL usage: rog5-update run|commit|verify-root|status|resume|rollback'; exit 1 ;;
+esac

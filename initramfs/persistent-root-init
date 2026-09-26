@@ -1618,6 +1618,193 @@ verify_overlay_workdir_pre_mount() {
 	esac
 }
 
+# Unattended package updates (rog5-update in the /rog5-update kit) keep their
+# state beside upper/ and work/ on the overlay filesystem:
+#   rog5-update/pending    written by the updater before it changes packages
+#   rog5-update/attempt    written here on the first boot of that update
+#   rog5-update/restoring  journal of an interrupted restore
+#   rog5-update/last-result
+#   snapshots/<id>/{seal,upper}  full copy of upper taken before the update
+# A pending update boots once. If that boot did not commit it (the commit
+# unit removes pending), or the updater asked for a restore, the sealed
+# snapshot replaces upper before the overlay is mounted. Only exact records
+# and a matching seal are acted on; anything else leaves the root as before.
+update_record_exact() {
+	record=$1
+	lines=$2
+	[ -f "$record" ] && [ ! -L "$record" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$record")" = 0:0:444:1 ] || return 1
+	size=$(stat -c %s "$record") || return 1
+	[ "$size" -gt 0 ] && [ "$size" -le 512 ] || return 1
+	[ "$(wc -l <"$record")" -eq "$lines" ]
+}
+
+update_pending_fields() {
+	update_record_exact "$1" 3 || return 1
+	awk '
+	NR == 1 && $0 != "format=rog5-update-pending-v1" { bad = 1 }
+	NR == 2 { if ($0 !~ /^update_id=[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$/) bad = 1; id = substr($0, 11) }
+	NR == 3 { if ($0 != "action=verify" && $0 != "action=restore") bad = 1; action = substr($0, 8) }
+	END { if (bad || NR != 3) exit 1; print id " " action }' "$1"
+}
+
+update_restoring_fields() {
+	update_record_exact "$1" 3 || return 1
+	awk '
+	NR == 1 && $0 != "format=rog5-update-restoring-v1" { bad = 1 }
+	NR == 2 { if ($0 !~ /^update_id=[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$/) bad = 1; id = substr($0, 11) }
+	NR == 3 { if ($0 !~ /^reason=[a-z][a-z-]{0,39}$/) bad = 1; reason = substr($0, 8) }
+	END { if (bad || NR != 3) exit 1; print id " " reason }' "$1"
+}
+
+write_update_record() {
+	record=$1
+	shift
+	next=$record.next
+	rm -f "$next" || return 1
+	printf '%s\n' "$@" >"$next" || return 1
+	chown 0:0 "$next" && chmod 0444 "$next" || return 1
+	mv -f "$next" "$record" || return 1
+	sync
+}
+
+update_tree_names() {
+	(cd "$1" && find . -mindepth 1 | LC_ALL=C sort)
+}
+
+verify_update_snapshot() {
+	state=$1
+	id=$2
+	snapshot=$state/snapshots/$id
+	seal=$snapshot/seal
+	copy=$snapshot/upper
+	for directory in "$state/snapshots" "$snapshot"; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] &&
+			[ "$(stat -c '%u:%g:%a' "$directory")" = 0:0:700 ] || return 1
+	done
+	update_record_exact "$seal" 4 || return 1
+	seal_fields=$(awk -v id="$id" '
+	NR == 1 && $0 != "format=rog5-overlay-snapshot-v1" { bad = 1 }
+	NR == 2 && $0 != "update_id=" id { bad = 1 }
+	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
+	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
+	END { if (bad || NR != 4) exit 1; print entries " " names }' "$seal") ||
+		return 1
+	[ -d "$copy" ] && [ ! -L "$copy" ] || return 1
+	case $(stat -c '%u:%g:%a' "$copy") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
+	[ "$(update_tree_names "$copy" | wc -l)" = "${seal_fields%% *}" ] || return 1
+	[ "$(update_tree_names "$copy" | sha256sum | cut -d ' ' -f 1)" = \
+		"${seal_fields#* }" ]
+}
+
+# Returns 0 after a complete restore, 2 when the snapshot cannot be trusted
+# (upper is left or put back as the updated root), and 1 when a started
+# restore can neither finish nor be undone.
+restore_update_snapshot() {
+	state=$1
+	id=$2
+	reason=$3
+	dir=$state/rog5-update
+	snapshot=$state/snapshots/$id
+	failed=$snapshot/failed-upper
+	journal=$dir/restoring
+	if [ ! -e "$journal" ] && [ ! -L "$journal" ]; then
+		[ ! -e "$failed" ] && [ ! -L "$failed" ] || return 2
+		verify_update_snapshot "$state" "$id" || return 2
+		write_update_record "$journal" format=rog5-update-restoring-v1 \
+			"update_id=$id" "reason=$reason" || return 1
+	fi
+	# Each step is one rename on the overlay filesystem; the journal lets a
+	# later boot finish a restore that a reset interrupted.
+	if [ -d "$state/upper" ] && [ ! -L "$state/upper" ] &&
+		[ ! -e "$failed" ] && [ ! -L "$failed" ]; then
+		if ! verify_update_snapshot "$state" "$id"; then
+			rm -f "$journal" || return 1
+			sync
+			return 2
+		fi
+		mv "$state/upper" "$failed" || return 1
+		sync
+	fi
+	if [ ! -e "$state/upper" ] && [ ! -L "$state/upper" ] &&
+		[ -d "$failed" ] && [ ! -L "$failed" ]; then
+		if ! verify_update_snapshot "$state" "$id"; then
+			mv "$failed" "$state/upper" || return 1
+			sync
+			rm -f "$journal" || return 1
+			sync
+			return 2
+		fi
+		mv "$snapshot/upper" "$state/upper" || return 1
+		sync
+	fi
+	[ -d "$state/upper" ] && [ ! -L "$state/upper" ] &&
+		[ -d "$failed" ] && [ ! -L "$failed" ] &&
+		[ ! -e "$snapshot/upper" ] && [ ! -L "$snapshot/upper" ] || return 1
+	write_update_record "$dir/last-result" format=rog5-update-result-v1 \
+		"update_id=$id" result=rolled-back "reason=$reason" \
+		"boot_id=$target_boot_id" || return 1
+	rm -f "$dir/pending" "$dir/attempt" || return 1
+	sync
+	rm -f "$journal" || return 1
+	sync
+	log "update $id rolled back ($reason); the failed upper is kept as snapshots/$id/failed-upper"
+}
+
+apply_update_rollback() {
+	state=$1
+	dir=$state/rog5-update
+	[ -e "$dir" ] || [ -L "$dir" ] || return 0
+	if ! [ -d "$dir" ] || [ -L "$dir" ] ||
+		[ "$(stat -c '%u:%g:%a' "$dir")" != 0:0:700 ]; then
+		log 'update state directory is not exact; no update action'
+		return 0
+	fi
+	journal=$dir/restoring
+	update_pending=$dir/pending
+	update_attempt=$dir/attempt
+	if [ -e "$journal" ] || [ -L "$journal" ]; then
+		# A restore was interrupted after its journal; finish or undo it.
+		fields=$(update_restoring_fields "$journal") || return 1
+		id=${fields%% *}
+		reason=${fields#* }
+	else
+		[ -e "$update_pending" ] || [ -L "$update_pending" ] || return 0
+		if ! fields=$(update_pending_fields "$update_pending"); then
+			log 'update pending record is not exact; no update action'
+			return 0
+		fi
+		id=${fields%% *}
+		action=${fields#* }
+		if [ "$action" = restore ]; then
+			reason=restore-requested
+		elif [ -e "$update_attempt" ] || [ -L "$update_attempt" ]; then
+			reason=boot-not-committed
+		elif write_update_record "$update_attempt" format=rog5-update-attempt-v1 \
+			"update_id=$id" "boot_id=$target_boot_id"; then
+			log "first boot of package update $id"
+			return 0
+		else
+			# Without a durable attempt record a failing update could loop.
+			reason=attempt-unrecorded
+		fi
+	fi
+	restore_update_snapshot "$state" "$id" "$reason"
+	case $? in
+		0) return 0 ;;
+		2)
+			log "update $id snapshot is not exact; booting the updated root unchanged"
+			write_update_record "$dir/last-result" format=rog5-update-result-v1 \
+				"update_id=$id" result=restore-refused \
+				"reason=snapshot-invalid" "boot_id=$target_boot_id" || return 1
+			rm -f "$update_pending" "$update_attempt" || return 1
+			sync
+			return 0
+			;;
+		*) return 1 ;;
+	esac
+}
+
 close_persistent_overlay_prepare() {
 	close_status=0
 	[ "$overlay_mounted" -eq 0 ] || {
@@ -1693,6 +1880,7 @@ prepare_persistent_overlay_inner() {
 		"$overlay_loop" /mnt/state || return 1
 	overlay_mounted=1
 	verify_exact_rw_exec_mount "$overlay_loop" /mnt/state || return 1
+	apply_update_rollback /mnt/state || return 1
 	verify_persistent_overlay_tree /mnt/state || return 1
 	verify_overlay_workdir_pre_mount /mnt/state || return 1
 	verify_exact_overlay_write_window || return 1
@@ -2098,6 +2286,47 @@ prepare_production_trial() {
 		"$run/systemd/system/multi-user.target.wants/rog5-production-trial-commit.service"
 }
 
+prepare_update_services() {
+	# Optional: a production ramdisk built with PRODUCTION_UPDATE_KIT=1 carries
+	# the unattended package updater, its hourly timer and the per-boot commit
+	# unit. Publish them to /run for the booted systemd.
+	kit=/rog5-update
+	run=/run
+	[ -e "$kit" ] || [ -L "$kit" ] || return 0
+	[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+	[ -d "$kit" ] && [ ! -L "$kit" ] &&
+		[ "$(stat -c '%u:%g:%a' "$kit")" = 0:0:700 ] || return 1
+	units="rog5-update.service rog5-update.timer rog5-update-commit.service"
+	for entry in rog5-update:755 rog5-update.service:644 rog5-update.timer:644 \
+		rog5-update-commit.service:644; do
+		file=$kit/${entry%%:*}
+		[ -f "$file" ] && [ ! -L "$file" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] ||
+			return 1
+	done
+	[ "$(find "$kit" -mindepth 1 | wc -l)" -eq 4 ] || return 1
+	for path in "$run/rog5-update" \
+		"$run/systemd/system/timers.target.wants/rog5-update.timer" \
+		"$run/systemd/system/multi-user.target.wants/rog5-update-commit.service"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	for unit in $units; do
+		[ ! -e "$run/systemd/system/$unit" ] &&
+			[ ! -L "$run/systemd/system/$unit" ] || return 1
+	done
+	mkdir -m 0700 "$run/rog5-update" || return 1
+	cp -p "$kit/rog5-update" "$run/rog5-update/" || return 1
+	mkdir -p "$run/systemd/system/timers.target.wants" \
+		"$run/systemd/system/multi-user.target.wants" || return 1
+	for unit in $units; do
+		cp -p "$kit/$unit" "$run/systemd/system/" || return 1
+	done
+	ln -s ../rog5-update.timer \
+		"$run/systemd/system/timers.target.wants/rog5-update.timer" || return 1
+	ln -s ../rog5-update-commit.service \
+		"$run/systemd/system/multi-user.target.wants/rog5-update-commit.service"
+}
+
 prepare_platform_services() {
 	# Optional: a production ramdisk carries the platform kit (boot modules,
 	# RTC time and the systemd watchdog setting). Publish it to /run for the
@@ -2352,6 +2581,7 @@ EOF
 		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
 	prepare_package_keyring || return 1
 	prepare_production_trial || return 1
+	prepare_update_services || return 1
 	prepare_platform_services || return 1
 	prepare_wifi_services || return 1
 	ln -s /dev/null /run/systemd/system/udisks2.service

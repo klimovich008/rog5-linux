@@ -270,6 +270,7 @@ active_tests=(
 	scripts/host/test-module-loop.py
 	scripts/host/test-install-default-kernel.py
 	scripts/device/test-production-trial-commit.py
+	scripts/device/test-rog5-update.py
 	scripts/device/test-production-platform-kit.py
 	scripts/device/test-production-wifi.py
 	scripts/host/test-package-production-modules.py

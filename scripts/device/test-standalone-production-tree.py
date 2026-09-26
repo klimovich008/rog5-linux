@@ -148,6 +148,33 @@ class Builds(unittest.TestCase):
         self.assertNotEqual(wrong.returncode, 0)
         self.assertIn('FAIL production trial kit', wrong.stderr)
 
+    def test_update_kit_is_installed_only_on_request_with_exact_modes(self):
+        output = self.dir/'update.cpio.gz'
+        result = build(BASE, output, PACKAGE, sha(PACKAGE), env_extra=dict(
+            PRODUCTION_UPDATE_KIT='1', PERSISTENT_ROOT_OVERLAY='1'))
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        listing = subprocess.run(f'gzip -dc {output} | cpio -tv --quiet', shell=True,
+                                 capture_output=True, text=True, check=True).stdout.splitlines()
+        modes = {line.split()[-1]: line.split()[0] for line in listing if line.split()[-1].startswith('rog5-update')}
+        self.assertEqual(modes, {'rog5-update': 'drwx------',
+                                 'rog5-update/rog5-update': '-rwxr-xr-x',
+                                 'rog5-update/rog5-update.service': '-rw-r--r--',
+                                 'rog5-update/rog5-update.timer': '-rw-r--r--',
+                                 'rog5-update/rog5-update-commit.service': '-rw-r--r--'})
+        tool = subprocess.run(f'gzip -dc {output} | cpio -i --quiet --to-stdout rog5-update/rog5-update',
+                              shell=True, capture_output=True, check=True).stdout
+        self.assertEqual(tool, (REPO/'initramfs/rog5-update').read_bytes())
+        plain = self.dir/'plain.cpio.gz'
+        self.assertEqual(build(BASE, plain, PACKAGE, sha(PACKAGE)).returncode, 0)
+        self.assertFalse([m for m in self.members(plain) if m.startswith('rog5-update')])
+        for label, extra in (('tmpfs overlay', dict(PRODUCTION_UPDATE_KIT='1')),
+                             ('bad flag', dict(PRODUCTION_UPDATE_KIT='yes', PERSISTENT_ROOT_OVERLAY='1'))):
+            with self.subTest(label):
+                wrong = build(BASE, self.dir/'wrong.cpio.gz', PACKAGE, sha(PACKAGE), env_extra=extra)
+                self.assertNotEqual(wrong.returncode, 0)
+                self.assertIn('FAIL', wrong.stderr)
+                self.assertFalse((self.dir/'wrong.cpio.gz').exists())
+
     def test_real_build_has_one_release_tree_and_no_loose_release_modules(self):
         output = self.dir/'target.cpio.gz'
         result = build(BASE, output, PACKAGE, sha(PACKAGE))

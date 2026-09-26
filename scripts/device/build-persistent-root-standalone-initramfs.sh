@@ -44,10 +44,18 @@ production_trial=${PRODUCTION_TRIAL_DESCRIPTOR:-}
 production_wifi=${PRODUCTION_WIFI_KIT:-}
 production_wifi_sha256=${PRODUCTION_WIFI_KIT_SHA256:-}
 production_trial_sha256=${PRODUCTION_TRIAL_DESCRIPTOR_SHA256:-}
+# Optional unattended package updater (off by default): the rog5-update tool,
+# its hourly timer and the per-boot commit unit. The init's snapshot restore is
+# always present and inert until the updater writes a pending record.
+production_update=${PRODUCTION_UPDATE_KIT:-0}
 epoch=1681862400
 
 case $persistent_overlay_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
+	exit 1
+esac
+case $production_update in 0|1) ;; *)
+	echo 'FAIL PRODUCTION_UPDATE_KIT must be 0 or 1' >&2
 	exit 1
 esac
 # Exact production releases with a build policy in configs/kernel; an upgrade
@@ -144,6 +152,16 @@ install_production_trial() {
 			"$kit/rog5-production-trial-commit.service"
 }
 
+install_update_kit() {
+	kit=$root/rog5-update
+	[ ! -e "$kit" ] && [ ! -L "$kit" ] || return 1
+	install -d -m 0700 "$kit" &&
+		install -m 0755 "$repo/initramfs/rog5-update" "$kit/rog5-update" || return 1
+	for unit in rog5-update.service rog5-update.timer rog5-update-commit.service; do
+		install -m 0644 "$repo/configs/systemd/$unit" "$kit/$unit" || return 1
+	done
+}
+
 if [ -n "$production_package" ]; then
 	production_release "$expected_release" &&
 		printf '%s\n' "$production_package_sha256" | grep -Eqx '[0-9a-f]{64}' &&
@@ -158,6 +176,11 @@ fi
 }
 [ -z "$production_trial" ] || [ -n "$production_package" ] || {
 	echo 'FAIL a production trial kit needs the production module tree' >&2
+	exit 1
+}
+[ "$production_update" = 0 ] ||
+	{ [ -n "$production_package" ] && [ "$persistent_overlay_mode" = 1 ]; } || {
+	echo 'FAIL the update kit needs the production module tree and PERSISTENT_ROOT_OVERLAY=1' >&2
 	exit 1
 }
 
@@ -294,6 +317,9 @@ unchanged_files() {
 	if [ -n "$production_wifi" ]; then
 		set -- "$@" ! -path './rog5-wifi/*'
 	fi
+	if [ "$production_update" = 1 ]; then
+		set -- "$@" ! -path './rog5-update/*'
+	fi
 	find . -type f "$@" -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
 }
 
@@ -407,6 +433,12 @@ if [ -n "$production_package" ]; then
 	if [ -n "$production_trial" ]; then
 		install_production_trial "$production_trial" || {
 			echo 'FAIL production trial kit' >&2
+			exit 1
+		}
+	fi
+	if [ "$production_update" = 1 ]; then
+		install_update_kit || {
+			echo 'FAIL production update kit' >&2
 			exit 1
 		}
 	fi

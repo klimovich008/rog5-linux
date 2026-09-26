@@ -1,0 +1,15 @@
+[Unit]
+Description=Commit or roll back a pending unattended ROG5 package update
+# After the kernel's own try-once commit, so a restore reboot never costs the
+# default bundle; after systemd-update-done, whose markers verify-root checks.
+After=rog5-production-trial-commit.service rog5-persistent-state.service rog5-persistent-ssh-identity.service rog5-early-sshd.service systemd-update-done.service
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-update/rog5-update commit
+TimeoutStartSec=300
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly check for unattended ROG5 package updates
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1h
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
