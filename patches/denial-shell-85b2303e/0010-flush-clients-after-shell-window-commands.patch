@@ -1,0 +1,19 @@
+diff --git a/compositor/src/bin/deniald/flutter_settings_sync.rs b/compositor/src/bin/deniald/flutter_settings_sync.rs
+index 2b33c67..4257f37 100644
+--- a/compositor/src/bin/deniald/flutter_settings_sync.rs
++++ b/compositor/src/bin/deniald/flutter_settings_sync.rs
+@@ -78,7 +78,14 @@ pub(super) fn synchronize_flutter_window_management(
+                 wayland_commands.push(command);
+             }
+         }
++        let configured_clients = !wayland_commands.is_empty();
+         wayland_frontend::apply_window_commands(events, wayland_commands);
++        // A shell command (a keyboard resize, for one) can queue configure
++        // events with no client input or frame callback to flush them; they
++        // otherwise waited for unrelated traffic, often more than a second.
++        if configured_clients && let Some(frontend) = events.wayland.as_mut() {
++            frontend.display_handle.flush_clients()?;
++        }
+     }
+     if events.pending_window_events.is_empty() {
+         return Ok(());
