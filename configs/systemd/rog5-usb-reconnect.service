@@ -1,0 +1,8 @@
+[Unit]
+Description=Re-enumerate the USB gadget after the cable is plugged back in
+# Started by /etc/udev/rules.d/90-rog5-usb-reconnect.rules on USB supply changes.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/rog5-usb-reconnect
+TimeoutStartSec=60

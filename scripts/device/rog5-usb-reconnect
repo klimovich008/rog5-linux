@@ -1,0 +1,49 @@
+#!/bin/sh
+# Re-enumerate the USB gadget after the cable is plugged back in.
+#
+# The dwc3 controller (a600000.usb, dr_mode=peripheral, no role switch, VBUS
+# forced valid) is never told about a detach: after an unplug/replug the link
+# stays in Suspend, the UDC in "default", and the host sees nothing attached.
+# soft_connect does not help; a driver unbind/bind (core and HS PHY re-init)
+# does, and the host enumerates the gadget at once (2026-09-26).
+#
+# Run by rog5-usb-reconnect.service, which udev starts on every change of the
+# qcom-battmgr-usb power supply. On a data-capable attach (SDP/CDP) it waits
+# for the host to configure the gadget and re-initialises the controller only
+# if that does not happen. A charger (DCP) or an already configured link is
+# left alone.
+set -u
+udc=a600000.usb
+gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
+supply=/sys/class/power_supply/qcom-battmgr-usb
+wait_s=${ROG5_USB_RECONNECT_WAIT:-6}
+
+log() { printf 'rog5-usb-reconnect: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
+state() { cat "/sys/class/udc/$udc/state" 2>/dev/null; }
+
+[ "$(cat "$supply/online" 2>/dev/null)" = 1 ] || exit 0
+case $(cat "$supply/usb_type" 2>/dev/null) in
+*'[SDP]'*|*'[CDP]'*) ;;
+*) exit 0 ;;
+esac
+waited=0
+while [ "$waited" -lt "$wait_s" ]; do
+	[ "$(state)" = configured ] && exit 0
+	sleep 1
+	waited=$((waited + 1))
+done
+log "gadget still $(state) ${wait_s}s after attach; re-initialising $udc"
+echo "$udc" >/sys/bus/platform/drivers/dwc3/unbind || { log 'FAIL unbind'; exit 1; }
+sleep 1
+echo "$udc" >/sys/bus/platform/drivers/dwc3/bind || { log 'FAIL bind'; exit 1; }
+sleep 1
+[ -n "$(cat "$gadget/UDC" 2>/dev/null)" ] || echo "$udc" >"$gadget/UDC" || { log 'FAIL gadget bind'; exit 1; }
+ip link set usb0 up 2>/dev/null
+waited=0
+while [ "$waited" -lt 10 ]; do
+	[ "$(state)" = configured ] && { log "PASS gadget configured after re-initialisation"; exit 0; }
+	sleep 1
+	waited=$((waited + 1))
+done
+log "gadget $(state) after re-initialisation"
+exit 1

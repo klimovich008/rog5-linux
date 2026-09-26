@@ -895,3 +895,29 @@ V11 is a headless volatile root.
     sensors; r26 (WFI only) measured 191 mA.
   - Top wakeups: arch_timer 157/s, IPI function calls 90/s, mem_timer 89/s,
     timer broadcast 84/s, Wi-Fi CE 11/s, glink 9/s.
+
+### Denial and userspace fixes on the r93 default (2026-09-26)
+
+- **Quick-settings glitch (colour band):**
+  - The band shows at the physical top edge during quick-settings and keyboard overlay animations, never during page swipes. The user watched remote-triggered gestures.
+  - The scanned-out framebuffer is always clean: 2103 GPU-read samples.
+  - It persists with each of these changed: the MSAA engine patch reverted, backdrop blur off, UBWC off (linear), DPU pinned at 460 MHz with a 4 GB/s vote.
+  - The panel is DSC with 48-row slices, and TE uses scanline 0x980 (the same as stock).
+  - Suspect: command-mode tear check. Late kickoffs overlap the panel's read of slice 0. Next: DPU tear-check variants, with the user watching.
+- **Quick-settings inner scroll:**
+  - Denial shell patch 0001 makes the panel as tall as its contents, sliding by its own height. `libapp.so` is rebuilt (1 min, `pub get --offline`) and deployed.
+  - The bench handle moved to y=1350.
+  - Smooth: QS 1.05, slow drag 1.02 dropped frames per gesture (n=40).
+- **Wi-Fi on NetworkManager:**
+  - NM 1.58.1 with the glibc wpa_supplicant 2.12 backend. `rog5-wifi-wpa`/`-dhcp` are masked in /etc; `rog5-wifi-radio` still powers the radio.
+  - `scripts/device/rog5-wifi-networkmanager.sh apply|revert` imports the /persist network as a 0600 keyfile without printing the key.
+  - The raw 64-hex PSK needs `pmf=1`. Otherwise NM also offers SAE, which cannot use a derived PSK, and fails with CONN_FAILED (reported as "ssid-not-found").
+  - iwd was rejected: the kernel lacks CRYPTO_USER_API_HASH/SKCIPHER and KEY_DH_OPERATIONS.
+  - Result: connected at the same IP, DNS through resolved, HTTPS works.
+  - Denial's Wi-Fi tile and detail list now work: networks with signal and security, connected state, forget/disconnect, radio toggle.
+- **USB re-plug:**
+  - After an unplug/replug the dwc3 link stayed Suspend, the UDC "default", and the host saw nothing. Cause: `dr_mode=peripheral` with no role switch and forced VBUS, so no detach is ever signalled.
+  - A dwc3 unbind/bind (core and PHY re-init) recovers it.
+  - `rog5-usb-reconnect` (udev on qcom-battmgr-usb change → oneshot service) re-initialises only when an SDP/CDP attach is not configured after 6 s.
+  - Verified with a real replug: "gadget still default 6s after attach; re-initialising" → "PASS gadget configured", and the host enumerated.
+  - A proper kernel fix (a usb-c connector under pmic-glink, a role switch, and a UDC vbus handler in drd.c) is drafted but not built.
