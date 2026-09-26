@@ -11,17 +11,41 @@
  use flutter_event_loop::{FlutterEventLoopContext, run_flutter_event_loop};
 --- a/compositor/src/bin/deniald/dpms.rs
 +++ b/compositor/src/bin/deniald/dpms.rs
-@@ -206,6 +206,42 @@
+@@ -206,6 +206,60 @@
      info!("requested immediate compositor-owned display power-off");
  }
  
++/// Opt-in switch for locking the session on the power key.
++///
++/// Off by default: a device without a usable credential would only gain a
++/// swipe-to-unlock screen. Set `DENIAL_POWER_KEY_LOCK=1` in the session
++/// environment once the account has a password.
++#[cfg(feature = "flutter")]
++const POWER_KEY_LOCK_ENV: &str = "DENIAL_POWER_KEY_LOCK";
++
++#[cfg(feature = "flutter")]
++fn power_key_locks_session() -> bool {
++    std::env::var_os(POWER_KEY_LOCK_ENV).is_some_and(|value| value == "1")
++}
++
++/// Locks the session for a power-key blank. Returns whether it locked.
++#[cfg(feature = "flutter")]
++fn lock_session_for_power_key(events: &RuntimeState) -> bool {
++    let Some(authentication) = events.authentication.as_ref() else {
++        warn!("power key could not lock the session: authentication is unavailable");
++        return false;
++    };
++    authentication.lock();
++    true
++}
++
 +/// Applies a queued physical power-key press at the DPMS boundary.
 +///
-+/// With any output lit, the press locks the session and blanks every output
-+/// through the same compositor-owned path as the shell's screen-off request.
-+/// With every output already off, it counts as user activity, which wakes the
-+/// outputs the idle policy blanked. The session stays locked, so the wake
-+/// shows the lock screen.
++/// With any output lit, the press blanks every output through the same
++/// compositor-owned path as the shell's screen-off request (after locking
++/// the session, when [`POWER_KEY_LOCK_ENV`] opts in). With every output
++/// already off, it counts as user activity, which wakes the outputs the idle
++/// policy blanked.
 +#[cfg(feature = "flutter")]
 +pub(super) fn synchronize_power_key(scanouts: &[Scanout], events: &mut RuntimeState) {
 +    if !std::mem::take(&mut events.power_key_pending) {
@@ -32,13 +56,7 @@
 +        info!("power key woke the displays");
 +        return;
 +    }
-+    let locked = if let Some(authentication) = events.authentication.as_ref() {
-+        authentication.lock();
-+        true
-+    } else {
-+        warn!("power key could not lock the session: authentication is unavailable");
-+        false
-+    };
++    let locked = power_key_locks_session() && lock_session_for_power_key(events);
 +    let requests = events.idle_policy.blank_now(
 +        scanouts
 +            .iter()
@@ -100,11 +118,11 @@
 +
 +/// Claims the physical power key for the compositor, like a phone's.
 +///
-+/// A press is queued for the event loop, which either locks the session and
-+/// blanks every output or, when the outputs are already off, wakes them to
-+/// the lock screen. Press and release are both consumed before activity is
-+/// noted, so neither the shell nor a client ever sees `KEY_POWER`, and the
-+/// release cannot undo the power-off. logind keeps its own reading of the
++/// A press is queued for the event loop, which either blanks every output
++/// (locking first when `DENIAL_POWER_KEY_LOCK=1`) or, when the outputs are
++/// already off, wakes them. Press and release are both consumed before
++/// activity is noted, so neither the shell nor a client ever sees
++/// `KEY_POWER`, and the release cannot undo the power-off. logind keeps its own reading of the
 +/// device (`HandlePowerKey=ignore`, long-press power-off).
 +#[cfg(feature = "flutter")]
 +fn intercept_power_key(state: &mut RuntimeState, keycode: Keycode, key_state: KeyState) -> bool {
