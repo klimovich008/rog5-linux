@@ -1,0 +1,17 @@
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c	2026-09-26 11:18:39.914932592 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c	2026-09-26 11:18:39.927104876 +0200
+@@ -46,7 +46,13 @@
+  */
+ static unsigned int dpu_tc_start_thresh = DEFAULT_TEARCHECK_SYNC_THRESH_START;
+ module_param(dpu_tc_start_thresh, uint, 0644);
+-static unsigned int dpu_tc_continue_thresh = DEFAULT_TEARCHECK_SYNC_THRESH_CONTINUE;
++/*
++ * ROG5 (AMS678, DSC command mode): 0 makes a kickoff that misses the start
++ * window wait for the next TE instead of starting mid-scan; with the stock
++ * link rate (patch 0053) this left only a faint line at the top during
++ * overlay animations, down from a colour band (user-observed, r97).
++ */
++static unsigned int dpu_tc_continue_thresh;
+ module_param(dpu_tc_continue_thresh, uint, 0644);
+ static int dpu_tc_start_pos_delta;
+ module_param(dpu_tc_start_pos_delta, int, 0644);
