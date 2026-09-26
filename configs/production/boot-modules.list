@@ -9,6 +9,10 @@ softdog soft_panic=1
 rog5_gmu_bind
 # Display and GPU (milestone 2): KMS on card0, the A660 as a separate render
 # device; gpucc and refgen are built in.
+# No kernel fbdev/fbcon client: at msm probe (~24 s) it modesets the panel,
+# which shows glitches until Denial's first frame. Without it the bootloader
+# splash stays up until Denial takes the display over.
+drm_client_lib active=
 msm separate_gpu_kms=1
 panel_asus_rog5_ams678
 # Front touch (milestone 4): GPI DMA for the GENI SE, then the FTS3658U driver.

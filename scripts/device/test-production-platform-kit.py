@@ -88,7 +88,7 @@ class BootModules(Base):
         self.assertEqual(code, 0, kmsg)
         tree = self.dir/'tree'
         self.assertEqual(self.calls(), [f'modprobe -d {tree} rtc_pm8xxx', f'modprobe -d {tree} softdog soft_panic=1', f'modprobe -d {tree} rog5_gmu_bind',
-                                        f'modprobe -d {tree} msm separate_gpu_kms=1', f'modprobe -d {tree} panel_asus_rog5_ams678',
+                                        f'modprobe -d {tree} drm_client_lib active=', f'modprobe -d {tree} msm separate_gpu_kms=1', f'modprobe -d {tree} panel_asus_rog5_ams678',
                                         f'modprobe -d {tree} gpi', f'modprobe -d {tree} rog5_fts3658u', f'modprobe -d {tree} rog5_aw8697',
                                         f'modprobe -d {tree} rog5_vcnl36866', f'modprobe -d {tree} rog5_aura',
                                         f'modprobe -d {tree} qcom_pon', f'modprobe -d {tree} icc_bwmon', f'modprobe -d {tree} rog5_input_boost',
@@ -100,7 +100,7 @@ class BootModules(Base):
         code, kmsg = self.load()
         self.assertEqual(code, 1)
         self.assertIn('FAIL modprobe rtc_pm8xxx', kmsg)
-        self.assertEqual(len(self.calls()), 14)
+        self.assertEqual(len(self.calls()), 15)
 
     def test_audio_list_loads_without_boot_settings(self):
         shutil.copy(AUDIO_LIST, self.kit/'audio-modules')
