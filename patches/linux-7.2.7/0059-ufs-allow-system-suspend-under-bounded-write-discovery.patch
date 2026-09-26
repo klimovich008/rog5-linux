@@ -9,7 +9,7 @@ tried to enable auto-BKOPS, a query write the gate refuses.
 System suspend does not need a query write: auto-BKOPS and WriteBooster are
 never enabled in discovery mode, so the path is START STOP UNIT (allowed on
 bounded-write kernels) to the ufs-qcom spm_lvl 5 (POWERDOWN, link off), and
-resume re-initialises the link as at boot (fDeviceInit is allowed).
+resume exits hibern8 and wakes the device (fDeviceInit is allowed).
 Runtime PM stays forbidden, and shutdown transitions stay rejected.
 
 ufshcd_core.rog5_ufs_system_pm (0644) selects the behaviour at run time:

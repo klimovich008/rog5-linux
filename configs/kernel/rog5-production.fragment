@@ -80,3 +80,9 @@ CONFIG_SND_SOC_CS35L45_I2C=m
 # core) and pm_print_times/pm_debug_messages. No behaviour change unless used.
 CONFIG_PM_DEBUG=y
 CONFIG_PM_SLEEP_DEBUG=y
+# Hierarchical PSCI (OS-initiated) CPU idle domains, the stock regime (the
+# 5.4 kernel switches the firmware to OSI; lpm cluster states 0x41000044 /
+# 0x4100c344). Only takes effect with a DTB whose CPUs reference the /psci
+# power domains (compose feature "osi"); t13 showed the OSI switch itself
+# does not reset after kexec.
+CONFIG_ARM_PSCI_CPUIDLE_DOMAIN=y

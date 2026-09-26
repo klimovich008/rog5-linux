@@ -4,11 +4,11 @@
 # PMIC disabled (display-dtb-r2), then the platform overlay (PMK8350 RTC) and
 # ramoops in the 0x9b800000 reservation. Checks the r2 intermediate byte for byte before adding anything.
 set -eu
-base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg]}
+base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi]}
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
-case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
+case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
@@ -72,6 +72,7 @@ case ,$features, in *,periph,*) periph=1 ;; *) periph=0 ;; esac
 case ,$features, in *,audio,*) audio=1 ;; *) audio=0 ;; esac
 case ,$features, in *,slpi,*) slpi=1 ;; *) slpi=0 ;; esac
 case ,$features, in *,usbotg,*) usbotg=1 ;; *) usbotg=0 ;; esac
+case ,$features, in *,osi,*) osi=1 ;; *) osi=0 ;; esac
 if [ "$bluetooth" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -106,6 +107,37 @@ if [ "$cpuidle" = 1 ]; then
 	# platform-coordinated only: no CPU power-domain references
 	[ -z "$(fdtget "$work/composed.dtb" /cpus/cpu@0 power-domains 2>/dev/null)" ] ||
 		{ echo 'FAIL cpuidle must not add OSI domains' >&2; exit 1; }
+fi
+# osi: OS-initiated PSCI with the upstream CPU/cluster domain hierarchy (the
+# stock regime), restoring what the board DT deletes. Stage A offers the
+# cluster only its APSS-off state (0x41000044); AOSS sleep stays out until
+# APSS-off is qualified. apps_rsc hangs off the cluster domain again, so RPMh
+# flushes sleep/wake votes before the cluster powers down. Needs a kernel
+# with ARM_PSCI_CPUIDLE_DOMAIN. Overlays cannot delete properties, so fdtput.
+if [ "$osi" = 1 ]; then
+	[ "$cpuidle" = 1 ] || { echo 'FAIL osi needs cpuidle' >&2; exit 1; }
+	cluster=$(fdtget "$work/composed.dtb" /psci/power-domain-cpu-cluster0 phandle)
+	apss_off=$(fdtget "$work/composed.dtb" /cpus/domain-idle-states/cluster-sleep-0 phandle)
+	[ -n "$cluster" ] && [ -n "$apss_off" ] &&
+		[ "$(fdtget -t x "$work/composed.dtb" /cpus/domain-idle-states/cluster-sleep-0 arm,psci-suspend-param)" = 41000044 ] ||
+		{ echo 'FAIL osi: upstream cluster domain or APSS-off state missing' >&2; exit 1; }
+	n=0
+	for cpu in 0 100 200 300 400 500 600 700; do
+		pd=$(fdtget "$work/composed.dtb" /psci/power-domain-cpu$n phandle) ||
+			{ echo "FAIL osi: no power-domain-cpu$n" >&2; exit 1; }
+		fdtput -d "$work/composed.dtb" /cpus/cpu@$cpu cpu-idle-states
+		fdtput -t u "$work/composed.dtb" /cpus/cpu@$cpu power-domains "$pd"
+		fdtput -t s "$work/composed.dtb" /cpus/cpu@$cpu power-domain-names psci
+		n=$((n + 1))
+	done
+	fdtput -t u "$work/composed.dtb" /psci/power-domain-cpu-cluster0 domain-idle-states "$apss_off"
+	rsc=$(fdtget -l "$work/composed.dtb" /soc@0 | grep '^rsc@' | head -1)
+	[ -n "$rsc" ] || { echo 'FAIL osi: apps_rsc not found' >&2; exit 1; }
+	fdtput -t u "$work/composed.dtb" "/soc@0/$rsc" power-domains "$cluster"
+	[ "$(fdtget "$work/composed.dtb" /cpus/cpu@700 power-domain-names)" = psci ] &&
+		[ -z "$(fdtget "$work/composed.dtb" /cpus/cpu@0 cpu-idle-states 2>/dev/null)" ] &&
+		[ "$(fdtget "$work/composed.dtb" /psci/power-domain-cpu-cluster0 domain-idle-states)" = "$apss_off" ] ||
+		{ echo 'FAIL osi composition' >&2; exit 1; }
 fi
 if [ "$gpubw" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
