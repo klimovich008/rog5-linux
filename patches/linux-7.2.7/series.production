@@ -27,3 +27,4 @@
 0052-ROG5-TEST-tear-check-module-parameters.patch
 0053-drm-panel-asus-rog5-ams678-stock-60-Hz-DSI-link-rate.patch
 0054-drm-msm-dpu-ROG5-tear-check-continue-threshold-0.patch
+0055-usb-dwc3-drd-gate-pullup-on-role-for-legacy-glue.patch

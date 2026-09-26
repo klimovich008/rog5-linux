@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Side (left, DisplayPort-capable) Type-C port as a dual-role port.
+ *
+ * usb_1 (DWC3 a600000, SNPS HS PHY 88e3000, QMP USB3/DP combo 88e8000) is
+ * the side connector: the stock ZS673KS tree links ssusb@a600000 to the
+ * only qcom,ucsi-glink endpoint, and the ADSP (PM8350B Type-C) reports it
+ * as UCSI connector 1 (/sys/class/typec/port0). The ADSP already runs the
+ * port as DRP and owns VBUS; Linux only follows the data role that UCSI
+ * reports: partner DFP (a PC) -> device (NCM gadget), partner UFP (OTG
+ * adapter, hub, drive) -> host. NONE falls back to peripheral so the NCM
+ * gadget comes back unchanged after an OTG session.
+ *
+ * Stays high-speed only (utmi-as-pipe-clk, usb2-phy) like the recovery tier;
+ * SuperSpeed needs the combo PHY plus pmic_glink_altmode orientation and is
+ * a later stage. Needs patch 0055 (drd pull-up gate) for clean re-plugs.
+ *
+ * connector@0 must stay the first child of /pmic-glink: ucsi_find_fwnode()
+ * matches connectors by child index.
+ */
+/dts-v1/;
+/plugin/;
+
+&{/pmic-glink} {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	connector@0 {
+		compatible = "usb-c-connector";
+		reg = <0>;
+		label = "side";
+		power-role = "dual";
+		data-role = "dual";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				rog5_side_hs_in: endpoint {
+					remote-endpoint = <&usb_1_dwc3_hs>;
+				};
+			};
+		};
+	};
+};
+
+&usb_1_dwc3 {
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "peripheral";
+};
+
+&usb_1_dwc3_hs {
+	remote-endpoint = <&rog5_side_hs_in>;
+};

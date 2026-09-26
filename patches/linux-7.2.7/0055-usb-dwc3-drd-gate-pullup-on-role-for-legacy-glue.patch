@@ -1,0 +1,40 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: drd: gate the pull-up on role for glues without pre_set_role
+
+With dr_mode "otg" and a usb-role-switch, USB_ROLE_NONE maps to the
+peripheral default mode, so dwc3_set_mode() is a no-op on detach and the
+gadget keeps D+ pulled up. dwc3-qcom-legacy has no pre_set_role hook and
+forces the VBUS override on, so the controller never sees the session
+end. Tell the UDC core about VBUS from the role instead.
+
+(Carried over from the re-plug analysis; needed once usb_1/usb_2 become
+role-switched OTG ports.)
+
+--- a/drivers/usb/dwc3/drd.c	2026-09-26 02:31:55.603449337 +0200
++++ b/drivers/usb/dwc3/drd.c	2026-09-26 02:31:55.615548194 +0200
+@@ -470,6 +470,25 @@
+ 
+ 	dwc3_pre_set_role(dwc, role);
+ 	dwc3_set_mode(dwc, mode);
++
++	/*
++	 * USB_ROLE_NONE maps to the peripheral default mode, so for a
++	 * device-only port dwc3_set_mode() above is a no-op and the gadget
++	 * would keep D+ pulled up across detach/attach. Glues without a
++	 * pre_set_role hook (e.g. dwc3-qcom-legacy, whose VBUS override is
++	 * forced on) never tell the controller the session ended. Gate the
++	 * pull-up on the role instead: NONE drops it, DEVICE restores it via
++	 * pullup(1) -> soft reset + run/stop, after the Type-C/charger side has
++	 * settled.
++	 */
++	if (!(dwc->glue_ops && dwc->glue_ops->pre_set_role)) {
++		mutex_lock(&dwc->mutex);
++		if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE &&
++		    mode == DWC3_GCTL_PRTCAP_DEVICE && dwc->gadget)
++			usb_udc_vbus_handler(dwc->gadget, role == USB_ROLE_DEVICE);
++		mutex_unlock(&dwc->mutex);
++	}
++
+ 	return 0;
+ }
+ 
