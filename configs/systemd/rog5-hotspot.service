@@ -1,6 +1,6 @@
 [Unit]
 Description=ROG5 Wi-Fi hotspot on 2.4 GHz alongside the Wi-Fi client link
-After=rog5-wifi-dhcp.service
+After=rog5-wifi-dhcp.service NetworkManager.service
 Wants=rog5-wifi-dhcp.service
 
 [Service]

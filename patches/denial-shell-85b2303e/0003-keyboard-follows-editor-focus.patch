@@ -1,0 +1,114 @@
+--- a/dart_shell/lib/src/state/shell_controller.dart
++++ b/dart_shell/lib/src/state/shell_controller.dart
+@@ -144,6 +144,7 @@
+   bool? _lastMirroredNativeLock;
+   bool _credentialFreeUnlockAttempted = false;
+   bool _automaticSoftwareKeyboard = false;
++  DenialTextInputState? _lastTextInputState;
+   final Set<String> _legacyTextInputAppIds = <String>{};
+   final Set<String> _backgroundLaunchAppIds = <String>{};
+   Timer? _automaticSoftwareKeyboardCloseTimer;
+@@ -169,6 +170,7 @@
+     _launchRequestTimer = null;
+     _lastMirroredNativeLock = null;
+     _credentialFreeUnlockAttempted = false;
++    _lastTextInputState = null;
+     _legacyTextInputAppIds.clear();
+     _backgroundLaunchAppIds.clear();
+   }
+@@ -177,6 +179,32 @@
+     if (!_automaticSoftwareKeyboard) {
+       return;
+     }
++    final previous = _lastTextInputState;
++    _lastTextInputState = input;
++    final editorActive = input.active && !input.legacy;
++    final editorWasActive =
++        previous != null && previous.active && !previous.legacy;
++    if (!input.inputPanelVisible && editorActive) {
++      if (!editorWasActive) {
++        // A text-input editor just gained focus (a Flutter field or a
++        // Wayland text-input-v3 client enabled itself). Open the keyboard
++        // even when the compositor's short touch-authorization window
++        // expired before the editor committed its enable request.
++        _automaticSoftwareKeyboardCloseTimer?.cancel();
++        _automaticSoftwareKeyboardCloseTimer = null;
++        openEdgePanel();
++        return;
++      }
++      if (!previous.inputPanelVisible &&
++          (previous.contentHint != input.contentHint ||
++              previous.contentPurpose != input.contentPurpose)) {
++        // A metadata-only update of the same focused editor is neither a
++        // dismissal nor a new focus; keep the keyboard as it is. An update
++        // with identical fields is the compositor reporting a new touch
++        // outside the editor and falls through to the close below.
++        return;
++      }
++    }
+     if (input.inputPanelVisible) {
+       final foregroundAppId = AppLaunchRequest.normalizeAppId(
+         state.foregroundWindow?.appId ?? '',
+--- a/dart_shell/lib/src/widgets/edge_panel_layer.dart
++++ b/dart_shell/lib/src/widgets/edge_panel_layer.dart
+@@ -1,3 +1,4 @@
++import 'package:flutter/gestures.dart' show kTouchSlop;
+ import 'package:flutter/widgets.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+@@ -74,6 +75,31 @@
+ class _EdgePanelLayerState extends ConsumerState<EdgePanelLayer>
+     with SingleTickerProviderStateMixin {
+   late final AnimationController _controller;
++  int? _outsidePointer;
++  Offset _outsideDownPosition = Offset.zero;
++
++  /// A tap (not a drag or scroll) that lands on the shell outside the
++  /// keyboard sheet and its viewport strip dismisses the keyboard. The region
++  /// joins [EditableText]'s tap group, so tapping a shell text field keeps it
++  /// open. Touches on application surfaces never reach Flutter; the
++  /// compositor reports those through the text-input state instead.
++  void _handleTapDownOutside(PointerDownEvent event) {
++    _outsidePointer = event.pointer;
++    _outsideDownPosition = event.position;
++  }
++
++  void _handleTapUpOutside(PointerUpEvent event) {
++    final pointer = _outsidePointer;
++    _outsidePointer = null;
++    if (pointer != event.pointer ||
++        (event.position - _outsideDownPosition).distance > kTouchSlop) {
++      return;
++    }
++    final controller = ref.read(shellControllerProvider.notifier);
++    if (ref.read(shellControllerProvider).edgePanelVisible) {
++      controller.closeEdgePanel();
++    }
++  }
+ 
+   @override
+   void initState() {
+@@ -131,12 +157,17 @@
+               if (progress <= 0.001) {
+                 return const SizedBox.expand();
+               }
+-              return Stack(
+-                fit: StackFit.expand,
+-                children: [
+-                  _EdgePanelScrollStrip(progress: progress),
+-                  _EdgePanelSheet(progress: progress),
+-                ],
++              return TextFieldTapRegion(
++                debugLabel: 'software keyboard',
++                onTapOutside: _handleTapDownOutside,
++                onTapUpOutside: _handleTapUpOutside,
++                child: Stack(
++                  fit: StackFit.expand,
++                  children: [
++                    _EdgePanelScrollStrip(progress: progress),
++                    _EdgePanelSheet(progress: progress),
++                  ],
++                ),
+               );
+             },
+           ),
