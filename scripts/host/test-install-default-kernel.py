@@ -181,6 +181,14 @@ class Target(unittest.TestCase):
         self.assertEqual((self.stub/'block/sda24/ro').read_text(), '1\n')
         self.assertEqual((self.stub/'p24-mount').read_text().strip(), 'ro')
 
+    def test_usb_disks_are_outside_the_write_scope(self):
+        # A writable USB disk (a hub's card reader) is not on the UFS.
+        usb = self.dir/'devices/xhci-hcd.1.auto/usb1/1-1/1-1.1/host1/block/sdh'
+        usb.mkdir(parents=True)
+        (usb/'ro').write_text('0\n')
+        (self.stub/'block/sdh').symlink_to(usb)
+        self.assertEqual(self.run_target('--inspect'), (0, 'PASS default kernel inspection scope= sda sda23\n'))
+
     def test_inspect_and_preflight_are_read_only(self):
         self.assertEqual(self.run_target('--inspect'), (0, 'PASS default kernel inspection scope= sda sda23\n'))
         self.assertEqual(self.run_target('--preflight'), (0, 'PASS default kernel payload preflight\n'))

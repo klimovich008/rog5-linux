@@ -51,6 +51,9 @@ writable() {
 	result=
 	for node in "$sys_block"/sd*; do
 		[ -e "$node/ro" ] || continue
+		# USB mass storage (a flash drive, a hub's card reader) is not on
+		# the UFS and not part of the write scope.
+		case $(readlink -f "$node") in */usb[0-9]*/*) continue ;; esac
 		[ "$(cat "$node/ro")" = 1 ] || result="$result ${node##*/}"
 	done
 	printf '%s\n' "$result"
