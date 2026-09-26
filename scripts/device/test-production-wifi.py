@@ -177,7 +177,7 @@ esac''')
         code, kmsg = self.wifi('bluetooth')
         self.assertEqual(code, 0, kmsg)
         self.assertEqual(self.calls(), ['modprobe rog5_bt_activate ', 'modprobe hci_uart ', 'modprobe hidp ',
-                                        'modprobe uhid ', 'modprobe rfcomm ', 'modprobe bnep '])
+                                        'modprobe uhid ', 'modprobe rfcomm ', 'modprobe bnep ', 'modprobe socinfo '])
         self.assertIn('PASS bluetooth hci0', kmsg)
         code, kmsg = self.wifi('bluetooth')
         self.assertEqual(code, 1, kmsg)

@@ -178,6 +178,8 @@ bluetooth() {
 	# unconfigured and BlueZ cannot use it. Give it a stable, locally
 	# administered address derived from the SoC serial (the same on every
 	# boot, unique per phone), as postmarketOS bootmac does.
+	# soc0 comes from socinfo, which the sensor modules load later.
+	[ -r "$sys/devices/soc0/serial_number" ] || load socinfo
 	serial=$(cat "$sys/devices/soc0/serial_number" 2>/dev/null)
 	if ! command -v btmgmt >/dev/null; then
 		log 'WARN btmgmt missing; hci0 stays unconfigured'
