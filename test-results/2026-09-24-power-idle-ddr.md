@@ -1003,3 +1003,14 @@ V11 is a headless volatile root.
   - The remaining colour noise (user photo) is Denial's first modeset (28.6 s) scanning out a raster target Flutter hasn't drawn yet. A deniald boot animation is in progress (Denial agent).
 - **Default:** production-7.2.7-r113 = kernel r30 (0059, 0060, 0061, PM debug) plus the ramdisk with the USB-disk scope fix and no fbdev. Two reboots, each committed healthy (60 s to SSH). The fallback is still safe-r2.
 - **Host:** superseded kernel build trees r1–r19, r21, r22, r24 and r25 were deleted (the disk was full; they can be rebuilt from git).
+
+### Unattended package update, first real run (2026-09-26)
+
+The rog5-update timer (OnBootSec 15 min) ran on its own during a RAM-trial boot (boot d83fb10e):
+- 13:52 snapshot `20260926T135226Z-0ccba29b`, then `pacman -Sy` and `pacman -Su`: systemd, systemd-libs, systemd-resolvconf and systemd-sysvcompat 261.3 → 262 (the full upgrade that had been held back).
+- 13:53 installed; `verify-root` PASS.
+- 14:02 committed after the next boot came up healthy.
+
+Every later boot, including the r113 installs, runs systemd 262 with no failed units. The update kit works end to end without intervention.
+
+Also 2026-09-26: the Denial boot animation (patch 0011) replaced the first-modeset noise. On a cold boot it runs 317 ms (2 frames) before Flutter's first frame; the user sees the ASUS logo, then the UI, with no noise.
