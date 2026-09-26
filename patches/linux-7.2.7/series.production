@@ -30,3 +30,4 @@
 0055-usb-dwc3-drd-gate-pullup-on-role-for-legacy-glue.patch
 0057-ASoC-qcom-q6asm-dai-reset-queue-and-DSP-buffer-index-on-prepare.patch
 0058-ucsi-retry-role-switch-lookup-q6v5-quiet-repeated-handover.patch
+0059-ufs-allow-system-suspend-under-bounded-write-discovery.patch

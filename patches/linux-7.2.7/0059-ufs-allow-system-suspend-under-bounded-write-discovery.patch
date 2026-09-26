@@ -1,0 +1,48 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ufs: allow system suspend under bounded-write discovery containment
+
+Discovery containment (0001/0003) rejects every WL and host power
+transition, so system suspend aborts with "ufshcd_wl_suspend failed: -16"
+and the phone can never sleep. The rejection was added because runtime PM
+tried to enable auto-BKOPS, a query write the gate refuses.
+
+System suspend does not need a query write: auto-BKOPS and WriteBooster are
+never enabled in discovery mode, so the path is START STOP UNIT (allowed on
+bounded-write kernels) to the ufs-qcom spm_lvl 5 (POWERDOWN, link off), and
+resume re-initialises the link as at boot (fDeviceInit is allowed).
+Runtime PM stays forbidden, and shutdown transitions stay rejected.
+
+--- a/drivers/ufs/core/ufshcd.c	2026-09-26 15:11:35.756911463 +0200
++++ b/drivers/ufs/core/ufshcd.c	2026-09-26 15:11:35.771523585 +0200
+@@ -10353,7 +10353,15 @@
+ 	enum ufs_dev_pwr_mode req_dev_pwr_mode;
+ 	enum uic_link_state req_link_state;
+ 
+-	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++	/*
++	 * Bounded-write kernels may take the device and link through system
++	 * suspend (spm_lvl: START STOP UNIT to POWERDOWN, link off). That needs
++	 * no query write: auto-BKOPS and WriteBooster are never enabled in
++	 * discovery mode. Runtime PM and shutdown transitions stay rejected.
++	 */
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++	    !(IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) &&
++	      pm_op == UFS_SYSTEM_PM)) {
+ 		dev_warn_once(hba->dev,
+ 			"ROG5 UFS discovery: WL power transition rejected\n");
+ 		return -EBUSY;
+@@ -10747,7 +10755,13 @@
+ {
+ 	int ret;
+ 
+-	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++	/*
++	 * Only the host half of a system suspend whose device WLUN already
++	 * suspended (see __ufshcd_wl_suspend) may power the host down.
++	 */
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++	    !(IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) &&
++	      hba->is_sys_suspended)) {
+ 		dev_warn_once(hba->dev,
+ 			"ROG5 UFS discovery: host power transition rejected\n");
+ 		return -EBUSY;
