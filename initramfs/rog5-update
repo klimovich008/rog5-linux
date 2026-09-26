@@ -446,6 +446,9 @@ ready() {
 	grep -q ': 00000000:0016 00000000:0000 0A ' "$proc/net/tcp" || return 1
 	for node in "$sys"/class/block/sd*; do
 		[ -e "$node/ro" ] || continue
+		# A USB disk (resolved sysfs path under a usbN bus: a flash drive, a
+		# hub's card reader) is not the UFS and may stay writable.
+		case $(readlink -f "$node") in */usb[0-9]*/*) continue ;; esac
 		[ "$(cat "$node/ro")" = 1 ] && continue
 		case ${node##*/} in sda|sda23) ;; *) return 1 ;; esac
 	done

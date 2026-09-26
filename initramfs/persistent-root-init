@@ -302,11 +302,43 @@ arm_watchdog() {
 	log "emergency-reset watchdog armed for $recovery_timeout seconds"
 }
 
+# USB mass storage (a flash drive, a hub's card reader on the side port) is
+# not the phone's UFS: its resolved sysfs path lies under a usbN bus. With the
+# side port in host mode (UCSI, loaded by the power/USB step) such a disk can
+# appear during this init. It neither counts toward the exact UFS topology,
+# which stays exactly $expected_physical_count nodes, nor is touched: locking
+# it would make the user's disk read-only in the running system, and an empty
+# card reader cannot even be opened (ENOMEDIUM). Nothing here mounts or writes
+# a block device other than the UFS disk and partitions resolved by exact
+# geometry, and a block-backed mount of any device still fails the lock.
+usb_attached_block() {
+	case $(readlink -f "$1") in
+		*/usb[0-9]*/*) return 0 ;;
+	esac
+	return 1
+}
+
+# While UFS is discovered and locked, USB disks are scanned only after a long
+# delay, so the UFS LUNs keep the first sd names (sda is the UFS disk).
+usb_storage_delay=/sys/module/usb_storage/parameters/delay_use
+hold_usb_storage_scan() {
+	[ -w "$usb_storage_delay" ] || return 0
+	echo 60 >"$usb_storage_delay" ||
+		log 'cannot delay the USB storage scan'
+}
+
+release_usb_storage_scan() {
+	[ -w "$usb_storage_delay" ] || return 0
+	echo 1 >"$usb_storage_delay" ||
+		log 'cannot restore the USB storage scan delay'
+}
+
 physical_topology_count() {
 	count=0
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -421,6 +453,7 @@ lock_physical_storage() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -444,6 +477,7 @@ verify_physical_storage_read_only() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -469,6 +503,7 @@ find_exact_userdata() {
 	for sys_disk in "$sys_block_root"/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk") || return 1
 		case $disk in sd[a-z]) ;; *) continue ;; esac
 		for sys_block in "$sys_disk"/"$disk"*; do
@@ -506,6 +541,7 @@ find_exact_arch_root() {
 	for sys_disk in "$sys_block_root"/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk") || return 1
 		case $disk in sd[a-z]) ;; *) continue ;; esac
 		for sys_block in "$sys_disk"/"$disk"*; do
@@ -538,6 +574,7 @@ write_ufs_inventory() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		logical_block_bytes=$(cat "$sys_disk/queue/logical_block_size")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
@@ -1081,6 +1118,7 @@ verify_exact_userdata_write_window() {
 	for sys_disk in /sys/class/block/*; do
 		[ -e "$sys_disk/device" ] || continue
 		[ ! -e "$sys_disk/partition" ] || continue
+		! usb_attached_block "$sys_disk" || continue
 		disk=$(basename "$sys_disk")
 		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 			[ -e "$sys_block/dev" ] || continue
@@ -1524,6 +1562,7 @@ verify_exact_overlay_write_window() {
 	writable=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(basename "$sys_block")
 		expected=1
 		case $device in
@@ -2787,6 +2826,7 @@ fi
 if ! prepare_native_wifi_boot; then
 	fail_stage 'invalid sealed native Wi-Fi composition' cmdline 5
 fi
+hold_usb_storage_scan
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
 	power_usb_failure=
 	if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then
@@ -2842,6 +2882,7 @@ if ! lock_physical_storage; then
 	fail_stage 'physical storage lock failed' storage-lock 65
 fi
 publish_or_rollback storage-locked PASS
+release_usb_storage_scan
 publish_or_rollback userdata-resolved ENTER
 if [ "$expected_native_root_mode" -eq 1 ]; then
 	userdata=$(find_exact_arch_root /sys/class/block /dev)

@@ -94,10 +94,22 @@ resolve_exact_devices() {
 		bb sed -n '1p')" = arch_root_a ] || return 1
 }
 
+# USB mass storage on the side port (resolved sysfs path under a usbN bus) is
+# not the UFS: it neither counts toward the exact UFS topology nor is locked,
+# so the user's flash drive stays writable and an empty card reader (which
+# cannot be opened) does not fail the state service. See persistent-root-init.
+usb_attached_block() {
+	case $(bb readlink -f "$1") in
+		*/usb[0-9]*/*) return 0 ;;
+	esac
+	return 1
+}
+
 verify_storage_read_only() {
 	count=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(bb basename "$sys_block")
 		[ -b "$device" ] && [ "$(bb blockdev --getro "$device")" = 1 ] &&
 			[ "$(bb cat "$sys_block/ro")" = 1 ] || return 1
@@ -111,6 +123,7 @@ verify_write_window() {
 	writable=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(bb basename "$sys_block")
 		expected=1
 		case $device in
@@ -128,6 +141,7 @@ relock_storage() {
 	relock_storage_status=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
+		! usb_attached_block "$sys_block" || continue
 		device=/dev/$(bb basename "$sys_block")
 		[ -b "$device" ] || { relock_storage_status=1; continue; }
 		bb blockdev --setro "$device" || relock_storage_status=1

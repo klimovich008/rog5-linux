@@ -69,6 +69,9 @@ while [ "$(cut -d. -f1 </proc/uptime)" -lt "$deadline" ]; do
 	writable=0
 	for node in /sys/class/block/sd*; do
 		[ -e "$node/ro" ] || continue
+		# USB mass storage (resolved sysfs path under a usbN bus) is not
+		# the UFS and not part of the exact 117:2 scope.
+		case $(readlink -f "$node") in */usb[0-9]*/*) continue ;; esac
 		count=$((count + 1))
 		if [ "$(cat "$node/ro")" != 1 ]; then
 			case ${node##*/} in sda|sda23) ;; *) ready=0 ;; esac

@@ -315,6 +315,9 @@ physical_count=0
 for sys_disk in /sys/class/block/*; do
 	[ -e "$sys_disk/device" ] || continue
 	[ ! -e "$sys_disk/partition" ] || continue
+	# USB mass storage on the side port (resolved sysfs path under a usbN
+	# bus) is not the UFS and stays outside its exact read-only topology.
+	case $(readlink -f "$sys_disk") in */usb[0-9]*/*) continue ;; esac
 	disk=${sys_disk##*/}
 	for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
 		[ -e "$sys_block/dev" ] || continue

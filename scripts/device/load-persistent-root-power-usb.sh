@@ -276,6 +276,10 @@ physical_count=0
 for disk in /sys/class/block/*; do
 	[ -e "$disk/device" ] || continue
 	[ ! -e "$disk/partition" ] || continue
+	# USB mass storage on the side port (resolved sysfs path under a usbN
+	# bus) is not the UFS; UCSI can switch the port to host above. Only a
+	# non-USB disk before the UFS stage is unexpected.
+	case $(readlink -f "$disk") in */usb[0-9]*/*) continue ;; esac
 	physical_count=$((physical_count + 1))
 done
 [ "$physical_count" -eq 0 ] ||

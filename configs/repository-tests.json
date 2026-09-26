@@ -2725,6 +2725,38 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-usb-storage-scope.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/persistent-root-init",
+        "scripts/device/load-persistent-root-power-usb.sh",
+        "initramfs/persistent-service-state",
+        "initramfs/persistent-root-attest",
+        "initramfs/native-wifi-persistent/healthy",
+        "initramfs/production-trial-commit",
+        "initramfs/rog5-update",
+        "initramfs/production-wifi"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-native-wifi-module-kit.sh",
       "interpreter": "sh",
       "tiers": [

@@ -273,6 +273,7 @@ active_tests=(
 	scripts/device/test-rog5-update.py
 	scripts/device/test-production-platform-kit.py
 	scripts/device/test-production-wifi.py
+	scripts/device/test-usb-storage-scope.py
 	scripts/host/test-package-production-modules.py
 	scripts/host/test-rebase-kernel-series.py
 	scripts/host/test-owned-vm.py
