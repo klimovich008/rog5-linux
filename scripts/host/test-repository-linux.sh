@@ -342,6 +342,7 @@ shared_tests=(
 	scripts/device/test-screen-toggle.sh
 	scripts/device/test-power-buttond.sh
 	scripts/device/test-status-screen.sh
+	scripts/device/test-rog5-hotspot-uplink.sh
 	scripts/device/test-display-post-switch-report.sh
 	scripts/host/test-display-post-switch-report.py
 	scripts/device/test-load-native-ram-bundle.sh

@@ -68,10 +68,34 @@ def wifi():
                   link=assoc, addr=ip)
 
 
+def parse_btmgmt_info(text):
+    """Controllers from `btmgmt info`: {hciN: {addr, settings}}. Only a
+    controller that finished its setup gets a mgmt index, so one whose
+    vendor setup failed (hci0 in sysfs, `btmgmt index list` empty) is absent."""
+    out = {}
+    for m in re.finditer(r'^(hci\d+):.*?(?=^hci\d+:|\Z)', text, re.S | re.M):
+        addr = re.search(r'^\s*addr ([0-9A-Fa-f:]{17})', m.group(0), re.M)
+        cur = re.search(r'^\s*current settings: *(.*)$', m.group(0), re.M)
+        out[m.group(1)] = {'addr': addr.group(1).upper() if addr else '',
+                           'settings': cur.group(1).split() if cur else []}
+    return out
+
+
 def bluetooth():
-    hci = [os.path.basename(p) for p in glob.glob('/sys/class/bluetooth/hci*')]
-    up = sh('cat /sys/class/bluetooth/hci0/../../*/rfkill*/state 2>/dev/null')
-    return result('pass' if hci else 'missing', controllers=hci, rfkill=up)
+    # hci0 appearing in sysfs only means hci_uart bound; the QCA setup can
+    # still fail (tx timeout, no version). Pass needs an address and Powered.
+    hci = sorted(n for n in (os.path.basename(p) for p in glob.glob('/sys/class/bluetooth/hci*')) if ':' not in n)
+    up = sh('cat /sys/class/bluetooth/hci*/rfkill*/state 2>/dev/null')
+    try:
+        info = subprocess.run(['btmgmt', 'info'], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired) as e:
+        info = ''
+        up = f'{up} btmgmt: {e!r}'.strip()
+    mgmt = parse_btmgmt_info(info)
+    ready = [n for n, c in mgmt.items()
+             if c['addr'] and c['addr'] != '00:00:00:00:00:00' and 'powered' in c['settings']]
+    status = 'pass' if ready else 'partial' if hci else 'missing'
+    return result(status, controllers=hci, initialised=mgmt, powered=ready, rfkill=up)
 
 
 def audio():

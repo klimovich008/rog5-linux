@@ -14,8 +14,13 @@
 # 10.42.0.1/24 and reach the internet through NAT on whatever uplink routes.
 # Settings (ssid, passphrase) live in /persist/secrets/wifi/hotspot.conf,
 # created on first use with a random 16-character passphrase.
+#
+# The uplink is the radio's client (managed-mode) interface, found at run
+# time: its name depends on who created it (wlp1s0 from udev, wlan0 once
+# NetworkManager owns the radio). ROG5_HOTSPOT_UPLINK overrides the lookup.
+# The AP keeps the fixed name wlp1s0ap, which NetworkManager leaves unmanaged.
 set -u
-uplink=${ROG5_HOTSPOT_UPLINK:-wlp1s0}
+uplink=${ROG5_HOTSPOT_UPLINK:-}
 ap=${ROG5_HOTSPOT_IF:-wlp1s0ap}
 conf=${ROG5_HOTSPOT_CONF:-/persist/secrets/wifi/hotspot.conf}
 run=${ROG5_HOTSPOT_RUN:-/run/rog5-hotspot}
@@ -25,6 +30,29 @@ table=rog5_hotspot
 
 log() { printf 'rog5-hotspot: %s\n' "$*" >&2; }
 die() { log "FAIL $*"; exit 1; }
+
+# First managed-mode interface other than the AP, preferring one that is
+# associated (iw prints an ssid line for it).
+client_interface() {
+	iw dev 2>/dev/null | awk -v ap="$ap" '
+		function flush() {
+			if (name != "" && name != ap && managed) {
+				if (first == "") first = name
+				if (ssid && best == "") best = name
+			}
+			name = ""; ssid = 0; managed = 0
+		}
+		$1 ~ /^phy#/ || $1 ~ /^Unnamed/ { flush(); next }
+		$1 == "Interface" { flush(); name = $2; next }
+		$1 == "ssid" { ssid = 1 }
+		$1 == "type" { managed = ($2 == "managed") }
+		END { flush(); if (best != "") print best; else if (first != "") print first }'
+}
+
+resolve_uplink() {
+	[ -n "$uplink" ] || uplink=$(client_interface)
+	[ -n "$uplink" ] || die 'no Wi-Fi client interface (set ROG5_HOTSPOT_UPLINK)'
+}
 
 setting() {
 	sed -n "s/^$1=//p" "$conf" | tail -n 1
@@ -83,6 +111,7 @@ cleanup() {
 
 run_hotspot() {
 	command -v hostapd >/dev/null && command -v dnsmasq >/dev/null || die 'hostapd and dnsmasq are required'
+	resolve_uplink
 	[ -d "/sys/class/net/$uplink/wireless" ] || die "no wireless uplink $uplink"
 	ensure_config || die "cannot create $conf"
 	cleanup
@@ -135,6 +164,7 @@ status) status ;;
 run) run_hotspot ;;
 cleanup) cleanup ;;
 config)
+	resolve_uplink
 	ensure_config || die "cannot create $conf"
 	echo "ssid=$(setting ssid) channel=$(ap_channel) interface=$ap uplink=$uplink subnet=$subnet.0/24"
 	;;
