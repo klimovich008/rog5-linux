@@ -1,4 +1,8 @@
+# Runs only with Denial: its 2 s sysfs polling is a pmic_glink round trip to
+# the ADSP each time, which kept the ADSP and the cluster busy under Phosh
+# (2026-09-27).
 [Unit]
+PartOf=rog5-denial.service
 Description=ROG5 battery samples for the Denial battery tile
 ConditionPathExists=/sys/class/power_supply/qcom-battmgr-bat
 
@@ -9,4 +13,4 @@ RestartSec=5
 Nice=10
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=rog5-denial.service

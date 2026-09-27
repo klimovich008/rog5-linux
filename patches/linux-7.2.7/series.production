@@ -43,3 +43,4 @@
 0070-drm-msm-dpu-take-the-CRTC-encoder-from-the-atomic-state.patch
 0071-drm-msm-pad-dumb-buffers-to-whole-32-row-blocks.patch
 0072-drm-msm-dpu-ROG5-scale-the-core-clock-of-command-mode-CRTCs.patch
+0073-PCI-qcom-ROG5-the-SM8350-root-port-is-not-hotpluggable.patch

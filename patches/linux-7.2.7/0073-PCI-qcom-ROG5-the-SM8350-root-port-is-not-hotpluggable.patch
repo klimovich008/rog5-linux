@@ -1,0 +1,54 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] PCI: qcom: ROG5: the SM8350 root port is not hotpluggable
+
+The SM8350 PCIe0 Root Port resets with Hot-Plug Capable and Hot-Plug
+Surprise set in SLTCAP (lspci: SltCap HotPlug+ Surprise+), although the
+WCN6855 behind it is soldered to the board. With CONFIG_HOTPLUG_PCI_PCIE
+off, pci_bridge_d3_possible() refuses D3 for such a port (is_pciehp and not
+native), so the port stays in D0 in system suspend,
+pci_host_common_d3cold_possible() returns false (kretprobe: ret=0 on every
+s2idle), and dw_pcie_suspend_noirq() returns before PME_Turn_Off: the link,
+the PCIe clocks (the aux clock is an XO consumer) and the interconnect votes
+stay up, and qcom_stats cxsd/aosd never count.
+
+Clear HPC and HPS in the 2.7.0 post_init (the path SM8350 uses), next to the
+existing NCCS fixup.
+
+--- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-09-27 13:23:14.981841153 +0200
++++ b/drivers/pci/controller/dwc/pcie-qcom.c	2026-09-27 13:23:14.994044533 +0200
+@@ -377,6 +377,27 @@
+ 	dw_pcie_dbi_ro_wr_dis(pci);
+ }
+ 
++/*
++ * ROG5: the SM8350 Root Port resets with Hot-Plug Capable/Surprise set in
++ * SLTCAP although the WCN6855 is soldered to the board. With the PCIe hotplug
++ * driver not built, pci_bridge_d3_possible() then refuses D3 for the port
++ * (pciehp not native), pci_host_common_d3cold_possible() fails, and
++ * dw_pcie_suspend_noirq() leaves the link, its clocks and interconnect votes
++ * up through every system suspend, so the SoC never reaches CX/XO shutdown.
++ * The slot is not hotpluggable: clear both bits.
++ */
++static void qcom_pcie_clear_slot_hotplug(struct dw_pcie *pci)
++{
++	u16 offset = dw_pcie_find_capability(pci, PCI_CAP_ID_EXP);
++	u32 val;
++
++	dw_pcie_dbi_ro_wr_en(pci);
++	val = readl(pci->dbi_base + offset + PCI_EXP_SLTCAP);
++	val &= ~(PCI_EXP_SLTCAP_HPC | PCI_EXP_SLTCAP_HPS);
++	writel(val, pci->dbi_base + offset + PCI_EXP_SLTCAP);
++	dw_pcie_dbi_ro_wr_dis(pci);
++}
++
+ static void qcom_pcie_configure_dbi_base(struct qcom_pcie *pcie)
+ {
+ 	struct dw_pcie *pci = pcie->pci;
+@@ -1079,6 +1100,7 @@
+ 				pcie->parf + PARF_NO_SNOOP_OVERRIDE);
+ 
+ 	qcom_pcie_set_slot_nccs(pcie->pci);
++	qcom_pcie_clear_slot_hotplug(pcie->pci);
+ 
+ 	return 0;
+ }

@@ -83,3 +83,27 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
 - r123 installed as the default (default-install-r123-session.py); two
   ordinary boots committed healthy. The rog5-no-vt-switch module bridge is
   retired (0069 is built in): the unit, the module and its source are removed.
+
+## Standby: PCIe0 stayed powered in every suspend (0073)
+- The first unplugged measurement on r123 (Phosh; it started right off a
+  full charge): one ~90 min s2idle, 242 mA as reported (charge_counter,
+  2S). cxsd/aosd/ddr stayed at 0. SLPI and ADSP slept almost the whole
+  window. glink-smem (LPASS) interrupts ran at about 1 per 2.3 s:
+  PMIC_RTR_ADSP_APPS traffic.
+- Awake-side glink traffic came from rog5-battery-log (4 battmgr reads every
+  2 s) and rog5-powerd, which still ran under Phosh. Both are now
+  WantedBy/PartOf rog5-denial.service.
+- Root cause for PCIe: the SM8350 root port resets with SLTCAP HotPlug+
+  Surprise+. With pciehp not built, pci_bridge_d3_possible() refuses D3
+  and pci_host_common_d3cold_possible() returns 0 (kretprobe), so
+  dw_pcie_suspend_noirq() returned early: the link, clocks and votes stayed
+  up. 0073 clears HPC/HPS in the 2.7.0 post_init.
+- r124 = kernel r42 = r41 + 0073. SltCap is now HotPlug- Surprise-, and
+  d3cold_possible returns 1. Suspend now stops the link (non-fatal "Timeout
+  waiting for L2 entry", since the WCN6855 firmware is already down), and
+  resume retrains Gen3 x1. Wi-Fi reconnects with 0 % loss.
+- Unplugged measurement on r124 (Wi-Fi rfkill-off during the window): 5076 s,
+  61 s awake, one suspend, 106 mAh as reported = 75 mA as reported
+  (~37 mA once halved). cxsd/aosd/ddr are still 0: another holder remains.
+- scripts/device/rog5-standby-test: an unattended unplugged measurement
+  (systemd-run); awake time from CLOCK_MONOTONIC; qcom_stats sleep seconds.
