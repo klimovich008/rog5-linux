@@ -80,3 +80,6 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   `mdp_clk` 345 MHz. The gbm probe on card1 now passes 979x385, 979x386 and
   561x1045 (all failed on r121). The user confirmed that the top-edge line is
   gone and the phosh thumbnails render.
+- r123 installed as the default (default-install-r123-session.py); two
+  ordinary boots committed healthy. The rog5-no-vt-switch module bridge is
+  retired (0069 is built in): the unit, the module and its source are removed.
