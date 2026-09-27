@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * DisplayPort alternate mode on the side (left) Type-C port, for an external
+ * monitor or a USB-C hub with HDMI (docked mode). Stage 1: USB stays
+ * high-speed (usb_1_dwc3 keeps only the usb2 PHY), so the USB network link
+ * the phone is reached over does not change; the QMP USB3/DP combo PHY
+ * carries DP only (pin assignment C/E: 4 lanes; D: 2 lanes, the hub's USB
+ * devices keep working over the high-speed pair).
+ *
+ * From the stock ZS673KS tree (compare-displayport-dex report):
+ *  - the side port = stock usb0 (a600000) with the combo PHY 88e8000; HPD,
+ *    orientation and pin assignment come from the ADSP over pmic_glink
+ *    altmode (same USBC_NOTIFY_IND layout as the mainline decoder);
+ *  - SBU/AUX goes through a discrete 2:1 switch: enable TLMM 167 (stock
+ *    drives it low while DP is configured, high when idle), select PM8350C
+ *    GPIO1 (1 = CC2/flipped) (ZS673KS-ER1 overlay, dp_power.c);
+ *  - combo PHY supplies: vdda-phy = L1B 0.88 V, vdda-pll = L6B 1.2 V (the
+ *    base dts has them swapped; the stock and HDK bindings agree on this).
+ * Needs usbotg (connector@0) and the phy_qcom_qmp_combo, gpio_sbu_mux,
+ * pmic_glink_altmode and aux bridge modules loaded before msm.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+&{/} {
+	rog5_dp_sbu_mux: typec-mux {
+		compatible = "gpio-sbu-mux";
+		enable-gpios = <&tlmm 167 GPIO_ACTIVE_LOW>;
+		select-gpios = <&pm8350c_gpios 1 GPIO_ACTIVE_HIGH>;
+		mode-switch;
+		orientation-switch;
+
+		port {
+			rog5_dp_sbu_mux_ep: endpoint {
+				remote-endpoint = <&rog5_side_sbu_in>;
+			};
+		};
+	};
+};
+
+&{/pmic-glink/connector@0/ports} {
+	port@1 {
+		reg = <1>;
+
+		rog5_side_ss_in: endpoint {
+			remote-endpoint = <&usb_1_qmpphy_out>;
+		};
+	};
+
+	port@2 {
+		reg = <2>;
+
+		rog5_side_sbu_in: endpoint {
+			remote-endpoint = <&rog5_dp_sbu_mux_ep>;
+		};
+	};
+};
+
+&usb_1_qmpphy {
+	vdda-phy-supply = <&vreg_l1b_0p88>;
+	vdda-pll-supply = <&vreg_l6b_1p2>;
+	status = "okay";
+};
+
+&usb_1_qmpphy_out {
+	remote-endpoint = <&rog5_side_ss_in>;
+};
+
+&mdss_dp {
+	status = "okay";
+};
+
+&mdss_dp_out {
+	data-lanes = <0 1 2 3>;
+};

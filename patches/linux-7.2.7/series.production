@@ -47,3 +47,4 @@
 0073-PCI-qcom-ROG5-the-SM8350-root-port-is-not-hotpluggable.patch
 0076-PCI-host-common-ROG5-keep-the-link-for-wakeup-enabled-devices.patch
 0077-PCI-qcom-ROG5-disable-L0s-on-SM8350.patch
+0078-power-supply-qcom_battmgr-ROG5-battery-reporting-fixes.patch

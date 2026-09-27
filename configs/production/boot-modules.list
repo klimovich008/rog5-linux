@@ -13,6 +13,16 @@ rog5_gmu_bind
 # which shows glitches until Denial's first frame. Without it the bootloader
 # splash stays up until Denial takes the display over.
 drm_client_lib active=
+# DisplayPort alt mode on the side port (dp DTB feature): the QMP USB3/DP combo
+# PHY provides the DP link clocks, so it must be there before msm binds the DP
+# controller; the SBU switch, the pmic_glink altmode client (HPD, orientation,
+# pin assignment from the ADSP) and the aux bridges complete the chain. Without
+# the dp nodes they bind nothing.
+phy_qcom_qmp_combo
+gpio_sbu_mux
+aux_bridge
+aux_hpd_bridge
+pmic_glink_altmode
 msm separate_gpu_kms=1
 panel_asus_rog5_ams678
 # Front touch (milestone 4): GPI DMA for the GENI SE, then the FTS3658U driver.

@@ -1,0 +1,7 @@
+# ROG5: the root's /lib/modules stays empty (modules live only in the
+# published tree /run/rog5-modules), so udev's builtin kmod cannot load drivers
+# for hot-plugged USB devices: a USB Ethernet or serial adapter on a hub did
+# nothing. Load the matching module from the published tree by modalias
+# (-b honours the blacklist). rog5-usb-modalias.service covers devices that
+# were plugged in before the tree was published.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", ENV{MODALIAS}=="?*", RUN+="/usr/bin/modprobe -d /run/rog5-modules -bq $env{MODALIAS}"

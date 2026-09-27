@@ -1,0 +1,14 @@
+# Load drivers for USB devices that were already present at boot, before the
+# module tree was published (see 80-rog5-usb-modalias.rules).
+[Unit]
+Description=Load ROG5 drivers for USB devices present at boot
+After=rog5-platform-modules.service
+Requires=rog5-platform-modules.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'for f in /sys/bus/usb/devices/*:*/modalias; do [ -r "$f" ] && /usr/bin/modprobe -d /run/rog5-modules -bq "$(cat "$f")"; done; true'
+
+[Install]
+WantedBy=multi-user.target

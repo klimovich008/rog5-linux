@@ -1,0 +1,80 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: ROG5 battery reporting fixes
+
+With the ASUS OEM client (asus,cell-voltage-readonly, patch 0018), apply the
+stock ZS673KS conversions (battery comparison report, 2026-09-27):
+- temperature: the ADSP reports 0.1 K; stock subtracts 2731. The mainline
+  /10 showed (T+273)/10, i.e. always about 30 C;
+- charge_counter, charge_full and charge_full_design: the gauge reports the
+  2S pack doubled (the counter moved at twice the measured pack current;
+  upower showed 47.6 Wh for a ~23 Wh pack); halve them;
+- health: the firmware uses the msm-5.4 enum without UNDERVOLTAGE (5), so
+  COLD/WARM/COOL/HOT were shifted by one;
+- capacity: rounded like stock instead of truncated.
+
+--- a/drivers/power/supply/qcom_battmgr.c	2026-09-27 22:11:42.970392272 +0200
++++ b/drivers/power/supply/qcom_battmgr.c	2026-09-27 22:11:42.994831127 +0200
+@@ -1525,7 +1525,14 @@
+ 			battmgr->status.status = le32_to_cpu(resp->intval.value);
+ 			break;
+ 		case BATT_HEALTH:
+-			battmgr->status.health = le32_to_cpu(resp->intval.value);
++			val = le32_to_cpu(resp->intval.value);
++			/*
++			 * ROG5: the ADSP uses the msm-5.4 health numbering, which
++			 * lacks UNDERVOLTAGE (5): COLD=6, WARM=11, COOL=12, HOT=13.
++			 */
++			if (battmgr->oem_client && val >= POWER_SUPPLY_HEALTH_UNDERVOLTAGE)
++				val++;
++			battmgr->status.health = val;
+ 			break;
+ 		case BATT_PRESENT:
+ 			battmgr->info.present = le32_to_cpu(resp->intval.value);
+@@ -1534,7 +1541,9 @@
+ 			battmgr->info.charge_type = le32_to_cpu(resp->intval.value);
+ 			break;
+ 		case BATT_CAPACITY:
+-			battmgr->status.percent = le32_to_cpu(resp->intval.value) / 100;
++			val = le32_to_cpu(resp->intval.value);
++			battmgr->status.percent = battmgr->oem_client ?
++				DIV_ROUND_CLOSEST(val, 100) : val / 100;
+ 			break;
+ 		case BATT_SOH:
+ 			battmgr->status.soh_percent = le32_to_cpu(resp->intval.value);
+@@ -1553,22 +1562,32 @@
+ 			break;
+ 		case BATT_TEMP:
+ 			val = le32_to_cpu(resp->intval.value);
+-			battmgr->status.temperature = DIV_ROUND_CLOSEST(val, 10);
++			/* ROG5: the ADSP reports 0.1 K (stock: value - 2731). */
++			battmgr->status.temperature = battmgr->oem_client ?
++				(int)val - 2731 : DIV_ROUND_CLOSEST(val, 10);
+ 			break;
+ 		case BATT_TECHNOLOGY:
+ 			battmgr->info.technology = le32_to_cpu(resp->intval.value);
+ 			break;
+ 		case BATT_CHG_COUNTER:
+-			battmgr->info.charge_count = le32_to_cpu(resp->intval.value);
++			/*
++			 * ROG5: the gauge reports the 2S pack's charge values
++			 * doubled (charge_counter moved at twice the measured pack
++			 * current); halve counter, full and design capacity.
++			 */
++			battmgr->info.charge_count = le32_to_cpu(resp->intval.value) /
++				(battmgr->oem_client ? 2 : 1);
+ 			break;
+ 		case BATT_CYCLE_COUNT:
+ 			battmgr->info.cycle_count = le32_to_cpu(resp->intval.value);
+ 			break;
+ 		case BATT_CHG_FULL_DESIGN:
+-			battmgr->info.design_capacity = le32_to_cpu(resp->intval.value);
++			battmgr->info.design_capacity = le32_to_cpu(resp->intval.value) /
++				(battmgr->oem_client ? 2 : 1);
+ 			break;
+ 		case BATT_CHG_FULL:
+-			battmgr->info.last_full_capacity = le32_to_cpu(resp->intval.value);
++			battmgr->info.last_full_capacity = le32_to_cpu(resp->intval.value) /
++				(battmgr->oem_client ? 2 : 1);
+ 			break;
+ 		case BATT_MODEL_NAME:
+ 			strscpy(battmgr->info.model_number, resp->strval.model, BATTMGR_STRING_LEN);
