@@ -10,7 +10,9 @@
  * Both functions are switched on at the first read and off again 2 s after
  * the last one, so an idle phone does not pulse the VCSEL.
  * in_illuminance_raw * in_illuminance_scale is lux with the stock default
- * calibration (1658 counts at 1000 lux); in_proximity_raw rises as an object
+ * calibration (846 counts at 1000 lux: the ROG5 builds the stock driver
+ * with ONE_PL_CHIP, vcnl36866.h; the 1658 two-chip default read 2x low);
+ * in_proximity_raw rises as an object
  * approaches.
  */
 #include <linux/delay.h>
@@ -29,7 +31,7 @@
 #define ID_REG		0xf6
 #define CHIP_ID		0x62
 
-#define CAL_1000LUX	1658
+#define CAL_1000LUX	846
 #define IDLE_OFF_MS	2000
 
 struct vcnl {
