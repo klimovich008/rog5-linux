@@ -1,0 +1,68 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5: scale the core clock of command-mode CRTCs
+
+The AMS678 runs in DSC command mode with TE at scanline 2432 of 2448; the
+panel starts scanning the top of its frame memory about 31 lines (~210 us at
+60 Hz) after TE and can only show whole 48-line DSC slice rows. The DPU core
+clock is derived from the mode alone (vtotal * hdisplay * fps * 1.05 =
+167.6 MHz, 200 MHz OPP, core_perf/core_clk_rate = 167582520 on r121), so the
+DPU takes 259 us to produce the first 48 x 1080 pixels: later than the panel
+scan and slower than the DSI link (125 us at the stock 829 Mb/s from patch
+0053). The first slice row of every changed frame tears, which is the thin
+glitch line that remains at the top edge after 0053/0054 (the earlier colour
+band was the same race with the DSI link at 362 Mb/s: 286 us per slice row,
+which is why pinning the DPU at 460 MHz alone did not remove it).
+
+Scale the mode clock of command-mode CRTCs by dpu_cmd_mode_clk_pct
+(default 200: 335 MHz, rounded up to the 345 MHz OPP, 150 us per slice
+row). Video-mode and writeback CRTCs are unaffected. The same effect can be
+tried without a rebuild through debugfs (dri/1/debug/core_perf:
+fix_core_clk_rate=345000000 or 460000000, perf_mode=2).
+---
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c
+@@ -15,8 +15,25 @@
+ #include "dpu_kms.h"
+ #include "dpu_trace.h"
+ #include "dpu_crtc.h"
++#include "dpu_encoder.h"
+ #include "dpu_core_perf.h"
+ 
++/*
++ * ROG5 (AMS678 1080x2448 DSC command mode, TE at scanline 2432): after TE the
++ * panel starts scanning the top of its frame memory about 31 lines (~210 us at
++ * 60 Hz) later, and it can only display whole DSC slice rows (48 lines). The
++ * mode-derived DPU clock (vtotal * hdisplay * fps * 1.05 = 167.6 MHz, rounded
++ * to the 200 MHz OPP) makes the DPU produce those 48 x 1080 pixels in 259 us,
++ * later than the panel scan and slower than the DSI link (125 us at the stock
++ * 829 Mb/s), so the first slice row of every changed frame tears: the thin
++ * glitch line at the top edge. Scale the mode clock of command-mode CRTCs by
++ * this percentage: 200 selects the 345 MHz OPP (150 us per slice row).
++ */
++static unsigned int dpu_cmd_mode_clk_pct = 200;
++module_param(dpu_cmd_mode_clk_pct, uint, 0644);
++MODULE_PARM_DESC(dpu_cmd_mode_clk_pct,
++		 "DPU core clock scale for command-mode CRTCs in percent (100 = mode clock)");
++
+ /**
+  * enum dpu_perf_mode - performance tuning mode
+  * @DPU_PERF_MODE_NORMAL: performance controlled by user mode client
+@@ -101,6 +118,18 @@
+ 
+ 	mode_clk = (u64)mode->vtotal * mode->hdisplay * drm_mode_vrefresh(mode);
+ 
++	if (dpu_cmd_mode_clk_pct > 100) {
++		struct drm_encoder *encoder;
++
++		drm_for_each_encoder_mask(encoder, crtc->dev, state->encoder_mask) {
++			if (dpu_encoder_get_intf_mode(encoder) != INTF_MODE_CMD)
++				continue;
++			mode_clk *= dpu_cmd_mode_clk_pct;
++			do_div(mode_clk, 100);
++			break;
++		}
++	}
++
+ 	drm_atomic_crtc_for_each_plane(plane, crtc) {
+ 		pstate = to_dpu_plane_state(plane->state);
+ 		if (!pstate)

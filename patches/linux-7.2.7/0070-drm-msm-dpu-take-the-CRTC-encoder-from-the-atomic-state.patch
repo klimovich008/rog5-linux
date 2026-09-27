@@ -1,0 +1,60 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: take the CRTC's encoder from the atomic state
+
+dpu_crtc_get_vblank_counter() and dpu_crtc_get_scanout_position() find the
+encoder through the legacy encoder->crtc link. drm_atomic_helper_
+update_legacy_modeset_state() clears that link and rebuilds it on every
+atomic commit that carries the connector (wlroots puts CRTC_ID on the
+connector in each commit), and it stays NULL while the CRTC is switched
+off. A vblank counter or timestamp query that lands in that window logs
+'*ERROR* no encoder found for crtc 0' (r121 Phosh session: six of them
+around blank/unblank, dmesg 01:20-01:39) and, because dpu_kms sets
+max_vblank_count = 0xffffffff, feeds a counter value of 0 into
+drm_update_vblank_count(), which jumps the vblank sequence userspace sees.
+
+Use the encoder mask of the CRTC's atomic state first; fall back to the
+legacy link (dpu_crtc_disable() runs after the state swap with an empty new
+mask). A query on a CRTC that is really off is not an error: report it at
+debug level and keep returning 0/false.
+---
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -56,6 +56,19 @@
+ 	struct drm_device *dev = crtc->dev;
+ 	struct drm_encoder *encoder;
+ 
++	/*
++	 * The legacy encoder->crtc link is torn down and rebuilt by
++	 * drm_atomic_helper_update_legacy_modeset_state() on every commit that
++	 * carries the connector, and it is NULL for a CRTC that is switched
++	 * off. The atomic CRTC state is what actually drives the encoder, so
++	 * take the encoder from its mask first and use the legacy link only as
++	 * a fallback (dpu_crtc_disable() after the state swap).
++	 */
++	if (crtc->state) {
++		drm_for_each_encoder_mask(encoder, dev, crtc->state->encoder_mask)
++			return encoder;
++	}
++
+ 	drm_for_each_encoder(encoder, dev)
+ 		if (encoder->crtc == crtc)
+ 			return encoder;
+@@ -189,7 +202,8 @@
+ {
+ 	struct drm_encoder *encoder = get_encoder_from_crtc(crtc);
+ 	if (!encoder) {
+-		DRM_ERROR("no encoder found for crtc %d\n", crtc->index);
++		/* Vblank query on a CRTC that is off: nothing to count. */
++		DRM_DEBUG_KMS("no encoder found for crtc %d\n", crtc->index);
+ 		return 0;
+ 	}
+ 
+@@ -279,7 +293,7 @@
+ 
+ 	encoder = get_encoder_from_crtc(crtc);
+ 	if (!encoder) {
+-		DRM_ERROR("no encoder found for crtc %d\n", pipe);
++		DRM_DEBUG_KMS("no encoder found for crtc %d\n", pipe);
+ 		return false;
+ 	}
+ 

@@ -1,0 +1,57 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm: pad dumb buffers to whole 32-row blocks
+
+With the KMS device separate from the GPU (ROG5: msm_dpu is card1, the
+Adreno is card0/renderD128) Mesa's kmsro path allocates every buffer that
+may be scanned out as a dumb buffer on card1 and imports it into freedreno.
+freedreno's linear layout pads the last level to a multiple of 4 rows and
+rejects an import whose BO is smaller than the layout, so any height that is
+not a multiple of four and is not covered by the page rounding fails with
+EINVAL. Reproduced read-only on r121 with libgbm on card1: 979x385,
+979x386 and 561x1045 fail for every modifier list and for GBM_BO_USE_SCANOUT,
+while 432x932, 180x390, 561x220, 33x1045 and 1080x2448 succeed; the same
+sizes all succeed on renderD128. That is phoc's
+'[render/allocator/gbm.c:89] gbm_bo_create failed: Invalid argument' /
+'Failed to allocate buffer' followed by phosh 'screencopy failed!' for
+window thumbnails (30 in the 2026-09-27 00:57 boot).
+
+Pad the allocation to whole 32-row blocks, mirroring the 32-pixel pitch
+alignment. The pitch and the framebuffer geometry are unchanged; at most
+31 rows of pitch are added per buffer.
+---
+--- a/drivers/gpu/drm/msm/msm_gem.c
++++ b/drivers/gpu/drm/msm/msm_gem.c
+@@ -677,6 +677,7 @@
+ {
+ 	u32 fourcc;
+ 	u64 pitch_align;
++	u64 padded;
+ 	int ret;
+ 
+ 	/*
+@@ -701,6 +702,25 @@
+ 	if (ret)
+ 		return ret;
+ 
++	/*
++	 * When the KMS device is separate from the GPU (ROG5: msm_dpu on card1,
++	 * adreno on card0), Mesa's kmsro path allocates every buffer that may be
++	 * scanned out as a dumb buffer here and imports it into freedreno. The
++	 * freedreno linear layout pads the last level to a multiple of 4 rows
++	 * (its mem<->gmem blits fetch 16x4 blocks) and rejects an import whose
++	 * BO is smaller than that layout. A height that is not a multiple of
++	 * four and does not land inside the page rounding therefore fails the
++	 * import with EINVAL (phoc: "gbm_bo_create failed: Invalid argument",
++	 * e.g. 979x385 or 561x1045, while 432x932 or 180x390 work). Allocate
++	 * whole 32-row blocks, mirroring the 32-pixel pitch alignment above;
++	 * the reported pitch and the framebuffer geometry do not change.
++	 */
++	padded = PAGE_ALIGN((u64)args->pitch * round_up((u64)args->height, 32));
++	if (padded > U32_MAX)
++		return -EINVAL;
++	if (padded > args->size)
++		args->size = padded;
++
+ 	return msm_gem_new_handle(dev, file, args->size,
+ 			MSM_BO_SCANOUT | MSM_BO_WC, &args->handle, "dumb");
+ }

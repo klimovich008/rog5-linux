@@ -58,3 +58,25 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
 - `gbm_bo_create failed: Invalid argument` for phosh screencopy thumbnails,
   and a power-on `Atomic commit failed: Device or resource busy`: handed to
   the screen/GPU investigation.
+
+## Kernels r122 and r123 (later on 2026-09-27)
+- r122 = kernel r38 = r36 + 0069. The RAM trial with the module bridge
+  unloaded and an rtcwake s2idle cycle showed no seat pause. Installed as the
+  default; two ordinary boots committed healthy.
+- Display/GPU investigation (read-only; report in
+  `2026-09-27-display-gpu-investigation.md`) gave 0070-0072:
+  - 0070: the DPU vblank/scanout queries take the encoder from the atomic
+    state (no "no encoder found for crtc 0").
+  - 0071: dumb buffers are padded to 32-row blocks. The kmsro import of
+    heights like 385 or 1045 failed with EINVAL, so phoc
+    "gbm_bo_create failed" left the phosh thumbnails empty.
+  - 0072: command-mode CRTC core clock scale (default 200 % -> 345 MHz OPP).
+    At 200 MHz the DPU needed 259 us for the first 48-line DSC slice row,
+    later than the panel scan, which caused the top-edge glitch line.
+- r39/r40 failed the warning gate: 0072 moves an upstream kernel-doc warning
+  in dpu_core_perf.c from line 41 to 58. The policy entry was updated (line,
+  file hash, reason).
+- r123 = kernel r41 = r38 + 0070-0072. `core_clk_rate` 335165040 and
+  `mdp_clk` 345 MHz. The gbm probe on card1 now passes 979x385, 979x386 and
+  561x1045 (all failed on r121). The user confirmed that the top-edge line is
+  gone and the phosh thumbnails render.
