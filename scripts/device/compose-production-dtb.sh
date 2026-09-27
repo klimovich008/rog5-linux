@@ -271,7 +271,8 @@ if [ "$usbotg" = 1 ]; then
 	# connector@0 must be the first child of /pmic-glink (UCSI matches by index).
 	[ "$(fdtget -l "$work/composed.dtb" /pmic-glink | head -n 1)" = connector@0 ] &&
 		[ "$(fdtget "$work/composed.dtb" /pmic-glink/connector@0 compatible)" = usb-c-connector ] &&
-		[ "$(fdtget "$work/composed.dtb" /soc@0/usb@a6f8800/usb@a600000 dr_mode)" = otg ] ||
+		[ "$(fdtget "$work/composed.dtb" /soc@0/usb@a6f8800/usb@a600000 dr_mode)" = otg ] &&
+		fdtget "$work/composed.dtb" /soc@0/usb@a6f8800 wakeup-source >/dev/null 2>&1 ||
 		{ echo 'FAIL usbotg composition' >&2; exit 1; }
 fi
 # qupicc: the QUP0/1/2 core BCMs get a Linux provider (kernel patch 0066,

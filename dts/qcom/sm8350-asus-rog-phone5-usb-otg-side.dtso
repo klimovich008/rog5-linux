@@ -47,6 +47,18 @@
 	};
 };
 
+/*
+ * Keep the host controller (and whatever hangs off the port) alive across
+ * s2idle and let USB wake the system through the PDC dp/dm/ss interrupts the
+ * glue already has. Without it dwc3-qcom-legacy disables wakeup and
+ * dwc3_suspend_common() runs dwc3_core_exit() in host mode, so hubs, disks
+ * and USB network adapters re-enumerated after every suspend (stock:
+ * qcom,use-pdc-interrupts; connectivity comparison 2026-09-27).
+ */
+&usb_1 {
+	wakeup-source;
+};
+
 &usb_1_dwc3 {
 	dr_mode = "otg";
 	usb-role-switch;

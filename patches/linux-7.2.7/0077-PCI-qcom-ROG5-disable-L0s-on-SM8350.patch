@@ -1,0 +1,37 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] PCI: qcom: ROG5: disable L0s on SM8350
+
+Stock (lahaina-pcie.dtsi) marks pcie0, which carries the WCN6855, with
+"qcom,no-l0s-supported". Mainline maps SM8350 to cfg_1_9_0 without no_l0s, so
+qcom_pcie_clear_aspm_l0s() is skipped and ASPM enables L0s on the link
+(lspci on r127: "LnkCtl: ASPM L0s L1 Enabled"). Upstream already disables L0s
+for 2.3.2, 1.34.0 and sc8280xp. Use a SM8350 config with no_l0s; L1 and the L1
+substates stay enabled.
+
+--- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-09-27 16:52:03.788439829 +0200
++++ b/drivers/pci/controller/dwc/pcie-qcom.c	2026-09-27 16:52:03.800770683 +0200
+@@ -1595,6 +1595,15 @@
+ 	.ops = &ops_1_9_0,
+ };
+ 
++/*
++ * ROG5: SM8350 as 1.9.0, but without L0s, like stock (lahaina-pcie.dtsi
++ * "qcom,no-l0s-supported" on pcie0 with the WCN6855).
++ */
++static const struct qcom_pcie_cfg cfg_sm8350 = {
++	.ops = &ops_1_9_0,
++	.no_l0s = true,
++};
++
+ static const struct qcom_pcie_cfg cfg_1_34_0 = {
+ 	.ops = &ops_1_9_0,
+ 	.override_no_snoop = true,
+@@ -2363,7 +2372,7 @@
+ 	{ .compatible = "qcom,pcie-sdx55", .data = &cfg_1_9_0 },
+ 	{ .compatible = "qcom,pcie-sm8150", .data = &cfg_1_9_0 },
+ 	{ .compatible = "qcom,pcie-sm8250", .data = &cfg_1_9_0 },
+-	{ .compatible = "qcom,pcie-sm8350", .data = &cfg_1_9_0 },
++	{ .compatible = "qcom,pcie-sm8350", .data = &cfg_sm8350 },
+ 	{ .compatible = "qcom,pcie-sm8450-pcie0", .data = &cfg_1_9_0 },
+ 	{ .compatible = "qcom,pcie-sm8450-pcie1", .data = &cfg_1_9_0 },
+ 	{ .compatible = "qcom,pcie-sm8550", .data = &cfg_1_9_0 },

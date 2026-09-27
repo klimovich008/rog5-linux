@@ -46,3 +46,4 @@
 0072-drm-msm-dpu-ROG5-scale-the-core-clock-of-command-mode-CRTCs.patch
 0073-PCI-qcom-ROG5-the-SM8350-root-port-is-not-hotpluggable.patch
 0076-PCI-host-common-ROG5-keep-the-link-for-wakeup-enabled-devices.patch
+0077-PCI-qcom-ROG5-disable-L0s-on-SM8350.patch

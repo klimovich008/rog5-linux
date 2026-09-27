@@ -86,3 +86,15 @@ CONFIG_PM_SLEEP_DEBUG=y
 # power domains (compose feature "osi"); t13 showed the OSI switch itself
 # does not reset after kexec.
 CONFIG_ARM_PSCI_CPUIDLE_DOMAIN=y
+
+# Server/hub peripherals (connectivity comparison, 2026-09-27): UASP enclosures,
+# hiddev (UPS and HID tools), RNDIS and 2.5GbE (AQC111) dongles, common USB
+# serial adapters, game controllers.
+CONFIG_USB_UAS=y
+CONFIG_USB_HIDDEV=y
+CONFIG_USB_NET_RNDIS_HOST=m
+CONFIG_USB_NET_AQC111=m
+CONFIG_USB_SERIAL_PL2303=m
+CONFIG_USB_SERIAL_CH341=m
+CONFIG_INPUT_JOYSTICK=y
+CONFIG_JOYSTICK_XPAD=m
