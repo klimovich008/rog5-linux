@@ -1,0 +1,38 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] PCI: host-common: ROG5: keep the link for wakeup-enabled devices
+
+pci_host_common_d3cold_possible() lets dw_pcie_suspend_noirq() stop the link
+and deinit the host when a wakeup-enabled device reports PME from D3cold.
+The upstream TODO notes that this should also require Vaux, which this board
+does not provide: with Wake-on-WLAN armed (ath11k sets the WCN6855 wakeup
+enabled) the deinit asserted PERST#, the chip came back reset on resume
+("mhi mhi0: Resuming from non M3 state (RESET)", qrtr_mhi resume -22), and
+it could not have woken the system while suspended.
+
+Treat a wakeup-enabled device as blocking D3cold. Without Wake-on-WLAN the
+link still powers down in suspend (0073).
+
+--- a/drivers/pci/controller/pci-host-common.c	2026-09-27 16:02:53.128520186 +0200
++++ b/drivers/pci/controller/pci-host-common.c	2026-09-27 16:02:53.142229580 +0200
+@@ -294,12 +294,15 @@
+ 	if (pdev->current_state != PCI_D3hot)
+ 		goto exit;
+ 
+-	if (device_may_wakeup(&pdev->dev)) {
+-		if (!pci_pme_capable(pdev, PCI_D3cold))
+-			goto exit;
+-		else
+-			*flags |= PCI_HOST_PME_D3COLD_CAPABLE;
+-	}
++	/*
++	 * ROG5: a wakeup-enabled endpoint keeps its link. The WCN6855 reports
++	 * PME from D3cold, but the board has no Vaux for it, and the host
++	 * deinit asserts PERST#: with WoWLAN armed the chip came back reset
++	 * ("Resuming from non M3 state (RESET)") and could not have woken the
++	 * system. Without wakeup the link still powers down in suspend.
++	 */
++	if (device_may_wakeup(&pdev->dev))
++		goto exit;
+ 
+ 	return 0;
+ 

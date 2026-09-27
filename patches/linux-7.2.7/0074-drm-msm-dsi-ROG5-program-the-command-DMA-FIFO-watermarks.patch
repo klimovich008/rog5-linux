@@ -1,0 +1,83 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dsi: ROG5: program the command DMA FIFO watermarks (Iris6 bypass)
+
+The ROG5 has a Pixelworks Iris6 bridge between the DSI host and the AMS678
+panel, kept in analog bypass. On r124 a DCS 0x51 brightness write in HS mode
+never reached the panel and an LP long write lost its last payload byte, so
+only DBV[9:8] took effect (four brightness levels; 2026-09-23 trial: one-byte
+"51 FF" = full, "51 03 FF" = the 768 block, "51 00 FF" dark, current flat
+within each 256 block). Every other multi-byte init write (F0 5A 5A unlock,
+44 09 80 TE line, 2A/2B window, EC/E4 vendor settings) was truncated the
+same way.
+
+The stock kernel programs DSI_DMA_FIFO_CTRL (ctrl offset 0x4c; 0x50 in the
+techpack numbering, which is offset by 4) before every command DMA kickoff:
+0x33 with the Iris ("set DMA FIFO read watermark to 15/16 full",
+dsi_ctrl_hw_cmn.c), read/write watermarks disabled (0x110033) without it.
+Mainline never writes the register, so the DMA FIFO drains at the hardware
+default watermark and a packet can be emitted with a pause while the fetch
+catches up; in LP escape mode the pause ends the packet early, in HS the
+split packet is dropped by the panel.
+
+Write the stock Iris value before each DMA kickoff on DSI 6G >= v2.2.1
+(sm8350 is v2.5.0). Module parameter dma_fifo_ctrl: 0x33 (default, stock
+with Iris), 0x110033 (stock without Iris), -1 (hardware default, previous
+behaviour).
+---
+--- a/drivers/gpu/drm/msm/registers/display/dsi.xml
++++ b/drivers/gpu/drm/msm/registers/display/dsi.xml
+@@ -206,6 +206,12 @@
+ 	</reg32>
+ 	<reg32 offset="0x00044" name="DMA_BASE"/>
+ 	<reg32 offset="0x00048" name="DMA_LEN"/>
++	<reg32 offset="0x0004c" name="DMA_FIFO_CTRL">
++		<bitfield name="WR_WATERMARK" low="0" high="1" type="uint"/>
++		<bitfield name="RD_WATERMARK" low="4" high="5" type="uint"/>
++		<bitfield name="RD_WATERMARK_DISABLE" pos="16" type="boolean"/>
++		<bitfield name="WR_WATERMARK_DISABLE" pos="20" type="boolean"/>
++	</reg32>
+ 	<reg32 offset="0x00054" name="CMD_MDP_STREAM0_CTRL">
+ 		<bitfield name="DATA_TYPE" low="0" high="5" type="uint"/>
+ 		<bitfield name="VIRTUAL_CHANNEL" low="8" high="9" type="uint"/>
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -803,6 +803,27 @@
+ 	       msm_host->cfg_hnd->minor >= minor);
+ }
+ 
++/*
++ * ROG5 (Pixelworks Iris6 bridge in analog bypass between the DSI host and the
++ * AMS678): the command DMA FIFO must be filled before it drains, so a DMA
++ * packet leaves the host as one contiguous burst. The stock kernel writes
++ * DMA_FIFO_CTRL = 0x33 (read and write watermark 3 = 15/16 full, watermarks
++ * enabled) before every command DMA kickoff when the Iris is present
++ * (techpack dsi_ctrl_hw_cmn.c "set DMA FIFO read watermark to 15/16 full");
++ * without the Iris it disables the watermarks (0x110033) instead. With the
++ * hardware default the burst can pause while the fetch catches up: in LP
++ * escape mode the pause ends the packet (the last payload byte of a DCS
++ * 0x51 write never arrived: only DBV[9:8] took effect), in HS the split
++ * packet is dropped by the panel (HS DCS writes were ignored).
++ *
++ * 0x33 = stock with Iris; 0x110033 = stock without Iris; -1 = leave the
++ * hardware default (behaviour before this change).
++ */
++static int dma_fifo_ctrl = 0x33;
++module_param(dma_fifo_ctrl, int, 0644);
++MODULE_PARM_DESC(dma_fifo_ctrl,
++		 "DSI command DMA FIFO watermark register (0x33 stock Iris, 0x110033 stock plain, -1 hardware default)");
++
+ bool msm_dsi_host_is_wide_bus_enabled(struct mipi_dsi_host *host)
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+@@ -2367,6 +2388,11 @@
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+ 
++	if (dma_fifo_ctrl >= 0 &&
++	    msm_dsi_host_version_geq(msm_host, MSM_DSI_VER_MAJOR_6G,
++				     MSM_DSI_6G_VER_MINOR_V2_2_1))
++		dsi_write(msm_host, REG_DSI_DMA_FIFO_CTRL, dma_fifo_ctrl);
++
+ 	dsi_write(msm_host, REG_DSI_DMA_BASE, dma_base);
+ 	dsi_write(msm_host, REG_DSI_DMA_LEN, len);
+ 	dsi_write(msm_host, REG_DSI_TRIG_DMA, 1);

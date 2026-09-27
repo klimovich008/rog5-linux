@@ -1,3 +1,5 @@
-# Carried but not in production builds. 0068 (dsi-phy iface clock owned by
-# the sm8350 MDSS parent) is untested.
-0068-drm-msm-dsi-phy-let-the-sm8350-MDSS-parent-own-the-iface-clock.patch
+# Carried but not in production builds:
+# 0074/0075 (brightness) are under investigation: with 0075 values below
+# 256 are black (r125 trial).
+0074-drm-msm-dsi-ROG5-program-the-command-DMA-FIFO-watermarks.patch
+0075-drm-panel-asus-rog5-ams678-send-the-full-10-bit-DBV.patch

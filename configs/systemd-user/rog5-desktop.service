@@ -1,0 +1,16 @@
+# ROG5 virtual desktop (headless sway, 1920x1080, VNC on 127.0.0.1:5901).
+# Runs from the "phone" user's manager (lingering is enabled), so it is up
+# from boot, whether or not Phosh is unlocked or the screen is on. The pixman
+# renderer gives shm buffers: wayvnc found no usable format with GLES here.
+[Unit]
+Description=ROG5 virtual desktop (headless sway, VNC 127.0.0.1:5901)
+
+[Service]
+UnsetEnvironment=WAYLAND_DISPLAY DISPLAY
+Environment=WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman SWAYSOCK=%t/rog5-desktop-sway.sock XDG_CURRENT_DESKTOP=sway XDG_SESSION_TYPE=wayland LANG=C.UTF-8
+ExecStart=/usr/bin/sway --config /etc/rog5-desktop/sway.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

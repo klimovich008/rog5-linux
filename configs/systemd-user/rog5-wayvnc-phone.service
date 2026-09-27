@@ -1,0 +1,16 @@
+# VNC server for the phone screen (mirror, with input) in the Phosh session. It listens on
+# localhost only: connect through an SSH tunnel, e.g.
+#   ssh -L 5900:127.0.0.1:5900 root@<phone>   then a VNC client on localhost:5900
+# (see rog5-desktop). wayvnc uses phoc's screencopy, virtual keyboard and pointer.
+[Unit]
+Description=wayvnc: the phone screen (mirror, with input)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/wayvnc --output=DSI-1 --socket=%t/wayvnc-phone.sock 127.0.0.1 5900
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

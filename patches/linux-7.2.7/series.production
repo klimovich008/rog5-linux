@@ -39,8 +39,10 @@
 0065-scsi-ufs-qcom-do-not-enable-the-lane-clocks-twice.patch
 0066-interconnect-qcom-sm8350-own-the-QUP-core-BCMs.patch
 0067-ASoC-qcom-sm8250-release-the-MI2S-bit-clock-on-shutdown.patch
+0068-drm-msm-dsi-phy-let-the-sm8350-MDSS-parent-own-the-iface-clock.patch
 0069-drm-msm-kms-suspend-without-the-PM-console-VT-switch.patch
 0070-drm-msm-dpu-take-the-CRTC-encoder-from-the-atomic-state.patch
 0071-drm-msm-pad-dumb-buffers-to-whole-32-row-blocks.patch
 0072-drm-msm-dpu-ROG5-scale-the-core-clock-of-command-mode-CRTCs.patch
 0073-PCI-qcom-ROG5-the-SM8350-root-port-is-not-hotpluggable.patch
+0076-PCI-host-common-ROG5-keep-the-link-for-wakeup-enabled-devices.patch

@@ -1,0 +1,101 @@
+#!/bin/sh
+# ROG5 remote and automation helper for the two graphical targets:
+#   desktop  the headless sway virtual desktop (rog5-desktop.service,
+#            1920x1080, VNC on 127.0.0.1:5901); it doesn't depend on the
+#            phone screen
+#   phone    the Phosh session on the panel (VNC mirror on 127.0.0.1:5900,
+#            rog5-wayvnc-phone.service); it only renders while the panel is on
+#
+#   rog5-desktop status
+#   rog5-desktop [--phone] screenshot FILE    PNG of the desktop (or the phone screen)
+#   rog5-desktop [--phone] type TEXT...       type into the focused window
+#   rog5-desktop [--phone] key KEY...         keys such as Return, Escape, ctrl+l, super+Return
+#   rog5-desktop run CMD...                   start a program on the desktop
+#   rog5-desktop click X Y [left|right|middle] click at desktop coordinates
+#   rog5-desktop move X Y                     move the desktop pointer
+#   rog5-desktop scroll up|down [N]           scroll the desktop N steps (default 3)
+#   rog5-desktop windows                      desktop window tree (swaymsg -t get_tree)
+#   rog5-desktop sway ARGS...                 raw swaymsg on the desktop
+#   rog5-desktop wake                         switch the phone screen on (power key)
+#
+# Each wtype call starts with a 150 ms pause: the first key of a new virtual
+# keyboard was dropped while the compositor applied its keymap.
+# Pointer input on the phone screen goes through VNC (port 5900), which
+# injects it into Phosh. Runs as root or as "phone".
+set -eu
+user=phone
+uid=$(id -u "$user")
+rt=/run/user/$uid
+target=desktop
+[ "${1:-}" != --phone ] || { target=phone; shift; }
+
+as_user() {
+	if [ "$(id -u)" = "$uid" ]; then env XDG_RUNTIME_DIR="$rt" "$@"
+	else runuser -u "$user" -- env XDG_RUNTIME_DIR="$rt" "$@"; fi
+}
+display() {
+	if [ "$target" = phone ]; then echo wayland-0
+	else cat "$rt/rog5-desktop.display" 2>/dev/null || { echo 'rog5-desktop: the virtual desktop is not running' >&2; exit 1; }; fi
+}
+wl() { as_user WAYLAND_DISPLAY="$(display)" "$@"; }
+sway() { as_user SWAYSOCK="$rt/rog5-desktop-sway.sock" swaymsg "$@"; }
+button() { case ${1:-left} in left) echo button1 ;; right) echo button3 ;; middle) echo button2 ;; *) echo "bad button: $1" >&2; exit 2 ;; esac; }
+
+key() { # wtype arguments for a key spec such as ctrl+shift+t
+	spec=$1 mods= last=
+	while [ "${spec#*+}" != "$spec" ]; do mods="$mods ${spec%%+*}"; spec=${spec#*+}; done
+	last=$spec
+	for m in $mods; do printf -- '-M %s ' "$m"; done
+	printf -- '-k %s ' "$last"
+	for m in $mods; do printf -- '-m %s ' "$m"; done
+}
+
+cmd=${1:-status}
+[ $# -eq 0 ] || shift
+case $cmd in
+status)
+	printf 'desktop: %s (display %s, VNC 127.0.0.1:5901)\n' \
+		"$(systemctl --user -M "$user@" is-active rog5-desktop.service 2>/dev/null || true)" \
+		"$(cat "$rt/rog5-desktop.display" 2>/dev/null || echo -)"
+	printf 'phone:   screen %s, VNC mirror %s (127.0.0.1:5900)\n' \
+		"$(cat /sys/class/drm/card1-DSI-1/dpms 2>/dev/null || echo unknown)" \
+		"$(systemctl --user -M "$user@" is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
+	;;
+screenshot) [ $# -eq 1 ] || { echo 'usage: screenshot FILE' >&2; exit 2; }
+	wl grim - >"$1" ;;
+type) wl wtype -s 150 -- "$*" ;;
+key) args=; for k in "$@"; do args="$args $(key "$k")"; done
+	# shellcheck disable=SC2086
+	wl wtype -s 150 $args ;;
+run) [ "$target" = desktop ] || { echo 'run: only on the desktop' >&2; exit 2; }
+	sway exec "$*" >/dev/null ;;
+move) sway seat seat0 cursor set "$1" "$2" >/dev/null ;;
+click) b=$(button "${3:-left}")
+	sway seat seat0 cursor set "$1" "$2" >/dev/null
+	sway seat seat0 cursor press "$b" >/dev/null
+	sway seat seat0 cursor release "$b" >/dev/null ;;
+scroll) case ${1:-} in up) b=button4 ;; down) b=button5 ;; *) echo 'usage: scroll up|down [N]' >&2; exit 2 ;; esac
+	n=${2:-3}; while [ "$n" -gt 0 ]; do sway seat seat0 cursor press "$b" >/dev/null; sway seat seat0 cursor release "$b" >/dev/null; n=$((n - 1)); done ;;
+windows) sway -t get_tree ;;
+sway) sway "$@" ;;
+wake)
+	[ -e /dev/uinput ] || modprobe -d /run/rog5-modules uinput 2>/dev/null || modprobe uinput
+	[ "$(cat /sys/class/drm/card1-DSI-1/dpms 2>/dev/null)" = Off ] || exit 0
+	python3 - <<'PY'
+import fcntl, os, struct, time
+fd = os.open('/dev/uinput', os.O_WRONLY | os.O_NONBLOCK)
+fcntl.ioctl(fd, 0x40045564, 1)    # UI_SET_EVBIT EV_KEY
+fcntl.ioctl(fd, 0x40045565, 116)  # UI_SET_KEYBIT KEY_POWER
+os.write(fd, struct.pack('80sHHHHi', b'rog5-desktop wake key', 0x19, 1, 1, 1, 0) + bytes(256 * 4))
+fcntl.ioctl(fd, 0x5501)           # UI_DEV_CREATE
+time.sleep(1.0)
+for value in (1, 0):
+    os.write(fd, struct.pack('llHHi', 0, 0, 1, 116, value))
+    os.write(fd, struct.pack('llHHi', 0, 0, 0, 0, 0))
+time.sleep(0.5)
+fcntl.ioctl(fd, 0x5502)           # UI_DEV_DESTROY
+os.close(fd)
+PY
+	;;
+*) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac
