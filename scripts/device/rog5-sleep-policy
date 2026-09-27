@@ -20,13 +20,21 @@
 # (only while the display is still off, so it can never switch it back off).
 # Suspend uses s2idle: a power-key wake from PSCI deep suspend warm-reset the
 # phone (2026-09-27).
-# Before each suspend Wake-on-WLAN is armed (when Wi-Fi is associated), so a
-# new connection from outside wakes the phone: magic packet plus one pattern
-# per ROG5_SLEEP_WAKE_PORTS entry (default "tcp:22 udp:41641": SSH, which
-# also carries the VNC tunnels, and Tailscale direct connections). IPv4
-# patterns on the 802.3 frame: ethertype 0x0800, IP protocol, destination
-# port (IPv4 header without options). ROG5_SLEEP_WAKE_PORTS= (empty) turns it
-# off; ath11k then powers the Wi-Fi firmware down in suspend.
+# ROG5_SLEEP_MODE (or the first word of /etc/rog5/sleep-mode) picks what
+# "not in use" means: "suspend" (default) suspends as above; "reachable"
+# never suspends on battery, so the phone stays reachable over the network
+# at a higher standby current.
+# Wi-Fi power save (802.11 PS) is switched on while the screen is off and no
+# remote client is connected, and off otherwise: it adds ~70 ms average
+# latency (AP buffering), but no longer stalled TCP on r127 (2026-09-27).
+# Wake-on-WLAN (opt-in): with ROG5_SLEEP_WAKE_PORTS set, e.g.
+# "tcp:22 udp:41641", WoWLAN is armed before each suspend (magic packet plus
+# one IPv4 destination-port pattern per entry). It is OFF by default: on this
+# WCN6855 hw1.1 with the ASUS 2021 firmware (WLAN.HSP.1.1.c3-00205) entering
+# WoW failed ("htc suspend not complete", "failed to start wow: -110") and the
+# firmware crashed (MHI_CB_EE_RDDM), leaving Wi-Fi dead while asleep; the
+# first WoW suspends also woke at once through the root port PME, and the
+# phone answered no ARP while asleep (2026-09-27).
 #
 #   rog5-sleep-policy          run the loop (rog5-sleep-policy.service)
 #   rog5-sleep-policy --once   evaluate once and print the decision (tests)
@@ -44,7 +52,29 @@ mem_sleep=${ROG5_SLEEP_MEM_SLEEP:-/sys/power/mem_sleep}
 kmsg=${ROG5_SLEEP_KMSG:-/dev/kmsg}
 stats=${ROG5_SLEEP_STATS:-/sys/power/suspend_stats}
 wake_irq=${ROG5_SLEEP_WAKE_IRQ:-/sys/power/pm_wakeup_irq}
-wake_ports=${ROG5_SLEEP_WAKE_PORTS-tcp:22 udp:41641}
+wake_ports=${ROG5_SLEEP_WAKE_PORTS-}
+mode_file=${ROG5_SLEEP_MODE_FILE:-/etc/rog5/sleep-mode}
+wifi_ps=${ROG5_SLEEP_WIFI_PS:-1}
+
+# The configured mode: suspend or reachable.
+sleep_mode() {
+	m=${ROG5_SLEEP_MODE:-}
+	[ -n "$m" ] || m=$(awk 'NF {print $1; exit}' "$mode_file" 2>/dev/null)
+	case $m in reachable) echo reachable ;; *) echo suspend ;; esac
+}
+
+# Switches 802.11 power save on (screen off, no remote client) or off.
+# Only acts when the wanted state changes, so a manual `iw` setting holds
+# until the next screen or client change.
+set_wifi_ps() {
+	[ "$wifi_ps" = 1 ] && command -v iw >/dev/null || return 0
+	want=$1
+	[ "$want" != "$(cat "$state/wifi-ps" 2>/dev/null)" ] || return 0
+	for dev in $(iw dev 2>/dev/null | awk '/Interface/{print $2}'); do
+		iw dev "$dev" set power_save "$want" 2>/dev/null && log "wifi power save $want on $dev"
+	done
+	echo "$want" >"$state/wifi-ps"
+}
 
 log() { printf 'rog5-sleep-policy: %s\n' "$*" >"$kmsg" 2>/dev/null || true; }
 now() { cut -d. -f1 /proc/uptime; }
@@ -167,6 +197,12 @@ off_since=0
 log "started: idle ${idle_s}s, awake after wake ${awake_s}s"
 while :; do
 	reason=$(awake_reason)
+	if [ "$(cat "$dpms" 2>/dev/null)" = Off ] && [ -z "$(remote_clients)" ]; then
+		set_wifi_ps on
+	else
+		set_wifi_ps off
+	fi
+	[ -n "$reason" ] || [ "$(sleep_mode)" != reachable ] || reason=reachable-mode
 	if [ -n "$reason" ]; then
 		[ "$off_since" = 0 ] || log "stay awake: $reason"
 		off_since=0

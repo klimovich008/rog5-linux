@@ -45,3 +45,20 @@
 - `scripts/host/rog5-brightness-lab.py`: host web page with a live slider
   (0-1023, about 50 ms per change), dma_fifo_ctrl/bl_hs switches and an
   observation log (~/.local/state/rog5-brightness-lab/observations.jsonl).
+
+## WoWLAN is off by default; Wi-Fi power save and "reachable" mode instead
+- r126 (0076) with WoWLAN armed: the first suspends woke within 1 s via the
+  root-port PME (IRQ 195). The third failed to enter WoW ("htc suspend not
+  complete", "failed to start wow: -110"), then the firmware crashed
+  (MHI_CB_EE_RDDM) and Wi-Fi stayed dead. While asleep the phone answered no
+  ARP and ignored a magic packet. WCN6855 hw1.1 with the ASUS 2021 firmware.
+  WoWLAN stays available with ROG5_SLEEP_WAKE_PORTS; it is off by default.
+- 802.11 power save (was disabled because it "stalled TCP setup" in early
+  bring-up), re-tested on r127 from the Deck over Wi-Fi:
+  off: ping avg 14.5 ms (max 102), SSH connect 0.25 s; on: ping avg 83 ms
+  (max 250), SSH connect 0.21-0.32 s; no loss, no stalls.
+- rog5-sleep-policy now turns power save on while the screen is off and no
+  remote client is connected (off otherwise), and it has a mode:
+  /etc/rog5/sleep-mode (or ROG5_SLEEP_MODE) = suspend (default) or reachable
+  (never suspends on battery; CPU idle + Wi-Fi PS, reachable over the
+  network).

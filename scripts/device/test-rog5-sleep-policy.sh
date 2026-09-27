@@ -3,7 +3,7 @@
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
-export ROG5_SLEEP_USB=$t/usb ROG5_SLEEP_DPMS=$t/dpms ROG5_SLEEP_STAY=$t/stay ROG5_SLEEP_SSH_BLOCKS=0 ROG5_SLEEP_KMSG=/dev/null
+export ROG5_SLEEP_WIFI_PS=0 ROG5_SLEEP_MODE=suspend ROG5_SLEEP_USB=$t/usb ROG5_SLEEP_DPMS=$t/dpms ROG5_SLEEP_STAY=$t/stay ROG5_SLEEP_SSH_BLOCKS=0 ROG5_SLEEP_KMSG=/dev/null
 check() { got=$("$here/rog5-sleep-policy" --once); [ "$got" = "$1" ] || { echo "FAIL expected $1 got $got ($2)"; exit 1; }; }
 echo 1 >$t/usb; echo Off >$t/dpms; check usb-power 'plugged in, screen off'
 echo 0 >$t/usb; echo On >$t/dpms; check screen-on 'battery, screen on'
