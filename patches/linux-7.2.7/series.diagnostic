@@ -1,1 +1,3 @@
-# No diagnostic patches are carried on the 7.2.7 base.
+# Carried but not in production builds. 0068 (dsi-phy iface clock owned by
+# the sm8350 MDSS parent) is untested.
+0068-drm-msm-dsi-phy-let-the-sm8350-MDSS-parent-own-the-iface-clock.patch
