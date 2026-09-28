@@ -65,7 +65,7 @@ work), NO (not needed / not feasible).
 | Item | Area | Status |
 |---|---|---|
 | External monitor over USB-C (DeX) | DeX | stage 1b: 0080 in r136 (panel keeps its DPU blocks); next: DP retest with the hub, then 4-lane (typec switch modules in the ramdisk) |
-| Charge limit / bypass charging (server) | battery | PLAN (OEM glink 0x2117/0x2105) |
+| Charge limit / bypass charging (server) | battery | DONE 0082 (r144) + rog5-charge-limit |
 | Adapter power limit, input current limit | battery | PLAN (S) |
 | Torch / camera flash LED | platform | DONE white:flash (r136) |
 | ALS lux scale 2x too small (ROG5 is ONE_PL: 846) | platform | DONE (r134) |
