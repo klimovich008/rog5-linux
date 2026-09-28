@@ -99,18 +99,20 @@ EOF
 	install -d -m 0755 /etc/NetworkManager/conf.d /etc/rog5
 	install -d -m 0700 "$connections"
 	cat >"$conf" <<'EOF'
-# ROG5: NetworkManager owns only the Wi-Fi client interface. The USB link
-# (usb*/NCM), the hotspot interface (wlp1s0ap) and everything else stay with
-# their own services. Power save stays off: it stalled TCP setup on ath11k.
+# ROG5: NetworkManager owns the Wi-Fi client interface and wired adapters
+# (USB Ethernet behind a hub, enx*/eth*). The USB gadget link to a PC (usb0,
+# NCM), the hotspot interface (wlp1s0ap) and Tailscale stay with their own
+# services. Power save stays off: it stalled TCP setup on ath11k.
 [main]
 plugins=keyfile
 dns=systemd-resolved
 
 [keyfile]
-# By type, not name: the radio's interface is wlp1s0 on most boots but can
-# keep the kernel name wlan0 (seen 2026-09-26). The hotspot's AP interface
-# stays unmanaged.
-unmanaged-devices=except:type:wifi;interface-name:wlp1s0ap
+# Exclusions by name; Wi-Fi stays managed whatever its name (wlp1s0 on most
+# boots, the kernel name wlan0 on some, seen 2026-09-26). Wired adapters were
+# unmanaged before 2026-09-28 (except:type:wifi), so a USB Ethernet adapter
+# got no address.
+unmanaged-devices=interface-name:usb0;interface-name:wlp1s0ap;interface-name:tailscale0
 
 [connection]
 wifi.powersave=2
