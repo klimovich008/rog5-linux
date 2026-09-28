@@ -1,0 +1,23 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] clk: qcom: gcc-sm8350: keep the secondary USB GDSC in retention
+
+The ROG Phone 5 runs its bottom USB-C port on the secondary controller
+(usb_2) as a host. Once genpd switched usb30_sec_gdsc off, the controller
+did not come back: a runtime resume logged "xHC error in resume, Reinit"
+followed by an SMMU fault from SID 0x20 and "Host Controller Error", and a
+fresh bind failed with "usb30_sec_gdsc status stuck at 'off'".
+
+As done for the PCIe GDSCs (and like gcc-sm8450 for its USB GDSC), declare
+it PWRSTS_RET_ON so genpd leaves it in retention instead of collapsing it.
+
+--- a/drivers/clk/qcom/gcc-sm8350.c
++++ b/drivers/clk/qcom/gcc-sm8350.c
+@@ -3461,7 +3461,7 @@
+ 	.pd = {
+ 		.name = "usb30_sec_gdsc",
+ 	},
+-	.pwrsts = PWRSTS_OFF_ON,
++	.pwrsts = PWRSTS_RET_ON,
+ };
+ 
+ static struct gdsc hlos1_vote_mmnoc_mmu_tbu_hf0_gdsc = {

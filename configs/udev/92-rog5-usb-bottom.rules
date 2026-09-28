@@ -1,0 +1,5 @@
+# Bottom USB-C port (DT feature usbbtm, host only): let its xHCI runtime-
+# suspend so dwc3 and the Qualcomm glue gate their clocks while the port is
+# unused. A suspended controller misses a connect, so rog5-usb-bottom on
+# holds it at "on" while the port's 5 V is switched on.
+ACTION=="add", SUBSYSTEM=="platform", KERNEL=="xhci-hcd.*", KERNELS=="a800000.usb", ATTR{power/control}="auto"
