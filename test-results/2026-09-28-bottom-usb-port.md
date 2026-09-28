@@ -30,3 +30,14 @@ state in s2idle (S1 S2idle count 68), so APSS sleeps. lpm_mon types "ddr"
 and "aoss" produce no log on this AOP; only "cxpc" does. The Wi-Fi PCIe link
 logs "Timeout waiting for L2 entry" each suspend but is powered off and its
 interconnect votes dropped.
+
+## Performance check on r160 (same evening)
+
+| Load | Result |
+|---|---|
+| 1 thread on the prime + 1 on a big core (from < 50 °C) | prime 2841.6 MHz (max), big 2419.2 MHz (max) |
+| all 8 cores, 5 s | little 1804.8 (max), big 1996.8 of 2419.2, prime 2496.0 of 2841.6 MHz; 69-73 °C: SoC limiter (LMh), as on stock SD888 |
+| GPU | simple_ondemand, 315-840 MHz table complete |
+
+ADSP stopped for one CXPC run: AUDIO=5 stays (a stopped subsystem keeps its
+last vote), DDR_AUX=5 unchanged; like the SLPI stop, inconclusive.
