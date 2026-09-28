@@ -8,6 +8,9 @@ base=${1:?usage: compose-production-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT [touch|
 source=${2:?missing kernel source}
 output=${3:?missing output}
 features=${4:-}
+# l3 (CPU OPP tables voting the EPSS L3) may follow any feature list; needs a
+# kernel with CONFIG_INTERCONNECT_QCOM_OSM_L3=y.
+case ,$features, in *,l3,*) l3=1; features=$(printf %s "$features" | sed 's/^l3$//; s/,l3$//; s/,l3,/,/') ;; *) l3=0 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -319,6 +322,22 @@ if [ "$qupicc" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" /interconnect-clk-virt qcom,bcm-voters)" = \
 			"$(fdtget "$work/composed.dtb" /soc@0/rsc@18200000/bcm-voter phandle)" ] ||
 		{ echo 'FAIL qupicc composition' >&2; exit 1; }
+fi
+if [ "$l3" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/l3.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-cpu-l3.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/l3.dtbo" "$work/l3.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/l3.dtb" "$work/l3.dtbo"
+	mv "$work/l3.dtb" "$work/composed.dtb"
+	l3p=$(fdtget "$work/composed.dtb" /soc@0/interconnect@18590000 phandle)
+	for c in 0 100 200 300 400 500 600 700; do
+		[ "$(fdtget "$work/composed.dtb" /cpus/cpu@$c interconnects)" = "$l3p 0 $l3p 1" ] &&
+			[ -n "$(fdtget "$work/composed.dtb" /cpus/cpu@$c operating-points-v2)" ] ||
+			{ echo "FAIL l3 composition cpu@$c" >&2; exit 1; }
+	done
+	[ "$(fdtget -l "$work/composed.dtb" /opp-table-cpu7 | wc -l)" = 19 ] ||
+		{ echo 'FAIL l3 composition: prime OPPs' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

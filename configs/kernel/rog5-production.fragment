@@ -100,3 +100,6 @@ CONFIG_INPUT_JOYSTICK=y
 CONFIG_JOYSTICK_XPAD=m
 # QMP USB3/DP combo PHY of the side port (DisplayPort alt mode, later USB 3).
 CONFIG_PHY_QCOM_QMP_COMBO=m
+# EPSS L3 provider for the CPU OPP tables (cpu-l3 overlay): built in, since
+# cpufreq-hw (built in) defers until the L3 interconnect exists.
+CONFIG_INTERCONNECT_QCOM_OSM_L3=y
