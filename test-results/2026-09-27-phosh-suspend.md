@@ -247,3 +247,27 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   TZ/HYP or the AOP; the AOP violators region stays empty.
 - The USB gadget re-enumerated with the host side on 10.77.0.1 only
   (169.254.77.2 unreachable); use 10.77.0.2 then.
+
+## 2026-09-28: built-in microphones (r146 default)
+- Design (Opus agent, from the stock Bolero/lahaina sources): VA macro
+  (qcom,sm8250-lpass-va-macro, same register map as Bolero 2.0) capturing
+  DMIC0-3 on LPI gpio6-9 into VA_CODEC_DMA_TX_0 -> MultiMedia3 (PCM 3); mic
+  bias from L2C 1.8 V; 0083 makes the VA macro take the LPASS macro/dcodec
+  votes only while runtime-active (upstream holds them from probe, which
+  would undo 0063's ADSP power collapse). DTB feature mic; modules
+  snd_soc_lpass_va_macro + snd_soc_lpass_macro_common.
+- r145 trial (kernel r57): card binds with PCM 3 capture, speakers still PCM
+  0. arecord hw:0,3 5 s: 0.5 s start-up pop, then noise floor RMS 0.8 at 0 dB
+  and 5 at +18 dB (stock gain, VA_DEC Volume 102); a sound at 2 s showed on
+  ch0 only (independent mics). The VA macro runtime-suspends and the ADSP
+  keeps entering sleep afterwards.
+- rog5-audio-route sets the capture route (DMIC0 left, DMIC2 right, +18 dB);
+  the controls are optional without the mic DTB. r146 = r145 + that route:
+  default install, two ordinary boots committed.
+- PipeWire: the source ("Built-in microphones") first stalled after <1 s:
+  pro-audio groups all PCMs of the card under one driver, so the speakers
+  (1024-frame periods) followed the mic (960) and xrun'd every cycle. A
+  separate node.group for the mic fixes it: 7.8 s of 8 s recorded, and 5.8 of
+  6 s while playing at the same time, 0 xruns. alsa-utils installed on the
+  phone.
+- Pending: a listening check of a recording.

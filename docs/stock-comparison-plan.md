@@ -69,7 +69,7 @@ work), NO (not needed / not feasible).
 | Adapter power limit, input current limit | battery | PLAN (S) |
 | Torch / camera flash LED | platform | DONE white:flash (r136) |
 | ALS lux scale 2x too small (ROG5 is ONE_PL: 846) | platform | DONE (r134) |
-| Microphones (4 DMIC via TX/VA macro) | audio | PLAN (M-L) |
+| Microphones (4 DMIC via TX/VA macro) | audio | DONE r146 (VA macro, PCM 3, PipeWire source) |
 | 3.5 mm jack (ESS ES928x, no mainline driver) | audio | PLAN (L) |
 | Bottom USB-C port (RT1711H, USB3803 hub, redriver) | connectivity | PLAN (M-L) |
 | AeroActive cooler (needs the bottom port) | asus | PLAN (after bottom port) |
