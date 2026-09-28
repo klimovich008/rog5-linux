@@ -1,0 +1,41 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: ROG5 wake on charger attach
+
+Plugging a charger or cable into a ROG5 suspended on battery did not resume
+it: the ADSP's USB property notification arrives through the IRQF_NO_SUSPEND
+glink interrupt during s2idle, but power_supply_changed() only registers a
+soft wakeup event, which does not end s2idle. The sleep policy keeps the
+phone awake on USB power, so it must resume to notice the charger.
+
+With the ROG5 OEM client, make the battmgr device wakeup capable and raise
+a hard wakeup event for USB property notifications. Battery notifications
+do not wake the system.
+
+--- a/drivers/power/supply/qcom_battmgr.c	2026-09-28 11:42:44.385616575 +0200
++++ b/drivers/power/supply/qcom_battmgr.c	2026-09-28 11:43:34.066651750 +0200
+@@ -1709,6 +1709,15 @@
+ 		qcom_battmgr_asus_chg_kick(battmgr, false);
+ 		break;
+ 	case NOTIF_USB_PROPERTY:
++		/*
++		 * ROG5: a charger/cable attach must wake a suspended phone
++		 * (its sleep policy stays awake on USB power). This callback
++		 * runs from the IRQF_NO_SUSPEND glink interrupt during s2idle,
++		 * where the power supply core's soft wakeup event does not end
++		 * the suspend. While awake the event is harmless.
++		 */
++		if (battmgr->oem_client)
++			pm_wakeup_hard_event(battmgr->dev);
+ 		power_supply_changed(battmgr->usb_psy);
+ 		qcom_battmgr_asus_chg_kick(battmgr, false);
+ 		break;
+@@ -2297,6 +2306,9 @@
+ 			return PTR_ERR(battmgr->oem_client);
+ 
+ 		psy_cfg.attr_grp = qcom_battmgr_asus_groups;
++		ret = devm_device_init_wakeup(dev);
++		if (ret)
++			return ret;
+ 
+ 		/* Charge control defaults: auto, 0-100 %, i.e. no limit */
+ 		mutex_init(&battmgr->asus_chg_lock);
