@@ -106,3 +106,7 @@ CONFIG_PHY_QCOM_QMP_COMBO=m
 # EPSS L3 provider for the CPU OPP tables (cpu-l3 overlay): built in, since
 # cpufreq-hw (built in) defers until the L3 interconnect exists.
 CONFIG_INTERCONNECT_QCOM_OSM_L3=y
+# FUSE built in: /lib/modules is empty, so a fuse module would never create
+# /dev/fuse and xdg-document-portal (Firefox, GTK file choosers, sandboxed
+# apps) failed, stalling app start-up on portal timeouts.
+CONFIG_FUSE_FS=y
