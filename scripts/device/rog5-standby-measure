@@ -1,0 +1,455 @@
+#!/bin/sh
+# ROG5 standby current from the fuel gauge's charge counter (qcom-battmgr-bat).
+#
+#   rog5-standby-measure start [OPTIONS]  run detached (systemd-run unit
+#                                         rog5-standby-measure); use this one
+#   rog5-standby-measure status           phase, last log lines, result dir
+#   rog5-standby-measure stop             end early (partial summary), restore
+#   rog5-standby-measure restore          put the charge settings back (idempotent)
+#   rog5-standby-measure summarize DIR    recompute DIR/summary.txt
+#   rog5-standby-measure run [OPTIONS]    the worker, in the foreground
+#
+# Options (all --key=value):
+#   --mode=discharge  (default) unattended: USB input suspended with
+#                     charge_behaviour=force-discharge, cable stays attached
+#                     (the USB PHY/gadget stays connected: an upper bound)
+#   --mode=unplug     hold the battery with inhibit-charge, then wait for the
+#                     cable to be pulled (the real unplugged standby)
+#   --hours=4         measurement window (boot clock, includes suspend)
+#   --top=95          start only at or below this capacity (%)
+#   --floor=20        stop early at this capacity (%)
+#   --interval=1800   RTC checkpoint wake every N s (0: only the end alarm)
+#   --settle=600      wait this long on battery before the first checkpoint
+#   --prep-max=14400  give up if the battery isn't at --top by then
+#   --wait-max=14400  unplug mode: give up if the cable stays in this long
+#
+# Why: at Full the gauge pins charge_counter to charge_full (2485000 on r135)
+# until the SOC hold releases, so a run that starts on the charger at 100 %
+# sees almost nothing. This first discharges to --top while awake
+# (force-discharge + /run/rog5-stay-awake, ~100 mA, ~1 h from 100 % to 95 %),
+# then leaves the phone to rog5-sleep-policy. The ADSP gauge keeps counting
+# while the SoC is in s2idle, so the counter integrates suspended and awake
+# time alike. Checkpoints are read right after each resume: an RTC alarm every
+# --interval s wakes the phone for one policy awake window (~15 s). The
+# awake share is estimated from current_now samples taken while awake and
+# subtracted; awake time is the CLOCK_MONOTONIC delta (it stops in s2idle),
+# total time the CLOCK_BOOTTIME delta (/proc/uptime).
+#
+# Charge values are pack values with patch 0078 active (charge_full_design
+# about 2750000); on an older kernel (about 5500000) they are halved here.
+# current_now/voltage_now are pack values either way.
+#
+# Settings: the original charge_behaviour and thresholds are saved in
+# /run/rog5-standby-measure/saved and restored by the EXIT trap, by the
+# unit's ExecStopPost (covers SIGKILL) and by `restore`. A reboot also clears
+# them (the driver keeps them in memory; its shutdown hook unsuspends USBIN).
+# Results: /var/lib/rog5-standby-measure/<UTC start>/summary.txt plus raw data.
+set -u
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+bat=${ROG5_MEASURE_BAT:-/sys/class/power_supply/qcom-battmgr-bat}
+usb=${ROG5_MEASURE_USB:-/sys/class/power_supply/qcom-battmgr-usb/online}
+dpms=${ROG5_MEASURE_DPMS:-/sys/class/drm/card1-DSI-1/dpms}
+stats=/sys/power/suspend_stats
+unit=rog5-standby-measure
+rundir=${ROG5_MEASURE_RUN:-/run/rog5-standby-measure}
+saved=$rundir/saved
+statef=$rundir/state
+base=${ROG5_MEASURE_BASE:-/var/lib/rog5-standby-measure}
+stay=${ROG5_MEASURE_STAY:-/run/rog5-stay-awake}
+self=$(readlink -f "$0" 2>/dev/null || echo "$0")
+
+mode=discharge hours=4 top=95 floor=20 interval=1800 settle=600
+prep_max=14400 wait_max=14400 poll=2 vmin=6800000
+
+usage() { sed -n '2,24p' "$self" >&2; exit 2; }
+log() {
+	line="$(date -u +%FT%TZ) $*"
+	printf '%s\n' "$line"
+	[ -z "${dir:-}" ] || printf '%s\n' "$line" >>"$dir/log.txt"
+}
+phase() { st=$1; shift; printf '%s %s %s\n' "$st" "$(date -u +%FT%TZ)" "$*" >"$statef" 2>/dev/null; log "[$st] $*"; }
+fail() { log "FAIL: $*"; reason="fail: $*"; exit 1; }
+
+# One battmgr attribute (a fresh ADSP request per read), or NA.
+rd() { v=; read -r v <"$bat/$1" 2>/dev/null || v=; printf '%s' "${v:-NA}" | tr ' \t' '--'; }
+online() { v=; read -r v <"$usb" 2>/dev/null; [ "$v" = 1 ]; }
+curb() { sed -n 's/.*\[\([a-z-]*\)\].*/\1/p' "$bat/charge_behaviour" 2>/dev/null; }
+setb() { { echo "$1" >"$bat/charge_behaviour"; } 2>/dev/null || log "WARN could not set charge_behaviour $1"; }
+boot() { cut -d' ' -f1 /proc/uptime; }          # CLOCK_BOOTTIME, s
+bootint() { b=$(boot); echo "${b%.*}"; }
+# CLOCK_MONOTONIC ("now at" in /proc/timer_list is ktime_get(); root only)
+mono() {
+	awk '/^now at/ {printf "%.3f\n", $3 / 1e9; exit}' /proc/timer_list 2>/dev/null ||
+		python3 -c 'import time; print("%.3f" % time.monotonic())'
+}
+succ() { cat "$stats/success" 2>/dev/null || echo 0; }
+isnum() { case $1 in ''|*[!0-9]*) return 1 ;; esac; }
+
+rtc=
+for r in /sys/class/rtc/rtc*; do [ -w "$r/wakealarm" ] && { rtc=$r/wakealarm; break; }; done
+# Arms the RTC wake alarm N s from now (replacing ours; the alarmtimer users
+# of the RTC are separate).
+arm() {
+	[ -n "$rtc" ] || return 0
+	n=$1; [ "$n" -ge 5 ] || n=5
+	{ echo 0 >"$rtc"; } 2>/dev/null
+	{ echo "+$n" >"$rtc"; } 2>/dev/null && echo "$rtc" >"$rundir/rtc-armed"
+}
+
+stay_on() { [ -e "$stay" ] || { : >"$stay" && : >"$rundir/created-stay"; }; }
+stay_off() { [ ! -e "$rundir/created-stay" ] || rm -f "$stay" "$rundir/created-stay"; }
+
+save_settings() {
+	mkdir -p "$rundir"
+	{
+		echo "behaviour=$(curb)"
+		echo "start=$(cat "$bat/charge_control_start_threshold")"
+		echo "end=$(cat "$bat/charge_control_end_threshold")"
+		echo "pm_debug=$(cat /sys/power/pm_debug_messages 2>/dev/null)"
+	} >"$saved.tmp" && mv "$saved.tmp" "$saved"
+}
+
+# Puts the saved charge settings back. auto goes first so a force-discharge
+# never outlives this call even if a threshold write fails; end before start
+# (a start >= end would move end).
+restore() {
+	if [ -r "$saved" ]; then
+		behaviour=auto start=0 end=100 pm_debug=
+		while IFS='=' read -r k v; do
+			case $k in behaviour) behaviour=$v ;; start) start=$v ;; end) end=$v ;; pm_debug) pm_debug=$v ;; esac
+		done <"$saved"
+		setb auto
+		{ echo "$end" >"$bat/charge_control_end_threshold"; } 2>/dev/null
+		{ echo "$start" >"$bat/charge_control_start_threshold"; } 2>/dev/null
+		[ -z "$behaviour" ] || setb "$behaviour"
+		[ -z "$pm_debug" ] || { echo "$pm_debug" >/sys/power/pm_debug_messages; } 2>/dev/null
+		[ "$(curb)" = "${behaviour:-auto}" ] || { sleep 1; setb "${behaviour:-auto}"; }
+		if [ "$(curb)" = "${behaviour:-auto}" ]; then
+			rm -f "$saved"
+			log "restored charge_behaviour ${behaviour:-auto}, thresholds $start-$end"
+		else
+			log "WARN restore: charge_behaviour reads $(curb), wanted ${behaviour:-auto}"
+		fi
+	fi
+	stay_off
+	if [ -r "$rundir/rtc-armed" ]; then
+		{ echo 0 >"$(cat "$rundir/rtc-armed")"; } 2>/dev/null
+		rm -f "$rundir/rtc-armed"
+	fi
+}
+
+# The awake-reason of the sleep policy, or sleep-eligible.
+policy() { p=$(rog5-sleep-policy --once 2>/dev/null); printf '%s' "${p:-NA}" | tr ' \t' '--'; }
+
+# Appends one checkpoint row; fails if the phone suspended during the reads.
+checkpoint() {
+	b1=$(boot); m1=$(mono)
+	on=0; online && on=1
+	row="$(date +%s)	$b1	$m1	$(succ)	$on	$(rd status)	$(rd capacity)	$(rd charge_counter)	$(rd voltage_now)	$(rd voltage_ocv)	$(rd current_now)	$(rd power_now)	$(rd temp)	$(rd time_to_empty_avg)	$(rd cell_voltages)	$(cat "$dpms" 2>/dev/null || echo NA)	$(policy)"
+	b2=$(boot)
+	awk -v a="$b1" -v b="$b2" 'BEGIN {exit !(b - a > 3)}' && { log "checkpoint spanned a suspend; retrying"; return 1; }
+	printf '%s\n' "$row" >>"$dir/checkpoints.tsv"
+	ncp=$((ncp + 1)); last_cp=${b1%.*}
+	cp_cap=$(echo "$row" | cut -f7); cp_v=$(echo "$row" | cut -f9); cp_on=$on
+}
+
+qstats() { for f in /sys/kernel/debug/qcom_stats/*; do [ -f "$f" ] && printf '%s %s\n' "${f##*/}" "$(tr '\n' ' ' <"$f")"; done; }
+wsrc() { awk 'NR > 1 {print $1, $2, $3, $4}' /sys/kernel/debug/wakeup_sources 2>/dev/null; }
+snap() { qstats >"$dir/qstats-$1"; wsrc >"$dir/wsrc-$1"; cat /proc/interrupts >"$dir/irq-$1"; }
+
+on_exit() {
+	rc=$?
+	trap - EXIT INT TERM HUP
+	restore
+	if [ -n "${dir:-}" ]; then
+		[ "${st:-}" != measure ] || { snap end; reason=${reason:-interrupted}; }
+		[ -z "${cursor:-}" ] || journalctl --after-cursor="$cursor" -o short-monotonic --no-pager >"$dir/journal.txt" 2>/dev/null
+		echo "reason=${reason:-interrupted}" >>"$dir/meta.env"
+		[ ! -s "$dir/checkpoints.tsv" ] || summarize "$dir" >/dev/null
+		phase done "${reason:-interrupted}; results in $dir"
+		[ ! -s "$dir/summary.txt" ] || cat "$dir/summary.txt"
+	fi
+	exit "$rc"
+}
+
+run() {
+	for a in "$@"; do
+		k=${a%%=*} v=${a#*=}
+		case $a in --*=*) ;; *) usage ;; esac
+		case $k in
+		--mode) case $v in discharge|unplug) mode=$v ;; *) usage ;; esac ;;
+		--hours) case $v in ''|*[!0-9.]*) usage ;; esac; hours=$v ;;
+		--top|--floor|--interval|--settle|--prep-max|--wait-max)
+			isnum "$v" || usage
+			case $k in --top) top=$v ;; --floor) floor=$v ;; --interval) interval=$v ;;
+			--settle) settle=$v ;; --prep-max) prep_max=$v ;; --wait-max) wait_max=$v ;; esac ;;
+		*) usage ;;
+		esac
+	done
+	dur=$(awk -v h="$hours" 'BEGIN {printf "%d", h * 3600}')
+	[ "$(id -u)" = 0 ] || { echo 'rog5-standby-measure: run as root' >&2; exit 1; }
+	[ -w "$bat/charge_behaviour" ] || { echo 'rog5-standby-measure: kernel without charge control (0082)' >&2; exit 1; }
+	if [ "${ROG5_MEASURE_FORCE:-0}" != 1 ]; then
+		systemctl is-active --quiet rog5-sleep-policy ||
+			{ echo 'rog5-sleep-policy is not running: the phone would never suspend (ROG5_MEASURE_FORCE=1 to measure anyway)' >&2; exit 1; }
+		[ ! -e "$stay" ] || { echo "$stay exists: the policy would stay awake" >&2; exit 1; }
+		case $(awk 'NF {print $1; exit}' /etc/rog5/sleep-mode 2>/dev/null) in
+		reachable) echo 'sleep mode is "reachable": the phone never suspends on battery' >&2; exit 1 ;;
+		esac
+	fi
+	[ -z "${INVOCATION_ID:-}" ] && echo 'note: not under systemd; an SSH session keeps the phone awake (use start)' >&2
+
+	dir=$base/$(date -u +%Y%m%dT%H%M%SZ)
+	mkdir -p "$dir" "$rundir" || exit 1
+	echo "$dir" >"$rundir/dir"
+	ncp=0 last_cp=0 reason= cursor= st=init
+	[ ! -r "$saved" ] || restore      # a killed run's leftovers
+	save_settings
+	trap on_exit EXIT
+	trap 'reason=${reason:-signal}; exit 130' INT
+	trap 'reason=${reason:-stopped}; exit 143' TERM HUP
+
+	design=$(rd charge_full_design) full=$(rd charge_full)
+	div=1; isnum "$design" && [ "$design" -gt 4000000 ] && div=2
+	{
+		echo "mode=$mode"; echo "hours=$hours"; echo "top=$top"; echo "floor=$floor"
+		echo "interval=$interval"; echo "settle=$settle"; echo "div=$div"
+		echo "design=$design"; echo "full=$full"; echo "kernel=$(uname -r)"
+		echo "rtc=${rtc:-none}"
+	} >"$dir/meta.env"
+	{
+		echo "# $(date -u +%FT%TZ) $(uname -r)"
+		for f in status capacity charge_counter charge_full charge_full_design voltage_now \
+			voltage_ocv current_now power_now temp time_to_empty_avg cell_voltages charge_behaviour \
+			charge_control_start_threshold charge_control_end_threshold; do
+			echo "$f=$(rd "$f")"
+		done
+		echo "usb_online=$(cat "$usb" 2>/dev/null)"; echo "dpms=$(cat "$dpms" 2>/dev/null)"
+		echo "policy=$(policy)"; echo "mem_sleep=$(cat /sys/power/mem_sleep 2>/dev/null)"
+		rfkill 2>/dev/null; iw dev 2>/dev/null
+	} >"$dir/settings.txt"
+	printf '# rt\tboot\tmono\tsuspends\tusb\tstatus\tcap\tcc_uAh\tv_uV\tocv_uV\ti_uA\tp_uW\ttemp_dC\ttte_s\tcells\tdpms\tpolicy\n' >"$dir/checkpoints.tsv"
+	printf '# boot\ti_uA\tcc_uAh\n' >"$dir/awake.tsv"
+	[ "$div" = 1 ] || log "charge values look doubled (design $design): halving them (0078 not active)"
+
+	# 1. Off the Full hold: discharge awake to --top.
+	phase prep "mode $mode, capacity $(rd capacity) % $(rd status), target <= $top %"
+	t0=$(bootint) lastlog=0
+	while :; do
+		cap=$(rd capacity) cc=$(rd charge_counter) sts=$(rd status)
+		if isnum "$cap" && isnum "$cc" && isnum "$full" && [ "$sts" != Full ] &&
+			[ "$cap" -le "$top" ] && [ "$cc" -lt "$full" ]; then
+			break
+		fi
+		now=$(bootint)
+		[ $((now - t0)) -lt "$prep_max" ] || fail "capacity $cap % ($sts) still above $top % after $prep_max s"
+		[ "$(curb)" = force-discharge ] || setb force-discharge
+		stay_on
+		[ $((now - lastlog)) -lt 300 ] || { log "prep: $cap % $sts, cc $cc, i $(rd current_now)"; lastlog=$now; }
+		sleep 30
+	done
+	isnum "$cap" && [ "$cap" -gt "$floor" ] || fail "capacity $cap % is at or below --floor $floor %"
+
+	# 2. On battery.
+	if [ "$mode" = discharge ]; then
+		[ "$(curb)" = force-discharge ] || setb force-discharge
+		sleep 5
+		online && fail 'force-discharge did not take USB power offline'
+	else
+		setb inhibit-charge
+		sleep 5
+		if online; then
+			stay_off
+			phase ready "unplug the USB cable now (capacity $(rd capacity) %)"
+			w0=$(bootint)
+			while online; do
+				[ $(($(bootint) - w0)) -lt "$wait_max" ] || fail "cable still attached after $wait_max s"
+				sleep 5
+			done
+		fi
+		log 'on battery; restoring the charge settings now'
+		restore
+		save_settings                 # nothing to undo any more, keeps pm_debug
+	fi
+	stay_off
+	{ echo 1 >/sys/power/pm_debug_messages; } 2>/dev/null
+	b0=$(bootint)
+	next=$((b0 + settle))
+	phase settle "on battery at $(rd capacity) %; first checkpoint in $settle s (turn the screen off)"
+	arm "$settle"
+
+	# 3. Checkpoints until --hours have passed.
+	last_s=$(succ) end_t=0
+	while :; do
+		now=$(bootint) s=$(succ) resumed=0
+		if [ "$s" != "$last_s" ]; then
+			resumed=1; last_s=$s
+			log "resumed (suspends $s, wake irq $(cat /sys/power/pm_wakeup_irq 2>/dev/null))"
+		fi
+		if online; then
+			reason='USB power returned'
+			[ "$mode" = unplug ] || reason='USB power online during force-discharge'
+			break
+		fi
+		[ "$st" != measure ] || printf '%s\t%s\t%s\n' "$(boot)" "$(rd current_now)" "$(rd charge_counter)" >>"$dir/awake.tsv"
+		take=0
+		[ "$now" -lt "$next" ] || take=1
+		[ "$st" = measure ] && [ "$resumed" = 1 ] && [ $((now - last_cp)) -ge 300 ] && take=1
+		if [ "$take" = 1 ] && checkpoint; then
+			if [ "$st" != measure ]; then
+				end_t=$((last_cp + dur))
+				cursor=$(journalctl -n0 --show-cursor -o cat 2>/dev/null | sed -n 's/^-- cursor: //p')
+				snap start
+				phase measure "window starts: capacity $cp_cap %, until +$dur s"
+			fi
+			if [ "$last_cp" -ge "$end_t" ]; then reason='duration reached'; break; fi
+			if isnum "$cp_cap" && [ "$cp_cap" -le "$floor" ]; then reason="capacity at --floor ($cp_cap %)"; break; fi
+			if isnum "$cp_v" && [ "$cp_v" -lt "$vmin" ]; then reason="voltage below $vmin uV"; break; fi
+			next=$end_t
+			[ "$interval" = 0 ] || [ $((last_cp + interval)) -ge "$end_t" ] || next=$((last_cp + interval))
+			[ "$ncp" -lt 2 ] || log "checkpoint $ncp: capacity $cp_cap %"
+			resumed=1
+		fi
+		[ "$resumed" = 0 ] || arm $((next - $(bootint)))
+		sleep "$poll"
+	done
+	[ "$st" = measure ] || fail "$reason before the window started"
+	exit 0
+}
+
+# Computes summary.txt from a result directory.
+summarize() {
+	d=$1
+	[ -s "$d/checkpoints.tsv" ] || { echo "no checkpoints in $d" >&2; return 1; }
+	div=1 full=NA mode=? reason=?
+	while IFS='=' read -r k v; do
+		case $k in div) div=$v ;; full) full=$v ;; mode) mode=$v ;; reason) reason=$v ;; esac
+	done <"$d/meta.env"
+	{
+	echo "ROG5 standby measurement $(basename "$d") ($mode mode; ended: $reason)"
+	awk -F'\t' -v div="$div" -v full="$full" -v mode="$mode" '
+	function abs(x) { return x < 0 ? -x : x }
+	FNR == 1 { f++ }
+	/^#/ { next }
+	f == 1 { if ($2 != "NA" && $2 != "") { ab[++na] = $1; ai[na] = abs($2) / 1000 }
+		 if ($3 ~ /^[0-9]+$/) { qb[++nq] = $3 / div }
+		 next }
+	$5 != 0 || $8 !~ /^[0-9]+$/ { next }
+	{ n++; B[n] = $2; M[n] = $3; S[n] = $4; CAP[n] = $7; C[n] = $8 / div / 1000
+	  V[n] = $9 / 1e6; O[n] = $10 / 1e6; T[n] = $13 / 10; TTE[n] = $14; ST[n] = $6; P[n] = $17 }
+	END {
+		if (n < 2) { print "fewer than two usable checkpoints: no result"; exit }
+		# counter resolution: smallest non-zero step between consecutive reads
+		q = 0
+		for (k = 2; k <= nq; k++) { x = abs(qb[k] - qb[k - 1]) / 1000; if (x > 0 && (q == 0 || x < q)) q = x }
+		for (k = 2; k <= n; k++) { x = abs(C[k] - C[k - 1]); if (x > 0 && (q == 0 || x < q)) q = x }
+		qn = q; if (q == 0) q = 1
+		for (k = 1; k <= na; k++) { sa += ai[k] } ; iaw = na ? sa / na : 120
+		printf "\nsegments (between checkpoints; sleep current = (dQ - awake share) / asleep):\n"
+		printf "  %3s %8s %7s %8s %8s %8s %9s %s\n", "#", "total s", "awake s", "dQ mAh", "awake", "sleep mA", "suspends", "policy at end"
+		X[1] = 0; Y[1] = 0
+		for (k = 2; k <= n; k++) {
+			dt = B[k] - B[k - 1]; aw = M[k] - M[k - 1]; sl = dt - aw; dq = C[k - 1] - C[k]
+			s = 0; m = 0
+			for (j = 1; j <= na; j++) if (ab[j] > B[k - 1] && ab[j] <= B[k]) { s += ai[j]; m++ }
+			ia = m ? s / m : iaw; qa = aw * ia / 3600
+			T_ += dt; A_ += aw; Q_ += dq; QA_ += qa
+			X[k] = X[k - 1] + sl; Y[k] = Y[k - 1] + dq - qa
+			isl = sl > 60 ? (dq - qa) / sl * 3600 : 0
+			printf "  %3d %8.0f %7.0f %8.2f %8.2f %8s %9d %s\n", k - 1, dt, aw, dq, qa, (sl > 60 ? sprintf("%.1f", isl) : "-"), S[k] - S[k - 1], P[k]
+			if (dq < -q) rose = rose sprintf(" #%d(+%.1f mAh)", k - 1, -dq)
+			if (sl >= 600) { ns++; MED[ns] = isl }
+		}
+		for (i = 2; i <= ns; i++) { x = MED[i]; for (j = i - 1; j >= 1 && MED[j] > x; j--) MED[j + 1] = MED[j]; MED[j + 1] = x }
+		med = ns ? (ns % 2 ? MED[(ns + 1) / 2] : (MED[ns / 2] + MED[ns / 2 + 1]) / 2) : 0
+		SLP = T_ - A_
+		th = T_ / 3600; sh = SLP / 3600
+		itot = Q_ / th
+		isl = SLP > 60 ? (Q_ - QA_) / sh : 0
+		# least-squares slope of cumulative sleep charge over cumulative sleep time
+		if (n >= 3 && SLP > 60) {
+			for (k = 1; k <= n; k++) { mx += X[k] / n; my += Y[k] / n }
+			for (k = 1; k <= n; k++) { sxx += (X[k] - mx) ^ 2; sxy += (X[k] - mx) * (Y[k] - my) }
+			if (sxx > 0) {
+				b = sxy / sxx; a = my - b * mx
+				for (k = 1; k <= n; k++) { r = Y[k] - a - b * X[k]; ss += r * r; if (abs(r) > rmax) rmax = abs(r) }
+				rms = sqrt(ss / n); se = n > 2 ? sqrt(ss / (n - 2) / sxx) * 3600 : 0
+				fit = sprintf("%.1f mA +- %.1f (slope s.e.), residual rms %.2f mAh, max %.2f mAh", b * 3600, se, rms, rmax)
+			}
+		}
+		sigq = sqrt(q ^ 2 + (0.02 * (Q_ - QA_)) ^ 2 + (0.3 * QA_) ^ 2 + rms ^ 2)
+		printf "\nwindow: %.0f s (%.2f h) on battery, %.0f s awake (%.1f %%), %.0f s suspended; %d suspends, %d checkpoints\n", T_, th, A_, 100 * A_ / T_, SLP, S[n] - S[1], n
+		printf "charge_counter: %.1f -> %.1f mAh (%.2f mAh used%s)\n", C[1], C[n], Q_, div == 2 ? ", halved: 0078 not active" : ""
+		printf "counter resolution: %s\n", qn ? sprintf("%.3f mAh (smallest step seen)", qn) : "no step seen (assuming 1 mAh)"
+		printf "awake current (current_now while awake): mean %.0f mA over %d samples -> %.2f mAh awake share\n", iaw, na, QA_
+		printf "\nRESULT\n"
+		printf "  average over the window (the policy as used): %.1f mA\n", itot
+		if (SLP > 60) printf "  suspended (s2idle) current: %.1f mA +- %.1f (endpoints)\n", isl, sigq / sh
+		if (fit != "") printf "  suspended current, fit over checkpoints: %s\n", fit
+		if (ns >= 3) printf "  suspended current, median of %d segments (robust to one gauge jump): %.1f mA\n", ns, med
+		vm = (V[1] + V[n]) / 2
+		if (SLP > 60) printf "  suspended power at %.2f V (mean pack voltage): %.0f mW\n", vm, isl * vm
+		printf "  error model: resolution %.2f + gain 2 %% + awake share 30 %% + fit rms, in quadrature; excludes gauge offset\n", q
+		printf "\nsanity:\n"
+		dc = CAP[1] - CAP[n]
+		if (full ~ /^[0-9]+$/) {
+			fm = full / div / 1000
+			lo = (dc - 1) * fm / 100 / th; hi = (dc + 1) * fm / 100 / th; if (lo < 0) lo = 0
+			printf "  capacity %d -> %d %% (%d %% of %.0f mAh): average %.0f..%.0f mA (1 %% rounding) %s\n", CAP[1], CAP[n], dc, fm, lo, hi, (itot >= lo && itot <= hi) ? "consistent" : "INCONSISTENT"
+		}
+		printf "  voltage_now %.3f -> %.3f V, voltage_ocv %.3f -> %.3f V, temp %.1f -> %.1f C\n", V[1], V[n], O[1], O[n], T[1], T[n]
+		if (O[n] - O[1] > 0.02 && Q_ > 5 * q) print "  WARN OCV rose while the counter fell: check for a gauge recalibration"
+		if (TTE[n] ~ /^[0-9]+$/ && TTE[n] > 0 && TTE[n] < 30000000) printf "  ADSP time_to_empty_avg %d s -> %.0f mA implied (unvalidated averaging window)\n", TTE[n], C[n] / (TTE[n] / 3600)
+		if (rose != "") print "  WARN counter rose in segment(s)" rose ": gauge correction, treat the result with care"
+		if (ST[1] == "Full" || (full ~ /^[0-9]+$/ && C[1] * 1000 >= full / div)) print "  WARN the window started with the counter pinned at full"
+		if (sh < 1) print "  WARN less than 1 h suspended: precision is poor (see the error)"
+		if (Q_ - QA_ < 10 * q) print "  WARN the counter moved less than 10 steps while suspended"
+		if (mode == "discharge") print "  note: discharge mode: USB cable attached (USBIN suspended), PHY/gadget not fully asleep"
+		if (S[n] - S[1] == 0) print "  WARN no suspend in the window: this is awake idle, not standby"
+	}' "$d/awake.tsv" "$d/checkpoints.tsv"
+	if [ -f "$d/journal.txt" ]; then
+		grep -E 'rog5-sleep-policy|PM: suspend (entry|exit)|Triggering wakeup|wakeup from|Wakeup pending|Abort' "$d/journal.txt" >"$d/events.txt"
+		echo "wake IRQs (policy log; name from /proc/interrupts):"
+		grep -o 'wake irq [0-9]*' "$d/events.txt" | awk '{print $3}' | sort | uniq -c |
+			while read -r c i; do
+				printf '  %4s x irq %s %s\n' "$c" "$i" "$(awk -v i="$i:" '$1 == i {print $NF}' "$d/irq-end" 2>/dev/null)"
+			done
+	fi
+	if [ -f "$d/qstats-start" ] && [ -f "$d/qstats-end" ]; then
+		echo "qcom_stats (sleep entries and seconds asleep during the window; 19.2 MHz ticks):"
+		join "$d/qstats-start" "$d/qstats-end" 2>/dev/null | awk '{
+			n = 0; for (i = 2; i <= NF; i++) {
+				if ($i == "Count:") c[n] = $(i + 1)
+				if ($i == "Duration:") { d[n] = $(i + 1); n++ } }
+			if (n == 2) printf "  %-12s +%d entries, %.0f s asleep\n", $1, c[1] - c[0], (d[1] - d[0]) / 19200000 }'
+	fi
+	if [ -f "$d/wsrc-start" ] && [ -f "$d/wsrc-end" ]; then
+		echo "wakeup_sources with new events:"
+		awk 'NR == FNR {a[$1] = $3; next} ($3 - a[$1]) > 0 {printf "  %s +%d\n", $1, $3 - a[$1]}' "$d/wsrc-start" "$d/wsrc-end"
+	fi
+	} >"$d/summary.txt"
+	cat "$d/summary.txt"
+}
+
+case ${1:-} in
+start)
+	shift
+	[ "$(id -u)" = 0 ] || { echo 'rog5-standby-measure: run as root' >&2; exit 1; }
+	if systemctl is-active --quiet "$unit"; then echo "$unit is already running" >&2; exit 1; fi
+	restore
+	systemctl reset-failed "$unit" 2>/dev/null
+	systemd-run --unit="$unit" --description='ROG5 standby current measurement' --collect \
+		-p "ExecStopPost=$self restore" "$self" run "$@" || exit 1
+	echo "started; follow with: $self status   (or journalctl -fu $unit)"
+	echo 'turn the screen off with the power key and close SSH sessions to let the phone sleep' ;;
+status)
+	cat "$statef" 2>/dev/null || echo 'no run recorded since boot'
+	systemctl is-active "$unit" 2>/dev/null
+	d=$(cat "$rundir/dir" 2>/dev/null)
+	[ -z "$d" ] || { echo "results: $d"; tail -n 8 "$d/log.txt" 2>/dev/null; } ;;
+stop) systemctl stop "$unit"; restore ;;
+restore) restore ;;
+summarize) [ -n "${2:-}" ] || usage; summarize "$2" ;;
+run) shift; run "$@" ;;
+*) usage ;;
+esac
