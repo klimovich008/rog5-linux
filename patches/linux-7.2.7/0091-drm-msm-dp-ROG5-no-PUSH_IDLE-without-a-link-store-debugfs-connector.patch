@@ -1,0 +1,49 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 no PUSH_IDLE without a link; store the debugfs connector
+
+Two msm DP bugs seen with a USB-C HDMI hub on the ROG5 side port:
+
+1. msm_dp_bridge_atomic_disable() writes DP_STATE_CTRL (link register
+   block) unconditionally. When atomic_enable failed link training
+   (msm_dp_ctrl_on_link -> msm_dp_ctrl_deinitialize_mainlink turns the link
+   clocks and the DP PHY off) or bailed out on sink_count == 0,
+   dp->power_on stays false and that write is an unclocked access: the
+   phone hard-hung ~60 s into a flipped-plug session (AUX dead, phoc
+   re-enabling DP-1 every few seconds) with no oops. Skip PUSH_IDLE unless
+   the stream is on, as the downstream driver does (dp_ctrl_push_idle:
+   "if (!ctrl->power_on) return;").
+
+2. msm_dp_debug_init() takes the connector but never stores it, so
+   dp_test_active / dp_test_data / dp_test_type dereference
+   debug->connector == NULL (connector->status at +0xa8).
+
+--- a/drivers/gpu/drm/msm/dp/dp_debug.c	2026-09-28 21:42:42.052840746 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_debug.c	2026-09-28 21:42:42.067891957 +0200
+@@ -216,6 +216,7 @@
+ 
+ 	debug->link = link;
+ 	debug->panel = panel;
++	debug->connector = connector;
+ 
+ 	debugfs_create_file("dp_debug", 0444, root,
+ 			debug, &msm_dp_debug_fops);
+--- a/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-28 21:42:42.055552756 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-28 21:42:42.068042400 +0200
+@@ -1412,6 +1412,17 @@
+ 
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
++	/*
++	 * PUSH_IDLE is a write to the link register block, which is only
++	 * clocked while the main link is up. atomic_enable leaves power_on
++	 * false when link training failed (the link clocks and PHY are already
++	 * off again) or when there was no sink; writing the link block then is
++	 * an unclocked access that stalls the bus (hard hang, no oops). The
++	 * downstream driver has the same guard (dp_ctrl_push_idle).
++	 */
++	if (!dp->power_on)
++		return;
++
+ 	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
+ }
+ 
