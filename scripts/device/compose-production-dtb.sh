@@ -18,6 +18,8 @@ case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/
 case ,$features, in *,disprsc,*) disprsc=1; features=$(printf %s "$features" | sed 's/^disprsc$//; s/,disprsc$//; s/,disprsc,/,/') ;; *) disprsc=0 ;; esac
 # acd (GPU adaptive clock distribution) likewise.
 case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
+# cpucap (CPU capacity + energy model from stock) likewise.
+case ,$features, in *,cpucap,*) cpucap=1; features=$(printf %s "$features" | sed 's/^cpucap$//; s/,cpucap$//; s/,cpucap,/,/') ;; *) cpucap=0 ;; esac
 # usbbtm (bottom USB-C port as a USB 2.0 host, 5 V by hand) likewise; needs a
 # kernel with 0089 and CONFIG_REGULATOR_USERSPACE_CONSUMER=y.
 case ,$features, in *,usbbtm,*) usbbtm=1; features=$(printf %s "$features" | sed 's/^usbbtm$//; s/,usbbtm$//; s/,usbbtm,/,/') ;; *) usbbtm=0 ;; esac
@@ -434,6 +436,17 @@ if [ "$disprsc" = 1 ]; then
 	[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000 qcom,tcs-offset)" = 7168 ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000/disp-rsc-votes compatible)" = rog5,disp-rsc-votes ] ||
 		{ echo 'FAIL disprsc composition' >&2; exit 1; }
+fi
+if [ "$cpucap" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/cpucap.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-cpu-capacity.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/cpucap.dtbo" "$work/cpucap.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/cpucap.dtb" "$work/cpucap.dtbo"
+	mv "$work/cpucap.dtb" "$work/composed.dtb"
+	[ "$(fdtget "$work/composed.dtb" /cpus/cpu@700 capacity-dmips-mhz)" = 2048 ] &&
+		[ "$(fdtget "$work/composed.dtb" /cpus/cpu@0 dynamic-power-coefficient)" = 100 ] ||
+		{ echo 'FAIL cpucap composition' >&2; exit 1; }
 fi
 if [ "$usbbtm" = 1 ]; then
 	grep -q asus,btm-otg-boost "$source/drivers/power/supply/qcom_battmgr.c" ||
