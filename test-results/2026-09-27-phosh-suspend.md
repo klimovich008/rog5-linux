@@ -165,3 +165,23 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   enabled on this AOP build or lives elsewhere.
 - Each s2idle on USB power logs "qcom-pcie 1c00000.pcie: Timeout waiting for
   L2 entry! LTSSM: 0x11" (not seen on battery with Wi-Fi power save on).
+
+## 2026-09-28: XO held through s2idle by the geni UARTs; 0081 (r138 default)
+- Method: tracefs events clk_enable/clk_disable (fire only on 0<->1
+  transitions), rpmh_send_msg and suspend_resume across one rtcwake s2idle,
+  replayed from a clk_summary snapshot (scratchpad clk-trace.sh, installed on
+  the phone as /usr/local/sbin/rog5-clk-trace).
+- r136: rpmh never wrote xo.lvl before sleep (APPS XO vote stayed 3 in the
+  sleep set: rpmh only puts single resources into the sleep TCS when sleep
+  != wake). At timekeeping_freeze the only XO users left were
+  gcc_qupv3_wrap0_s3_clk (console 98c000) and gcc_qupv3_wrap2_s4_clk (BT UART
+  890000). UFS, PCIe, USB and display clocks were all off.
+- Cause: qcom_geni_serial_pm() turns ports off with pm_runtime_put_sync(),
+  which cannot suspend during system suspend (device_prepare holds a runtime
+  PM reference). 0081 forces runtime suspend after uart_suspend_port and
+  forces resume before uart_resume_port (not for wakeup ports).
+- r138 = r136 + 0081 (kernel r51): in suspend bi_tcxo and xo_board reach 0
+  and the APPS DRV sends xo.lvl 0, cx 0, mx 0, mmcx 0 before
+  machine_suspend. Bluetooth scans after resume. cxsd still 0 in this run
+  on USB power (charger/ADSP and the USB link keep their own votes); needs
+  an unplugged run. Default install: two ordinary boots committed.
