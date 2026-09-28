@@ -1,0 +1,226 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Board thermistors and a skin temperature policy. The base DT only has the
+ * tsens junction zones (90-110 C), so nothing limited the case or the USB-C
+ * connector temperature. Channels and settings are the stock ZS673KS ones
+ * (PMK8350 ADC7, 100k pull-up, ratiometric, 200 us settle): xo_therm 0x44,
+ * msm_therm 0x144 (the skin sensor ASUS's thermal-engine keys on),
+ * usb_btmconn_therm 0x145 (bottom port), hot_pocket_therm 0x146,
+ * usb_conn_therm 0x347 (side port), usb_sideconn_therm 0x349, pa_therm1/2
+ * 0x44a/0x44b. The ADC-TM monitors the six stock channels.
+ *
+ * Stock caps the big and prime cores and the GPU from 36 C skin (NORMAL
+ * profile) and shuts down at 65 C. Here the skin zone throttles step-wise
+ * from 42 C (about the stock 36 C caps: big 1766 MHz, prime 1901 MHz, GPU a
+ * few steps) and from 46 C down to the stock 49 C caps (big 1075 MHz, prime
+ * 845 MHz, GPU unlimited), keeping full speed for longer; 65 C is critical
+ * (orderly shutdown). The connector and hot-pocket zones only report (hot).
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/iio/qcom,spmi-adc7-pm8350.h>
+#include <dt-bindings/iio/qcom,spmi-adc7-pm8350b.h>
+#include <dt-bindings/iio/qcom,spmi-adc7-pmk8350.h>
+#include <dt-bindings/iio/qcom,spmi-adc7-pmr735a.h>
+#include <dt-bindings/thermal/thermal.h>
+
+&pmk8350_vadc {
+	status = "okay";
+
+	channel@44 {
+		reg = <PMK8350_ADC7_AMUX_THM1_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "xo_therm";
+	};
+
+	channel@144 {
+		reg = <PM8350_ADC7_AMUX_THM1_100K_PU(1)>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "msm_therm";
+	};
+
+	channel@145 {
+		reg = <PM8350_ADC7_AMUX_THM2_100K_PU(1)>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "usb_btmconn_therm";
+	};
+
+	channel@146 {
+		reg = <PM8350_ADC7_AMUX_THM3_100K_PU(1)>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "hot_pocket_therm";
+	};
+
+	channel@347 {
+		reg = <PM8350B_ADC7_AMUX_THM4_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "usb_conn_therm";
+	};
+
+	channel@349 {
+		reg = <PM8350B_ADC7_AMUX_THM6_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "usb_sideconn_therm";
+	};
+
+	channel@44a {
+		reg = <PMR735A_ADC7_GPIO1_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "pa_therm1";
+	};
+
+	channel@44b {
+		reg = <PMR735A_ADC7_GPIO2_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		label = "pa_therm2";
+	};
+};
+
+&pmk8350_adc_tm {
+	status = "okay";
+
+	xo-therm@0 {
+		reg = <0>;
+		io-channels = <&pmk8350_vadc PMK8350_ADC7_AMUX_THM1_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+
+	msm-therm@1 {
+		reg = <1>;
+		io-channels = <&pmk8350_vadc PM8350_ADC7_AMUX_THM1_100K_PU(1)>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+
+	hot-pocket-therm@2 {
+		reg = <2>;
+		io-channels = <&pmk8350_vadc PM8350_ADC7_AMUX_THM3_100K_PU(1)>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+
+	usb-conn-therm@3 {
+		reg = <3>;
+		io-channels = <&pmk8350_vadc PM8350B_ADC7_AMUX_THM4_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+
+	pa-therm1@4 {
+		reg = <4>;
+		io-channels = <&pmk8350_vadc PMR735A_ADC7_GPIO1_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+
+	pa-therm2@5 {
+		reg = <5>;
+		io-channels = <&pmk8350_vadc PMR735A_ADC7_GPIO2_100K_PU>;
+		qcom,ratiometric;
+		qcom,hw-settle-time-us = <200>;
+	};
+};
+
+&{/thermal-zones} {
+	skin-thermal {
+		polling-delay-passive = <2000>;
+		polling-delay = <0>;
+		thermal-sensors = <&pmk8350_adc_tm 1>;
+
+		trips {
+			skin_alert0: skin-alert0 {
+				temperature = <42000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			skin_alert1: skin-alert1 {
+				temperature = <46000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			skin-crit {
+				temperature = <65000>;
+				hysteresis = <1000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&skin_alert0>;
+				cooling-device = <&cpu4 THERMAL_NO_LIMIT 6>,
+						 <&cpu7 THERMAL_NO_LIMIT 9>,
+						 <&gpu THERMAL_NO_LIMIT 3>;
+			};
+
+			map1 {
+				trip = <&skin_alert1>;
+				cooling-device = <&cpu4 THERMAL_NO_LIMIT 12>,
+						 <&cpu7 THERMAL_NO_LIMIT 18>,
+						 <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	usb-conn-thermal {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pmk8350_adc_tm 3>;
+
+		trips {
+			usb-conn-hot {
+				temperature = <70000>;
+				hysteresis = <2000>;
+				type = "hot";
+			};
+		};
+	};
+
+	hot-pocket-thermal {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pmk8350_adc_tm 2>;
+
+		trips {
+			hot-pocket-hot {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "hot";
+			};
+		};
+	};
+
+	xo-thermal {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pmk8350_adc_tm 0>;
+
+		trips {
+			xo-hot {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "hot";
+			};
+		};
+	};
+};

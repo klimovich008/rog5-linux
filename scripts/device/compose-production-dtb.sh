@@ -11,6 +11,9 @@ features=${4:-}
 # l3 (CPU OPP tables voting the EPSS L3) may follow any feature list; needs a
 # kernel with CONFIG_INTERCONNECT_QCOM_OSM_L3=y.
 case ,$features, in *,l3,*) l3=1; features=$(printf %s "$features" | sed 's/^l3$//; s/,l3$//; s/,l3,/,/') ;; *) l3=0 ;; esac
+# skin (board thermistors, skin thermal policy) likewise; needs the ADC7 and
+# ADC-TM modules in boot-modules.
+case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/^skin$//; s/,skin$//; s/,skin,/,/') ;; *) skin=0 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -338,6 +341,20 @@ if [ "$l3" = 1 ]; then
 	done
 	[ "$(fdtget -l "$work/composed.dtb" /opp-table-cpu7 | wc -l)" = 19 ] ||
 		{ echo 'FAIL l3 composition: prime OPPs' >&2; exit 1; }
+fi
+if [ "$skin" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/skin.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-skin-thermal.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/skin.dtbo" "$work/skin.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/skin.dtb" "$work/skin.dtbo"
+	mv "$work/skin.dtb" "$work/composed.dtb"
+	pk=/soc@0/spmi@c440000/pmic@0
+	[ "$(fdtget "$work/composed.dtb" $pk/adc@3100 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $pk/adc-tm@3400 status)" = okay ] &&
+		[ "$(fdtget -l "$work/composed.dtb" $pk/adc-tm@3400 | wc -l)" = 6 ] &&
+		[ "$(fdtget "$work/composed.dtb" /thermal-zones/skin-thermal/trips/skin-crit temperature)" = 65000 ] ||
+		{ echo 'FAIL skin composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

@@ -40,6 +40,10 @@ leds_qcom_flash
 # Power key and volume-down (milestone 8): the PMK8350 PON parent populates
 # the pwrkey/resin children the base DTB already enables (V9 buttons-indicator).
 qcom_pon
+# Board thermistors (PMK8350 ADC7) and the ADC-TM that feeds the skin and
+# connector thermal zones (skin DTB feature); they bind nothing without it.
+qcom_spmi_adc5
+qcom_spmi_adc_tm5
 # CPU memory bandwidth monitors (DDR voting, plan step 5): CPU->LLCC (v4) and
 # LLCC->DDR (v5) vote from measured traffic. Without the bwmon DT nodes the
 # driver loads and binds nothing.
