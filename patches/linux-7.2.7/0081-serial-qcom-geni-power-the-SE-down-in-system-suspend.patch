@@ -1,0 +1,61 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] serial: qcom-geni: power the SE down in system suspend
+
+Since the runtime PM conversion, qcom_geni_serial_pm() turns a port off
+with pm_runtime_put_sync(). In system suspend it is reached from
+uart_suspend_port() while the PM core still holds the runtime PM reference
+it took in device_prepare(), so the put never suspends the device: the SE
+clock (and with it the GCC PLL and the XO vote), its OPP and its ICC vote
+stay on through s2idle. On the ROG Phone 5 the console and Bluetooth UARTs
+were the last XO users at the moment the SoC went to sleep, and the AOSS
+never entered CXSD/AOSS sleep.
+
+Force the runtime suspend after uart_suspend_port() turned the port off,
+and force the resume before uart_resume_port(). A port that stays on as a
+wakeup source is left powered.
+
+--- a/drivers/tty/serial/qcom_geni_serial.c	2026-09-28 02:53:28.980055586 +0200
++++ b/drivers/tty/serial/qcom_geni_serial.c	2026-09-28 02:53:47.174405417 +0200
+@@ -1983,6 +1983,7 @@
+ 	struct qcom_geni_serial_port *port = dev_get_drvdata(dev);
+ 	struct uart_port *uport = &port->uport;
+ 	struct qcom_geni_private_data *private_data = uport->private_data;
++	int ret;
+ 
+ 	/*
+ 	 * This is done so we can hit the lowest possible state in suspend
+@@ -1992,7 +1993,22 @@
+ 		geni_icc_set_tag(&port->se, QCOM_ICC_TAG_ACTIVE_ONLY);
+ 		geni_icc_set_bw(&port->se);
+ 	}
+-	return uart_suspend_port(private_data->drv, uport);
++	ret = uart_suspend_port(private_data->drv, uport);
++	if (ret)
++		return ret;
++
++	/*
++	 * uart_suspend_port() releases the port with pm_runtime_put_sync(),
++	 * but the PM core holds a runtime PM reference across system suspend
++	 * (device_prepare()), so the SE clock, its OPP and ICC votes stayed on
++	 * and kept XO voted: the SoC never reached CXSD/AOSS sleep (ROG5
++	 * console and Bluetooth UARTs). Power the SE down here instead, unless
++	 * the port stayed on as a wakeup source.
++	 */
++	if (uport->state && uport->state->pm_state == UART_PM_STATE_ON)
++		return 0;
++
++	return pm_runtime_force_suspend(dev);
+ }
+ 
+ static int qcom_geni_serial_resume(struct device *dev)
+@@ -2002,6 +2018,10 @@
+ 	struct uart_port *uport = &port->uport;
+ 	struct qcom_geni_private_data *private_data = uport->private_data;
+ 
++	ret = pm_runtime_force_resume(dev);
++	if (ret)
++		return ret;
++
+ 	ret = uart_resume_port(private_data->drv, uport);
+ 	if (uart_console(uport)) {
+ 		geni_icc_set_tag(&port->se, QCOM_ICC_TAG_ALWAYS);
