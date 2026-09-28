@@ -32,14 +32,15 @@ request's length. Add the same policy to the OEM client of patch 0018:
 Other SoCs, and SM8350 without asus,cell-voltage-readonly, keep their
 descriptors and behaviour; the resume callback only kicks the ROG5 work.
 
---- a/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:20:58.264247843 +0200
-+++ b/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:20:58.280285141 +0200
-@@ -21,8 +21,21 @@
+--- a/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:31:59.614454302 +0200
++++ b/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:32:23.018021914 +0200
+@@ -21,8 +21,22 @@
  #define BATTMGR_STRING_LEN	128
  
  #define PMIC_GLINK_OWNER_ASUS_ROG5	32782
 +#define ASUS_ROG5_SET_USBIN_SUSPEND	0x2105
 +#define ASUS_ROG5_EVT_ADSP_TO_HLOS	0x2112
++#define ASUS_ROG5_SET_CHG_LIMIT_MODE	0x2110
 +#define ASUS_ROG5_SET_CHG_LIMIT_MODE2	0x2117
  #define ASUS_ROG5_GET_CELL_VOLTAGE	0x3005
  
@@ -56,7 +57,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  enum qcom_battmgr_variant {
  	QCOM_BATTMGR_SC8280XP,
  	QCOM_BATTMGR_SM8350,
-@@ -159,6 +172,25 @@
+@@ -159,6 +173,25 @@
  	__le16 cell2_voltage;
  };
  
@@ -82,7 +83,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  struct qcom_battmgr_message {
  	struct pmic_glink_hdr hdr;
  	union {
-@@ -344,9 +376,27 @@
+@@ -344,9 +377,27 @@
  	bool oem_service_up;
  	bool oem_request_poisoned;
  	u32 oem_service_generation;
@@ -110,7 +111,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	struct qcom_battmgr_info info;
  	struct qcom_battmgr_status status;
  	struct qcom_battmgr_ac ac;
-@@ -362,66 +412,203 @@
+@@ -362,66 +413,203 @@
  	struct mutex lock;
  };
  
@@ -199,7 +200,8 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
 +	mutex_lock(&battmgr->lock);
 +	ret = qcom_battmgr_asus_request_locked(battmgr, data, len);
 +	mutex_unlock(&battmgr->lock);
-+
+ 
+-	ret = battmgr->oem_error;
 +	return ret;
 +}
 +
@@ -212,8 +214,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
 +		.hdr.opcode = cpu_to_le32(ASUS_ROG5_GET_CELL_VOLTAGE),
 +	};
 +	int ret;
- 
--	ret = battmgr->oem_error;
++
 +	if (!READ_ONCE(battmgr->oem_service_up))
 +		return -EAGAIN;
 +	if (READ_ONCE(battmgr->oem_request_poisoned))
@@ -346,7 +347,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	return ret;
  }
  
-@@ -633,6 +820,13 @@
+@@ -633,6 +821,13 @@
  	enum qcom_battmgr_unit unit = battmgr->unit;
  	int ret;
  
@@ -360,7 +361,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	if (!battmgr->service_up)
  		return -EAGAIN;
  
-@@ -877,6 +1071,7 @@
+@@ -877,6 +1072,7 @@
  					 enum power_supply_property psp)
  {
  	switch (psp) {
@@ -368,7 +369,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
  	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
  		return 1;
-@@ -893,6 +1088,10 @@
+@@ -893,6 +1089,10 @@
  {
  	struct qcom_battmgr *battmgr = power_supply_get_drvdata(psy);
  
@@ -379,7 +380,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	if (!battmgr->service_up)
  		return -EAGAIN;
  
-@@ -1011,6 +1210,47 @@
+@@ -1011,6 +1211,47 @@
  	.get_property = qcom_battmgr_bat_get_property,
  };
  
@@ -427,7 +428,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  static const enum power_supply_property sm8550_bat_props[] = {
  	POWER_SUPPLY_PROP_STATUS,
  	POWER_SUPPLY_PROP_HEALTH,
-@@ -1304,6 +1544,145 @@
+@@ -1304,6 +1545,145 @@
  	.get_property = qcom_battmgr_wls_get_property,
  };
  
@@ -573,7 +574,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  static void qcom_battmgr_notification(struct qcom_battmgr *battmgr,
  				      const struct qcom_battmgr_message *msg,
  				      int len)
-@@ -1326,9 +1705,11 @@
+@@ -1326,9 +1706,11 @@
  	case NOTIF_BAT_PROPERTY:
  	case NOTIF_BAT_CHARGING_STATE:
  		power_supply_changed(battmgr->bat_psy);
@@ -585,7 +586,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  		break;
  	case NOTIF_WLS_PROPERTY:
  		power_supply_changed(battmgr->wls_psy);
-@@ -1719,25 +2100,71 @@
+@@ -1719,25 +2101,82 @@
  		qcom_battmgr_sm8350_callback(battmgr, data, len);
  }
  
@@ -619,18 +620,26 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
 +	if (le32_to_cpu(hdr->type) == PMIC_GLINK_NOTIFY) {
 +		qcom_battmgr_asus_notification(battmgr, data, len);
 +		return;
- 	}
- 
--	if (le32_to_cpu(resp->hdr.owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
--	    le32_to_cpu(resp->hdr.type) != PMIC_GLINK_REQ_RESP ||
--	    le32_to_cpu(resp->hdr.opcode) != ASUS_ROG5_GET_CELL_VOLTAGE) {
++	}
++
 +	opcode = le32_to_cpu(hdr->opcode);
++	/*
++	 * The ROG5 ADSP firmware acks SET_CHG_LIMIT_MODE2 with the older
++	 * SET_CHG_LIMIT_MODE reply: opcode 0x2110, header + u32 (seen on r143).
++	 */
++	if (opcode == ASUS_ROG5_SET_CHG_LIMIT_MODE &&
++	    READ_ONCE(battmgr->oem_opcode) == ASUS_ROG5_SET_CHG_LIMIT_MODE2 &&
++	    len == sizeof(*hdr) + sizeof(__le32))
++		opcode = ASUS_ROG5_SET_CHG_LIMIT_MODE2;
++
 +	switch (opcode) {
 +	case ASUS_ROG5_GET_CELL_VOLTAGE:
 +		expected = sizeof(*resp);
 +		break;
 +	case ASUS_ROG5_SET_CHG_LIMIT_MODE2:
-+		expected = sizeof(struct qcom_battmgr_asus_chg_mode2_msg);
++		expected = le32_to_cpu(hdr->opcode) == ASUS_ROG5_SET_CHG_LIMIT_MODE ?
++			   sizeof(*hdr) + sizeof(__le32) :
++			   sizeof(struct qcom_battmgr_asus_chg_mode2_msg);
 +		break;
 +	case ASUS_ROG5_SET_USBIN_SUSPEND:
 +		expected = sizeof(struct qcom_battmgr_asus_usbin_suspend_msg);
@@ -638,8 +647,11 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
 +	default:
 +		expected = 0;
 +		break;
-+	}
-+
+ 	}
+ 
+-	if (le32_to_cpu(resp->hdr.owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
+-	    le32_to_cpu(resp->hdr.type) != PMIC_GLINK_REQ_RESP ||
+-	    le32_to_cpu(resp->hdr.opcode) != ASUS_ROG5_GET_CELL_VOLTAGE) {
 +	if (le32_to_cpu(hdr->owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
 +	    le32_to_cpu(hdr->type) != PMIC_GLINK_REQ_RESP ||
 +	    !expected || opcode != READ_ONCE(battmgr->oem_opcode)) {
@@ -665,7 +677,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	battmgr->oem_error = 0;
  
  out_complete:
-@@ -1756,6 +2183,9 @@
+@@ -1756,6 +2195,9 @@
  	if (!service_up) {
  		battmgr->oem_error = -ENOTCONN;
  		complete(&battmgr->oem_ack);
@@ -675,7 +687,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	}
  }
  
-@@ -1781,6 +2211,8 @@
+@@ -1781,6 +2223,8 @@
  	if (state == SERVREG_SERVICE_STATE_UP) {
  		battmgr->service_up = true;
  		schedule_work(&battmgr->enable_work);
@@ -684,7 +696,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	} else {
  		battmgr->service_up = false;
  	}
-@@ -1816,6 +2248,7 @@
+@@ -1816,6 +2260,7 @@
  		return -ENOMEM;
  
  	battmgr->dev = dev;
@@ -692,7 +704,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  
  	psy_cfg.drv_data = battmgr;
  	psy_cfg.fwnode = dev_fwnode(&adev->dev);
-@@ -1852,6 +2285,19 @@
+@@ -1852,6 +2297,19 @@
  			return PTR_ERR(battmgr->oem_client);
  
  		psy_cfg.attr_grp = qcom_battmgr_asus_groups;
@@ -712,7 +724,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  	}
  
  	ret = qcom_battmgr_charge_control_thresholds_init(battmgr);
-@@ -1891,6 +2337,8 @@
+@@ -1891,6 +2349,8 @@
  
  		if (battmgr->variant == QCOM_BATTMGR_SM8550)
  			psy_desc = &sm8550_bat_psy_desc;
@@ -721,7 +733,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  		else
  			psy_desc = &sm8350_bat_psy_desc;
  
-@@ -1922,13 +2370,40 @@
+@@ -1922,13 +2382,40 @@
  	if (IS_ERR(battmgr->client))
  		return PTR_ERR(battmgr->client);
  
@@ -763,7 +775,7 @@ descriptors and behaviour; the resume callback only kicks the ROG5 work.
  static const struct auxiliary_device_id qcom_battmgr_id_table[] = {
  	{ .name = "pmic_glink.power-supply", },
  	{},
-@@ -1938,7 +2413,11 @@
+@@ -1938,7 +2425,11 @@
  static struct auxiliary_driver qcom_battmgr_driver = {
  	.name = "pmic_glink_power_supply",
  	.probe = qcom_battmgr_probe,
