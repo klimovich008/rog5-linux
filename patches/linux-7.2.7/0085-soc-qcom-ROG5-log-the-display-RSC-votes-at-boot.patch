@@ -1,0 +1,74 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] soc: qcom: ROG5 log the display RSC votes at boot (diagnostic)
+
+Read-only arch_initcall dump of the display RSC TCS contents while the
+bootloader splash still clocks the display subsystem, to find RPMh votes
+the bootloader left in the display DRV (CX collapse is blocked by DDR_AUX).
+
+--- a/drivers/soc/qcom/Makefile	2026-09-28 12:12:58.614727472 +0200
++++ b/drivers/soc/qcom/Makefile	2026-09-28 12:12:58.617785651 +0200
+@@ -2,6 +2,7 @@
+ CFLAGS_rpmh-rsc.o := -I$(src)
+ CFLAGS_qcom_aoss.o := -I$(src)
+ obj-$(CONFIG_QCOM_AOSS_QMP) +=	qcom_aoss.o
++obj-$(CONFIG_QCOM_RPMH) +=	rog5-disp-rsc-dump.o
+ obj-$(CONFIG_QCOM_GENI_SE) +=	qcom-geni-se.o
+ obj-$(CONFIG_QCOM_COMMAND_DB) += cmd-db.o
+ obj-$(CONFIG_QCOM_GSBI)	+=	qcom_gsbi.o
+--- a/drivers/soc/qcom/rog5-disp-rsc-dump.c	2026-09-28 12:12:58.625166985 +0200
++++ b/drivers/soc/qcom/rog5-disp-rsc-dump.c	2026-09-28 12:12:58.622166940 +0200
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * ROG5 diagnostic: log the display RSC (disp_rsc, 0xaf20000, DRV 0) TCS
++ * contents once, at arch_initcall, while the bootloader splash still keeps
++ * the display subsystem clocked. Read-only. Looks for RPMh votes the
++ * bootloader left in the display DRV (DDR stays on in s2idle and the AOP
++ * names only DDR_AUX). A later read from a module, with the splash clocks
++ * already gated, hung the bus.
++ */
++#include <linux/bits.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/of.h>
++#include <linux/printk.h>
++
++#define RSC_BASE	0x0af20000
++#define RSC_SIZE	0x4000
++#define TCS_OFFSET	0x1c00
++#define TCS_STRIDE	672
++
++static int __init rog5_disp_rsc_dump(void)
++{
++	u32 id, major, cmd_stride, status_off, en_off, addr_off, data_off, en;
++	void __iomem *base, *tcs;
++	int t, i;
++
++	if (!of_machine_is_compatible("asus,rog-phone5"))
++		return 0;
++	base = ioremap(RSC_BASE, RSC_SIZE);
++	if (!base)
++		return 0;
++	id = readl(base);
++	major = (id >> 16) & 0xff;
++	if (major >= 3) {
++		cmd_stride = 24; status_off = 0x28; en_off = 0x2c; addr_off = 0x38; data_off = 0x3c;
++	} else {
++		cmd_stride = 20; status_off = 0x18; en_off = 0x1c; addr_off = 0x34; data_off = 0x38;
++	}
++	pr_info("rog5-disp-rsc: id %#010x\n", id);
++	for (t = 0; t < 2; t++) {
++		tcs = base + TCS_OFFSET + t * TCS_STRIDE;
++		en = readl(tcs + en_off);
++		pr_info("rog5-disp-rsc: TCS%d status %#x cmd_enable %#06x\n", t,
++			readl(tcs + status_off), en);
++		for (i = 0; i < 16; i++)
++			if (en & BIT(i))
++				pr_info("rog5-disp-rsc: TCS%d cmd%d addr %#07x data %#010x\n", t, i,
++					readl(tcs + addr_off + i * cmd_stride),
++					readl(tcs + data_off + i * cmd_stride));
++	}
++	iounmap(base);
++	return 0;
++}
++arch_initcall(rog5_disp_rsc_dump);
