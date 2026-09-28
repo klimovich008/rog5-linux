@@ -8,8 +8,8 @@ switch enable, PM8350C GPIO4 (asus_battery_charger.c BTM_OTG_EN() and
 rt-charger.c asus_request_BTM_otg_en()). The ack is a bare header.
 
 Expose the source as a regulator of the OEM client of patches 0018/0082
-when the pmic-glink node has an available child compatible with
-"asus,rog5-btm-otg-boost". The regulator takes its constraints from that
+when the pmic-glink node has an "asus,btm-otg-boost" phandle to an
+available regulator node. The regulator takes its constraints from that
 node and is meant as the vin-supply of a regulator-fixed on GPIO4, so the
 regulator core keeps the stock order (source on, then the switch; switch
 off, then the source).
@@ -29,7 +29,9 @@ the pending opcode (a bare header, or an echo of the request).
 - unbind and shutdown switch an enabled source off while the pmic_glink
   clients still exist. The load switch GPIO is not touched here.
 
-Without the child node nothing changes. BATTERY_QCOM_BATTMGR now depends
+Without the phandle nothing changes. The node must not be a child of
+pmic-glink: ucsi_glink and pmic_glink_altmode reject children without
+"reg" (a first trial lost the side port's Type-C port that way). BATTERY_QCOM_BATTMGR now depends
 on REGULATOR.
 
 --- a/drivers/power/supply/Kconfig	2026-09-28 14:46:41.817871645 +0200
@@ -83,8 +85,8 @@ on REGULATOR.
  	unsigned long asus_chg_asserted;
  
 +	/*
-+	 * ROG5 bottom port 5 V source (OEM SET_BTM_OTG), only with a child
-+	 * node "asus,rog5-btm-otg-boost". @btm_otg_on is set once the ADSP
++	 * ROG5 bottom port 5 V source (OEM SET_BTM_OTG), only with an
++	 * "asus,btm-otg-boost" regulator node phandle. @btm_otg_on is set once the ADSP
 +	 * acked "on" and cleared by any "off" request; it is written under
 +	 * @lock. @btm_otg_work sends "on" again after an ADSP restart.
 +	 */
@@ -214,7 +216,7 @@ on REGULATOR.
 +{
 +	struct device *dev = battmgr->dev;
 +	struct device_node *np __free(device_node) =
-+		of_get_compatible_child(dev->of_node, "asus,rog5-btm-otg-boost");
++		of_parse_phandle(dev->of_node, "asus,btm-otg-boost", 0);
 +	struct regulator_config config = {};
 +	struct regulator_dev *rdev;
 +	int ret;

@@ -23,13 +23,13 @@
  * charger or a PC, and switch VBUS on only after plugging and off before
  * unplugging.
  *
- * Needs: patch 0089 (qcom_battmgr registers the asus,rog5-btm-otg-boost
- * child of pmic-glink as a regulator: OEM owner 32782, opcode 0x2102
- * {u32 on}, ack awaited, re-sent after an ADSP restart, off at
- * unbind/shutdown), CONFIG_REGULATOR_USERSPACE_CONSUMER (regulator-output).
- * The source node must stay a child of /pmic-glink: the battmgr auxiliary
- * device looks it up there, and fw_devlink hands its consumers to the
- * pmic_glink device, which binds.
+ * Needs: patch 0089 (qcom_battmgr registers the btm-otg-boost node, found
+ * through the asus,btm-otg-boost phandle on pmic-glink, as a regulator: OEM
+ * owner 32782, opcode 0x2102 {u32 on}, ack awaited, re-sent after an ADSP
+ * restart, off at unbind/shutdown), CONFIG_REGULATOR_USERSPACE_CONSUMER
+ * (regulator-output).
+ * The source node is found through the asus,btm-otg-boost phandle on
+ * /pmic-glink; it must not be a pmic-glink child (see there).
  * dr_mode host: no second UDC, the NCM gadget stays alone on a600000.usb.
  * No QUP wrapper is enabled here.
  */
@@ -39,13 +39,12 @@
 #include <dt-bindings/gpio/gpio.h>
 
 &{/pmic-glink} {
-	/* ADSP-side 5 V source for the bottom port (stock BTM_OTG_EN(), OEM 0x2102). */
-	rog5_btm_otg_boost: regulator-btm-otg-boost {
-		compatible = "asus,rog5-btm-otg-boost";
-		regulator-name = "btm_otg_boost";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-	};
+	/*
+	 * Only a property here: ucsi_glink and pmic_glink_altmode reject any
+	 * pmic-glink child without "reg", and the side port's Type-C port with
+	 * them (the first trial rolled back on the missing typec port0).
+	 */
+	asus,btm-otg-boost = <&rog5_btm_otg_boost>;
 };
 
 &{/} {
@@ -66,6 +65,18 @@
 		vin-supply = <&rog5_btm_otg_boost>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&rog5_btm_otg_en_default>;
+
+		/*
+		 * ADSP-side 5 V source (stock BTM_OTG_EN(), OEM 0x2102),
+		 * registered by qcom_battmgr (0089) through the pmic-glink
+		 * phandle. No compatible, and a child of its only consumer, so
+		 * fw_devlink doesn't hold the fixed regulator back for it.
+		 */
+		rog5_btm_otg_boost: btm-otg-boost {
+			regulator-name = "btm_otg_boost";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+		};
 	};
 
 	/* Stage A only; removed in stage B, where the TCPC takes vbus-supply. */

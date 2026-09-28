@@ -436,7 +436,7 @@ if [ "$disprsc" = 1 ]; then
 		{ echo 'FAIL disprsc composition' >&2; exit 1; }
 fi
 if [ "$usbbtm" = 1 ]; then
-	grep -q asus,rog5-btm-otg-boost "$source/drivers/power/supply/qcom_battmgr.c" ||
+	grep -q asus,btm-otg-boost "$source/drivers/power/supply/qcom_battmgr.c" ||
 		{ echo 'FAIL usbbtm: kernel source lacks 0089' >&2; exit 1; }
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
@@ -451,7 +451,10 @@ if [ "$usbbtm" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" /soc@0/phy@88eb000 status)" = disabled ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@ac0000 status)" = disabled ] &&
-		[ "$(fdtget "$work/composed.dtb" /pmic-glink/regulator-btm-otg-boost compatible)" = asus,rog5-btm-otg-boost ] ||
+		[ "$(fdtget "$work/composed.dtb" /pmic-glink asus,btm-otg-boost)" = \
+			"$(fdtget "$work/composed.dtb" /regulator-rog5-btm-vbus/btm-otg-boost phandle)" ] &&
+		# ucsi_glink/pmic_glink_altmode need "reg" on every pmic-glink child.
+		[ "$(fdtget -l "$work/composed.dtb" /pmic-glink)" = connector@0 ] ||
 		{ echo 'FAIL usbbtm composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
