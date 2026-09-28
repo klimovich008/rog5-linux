@@ -1,0 +1,94 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] soc: qcom: ROG5 clear the display RSC bandwidth votes (experiment)
+
+No mainline driver owns the display RSC, so bandwidth votes the bootloader
+splash left in that DRV would keep DDR on in s2idle (the AOP names only
+DDR_AUX). A child of the disp_rsc node (DTB feature disprsc) sends one
+active-only zero vote per DDR/LLCC/MMNoC BCM through it at probe.
+
+--- a/drivers/soc/qcom/Makefile	2026-09-28 12:24:05.760578264 +0200
++++ b/drivers/soc/qcom/Makefile	2026-09-28 12:24:05.765710761 +0200
+@@ -3,6 +3,7 @@
+ CFLAGS_qcom_aoss.o := -I$(src)
+ obj-$(CONFIG_QCOM_AOSS_QMP) +=	qcom_aoss.o
+ obj-$(CONFIG_QCOM_RPMH) +=	rog5-disp-rsc-dump.o
++obj-$(CONFIG_QCOM_RPMH) +=	rog5-disp-rsc-votes.o
+ obj-$(CONFIG_QCOM_GENI_SE) +=	qcom-geni-se.o
+ obj-$(CONFIG_QCOM_COMMAND_DB) += cmd-db.o
+ obj-$(CONFIG_QCOM_GSBI)	+=	qcom_gsbi.o
+--- a/drivers/soc/qcom/rog5-disp-rsc-votes.c	2026-09-28 12:24:05.770578398 +0200
++++ b/drivers/soc/qcom/rog5-disp-rsc-votes.c	2026-09-28 12:24:05.769578385 +0200
+@@ -0,0 +1,73 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * ROG5: clear the bandwidth votes the bootloader splash may have left in the
++ * display RSC (disp_rsc). No mainline driver uses this RPMh DRV, so its last
++ * DDR/LLCC/MMNoC BCM votes would stay with the AOP for the whole uptime and
++ * keep DDR on in s2idle (the AOP names only DDR_AUX as the CX collapse
++ * blocker). Bound as a child of the disp_rsc node, it sends one active-only
++ * zero vote per bandwidth BCM through that DRV at probe, early in boot while
++ * the splash still keeps the display subsystem clocked.
++ */
++#include <linux/kernel.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <soc/qcom/cmd-db.h>
++#include <soc/qcom/rpmh.h>
++#include <soc/qcom/tcs.h>
++
++#define BCM_COMMIT	BIT(30)
++
++static const char * const rog5_disp_bcms[] = {
++	"MC0", "MC1", "MC2", "ACV",
++	"SH0", "SH1", "SH2", "SH3", "SH4", "SH5", "SH6", "SH7",
++	"MM0", "MM1", "MM2", "MM3", "MM4", "MM5",
++};
++
++static int rog5_disp_rsc_votes_probe(struct platform_device *pdev)
++{
++	struct tcs_cmd cmds[ARRAY_SIZE(rog5_disp_bcms)];
++	int i, n = 0, done = 0, ret;
++
++	ret = cmd_db_ready();
++	if (ret)
++		return ret;
++
++	for (i = 0; i < ARRAY_SIZE(rog5_disp_bcms); i++) {
++		u32 addr = cmd_db_read_addr(rog5_disp_bcms[i]);
++
++		if (!addr)
++			continue;
++		cmds[n].addr = addr;
++		cmds[n].data = BCM_COMMIT;	/* x = y = 0, not valid */
++		cmds[n].wait = true;
++		n++;
++	}
++
++	while (done < n) {
++		int chunk = min(n - done, MAX_RPMH_PAYLOAD);
++
++		ret = rpmh_write(&pdev->dev, RPMH_ACTIVE_ONLY_STATE, cmds + done, chunk);
++		if (ret) {
++			dev_err(&pdev->dev, "zero votes %d-%d failed: %d\n", done, done + chunk - 1, ret);
++			return 0;
++		}
++		done += chunk;
++	}
++	dev_info(&pdev->dev, "sent zero votes for %d bandwidth BCMs through the display RSC\n", n);
++	return 0;
++}
++
++static const struct of_device_id rog5_disp_rsc_votes_of_match[] = {
++	{ .compatible = "rog5,disp-rsc-votes" },
++	{}
++};
++
++static struct platform_driver rog5_disp_rsc_votes_driver = {
++	.probe = rog5_disp_rsc_votes_probe,
++	.driver = {
++		.name = "rog5-disp-rsc-votes",
++		.of_match_table = rog5_disp_rsc_votes_of_match,
++	},
++};
++builtin_platform_driver(rog5_disp_rsc_votes_driver);

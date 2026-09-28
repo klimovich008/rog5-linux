@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Display RSC (stock lahaina.dtsi disp_rsc): an RPMh DRV the bootloader
+ * splash can leave DDR/LLCC/MMNoC bandwidth votes in; no mainline driver
+ * owns it, and in s2idle the AOP keeps DDR on (only DDR_AUX blocks CX
+ * collapse). rpmh-rsc binds it at early boot while the splash keeps the
+ * display clocked; rog5,disp-rsc-votes (patch 0086) then sends zero votes
+ * for the bandwidth BCMs through it once.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/soc/qcom,rpmh-rsc.h>
+
+&{/soc@0} {
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	rog5_disp_rsc: rsc@af20000 {
+		compatible = "qcom,rpmh-rsc";
+		reg = <0 0x0af20000 0 0x10000>;
+		reg-names = "drv-0";
+		interrupts = <GIC_SPI 129 IRQ_TYPE_LEVEL_HIGH>;
+		label = "disp_rsc";
+		qcom,tcs-offset = <0x1c00>;
+		qcom,drv-id = <0>;
+		qcom,tcs-config = <ACTIVE_TCS  0>,
+				  <SLEEP_TCS   1>,
+				  <WAKE_TCS    1>,
+				  <CONTROL_TCS 0>;
+
+		disp-rsc-votes {
+			compatible = "rog5,disp-rsc-votes";
+		};
+	};
+};

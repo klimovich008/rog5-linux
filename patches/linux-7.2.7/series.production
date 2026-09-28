@@ -55,3 +55,4 @@
 0083-ASoC-codecs-lpass-va-macro-ROG5-drop-the-LPASS-votes-in-runtime-suspend.patch
 0084-power-supply-qcom_battmgr-ROG5-wake-on-charger-attach.patch
 0085-soc-qcom-ROG5-log-the-display-RSC-votes-at-boot.patch
+0086-soc-qcom-ROG5-clear-the-display-RSC-bandwidth-votes.patch

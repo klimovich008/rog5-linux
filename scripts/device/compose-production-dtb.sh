@@ -14,6 +14,8 @@ case ,$features, in *,l3,*) l3=1; features=$(printf %s "$features" | sed 's/^l3$
 # skin (board thermistors, skin thermal policy) likewise; needs the ADC7 and
 # ADC-TM modules in boot-modules.
 case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/^skin$//; s/,skin$//; s/,skin,/,/') ;; *) skin=0 ;; esac
+# disprsc (display RSC node + zero-vote child, patch 0086) likewise.
+case ,$features, in *,disprsc,*) disprsc=1; features=$(printf %s "$features" | sed 's/^disprsc$//; s/,disprsc$//; s/,disprsc,/,/') ;; *) disprsc=0 ;; esac
 # acd (GPU adaptive clock distribution) likewise.
 case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
 # mic (built-in DMICs on the LPASS VA macro) likewise; needs audio and a kernel
@@ -416,6 +418,19 @@ if [ "$acd" = 1 ]; then
 		[ -n "$(fdtget "$work/composed.dtb" /soc@0/gpu@3d00000/opp-table/$opp qcom,opp-acd-level)" ] ||
 			{ echo "FAIL acd composition: $opp" >&2; exit 1; }
 	done
+fi
+if [ "$disprsc" = 1 ]; then
+	grep -q 'rog5,disp-rsc-votes' "$source/drivers/soc/qcom/rog5-disp-rsc-votes.c" 2>/dev/null ||
+		{ echo 'FAIL disprsc: kernel source lacks 0086' >&2; exit 1; }
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/disprsc.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-disp-rsc.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/disprsc.dtbo" "$work/disprsc.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/disprsc.dtb" "$work/disprsc.dtbo"
+	mv "$work/disprsc.dtb" "$work/composed.dtb"
+	[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000 qcom,tcs-offset)" = 7168 ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000/disp-rsc-votes compatible)" = rog5,disp-rsc-votes ] ||
+		{ echo 'FAIL disprsc composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
