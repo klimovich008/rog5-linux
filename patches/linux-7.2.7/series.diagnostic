@@ -3,11 +3,11 @@
 # 256 are black (r125 trial).
 0074-drm-msm-dsi-ROG5-program-the-command-DMA-FIFO-watermarks.patch
 0075-drm-panel-asus-rog5-ams678-send-the-full-10-bit-DBV.patch
+# 0084: charger-attach hard wakeup. On r149 a plug-in while suspended left the
+# phone hung (power key dead, forced reboot; 2026-09-28). Out of production.
+0084-power-supply-qcom_battmgr-ROG5-wake-on-charger-attach.patch
 # 0085/0086: display RSC read-out and zero bandwidth votes (r150/r151, 2026-09-28):
 # the display RSC holds no stored votes and clearing its bandwidth votes did
 # not change the DDR_AUX CX collapse blocker.
 0085-soc-qcom-ROG5-log-the-display-RSC-votes-at-boot.patch
 0086-soc-qcom-ROG5-clear-the-display-RSC-bandwidth-votes.patch
-# 0084: charger-attach hard wakeup. On r149 a plug-in while suspended left the
-# phone hung (power key dead, forced reboot; 2026-09-28). Out of production.
-0084-power-supply-qcom_battmgr-ROG5-wake-on-charger-attach.patch
