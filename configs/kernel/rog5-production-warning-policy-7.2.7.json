@@ -1290,13 +1290,13 @@
     },
     {
       "path": "drivers/firmware/qcom/qcom_scm.c",
-      "sha256": "0440862805d3c25b62de3772c6f6877ac4ad578221272d2089785c6bf2addcd5",
+      "sha256": "fd8b3ffdc0df4b74dd57b758d910b430db32aae87ff9c72baea1d7d0729f2753",
       "messages": {
         "Warning: drivers/firmware/qcom/qcom_scm.c:877 Excess function parameter 'pas_id' description in 'qcom_scm_pas_get_rsc_table'": 2
       },
       "dependencies": [],
       "config_guards": {},
-      "reason": "Upstream f42acb367842 W=1 diagnostic in a file the ROG5 series does not modify; exact file hash and message count drafted by draft-warning-policy.py."
+      "reason": "Upstream f42acb367842 W=1 kernel-doc diagnostic. Patch 0088 modifies this file (Gunyah watchdog registration on the ROG Phone 5), not the documented function; hash re-pinned to the patched file."
     },
     {
       "path": "drivers/gpu/drm/drm_gem_shmem_helper.c",
