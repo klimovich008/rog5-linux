@@ -363,3 +363,9 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   levels, QDSS, modem/cdsp load_state, UFS power management, the USB cable,
   display RSC votes. DDR stays at 200 MHz during s2idle without entering any
   DDR low-power mode.
+- r152 RAM trial (r149 with msm, panel, DP/combo-PHY and drm_client_lib
+  removed from boot-modules; no /dev/dri): first s2idle refused by Bluetooth
+  (qca_suspend -110, serial0-0); second 60 s s2idle: CXPC violator log
+  HLOS=5 (rpmhpd sync_state never completes without the display driver) and
+  DDR_AUX=5 every second, cxsd 0. The display/GPU stack, including the GPU's
+  LLCC slices, is not what keeps DDR on.
