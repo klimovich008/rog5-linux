@@ -271,3 +271,20 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   6 s while playing at the same time, 0 xruns. alsa-utils installed on the
   phone.
 - Pending: a listening check of a recording.
+
+## 2026-09-28: CXSD blocker named: DDR_AUX (AOP violator log)
+- rog5-aop-qmp (scratchpad debug module: debugfs send -> qmp_send) sent
+  {class: lpm_mon, type: cxpc, dur: 1000, flush: 5, ts_adj: 1}; after one
+  90 s s2idle on battery (force-discharge) rog5-rpmh-sleep-blockers/vx showed
+  42 one-second CXPC samples: DDR_AUX=5 in every one (CX held at nominal on
+  behalf of DDR), plus HLOS=5/GPU=1 once at entry and AUDIO briefly. So DDR
+  never collapses and the DDR aux voter keeps CX up.
+- Clearing the AOP minimum levels (qcom_aoss debugfs prevent_cx_collapse /
+  prevent_ddr_collapse / prevent_aoss_sleep = 0) changed nothing.
+- {class: ddr, res: drvs_ddr_votes} (per-DRV DDR votes) is not served by
+  this AOP: the region after the DDR stats holds unrelated data.
+- DANGER: rpmh_read() of a resource the APPS DRV never wrote (here BCM MC2,
+  while dumping every BCM) timed out, a later icc batch failed with "Error
+  sending AMC RPMH requests (-110)", and the phone hard-reset about 25 min
+  later (no panic record); it came back on r146. Only read back resources
+  this kernel has written (as the committed tool does).
