@@ -133,3 +133,35 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   calltraces=2 on every boot = pre-existing msm probe WARN pair ("DSI PLL(0)
   lock failed", dsi0_phy_pll_out_dsiclk already disabled/unprepared), also
   in r134; queued as a display cleanup item.
+
+## 2026-09-28: r136 default (24-bit speakers, stereo order, torch, GPU trips, DP fix)
+- r136 = kernel r50 (+0079 SENARY MI2S S24_LE/32-bit slots/3.072 MHz, +0080
+  DPU top-down allocation for non-DSC CRTCs) + DTB platform-torch-gputrip-dtb-r1
+  + ramdisk with the stock stereo order (RCV=left, SPK=right) and
+  leds_qcom_flash in boot-modules.
+- RAM trial t136: white:flash present (max_brightness 255), lit at 20 and off
+  again; gpu-top/bottom trips 95000/100000; DSI CRTC on mixer 0/1 ctl 0;
+  PipeWire playback RUNNING through the 24-bit back end with no ASoC/q6
+  errors; s2idle + RTC wake after 15 s works. One-off at leds_qcom_flash
+  probe: "spmi cleanup_irq apid=143 sid=0x2 per=0xee" (a latched flash
+  peripheral interrupt without a handler, disabled by pmic_arb) plus the
+  genirq descriptor dump of the arbiter IRQ; PMIC interrupts keep working.
+- Default install: two ordinary boots committed; calltraces=2 (the known DSI
+  probe pair).
+- Pending listening checks: stereo order (left = top edge in landscape with
+  the side port down) and the 24-bit link at low volume.
+
+## 2026-09-28: CXSD read-only experiment E0 (r135)
+- All devices state_synced=1, incl. 18200000.rsc:power-controller: the
+  rpmhpd "clamp to max until sync_state" is not the blocker.
+- pm_genpd awake, screen off: cx and mx on at level 128; cx consumers are
+  only 98c000.serial (console, 48) and 890000.serial (BT UART, 128);
+  mmcx/ebi/lcx/lmx/mxc off. ttyMSM0 wakeup disabled, no no_console_suspend.
+  disp_cc_mdss_ahb_clk prepare 0 (0068 works), bi_tcxo prepare/enable 8.
+- rog5-rpmh-sleep-blockers (APPS DRV active votes): xo.lvl 3, cx 3, mx 2,
+  others 0; clock buffers 0; QUP0/1/2 BCM 0x20004001; MC0/SH0/ACV/CN0 set.
+- One 30 s s2idle on USB power: suspend ok, cxsd/aosd/ddr still 0, and the
+  AOP violators region at 0xc320000 stays all zeros, so it is either not
+  enabled on this AOP build or lives elsewhere.
+- Each s2idle on USB power logs "qcom-pcie 1c00000.pcie: Timeout waiting for
+  L2 entry! LTSSM: 0x11" (not seen on battery with Wi-Fi power save on).

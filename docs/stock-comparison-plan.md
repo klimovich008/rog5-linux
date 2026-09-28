@@ -33,7 +33,7 @@ work), NO (not needed / not feasible).
 | No skin/connector thermistors or skin thermal policy | cpu-thermal | PLAN: PMK8350 VADC/ADC-TM + skin zones |
 | USB-connector temperature not exposed / no charge cut | battery | PLAN |
 | CS35L45 speaker protection firmware not loaded (no hibernate, no excursion/thermal protection) | audio | PLAN |
-| Stereo channels swapped vs stock | audio | NEXT (route script) |
+| Stereo channels swapped vs stock | audio | DONE route (r136), listening check pending |
 | Side-port combo PHY supplies swapped in the base DTS | DeX | DONE in the dp overlay |
 
 ## Performance
@@ -43,10 +43,10 @@ work), NO (not needed / not feasible).
 | L3 cache never scales (no EPSS L3 node / CPU OPP tables) | cpu | PLAN (M) |
 | DDR/LLCC floor tied to big-core frequency | cpu | PLAN (after L3) |
 | CPU capacity / energy model | cpu | PLAN (retest with uclamp) |
-| GPU passive trip 85 C vs stock 95 C | cpu/gpu | PLAN (S) |
+| GPU passive trip 85 C vs stock 95 C | cpu/gpu | DONE (r136) |
 | 90/120/144 Hz panel modes (exact per-mode commands found) | display | PLAN (M) |
 | WriteBooster / UFS clock scaling | platform | with the UFS item |
-| 24-bit SENARY MI2S to the amps | audio | NEXT (S) |
+| 24-bit SENARY MI2S to the amps | audio | DONE 0079 (r136) |
 | USB 3 on the side port (HS-only today) | connectivity | PLAN (after DP stage 1) |
 
 ## Power
@@ -64,10 +64,10 @@ work), NO (not needed / not feasible).
 
 | Item | Area | Status |
 |---|---|---|
-| External monitor over USB-C (DeX) | DeX | trial r129 (stage 1, USB stays HS) |
+| External monitor over USB-C (DeX) | DeX | stage 1b: 0080 in r136 (panel keeps its DPU blocks); next: DP retest with the hub, then 4-lane (typec switch modules in the ramdisk) |
 | Charge limit / bypass charging (server) | battery | PLAN (OEM glink 0x2117/0x2105) |
 | Adapter power limit, input current limit | battery | PLAN (S) |
-| Torch / camera flash LED | platform | PLAN (S, DT) |
+| Torch / camera flash LED | platform | DONE white:flash (r136) |
 | ALS lux scale 2x too small (ROG5 is ONE_PL: 846) | platform | DONE (r134) |
 | Microphones (4 DMIC via TX/VA macro) | audio | PLAN (M-L) |
 | 3.5 mm jack (ESS ES928x, no mainline driver) | audio | PLAN (L) |
