@@ -30,8 +30,8 @@ work), NO (not needed / not feasible).
 | Iris6 reset gpio93 never driven | display | PLAN (diagnostic first) |
 | msm probe WARN: DSI PLL(0) lock failed then dsiclk double disable/unprepare (orphan reparent in of_clk_add_hw_provider enables the PHY PLL before the PHY is powered; __clk_set_parent_before ignores the failed enable, __clk_set_parent_after disables anyway; cosmetic) | display | PLAN (S, low value) |
 | Haptics reset gpio116 not declared | asus | PLAN (S) |
-| No skin/connector thermistors or skin thermal policy | cpu-thermal | PLAN: PMK8350 VADC/ADC-TM + skin zones |
-| USB-connector temperature not exposed / no charge cut | battery | PLAN |
+| No skin/connector thermistors or skin thermal policy | cpu-thermal | DONE r140 (skin zone 42/46/65 C) |
+| USB-connector temperature not exposed / no charge cut | battery | exposed r140 (usb-conn zone, hot 70 C); charge cut PLAN |
 | CS35L45 speaker protection firmware not loaded (no hibernate, no excursion/thermal protection) | audio | PLAN |
 | Stereo channels swapped vs stock | audio | DONE route (r136), listening check pending |
 | Side-port combo PHY supplies swapped in the base DTS | DeX | DONE in the dp overlay |

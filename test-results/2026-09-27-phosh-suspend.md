@@ -201,3 +201,21 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   40.2 s (warmer): the firmware left L3 at its top level before, so this
   change saves awake power and does not add speed.
 - Default install: two ordinary boots committed.
+
+## 2026-09-28: skin thermal (r140 default)
+- Overlay sm8350-asus-rog-phone5-skin-thermal.dtso (DTB feature skin):
+  PMK8350 ADC7 with the stock thermistor channels (xo 0x44, msm 0x144,
+  bottom connector 0x145, hot pocket 0x146, side connector 0x347/0x349, PA
+  0x44a/0x44b; 100k pull-up, ratiometric, 200 us), ADC-TM on the six stock
+  channels, zones skin (msm_therm), usb-conn, hot-pocket, xo.
+- Skin policy (step_wise, 2 s passive polling): 42 C -> big <= state 6
+  (1766 MHz), prime <= 9 (1901 MHz), GPU <= 3 steps; 46 C -> big <= 12
+  (1075 MHz), prime <= 18 (845 MHz), GPU unlimited; 65 C critical. Stock
+  starts at 36 C (thermal-engine NORMAL); ours keeps full speed longer.
+  Connector 70 C, hot pocket 60 C and XO 80 C are "hot" (report only).
+- Modules qcom_spmi_adc5 + qcom_spmi_adc_tm5 (+ qcom_vadc_common) in
+  boot-modules.
+- r140 = kernel r52 + DTB platform-l3-skin-dtb-r1: on USB power, screen off:
+  msm 32.4 C, side conn 32.4, bottom conn 27.8, hot pocket 33.4, xo 33.3, PA
+  33.2/33.0; skin zone with 6 cooling bindings; no ADC errors. Default
+  install: two ordinary boots committed.
