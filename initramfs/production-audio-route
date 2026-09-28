@@ -9,6 +9,10 @@ profile, so nothing else sets it up: without this, playback reaches no amplifier
 Both amplifiers run in speaker mode at a fixed -12 dB digital level. The
 speaker-protection DSP firmware is not loaded, so full scale stays below the
 amplifier's 0 dB (409). DAPM powers the amplifiers only while a stream runs.
+With the mic DTB feature, the built-in microphones record on PCM 3
+(MultiMedia3 <- VA_CODEC_DMA_TX_0): DMIC0 (stock "dmic1", handset) left,
+DMIC2 (stock "dmic2", speaker side) right, +18 dB decimator gain as on stock.
+Those controls are optional: without the VA macro they are skipped.
 Uses libasound through ctypes, as amixer cset would.
 """
 import ctypes
@@ -26,6 +30,17 @@ ROUTE = (
     ('RCV Digital PCM Volume', '361'),
     ('SPK AMP Enable Switch', '1'),
     ('RCV AMP Enable Switch', '1'),
+)
+CAPTURE = (
+    ('MultiMedia3 Mixer VA_CODEC_DMA_TX_0', '1'),
+    ('VA DEC0 MUX', 'VA_DMIC'),
+    ('VA DMIC MUX0', 'DMIC0'),
+    ('VA DEC1 MUX', 'VA_DMIC'),
+    ('VA DMIC MUX1', 'DMIC2'),
+    ('VA_AIF1_CAP Mixer DEC0', '1'),
+    ('VA_AIF1_CAP Mixer DEC1', '1'),
+    ('VA_DEC0 Volume', '102'),
+    ('VA_DEC1 Volume', '102'),
 )
 WAIT_SECONDS = 60
 
@@ -93,7 +108,12 @@ def main():
         log(f'FAIL open hw:{card}: {rc}')
         return 1
     failed = [name for name, value in ROUTE if set_control(asound, handle, name, value) < 0]
+    capture = [set_control(asound, handle, name, value) for name, value in CAPTURE]
     asound.snd_ctl_close(handle)
+    if all(rc == 0 for rc in capture):
+        log(f'hw:{card} microphones routed to MultiMedia3 (PCM 3)')
+    elif any(rc == 0 for rc in capture):
+        log('FAIL microphone route incomplete')
     if failed:
         log('FAIL could not set ' + ', '.join(failed))
         return 1
