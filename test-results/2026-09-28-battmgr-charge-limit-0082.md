@@ -79,3 +79,17 @@ Writing start >= end moves end to start + 5.
 6. PDR/ADSP restart, suspend/resume, and module unload all restore auto.
 7. Idle power: the 60 s re-send is one glink message per minute, and only while
    paused on USB.
+
+## Hardware results (2026-09-28)
+- r142 (kernel r54): force-discharge (USBIN suspend 0x2105) worked; every
+  mode2 pause failed with -71. r143 logged the reply: owner 32782, type 1,
+  opcode 0x2110 (SET_CHG_LIMIT_MODE), 16 bytes: this ADSP firmware acks
+  SET_CHG_LIMIT_MODE2 with the older MODE reply. r144 (kernel r56) accepts
+  that reply as the MODE2 ack.
+- r144, side port on the Steam Deck: initial Full 100 %, -8 mA;
+  force-discharge 4 min -> 99 %, -89 mA, usb online 0; auto -> +94..+151 mA
+  (Charging); inhibit-charge -> 0 mA, usb online 1 (runs from VBUS, cells
+  rest); no OEM errors. Installed as the default (two ordinary boots).
+- rog5-charge-limit (scripts/device) + rog5-charge-limit.service: set END
+  [START] / bypass / off / status; saved in /etc/rog5/charge-limit and
+  applied at boot. Verified on the phone; no limit is set by default.
