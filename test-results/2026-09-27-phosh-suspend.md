@@ -385,3 +385,4 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   Firefox fully cold (page cache dropped) ~7-9 s, warm ~2.6 s. No DPU
   timeouts; CPU <25 % during launch; screen grabs stall ~2 s while an app
   starts, 0.45 s at rest.
+- r155 = kernel r62 (r59 without 0084) + r149 DTB/ramdisk: default install, two ordinary boots committed (2026-09-28).
