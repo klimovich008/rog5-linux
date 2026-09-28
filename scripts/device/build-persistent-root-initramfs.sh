@@ -297,6 +297,11 @@ sed -i "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
 grep -Fqx "expected_persistent_overlay_mode=$persistent_overlay_mode" \
 	"$stage/init"
 ! grep -Fq '@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$stage/init"
+[ "$(grep -Fc '@EXPECTED_UFS_CONTAINMENT@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique UFS containment placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_UFS_CONTAINMENT@/on/" "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$tailscale_runtime" \
 	"$stage/usr/local/sbin/rog5-persistent-tailscale"

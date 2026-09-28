@@ -24,6 +24,8 @@ probe_boot_id=staged-seal
 native_root_mode=1
 ssh_diagnostic_mode=0
 persistent_overlay_mode=${PERSISTENT_ROOT_OVERLAY:-0}
+# UFS_CONTAINMENT=off for kernels built without the UFS discovery options.
+ufs_containment=${UFS_CONTAINMENT:-on}
 # Production mode replaces every loose release-bound module with one depmod
 # tree for 7.1.4-rog5-production. The stage loaders then use modprobe. The
 # native Wi-Fi payload carries its own release-bound modules and is removed:
@@ -52,6 +54,10 @@ epoch=1681862400
 
 case $persistent_overlay_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
+	exit 1
+esac
+case $ufs_containment in on|off) ;; *)
+	echo 'FAIL UFS_CONTAINMENT must be on or off' >&2
 	exit 1
 esac
 case $production_update in 0|1) ;; *)
@@ -366,7 +372,8 @@ fi
 for placeholder in \
 	EXPECTED_KERNEL_RELEASE EXPECTED_UFS_STORAGE_MODE \
 	EXPECTED_PROBE_BOOT_ID EXPECTED_NATIVE_ROOT_MODE \
-	EXPECTED_SSH_DIAGNOSTIC_MODE EXPECTED_PERSISTENT_OVERLAY_MODE; do
+	EXPECTED_SSH_DIAGNOSTIC_MODE EXPECTED_PERSISTENT_OVERLAY_MODE \
+	EXPECTED_UFS_CONTAINMENT; do
 	[ "$(grep -Fc "@$placeholder@" "$root/init")" -eq 1 ]
 done
 sed -i \
@@ -376,6 +383,7 @@ sed -i \
 	-e "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" \
 	-e "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" \
 	-e "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
+	-e "s/@EXPECTED_UFS_CONTAINMENT@/$ufs_containment/" \
 	"$root/init"
 ! grep -Fq '@EXPECTED_' "$root/init"
 install -D -m 0755 "$attest" "$root/usr/local/sbin/rog5-p2-attest"

@@ -16,6 +16,9 @@ mdev -s
 expected_physical_count=117
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
+# on: the kernel runs the UFS discovery containment and must log its markers;
+# off: a mainline UFS kernel (no containment), only the command gates apply.
+expected_ufs_containment=@EXPECTED_UFS_CONTAINMENT@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
 expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@
@@ -373,6 +376,12 @@ wait_for_ufs_discovery() {
 }
 
 verify_ufs_power_containment() {
+	if [ "$expected_ufs_containment" = off ]; then
+		# Mainline UFS power management: no containment markers, but a
+		# kernel that still logs containment or blocked commands is wrong.
+		[ "$(dmesg | grep -F -c 'ROG5 UFS discovery:' || true)" -eq 0 ]
+		return
+	fi
 	auto_marker='ROG5 UFS discovery: auto-hibern8 disabled; link remains active'
 	host_marker='ROG5 UFS discovery: host runtime PM forbidden; active reference retained'
 	wlun_marker='ROG5 UFS discovery: WLUN runtime PM forbidden'
