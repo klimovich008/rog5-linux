@@ -1,0 +1,37 @@
+#!/bin/sh
+# ROG5 mobile app defaults for Phosh (run as root; idempotent).
+#  - hides desktop-only helper entries from the Phosh app grid with NoDisplay
+#    overrides in /usr/local/share/applications (the programs stay installed);
+#  - makes Papers the PDF viewer and Showtime the video player;
+#  - adds Flathub for GNOME Software, which marks adaptive apps and warns
+#    about apps that need a larger screen.
+# Phoc's scale-to-fit (non-adaptive windows shrink to the screen) and Phosh's
+# adaptive app filter are system dconf defaults (configs/dconf).
+set -eu
+hidden='avahi-discover bssh bvnc lstopo qv4l2 qvidcap xfce4-about thunar thunar-bulk-rename
+thunar-settings org.freedesktop.IBus.Setup gnome-system-monitor-kde org.gnome.Evince
+org.gnome.Extensions foot-server footclient mpv org.gnome.SystemMonitor'
+dst=/usr/local/share/applications
+mkdir -p "$dst"
+for id in $hidden; do
+	src=/usr/share/applications/$id.desktop
+	[ -f "$src" ] || continue
+	{ sed '/^NoDisplay=/d' "$src" | awk '{print} /^\[Desktop Entry\]$/ && !done {print "NoDisplay=true"; done=1}'; } >"$dst/$id.desktop.tmp"
+	mv "$dst/$id.desktop.tmp" "$dst/$id.desktop"
+done
+update-desktop-database -q "$dst" 2>/dev/null || true
+mkdir -p /etc/xdg
+cat >/etc/xdg/mimeapps.list <<'LIST'
+[Default Applications]
+application/pdf=org.gnome.Papers.desktop
+video/mp4=org.gnome.Showtime.desktop
+video/webm=org.gnome.Showtime.desktop
+video/x-matroska=org.gnome.Showtime.desktop
+image/png=org.gnome.Loupe.desktop
+image/jpeg=org.gnome.Loupe.desktop
+inode/directory=org.gnome.Nautilus.desktop
+LIST
+if command -v flatpak >/dev/null; then
+	flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+fi
+echo "rog5-mobile-apps: $(ls "$dst" | wc -l) launcher overrides, mime defaults, flathub"

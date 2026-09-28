@@ -319,3 +319,29 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   the bus and the phone hard-reset (back on r148, ext4 journal replayed, no
   errors). The display RSC needs more than that clock; do not repeat without
   the full stock clock/power set.
+
+## 2026-09-28: apps slow or not starting from Phosh; mobile app defaults
+- Cause 1: /etc/sway/config.d/50-systemd-user.conf, pulled in by the virtual
+  desktop's include of /etc/sway/config, exported XDG_CURRENT_DESKTOP=sway
+  (and at times the headless WAYLAND_DISPLAY) into the user manager and
+  D-Bus activation environment. Phosh ran with XDG_CURRENT_DESKTOP=sway (sway
+  portal set) and D-Bus-activated apps (Files, Weather, Image Viewer) could
+  open on the invisible headless desktop; Phosh logged "Startup of app ...
+  timed out" for Files, Weather, Image Viewer, Firefox, Chromium, IBus.
+  Fixed: configs/rog5-desktop/sway-base.conf (Arch sway config without
+  config.d), rog5-phosh.service XDG_CURRENT_DESKTOP=Phosh:GNOME. Verified:
+  gio launch of Files/Image Viewer -> wayland-0, Phosh:GNOME.
+- Cause 2: fuse is a module outside the module set, so /dev/fuse never
+  existed and xdg-document-portal failed ("fuse init failed"). Kernel r59:
+  CONFIG_FUSE_FS=y (with 0084).
+- Launch times (first window): virtual desktop 0.5-2.5 s for foot,
+  Calculator, Text Editor, Files, Image Viewer, System Monitor, Thunar,
+  Evince, Chromium, Firefox (1.8 s cold); phone screen Calculator 0.6 s,
+  Text Editor 1.1, Files 0.6, Firefox 4.7 -> 2.6 s after the fixes.
+- Mobile defaults (scripts/device/rog5-mobile-apps, dconf): installed Papers,
+  Resources, Showtime, GNOME Software + Flatpak/Flathub (only new packages,
+  no upgrades); launcher overrides hide desktop-only tools (Thunar, Evince,
+  System Monitor, mpv, IBus/Avahi/V4L2/hwloc/Xfce entries); mime defaults
+  Papers/Showtime/Loupe/Nautilus; phoc scale-to-fit=true and Phosh
+  app-filter-mode adaptive by default; mobile-config-firefox (postmarketOS,
+  b0c4c3a) installed into /usr/lib/firefox (make uninstall reverts).

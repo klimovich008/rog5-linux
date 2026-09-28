@@ -13,6 +13,13 @@ color-scheme='prefer-dark'
 
 [sm/puri/phosh]
 favorites=['org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']
+# App grid: mobile-friendly (adaptive) apps, with Phosh's "show all" toggle.
+app-filter-mode=['adaptive']
+
+# Windows of apps that are not adaptive are scaled down to the screen instead
+# of being cut off (applies to every app installed later too).
+[sm/puri/phoc]
+scale-to-fit=true
 
 # rog5-sleep-policy owns suspend (battery only, never on USB power).
 [org/gnome/settings-daemon/plugins/power]
