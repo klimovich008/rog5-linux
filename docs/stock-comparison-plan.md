@@ -24,7 +24,7 @@ work), NO (not needed / not feasible).
 | USB host torn down on every s2idle (no wakeup-source) | connectivity | DONE usbwake DTB (r134) |
 | USB modules never autoload (/lib/modules empty) | connectivity | DONE udev rule + service |
 | Battery temperature ~30 C always, 2S charge doubled, health enum shifted | battery | DONE 0078 + DT flag (r135) |
-| UFS still in discovery containment (no runtime PM, ahit=0, no WB/BKOPS) | platform | PLAN: build without the DISCOVERY options, suspend-loop test |
+| UFS still in discovery containment (no runtime PM, ahit=0, no WB/BKOPS) | platform | WAITING for the user: dropping the two DISCOVERY options was denied by the permission classifier on 2026-09-28 (storage-safety change) |
 | No APSS hardware watchdog (softdog only) | platform | PLAN: qcom,apss-wdt node after the observer check |
 | Panel ESD: ERR_FG (gpio27) and TE check missing | display | PLAN |
 | Iris6 reset gpio93 never driven | display | PLAN (diagnostic first) |

@@ -14,6 +14,8 @@ case ,$features, in *,l3,*) l3=1; features=$(printf %s "$features" | sed 's/^l3$
 # skin (board thermistors, skin thermal policy) likewise; needs the ADC7 and
 # ADC-TM modules in boot-modules.
 case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/^skin$//; s/,skin$//; s/,skin,/,/') ;; *) skin=0 ;; esac
+# acd (GPU adaptive clock distribution) likewise.
+case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -355,6 +357,21 @@ if [ "$skin" = 1 ]; then
 		[ "$(fdtget -l "$work/composed.dtb" $pk/adc-tm@3400 | wc -l)" = 6 ] &&
 		[ "$(fdtget "$work/composed.dtb" /thermal-zones/skin-thermal/trips/skin-crit temperature)" = 65000 ] ||
 		{ echo 'FAIL skin composition' >&2; exit 1; }
+fi
+if [ "$acd" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/acd.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-gpu-acd.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/acd.dtbo" "$work/acd.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/acd.dtb" "$work/acd.dtbo"
+	mv "$work/acd.dtb" "$work/composed.dtb"
+	[ "$(fdtget "$work/composed.dtb" /soc@0/gmu@3d6a000 qcom,qmp)" = \
+		"$(fdtget "$work/composed.dtb" /soc@0/power-management@c300000 phandle)" ] ||
+		{ echo 'FAIL acd composition: qmp' >&2; exit 1; }
+	for opp in $(fdtget -l "$work/composed.dtb" /soc@0/gpu@3d00000/opp-table); do
+		[ -n "$(fdtget "$work/composed.dtb" /soc@0/gpu@3d00000/opp-table/$opp qcom,opp-acd-level)" ] ||
+			{ echo "FAIL acd composition: $opp" >&2; exit 1; }
+	done
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

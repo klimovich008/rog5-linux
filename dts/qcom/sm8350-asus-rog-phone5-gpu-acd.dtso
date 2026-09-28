@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * GPU ACD (adaptive clock distribution): the A660 GMU trims the GX voltage
+ * margin per level. Stock ZS673KS enables it on this chip (a660v2
+ * ADRENO_ACD, bin-0 qcom,acd-level values from lahaina-v2-gpu.dtsi) and
+ * tells the AOP {class: gpu, res: acd, val: 1}. Mainline a6xx_gmu reads the
+ * same per-OPP values from qcom,opp-acd-level and needs the AOSS QMP handle.
+ * If the GMU firmware rejects the table the GPU does not start; msm's
+ * disable_acd=1 module parameter or dropping this overlay reverts it.
+ */
+/dts-v1/;
+/plugin/;
+
+&gmu {
+	qcom,qmp = <&aoss_qmp>;
+};
+
+&gpu_opp_table {
+	opp-840000000 {
+		qcom,opp-acd-level = <0x882a5ffd>;
+	};
+
+	opp-778000000 {
+		qcom,opp-acd-level = <0xa82a5ffd>;
+	};
+
+	opp-738000000 {
+		qcom,opp-acd-level = <0xa82a5ffd>;
+	};
+
+	opp-676000000 {
+		qcom,opp-acd-level = <0x882b5ffd>;
+	};
+
+	opp-608000000 {
+		qcom,opp-acd-level = <0xa82b5ffd>;
+	};
+
+	opp-540000000 {
+		qcom,opp-acd-level = <0xa82c5ffd>;
+	};
+
+	opp-491000000 {
+		qcom,opp-acd-level = <0xa82c5ffd>;
+	};
+
+	opp-443000000 {
+		qcom,opp-acd-level = <0xa82d5ffd>;
+	};
+
+	opp-379000000 {
+		qcom,opp-acd-level = <0x882e5ffd>;
+	};
+
+	opp-315000000 {
+		qcom,opp-acd-level = <0x882f5ffd>;
+	};
+};
