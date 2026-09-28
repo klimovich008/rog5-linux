@@ -233,3 +233,17 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   llvmpipe: apps there have no GPU acceleration (wayvnc needed pixman). To
   revisit for DeX/remote use.
 - Default install: two ordinary boots committed.
+
+## 2026-09-28: simulated unplugged standby on r144 (force-discharge)
+- USB input suspended with charge_behaviour=force-discharge (0082), so the
+  sleep policy saw battery power while the USB data cable stayed attached.
+  A WakeSystem systemd timer meant to restore "auto" after 22 min did not
+  wake the phone; the power key did (the RTC alarm counted 2 wakeups).
+- rog5-standby-test: 3659 s window, 3573 s suspended, 86 s awake, 2
+  suspends; adsp 3547 s asleep, slpi 3659 s asleep; cxsd/aosd/ddr 0. The
+  battery was at 100 %, so charge_counter (+7 mAh) gives no current figure.
+- So with XO released by the APPS DRV (0081), CX collapse is still blocked
+  by another voter: candidates are the display RSC (bootloader splash votes),
+  TZ/HYP or the AOP; the AOP violators region stays empty.
+- The USB gadget re-enumerated with the host side on 10.77.0.1 only
+  (169.254.77.2 unreachable); use 10.77.0.2 then.
