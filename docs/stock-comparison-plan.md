@@ -55,7 +55,7 @@ work), NO (not needed / not feasible).
 |---|---|---|
 | SoC never reaches CXSD/AOSS/DDR sleep | power | open: 0068 did not help; next: rpmhpd sync_state/devlink check, rpmh vote readback (votes/vx), wrapper leftovers, disp_rsc |
 | Wi-Fi power save when idle; reachable mode | power | DONE (policy) |
-| GPU ACD (DT only) | gpu | NEXT (separate RAM trial) |
+| GPU ACD (DT only) | gpu | DONE r141 |
 | GPU IFPC (inter-frame power collapse) | gpu | PLAN (L) |
 | Display DDR vote held in screen-on idle | display | PLAN (S-M) |
 | Denial-only helpers polling battmgr under Phosh | power | DONE |

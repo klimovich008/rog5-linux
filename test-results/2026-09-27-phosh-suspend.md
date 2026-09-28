@@ -219,3 +219,17 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   msm 32.4 C, side conn 32.4, bottom conn 27.8, hot pocket 33.4, xo 33.3, PA
   33.2/33.0; skin zone with 6 cooling bindings; no ADC errors. Default
   install: two ordinary boots committed.
+
+## 2026-09-28: GPU ACD (r141 default)
+- Overlay sm8350-asus-rog-phone5-gpu-acd.dtso (DTB feature acd): &gmu
+  qcom,qmp = <&aoss_qmp>, qcom,opp-acd-level per GPU OPP with the stock
+  bin-0 values (lahaina-v2-gpu.dtsi).
+- r141 = kernel r52 + DTB platform-l3-skin-acd-dtb-r1: GMU firmware v3.1.10
+  accepts the ACD table (no HFI/ACD/QMP error), GPU and phoc run.
+- glmark2-es2-wayland --off-screen 1280x720 on wayland-0 (FD660): r140 297;
+  r141 446 and 369. Run-to-run spread is large, so no speed claim; ACD's
+  purpose is a lower GX voltage margin (power/thermal).
+- The same benchmark on the headless virtual desktop (pixman sway) ran on
+  llvmpipe: apps there have no GPU acceleration (wayvnc needed pixman). To
+  revisit for DeX/remote use.
+- Default install: two ordinary boots committed.
