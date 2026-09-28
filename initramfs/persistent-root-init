@@ -2413,6 +2413,13 @@ prepare_platform_services() {
 		cp -p "$kit/$unit" "$run/systemd/system/" || return 1
 	done
 	cp -p "$kit/rog5-watchdog.conf" "$run/systemd/system.conf.d/" || return 1
+	# A hardware watchdog that registered before user space (the Haven
+	# watchdog, patch 0088) is watchdog0 and keeps being petted by the kernel.
+	# It counts only busy CPU time, so PID 1 pets softdog (wall time), which
+	# rog5-platform-modules loads as watchdog1.
+	if [ -e /sys/class/watchdog/watchdog0/device ] && [ ! -e /sys/class/watchdog/watchdog1 ]; then
+		printf 'WatchdogDevice=/dev/watchdog1\n' >>"$run/systemd/system.conf.d/rog5-watchdog.conf" || return 1
+	fi
 	ln -s ../rog5-platform-modules.service \
 		"$run/systemd/system/sysinit.target.wants/rog5-platform-modules.service" || return 1
 	ln -s ../rog5-rtc-time.service \
