@@ -1,0 +1,12 @@
+[Unit]
+Description=ROG5 utilisation floor for the graphical session (big cores)
+After=rog5-phosh.service
+PartOf=rog5-phosh.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rog5-session-boost
+
+[Install]
+WantedBy=rog5-phosh.service

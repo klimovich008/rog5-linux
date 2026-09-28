@@ -1,0 +1,31 @@
+#!/bin/sh
+# Keep the graphical session on the big cores (DT feature cpucap).
+#
+# With the CPU capacity/energy model, energy-aware placement kept light
+# per-frame threads (compositor, GL clients, the GPU driver's submit thread)
+# on the 1.8 GHz A55s: glmark2 ~320 vs ~780 pinned to the X1. A per-task
+# utilisation floor above the A55 capacity (325/1024) moves them up, and
+# children inherit it across fork, so apps launched from the session (by
+# phosh or the user's systemd manager) get it too. With a floor of 400
+# glmark2 scored 590-765. Idle is unaffected: the floor applies only to
+# running tasks.
+#
+# Run by rog5-session-boost.service after rog5-phosh.service (re)starts.
+set -u
+floor=${ROG5_SESSION_UCLAMP_MIN:-400}
+cap=$(cat /sys/devices/system/cpu/cpu0/cpu_capacity 2>/dev/null || echo 1024)
+# Without a capacity model every core is 1024 and a floor only raises clocks.
+[ "$cap" -lt 1024 ] || { echo 'rog5-session-boost: no CPU capacity model; nothing to do'; exit 0; }
+uid=$(id -u phone) || exit 1
+boost() {
+	for pid in $(pgrep -u "$uid" -x "$1"); do
+		uclampset -m "$floor" -a -p "$pid" && echo "rog5-session-boost: $1 ($pid) util_min=$floor"
+	done
+}
+# Wait for the session (phosh starts a few seconds after phoc).
+i=0
+while [ $i -lt 60 ] && ! pgrep -u "$uid" -x phosh >/dev/null; do sleep 1; i=$((i + 1)); done
+for comm in systemd phoc phosh gnome-session-b gnome-session-c squeekboard; do
+	boost "$comm"
+done
+exit 0
