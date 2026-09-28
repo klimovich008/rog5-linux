@@ -20,14 +20,15 @@ work), NO (not needed / not feasible).
 | DPU cmd-mode core clock (top-edge line), encoder from state, dumb padding | display | DONE 0070-0072 |
 | PCIe root port hotplug blocked D3 in suspend | connectivity | DONE 0073 |
 | WoWLAN link keep (wakeup-enabled endpoints) | connectivity | DONE 0076 (WoWLAN itself off: firmware crashes) |
-| PCIe L0s on the WCN6855 link (stock: no-l0s) | connectivity | built r46/r47 (0077) |
-| USB host torn down on every s2idle (no wakeup-source) | connectivity | built (usbwake DTB) |
+| PCIe L0s on the WCN6855 link (stock: no-l0s) | connectivity | DONE 0077 (r134) |
+| USB host torn down on every s2idle (no wakeup-source) | connectivity | DONE usbwake DTB (r134) |
 | USB modules never autoload (/lib/modules empty) | connectivity | DONE udev rule + service |
-| Battery temperature ~30 C always, 2S charge doubled, health enum shifted | battery | NEXT 0078 |
+| Battery temperature ~30 C always, 2S charge doubled, health enum shifted | battery | DONE 0078 + DT flag (r135) |
 | UFS still in discovery containment (no runtime PM, ahit=0, no WB/BKOPS) | platform | PLAN: build without the DISCOVERY options, suspend-loop test |
 | No APSS hardware watchdog (softdog only) | platform | PLAN: qcom,apss-wdt node after the observer check |
 | Panel ESD: ERR_FG (gpio27) and TE check missing | display | PLAN |
 | Iris6 reset gpio93 never driven | display | PLAN (diagnostic first) |
+| msm probe WARN: DSI PLL(0) lock failed then dsiclk double disable/unprepare | display | PLAN (S) |
 | Haptics reset gpio116 not declared | asus | PLAN (S) |
 | No skin/connector thermistors or skin thermal policy | cpu-thermal | PLAN: PMK8350 VADC/ADC-TM + skin zones |
 | USB-connector temperature not exposed / no charge cut | battery | PLAN |
@@ -67,7 +68,7 @@ work), NO (not needed / not feasible).
 | Charge limit / bypass charging (server) | battery | PLAN (OEM glink 0x2117/0x2105) |
 | Adapter power limit, input current limit | battery | PLAN (S) |
 | Torch / camera flash LED | platform | PLAN (S, DT) |
-| ALS lux scale 2x too small (ROG5 is ONE_PL: 846) | platform | NEXT (S) |
+| ALS lux scale 2x too small (ROG5 is ONE_PL: 846) | platform | DONE (r134) |
 | Microphones (4 DMIC via TX/VA macro) | audio | PLAN (M-L) |
 | 3.5 mm jack (ESS ES928x, no mainline driver) | audio | PLAN (L) |
 | Bottom USB-C port (RT1711H, USB3803 hub, redriver) | connectivity | PLAN (M-L) |

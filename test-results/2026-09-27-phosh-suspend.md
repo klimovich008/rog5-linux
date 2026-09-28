@@ -121,3 +121,15 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   dual-cell DT flag), qmp combo, DP and USB server modules) + DTB usbwake +
   ALS scale 846: RAM trial, then installed as the default; two ordinary
   boots committed healthy.
+
+## 2026-09-28: r135 default (0078 active, PD-safe ramdisk)
+- r135 = kernel r48 + DTB platform-usbwake-battfix-dtb-r1 (usbotg now sets
+  asus,cell-voltage-readonly) + ramdisk with the 4-21 V power-USB window.
+- Battery sysfs before (r134) -> after (r135), same charger, full:
+  temp 298 -> 253 (0.1 C; the r134 value is the stuck ~30 C), charge_full
+  4970000 -> 2485000, charge_full_design 5500000 -> 2750000, charge_counter
+  halved, cell_voltages 4309/4316 mV (new), health Good, capacity 100.
+- RAM trial t135, then default install: two ordinary boots committed.
+  calltraces=2 on every boot = pre-existing msm probe WARN pair ("DSI PLL(0)
+  lock failed", dsi0_phy_pll_out_dsiclk already disabled/unprepared), also
+  in r134; queued as a display cleanup item.
