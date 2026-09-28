@@ -1,0 +1,773 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: ROG5 charge limit and bypass
+
+The ZS673KS firmware does not know the battery manager charge control
+(opcode 0x48, properties 25/26); the stock kernel limits charging itself
+through the ASUS OEM owner (asus_battery_charger.c monitor_charging_enable()):
+SET_CHG_LIMIT_MODE2 (0x2117, u32 mode + u32 value) with SET_BYPASS_CHG_MODE
+(0x8) pauses charging while the system keeps running from VBUS, and
+SET_USBIN_SUSPNED (0x2105, u32 enable) cuts the input. Both acks have the
+request's length. Add the same policy to the OEM client of patch 0018:
+
+- the battery gets charge_behaviour (auto, inhibit-charge, force-discharge)
+  and writable charge_control_start/end_threshold, kept in memory only.
+  Defaults are auto and 0/100, so nothing is sent until userspace sets a
+  value. Setting end fills in start = end - 5 when start is unset, and
+  setting start >= end moves end to start + 5, as on sm8550;
+- a work item pauses charging (mode2 0x8 = 1) for inhibit-charge or once the
+  capacity reaches the end threshold, resumes (0) at or below the start
+  threshold, and suspends USBIN only for force-discharge. It runs on
+  battery and USB notifications, a threshold write, OEM/BC PDR up, resume
+  and the stock VBUS-attached event (OEM notification 0x2112), and every
+  60 s while a limit is set. Messages go out on a state change; an active
+  pause or input suspend is also re-sent after an ADSP restart, a resume, a
+  VBUS attach and every 60 s while USB is online (stock sends only on
+  change, but the firmware state across replugs is unverified);
+- the OEM request path is shared with the cell voltage read. The ack is
+  matched against the pending opcode, and OEM notifications no longer
+  complete a pending request with -EPROTO. Poisoned channels send nothing;
+- unbind and shutdown restore charging and the USB input before the
+  pmic_glink clients go away.
+
+Other SoCs, and SM8350 without asus,cell-voltage-readonly, keep their
+descriptors and behaviour; the resume callback only kicks the ROG5 work.
+
+--- a/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:00:20.133696787 +0200
++++ b/drivers/power/supply/qcom_battmgr.c	2026-09-28 04:06:09.249400974 +0200
+@@ -21,8 +21,21 @@
+ #define BATTMGR_STRING_LEN	128
+ 
+ #define PMIC_GLINK_OWNER_ASUS_ROG5	32782
++#define ASUS_ROG5_SET_USBIN_SUSPEND	0x2105
++#define ASUS_ROG5_EVT_ADSP_TO_HLOS	0x2112
++#define ASUS_ROG5_SET_CHG_LIMIT_MODE2	0x2117
+ #define ASUS_ROG5_GET_CELL_VOLTAGE	0x3005
+ 
++/* SET_CHG_LIMIT_MODE2 mode bit: run the system from VBUS, cells rest */
++#define ASUS_ROG5_CHG_MODE_BYPASS	0x8
++/* ADSP_TO_HLOS event: VBUS attached (value 1) or detached (value 0) */
++#define ASUS_ROG5_EVT_VBUS_ATTACHED	0x2
++
++/* ROG5 kernel-side charge limit (stock asus_battery_charger.c policy) */
++#define ASUS_ROG5_CHG_END_MIN		20
++#define ASUS_ROG5_CHG_DELTA		5
++#define ASUS_ROG5_CHG_INTERVAL		(60 * HZ)
++
+ enum qcom_battmgr_variant {
+ 	QCOM_BATTMGR_SC8280XP,
+ 	QCOM_BATTMGR_SM8350,
+@@ -159,6 +172,25 @@
+ 	__le16 cell2_voltage;
+ };
+ 
++/* SET_CHG_LIMIT_MODE2 request; the ADSP acks with a message of equal length */
++struct qcom_battmgr_asus_chg_mode2_msg {
++	struct pmic_glink_hdr hdr;
++	__le32 mode;
++	__le32 value;
++};
++
++/* SET_USBIN_SUSPEND request; the ADSP acks with a message of equal length */
++struct qcom_battmgr_asus_usbin_suspend_msg {
++	struct pmic_glink_hdr hdr;
++	__le32 enable;
++};
++
++struct qcom_battmgr_asus_evt_msg {
++	struct pmic_glink_hdr hdr;
++	__le32 evt_id;
++	__le32 value;
++};
++
+ struct qcom_battmgr_message {
+ 	struct pmic_glink_hdr hdr;
+ 	union {
+@@ -344,9 +376,27 @@
+ 	bool oem_service_up;
+ 	bool oem_request_poisoned;
+ 	u32 oem_service_generation;
++	u32 oem_opcode;
+ 	u16 cell1_voltage_mv;
+ 	u16 cell2_voltage_mv;
+ 
++	/*
++	 * ROG5 charge control (only with @oem_client). @asus_chg_lock protects
++	 * the requested behaviour, the thresholds and the hysteresis state;
++	 * the ADSP-side state below it is owned by @asus_chg_work.
++	 */
++	struct delayed_work asus_chg_work;
++	struct mutex asus_chg_lock;
++	int asus_chg_behaviour;
++	unsigned int asus_chg_start;
++	unsigned int asus_chg_end;
++	bool asus_chg_limit_hold;
++	atomic_t asus_chg_reassert;
++	bool asus_chg_paused;
++	bool asus_chg_usbin_suspended;
++	bool asus_chg_usb_online;
++	unsigned long asus_chg_asserted;
++
+ 	struct qcom_battmgr_info info;
+ 	struct qcom_battmgr_status status;
+ 	struct qcom_battmgr_ac ac;
+@@ -362,66 +412,203 @@
+ 	struct mutex lock;
+ };
+ 
+-static int qcom_battmgr_request_asus_cell_voltages(struct qcom_battmgr *battmgr,
+-						   u16 *cell1_mv, u16 *cell2_mv)
++/*
++ * Send one request to the ASUS OEM client and wait for its ack; called with
++ * @battmgr->lock held. The callback checks the ack against @oem_opcode.
++ */
++static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
++					    void *data, size_t len)
+ {
+-	struct qcom_battmgr_asus_cell_voltage_request request = {
+-		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
+-		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
+-		.hdr.opcode = cpu_to_le32(ASUS_ROG5_GET_CELL_VOLTAGE),
+-	};
++	struct pmic_glink_hdr *hdr = data;
+ 	unsigned long left;
+ 	u32 generation;
+ 	int ret;
+ 
++	lockdep_assert_held(&battmgr->lock);
++
+ 	if (!READ_ONCE(battmgr->oem_service_up))
+ 		return -EAGAIN;
+ 	if (READ_ONCE(battmgr->oem_request_poisoned))
+ 		return -EIO;
+ 
+-	mutex_lock(&battmgr->lock);
+-	if (!READ_ONCE(battmgr->oem_service_up)) {
+-		ret = -EAGAIN;
+-		goto out_unlock;
+-	}
+-	if (READ_ONCE(battmgr->oem_request_poisoned)) {
+-		ret = -EIO;
+-		goto out_unlock;
+-	}
+-
+ 	generation = READ_ONCE(battmgr->oem_service_generation);
+ 	reinit_completion(&battmgr->oem_ack);
+ 	battmgr->oem_error = 0;
++	WRITE_ONCE(battmgr->oem_opcode, le32_to_cpu(hdr->opcode));
+ 	if (!READ_ONCE(battmgr->oem_service_up) ||
+-	    READ_ONCE(battmgr->oem_service_generation) != generation) {
+-		ret = -EAGAIN;
+-		goto out_unlock;
+-	}
++	    READ_ONCE(battmgr->oem_service_generation) != generation)
++		return -EAGAIN;
+ 
+-	ret = pmic_glink_send(battmgr->oem_client, &request, sizeof(request));
++	ret = pmic_glink_send(battmgr->oem_client, data, len);
+ 	if (ret < 0)
+-		goto out_unlock;
++		return ret;
+ 
+ 	left = wait_for_completion_timeout(&battmgr->oem_ack, HZ);
+ 	if (!left) {
+ 		WRITE_ONCE(battmgr->oem_request_poisoned, true);
+-		ret = -ETIMEDOUT;
+-		goto out_unlock;
++		return -ETIMEDOUT;
+ 	}
+ 	if (!READ_ONCE(battmgr->oem_service_up) ||
+-	    READ_ONCE(battmgr->oem_service_generation) != generation) {
+-		ret = -ENOTCONN;
+-		goto out_unlock;
+-	}
++	    READ_ONCE(battmgr->oem_service_generation) != generation)
++		return -ENOTCONN;
++
++	return battmgr->oem_error;
++}
++
++static int qcom_battmgr_asus_request(struct qcom_battmgr *battmgr,
++				     void *data, size_t len)
++{
++	int ret;
++
++	if (!READ_ONCE(battmgr->oem_service_up))
++		return -EAGAIN;
++	if (READ_ONCE(battmgr->oem_request_poisoned))
++		return -EIO;
++
++	mutex_lock(&battmgr->lock);
++	ret = qcom_battmgr_asus_request_locked(battmgr, data, len);
++	mutex_unlock(&battmgr->lock);
++
++	return ret;
++}
++
++static int qcom_battmgr_request_asus_cell_voltages(struct qcom_battmgr *battmgr,
++						   u16 *cell1_mv, u16 *cell2_mv)
++{
++	struct qcom_battmgr_asus_cell_voltage_request request = {
++		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
++		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
++		.hdr.opcode = cpu_to_le32(ASUS_ROG5_GET_CELL_VOLTAGE),
++	};
++	int ret;
+ 
+-	ret = battmgr->oem_error;
++	if (!READ_ONCE(battmgr->oem_service_up))
++		return -EAGAIN;
++	if (READ_ONCE(battmgr->oem_request_poisoned))
++		return -EIO;
++
++	mutex_lock(&battmgr->lock);
++	ret = qcom_battmgr_asus_request_locked(battmgr, &request, sizeof(request));
+ 	if (!ret) {
+ 		*cell1_mv = battmgr->cell1_voltage_mv;
+ 		*cell2_mv = battmgr->cell2_voltage_mv;
+ 	}
+-
+-out_unlock:
+ 	mutex_unlock(&battmgr->lock);
++
++	return ret;
++}
++
++/* Stock asus_set_charger_limit_mode(SET_BYPASS_CHG_MODE, pause) */
++static int qcom_battmgr_asus_set_bypass(struct qcom_battmgr *battmgr, bool pause)
++{
++	struct qcom_battmgr_asus_chg_mode2_msg request = {
++		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
++		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
++		.hdr.opcode = cpu_to_le32(ASUS_ROG5_SET_CHG_LIMIT_MODE2),
++		.mode = cpu_to_le32(ASUS_ROG5_CHG_MODE_BYPASS),
++		.value = cpu_to_le32(pause),
++	};
++
++	return qcom_battmgr_asus_request(battmgr, &request, sizeof(request));
++}
++
++/* Stock usbin_suspend_to_ADSP(enable) */
++static int qcom_battmgr_asus_set_usbin_suspend(struct qcom_battmgr *battmgr,
++					       bool suspend)
++{
++	struct qcom_battmgr_asus_usbin_suspend_msg request = {
++		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
++		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
++		.hdr.opcode = cpu_to_le32(ASUS_ROG5_SET_USBIN_SUSPEND),
++		.enable = cpu_to_le32(suspend),
++	};
++
++	return qcom_battmgr_asus_request(battmgr, &request, sizeof(request));
++}
++
++/* Re-evaluate the charge policy; safe from atomic (glink callback) context. */
++static void qcom_battmgr_asus_chg_kick(struct qcom_battmgr *battmgr,
++				       bool reassert)
++{
++	if (!battmgr->oem_client)
++		return;
++
++	if (reassert)
++		atomic_set(&battmgr->asus_chg_reassert, 1);
++	mod_delayed_work(system_freezable_wq, &battmgr->asus_chg_work, 0);
++}
++
++static int qcom_battmgr_asus_chg_get(struct qcom_battmgr *battmgr,
++				     enum power_supply_property psp,
++				     union power_supply_propval *val)
++{
++	mutex_lock(&battmgr->asus_chg_lock);
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR:
++		val->intval = battmgr->asus_chg_behaviour;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
++		val->intval = battmgr->asus_chg_start;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
++		val->intval = battmgr->asus_chg_end;
++		break;
++	default:
++		break;
++	}
++	mutex_unlock(&battmgr->asus_chg_lock);
++
++	return 0;
++}
++
++static int qcom_battmgr_asus_chg_set(struct qcom_battmgr *battmgr,
++				     enum power_supply_property psp, int val)
++{
++	int ret = 0;
++
++	mutex_lock(&battmgr->asus_chg_lock);
++	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR:
++		if (val != POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO &&
++		    val != POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE &&
++		    val != POWER_SUPPLY_CHARGE_BEHAVIOUR_FORCE_DISCHARGE) {
++			ret = -EINVAL;
++			break;
++		}
++		battmgr->asus_chg_behaviour = val;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
++		if (val < 0 || val > 99) {
++			ret = -EINVAL;
++			break;
++		}
++		battmgr->asus_chg_start = val;
++		/* Like the sm8550 path: move the end one delta above the start. */
++		if (battmgr->asus_chg_start >= battmgr->asus_chg_end)
++			battmgr->asus_chg_end = min(val + ASUS_ROG5_CHG_DELTA, 100);
++		battmgr->asus_chg_limit_hold = false;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
++		if (val < ASUS_ROG5_CHG_END_MIN || val > 100) {
++			ret = -EINVAL;
++			break;
++		}
++		battmgr->asus_chg_end = val;
++		/* Without a usable start, resume one delta below the end. */
++		if (val < 100 && (!battmgr->asus_chg_start ||
++				  battmgr->asus_chg_start >= val))
++			battmgr->asus_chg_start = val - ASUS_ROG5_CHG_DELTA;
++		battmgr->asus_chg_limit_hold = false;
++		break;
++	default:
++		ret = -EINVAL;
++		break;
++	}
++	mutex_unlock(&battmgr->asus_chg_lock);
++
++	if (!ret)
++		qcom_battmgr_asus_chg_kick(battmgr, false);
++
+ 	return ret;
+ }
+ 
+@@ -633,6 +820,13 @@
+ 	enum qcom_battmgr_unit unit = battmgr->unit;
+ 	int ret;
+ 
++	/* ROG5: kernel-side charge control, the ADSP has no such properties */
++	if (battmgr->oem_client &&
++	    (psp == POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR ||
++	     psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD ||
++	     psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD))
++		return qcom_battmgr_asus_chg_get(battmgr, psp, val);
++
+ 	if (!battmgr->service_up)
+ 		return -EAGAIN;
+ 
+@@ -877,6 +1071,7 @@
+ 					 enum power_supply_property psp)
+ {
+ 	switch (psp) {
++	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR:
+ 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
+ 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
+ 		return 1;
+@@ -893,6 +1088,10 @@
+ {
+ 	struct qcom_battmgr *battmgr = power_supply_get_drvdata(psy);
+ 
++	/* ROG5: stored here and applied by asus_chg_work */
++	if (battmgr->oem_client)
++		return qcom_battmgr_asus_chg_set(battmgr, psp, pval->intval);
++
+ 	if (!battmgr->service_up)
+ 		return -EAGAIN;
+ 
+@@ -1011,6 +1210,47 @@
+ 	.get_property = qcom_battmgr_bat_get_property,
+ };
+ 
++/* SM8350 plus the kernel-side charge control of the ASUS OEM client (ROG5) */
++static const enum power_supply_property sm8350_asus_bat_props[] = {
++	POWER_SUPPLY_PROP_STATUS,
++	POWER_SUPPLY_PROP_HEALTH,
++	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_CHARGE_TYPE,
++	POWER_SUPPLY_PROP_CAPACITY,
++	POWER_SUPPLY_PROP_VOLTAGE_OCV,
++	POWER_SUPPLY_PROP_VOLTAGE_NOW,
++	POWER_SUPPLY_PROP_VOLTAGE_MAX,
++	POWER_SUPPLY_PROP_CURRENT_NOW,
++	POWER_SUPPLY_PROP_TEMP,
++	POWER_SUPPLY_PROP_TECHNOLOGY,
++	POWER_SUPPLY_PROP_CHARGE_COUNTER,
++	POWER_SUPPLY_PROP_CYCLE_COUNT,
++	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_MODEL_NAME,
++	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
++	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
++	POWER_SUPPLY_PROP_INTERNAL_RESISTANCE,
++	POWER_SUPPLY_PROP_STATE_OF_HEALTH,
++	POWER_SUPPLY_PROP_POWER_NOW,
++	POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR,
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD,
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD,
++};
++
++static const struct power_supply_desc sm8350_asus_bat_psy_desc = {
++	.name = "qcom-battmgr-bat",
++	.type = POWER_SUPPLY_TYPE_BATTERY,
++	.properties = sm8350_asus_bat_props,
++	.num_properties = ARRAY_SIZE(sm8350_asus_bat_props),
++	.charge_behaviours = BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO) |
++			     BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE) |
++			     BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_FORCE_DISCHARGE),
++	.get_property = qcom_battmgr_bat_get_property,
++	.set_property = qcom_battmgr_bat_set_property,
++	.property_is_writeable = qcom_battmgr_bat_is_writeable,
++};
++
+ static const enum power_supply_property sm8550_bat_props[] = {
+ 	POWER_SUPPLY_PROP_STATUS,
+ 	POWER_SUPPLY_PROP_HEALTH,
+@@ -1304,6 +1544,145 @@
+ 	.get_property = qcom_battmgr_wls_get_property,
+ };
+ 
++/*
++ * ROG5 charge policy, after the stock monitor_charging_enable(): pause
++ * charging with SET_CHG_LIMIT_MODE2(BYPASS, 1) for inhibit-charge or once the
++ * capacity reaches the end threshold, resume at or below the start threshold;
++ * force-discharge suspends USBIN. Only state changes are sent, plus a
++ * re-assertion of an active pause/suspend after an ADSP restart, a resume,
++ * a VBUS attach and every 60 s while VBUS is present.
++ */
++static void qcom_battmgr_asus_chg_worker(struct work_struct *work)
++{
++	struct qcom_battmgr *battmgr = container_of(to_delayed_work(work),
++						    struct qcom_battmgr,
++						    asus_chg_work);
++	bool reassert = atomic_xchg(&battmgr->asus_chg_reassert, 0);
++	bool online = battmgr->asus_chg_usb_online;
++	bool active, hold, pause, usbin;
++	int start, end;
++	int capacity = -1;
++	int behaviour;
++	int ret;
++
++	mutex_lock(&battmgr->asus_chg_lock);
++	behaviour = battmgr->asus_chg_behaviour;
++	end = battmgr->asus_chg_end;
++	mutex_unlock(&battmgr->asus_chg_lock);
++
++	active = behaviour != POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO || end < 100;
++	/* Defaults requested and nothing to undo: leave the firmware alone. */
++	if (!active && !battmgr->asus_chg_paused &&
++	    !battmgr->asus_chg_usbin_suspended)
++		return;
++
++	/* PDR up re-queues the work (and clears a poisoned channel). */
++	if (!READ_ONCE(battmgr->oem_service_up) ||
++	    READ_ONCE(battmgr->oem_request_poisoned))
++		return;
++
++	if (READ_ONCE(battmgr->service_up)) {
++		if (end < 100 &&
++		    !qcom_battmgr_bat_sm8350_update(battmgr,
++						    POWER_SUPPLY_PROP_CAPACITY))
++			capacity = READ_ONCE(battmgr->status.percent);
++		if (!qcom_battmgr_usb_sm8350_update(battmgr,
++						    POWER_SUPPLY_PROP_ONLINE))
++			online = READ_ONCE(battmgr->usb.online);
++	}
++
++	/* The firmware may drop the mode on a replug: assert it again. */
++	if (online && !battmgr->asus_chg_usb_online)
++		reassert = true;
++	battmgr->asus_chg_usb_online = online;
++	if (online && time_after_eq(jiffies, battmgr->asus_chg_asserted +
++				    ASUS_ROG5_CHG_INTERVAL))
++		reassert = true;
++
++	mutex_lock(&battmgr->asus_chg_lock);
++	behaviour = battmgr->asus_chg_behaviour;
++	start = battmgr->asus_chg_start;
++	end = battmgr->asus_chg_end;
++	hold = battmgr->asus_chg_limit_hold;
++	if (end >= 100)
++		hold = false;
++	else if (capacity >= 0 && capacity >= end)
++		hold = true;
++	else if (capacity >= 0 && capacity <= start)
++		hold = false;
++	battmgr->asus_chg_limit_hold = hold;
++	mutex_unlock(&battmgr->asus_chg_lock);
++
++	active = behaviour != POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO || end < 100;
++	pause = hold || behaviour == POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE;
++	usbin = behaviour == POWER_SUPPLY_CHARGE_BEHAVIOUR_FORCE_DISCHARGE;
++
++	if (usbin != battmgr->asus_chg_usbin_suspended || (reassert && usbin)) {
++		ret = qcom_battmgr_asus_set_usbin_suspend(battmgr, usbin);
++		if (ret) {
++			dev_warn_ratelimited(battmgr->dev,
++					     "failed to %s USB input: %d\n",
++					     usbin ? "suspend" : "resume", ret);
++		} else {
++			battmgr->asus_chg_usbin_suspended = usbin;
++			battmgr->asus_chg_asserted = jiffies;
++		}
++	}
++
++	if (pause != battmgr->asus_chg_paused || (reassert && pause)) {
++		ret = qcom_battmgr_asus_set_bypass(battmgr, pause);
++		if (ret) {
++			dev_warn_ratelimited(battmgr->dev,
++					     "failed to %s charging: %d\n",
++					     pause ? "pause" : "resume", ret);
++		} else {
++			battmgr->asus_chg_paused = pause;
++			battmgr->asus_chg_asserted = jiffies;
++		}
++	}
++
++	if (active || battmgr->asus_chg_paused ||
++	    battmgr->asus_chg_usbin_suspended)
++		queue_delayed_work(system_freezable_wq, &battmgr->asus_chg_work,
++				   ASUS_ROG5_CHG_INTERVAL);
++}
++
++/* Stop the policy and hand the charger back in its default state. */
++static void qcom_battmgr_asus_chg_stop(struct qcom_battmgr *battmgr)
++{
++	int ret;
++
++	disable_delayed_work_sync(&battmgr->asus_chg_work);
++
++	if (battmgr->asus_chg_usbin_suspended) {
++		ret = qcom_battmgr_asus_set_usbin_suspend(battmgr, false);
++		if (ret)
++			dev_warn(battmgr->dev, "failed to resume USB input: %d\n", ret);
++		else
++			battmgr->asus_chg_usbin_suspended = false;
++	}
++
++	if (battmgr->asus_chg_paused) {
++		ret = qcom_battmgr_asus_set_bypass(battmgr, false);
++		if (ret)
++			dev_warn(battmgr->dev, "failed to resume charging: %d\n", ret);
++		else
++			battmgr->asus_chg_paused = false;
++	}
++}
++
++static void qcom_battmgr_asus_chg_release(void *data)
++{
++	qcom_battmgr_asus_chg_stop(data);
++}
++
++static void qcom_battmgr_asus_chg_cancel(void *data)
++{
++	struct qcom_battmgr *battmgr = data;
++
++	disable_delayed_work_sync(&battmgr->asus_chg_work);
++}
++
+ static void qcom_battmgr_notification(struct qcom_battmgr *battmgr,
+ 				      const struct qcom_battmgr_message *msg,
+ 				      int len)
+@@ -1326,9 +1705,11 @@
+ 	case NOTIF_BAT_PROPERTY:
+ 	case NOTIF_BAT_CHARGING_STATE:
+ 		power_supply_changed(battmgr->bat_psy);
++		qcom_battmgr_asus_chg_kick(battmgr, false);
+ 		break;
+ 	case NOTIF_USB_PROPERTY:
+ 		power_supply_changed(battmgr->usb_psy);
++		qcom_battmgr_asus_chg_kick(battmgr, false);
+ 		break;
+ 	case NOTIF_WLS_PROPERTY:
+ 		power_supply_changed(battmgr->wls_psy);
+@@ -1719,25 +2100,67 @@
+ 		qcom_battmgr_sm8350_callback(battmgr, data, len);
+ }
+ 
++static void qcom_battmgr_asus_notification(struct qcom_battmgr *battmgr,
++					   const void *data, size_t len)
++{
++	const struct qcom_battmgr_asus_evt_msg *evt = data;
++
++	/* Event logs and the other stock-only indications are ignored. */
++	if (le32_to_cpu(evt->hdr.opcode) != ASUS_ROG5_EVT_ADSP_TO_HLOS ||
++	    len != sizeof(*evt))
++		return;
++
++	if (le32_to_cpu(evt->evt_id) == ASUS_ROG5_EVT_VBUS_ATTACHED &&
++	    le32_to_cpu(evt->value))
++		qcom_battmgr_asus_chg_kick(battmgr, true);
++}
++
+ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ {
+ 	const struct qcom_battmgr_asus_cell_voltage_response *resp = data;
++	const struct pmic_glink_hdr *hdr = data;
+ 	struct qcom_battmgr *battmgr = priv;
++	size_t expected;
++	u32 opcode;
+ 
+-	if (len != sizeof(*resp)) {
+-		battmgr->oem_error = -EMSGSIZE;
+-		goto out_complete;
++	/* Unsolicited OEM messages must not complete a pending request. */
++	if (le32_to_cpu(hdr->type) == PMIC_GLINK_NOTIFY) {
++		qcom_battmgr_asus_notification(battmgr, data, len);
++		return;
+ 	}
+ 
+-	if (le32_to_cpu(resp->hdr.owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
+-	    le32_to_cpu(resp->hdr.type) != PMIC_GLINK_REQ_RESP ||
+-	    le32_to_cpu(resp->hdr.opcode) != ASUS_ROG5_GET_CELL_VOLTAGE) {
++	opcode = le32_to_cpu(hdr->opcode);
++	switch (opcode) {
++	case ASUS_ROG5_GET_CELL_VOLTAGE:
++		expected = sizeof(*resp);
++		break;
++	case ASUS_ROG5_SET_CHG_LIMIT_MODE2:
++		expected = sizeof(struct qcom_battmgr_asus_chg_mode2_msg);
++		break;
++	case ASUS_ROG5_SET_USBIN_SUSPEND:
++		expected = sizeof(struct qcom_battmgr_asus_usbin_suspend_msg);
++		break;
++	default:
++		expected = 0;
++		break;
++	}
++
++	if (le32_to_cpu(hdr->owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
++	    le32_to_cpu(hdr->type) != PMIC_GLINK_REQ_RESP ||
++	    !expected || opcode != READ_ONCE(battmgr->oem_opcode)) {
+ 		battmgr->oem_error = -EPROTO;
+ 		goto out_complete;
+ 	}
+ 
+-	battmgr->cell1_voltage_mv = le16_to_cpu(resp->cell1_voltage);
+-	battmgr->cell2_voltage_mv = le16_to_cpu(resp->cell2_voltage);
++	if (len != expected) {
++		battmgr->oem_error = -EMSGSIZE;
++		goto out_complete;
++	}
++
++	if (opcode == ASUS_ROG5_GET_CELL_VOLTAGE) {
++		battmgr->cell1_voltage_mv = le16_to_cpu(resp->cell1_voltage);
++		battmgr->cell2_voltage_mv = le16_to_cpu(resp->cell2_voltage);
++	}
+ 	battmgr->oem_error = 0;
+ 
+ out_complete:
+@@ -1756,6 +2179,9 @@
+ 	if (!service_up) {
+ 		battmgr->oem_error = -ENOTCONN;
+ 		complete(&battmgr->oem_ack);
++	} else {
++		/* A restarted ADSP starts with the default charge mode. */
++		qcom_battmgr_asus_chg_kick(battmgr, true);
+ 	}
+ }
+ 
+@@ -1781,6 +2207,8 @@
+ 	if (state == SERVREG_SERVICE_STATE_UP) {
+ 		battmgr->service_up = true;
+ 		schedule_work(&battmgr->enable_work);
++		/* The policy needs the capacity from this service. */
++		qcom_battmgr_asus_chg_kick(battmgr, true);
+ 	} else {
+ 		battmgr->service_up = false;
+ 	}
+@@ -1816,6 +2244,7 @@
+ 		return -ENOMEM;
+ 
+ 	battmgr->dev = dev;
++	auxiliary_set_drvdata(adev, battmgr);
+ 
+ 	psy_cfg.drv_data = battmgr;
+ 	psy_cfg.fwnode = dev_fwnode(&adev->dev);
+@@ -1852,6 +2281,19 @@
+ 			return PTR_ERR(battmgr->oem_client);
+ 
+ 		psy_cfg.attr_grp = qcom_battmgr_asus_groups;
++
++		/* Charge control defaults: auto, 0-100 %, i.e. no limit */
++		mutex_init(&battmgr->asus_chg_lock);
++		battmgr->asus_chg_behaviour = POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO;
++		battmgr->asus_chg_start = 0;
++		battmgr->asus_chg_end = 100;
++		battmgr->asus_chg_asserted = jiffies;
++		INIT_DEFERRABLE_WORK(&battmgr->asus_chg_work,
++				     qcom_battmgr_asus_chg_worker);
++		ret = devm_add_action_or_reset(dev, qcom_battmgr_asus_chg_cancel,
++					       battmgr);
++		if (ret)
++			return ret;
+ 	}
+ 
+ 	ret = qcom_battmgr_charge_control_thresholds_init(battmgr);
+@@ -1891,6 +2333,8 @@
+ 
+ 		if (battmgr->variant == QCOM_BATTMGR_SM8550)
+ 			psy_desc = &sm8550_bat_psy_desc;
++		else if (battmgr->oem_client)
++			psy_desc = &sm8350_asus_bat_psy_desc;
+ 		else
+ 			psy_desc = &sm8350_bat_psy_desc;
+ 
+@@ -1922,13 +2366,40 @@
+ 	if (IS_ERR(battmgr->client))
+ 		return PTR_ERR(battmgr->client);
+ 
+-	if (asus_cell_voltages)
++	if (asus_cell_voltages) {
++		/* Runs before both clients go away, so the reset reaches the ADSP. */
++		ret = devm_add_action_or_reset(dev, qcom_battmgr_asus_chg_release,
++					       battmgr);
++		if (ret)
++			return ret;
++
+ 		pmic_glink_client_register(battmgr->oem_client);
++	}
+ 	pmic_glink_client_register(battmgr->client);
+ 
+ 	return 0;
+ }
+ 
++static void qcom_battmgr_shutdown(struct auxiliary_device *adev)
++{
++	struct qcom_battmgr *battmgr = auxiliary_get_drvdata(adev);
++
++	if (battmgr && battmgr->oem_client)
++		qcom_battmgr_asus_chg_stop(battmgr);
++}
++
++static int qcom_battmgr_resume(struct device *dev)
++{
++	struct qcom_battmgr *battmgr = dev_get_drvdata(dev);
++
++	/* The charge mode may have changed while suspended (replug). */
++	qcom_battmgr_asus_chg_kick(battmgr, true);
++
++	return 0;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(qcom_battmgr_pm_ops, NULL, qcom_battmgr_resume);
++
+ static const struct auxiliary_device_id qcom_battmgr_id_table[] = {
+ 	{ .name = "pmic_glink.power-supply", },
+ 	{},
+@@ -1938,7 +2409,11 @@
+ static struct auxiliary_driver qcom_battmgr_driver = {
+ 	.name = "pmic_glink_power_supply",
+ 	.probe = qcom_battmgr_probe,
++	.shutdown = qcom_battmgr_shutdown,
+ 	.id_table = qcom_battmgr_id_table,
++	.driver = {
++		.pm = pm_sleep_ptr(&qcom_battmgr_pm_ops),
++	},
+ };
+ 
+ module_auxiliary_driver(qcom_battmgr_driver);
