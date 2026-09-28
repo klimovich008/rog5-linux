@@ -273,7 +273,8 @@ if [ "$usbotg" = 1 ]; then
 	[ "$(fdtget -l "$work/composed.dtb" /pmic-glink | head -n 1)" = connector@0 ] &&
 		[ "$(fdtget "$work/composed.dtb" /pmic-glink/connector@0 compatible)" = usb-c-connector ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/usb@a6f8800/usb@a600000 dr_mode)" = otg ] &&
-		fdtget "$work/composed.dtb" /soc@0/usb@a6f8800 wakeup-source >/dev/null 2>&1 ||
+		fdtget "$work/composed.dtb" /soc@0/usb@a6f8800 wakeup-source >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" /pmic-glink asus,cell-voltage-readonly >/dev/null 2>&1 ||
 		{ echo 'FAIL usbotg composition' >&2; exit 1; }
 fi
 # dp: DisplayPort alt mode on the side port (stage 1, USB stays high-speed);

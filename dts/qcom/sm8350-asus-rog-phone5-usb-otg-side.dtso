@@ -24,6 +24,12 @@
 &{/pmic-glink} {
 	#address-cells = <1>;
 	#size-cells = <0>;
+	/*
+	 * ASUS OEM glink client (owner 32782): read-only cell voltages (0018)
+	 * and the ROG5 battery fixes gated on it (0078: temperature offset,
+	 * 2S charge values halved, health enum, rounded capacity).
+	 */
+	asus,cell-voltage-readonly;
 
 	connector@0 {
 		compatible = "usb-c-connector";
