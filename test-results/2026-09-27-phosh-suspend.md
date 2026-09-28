@@ -350,3 +350,16 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   user environment Phosh:GNOME / wayland-0 after a fresh boot, battmgr
   device wakeup enabled. Default install: two ordinary boots committed.
   Pending: plug-in wake test (phone asleep on battery, attach charger).
+
+## 2026-09-28: display RSC ruled out (r150, r151 RAM trials)
+- 0085 (arch_initcall, read-only): display RSC v2.3 at 0xaf20000 reads fine
+  while the splash is up; sleep TCS0 and wake TCS1 idle, no commands.
+- 0086 + DTB feature disprsc: disp_rsc bound by rpmh-rsc, zero active votes
+  for 18 bandwidth BCMs (MC0-2, ACV, SH0-7, MM0-5) sent through it at
+  0.12 s. The CXPC violator log afterwards still shows DDR_AUX=5 every
+  second (SENSOR=5 in that run too); cxsd/aosd/ddr 0. Both patches moved to
+  series.diagnostic; default stays r149.
+- Ruled out so far: HLOS votes (all off at sleep), XO (0081), AOP minimum
+  levels, QDSS, modem/cdsp load_state, UFS power management, the USB cable,
+  display RSC votes. DDR stays at 200 MHz during s2idle without entering any
+  DDR low-power mode.
