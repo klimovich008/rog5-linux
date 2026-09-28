@@ -23,7 +23,9 @@ StandardOutput=journal
 StandardError=journal
 UtmpIdentifier=tty7
 UtmpMode=user
-Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user WLR_DRM_DEVICES=/dev/dri/card1
+# No display manager sets the desktop name: without it Phosh inherited
+# XDG_CURRENT_DESKTOP from the user manager (sway, from the virtual desktop).
+Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=Phosh:GNOME WLR_DRM_DEVICES=/dev/dri/card1
 ExecStartPre=+/usr/bin/chvt 7
 ExecStart=/usr/bin/phosh-session
 Restart=on-failure
