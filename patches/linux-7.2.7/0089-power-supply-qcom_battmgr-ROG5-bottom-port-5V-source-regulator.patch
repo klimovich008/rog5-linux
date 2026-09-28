@@ -1,0 +1,293 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: ROG5 bottom port 5 V source regulator
+
+The ZS673KS bottom USB-C port gets its VBUS from a 5 V source that the
+ADSP switches on request: the stock kernel sends the ASUS OEM message
+SET_BTM_OTG (owner 32782, opcode 0x2102, u32 on) and then raises the load
+switch enable, PM8350C GPIO4 (asus_battery_charger.c BTM_OTG_EN() and
+rt-charger.c asus_request_BTM_otg_en()). The ack is a bare header.
+
+Expose the source as a regulator of the OEM client of patches 0018/0082
+when the pmic-glink node has an available child compatible with
+"asus,rog5-btm-otg-boost". The regulator takes its constraints from that
+node and is meant as the vin-supply of a regulator-fixed on GPIO4, so the
+regulator core keeps the stock order (source on, then the switch; switch
+off, then the source).
+
+The regulator lives in this driver rather than in a platform driver of its
+own: a pmic_glink client must be allocated for a child device of the
+pmic_glink device, which only creates its auxiliary devices, and a second
+owner 32782 client would receive the other one's acks. Here the request
+shares the OEM request path, so SET_BTM_OTG never interleaves with the
+charge limit and cell voltage requests, and its ack is matched against
+the pending opcode (a bare header, or an echo of the request).
+
+- enable sends on = 1 and waits for the ack (1 s); on a failure it sends
+  on = 0 in case the request reached the ADSP;
+- disable sends on = 0 and forgets the request even when that fails;
+- after an ADSP restart (OEM PDR up) an enabled source is requested again;
+- unbind and shutdown switch an enabled source off while the pmic_glink
+  clients still exist. The load switch GPIO is not touched here.
+
+Without the child node nothing changes. BATTERY_QCOM_BATTMGR now depends
+on REGULATOR.
+
+--- a/drivers/power/supply/Kconfig	2026-09-28 14:46:41.817871645 +0200
++++ b/drivers/power/supply/Kconfig	2026-09-28 14:47:14.291494204 +0200
+@@ -211,6 +211,7 @@
+ config BATTERY_QCOM_BATTMGR
+ 	tristate "Qualcomm PMIC GLINK battery manager support"
+ 	depends on QCOM_PMIC_GLINK
++	depends on REGULATOR
+ 	select AUXILIARY_BUS
+ 	help
+ 	  Say Y here to enable the Qualcomm PMIC GLINK power supply driver,
+--- a/drivers/power/supply/qcom_battmgr.c	2026-09-28 14:46:41.817384827 +0200
++++ b/drivers/power/supply/qcom_battmgr.c	2026-09-28 14:51:55.688295845 +0200
+@@ -9,9 +9,12 @@
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/nvmem-consumer.h>
++#include <linux/of.h>
+ #include <linux/of_device.h>
+ #include <linux/power_supply.h>
+ #include <linux/property.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/of_regulator.h>
+ #include <linux/soc/qcom/pdr.h>
+ #include <linux/soc/qcom/pmic_glink.h>
+ #include <linux/math.h>
+@@ -21,6 +24,7 @@
+ #define BATTMGR_STRING_LEN	128
+ 
+ #define PMIC_GLINK_OWNER_ASUS_ROG5	32782
++#define ASUS_ROG5_SET_BTM_OTG		0x2102
+ #define ASUS_ROG5_SET_USBIN_SUSPEND	0x2105
+ #define ASUS_ROG5_EVT_ADSP_TO_HLOS	0x2112
+ #define ASUS_ROG5_SET_CHG_LIMIT_MODE	0x2110
+@@ -186,6 +190,12 @@
+ 	__le32 enable;
+ };
+ 
++/* SET_BTM_OTG request; stock expects a bare header as the ack */
++struct qcom_battmgr_asus_btm_otg_msg {
++	struct pmic_glink_hdr hdr;
++	__le32 on;
++};
++
+ struct qcom_battmgr_asus_evt_msg {
+ 	struct pmic_glink_hdr hdr;
+ 	__le32 evt_id;
+@@ -398,6 +408,16 @@
+ 	bool asus_chg_usb_online;
+ 	unsigned long asus_chg_asserted;
+ 
++	/*
++	 * ROG5 bottom port 5 V source (OEM SET_BTM_OTG), only with a child
++	 * node "asus,rog5-btm-otg-boost". @btm_otg_on is set once the ADSP
++	 * acked "on" and cleared by any "off" request; it is written under
++	 * @lock. @btm_otg_work sends "on" again after an ADSP restart.
++	 */
++	struct regulator_dev *btm_otg_rdev;
++	struct work_struct btm_otg_work;
++	bool btm_otg_on;
++
+ 	struct qcom_battmgr_info info;
+ 	struct qcom_battmgr_status status;
+ 	struct qcom_battmgr_ac ac;
+@@ -527,6 +547,154 @@
+ 	return qcom_battmgr_asus_request(battmgr, &request, sizeof(request));
+ }
+ 
++/* Stock BTM_OTG_EN(on): the ADSP switches the bottom port 5 V source */
++static int qcom_battmgr_btm_otg_send_locked(struct qcom_battmgr *battmgr,
++					    bool on)
++{
++	struct qcom_battmgr_asus_btm_otg_msg request = {
++		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
++		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
++		.hdr.opcode = cpu_to_le32(ASUS_ROG5_SET_BTM_OTG),
++		.on = cpu_to_le32(on),
++	};
++
++	return qcom_battmgr_asus_request_locked(battmgr, &request,
++						sizeof(request));
++}
++
++static int qcom_battmgr_btm_otg_enable(struct regulator_dev *rdev)
++{
++	struct qcom_battmgr *battmgr = rdev_get_drvdata(rdev);
++	int ret;
++
++	mutex_lock(&battmgr->lock);
++	ret = qcom_battmgr_btm_otg_send_locked(battmgr, true);
++	if (ret) {
++		/* The request may have reached the ADSP; take it back. */
++		qcom_battmgr_btm_otg_send_locked(battmgr, false);
++	} else {
++		WRITE_ONCE(battmgr->btm_otg_on, true);
++	}
++	mutex_unlock(&battmgr->lock);
++
++	return ret;
++}
++
++static int qcom_battmgr_btm_otg_disable(struct regulator_dev *rdev)
++{
++	struct qcom_battmgr *battmgr = rdev_get_drvdata(rdev);
++	int ret;
++
++	mutex_lock(&battmgr->lock);
++	ret = qcom_battmgr_btm_otg_send_locked(battmgr, false);
++	/* Never restore the source after an ADSP restart once it is unwanted. */
++	WRITE_ONCE(battmgr->btm_otg_on, false);
++	mutex_unlock(&battmgr->lock);
++
++	return ret;
++}
++
++static int qcom_battmgr_btm_otg_is_enabled(struct regulator_dev *rdev)
++{
++	struct qcom_battmgr *battmgr = rdev_get_drvdata(rdev);
++
++	return READ_ONCE(battmgr->btm_otg_on);
++}
++
++static const struct regulator_ops qcom_battmgr_btm_otg_ops = {
++	.enable = qcom_battmgr_btm_otg_enable,
++	.disable = qcom_battmgr_btm_otg_disable,
++	.is_enabled = qcom_battmgr_btm_otg_is_enabled,
++};
++
++static const struct regulator_desc qcom_battmgr_btm_otg_desc = {
++	.name = "btm-otg-boost",
++	.type = REGULATOR_VOLTAGE,
++	.owner = THIS_MODULE,
++	.ops = &qcom_battmgr_btm_otg_ops,
++	.fixed_uV = 5000000,
++	.n_voltages = 1,
++};
++
++/* A restarted ADSP starts with the source off: switch it on again. */
++static void qcom_battmgr_btm_otg_worker(struct work_struct *work)
++{
++	struct qcom_battmgr *battmgr = container_of(work, struct qcom_battmgr,
++						    btm_otg_work);
++	int ret;
++
++	mutex_lock(&battmgr->lock);
++	if (battmgr->btm_otg_on) {
++		ret = qcom_battmgr_btm_otg_send_locked(battmgr, true);
++		if (ret)
++			dev_err(battmgr->dev,
++				"failed to restore the bottom port 5 V source: %d\n",
++				ret);
++	}
++	mutex_unlock(&battmgr->lock);
++}
++
++/* Switch the source off for good (unbind, shutdown). */
++static void qcom_battmgr_btm_otg_stop(struct qcom_battmgr *battmgr)
++{
++	int ret;
++
++	disable_work_sync(&battmgr->btm_otg_work);
++
++	mutex_lock(&battmgr->lock);
++	if (battmgr->btm_otg_on) {
++		ret = qcom_battmgr_btm_otg_send_locked(battmgr, false);
++		if (ret)
++			dev_warn(battmgr->dev,
++				 "failed to switch the bottom port 5 V source off: %d\n",
++				 ret);
++		WRITE_ONCE(battmgr->btm_otg_on, false);
++	}
++	mutex_unlock(&battmgr->lock);
++}
++
++static void qcom_battmgr_btm_otg_release(void *data)
++{
++	qcom_battmgr_btm_otg_stop(data);
++}
++
++static int qcom_battmgr_btm_otg_init(struct qcom_battmgr *battmgr)
++{
++	struct device *dev = battmgr->dev;
++	struct device_node *np __free(device_node) =
++		of_get_compatible_child(dev->of_node, "asus,rog5-btm-otg-boost");
++	struct regulator_config config = {};
++	struct regulator_dev *rdev;
++	int ret;
++
++	if (!np || !of_device_is_available(np))
++		return 0;
++
++	INIT_WORK(&battmgr->btm_otg_work, qcom_battmgr_btm_otg_worker);
++	/* Added before the regulator, so it runs once the regulator is gone. */
++	ret = devm_add_action_or_reset(dev, qcom_battmgr_btm_otg_release,
++				       battmgr);
++	if (ret)
++		return ret;
++
++	config.dev = dev;
++	config.of_node = np;
++	config.driver_data = battmgr;
++	config.init_data = of_get_regulator_init_data(dev, np,
++						      &qcom_battmgr_btm_otg_desc);
++	if (!config.init_data)
++		return -ENOMEM;
++
++	rdev = devm_regulator_register(dev, &qcom_battmgr_btm_otg_desc, &config);
++	if (IS_ERR(rdev))
++		return dev_err_probe(dev, PTR_ERR(rdev),
++				     "failed to register the bottom port 5 V source\n");
++
++	battmgr->btm_otg_rdev = rdev;
++
++	return 0;
++}
++
+ /* Re-evaluate the charge policy; safe from atomic (glink callback) context. */
+ static void qcom_battmgr_asus_chg_kick(struct qcom_battmgr *battmgr,
+ 				       bool reassert)
+@@ -2152,6 +2320,11 @@
+ 	case ASUS_ROG5_SET_USBIN_SUSPEND:
+ 		expected = sizeof(struct qcom_battmgr_asus_usbin_suspend_msg);
+ 		break;
++	case ASUS_ROG5_SET_BTM_OTG:
++		/* Stock takes a bare header; an echo of the request is fine too. */
++		expected = len == sizeof(struct qcom_battmgr_asus_btm_otg_msg) ?
++			   len : sizeof(*hdr);
++		break;
+ 	default:
+ 		expected = 0;
+ 		break;
+@@ -2198,6 +2371,8 @@
+ 	} else {
+ 		/* A restarted ADSP starts with the default charge mode. */
+ 		qcom_battmgr_asus_chg_kick(battmgr, true);
++		if (battmgr->btm_otg_rdev)
++			schedule_work(&battmgr->btm_otg_work);
+ 	}
+ }
+ 
+@@ -2310,6 +2485,10 @@
+ 					       battmgr);
+ 		if (ret)
+ 			return ret;
++
++		ret = qcom_battmgr_btm_otg_init(battmgr);
++		if (ret)
++			return ret;
+ 	}
+ 
+ 	ret = qcom_battmgr_charge_control_thresholds_init(battmgr);
+@@ -2402,6 +2581,8 @@
+ 
+ 	if (battmgr && battmgr->oem_client)
+ 		qcom_battmgr_asus_chg_stop(battmgr);
++	if (battmgr && battmgr->btm_otg_rdev)
++		qcom_battmgr_btm_otg_stop(battmgr);
+ }
+ 
+ static int qcom_battmgr_resume(struct device *dev)

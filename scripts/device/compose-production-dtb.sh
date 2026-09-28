@@ -18,6 +18,9 @@ case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/
 case ,$features, in *,disprsc,*) disprsc=1; features=$(printf %s "$features" | sed 's/^disprsc$//; s/,disprsc$//; s/,disprsc,/,/') ;; *) disprsc=0 ;; esac
 # acd (GPU adaptive clock distribution) likewise.
 case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
+# usbbtm (bottom USB-C port as a USB 2.0 host, 5 V by hand) likewise; needs a
+# kernel with 0089 and CONFIG_REGULATOR_USERSPACE_CONSUMER=y.
+case ,$features, in *,usbbtm,*) usbbtm=1; features=$(printf %s "$features" | sed 's/^usbbtm$//; s/,usbbtm$//; s/,usbbtm,/,/') ;; *) usbbtm=0 ;; esac
 # mic (built-in DMICs on the LPASS VA macro) likewise; needs audio and a kernel
 # with patch 0083 (the VA macro drops its LPASS core votes when idle).
 case ,$features, in *,mic,*) mic=1; features=$(printf %s "$features" | sed 's/^mic$//; s/,mic$//; s/,mic,/,/') ;; *) mic=0 ;; esac
@@ -431,6 +434,25 @@ if [ "$disprsc" = 1 ]; then
 	[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000 qcom,tcs-offset)" = 7168 ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/rsc@af20000/disp-rsc-votes compatible)" = rog5,disp-rsc-votes ] ||
 		{ echo 'FAIL disprsc composition' >&2; exit 1; }
+fi
+if [ "$usbbtm" = 1 ]; then
+	grep -q asus,rog5-btm-otg-boost "$source/drivers/power/supply/qcom_battmgr.c" ||
+		{ echo 'FAIL usbbtm: kernel source lacks 0089' >&2; exit 1; }
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/usbbtm.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-usb-bottom.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/usbbtm.dtbo" "$work/usbbtm.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/usbbtm.dtb" "$work/usbbtm.dtbo"
+	mv "$work/usbbtm.dtb" "$work/composed.dtb"
+	# HS host only, and no QUP wrapper beyond the base (wrapper 2 never at boot).
+	[ "$(fdtget "$work/composed.dtb" /soc@0/usb@a8f8800 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/usb@a8f8800/usb@a800000 dr_mode)" = host ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/phy@88e4000 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/phy@88eb000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@ac0000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /pmic-glink/regulator-btm-otg-boost compatible)" = asus,rog5-btm-otg-boost ] ||
+		{ echo 'FAIL usbbtm composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

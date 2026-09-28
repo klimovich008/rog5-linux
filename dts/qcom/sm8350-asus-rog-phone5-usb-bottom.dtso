@@ -1,0 +1,151 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Bottom USB-C port, stage A = USB 2.0 host only (compose feature usbbtm).
+ *
+ * Stock ZS673KS map (dtbo0 + ZS673KS-*-overlay.dts, see the design report):
+ *   controller  usb1 = ssusb@a800000 (upstream usb_2 / usb_2_dwc3), SMMU SID 0x20
+ *   HS PHY      usb2_phy1 = 88e4000 (usb_2_hsphy), override x0/x1/x2 = e7/0c/24
+ *   SS PHY      88eb000 uni PHY (usb_2_qmpphy) + redriver (RSTN tlmm 3,
+ *               EQ_EN tlmm 62, VCC pm8008j_l6 on i2c13); not used here
+ *   USB2 path   USB3803 hub (i2c13 @0x29; BYPASS_N tlmm 97, RESET_N tlmm 98,
+ *               CONNECT tlmm 173, INT tlmm 99, refclk LN_BB_CLK3); stock
+ *               default is BYPASS mode (usb3803.c probe), hub mode only for
+ *               the AeroActive cooler
+ *   TCPC        RT1715 i2c13 @0x4e, ALERT tlmm 118 (pull-up); stage B
+ *   VBUS out    OEM glink 0x2102 BTM_OTG (ADSP turns the 5 V source on),
+ *               then PM8350C GPIO4 "BTM_OTG_EN" (load switch) high
+ *
+ * Stage A needs no I2C: QUP wrapper 1 (geniqup@ac0000) stays disabled, the
+ * hub is driven by GPIO only (usb3503 platform driver, bypass mode), the
+ * TCPC is left alone and VBUS is switched by hand through a
+ * regulator-output node (sysfs "state"). Rules while stage A is active:
+ * only plug USB devices (stick, hub, Ethernet) into the bottom port, never a
+ * charger or a PC, and switch VBUS on only after plugging and off before
+ * unplugging.
+ *
+ * Needs: patch 0089 (qcom_battmgr registers the asus,rog5-btm-otg-boost
+ * child of pmic-glink as a regulator: OEM owner 32782, opcode 0x2102
+ * {u32 on}, ack awaited, re-sent after an ADSP restart, off at
+ * unbind/shutdown), CONFIG_REGULATOR_USERSPACE_CONSUMER (regulator-output).
+ * The source node must stay a child of /pmic-glink: the battmgr auxiliary
+ * device looks it up there, and fw_devlink hands its consumers to the
+ * pmic_glink device, which binds.
+ * dr_mode host: no second UDC, the NCM gadget stays alone on a600000.usb.
+ * No QUP wrapper is enabled here.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+&{/pmic-glink} {
+	/* ADSP-side 5 V source for the bottom port (stock BTM_OTG_EN(), OEM 0x2102). */
+	rog5_btm_otg_boost: regulator-btm-otg-boost {
+		compatible = "asus,rog5-btm-otg-boost";
+		regulator-name = "btm_otg_boost";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+};
+
+&{/} {
+	/*
+	 * Load switch onto the connector (stock BTM_OTG_EN = PM8350C GPIO4 on
+	 * MP boards; BTM_OTG_EN_ER = tlmm 66 is ER-only and is the NFC VEN on
+	 * MP). vin-supply orders the stock sequence: boost request first, then
+	 * GPIO high; on disable GPIO low first, then the boost request off.
+	 */
+	rog5_btm_vbus: regulator-rog5-btm-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "btm_vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&pm8350c_gpios 4 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		startup-delay-us = <5000>;
+		vin-supply = <&rog5_btm_otg_boost>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_btm_otg_en_default>;
+	};
+
+	/* Stage A only; removed in stage B, where the TCPC takes vbus-supply. */
+	rog5-btm-vbus-output {
+		compatible = "regulator-output";
+		vout-supply = <&rog5_btm_vbus>;
+	};
+
+	/*
+	 * USB3803 in bypass: RESET_N high, BYPASS_N low, clock off, CONNECT
+	 * untouched (stock usb3803_set_mode(USB_3803_MODE_BYPASS)). Platform
+	 * device, not on i2c13: bypass needs no register access.
+	 */
+	rog5-btm-hub {
+		compatible = "smsc,usb3803";
+		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+		bypass-gpios = <&tlmm 97 GPIO_ACTIVE_LOW>;
+		initial-mode = <3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_btm_hub_default>;
+	};
+};
+
+&tlmm {
+	rog5_btm_hub_default: rog5-btm-hub-state {
+		pins = "gpio97", "gpio98";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	/*
+	 * SS redriver held off (stock redriver_enable(0): RSTN high; the pin
+	 * is driven low to run it). HS-only, so no SS termination that would
+	 * make USB 3 devices train and time out before falling back to HS.
+	 */
+	rog5-btm-redriver-off-hog {
+		gpio-hog;
+		gpios = <3 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "btm-redriver-rstn";
+	};
+};
+
+&pm8350c_gpios {
+	rog5_btm_otg_en_default: rog5-btm-otg-en-state {
+		pins = "gpio4";
+		function = "normal";
+		bias-disable;
+		output-low;
+	};
+};
+
+&usb_2 {
+	qcom,select-utmi-as-pipe-clk;
+	status = "okay";
+};
+
+&usb_2_dwc3 {
+	dr_mode = "host";
+	maximum-speed = "high-speed";
+	phys = <&usb_2_hsphy>;
+	phy-names = "usb2-phy";
+};
+
+&usb_2_hsphy {
+	/* stock usb2_phy1: vdd L5B, vdda18 L1C, vdda33 L2B (lahaina-usb.dtsi) */
+	vdda-pll-supply = <&vreg_l5b_0p88>;
+	vdda18-supply = <&vreg_l1c_1p8>;
+	vdda33-supply = <&vreg_l2b_3p07>;
+
+	/* stock override x0/x1/x2 = 0xe7/0x0c/0x24 (PR1 overlay, dtbo0 fragment@166) */
+	qcom,hs-disconnect-bp = <2156>;
+	qcom,squelch-detector-bp = <(-2090)>;
+	qcom,hs-amplitude-bp = <2000>;
+	qcom,pre-emphasis-duration-bp = <20000>;
+	qcom,pre-emphasis-amplitude-bp = <40000>;
+	qcom,hs-rise-fall-time-bp = <5430>;
+	qcom,hs-crossover-voltage-microvolt = <(-31000)>;
+	qcom,hs-output-impedance-micro-ohms = <0>;
+
+	status = "okay";
+};

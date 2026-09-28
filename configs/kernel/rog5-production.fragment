@@ -114,3 +114,7 @@ CONFIG_INTERCONNECT_QCOM_OSM_L3=y
 # /dev/fuse and xdg-document-portal (Firefox, GTK file choosers, sandboxed
 # apps) failed, stalling app start-up on portal timeouts.
 CONFIG_FUSE_FS=y
+
+# Bottom USB-C port stage A (DT feature usbbtm): regulator-output node for
+# switching its 5 V source by hand (sysfs state).
+CONFIG_REGULATOR_USERSPACE_CONSUMER=y

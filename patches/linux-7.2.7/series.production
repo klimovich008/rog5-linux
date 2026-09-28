@@ -54,3 +54,4 @@
 0082-power-supply-qcom_battmgr-ROG5-charge-limit-and-bypass.patch
 0083-ASoC-codecs-lpass-va-macro-ROG5-drop-the-LPASS-votes-in-runtime-suspend.patch
 0088-watchdog-gunyah-ROG5-run-the-Haven-watchdog.patch
+0089-power-supply-qcom_battmgr-ROG5-bottom-port-5V-source-regulator.patch
