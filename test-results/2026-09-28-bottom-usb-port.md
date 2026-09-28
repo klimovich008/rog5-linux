@@ -41,3 +41,18 @@ interconnect votes dropped.
 
 ADSP stopped for one CXPC run: AUDIO=5 stays (a stopped subsystem keeps its
 last vote), DDR_AUX=5 unchanged; like the SLPI stop, inconclusive.
+
+## DisplayPort test with the user (r164 RAM trial = r160 + dp feature)
+
+- USB-C hub with HDMI (Terminus 214b:7260 USB 2.0 hub): after a replug the
+  DP link trained (2 lanes, 5.4 Gbit/s), EDID of an MSI MPG 491C OLED read
+  (3840x1080, 2560x1440, ...; "DisplayID checksum invalid" warnings only),
+  DP-1 enabled and Phosh extended the desktop onto it. The user reported the
+  hub + HDMI as not working, so whether a picture appeared is unconfirmed.
+- A second PD source (about 9 V) charged the phone but brought no DP and no
+  USB: side-port enumeration failed (-108, then -71 at full speed).
+- The phone then reset: my read of /sys/kernel/debug/dri/*/DP-1/* with DP
+  disconnected hit a NULL dereference (+0xa8), 0.1 s after that SSH login
+  (oops=panic). Not caused by the hub. After the RAM-trial crash the loader
+  took safe-r2; r165 (= r160 content) was installed as the default, two
+  boots committed.
