@@ -107,3 +107,17 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   (~37 mA once halved). cxsd/aosd/ddr are still 0: another holder remains.
 - scripts/device/rog5-standby-test: an unattended unplugged measurement
   (systemd-run); awake time from CLOCK_MONOTONIC; qcom_stats sleep seconds.
+
+## 2026-09-28: fallback after the DP trial; r134 default; PD boot fix
+- The r133 DP RAM trial hung after ~1 h 53 min (log ends while phoc
+  rescans DP connectors). The next primary boot (r124) never committed, so
+  the loader took safe-r2. Likely cause: the MSI monitor / hub stayed on the
+  side port and supplied USB-PD above 6.5 V, and the production power-USB
+  check requires 4.0-6.5 V (usb-voltage-invalid).
+- load-persistent-root-power-usb.sh (production branch) now accepts
+  4-21 V (USB-PD fast chargers, docks, monitors); the PC/NCM branch is
+  unchanged.
+- r134 = kernel r48 (0077 L0s off, 0078 battmgr (not active: needs the
+  dual-cell DT flag), qmp combo, DP and USB server modules) + DTB usbwake +
+  ALS scale 846: RAM trial, then installed as the default; two ordinary
+  boots committed healthy.

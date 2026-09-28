@@ -225,12 +225,14 @@ ncm_route=none
 if [ "$production" = 1 ]; then
 	if [ "$usb_online" -eq 1 ]; then
 		# Charging input must still be sane; the partner may be a charger
-		# (no host, no NCM) or a PC.
+		# (no host, no NCM), a PC, or a USB-PD source: fast chargers, docks
+		# and monitors negotiate 9-20 V, and a 5-6.5 V window made a boot on
+		# a PD source fail and fall back (2026-09-28).
 		usb_voltage=$(read_integer "$usb/voltage_now") ||
 			fail usb-voltage-unavailable 'USB voltage unavailable'
 		usb_current_max=$(read_integer "$usb/current_max") ||
 			fail usb-current-limit-unavailable 'USB current limit unavailable'
-		[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 6500000 ] ||
+		[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 21000000 ] ||
 			fail usb-voltage-invalid 'side USB voltage is invalid'
 		[ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||
 			fail usb-current-limit-invalid 'side USB current limit is invalid'
