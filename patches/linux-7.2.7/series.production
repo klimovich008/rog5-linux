@@ -53,4 +53,3 @@
 0081-serial-qcom-geni-power-the-SE-down-in-system-suspend.patch
 0082-power-supply-qcom_battmgr-ROG5-charge-limit-and-bypass.patch
 0083-ASoC-codecs-lpass-va-macro-ROG5-drop-the-LPASS-votes-in-runtime-suspend.patch
-0087-soc-qcom-llcc-sm8350-match-the-slice-flags-to-the-downstream-table.patch

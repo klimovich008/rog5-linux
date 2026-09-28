@@ -369,3 +369,19 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   HLOS=5 (rpmhpd sync_state never completes without the display driver) and
   DDR_AUX=5 every second, cxsd 0. The display/GPU stack, including the GPU's
   LLCC slices, is not what keeps DDR on.
+
+## 2026-09-28: 0084 pulled, LLCC table (0087) tested, app launch timing
+- 0084 (charger-attach hard wakeup) on r149: after unplug the phone suspended;
+  plugging in left it hung (power key dead, forced restart). Pulled; r62 =
+  r59 without 0084.
+- 0087 (sm8350 LLCC slice flags = downstream llcc-lahaina.c; mainline's
+  activate_on_init/write_scid_en/retain_on_pc columns are shifted, 15
+  slices activated at probe incl. APTCM): r154 RAM trial boots fine, llcc
+  bound; CXPC violator log unchanged (DDR_AUX=5, SENSOR=5 after boot), DDR
+  LPM counts 0; glmark2 741 (646 before), UFS unchanged, CPU xz on the prime
+  core 36.8 s vs 34.5 s. Moved to series.diagnostic.
+- Phosh launch timing (VNC taps, grim frames): Calculator from the grid
+  ~4 s to the window (splash until then, no "timed out" any more);
+  Firefox fully cold (page cache dropped) ~7-9 s, warm ~2.6 s. No DPU
+  timeouts; CPU <25 % during launch; screen grabs stall ~2 s while an app
+  starts, 0.45 s at rest.
