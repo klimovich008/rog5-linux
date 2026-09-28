@@ -20,9 +20,12 @@ CONFIG_LEDS_QCOM_LPG=m
 CONFIG_LEDS_CLASS=y
 CONFIG_INPUT_PM8941_PWRKEY=y
 CONFIG_KEYBOARD_GPIO=y
-# Keep existing trusted-initramfs write policy; NOT a kernel LUN/LBA boundary.
-CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y
-CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y
+# UFS runs the mainline driver without the bring-up discovery containment
+# (approved by the user 2026-09-28): WriteBooster, auto-hibern8, clock
+# scaling, runtime PM, device RTC and auto-BKOPS as on stock. The write policy
+# stays in the trusted initramfs; raw SCSI/UFS pass-through (sg, bsg,
+# ufs-bsg, RPMB) stays off.
+# CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY is not set
 # CONFIG_CHR_DEV_SG is not set
 # CONFIG_BLK_DEV_BSG is not set
 # CONFIG_SCSI_UFS_BSG is not set
