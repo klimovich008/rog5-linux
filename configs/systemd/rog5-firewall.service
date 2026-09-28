@@ -1,0 +1,13 @@
+[Unit]
+Description=ROG5 input firewall (nftables table rog5_firewall)
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nft -f /etc/rog5/firewall.nft
+ExecStop=/usr/bin/nft delete table inet rog5_firewall
+
+[Install]
+WantedBy=multi-user.target

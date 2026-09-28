@@ -1,0 +1,22 @@
+#!/usr/bin/nft -f
+# ROG5 input firewall (loaded by rog5-firewall.service). Its own table only:
+# Tailscale keeps its chains in the ip/ip6 filter tables, so no flush ruleset.
+# Trusted: loopback, the USB link to a PC (usb0), Tailscale, the hotspot AP.
+# On other interfaces (Wi-Fi client, USB Ethernet): established traffic,
+# ICMP, DHCP replies, SSH (key-only) and Tailscale's direct WireGuard port.
+table inet rog5_firewall
+delete table inet rog5_firewall
+table inet rog5_firewall {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		ct state established,related accept
+		ct state invalid drop
+		iif lo accept
+		iifname { "usb0", "tailscale0", "wlp1s0ap" } accept
+		meta l4proto { icmp, ipv6-icmp } accept
+		udp sport 67 udp dport 68 accept
+		udp sport 547 udp dport 546 accept
+		tcp dport 22 accept
+		udp dport 41641 accept
+	}
+}
