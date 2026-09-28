@@ -56,3 +56,21 @@ last vote), DDR_AUX=5 unchanged; like the SLPI stop, inconclusive.
   (oops=panic). Not caused by the hub. After the RAM-trial crash the loader
   took safe-r2; r165 (= r160 content) was installed as the default, two
   boots committed.
+
+## DisplayPort retest (r166 RAM trial = r164 content), same evening
+
+- The same USB-C hub + HDMI + MSI MPG 491C works with the Steam Deck.
+- On the phone: DP-1 connects ~4 s after the attach, EDID read, phoc drives
+  3840x1080@60 (wlr-randr current), but the monitor shows no picture.
+- rog5-usb-reconnect fired 6 s after each attach (device-mode branch, before
+  the role switch settled, or host-mode branch) and unbound/rebound dwc3;
+  that re-initialises the side port's QMP combo PHY that DP also uses.
+  The phoc output was turned off right after (18:12:06, 18:15:25).
+- The helper now refuses to re-initialise while a DP connector is connected
+  (checked at the moment of the re-init). Not yet verified with the monitor:
+  the one clean attempt ended with an unplug.
+- phosh 0.57 segfaults when the DP output goes away (g_object_get_data in a
+  notify handler); gnome-session then exits cleanly, so the session stayed
+  down. rog5-phosh.service now has Restart=always.
+- Still to check on the next try: the DP pixel clock (≈266 MHz for
+  3840x1080@60) and a 1920x1080 mode (wlr-randr --mode was ignored once).
