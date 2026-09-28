@@ -1,0 +1,106 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: codecs: lpass-va-macro: ROG5 drop the LPASS votes in runtime suspend
+
+The VA macro enables its "macro" and "dcodec" clocks (on q6afe platforms the
+AFE LPASS_HW_MACRO_VOTE / LPASS_HW_DCODEC_VOTE core votes) at probe and only
+releases them in remove; runtime suspend drops only mclk/npl. While a core
+vote is held the ADSP keeps the LPASS core up and never power-collapses, the
+failure patch 0063 fixed for the LPI pinctrl (r31: ADSP sleep counter frozen,
+no CX/DDR collapse). Binding the VA macro for the ROG5 digital microphones
+would bring it back for as long as the module is loaded.
+
+Take both votes in runtime resume, before mclk, and drop them in runtime
+suspend after mclk; the register cache is already marked dirty on suspend
+and synced on resume, so an LPASS power collapse in between loses nothing.
+The q6afe vote clocks are shared with the LPI pinctrl through the clock
+framework's prepare count, so the ADSP still sees one vote per block (0063
+keeps one handle per block). Remove now skips the clocks a suspended macro
+has already released.
+
+--- a/sound/soc/codecs/lpass-va-macro.c
++++ b/sound/soc/codecs/lpass-va-macro.c
+@@ -1703,12 +1703,16 @@
+ {
+ 	struct va_macro *va = dev_get_drvdata(&pdev->dev);
+ 
+-	if (va->has_npl_clk)
+-		clk_disable_unprepare(va->npl);
+-
+-	clk_disable_unprepare(va->mclk);
+-	clk_disable_unprepare(va->dcodec);
+-	clk_disable_unprepare(va->macro);
++	/* A suspended macro has already dropped all of its clocks. */
++	pm_runtime_disable(&pdev->dev);
++	if (!pm_runtime_status_suspended(&pdev->dev)) {
++		if (va->has_npl_clk)
++			clk_disable_unprepare(va->npl);
++
++		clk_disable_unprepare(va->mclk);
++		clk_disable_unprepare(va->dcodec);
++		clk_disable_unprepare(va->macro);
++	}
+ 
+ 	lpass_macro_pds_exit(va->pds);
+ }
+@@ -1724,6 +1728,12 @@
+ 		clk_disable_unprepare(va->npl);
+ 
+ 	clk_disable_unprepare(va->mclk);
++	/*
++	 * Drop the LPASS macro/dcodec HW votes too: while either is held the
++	 * ADSP keeps the LPASS core up and never power-collapses (ROG5).
++	 */
++	clk_disable_unprepare(va->dcodec);
++	clk_disable_unprepare(va->macro);
+ 
+ 	return 0;
+ }
+@@ -1733,18 +1743,29 @@
+ 	struct va_macro *va = dev_get_drvdata(dev);
+ 	int ret;
+ 
++	ret = clk_prepare_enable(va->macro);
++	if (ret) {
++		dev_err(va->dev, "unable to vote the LPASS macro block\n");
++		return ret;
++	}
++
++	ret = clk_prepare_enable(va->dcodec);
++	if (ret) {
++		dev_err(va->dev, "unable to vote the LPASS dcodec block\n");
++		goto err_dcodec;
++	}
++
+ 	ret = clk_prepare_enable(va->mclk);
+ 	if (ret) {
+ 		dev_err(va->dev, "unable to prepare mclk\n");
+-		return ret;
++		goto err_mclk;
+ 	}
+ 
+ 	if (va->has_npl_clk) {
+ 		ret = clk_prepare_enable(va->npl);
+ 		if (ret) {
+-			clk_disable_unprepare(va->mclk);
+ 			dev_err(va->dev, "unable to prepare npl\n");
+-			return ret;
++			goto err_npl;
+ 		}
+ 	}
+ 
+@@ -1752,6 +1773,15 @@
+ 	regcache_sync(va->regmap);
+ 
+ 	return 0;
++
++err_npl:
++	clk_disable_unprepare(va->mclk);
++err_mclk:
++	clk_disable_unprepare(va->dcodec);
++err_dcodec:
++	clk_disable_unprepare(va->macro);
++
++	return ret;
+ }
+ 
+ 

@@ -11,5 +11,6 @@ q6afe_clocks
 q6asm_dai
 q6routing
 pinctrl_sc7280_lpass_lpi
+snd_soc_lpass_va_macro
 snd_soc_cs35l45_i2c
 snd_soc_sm8250

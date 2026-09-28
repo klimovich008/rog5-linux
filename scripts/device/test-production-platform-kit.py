@@ -22,7 +22,7 @@ INIT = REPO/'initramfs/persistent-root-init'
 LIST = REPO/'configs/production/boot-modules.list'
 AUDIO_LIST = REPO/'configs/production/audio-modules.list'
 SENSOR_LIST = REPO/'configs/production/sensor-modules.list'
-AUDIO = ['apr', 'q6core', 'q6afe_dai', 'q6afe_clocks', 'q6asm_dai', 'q6routing', 'pinctrl_sc7280_lpass_lpi',
+AUDIO = ['apr', 'q6core', 'q6afe_dai', 'q6afe_clocks', 'q6asm_dai', 'q6routing', 'pinctrl_sc7280_lpass_lpi', 'snd_soc_lpass_va_macro',
          'snd_soc_cs35l45_i2c', 'snd_soc_sm8250']
 UNITS = ('rog5-platform-modules.service', 'rog5-rtc-time.service', 'rog5-rtc-time-save.service',
          'rog5-rtc-time-save.path', 'rog5-audio.service', 'rog5-sensors.service')

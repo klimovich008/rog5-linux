@@ -52,3 +52,4 @@
 0080-drm-msm-dpu-ROG5-keep-the-panel-pipeline-when-DP-enables-first.patch
 0081-serial-qcom-geni-power-the-SE-down-in-system-suspend.patch
 0082-power-supply-qcom_battmgr-ROG5-charge-limit-and-bypass.patch
+0083-ASoC-codecs-lpass-va-macro-ROG5-drop-the-LPASS-votes-in-runtime-suspend.patch

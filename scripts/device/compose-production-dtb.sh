@@ -16,6 +16,10 @@ case ,$features, in *,l3,*) l3=1; features=$(printf %s "$features" | sed 's/^l3$
 case ,$features, in *,skin,*) skin=1; features=$(printf %s "$features" | sed 's/^skin$//; s/,skin$//; s/,skin,/,/') ;; *) skin=0 ;; esac
 # acd (GPU adaptive clock distribution) likewise.
 case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
+# mic (built-in DMICs on the LPASS VA macro) likewise; needs audio and a kernel
+# with patch 0083 (the VA macro drops its LPASS core votes when idle).
+case ,$features, in *,mic,*) mic=1; features=$(printf %s "$features" | sed 's/^mic$//; s/,mic$//; s/,mic,/,/') ;; *) mic=0 ;; esac
+case $mic,$features, in 1,*,audio,*|0,*) ;; *) echo 'FAIL mic needs audio' >&2; exit 1 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -247,6 +251,20 @@ if [ "$audio" = 1 ]; then
 		-I "$source/scripts/dtc/include-prefixes" \
 		-o "$work/audio.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-audio.dtso"
 	dtc -@ -q -I dts -O dtb -o "$work/audio.dtbo" "$work/audio.pp"
+	# mic goes first: fdtoverlay prepends new /sound children, so the audio
+	# links keep PCM 0-2 and the mic front end becomes PCM 3.
+	links='mm1-dai-link mm2-dai-link speaker-dai-link '
+	if [ "$mic" = 1 ]; then
+		grep -q 'Drop the LPASS macro/dcodec HW votes' "$source/sound/soc/codecs/lpass-va-macro.c" ||
+			{ echo 'FAIL mic: kernel source lacks 0083' >&2; exit 1; }
+		cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+			-I "$source/scripts/dtc/include-prefixes" \
+			-o "$work/mic.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-microphones.dtso"
+		dtc -@ -q -I dts -O dtb -o "$work/mic.dtbo" "$work/mic.pp"
+		fdtoverlay -i "$work/composed.dtb" -o "$work/mic.dtb" "$work/mic.dtbo"
+		mv "$work/mic.dtb" "$work/composed.dtb"
+		links="${links}mm3-dai-link mic-dai-link "
+	fi
 	fdtoverlay -i "$work/composed.dtb" -o "$work/aud.dtb" "$work/audio.dtbo"
 	mv "$work/aud.dtb" "$work/composed.dtb"
 	i2c17=/soc@0/geniqup@8c0000/i2c@88c000
@@ -260,8 +278,34 @@ if [ "$audio" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" $afe/dai@147 qcom,sd-lines)" = 1 ] &&
 		[ "$(fdtget "$work/composed.dtb" /sound compatible)" = qcom,sm8250-sndcard ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/remoteproc@3000000/glink-edge/apr/service@7/dais qcom,iova-bits)" = 29 ] &&
-		[ "$(fdtget -l "$work/composed.dtb" /sound | tr '\n' ' ')" = 'mm1-dai-link mm2-dai-link speaker-dai-link ' ] ||
+		[ "$(fdtget -l "$work/composed.dtb" /sound | tr '\n' ' ')" = "$links" ] ||
 		{ echo 'FAIL audio composition' >&2; exit 1; }
+fi
+if [ "$mic" = 1 ]; then
+	va=/soc@0/codec@3370000
+	afe=/soc@0/remoteproc@3000000/glink-edge/apr/service@4
+	l2c=/soc@0/rsc@18200000/regulators-1/ldo2
+	lpi=/soc@0/pinctrl@33c0000
+	# VA_CODEC_DMA_TX_0 = 110, LPASS_CLK_ID_TX_CORE_MCLK = 57, Q6ASM_DAI_TX = 1
+	[ "$(fdtget "$work/composed.dtb" $va compatible)" = qcom,sm8250-lpass-va-macro ] &&
+		[ "$(fdtget "$work/composed.dtb" $va clock-names)" = 'mclk macro dcodec' ] &&
+		[ "$(fdtget "$work/composed.dtb" $va clocks | cut -d ' ' -f 1-3)" = \
+			"$(fdtget "$work/composed.dtb" $afe/clock-controller phandle) 57 1" ] &&
+		[ "$(fdtget "$work/composed.dtb" $va qcom,dmic-sample-rate)" = 2400000 ] &&
+		[ "$(fdtget "$work/composed.dtb" $va vdd-micb-supply)" = "$(fdtget "$work/composed.dtb" $l2c phandle)" ] &&
+		[ "$(fdtget "$work/composed.dtb" $l2c regulator-min-microvolt)" = 1800000 ] &&
+		[ "$(fdtget "$work/composed.dtb" $l2c regulator-max-microvolt)" = 1800000 ] &&
+		! fdtget "$work/composed.dtb" $l2c regulator-always-on >/dev/null 2>&1 &&
+		[ "$(fdtget "$work/composed.dtb" $va pinctrl-0)" = \
+			"$(fdtget "$work/composed.dtb" $lpi/rog5-dmic01-active-state phandle) $(fdtget "$work/composed.dtb" $lpi/rog5-dmic23-active-state phandle)" ] &&
+		[ "$(fdtget "$work/composed.dtb" $lpi/rog5-dmic23-active-state/data-pins function)" = dmic2_data ] &&
+		[ "$(fdtget "$work/composed.dtb" /sound/mic-dai-link/cpu sound-dai)" = \
+			"$(fdtget "$work/composed.dtb" $afe/dais phandle) 110" ] &&
+		[ "$(fdtget "$work/composed.dtb" /sound/mic-dai-link/codec sound-dai)" = \
+			"$(fdtget "$work/composed.dtb" $va phandle) 0" ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/remoteproc@3000000/glink-edge/apr/service@7/dais/dai@2 direction)" = 1 ] &&
+		[ "$(fdtget "$work/composed.dtb" /sound audio-routing | wc -w)" = 12 ] ||
+		{ echo 'FAIL mic composition' >&2; exit 1; }
 fi
 if [ "$slpi" = 1 ]; then
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
