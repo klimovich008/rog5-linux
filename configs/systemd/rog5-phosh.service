@@ -28,7 +28,9 @@ UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=Phosh:GNOME WLR_DRM_DEVICES=/dev/dri/card1
 ExecStartPre=+/usr/bin/chvt 7
 ExecStart=/usr/bin/phosh-session
-Restart=on-failure
+# phosh 0.57 segfaults when an external monitor is unplugged; gnome-session
+# then ends cleanly, so on-failure never restarted the session.
+Restart=always
 RestartSec=5
 
 [Install]
