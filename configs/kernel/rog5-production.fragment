@@ -118,3 +118,26 @@ CONFIG_FUSE_FS=y
 # Bottom USB-C port stage A (DT feature usbbtm): regulator-output node for
 # switching its 5 V source by hand (sysfs state).
 CONFIG_REGULATOR_USERSPACE_CONSUMER=y
+
+# Server networking (2026-09-28 test campaign): Tailscale's connmark rules
+# failed ("operation not supported") and iptables-nft could not list rules;
+# containers (podman) need veth, bridge netfilter and iptables NAT. Built in:
+# the module tree only carries listed modules.
+CONFIG_NF_CONNTRACK_MARK=y
+CONFIG_NETFILTER_XT_CONNMARK=y
+CONFIG_NETFILTER_XT_MARK=y
+CONFIG_NFT_COMPAT=y
+CONFIG_NETFILTER_XT_MATCH_COMMENT=y
+CONFIG_NETFILTER_XT_MATCH_CONNTRACK=y
+CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+CONFIG_NETFILTER_XT_TARGET_MASQUERADE=y
+CONFIG_IP_NF_IPTABLES=y
+CONFIG_IP_NF_FILTER=y
+CONFIG_IP_NF_NAT=y
+CONFIG_IP_NF_TARGET_MASQUERADE=y
+CONFIG_IP6_NF_IPTABLES=y
+CONFIG_IP6_NF_FILTER=y
+CONFIG_IP6_NF_NAT=y
+CONFIG_VETH=y
+CONFIG_BRIDGE_NETFILTER=y
+CONFIG_SYN_COOKIES=y
