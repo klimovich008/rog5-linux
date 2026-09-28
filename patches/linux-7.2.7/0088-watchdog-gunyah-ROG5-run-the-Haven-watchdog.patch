@@ -1,0 +1,119 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] watchdog: gunyah: ROG5: run the Haven watchdog
+
+The ROG Phone 5 runs Qualcomm's Haven hypervisor, whose virtual watchdog
+has the same SMCCC interface as the Gunyah watchdog. qcom_scm never
+registers the gunyah-wdt device there: Haven reports SMCCC 1.0, so the
+hypervisor UID query that identifies Gunyah is not available. Register it
+on this machine anyway; the driver's probe still requires a working
+STATUS call.
+
+Set the bark 3 s before the bite, as the downstream Haven driver did.
+With bark == bite Haven flags the watchdog as expired the moment it is
+enabled, and one such test (an idle phone for two minutes) ended with the
+watchdog disabled and no bite.
+
+Start the watchdog at probe on this machine and mark it running, so the
+watchdog core pets it until user space opens the device: a hard hang
+during boot then resets the phone too. Haven counts only busy time (it
+keeps the watchdog petted while all CPUs idle), so it catches spinning
+CPUs and stalled bus accesses, not an all-idle deadlock. Stop and restart
+it across system suspend in that state as well.
+
+Tested with the driver as a module on 7.2.7 r62: 45 s of full load with
+the core petting (at most 15.4 s between pets), then stop_machine() with
+interrupts off on every CPU; Haven reset the phone within 41 s and it
+booted the default image by itself.
+
+--- a/drivers/firmware/qcom/qcom_scm.c
++++ b/drivers/firmware/qcom/qcom_scm.c
+@@ -2493,9 +2493,15 @@
+ 		"arm,sbsa-gwdt",
+ 	};
+ 
+-	/* Bail out if we are not running under Gunyah */
+-	if (!IS_ENABLED(CONFIG_HAVE_ARM_SMCCC_DISCOVERY) ||
+-	    !arm_smccc_hypervisor_has_uuid(&gunyah_uuid))
++	/*
++	 * Bail out if we are not running under Gunyah. The Haven release on
++	 * the ROG Phone 5 reports SMCCC 1.0, so the hypervisor UID query is
++	 * not available there, but its watchdog calls are; the watchdog
++	 * driver's probe checks them before it registers anything.
++	 */
++	if ((!IS_ENABLED(CONFIG_HAVE_ARM_SMCCC_DISCOVERY) ||
++	     !arm_smccc_hypervisor_has_uuid(&gunyah_uuid)) &&
++	    !of_machine_is_compatible("asus,rog-phone5"))
+ 		return;
+ 
+ 	/*
+--- a/drivers/watchdog/gunyah_wdt.c
++++ b/drivers/watchdog/gunyah_wdt.c
+@@ -8,6 +8,7 @@
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/watchdog.h>
+ 
+@@ -64,7 +65,7 @@
+ 
+ static int gunyah_wdt_start(struct watchdog_device *wdd)
+ {
+-	unsigned int timeout_ms;
++	unsigned int timeout_ms, bark_ms;
+ 	struct device *dev = wdd->parent;
+ 	int ret;
+ 
+@@ -74,8 +75,14 @@
+ 		return ret;
+ 	}
+ 
++	/*
++	 * Bark before the bite, as the Haven driver on SM8350 did (bite =
++	 * bark + 3 s). With bark == bite, Haven reports the watchdog as
++	 * expired as soon as it is enabled.
++	 */
+ 	timeout_ms = wdd->timeout * 1000;
+-	ret = gunyah_wdt_call(GUNYAH_WDT_SET_TIME, timeout_ms, timeout_ms);
++	bark_ms = timeout_ms > 6000 ? timeout_ms - 3000 : timeout_ms / 2;
++	ret = gunyah_wdt_call(GUNYAH_WDT_SET_TIME, bark_ms, timeout_ms);
+ 	if (ret) {
+ 		dev_err(dev, "%s: Failed to set timeout for gunyah wdt %d\n",
+ 			__func__, ret);
+@@ -196,6 +203,17 @@
+ 	wdd->timeout = wdd->max_timeout;
+ 
+ 	gunyah_wdt_stop(wdd);
++
++	/*
++	 * On the ROG Phone 5, run the watchdog from probe on and let the
++	 * watchdog core pet it until user space opens the device, so that a
++	 * hard hang during boot (CPUs spinning, a stalled bus access) resets
++	 * the phone too. Haven counts only busy time: it keeps the watchdog
++	 * petted while all CPUs idle.
++	 */
++	if (of_machine_is_compatible("asus,rog-phone5") && !gunyah_wdt_start(wdd))
++		set_bit(WDOG_HW_RUNNING, &wdd->status);
++
+ 	platform_set_drvdata(pdev, wdd);
+ 	watchdog_set_restart_priority(wdd, 0);
+ 
+@@ -213,7 +231,7 @@
+ {
+ 	struct watchdog_device *wdd = dev_get_drvdata(dev);
+ 
+-	if (watchdog_active(wdd))
++	if (watchdog_active(wdd) || watchdog_hw_running(wdd))
+ 		gunyah_wdt_stop(wdd);
+ 
+ 	return 0;
+@@ -223,7 +241,7 @@
+ {
+ 	struct watchdog_device *wdd = dev_get_drvdata(dev);
+ 
+-	if (watchdog_active(wdd))
++	if (watchdog_active(wdd) || watchdog_hw_running(wdd))
+ 		gunyah_wdt_start(wdd);
+ 
+ 	return 0;

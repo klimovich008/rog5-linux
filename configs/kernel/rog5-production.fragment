@@ -44,6 +44,9 @@ CONFIG_DEBUG_INFO_NONE=y
 # Milestone 1 (self-recovery): systemd-driven software watchdog, PMIC RTC
 # (read-only, offset kept in userspace) and ramoops in the stock debug region.
 CONFIG_SOFT_WATCHDOG=m
+# Haven hypervisor watchdog (patch 0088): runs from qcom_scm probe on, bites a
+# hard hang; systemd pets it once PID 1 is up (softdog is then unused).
+CONFIG_GUNYAH_WATCHDOG=y
 CONFIG_RTC_DRV_PM8XXX=m
 # The PMK8350 RTC holds a counter, not wall time: never copy it to the clock
 # (hctosys also runs for a modular RTC; it set the clock to 1970 on trial t4).
