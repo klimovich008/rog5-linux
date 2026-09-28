@@ -11,6 +11,10 @@
  * (lahaina-v2-gpu.dtsi qcom,bus-freq-ddr8 indexing qcom,bus-table-ddr8,
  * MHZ_TO_KBPS(mhz, 4)): 840/778/738 MHz -> 3196 MHz DDR, 676 -> 2736,
  * 608-443 -> 1555, 379 -> 1017, 315 -> 451.
+ *
+ * GPU junction trips at the stock 95 C (lahaina-thermal.dtsi gpuss zones)
+ * instead of sm8350.dtsi's 85 C passive, which throttled the GPU 10 C early;
+ * the hot trips move above them.
  */
 /dts-v1/;
 /plugin/;
@@ -64,4 +68,20 @@
 	opp-315000000 {
 		opp-peak-kBps = <1804000>;
 	};
+};
+
+&gpu_top_alert0 {
+	temperature = <95000>;
+};
+
+&gpu_bottom_alert0 {
+	temperature = <95000>;
+};
+
+&{/thermal-zones/gpu-top-thermal/trips/trip-point1} {
+	temperature = <100000>;
+};
+
+&{/thermal-zones/gpu-bottom-thermal/trips/trip-point1} {
+	temperature = <100000>;
 };

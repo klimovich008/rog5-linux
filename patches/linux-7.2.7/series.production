@@ -48,3 +48,4 @@
 0076-PCI-host-common-ROG5-keep-the-link-for-wakeup-enabled-devices.patch
 0077-PCI-qcom-ROG5-disable-L0s-on-SM8350.patch
 0078-power-supply-qcom_battmgr-ROG5-battery-reporting-fixes.patch
+0079-ASoC-qcom-sm8250-ROG5-run-SENARY-MI2S-at-24-bits.patch

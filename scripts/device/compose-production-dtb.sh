@@ -172,7 +172,9 @@ if [ "$gpubw" = 1 ]; then
 		[ -n "$(fdtget "$work/composed.dtb" "$gpu/opp-table/$opp" opp-peak-kBps)" ] ||
 			{ echo "FAIL gpubw $opp has no opp-peak-kBps" >&2; exit 1; }
 	done
-	[ "$(fdtget "$work/composed.dtb" "$gpu/opp-table/opp-315000000" opp-peak-kBps)" = 1804000 ] ||
+	[ "$(fdtget "$work/composed.dtb" "$gpu/opp-table/opp-315000000" opp-peak-kBps)" = 1804000 ] &&
+		[ "$(fdtget "$work/composed.dtb" /thermal-zones/gpu-top-thermal/trips/trip-point0 temperature)" = 95000 ] &&
+		[ "$(fdtget "$work/composed.dtb" /thermal-zones/gpu-bottom-thermal/trips/trip-point0 temperature)" = 95000 ] ||
 		{ echo 'FAIL gpubw composition' >&2; exit 1; }
 fi
 if [ "$bwmon" = 1 ]; then
@@ -227,7 +229,9 @@ if [ "$periph" = 1 ]; then
 		[ -z "$(fdtget -l "$work/composed.dtb" /soc@0/rsc@18200000/regulators-1 | grep -x ldo7)" ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 enable-gpios)" = "$c2 2 0" ] &&
 		[ "$(fdtget "$work/composed.dtb" $w0/i2c@980000/led-controller@16 function)" = logo ] &&
-		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] ||
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/spmi@c440000/pmic@2/led-controller@ee00 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/spmi@c440000/pmic@2/led-controller@ee00/led-0 led-sources)" = 1 ] ||
 		{ echo 'FAIL periph composition' >&2; exit 1; }
 fi
 if [ "$audio" = 1 ]; then

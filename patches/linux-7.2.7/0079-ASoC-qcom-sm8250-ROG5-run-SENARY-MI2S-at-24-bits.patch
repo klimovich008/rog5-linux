@@ -1,0 +1,61 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: sm8250: ROG5 run SENARY MI2S at 24 bits
+
+The stock ZS673KS kernel runs the SENARY MI2S link to the two CS35L45
+amplifiers at 48 kHz S24_LE in 32-bit slots (bit clock 3.072 MHz); the
+generic backend fixup forced S16_LE and a 1.536 MHz bit clock, so the
+amplifiers got 16-bit samples that their digital volume reduced further.
+
+Use S24_LE for SENARY MI2S RX only, set its AFE bit clock to 3.072 MHz and
+give the codecs a 2 x 32-bit slot layout, which cs35l45 also uses to derive
+its PLL reference from the bit clock. The other MI2S ports are unchanged.
+
+--- a/sound/soc/qcom/sm8250.c	2026-09-28 02:17:53.724039497 +0200
++++ b/sound/soc/qcom/sm8250.c	2026-09-28 02:18:18.993736663 +0200
+@@ -17,6 +17,8 @@
+ #include "sdw.h"
+ 
+ #define MI2S_BCLK_RATE		1536000
++/* SENARY MI2S (ROG5 amplifiers): S24_LE in 32-bit slots, 2 x 32 x 48 kHz */
++#define SEN_MI2S_BCLK_RATE	3072000
+ 
+ struct sm8250_snd_data {
+ 	bool stream_prepared[AFE_PORT_MAX];
+@@ -63,10 +65,12 @@
+ 	struct snd_interval *channels = hw_param_interval(params,
+ 					SNDRV_PCM_HW_PARAM_CHANNELS);
+ 	struct snd_mask *fmt = hw_param_mask(params, SNDRV_PCM_HW_PARAM_FORMAT);
++	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
+ 
+ 	rate->min = rate->max = 48000;
+ 	channels->min = channels->max = 2;
+-	snd_mask_set_format(fmt, SNDRV_PCM_FORMAT_S16_LE);
++	snd_mask_set_format(fmt, cpu_dai->id == SENARY_MI2S_RX ?
++			    SNDRV_PCM_FORMAT_S24_LE : SNDRV_PCM_FORMAT_S16_LE);
+ 
+ 	return 0;
+ }
+@@ -116,14 +120,20 @@
+ 		struct snd_soc_dai *dai;
+ 		int i;
+ 
+-		/* The ASUS ROG Phone 5 drives two amplifiers from one link. */
++		/*
++		 * The ASUS ROG Phone 5 drives two amplifiers from one link, at
++		 * 24 bits in 32-bit slots like the stock kernel; the codecs
++		 * derive their PLL reference from the slot width.
++		 */
+ 		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
+ 		snd_soc_dai_set_sysclk(cpu_dai,
+ 			Q6AFE_LPASS_CLK_ID_SEN_MI2S_IBIT,
+-			MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
++			SEN_MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
+ 		snd_soc_dai_set_fmt(cpu_dai, fmt);
+-		for_each_rtd_codec_dais(rtd, i, dai)
++		for_each_rtd_codec_dais(rtd, i, dai) {
+ 			snd_soc_dai_set_fmt(dai, codec_dai_fmt);
++			snd_soc_dai_set_tdm_slot(dai, 0, 0, 2, 32);
++		}
+ 		break;
+ 	}
+ 	default:

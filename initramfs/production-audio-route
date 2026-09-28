@@ -4,7 +4,8 @@
 Run by rog5-audio.service after the audio modules load. The card has no UCM
 profile, so nothing else sets it up: without this, playback reaches no amplifier.
   MultiMedia1 (card 0, device 0) -> SENARY MI2S -> CS35L45 x2
-  left (ASP_RX1) -> the bottom amplifier (SPK), right (ASP_RX2) -> the top (RCV)
+  left (ASP_RX1) -> the top amplifier (RCV), right (ASP_RX2) -> the bottom (SPK),
+  as on stock: in landscape with the side port down the top edge is on the left
 Both amplifiers run in speaker mode at a fixed -12 dB digital level. The
 speaker-protection DSP firmware is not loaded, so full scale stays below the
 amplifier's 0 dB (409). DAPM powers the amplifiers only while a stream runs.
@@ -19,8 +20,8 @@ ROUTE = (
     ('SEN_MI2S_RX Audio Mixer MultiMedia1', '1'),
     ('SPK Amplifier Mode', 'SPK'),
     ('RCV Amplifier Mode', 'SPK'),
-    ('SPK DACPCM Source', 'ASP_RX1'),
-    ('RCV DACPCM Source', 'ASP_RX2'),
+    ('SPK DACPCM Source', 'ASP_RX2'),
+    ('RCV DACPCM Source', 'ASP_RX1'),
     ('SPK Digital PCM Volume', '361'),
     ('RCV Digital PCM Volume', '361'),
     ('SPK AMP Enable Switch', '1'),
