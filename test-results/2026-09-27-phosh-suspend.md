@@ -304,3 +304,18 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   r146 279-305 MB/s write, 831-835 MB/s read, 134-153 IOPS;
   r148 537-775 MB/s, 949-1191 MB/s, 878-924 IOPS; after an s2idle cycle
   606 / 949 / 913. No UFS or ext4 errors. Default install: two ordinary boots.
+
+## 2026-09-28: CXSD experiments on r148 (DDR_AUX unchanged), two hazards
+- On r148 (UFS PM on) and after sending {class: clock, res: qdss, val: 0} and
+  {class: clock, res: qdss_ao, val: 0}: the CXPC violator log still shows
+  DDR_AUX=5 in every sample; cxsd/aosd/ddr 0. Neither UFS nor a leftover
+  QDSS vote keeps DDR up.
+- Hazard 1 (test harness): after a force-discharge rtcwake the sleep policy
+  resumed, still saw battery power ("screen off for 130 s") and suspended
+  again before the script restored charging; nothing woke the phone for
+  3.5 h (power key). Stop rog5-sleep-policy during such experiments.
+- Hazard 2: reading the display RSC (0xaf20000, TCS at 0x1c00) from a module,
+  with the MDSS runtime-active and DISP_CC_MDSS_RSCC_AHB_CLK enabled, hung
+  the bus and the phone hard-reset (back on r148, ext4 journal replayed, no
+  errors). The display RSC needs more than that clock; do not repeat without
+  the full stock clock/power set.
