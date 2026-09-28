@@ -288,3 +288,19 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   sending AMC RPMH requests (-110)", and the phone hard-reset about 25 min
   later (no panic record); it came back on r146. Only read back resources
   this kernel has written (as the committed tool does).
+
+## 2026-09-28: UFS without the discovery containment (r148 default, user-approved)
+- Kernel r58: CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY/DATA_WRITE off (fragment
+  and the build config's required values). r147 (old ramdisk) stopped at
+  ufs-ready FAIL ufs-power-containment (the init required the containment
+  markers) and returned to fastboot before touching storage. The ramdisk
+  now takes UFS_CONTAINMENT=off, which requires instead that no
+  "ROG5 UFS discovery:" message is logged; everything else in ufs-ready and
+  the storage lock is unchanged.
+- r148 (r58 + UFS_CONTAINMENT=off ramdisk): rpm_lvl 3, spm_lvl 3,
+  auto_hibern8 150 ms, clock scaling 75 MHz idle -> 300 MHz under load with
+  WriteBooster on (wb_on 1), device WB present (shared, 0x400 units).
+- rog5-iobench (1 GiB write with fsync / cold read / 2000 x 4 KiB dsync):
+  r146 279-305 MB/s write, 831-835 MB/s read, 134-153 IOPS;
+  r148 537-775 MB/s, 949-1191 MB/s, 878-924 IOPS; after an s2idle cycle
+  606 / 949 / 913. No UFS or ext4 errors. Default install: two ordinary boots.
