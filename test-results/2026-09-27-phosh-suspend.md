@@ -185,3 +185,19 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   machine_suspend. Bluetooth scans after resume. cxsd still 0 in this run
   on USB power (charger/ADSP and the USB link keep their own votes); needs
   an unplugged run. Default install: two ordinary boots committed.
+
+## 2026-09-28: L3 scaling (r139 default)
+- sm8350.dtsi has no EPSS L3 node; the generic qcom,epss-l3 driver fits
+  (shared vote at base+0x90). Overlay sm8350-asus-rog-phone5-cpu-l3.dtso (DTB
+  feature l3): interconnect@18590000 + per-cluster CPU OPP tables (opp-hz =
+  EPSS LUT rows 16/16/19) with opp-peak-kBps = L3 MHz x 32000 from the stock
+  lahaina core->L3 tables (prime uses the big table; >= 2.4 GHz -> 1516.8
+  MHz). CONFIG_INTERCONNECT_QCOM_OSM_L3=y (cpufreq-hw is built in).
+- r139 = kernel r52 + DTB platform-l3-dtb-r1: all LUT frequencies kept, no
+  cpufreq/OPP errors; L3 vote 1516.8 MHz with the prime core loaded, about
+  998 MHz idle with the screen off (fast switching is off with an OPP table,
+  as on sm8250/sc7280).
+- xz -6 -T1 of 64 MiB: prime 34.6 s (r138) vs 34.5 s (r139), big 39.4 s vs
+  40.2 s (warmer): the firmware left L3 at its top level before, so this
+  change saves awake power and does not add speed.
+- Default install: two ordinary boots committed.

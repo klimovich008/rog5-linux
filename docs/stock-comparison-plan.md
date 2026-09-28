@@ -40,7 +40,7 @@ work), NO (not needed / not feasible).
 
 | Item | Area | Status |
 |---|---|---|
-| L3 cache never scales (no EPSS L3 node / CPU OPP tables) | cpu | PLAN (M) |
+| L3 cache never scales (no EPSS L3 node / CPU OPP tables) | cpu | DONE r139 (power, not speed: firmware default was the top level) |
 | DDR/LLCC floor tied to big-core frequency | cpu | PLAN (after L3) |
 | CPU capacity / energy model | cpu | PLAN (retest with uclamp) |
 | GPU passive trip 85 C vs stock 95 C | cpu/gpu | DONE (r136) |
