@@ -345,3 +345,8 @@ boot default (`rog5-shell --default phosh`); Denial is still installed
   Papers/Showtime/Loupe/Nautilus; phoc scale-to-fit=true and Phosh
   app-filter-mode adaptive by default; mobile-config-firefox (postmarketOS,
   b0c4c3a) installed into /usr/lib/firefox (make uninstall reverts).
+- r149 = kernel r59 (CONFIG_FUSE_FS=y, 0084 charger-attach wakeup) + r148
+  DTB/ramdisk: /dev/fuse present, xdg-document-portal active and mounted,
+  user environment Phosh:GNOME / wayland-0 after a fresh boot, battmgr
+  device wakeup enabled. Default install: two ordinary boots committed.
+  Pending: plug-in wake test (phone asleep on battery, attach charger).
