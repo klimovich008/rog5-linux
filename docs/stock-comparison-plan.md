@@ -28,7 +28,7 @@ work), NO (not needed / not feasible).
 | No APSS hardware watchdog (softdog only) | platform | PLAN: qcom,apss-wdt node after the observer check |
 | Panel ESD: ERR_FG (gpio27) and TE check missing | display | PLAN |
 | Iris6 reset gpio93 never driven | display | PLAN (diagnostic first) |
-| msm probe WARN: DSI PLL(0) lock failed then dsiclk double disable/unprepare | display | PLAN (S) |
+| msm probe WARN: DSI PLL(0) lock failed then dsiclk double disable/unprepare (orphan reparent in of_clk_add_hw_provider enables the PHY PLL before the PHY is powered; __clk_set_parent_before ignores the failed enable, __clk_set_parent_after disables anyway; cosmetic) | display | PLAN (S, low value) |
 | Haptics reset gpio116 not declared | asus | PLAN (S) |
 | No skin/connector thermistors or skin thermal policy | cpu-thermal | PLAN: PMK8350 VADC/ADC-TM + skin zones |
 | USB-connector temperature not exposed / no charge cut | battery | PLAN |

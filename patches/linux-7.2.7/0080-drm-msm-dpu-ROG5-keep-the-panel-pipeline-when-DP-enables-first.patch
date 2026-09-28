@@ -1,0 +1,93 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 keep the panel pipeline when DP enables first
+
+_dpu_rm_reserve_lms() and _dpu_rm_reserve_ctls() scan from index 0, so
+whichever CRTC enables first gets LM_0/1, PP_0/1 and CTL_0. With a
+3840-wide monitor on the side port (DP, two mixers) enabled while the
+panel was blanked, the ROG5's DSC command-mode panel came back on
+LM_2/3 -> PP_2/3 with DSC_0/1 and CTL_1: every kickoff then timed out
+("enc35 frame done timeout", "pp:2 kickoff timeout"), msm reported the
+panel dead and it stayed dark until a reboot (r133, 2026-09-27).
+
+Let a topology without DSC take its mixer pairs and CTL from the top of
+the catalog (LM_4/5 -> PP_4/5 -> MERGE_3D_2 and CTL_5 on SM8350), so the
+panel keeps the blocks it gets at boot whatever the enable order. Mixer
+pairs keep their even-first order, which the peer lookup relies on.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c	2026-09-28 02:29:48.206155292 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c	2026-09-28 02:29:58.934278071 +0200
+@@ -350,6 +350,28 @@
+ 	return true;
+ }
+ 
++/*
++ * ROG5: a topology without DSC (the DisplayPort output) takes its mixer pairs
++ * and CTL from the top of the catalog, so the DSC command-mode panel keeps
++ * LM_0/1, PP_0/1, DSC_0/1 and CTL_0 whichever CRTC enables first. Brought up
++ * after a DP CRTC had taken LM_0/1, the panel landed on PP_2/CTL_1 with DSC_0/1
++ * and never produced a PP-done again ("kickoff timeout", "panel dead").
++ * Within a pair the even mixer still comes first, as the peer lookup expects.
++ */
++static bool _dpu_rm_top_down(const struct msm_display_topology *top)
++{
++	return !top->num_dsc;
++}
++
++static int _dpu_rm_lm_scan_index(const struct msm_display_topology *top,
++				 int num_pairs, int k)
++{
++	if (!_dpu_rm_top_down(top))
++		return k;
++
++	return (num_pairs - 1 - k / 2) * 2 + (k & 1);
++}
++
+ static int _dpu_rm_reserve_lms(struct dpu_rm *rm,
+ 			       struct dpu_global_state *global_state,
+ 			       uint32_t crtc_id,
+@@ -359,7 +381,8 @@
+ 	int lm_idx[MAX_BLOCKS];
+ 	int pp_idx[MAX_BLOCKS];
+ 	int dspp_idx[MAX_BLOCKS] = {0};
+-	int i, lm_count = 0;
++	int i, k, lm_count = 0;
++	int num_pairs = DIV_ROUND_UP(ARRAY_SIZE(rm->mixer_blks), 2);
+ 
+ 	if (!topology->num_lm) {
+ 		DPU_ERROR("zero LMs in topology\n");
+@@ -367,9 +390,9 @@
+ 	}
+ 
+ 	/* Find a primary mixer */
+-	for (i = 0; i < ARRAY_SIZE(rm->mixer_blks) &&
+-			lm_count < topology->num_lm; i++) {
+-		if (!rm->mixer_blks[i])
++	for (k = 0; k < 2 * num_pairs && lm_count < topology->num_lm; k++) {
++		i = _dpu_rm_lm_scan_index(topology, num_pairs, k);
++		if (i >= ARRAY_SIZE(rm->mixer_blks) || !rm->mixer_blks[i])
+ 			continue;
+ 
+ 		/*
+@@ -435,7 +458,7 @@
+ 		const struct msm_display_topology *top)
+ {
+ 	int ctl_idx[MAX_BLOCKS];
+-	int i = 0, j, num_ctls;
++	int i = 0, j, k, num_ctls;
+ 	bool needs_split_display;
+ 
+ 	if (rm->has_legacy_ctls) {
+@@ -452,11 +475,12 @@
+ 		needs_split_display = false;
+ 	}
+ 
+-	for (j = 0; j < ARRAY_SIZE(rm->ctl_blks); j++) {
++	for (k = 0; k < ARRAY_SIZE(rm->ctl_blks); k++) {
+ 		const struct dpu_hw_ctl *ctl;
+ 		unsigned long features;
+ 		bool has_split_display;
+ 
++		j = _dpu_rm_top_down(top) ? ARRAY_SIZE(rm->ctl_blks) - 1 - k : k;
+ 		if (!rm->ctl_blks[j])
+ 			continue;
+ 		if (reserved_by_other(global_state->ctl_to_crtc_id, j, crtc_id))
