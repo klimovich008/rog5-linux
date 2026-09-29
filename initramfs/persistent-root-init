@@ -33,11 +33,12 @@ expected_image_label=ROG5_ARCH_A
 expected_probe_bytes=132
 expected_overlay_bytes=17179869184
 # The overlay image may be grown in place (fallocate + resize2fs; user
-# approved 2026-09-29): accept 16-160 GiB in whole MiB (160 GiB stays within
-# the 195 GB userdata partition). The loop device must match the file size;
+# approved 2026-09-29): accept 16-192 GiB in whole MiB. The user asked for all
+# of the flash to be usable (2026-09-29); the 195 GiB userdata partition caps
+# the image below 192 GiB. The loop device must match the file size;
 # the filesystem inside may be smaller (a reset between the file and the
 # filesystem growth stays bootable). The manifest keeps the creation size.
-max_overlay_bytes=171798691840
+max_overlay_bytes=206158430208
 expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
 expected_overlay_label=ROG5_ROOT_RW_V1
 expected_overlay_manifest_bytes=129

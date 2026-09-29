@@ -28,8 +28,8 @@ expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
 expected_native_bytes=34359717888
 expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 expected_overlay_bytes=17179869184
-# Grown in place is allowed (see persistent-root-init): 16-160 GiB, whole MiB.
-max_overlay_bytes=171798691840
+# Grown in place is allowed (see persistent-root-init): 16-192 GiB, whole MiB.
+max_overlay_bytes=206158430208
 expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
 expected_overlay_label=ROG5_ROOT_RW_V1
 overlay_record=/run/rog5-persistent-overlay.runtime
