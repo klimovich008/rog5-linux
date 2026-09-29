@@ -220,3 +220,17 @@ scripts/host/consume-ufs-baseline-proven-v28-claim.py	qmp-ufs
 scripts/host/consume-ufs-glob-reboot-baseline-v31-claim.py	qmp-ufs
 scripts/host/consume-ufs-power-reboot-baseline-v30-claim.py	qmp-ufs
 scripts/host/consume-ufs-reboot-baseline-v29-claim.py	qmp-ufs
+scripts/host/consume-exact-boot-claim.py	generation-claim
+scripts/host/consume-generation11-boot-claim.py	generation-claim
+scripts/host/consume-generation12-boot-claim.py	generation-claim
+scripts/host/consume-persistent-root-power-usb-v10-claim.py	generation-claim
+scripts/host/consume-persistent-root-power-usb-v9-claim.py	generation-claim
+scripts/host/test-consume-a660-gmu-resume-entry-v8.sh	generation-claim
+scripts/host/test-consume-a660-gmu-resume-entry-v9.sh	generation-claim
+scripts/host/test-consume-a660-ucode-allocation-v5.sh	generation-claim
+scripts/host/test-consume-a660-ucode-allocation-v6.sh	generation-claim
+scripts/host/test-consume-a660-ucode-allocation-v7.sh	generation-claim
+scripts/host/test-consume-exact-boot-claim.py	generation-claim
+scripts/host/test-consume-generation11-boot-claim.py	generation-claim
+scripts/host/test-consume-generation12-boot-claim.py	generation-claim
+scripts/host/test-reusable-recovery-claim-design.sh	generation-claim

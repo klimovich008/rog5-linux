@@ -49,7 +49,7 @@ class TierSelectorTest(unittest.TestCase):
         for dependency in ('scripts/host/check-deployed-server.py',
                            'packaging/arch/rog5-healthd.service',
                            'initramfs/persistent-root-shutdown-standalone',
-                           'scripts/host/consume-exact-boot-claim.py',
+                           'scripts/host/new-claim-consumer.py',
                            'new/unknown.py'):
             with self.subTest(dependency=dependency):
                 d=MODULE.development_decision([observer,service,dependency])
@@ -79,9 +79,9 @@ class TierSelectorTest(unittest.TestCase):
         d=MODULE.development_decision(['tools/module_once/module-once.c'])
         self.assertTrue(d['module_ABI_BTF_closure_required'])
         self.assertFalse(d['eligible'])
-        d=MODULE.development_decision(['scripts/host/consume-exact-boot-claim.py'])
+        d=MODULE.development_decision(['scripts/host/new-claim-consumer.py'])
         self.assertTrue(d['all_admission_consumers_required'])
-        self.assertIn('scripts/host/test-verify-retention-cycle-admission.py',d['optimized_tests'])
+        self.assertIn('scripts/host/test-install-default-kernel.py',d['optimized_tests'])
         self.assertFalse(d['eligible'])
 
     def test_cpu_power_cap_is_critical_even_when_mixed_with_observer(self):
@@ -162,7 +162,7 @@ class TierSelectorTest(unittest.TestCase):
         self.assertEqual(MODULE.classify([
             report, 'scripts/host/early-target-diagnostics.py']), ('probe', 'no'))
         for dependency in ('initramfs/native-wifi/runtime',
-                           'scripts/host/consume-exact-boot-claim.py',
+                           'scripts/host/new-claim-consumer.py',
                            'test-results/runtime.md', 'new/unknown.py'):
             with self.subTest(dependency=dependency):
                 self.assertEqual(MODULE.classify([report, dependency]), ('ci', 'yes'))

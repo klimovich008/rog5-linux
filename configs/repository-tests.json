@@ -2993,27 +2993,6 @@
       ]
     },
     {
-      "path": "scripts/host/test-reusable-recovery-claim-design.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/device/test-collect-minimal-headless-runtime.sh",
       "interpreter": "sh",
       "tiers": [
@@ -4446,69 +4425,6 @@
     },
     {
       "path": "scripts/host/test-run-persistent-root-storage-live-cycle.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-consume-generation11-boot-claim.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-consume-generation12-boot-claim.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-consume-exact-boot-claim.py",
       "interpreter": "python3",
       "tiers": [
         "ci",

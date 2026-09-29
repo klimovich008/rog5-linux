@@ -80,8 +80,9 @@ def development_decision(paths: list[str]) -> dict:
     focused=sorted({leaves[path][1] for path in runtime if path in leaves})
     categories=impact_categories(changed)
     if 'trust-admission' in categories:
-        focused=sorted(set(focused)|{'scripts/host/test-consume-exact-boot-claim.py',
-            'scripts/host/test-verify-retention-cycle-admission.py'})
+        # Bundle signing and the trial/install claim path.
+        focused=sorted(set(focused)|{'scripts/host/test-production-ram-trial.py',
+            'scripts/host/test-install-default-kernel.py'})
     return dict(format='rog5-development-selection-v1',status='NOT RUN',
         changed_paths=changed,impact=impact,impact_categories=categories,eligible=covered,
         tier='active' if covered else 'ci',focused_tests=focused,
