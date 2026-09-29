@@ -1,0 +1,174 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 build <klimovich008@gmail.com>
+Date: Tue, 29 Sep 2026 22:12:43 +0200
+Subject: [PATCH] lockscreen-manager: Don't keep pointers to destroyed lock
+ shields
+
+The lockscreen manager keeps the lock shields of non-primary outputs in
+`shields` without holding a reference and without noticing when they go
+away. A shield is a layer surface that destroys itself when the compositor
+closes it, which phoc does when the shield's output is destroyed. If the
+shield is still in `shields` at that point the array holds a dangling
+pointer, which is then used when
+
+ - the monitor manager emits `monitor-removed`: remove_shield_by_monitor()
+   calls g_object_get_data() on the freed shield ("g_object_get_data:
+   assertion 'G_IS_OBJECT (object)' failed", "remove_shield_by_monitor:
+   assertion 'PHOSH_IS_MONITOR (shield_monitor)' failed", later SIGSEGV
+   in g_type_check_instance_is_fundamentally_a), or
+ - the phone gets unlocked: g_ptr_array_unref() runs gtk_widget_destroy()
+   on the freed shield (SIGSEGV in gtk_widget_destroy).
+
+A shield can outlive its entry: lockscreen_lock() shields all monitors the
+monitor manager knows about, including ones that aren't configured yet.
+These emit `monitor-added` once configured and get a second shield, but
+`monitor-removed` only removed the first one. And once one entry was
+invalid remove_shield_by_monitor() bailed out early, so the shields after
+it were never removed and got closed by the compositor as well.
+
+So
+
+ - drop a shield from `shields` when it gets destroyed, disconnecting that
+   handler when we destroy it ourselves,
+ - don't add a second shield for a monitor that already has one,
+ - remove all shields of a removed monitor and don't bail out on others,
+ - keep a reference on the shield's monitor so its address can't be
+   reused by a new monitor while the shield exists.
+
+Seen on hotplug of a USB-C DP monitor with a flapping HPD.
+---
+ src/lockscreen-manager.c | 92 ++++++++++++++++++++++++++++++++++------
+ 1 file changed, 79 insertions(+), 13 deletions(-)
+
+diff --git a/src/lockscreen-manager.c b/src/lockscreen-manager.c
+index 9ba16e1a..4974499e 100644
+--- a/src/lockscreen-manager.c
++++ b/src/lockscreen-manager.c
+@@ -229,6 +229,62 @@ on_lockscreen_wakeup_output (PhoshLockscreenManager *self, PhoshLockscreen *lock
+ }
+ 
+ 
++static void
++on_shield_destroy (PhoshLockscreenManager *self, GtkWidget *shield)
++{
++  guint index;
++
++  g_return_if_fail (PHOSH_IS_LOCKSCREEN_MANAGER (self));
++
++  if (!self->shields)
++    return;
++
++  /* The shield destroyed itself because the compositor closed its layer
++   * surface (its output went away) while we still track it, e.g. because
++   * `monitor-removed` didn't find it. Forget about it so we neither look
++   * at it nor destroy it again. */
++  if (g_ptr_array_find (self->shields, shield, &index)) {
++    g_debug ("Shield %p got destroyed", shield);
++    g_ptr_array_steal_index (self->shields, index);
++  }
++}
++
++
++static void
++destroy_shield (GtkWidget *shield)
++{
++  /* We destroy the shield ourselves, don't track that */
++  g_signal_handlers_disconnect_matched (shield,
++                                        G_SIGNAL_MATCH_FUNC,
++                                        0, 0, NULL,
++                                        on_shield_destroy,
++                                        NULL);
++  gtk_widget_destroy (shield);
++}
++
++
++static gboolean
++find_shield_by_monitor (PhoshLockscreenManager *self,
++                        PhoshMonitor           *monitor,
++                        guint                  *index)
++{
++  if (!self->shields)
++    return FALSE;
++
++  for (guint i = 0; i < self->shields->len; i++) {
++    GObject *shield = g_ptr_array_index (self->shields, i);
++
++    if (g_object_get_data (shield, "phosh-monitor") == monitor) {
++      if (index)
++        *index = i;
++      return TRUE;
++    }
++  }
++
++  return FALSE;
++}
++
++
+ /* Lock a non primary monitor bringing up a shield */
+ static void
+ lock_monitor (PhoshLockscreenManager *self,
+@@ -242,10 +298,26 @@ lock_monitor (PhoshLockscreenManager *self,
+   if (phosh_shell_get_primary_monitor (shell) == monitor)
+     return;
+ 
++  /* lockscreen_lock () shields all known monitors, including ones that
++   * aren't configured yet. Those emit `monitor-added` later on, don't add
++   * a second shield then as only one would get removed with the monitor. */
++  if (find_shield_by_monitor (self, monitor, NULL)) {
++    g_debug ("Monitor %s already has a shield", monitor->name);
++    return;
++  }
++
+   g_debug ("Adding shield for %s", monitor->name);
+   shield = phosh_lockshield_new (phosh_wayland_get_zwlr_layer_shell_v1 (wl), monitor);
+ 
+-  g_object_set_data (G_OBJECT (shield), "phosh-monitor", monitor);
++  /* Keep the monitor alive while the shield refers to it so the pointer
++   * can't get reused by a new monitor */
++  g_object_set_data_full (G_OBJECT (shield), "phosh-monitor",
++                          g_object_ref (monitor), g_object_unref);
++  g_signal_connect_object (shield,
++                           "destroy",
++                           G_CALLBACK (on_shield_destroy),
++                           self,
++                           G_CONNECT_SWAPPED);
+ 
+   g_ptr_array_add (self->shields, shield);
+   gtk_widget_set_visible (shield, TRUE);
+@@ -256,22 +328,16 @@ static void
+ remove_shield_by_monitor (PhoshLockscreenManager *self,
+                           PhoshMonitor           *monitor)
+ {
++  guint index;
++
+   if (!self->shields) {
+     g_debug ("Shields already gone");
+     return;
+   }
+ 
+-  for (int i = 0; i < self->shields->len; i++) {
+-    PhoshMonitor *shield_monitor;
+-    PhoshLockshield *shield = g_ptr_array_index (self->shields, i);
+-
+-    shield_monitor = g_object_get_data (G_OBJECT (shield), "phosh-monitor");
+-    g_return_if_fail (PHOSH_IS_MONITOR (shield_monitor));
+-    if (shield_monitor == monitor) {
+-      g_debug ("Removing shield %p", shield);
+-      g_ptr_array_remove (self->shields, shield);
+-      break;
+-    }
++  while (find_shield_by_monitor (self, monitor, &index)) {
++    g_debug ("Removing shield %p", g_ptr_array_index (self->shields, index));
++    g_ptr_array_remove_index (self->shields, index);
+   }
+ }
+ 
+@@ -395,7 +461,7 @@ lockscreen_lock (PhoshLockscreenManager *self)
+     g_message ("No primary monitor to lock");
+ 
+   /* Lock all other outputs */
+-  self->shields = g_ptr_array_new_with_free_func ((GDestroyNotify) (gtk_widget_destroy));
++  self->shields = g_ptr_array_new_with_free_func ((GDestroyNotify) destroy_shield);
+   for (int i = 0; i < phosh_monitor_manager_get_num_monitors (monitor_manager); i++) {
+     PhoshMonitor *monitor = phosh_monitor_manager_get_monitor (monitor_manager, i);
+ 

@@ -1,0 +1,117 @@
+# Maintainer: Dan Johansen <strit@archlinux.org>
+# Contributor: Jelle van der Waa <jelle@archlinux.org>
+# Contributor: Thomas Booker <tw.booker@outlook.com>
+# Contributor: Philip Goto <philip.goto@gmail.com>
+# ROG Phone 5 (SM8350) build: Arch Linux packaging 0.57.0-1 plus a fix for the
+# lock screen manager using lock shields that the compositor already closed
+# (Phosh SIGSEGV on external monitor hotplug). Kept out of upgrades via
+# IgnorePkg in /etc/pacman.conf. See README.md.
+
+pkgname=phosh
+pkgver=0.57.0
+pkgrel=1.1
+pkgdesc='A Wayland shell for GNOME on mobile devices'
+arch=(x86_64 aarch64)
+# ROG5: also build phosh-debug so coredumpctl/gdb show symbols
+options=(debug)
+url='https://gitlab.gnome.org/World/Phosh/phosh'
+license=(GPL-3.0-or-later)
+depends=(
+  appstream
+  bash
+  cairo
+  callaudiod
+  dconf
+  evince
+  evolution-data-server
+  feedbackd
+  fribidi
+  gcr
+  gdk-pixbuf2
+  glib2
+  glibc
+  gnome-bluetooth-3.0
+  gnome-desktop
+  gnome-session
+  gnome-shell
+  gsettings-desktop-schemas
+  gtk3
+  gtk4
+  hicolor-icon-theme
+  iio-sensor-proxy
+  libadwaita
+  libgcc
+  libgmobile
+  libgudev
+  libhandy
+  libical
+  libmm-glib
+  libnm
+  libpulse
+  libsecret
+  libsoup3
+  pam
+  pango
+  phoc
+  phosh-osk-provider
+  polkit
+  qrcodegen
+  systemd-libs
+  upower
+  wayland
+  xdg-desktop-portal-gtk
+  xdg-desktop-portal-phosh
+  xdg-desktop-portal-wlr
+)
+makedepends=(
+  git
+  glib2-devel
+  meson
+  python-docutils
+  wayland-protocols
+)
+checkdepends=(
+  xmlstarlet
+  xorg-server-xvfb
+)
+source=(
+  "git+https://gitlab.gnome.org/World/Phosh/phosh.git?signed#tag=v$pkgver"
+  git+https://gitlab.gnome.org/World/Phosh/libcall-ui.git
+  git+https://gitlab.gnome.org/guidog/libgnome-volume-control.git
+  phosh.pam
+  libical-4.patch
+  0001-lockscreen-manager-Don-t-keep-pointers-to-destroyed-.patch
+)
+b2sums=('3c309da3d5a5b23ab49c77a80f990ccf06fa5a67af2b6064e436d9522587b523b52938be88935148a36a78ecb1a8ea852dceb4a2d5217bf374ef5dc212fdfe7c'
+        'SKIP'
+        'SKIP'
+        'd89e16605e2e8e29834f9537bd09ef3f76f1cf6420cdd99346a760cab8c7217f86898be66c24b206b464239fc8b5277150abd19bae81af72187a435bd8c2f869'
+        '1e852c5f5d26689d0deebade2aa1ee59a92625c159829f185d132967a95b8e00481eebeffeab61c435053d4e152ea616fca7178d68bb72e0dbc8a61a854f0b98'
+        '83efd781b60ea2f9040f593d2d7f23975e57b26dca62578354bd9a99b3313f94c43e2996974a3e1c92dd27d96980d38ac677acd9ae02fe903ebf1f97d45dbe9b')
+validpgpkeys=(0DB3932762F78E592F6522AFBB5A2C77584122D3) # Guido Günther <guido@xcpu.ch>
+
+prepare() {
+  ln -s "$srcdir/libcall-ui" "$pkgname/subprojects/libcall-ui"
+  ln -s "$srcdir/libgnome-volume-control" "$pkgname/subprojects/gvc"
+  meson subprojects checkout --sourcedir $pkgname
+  patch -d $pkgname -p1 < libical-4.patch # Fix build with libical 4
+  # ROG5: don't touch lock shields the compositor already destroyed
+  patch -d $pkgname -p1 < 0001-lockscreen-manager-Don-t-keep-pointers-to-destroyed-.patch
+}
+
+build() {
+  arch-meson $pkgname build \
+    --libexecdir=/usr/lib/phosh \
+    -D phoc_tests=disabled \
+    -D man=true
+  meson compile -C build
+}
+
+check() {
+  xvfb-run meson test -C build --print-errorlogs
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+  install -Dm644 "$srcdir"/phosh.pam "$pkgdir"/etc/pam.d/phosh
+}
