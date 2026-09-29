@@ -157,8 +157,8 @@ class Tests(unittest.TestCase):
             for command in (['python3', 'scripts/host/test-check-rescue-startup.py'],
                             ['python3', '-O', 'scripts/host/test-check-rescue-startup.py']):
                 self.assertIn(command, row['commands'])
-        script = (M.D.REPO/'scripts/host/test-repository-linux.sh').read_text()
-        self.assertIn('scripts/host/test-check-rescue-startup.py', script.split('active_tests=(',1)[1].split(')',1)[0])
+        registry = json.loads((M.D.REPO/'configs/repository-tests.json').read_text())['tests']
+        self.assertIn('active', next(r['tiers'] for r in registry if r['path'] == 'scripts/host/test-check-rescue-startup.py'))
 
 
 class CurrentBootTests(unittest.TestCase):

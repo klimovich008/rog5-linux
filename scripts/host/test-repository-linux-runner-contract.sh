@@ -17,8 +17,20 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 [ -f "$runner" ] && [ ! -L "$runner" ] && [ -x "$runner" ]
-[ "$(grep -Fc 'shared_tests=(' "$runner")" -eq 1 ]
-[ "$(grep -Fc 'tier_tests=()' "$runner")" -eq 1 ]
+# The registry is the only test list: no shell arrays of tests remain.
+[ -z "$(grep -E '^[a-z_]*_tests=\($' "$runner" | grep -v '^isolated_tests=($' || true)" ]
+grep -Fq 'mapfile -t tests < <(list_tier_tests "$tier")' "$runner"
+for list_tier in active board ci nightly probe quick rootfs; do
+	bash "$runner" --list "$list_tier" >"$work/list-$list_tier"
+	python3 - "$repo/configs/repository-tests.json" "$list_tier" "$work/list-$list_tier" <<'PYLIST'
+import json, sys
+rows = json.load(open(sys.argv[1]))['tests']
+expected = [row['path'] for row in rows if sys.argv[2] in row['tiers']]
+listed = open(sys.argv[3]).read().splitlines()
+if listed != expected or len(set(listed)) != len(listed):
+    raise SystemExit('FAIL --list ' + sys.argv[2] + ' differs from the registry')
+PYLIST
+done
 for token in \
 	'DURATION %s %dms' \
 	'if [[ $tier != active && $tier != probe ]]; then' \
@@ -103,11 +115,9 @@ if [ "$(id -u)" -ne 0 ]; then
 	grep -Fxq 'FAIL repository test temporary parent is unavailable' "$work/parent.stderr"
 	chmod 0700 "$work/read-only-parent"
 fi
-[ -z "$(sed -n '/^active_tests=(/,/^)/p' "$runner" |
-	grep -F 'scripts/host/test-repository-linux-runner-contract.sh' || true)" ]
-sed -n '/^shared_tests=(/,/^)/p' "$runner" |
-	grep -Fq 'scripts/host/test-repository-linux-runner-contract.sh'
-[ "$(grep -Fc 'scripts/host/test-repository-linux-runner-contract.sh' "$runner")" -eq 1 ]
+! grep -Fxq 'scripts/host/test-repository-linux-runner-contract.sh' "$work/list-active"
+grep -Fxq 'scripts/host/test-repository-linux-runner-contract.sh' "$work/list-ci"
+! grep -Fq 'scripts/host/test-repository-linux-runner-contract.sh' "$runner"
 echo 'PASS runner scratch uses explicit parent or unchanged HOME and rejects invalid parents'
 
 # Reproduce the RAM-scratch regression without paying for the full suite.
@@ -122,20 +132,15 @@ grep -Fxq 'FAIL repository test temporary parent cannot host Unix sockets' "$wor
 [ -z "$(ls -A "$long_parent")" ]
 echo 'PASS overlong broker socket path refuses before repository suites'
 
-shared=$(sed -n '/^shared_tests=(/,/^)/p' "$runner" |
-	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p')
-[ -n "$shared" ]
-duplicates=$(printf '%s\n' "$shared" | sort | uniq -d)
-[ -z "$duplicates" ] || {
-	echo "FAIL shared repository test is duplicated: $duplicates" >&2
-	exit 1
-}
-declared=$(sed -n '/^active_tests=(/,/^)/p; /^shared_tests=(/,/^)/p' "$runner" |
-	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p')
-for isolated in $(sed -n '/^isolated_tests=(/,/^)/p' "$runner" |
-	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p'); do
-	printf '%s\n' "$declared" | grep -Fxq "$isolated" || {
-		echo "FAIL isolated suite is outside the active/shared test lists: $isolated" >&2
+for isolated in $(python3 - "$repo/configs/repository-tests.json" <<'PYISO'
+import json, sys
+for row in json.load(open(sys.argv[1]))['tests']:
+    if row['resource_class'] == 'isolated':
+        print(row['path'])
+PYISO
+); do
+	cat "$work"/list-* | grep -Fxq "$isolated" || {
+		echo "FAIL isolated suite is outside every tier: $isolated" >&2
 		exit 1
 	}
 done

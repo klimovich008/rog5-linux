@@ -22,18 +22,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TierSelectorTest(unittest.TestCase):
+    def tier_tests(self, tier):
+        # The runner lists each tier straight from configs/repository-tests.json.
+        runner=SOURCE.with_name('test-repository-linux.sh')
+        return subprocess.check_output(['bash',str(runner),'--list',tier],text=True).splitlines()
+
     def test_broad_tiers_retain_all_narrow_tests_once(self):
-        runner=SOURCE.with_name('test-repository-linux.sh').read_text()
-        declarations=[]
-        for name in ('native_wifi_probe_tests','active_tests','probe_tests','shared_tests'):
-            declarations.append(re.search(r'^'+name+r'=\(\n.*?^\)',runner,re.M|re.S).group())
-        selection=runner[runner.index('if [[ $tier == active ]]; then'):runner.index('\nreport_root=')]
-        def selected(tier):
-            code='set -eu\n'+'\n'.join(declarations)+'\ntier_tests=()\ntier='+tier+'\n'+selection+'\nprintf "%s\\n" "${tests[@]}"'
-            return subprocess.check_output(['bash','-c',code],text=True).splitlines()
-        narrow=set(selected('active'))|set(selected('probe'))
+        narrow=set(self.tier_tests('active'))|set(self.tier_tests('probe'))
         for tier in ('ci','nightly'):
-            tests=selected(tier)
+            tests=self.tier_tests(tier)
             self.assertLessEqual(narrow,set(tests))
             self.assertEqual(len(tests),len(set(tests)))
 
@@ -98,19 +95,7 @@ class TierSelectorTest(unittest.TestCase):
             self.assertIn('scripts/host/test-check-standalone-root.py',d['focused_tests'])
 
     def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
-        runner = SOURCE.with_name("test-repository-linux.sh").read_text()
-        # Evaluate only the actual array declarations, never runner setup/tests.
-        declarations = []
-        for name in ("native_wifi_probe_tests", "probe_tests"):
-            match = re.search(r"^" + name + r"=\(\n.*?^\)", runner, re.M | re.S)
-            self.assertIsNotNone(match, name)
-            declarations.append(match.group())
-        result = subprocess.run(
-            ["bash", "-c", "set -eu\n" + "\n".join(declarations)
-             + '\nprintf "%s\\n" "${probe_tests[@]}"'],
-            check=True, capture_output=True, text=True,
-        )
-        selected = set(result.stdout.splitlines())
+        selected = set(self.tier_tests("probe"))
         for changed in MODULE.PROBE_ONLY:
             if changed == MODULE.PROBE_QEMU:
                 required = "scripts/device/test-build-early-target-diag.sh"

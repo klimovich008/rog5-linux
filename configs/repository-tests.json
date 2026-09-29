@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "selection_migration": "validated against retained public shell tier selection",
+  "selection_migration": "the registry is the only tier list; scripts/host/test-repository-linux.sh --list TIER prints it",
   "tests": [
     {
       "path": "scripts/device/test-qcom-battmgr-charge-units.py",
