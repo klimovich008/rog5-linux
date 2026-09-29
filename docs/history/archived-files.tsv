@@ -1513,3 +1513,5 @@ tools/diagnostics/bootloader-reason/rog5_bootloader_reason.c	other
 tools/diagnostics/ramoops-raw/Makefile	other
 tools/diagnostics/ramoops-raw/rog5_ramoops_raw.c	other
 tools/persistent-root-verify.c	other
+configs/kernel/rog5-native-wifi-module-roots	wifi-bringup
+tools/wifi_pwrctrl_probe/rog5-wifi-pwrctrl-probe.c	wifi-bringup
