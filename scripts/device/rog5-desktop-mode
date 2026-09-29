@@ -1,18 +1,38 @@
 #!/bin/sh
 # ROG5 desktop mode switcher (runs as root).
 #
-# Returns from the GNOME desktop (rog5-gnome, started by the "Desktop mode"
-# launcher) to Phosh when the display is unplugged, GNOME idles for
-# IDLE_SECS, GNOME locks, or the mode file says off; and makes sure a session
-# runs. It never starts GNOME itself.
-# /var/lib/rog5/desktop-mode holds auto (default) or off.
+# Switches to the GNOME desktop (rog5-gnome) when an external display is
+# connected and the phone is unlocked, and returns to Phosh when the display
+# is unplugged, GNOME idles for IDLE_SECS, GNOME locks, or the mode file says
+# off; and makes sure a session runs.
+#
+# GNOME has no lock screen here, so it is started only while Phosh itself
+# reports unlocked (org.gnome.ScreenSaver.GetActive on the phone user's bus;
+# logind's LockedHint is unreliable for Phosh). A locked phone waits for its
+# PIN. The automatic switch happens once per plug-in: after "Phone mode" the
+# phone stays in Phosh until the display is replugged; after an idle or lock
+# hand-back the next unlock returns to the desktop.
+# /var/lib/rog5/desktop-mode holds auto (default: switch automatically),
+# manual (only the "Desktop mode" launcher) or off.
 set -u
 STATUS=/sys/class/drm/card1-DP-1/status
 MODE_FILE=/var/lib/rog5/desktop-mode
 OFF_AFTER=4       # seconds of stable disconnection before switching back
+ON_AFTER=3        # seconds of stable connection before switching automatically
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
 POLL=3            # seconds between checks; counters below are in seconds
-up=0 down=0 idle=0 tick=0 nosess=0
+up=0 down=0 idle=0 tick=0 nosess=0 auto_done=0
+
+# True only if Phosh answers that its lock screen is not active.
+phosh_unlocked() {
+	u=$(id -u phone 2>/dev/null) || return 1
+	# setpriv, not runuser: no PAM session (and journal lines) every poll
+	r=$(setpriv --reuid="$u" --regid="$(id -g phone)" --init-groups env XDG_RUNTIME_DIR="/run/user/$u" \
+		DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$u/bus" \
+		busctl --user --timeout=2 call org.gnome.ScreenSaver /org/gnome/ScreenSaver \
+		org.gnome.ScreenSaver GetActive 2>/dev/null) || return 1
+	[ "$r" = "b false" ]
+}
 
 phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
@@ -45,6 +65,7 @@ while :; do
 			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p LockedHint --value)" = yes ]; then
 				# GNOME's own lock needs GDM: hand over to the Phosh lock screen
 				to_phosh "GNOME locked"
+				auto_done=0
 				continue
 			fi
 			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
@@ -59,10 +80,19 @@ while :; do
 			to_phosh "display unplugged"
 		elif [ "$idle" -ge "$IDLE_SECS" ]; then
 			to_phosh "GNOME idle ${IDLE_SECS}s"
+			auto_done=0
 		fi
 		continue
 	fi
 	idle=0
+	[ "$down" -ge "$OFF_AFTER" ] && auto_done=0
+	if [ "$mode" = auto ] && [ "$auto_done" = 0 ] && [ "$up" -ge "$ON_AFTER" ] &&
+		systemctl -q is-active rog5-phosh.service && phosh_unlocked; then
+		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
+		auto_done=1
+		systemctl start --no-block rog5-gnome.service
+		continue
+	fi
 	# A switch in progress (Phosh stopping before GNOME starts, queued jobs)
 	# is not "no session": only act when nothing runs or is queued for a
 	# while, e.g. after a failed GNOME start. Acting early cancelled the
@@ -83,7 +113,4 @@ while :; do
 		nosess=0
 	fi
 	continue
-	# GNOME is never started from here: only the "Desktop mode" launcher on
-	# the unlocked phone starts it (Phosh's lock state is not reliably visible
-	# to logind: a restarted Phosh on its lock screen reported LockedHint=no).
 done
