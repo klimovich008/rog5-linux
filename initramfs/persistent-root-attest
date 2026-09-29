@@ -28,6 +28,8 @@ expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
 expected_native_bytes=34359717888
 expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 expected_overlay_bytes=17179869184
+# Grown in place is allowed (see persistent-root-init): 16-160 GiB, whole MiB.
+max_overlay_bytes=171798691840
 expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
 expected_overlay_label=ROG5_ROOT_RW_V1
 overlay_record=/run/rog5-persistent-overlay.runtime
@@ -245,13 +247,20 @@ case $expected_persistent_overlay_mode in
 		[ -b "$overlay_userdata" ] && [ -b "$overlay_loop" ] ||
 			fail 'persistent overlay block node disappeared'
 		[ "$(runtime_blockdev --getro "$overlay_userdata")" = 0 ] &&
-			[ "$(runtime_blockdev --getro "$overlay_disk")" = 0 ] &&
-			[ "$(runtime_blockdev --getsize64 "$overlay_loop")" = \
-				"$expected_overlay_bytes" ] || fail 'persistent overlay write scope changed'
+			[ "$(runtime_blockdev --getro "$overlay_disk")" = 0 ] ||
+			fail 'persistent overlay write scope changed'
 		overlay_file=/.rog5/userdata-rw/$overlay_image
-		[ -f "$overlay_file" ] && [ ! -L "$overlay_file" ] &&
+		[ -f "$overlay_file" ] && [ ! -L "$overlay_file" ] ||
+			fail 'persistent overlay image metadata changed'
+		overlay_bytes=$(stat -c %s "$overlay_file") ||
+			fail 'persistent overlay image metadata changed'
+		case $overlay_bytes in ''|*[!0-9]*) fail 'persistent overlay image metadata changed' ;; esac
+		[ "$overlay_bytes" -ge "$expected_overlay_bytes" ] &&
+			[ "$overlay_bytes" -le "$max_overlay_bytes" ] &&
+			[ $((overlay_bytes % 1048576)) -eq 0 ] &&
+			[ "$(runtime_blockdev --getsize64 "$overlay_loop")" = "$overlay_bytes" ] &&
 			[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_file")" = \
-				"0:0:600:$expected_overlay_bytes:1" ] ||
+				"0:0:600:$overlay_bytes:1" ] ||
 			fail 'persistent overlay image metadata changed'
 		overlay_blkid=$(blkid "$overlay_loop") || fail 'persistent overlay identity absent'
 		printf '%s\n' "$overlay_blkid" | grep -Fq " UUID=\"$expected_overlay_uuid\"" &&

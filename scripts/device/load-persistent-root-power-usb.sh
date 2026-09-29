@@ -196,6 +196,14 @@ load_module pmic_glink.ko pmic_glink pmic-glink
 load_module qcom_battmgr.ko qcom_battmgr qcom-battmgr
 load_module typec.ko typec typec
 load_module typec_ucsi.ko typec_ucsi typec-ucsi
+# DisplayPort DT (dp feature): the side connector's graph carries the
+# gpio-sbu-mux and the combo PHY as orientation switches, and UCSI's
+# typec_register_port() defers until they are bound (it gives up after 10 s:
+# r129/r131 failed telemetry-timeout). Load them first, only with that DT.
+if [ "$module_mode" = tree ] && [ -d /proc/device-tree/typec-sbu-mux ]; then
+	load_module gpio-sbu-mux.ko gpio_sbu_mux gpio-sbu-mux
+	load_module phy-qcom-qmp-combo.ko phy_qcom_qmp_combo phy-qcom-qmp-combo
+fi
 load_module ucsi_glink.ko ucsi_glink ucsi-glink
 
 attempt=0

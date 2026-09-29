@@ -32,6 +32,12 @@ expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
 expected_probe_bytes=132
 expected_overlay_bytes=17179869184
+# The overlay image may be grown in place (fallocate + resize2fs; user
+# approved 2026-09-29): accept 16-160 GiB in whole MiB (160 GiB stays within
+# the 195 GB userdata partition). The loop device must match the file size;
+# the filesystem inside may be smaller (a reset between the file and the
+# filesystem growth stays bootable). The manifest keeps the creation size.
+max_overlay_bytes=171798691840
 expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
 expected_overlay_label=ROG5_ROOT_RW_V1
 expected_overlay_manifest_bytes=129
@@ -1609,6 +1615,12 @@ verify_exact_rw_exec_mount() {
 	END { exit found != 1 }' /proc/mounts
 }
 
+overlay_size_ok() {
+	case $1 in ''|*[!0-9]*) return 1 ;; esac
+	[ "$1" -ge "$expected_overlay_bytes" ] && [ "$1" -le "$max_overlay_bytes" ] &&
+		[ $(($1 % 1048576)) -eq 0 ]
+}
+
 verify_overlay_filesystem_identity() {
 	device=$1
 	record=$(blkid "$device") || return 1
@@ -1905,15 +1917,17 @@ prepare_persistent_overlay_inner() {
 			return 1
 	done
 	overlay_image=/mnt/userdata/$overlay_relative
-	[ -f "$overlay_image" ] && [ ! -L "$overlay_image" ] &&
+	[ -f "$overlay_image" ] && [ ! -L "$overlay_image" ] || return 1
+	overlay_bytes=$(stat -c %s "$overlay_image") || return 1
+	overlay_size_ok "$overlay_bytes" &&
 		[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_image")" = \
-			"0:0:600:$expected_overlay_bytes:1" ] || return 1
+			"0:0:600:$overlay_bytes:1" ] || return 1
 
 	overlay_loop=$(losetup -f) || return 1
 	case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	losetup "$overlay_loop" "$overlay_image" || return 1
 	overlay_loop_attached=1
-	[ "$(blockdev --getsize64 "$overlay_loop")" = "$expected_overlay_bytes" ] ||
+	[ "$(blockdev --getsize64 "$overlay_loop")" = "$overlay_bytes" ] ||
 		return 1
 	verify_overlay_filesystem_identity "$overlay_loop" || return 1
 	overlay_loop_name=${overlay_loop##*/}
