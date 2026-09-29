@@ -1,0 +1,96 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm, phy: qcom-qmp-combo: ROG5 knobs for DPU block order, DP drive floor and TX polarity
+
+Findings on the side-port USB-C HDMI hub (r174):
+- the DP controller's test pattern shows on the monitor at HBR, so the
+  link, PHY, converter and HDMI side work;
+- with the DPU feeding DP at 1920x1080 the monitor locks but shows solid
+  blue, the INTF underflow colour (underflow_clr 0xff): the mixer path
+  0080 gives DP (LM_4/5 -> PP_4/5 -> MERGE_3D_2, CTL_5) starves;
+- at HBR2 the sink accepts swing/pre-emphasis 0/0 in training but counts
+  ~25k symbol errors per second on lane 1.
+
+Knobs (all default to the current behaviour):
+- msm.dpu_rm_top_down=0: DP takes blocks bottom-up like mainline;
+- msm.dp_min_vlevel / dp_min_plevel: floor for the sink's requested levels;
+- phy_qcom_qmp_combo.dp_pol_inv: TX_POL_INV override for dp_tx/dp_tx2.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c	2026-09-29 12:51:08.923192835 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c	2026-09-29 12:51:08.955151972 +0200
+@@ -358,9 +358,13 @@
+  * and never produced a PP-done again ("kickoff timeout", "panel dead").
+  * Within a pair the even mixer still comes first, as the peer lookup expects.
+  */
++static bool dpu_rm_top_down = true;
++module_param(dpu_rm_top_down, bool, 0644);
++MODULE_PARM_DESC(dpu_rm_top_down, "ROG5: DP takes DPU blocks from the top of the catalog (next reservation)");
++
+ static bool _dpu_rm_top_down(const struct msm_display_topology *top)
+ {
+-	return !top->num_dsc;
++	return dpu_rm_top_down && !top->num_dsc;
+ }
+ 
+ static int _dpu_rm_lm_scan_index(const struct msm_display_topology *top,
+--- a/drivers/gpu/drm/msm/dp/dp_link.c	2026-09-29 12:51:08.927574182 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_link.c	2026-09-29 12:51:08.955408496 +0200
+@@ -1106,6 +1106,18 @@
+ 	return cc;
+ }
+ 
++/*
++ * ROG5 bring-up: floor for the voltage swing / pre-emphasis the sink asks
++ * for (-1 = none). At HBR2 the side-port hub accepts level 0/0 in training
++ * but then counts ~25k symbol errors per second on lane 1.
++ */
++static int msm_dp_min_vlevel = -1;
++module_param_named(dp_min_vlevel, msm_dp_min_vlevel, int, 0644);
++MODULE_PARM_DESC(dp_min_vlevel, "minimum DP voltage swing level 0-3, -1 = sink's choice");
++static int msm_dp_min_plevel = -1;
++module_param_named(dp_min_plevel, msm_dp_min_plevel, int, 0644);
++MODULE_PARM_DESC(dp_min_plevel, "minimum DP pre-emphasis level 0-3, -1 = sink's choice");
++
+ int msm_dp_link_adjust_levels(struct msm_dp_link *msm_dp_link, u8 *link_status)
+ {
+ 	int i;
+@@ -1136,6 +1148,10 @@
+ 
+ 	msm_dp_link->phy_params.v_level = v_max >> DP_TRAIN_VOLTAGE_SWING_SHIFT;
+ 	msm_dp_link->phy_params.p_level = p_max >> DP_TRAIN_PRE_EMPHASIS_SHIFT;
++	if (msm_dp_min_vlevel >= 0 && msm_dp_link->phy_params.v_level < msm_dp_min_vlevel)
++		msm_dp_link->phy_params.v_level = msm_dp_min_vlevel;
++	if (msm_dp_min_plevel >= 0 && msm_dp_link->phy_params.p_level < msm_dp_min_plevel)
++		msm_dp_link->phy_params.p_level = msm_dp_min_plevel;
+ 
+ 	/**
+ 	 * Adjust the voltage swing and pre-emphasis level combination to within
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-combo.c	2026-09-29 12:51:08.931760986 +0200
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-combo.c	2026-09-29 12:51:08.956041086 +0200
+@@ -3156,6 +3156,14 @@
+ 	writel(bias_en, qmp->dp_tx2 + QSERDES_V3_TX_TRANSCEIVER_BIAS_EN);
+ }
+ 
++/*
++ * ROG5 bring-up: override TX_POL_INV for the two DP TX blocks (v4/v5 DP
++ * PHYs): low byte for dp_tx, high byte for dp_tx2; 0 keeps 0x0a/0x0a.
++ */
++static uint qmp_dp_pol_inv;
++module_param_named(dp_pol_inv, qmp_dp_pol_inv, uint, 0644);
++MODULE_PARM_DESC(dp_pol_inv, "DP TX_POL_INV override: (tx2 << 8) | tx, 0 = 0x0a/0x0a");
++
+ static bool qmp_combo_configure_dp_mode(struct qmp_combo *qmp)
+ {
+ 	bool reverse = (qmp->orientation == TYPEC_ORIENTATION_REVERSE);
+@@ -3524,8 +3532,10 @@
+ 			10000))
+ 		return -ETIMEDOUT;
+ 
+-	writel(0x0a, qmp->dp_tx + cfg->regs[QPHY_TX_TX_POL_INV]);
+-	writel(0x0a, qmp->dp_tx2 + cfg->regs[QPHY_TX_TX_POL_INV]);
++	writel(qmp_dp_pol_inv ? qmp_dp_pol_inv & 0xff : 0x0a,
++	       qmp->dp_tx + cfg->regs[QPHY_TX_TX_POL_INV]);
++	writel(qmp_dp_pol_inv ? qmp_dp_pol_inv >> 8 & 0xff : 0x0a,
++	       qmp->dp_tx2 + cfg->regs[QPHY_TX_TX_POL_INV]);
+ 
+ 	writel(0x27, qmp->dp_tx + cfg->regs[QPHY_TX_TX_DRV_LVL]);
+ 	writel(0x27, qmp->dp_tx2 + cfg->regs[QPHY_TX_TX_DRV_LVL]);
