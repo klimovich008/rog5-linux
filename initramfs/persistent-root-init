@@ -2533,7 +2533,7 @@ prepare_runtime() {
 unmanaged-devices=interface-name:usb0
 EOF
 	cat >/run/udev/rules.d/10-rog5-p2-storage.rules <<'EOF'
-SUBSYSTEM=="block", KERNEL=="sd*", ENV{UDISKS_IGNORE}="1"
+SUBSYSTEM=="block", KERNEL=="sd*", DEVPATH=="*/1d84000.ufshc/*", ENV{UDISKS_IGNORE}="1"
 EOF
 	cat >/run/systemd/system/rog5-p2-ready.service <<'EOF'
 [Unit]
