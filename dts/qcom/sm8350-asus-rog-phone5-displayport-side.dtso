@@ -110,4 +110,11 @@
 
 &mdss_dp_out {
 	data-lanes = <0 1>;
+	/*
+	 * HBR max: through the USB-C HDMI hub the side port counts ~25k symbol
+	 * errors/s on lane 1 at HBR2 and the converter never shows the DPU
+	 * stream; HBR is clean and shows the desktop (2026-09-29). Also bounds
+	 * mode validation. Drop the HBR2 cap once HBR2 signal integrity is fixed.
+	 */
+	link-frequencies = /bits/ 64 <1620000000 2700000000>;
 };
