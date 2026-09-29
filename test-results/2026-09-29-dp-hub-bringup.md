@@ -75,3 +75,12 @@ kernel source; no DP work there).
   screen reported LockedHint=no (org.gnome.ScreenSaver GetActive also false),
   so the switcher started GNOME without the PIN. rog5-desktop-mode is off and
   disabled until the lock state is detected reliably.
+
+## Root cause of the blue GNOME screen (14:15)
+- rog5-kms-pattern (linear dumb buffers, page flipping on DP crtc-0 plane-0):
+  XR24 0 underruns / 308 vsync, XR30 0 / 339. The format is not the cause.
+- GNOME A/B: hardware cursor on (plane-6 on the DP CRTC) -> 256 underruns /
+  258 vsync; MUTTER_DEBUG_DISABLE_HW_CURSORS=1 -> 0 / 254.
+- Workaround: ~phone/.config/environment.d/60-rog5-mutter.conf
+  (configs/environment.d). Kernel follow-up: why a cursor-plane SSPP on the
+  DP pipe underruns.
