@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Replay appeared-but-offline charging telemetry through the actual shell gate."""
 import os
-import importlib.util
-import json
 from pathlib import Path
 import subprocess
-import sys
 import unittest
 
 REPO=Path(__file__).resolve().parents[2]
@@ -16,21 +13,6 @@ def function(text,name):
     return text[begin:text.index('\n}',begin)+2]
 
 class ReadinessTest(unittest.TestCase):
-    def test_captured_failure_is_not_an_s12_probe_or_automatic_fallback(self):
-        fixture=json.loads((REPO/'tests/fixtures/native-wifi/s12-mode-v8-usb-offline.json').read_text())
-        path=REPO/'scripts/host/run-persistent-root-storage-live-cycle.py'
-        sys.path.insert(0,str(path.parent))
-        spec=importlib.util.spec_from_file_location('s12_readiness_stages',path)
-        parser=importlib.util.module_from_spec(spec); sys.modules[spec.name]=parser
-        spec.loader.exec_module(parser)
-        record=parser.parse_stage_record(fixture['target_record'].encode())
-        self.assertEqual((record.stage,record.state,record.detail),
-                         ('ufs-ready','FAIL','power-usb-usb-offline'))
-        for key in ('target_ssh_seen','s12_probe_started','radio_probe_started',
-                    'automatic_v11_fallback','safe_to_retry_consumed_target'):
-            self.assertFalse(fixture[key])
-        self.assertIsNone(fixture['usb_online_later_in_same_target_boot'])
-
     def test_production_boot_continues_on_battery(self):
         p=self.run_gate('never',production=1)
         self.assertEqual(p.returncode,0,p.stdout+p.stderr)

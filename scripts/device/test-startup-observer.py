@@ -2,6 +2,7 @@
 """Post-handover observation regressions; no phone or real systemd mutations."""
 import importlib.util
 from pathlib import Path
+import re
 import subprocess
 import sys
 import shlex
@@ -11,13 +12,39 @@ import hashlib
 import tempfile
 
 REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO/'scripts/host'))
-SPEC = importlib.util.spec_from_file_location('receiver', REPO/'scripts/host/headless-stage-receiver.py')
-M = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(M)
 BOOT = '12345678-1234-4abc-8def-1234567890ab'
-RELEASE = '7.1.4-g359318de534f'
+RELEASE = '7.2.7-rog5-production'
 SEALED_ARCHIVE = None
+BOOT_ID = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+
+
+def parse_startup_observation(payload, release):
+    """The rog5-startup-observation-v1 wire format emitted by
+    initramfs/persistent-startup-observer (formerly checked by the retired
+    headless stage receiver)."""
+    fields = ('format','target_release','boot_id','sequence','unit','observation',
+              'active','sub','result','exit','journal','failure_hex')
+    if len(payload) > 512 or not payload.endswith(b'\n') or b'\r' in payload or b'\0' in payload:
+        raise ValueError('startup observation framing/bound')
+    try:
+        lines = payload.decode('ascii').splitlines()
+    except UnicodeDecodeError as error:
+        raise ValueError('startup observation encoding') from error
+    if len(lines) != len(fields) or any(not line.startswith(key+'=') for line,key in zip(lines,fields)):
+        raise ValueError('startup observation fields')
+    record = {key:line.split('=',1)[1] for key,line in zip(fields,lines)}
+    if (record['format'] != 'rog5-startup-observation-v1' or record['target_release'] != release
+            or not BOOT_ID.fullmatch(record['boot_id'])
+            or not re.fullmatch(r'[1-9][0-9]{0,2}',record['sequence'])
+            or record['unit'] not in {'p2','state','identity','sshd'}
+            or record['observation'] not in {'present','absent','error'}
+            or record['journal'] not in {'present','absent','error'}
+            or any(not re.fullmatch(r'[a-z][a-z-]{0,31}',record[k]) for k in ('active','sub','result'))
+            or not re.fullmatch(r'unknown|[0-9]{1,3}',record['exit'])
+            or not re.fullmatch(r'none|(?:[0-9a-f]{2}){1,80}',record['failure_hex'])):
+        raise ValueError('startup observation content')
+    record['sequence'] = int(record['sequence'])
+    return record
 
 
 class StartupObservationTest(unittest.TestCase):
@@ -196,7 +223,7 @@ bb() { printf 'UNEXPECTED_IO\\n' >&2; exit 98; }
                                        expected_code=1).decode().strip()
                 self.assertEqual(failure, f'rog5-persistent-state: FAIL start/{phase} contract failed')
                 status = 'LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
-                record = M.parse_startup_observation(self.produce(status, failure), RELEASE)
+                record = parse_startup_observation(self.produce(status, failure), RELEASE)
                 self.assertEqual(bytes.fromhex(record['failure_hex']).decode().strip(), failure)
                 self.assertLessEqual(len(failure), 80)
 
@@ -219,7 +246,7 @@ esac
         output=self.execute(script).decode()
         self.assertEqual(output,'source=kernel-buffer\nrog5-persistent-state: FAIL start/userdata-path contract failed\n')
         status='LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
-        record=M.parse_startup_observation(self.produce(status,output),RELEASE)
+        record=parse_startup_observation(self.produce(status,output),RELEASE)
         self.assertEqual(record['journal'],'error')
         self.assertEqual(bytes.fromhex(record['failure_hex']),
                          b'rog5-persistent-state: FAIL start/userdata-path contract failed\n')
@@ -264,20 +291,20 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
             ('LoadState=not-found\nActiveState=inactive\nSubState=dead', 'absent', 'unknown'),
             ('unexpected output', 'error', 'unknown')):
             with self.subTest(status=status):
-                record = M.parse_startup_observation(self.produce(status), RELEASE)
+                record = parse_startup_observation(self.produce(status), RELEASE)
                 self.assertEqual(record['observation'], observation)
                 self.assertEqual(record['active'], active)
-        self.assertEqual(M.parse_startup_observation(self.produce('', code=1), RELEASE)['observation'], 'error')
+        self.assertEqual(parse_startup_observation(self.produce('', code=1), RELEASE)['observation'], 'error')
 
     def test_failure_text_is_bounded_and_unrelated_logs_not_exported(self):
         status='LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
         payload=self.produce(status, 'unrelated private material\nrog5-persistent-state: FAIL start contract failed\nrog5-p2-attest: FAIL other-unit\n')
-        record=M.parse_startup_observation(payload, RELEASE)
+        record=parse_startup_observation(payload, RELEASE)
         self.assertNotIn(b'private material', bytes.fromhex(record['failure_hex']))
         self.assertIn(b'start contract failed', bytes.fromhex(record['failure_hex']))
         self.assertNotIn(b'other-unit', bytes.fromhex(record['failure_hex']))
         self.assertLessEqual(len(payload),512)
-        record=M.parse_startup_observation(self.produce(status,journal_code=1),RELEASE)
+        record=parse_startup_observation(self.produce(status,journal_code=1),RELEASE)
         self.assertEqual(record['journal'],'error')
         self.assertEqual(record['failure_hex'],'none')
 
@@ -285,20 +312,7 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
         payload=self.produce('LoadState=not-found')
         for bad in (payload+b'x', payload.replace(RELEASE.encode(),b'wrong'), payload.replace(b'unit=state',b'unit=arbitrary'), b'x'*513):
             with self.subTest(bad=bad[:40]), self.assertRaises(ValueError):
-                M.parse_startup_observation(bad, RELEASE)
-
-    def test_receiver_binds_observer_to_stage_boot_without_accepting_ssh(self):
-        payload=self.produce('LoadState=not-found')
-        events=[]
-        with M.Receiver(RELEASE,events.append,host='127.0.0.1',port=0,peer='127.0.0.1') as receiver:
-            receiver.transport('target',None)
-            receiver.record(payload,'127.0.0.1')
-            self.assertEqual(events[-1]['event'],'startup-observation')
-            self.assertFalse(events[-1]['authenticated'])
-            self.assertIsNone(receiver.last)  # observation is never a stage/SSH PASS
-            wrong=payload.replace(BOOT.encode(),b'87654321-4321-4abc-8def-1234567890ab')
-            receiver.record(wrong,'127.0.0.1')
-            self.assertTrue(receiver.failed)
+                parse_startup_observation(bad, RELEASE)
 
 
 if __name__ == '__main__':
