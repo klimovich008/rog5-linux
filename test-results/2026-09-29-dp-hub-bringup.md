@@ -71,3 +71,7 @@ kernel source; no DP work there).
   inhibitor made polkit ask for a password; power-button-action is now
   'nothing' in GNOME. GNOME idle-delay is 600 s, and a GNOME lock hands over
   to the Phosh lock screen.
+- **Desktop mode disabled (14:09):** a Phosh session restarted onto its lock
+  screen reported LockedHint=no (org.gnome.ScreenSaver GetActive also false),
+  so the switcher started GNOME without the PIN. rog5-desktop-mode is off and
+  disabled until the lock state is detected reliably.
