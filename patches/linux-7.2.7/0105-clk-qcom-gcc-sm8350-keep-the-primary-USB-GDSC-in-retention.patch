@@ -1,0 +1,23 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] clk: qcom: gcc-sm8350: keep the primary USB GDSC in retention
+
+The ROG Phone 5's side USB-C port (usb_1) runs as a host for hubs. With a
+hub attached, every s2idle cycle collapsed usb30_prim_gdsc: on resume the
+xHCI fetched from stale IOVAs (~31k SMMU context faults from SID 0x0),
+reported "Host System Error", and the hub never re-enumerated until the
+xHCI was rebound. This is the same failure 0090 fixed for usb_2.
+
+Declare usb30_prim_gdsc PWRSTS_RET_ON too, so genpd leaves the controller
+in retention across system suspend.
+
+--- a/drivers/clk/qcom/gcc-sm8350.c
++++ b/drivers/clk/qcom/gcc-sm8350.c
+@@ -3453,7 +3453,7 @@
+ 	.pd = {
+ 		.name = "usb30_prim_gdsc",
+ 	},
+-	.pwrsts = PWRSTS_OFF_ON,
++	.pwrsts = PWRSTS_RET_ON,
+ };
+ 
+ static struct gdsc usb30_sec_gdsc = {
