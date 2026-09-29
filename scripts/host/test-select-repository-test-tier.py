@@ -346,7 +346,7 @@ class WorkflowSelectionTest(unittest.TestCase):
 
     def test_stable_checks_and_head_identity(self) -> None:
         self.assertEqual(set(self.jobs),
-                         {"head-exact", "merge-compat", "candidate-publication", "panel-driver", "board-production", "qemu-system"})
+                         {"head-exact", "merge-compat", "panel-driver", "board-production"})
         self.assertNotRegex(self.jobs["head-exact"], r"(?m)^    if:")
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}",
                       self.jobs["head-exact"])
@@ -362,7 +362,6 @@ class WorkflowSelectionTest(unittest.TestCase):
         self.assertIn("--event merge", merge)
         self.assertIn("'${{ github.event.pull_request.base.sha }}' \\\n            HEAD)", merge)
         self.assertNotIn("ref: ${{ github.event.pull_request.head.sha", merge)
-        self.assertIn("qemu: ${{ steps.select-tier.outputs.qemu }}", merge)
 
     def test_merge_checkout_survives_ref_regeneration_after_event(self) -> None:
         # Observed CI: same merge parents, different merge SHA by checkout time.
@@ -414,37 +413,6 @@ class WorkflowSelectionTest(unittest.TestCase):
                         translated = condition.replace("steps.select-tier.outputs.test_tier", repr(tier))
                         self.assertEqual(eval(translated, {"__builtins__": {}}), tier != "active")
             self.assertNotIn("        if:", steps["Install native test dependencies"])
-
-    def test_qemu_dependency_and_skipped_semantics(self) -> None:
-        job = self.jobs["qemu-system"]
-        self.assertIn("needs: [head-exact, merge-compat]", job)
-        expression = re.search(r"    if: >-\n(.*?)\n    runs-on:", job, re.S).group(1)
-        self.assertIn("!cancelled()", expression)  # Override implicit success() on skipped needs.
-        for head_status, merge_status, head_qemu, merge_qemu, cancelled, expected in (
-            ("success", "skipped", "yes", "", False, True),  # main/manual/schedule
-            ("success", "skipped", "no", "", False, False),  # main docs
-            ("success", "success", "no", "no", False, False),  # PR docs
-            ("success", "success", "yes", "no", False, True),
-            ("success", "success", "no", "yes", False, True),  # merge-only runtime
-            ("failure", "success", "yes", "yes", False, False),
-            ("success", "failure", "yes", "yes", False, False),
-            ("cancelled", "success", "yes", "yes", False, False),
-            ("success", "cancelled", "yes", "yes", False, False),
-            ("success", "success", "yes", "yes", True, False),
-        ):
-            with self.subTest(head=head_status, merge=merge_status, qemu=(head_qemu, merge_qemu)):
-                translated = " ".join(expression.split())
-                for token, value in {
-                    "!cancelled()": not cancelled,
-                    "needs.head-exact.result": head_status,
-                    "needs.merge-compat.result": merge_status,
-                    "needs.head-exact.outputs.qemu": head_qemu,
-                    "needs.merge-compat.outputs.qemu": merge_qemu,
-                }.items():
-                    translated = translated.replace(token, repr(value))
-                translated = translated.replace("&&", " and ").replace("||", " or ")
-                self.assertEqual(eval(translated, {"__builtins__": {}}), expected)
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

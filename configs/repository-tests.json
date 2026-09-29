@@ -3313,27 +3313,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-qemu-system-smoke-contract.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-qemu-network-root-nfs-hostile.sh",
       "interpreter": "bash",
       "tiers": [

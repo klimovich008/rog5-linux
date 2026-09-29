@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 # The receipt parser for initramfs/persistent-root-shutdown-standalone. The
-# socket receiver that armed it (headless-stage-receiver.py) is retired.
+# socket receiver that armed it is retired.
 SPEC=importlib.util.spec_from_file_location('teardown_observation_tests',Path(__file__).with_name('source-teardown-observation.py'))
 M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M)
 BOOT='12345678-1234-4abc-8def-1234567890ab'
