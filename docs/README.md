@@ -45,7 +45,7 @@ kept because tests or other records still refer to them.
 - [recovery-control-plane.md](recovery-control-plane.md): *(historical)* framed recovery control plane and diagnostic generations 0-12.
 - [reusable-recovery-claim-model.md](reusable-recovery-claim-model.md): reusable recovery transport versus one-use target claims.
 - [storage-trust-boundary.md](storage-trust-boundary.md): UFS discovery and writable-runtime trust boundary audit.
-- [dedicated-linux-layout-v1.md](dedicated-linux-layout-v1.md): unexecuted proposal for a dedicated Linux partition layout.
+- [dedicated-linux-layout-v1.md](history/dedicated-linux-layout-v1.md): unexecuted proposal for a dedicated Linux partition layout.
 - [post-wipe-restoration.md](post-wipe-restoration.md): private bundle for rebuilding the Linux environment after a factory reset.
 - [asus-charging-recovery.md](asus-charging-recovery.md): completed repair of stock charging (`super` metadata); guard against repeating it.
 - [minimal-headless-live-cycle.md](minimal-headless-live-cycle.md): *(historical)* one-shot temporary-boot lifecycle runbook.
