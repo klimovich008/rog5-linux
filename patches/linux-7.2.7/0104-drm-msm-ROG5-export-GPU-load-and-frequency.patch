@@ -1,0 +1,197 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm: ROG5 export GPU load and frequency
+
+System monitors (GNOME Resources, nvtop-style tools) read GPU load from the
+amdgpu-style device/gpu_busy_percent and the clock from a hwmon under the
+DRM card's device. msm has neither, so the Adreno shows no load or clock.
+
+Keep the devfreq sample's busy/total ratio (0 while suspended; published
+under the devfreq lock so a sample racing suspend cannot overwrite the zero)
+and export it as gpu_busy_percent on the GPU device, and register an
+"msm_gpu" hwmon with freq1_input (current GPU clock, Hz) when hwmon is
+reachable. Both are removed in msm_devfreq_cleanup() before the GPU is torn
+down, and msm_gpu_init()'s error path now calls msm_devfreq_cleanup() too.
+The GPU temperature stays with the gpu-*-thermal zones: a by-name thermal
+zone lookup at read time holds no reference (review 2026-09-29).
+
+--- a/drivers/gpu/drm/msm/msm_gpu.h	2026-09-29 22:28:58.480471929 +0200
++++ b/drivers/gpu/drm/msm/msm_gpu.h	2026-09-29 22:29:23.003594595 +0200
+@@ -148,6 +148,18 @@
+ 	 * cycles since last sampling period.
+ 	 */
+ 	u64 busy_cycles;
++
++	/**
++	 * @busy_percent: GPU load over the last devfreq sample, 0 while
++	 * suspended (ROG5: exported as gpu_busy_percent for monitors)
++	 */
++	unsigned int busy_percent;
++
++	/** @exported: gpu_busy_percent attribute group added (ROG5) */
++	bool exported;
++
++	/** @hwmon: "msm_gpu" hwmon device with the GPU clock (ROG5) */
++	struct device *hwmon;
+ 	/** @time: Time of last sampling period.  */
+ 	ktime_t time;
+ 	/** @idle_time: Time of last transition to idle.  */
+--- a/drivers/gpu/drm/msm/msm_gpu.c	2026-09-29 22:28:58.424196009 +0200
++++ b/drivers/gpu/drm/msm/msm_gpu.c	2026-09-29 22:29:23.004058483 +0200
+@@ -1035,6 +1035,9 @@
+ 
+ 	msm_gem_kernel_put(gpu->memptrs_bo, gpu->vm);
+ 
++	/* ROG5: also undo msm_devfreq_init() (exports, cooling, QoS) */
++	msm_devfreq_cleanup(gpu);
++
+ 	platform_set_drvdata(pdev, NULL);
+ 	return ret;
+ }
+--- a/drivers/gpu/drm/msm/msm_gpu_devfreq.c	2026-09-29 22:28:58.480609292 +0200
++++ b/drivers/gpu/drm/msm/msm_gpu_devfreq.c	2026-09-29 22:29:39.947079570 +0200
+@@ -9,6 +9,8 @@
+ 
+ #include <linux/devfreq.h>
+ #include <linux/devfreq_cooling.h>
++#include <linux/hwmon.h>
++#include <linux/hwmon-sysfs.h>
+ #include <linux/math64.h>
+ #include <linux/units.h>
+ 
+@@ -91,6 +93,7 @@
+ 	df->time = time;
+ 
+ 	if (df->suspended) {
++		WRITE_ONCE(df->busy_percent, 0);
+ 		mutex_unlock(&df->lock);
+ 		status->busy_time = 0;
+ 		return 0;
+@@ -109,6 +112,16 @@
+ 
+ 	status->busy_time = busy_time;
+ 
++	/*
++	 * Publish under the lock and only while active, so a sample that
++	 * raced msm_devfreq_suspend() cannot overwrite its zero.
++	 */
++	mutex_lock(&df->lock);
++	if (!df->suspended)
++		WRITE_ONCE(df->busy_percent, status->total_time ?
++			   min_t(u64, div64_u64((u64)busy_time * 100, status->total_time), 100) : 0);
++	mutex_unlock(&df->lock);
++
+ 	return 0;
+ }
+ 
+@@ -130,6 +143,87 @@
+ static void msm_devfreq_boost_work(struct kthread_work *work);
+ static void msm_devfreq_idle_work(struct kthread_work *work);
+ 
++/*
++ * ROG5: system monitors (Resources, nvtop-style tools) look for the
++ * amdgpu-style device/gpu_busy_percent and a hwmon under the DRM card's
++ * device. Export the devfreq load and the current GPU clock. Both are
++ * removed in msm_devfreq_cleanup() before the GPU is torn down; kernfs
++ * removal waits for readers in progress. Temperature stays with the
++ * gpu-*-thermal zones (a by-name zone lookup holds no reference).
++ */
++static ssize_t gpu_busy_percent_show(struct device *dev,
++				     struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "%u\n", READ_ONCE(dev_to_gpu(dev)->devfreq.busy_percent));
++}
++static DEVICE_ATTR_RO(gpu_busy_percent);
++
++static struct attribute *msm_gpu_busy_attrs[] = {
++	&dev_attr_gpu_busy_percent.attr,
++	NULL
++};
++
++static const struct attribute_group msm_gpu_busy_group = {
++	.attrs = msm_gpu_busy_attrs,
++};
++
++static ssize_t freq1_input_show(struct device *dev,
++				struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "%lu\n", get_freq(dev_get_drvdata(dev)));
++}
++static SENSOR_DEVICE_ATTR_RO(freq1_input, freq1_input, 0);
++
++static ssize_t freq1_label_show(struct device *dev,
++				struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "sclk\n");
++}
++static SENSOR_DEVICE_ATTR_RO(freq1_label, freq1_label, 0);
++
++static struct attribute *msm_gpu_hwmon_attrs[] = {
++	&sensor_dev_attr_freq1_input.dev_attr.attr,
++	&sensor_dev_attr_freq1_label.dev_attr.attr,
++	NULL
++};
++ATTRIBUTE_GROUPS(msm_gpu_hwmon);
++
++static void msm_devfreq_export(struct msm_gpu *gpu)
++{
++	struct msm_gpu_devfreq *df = &gpu->devfreq;
++	struct device *dev = &gpu->pdev->dev;
++
++	if (device_add_group(dev, &msm_gpu_busy_group))
++		dev_warn(dev, "gpu_busy_percent not exported\n");
++	else
++		df->exported = true;
++
++	if (IS_REACHABLE(CONFIG_HWMON)) {
++		struct device *hwmon;
++
++		hwmon = hwmon_device_register_with_groups(dev, "msm_gpu", gpu,
++							  msm_gpu_hwmon_groups);
++		if (IS_ERR(hwmon))
++			dev_warn(dev, "GPU hwmon not registered: %ld\n", PTR_ERR(hwmon));
++		else
++			df->hwmon = hwmon;
++	}
++}
++
++static void msm_devfreq_unexport(struct msm_gpu *gpu)
++{
++	struct msm_gpu_devfreq *df = &gpu->devfreq;
++
++	if (IS_REACHABLE(CONFIG_HWMON) && df->hwmon) {
++		hwmon_device_unregister(df->hwmon);
++		df->hwmon = NULL;
++	}
++	if (df->exported) {
++		device_remove_group(&gpu->pdev->dev, &msm_gpu_busy_group);
++		df->exported = false;
++	}
++}
++
+ static bool has_devfreq(struct msm_gpu *gpu)
+ {
+ 	struct msm_gpu_devfreq *df = &gpu->devfreq;
+@@ -188,6 +282,7 @@
+ 	}
+ 
+ 	devfreq_suspend_device(df->devfreq);
++	msm_devfreq_export(gpu);
+ 
+ 	gpu->cooling = of_devfreq_cooling_register(gpu->pdev->dev.of_node, df->devfreq);
+ 	if (IS_ERR(gpu->cooling)) {
+@@ -221,6 +316,7 @@
+ 	if (!has_devfreq(gpu))
+ 		return;
+ 
++	msm_devfreq_unexport(gpu);
+ 	devfreq_cooling_unregister(gpu->cooling);
+ 	dev_pm_qos_remove_request(&df->boost_freq);
+ }
+@@ -251,6 +347,7 @@
+ 
+ 	mutex_lock(&df->lock);
+ 	df->suspended = true;
++	WRITE_ONCE(df->busy_percent, 0);
+ 	mutex_unlock(&df->lock);
+ 
+ 	devfreq_suspend_device(df->devfreq);

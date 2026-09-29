@@ -69,7 +69,7 @@
 0101-drm-msm-dpu-ROG5-apply-video-mode-perf-votes-before-the-encoders-start.patch
 0102-drm-msm-a6xx-ROG5-gpu_corner_offsets-GPU-undervolt-by-RPMh-corner.patch
 0103-arm64-cpuinfo-ROG5-name-Arm-cores-in-model-name.patch
-0104-drm-msm-ROG5-export-GPU-load-frequency-and-temperature.patch
+0104-drm-msm-ROG5-export-GPU-load-and-frequency.patch
 0105-clk-qcom-gcc-sm8350-keep-the-primary-USB-GDSC-in-retention.patch
 0106-interconnect-qcom-sm8350-ROG5-urgency-forwarding-for-display.patch
 0107-iommu-arm-smmu-qcom-identity-default-domain-for-the-SM8350-MDSS.patch
