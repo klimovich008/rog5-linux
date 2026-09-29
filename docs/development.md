@@ -195,9 +195,9 @@ The slot-B loader boots the selector's primary bundle while the p23 try-once
 record (`/rog5/boot/wifi-trial-state`) is absent or healthy, and re-arms it
 to pending on each primary boot. A boot that does not mark itself healthy
 sends the next boot to the selector's fallback, currently
-`production-7.2.7-safe-r6` (kernel build r69, DTB platform-usbbtm-dtb-r2, no
-trial descriptor; the `bundles` entry of `docs/status/components.json` names
-the installed pair). Older fallbacks, down to V11, stay on p24 for a manual
+`production-7.2.7-safe-r7` since r188 (kernel build r69, DTB
+platform-usbbtm-dtb-r2, no trial descriptor; the `bundles` entry of
+`docs/status/components.json` names the installed pair). Older fallbacks, down to V11, stay on p24 for a manual
 rollback. The production ramdisk commits itself when it is built with a
 trial descriptor:
 

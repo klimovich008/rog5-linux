@@ -60,7 +60,7 @@ After an install, update `bundles` and the affected components in
   `05c6 900e` is the Qualcomm crashdump screen. `lsusb | grep 0b05` cannot see
   Linux. Host NCM interface: `enp4s0f3u1u2` with 10.77.0.1/30 (after a replug
   run `nmcli con up rog5-standalone-shared`). An ordinary reboot boots the
-  selector's primary, or its fallback `production-7.2.7-safe-r6` after an
+  selector's primary, or its fallback (`production-7.2.7-safe-r7` since r188) after an
   uncommitted boot (older fallbacks, down to V11, stay on p24).
   Manual rescue runbook: docs/development.md.
 - External references (pmOS pdx215, sm8350-mainline OnePlus DT, old i005d DTS):
