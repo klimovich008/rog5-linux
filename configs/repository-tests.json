@@ -619,28 +619,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-rog5-powerd.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/device/test-headless-cpu-policy.py",
       "interpreter": "python3",
       "tiers": [

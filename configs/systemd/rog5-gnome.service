@@ -11,7 +11,7 @@ Requires=rog5-platform-modules.service
 # After=rog5-phosh: when one replaces the other, the stop finishes before the
 # start (Phosh's tty hangup killed GNOME's start when both ran at once).
 After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service rog5-phosh.service
-Conflicts=rog5-phosh.service rog5-denial.service
+Conflicts=rog5-phosh.service
 Wants=rog5-touchpad.service
 ConditionPathExists=/usr/bin/gnome-session
 

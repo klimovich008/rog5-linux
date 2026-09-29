@@ -97,11 +97,11 @@ while :; do
 	# is not "no session": only act when nothing runs or is queued for a
 	# while, e.g. after a failed GNOME start. Acting early cancelled the
 	# "Desktop mode" launcher's GNOME start (14:16).
-	states=,$(systemctl is-active rog5-phosh.service rog5-gnome.service rog5-denial.service 2>/dev/null | paste -sd,),
+	states=,$(systemctl is-active rog5-phosh.service rog5-gnome.service 2>/dev/null | paste -sd,),
 	case $states in
 	*,active,*|*,activating,*|*,deactivating,*|*,reloading,*) nosess=0 ;;
 	*)
-		if systemctl list-jobs --no-legend 2>/dev/null | grep -qE "rog5-(phosh|gnome|denial)"; then
+		if systemctl list-jobs --no-legend 2>/dev/null | grep -qE "rog5-(phosh|gnome)"; then
 			nosess=0
 		else
 			nosess=$((nosess + POLL))

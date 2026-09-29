@@ -1,13 +1,12 @@
 # Phosh session for the unprivileged "phone" user, started without a display
 # manager (like upstream's former phosh.service). systemd runs only the PAM
 # account and session stacks, so this auto-logs in; phosh starts on its lock
-# screen and the user's PIN unlocks it. SSH is key-only. Denial and Phosh both need DRM master and
-# the input devices, so they conflict; rog5-shell switches between them.
+# screen and the user's PIN unlocks it. SSH is key-only. GNOME desktop mode
+# (rog5-gnome.service) conflicts with it: both need DRM master and the input devices.
 [Unit]
 Description=Phosh mobile session on the ROG5 OLED
 Requires=rog5-platform-modules.service
 After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service
-Conflicts=rog5-denial.service
 ConditionPathExists=/usr/bin/phosh-session
 
 [Service]

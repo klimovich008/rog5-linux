@@ -19,8 +19,8 @@
 # After every wake the phone stays up at least ROG5_SLEEP_AWAKE seconds
 # (default 15) so network and timers get a window, then suspends again if
 # nothing changed. Plugging USB in keeps it awake. The power key (a PMIC
-# wakeup source) wakes the phone, but Denial re-activates its seat session on
-# resume and drops key events that arrive meanwhile, so when the power key
+# wakeup source) wakes the phone, but a shell that re-activates its seat session
+# on resume drops key events that arrive meanwhile (seen with Denial, 2026-09), so when the power key
 # was the wake reason this daemon replays one KEY_POWER press through uinput
 # (only while the display is still off, so it can never switch it back off).
 # Suspend uses s2idle: a power-key wake from PSCI deep suspend warm-reset the
@@ -183,7 +183,7 @@ os.close(fd)
 PY
 }
 
-# After a power-key wake: turn the display on once Denial listens again.
+# After a power-key wake: turn the display on once the shell listens again.
 wake_display() {
 	[ -e /dev/uinput ] || modprobe -d /run/rog5-modules uinput 2>/dev/null || modprobe uinput 2>/dev/null
 	tries=0
