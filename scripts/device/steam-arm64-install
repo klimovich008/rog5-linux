@@ -20,19 +20,19 @@ root=${STEAMROOT:-$HOME/.local/share/Steam}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
 curl -fsS --max-time 60 "$cdn/$manifest" -o "$tmp/manifest"
-# The "bins_linuxarm64_linuxarm64" block: its "file" and "sha2" values.
-block=$(awk '/"bins_linuxarm64_linuxarm64"/{f=1} f{print} f&&/}/{exit}' "$tmp/manifest")
-file=$(printf '%s\n' "$block" | awk -F'"' '$2=="file"{print $4; exit}')
-sha=$(printf '%s\n' "$block" | awk -F'"' '$2=="sha2"{print $4; exit}')
-[ -n "$file" ] && [ -n "$sha" ] || { echo 'steam-arm64-install: package not in the manifest' >&2; exit 1; }
-
-echo "downloading $file"
-curl -fL --max-time 900 "$cdn/$file" -o "$tmp/bins.zip"
-echo "$sha  $tmp/bins.zip" | sha256sum -c --quiet || { echo 'steam-arm64-install: SHA-256 mismatch' >&2; exit 1; }
 mkdir -p "$root"
-unzip -o -qq "$tmp/bins.zip" -d "$root"
-# Valve's zip carries no permissions: mark ELF programs and #! scripts
-# executable.
+# Every package of the manifest (what Steam's bootstrapper fetches): its "file"
+# and "sha2"; each is checked before it is unpacked.
+awk -F'"' 'NF>=4 && $2=="file"{f=$4} NF>=4 && $2=="sha2" && f{print f, $4; f=""}' "$tmp/manifest" |
+while read -r file sha; do
+	echo "downloading $file"
+	curl -fsSL --max-time 900 "$cdn/$file" -o "$tmp/pkg.zip"
+	echo "$sha  $tmp/pkg.zip" | sha256sum -c --quiet || { echo "steam-arm64-install: SHA-256 mismatch for $file" >&2; exit 1; }
+	unzip -o -qq "$tmp/pkg.zip" -d "$root"
+	rm -f "$tmp/pkg.zip"
+done
+# Valve's zips carry no usable permissions: mark ELF programs and #! scripts
+# executable, nothing world-writable.
 find "$root" -type f -size +3c | while IFS= read -r f; do
 	case $(head -c 4 "$f" | od -An -c | tr -d ' \n') in
 	177ELF* | '#!'*) chmod +x "$f" ;;
@@ -40,6 +40,10 @@ find "$root" -type f -size +3c | while IFS= read -r f; do
 done
 chmod -R go-w "$root"
 [ -x "$root/steamrtarm64/steam" ] || { echo "steam-arm64-install: no $root/steamrtarm64/steam" >&2; exit 1; }
+
+# The data links steam.sh would create; the client refuses to start without.
+mkdir -p "$HOME/.steam"
+for link in steam root; do ln -sfn "$root" "$HOME/.steam/$link"; done
 
 apps=$HOME/.local/share/applications
 mkdir -p "$apps"
