@@ -392,9 +392,17 @@ class WorkflowSelectionTest(unittest.TestCase):
                 r"      - name: ([^\n]+)\n(.*?)(?=      - |\Z)", job, re.S))
             # The active composition suite invokes the hash-pinned unpacker.
             # A clean checkout must supply it even without a boot template.
-            self.assertNotIn("        if:", steps["Bootstrap pinned Android boot tools"])
+            # Restored from the cache or fetched on a miss, then always verified
+            # against the fetcher's pinned hashes, in every tier.
+            self.assertIn("path: artifacts/android-boot-tools-v1",
+                          steps["Restore pinned Android boot tools"])
+            self.assertNotIn("        if:", steps["Restore pinned Android boot tools"])
+            self.assertEqual(re.findall(r"^        if: (.+)$", steps["Bootstrap pinned Android boot tools"], re.M),
+                             ["steps.boot-tools-cache.outputs.cache-hit != 'true'"])
             self.assertIn("scripts/host/fetch-android-boot-tools.sh",
                           steps["Bootstrap pinned Android boot tools"])
+            self.assertNotIn("        if:", steps["Verify pinned Android boot tools"])
+            self.assertIn("sha256sum -c -", steps["Verify pinned Android boot tools"])
             for name in ("Build canonical boot-v3 template",):
                 with self.subTest(job=job_name, step=name):
                     match = re.search(r"^        if: (.+)$", steps[name], re.M)
