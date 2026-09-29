@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual FTS power callbacks + Linux7.1.4 regulator accounting under faults."""
+"""Actual FTS power callbacks + Linux v7.2.7 regulator accounting under faults."""
 import argparse
 import hashlib
 import os
@@ -57,7 +57,7 @@ def main():
     started = time.monotonic()
     inputs = [args.driver, *sorted(FIXTURE.iterdir())]
     pins = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
-    core = (FIXTURE / 'regulator-core-v7.1.4.c').read_text()
+    core = (FIXTURE / 'regulator-core-v7.2.7.c').read_text()
     if args.linux_source:
         source = (args.linux_source / 'drivers/regulator/core.c').read_text()
         for name in FUNCTIONS:

@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 // SPDX-License-Identifier: MIT
-/* Exact Linux v7.1.4 (7a5cef0db479) lifecycle functions; extracted, not modeled. */
+/* Exact Linux v7.2.7 (f42acb367842) lifecycle functions, unchanged since v7.1.4; extracted, not modeled. */
 
 void drm_panel_prepare(struct drm_panel *panel)
 {

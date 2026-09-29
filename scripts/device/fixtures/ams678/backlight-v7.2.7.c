@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Backlight Lowlevel Control Abstraction
  * Copyright (C) 2003,2004 Hewlett-Packard Company
- * Exact extracts from Linux7.1.4 base7a5cef0db479.
+ * Exact extracts from Linux v7.2.7 (f42acb367842); unchanged since v7.1.4.
  * Registration, event notification and DSI transport remain host boundaries. */
 
 static inline int backlight_update_status(struct backlight_device *bd)

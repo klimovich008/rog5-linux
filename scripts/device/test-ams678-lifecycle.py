@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile the patch's actual callbacks with fault-injected hardware APIs.
 
-The DRM core fixture is an exact extract from pinned Linux v7.1.4. The scoped
+The DRM core fixture is an exact extract from Linux v7.2.7 (identical in v7.1.4). The scoped
 kernel compile check compares that extract to the actual base again. This test
 does not load a module or establish physical panel behavior.
 """
@@ -46,9 +46,9 @@ def main():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     inputs = [args.patch, *sorted(FIXTURES.iterdir())]
     pins = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
-    core = (FIXTURES / 'drm-panel-v7.1.4.c').read_text()
-    brightness = (FIXTURES / 'drm-brightness-v7.1.4.c').read_text()
-    backlight = (FIXTURES / 'backlight-v7.1.4.c').read_text()
+    core = (FIXTURES / 'drm-panel-v7.2.7.c').read_text()
+    brightness = (FIXTURES / 'drm-brightness-v7.2.7.c').read_text()
+    backlight = (FIXTURES / 'backlight-v7.2.7.c').read_text()
     if args.linux_source:
         exact = (args.linux_source / 'drivers/gpu/drm/drm_panel.c').read_text()
         for name in ('prepare', 'unprepare', 'enable', 'disable'):

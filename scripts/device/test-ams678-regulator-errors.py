@@ -65,7 +65,7 @@ def main():
     args = parser.parse_args()
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     started = time.monotonic()
-    inputs = [args.patch, SHARED / 'stubs.h', SHARED / 'regulator-core-v7.1.4.c', CASES_FILE]
+    inputs = [args.patch, SHARED / 'stubs.h', SHARED / 'regulator-core-v7.2.7.c', CASES_FILE]
     pins = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
     core = inputs[2].read_text()
     if args.linux_source:

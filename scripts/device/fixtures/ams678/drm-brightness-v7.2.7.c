@@ -25,7 +25,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 // SPDX-License-Identifier: MIT
-/* Exact Linux v7.1.4 large-brightness helper. */
+/* Exact Linux v7.2.7 large-brightness helper (unchanged since v7.1.4). */
 int mipi_dsi_dcs_set_display_brightness_large(struct mipi_dsi_device *dsi,
 					     u16 brightness)
 {
