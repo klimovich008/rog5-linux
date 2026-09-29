@@ -143,7 +143,7 @@ rootfs identity unchanged. See the
 The builder pins the amd64 Ubuntu 24.04 and CA-bootstrap image manifests, the
 Ubuntu archive at `20260728T000000Z`, the CA bundle hash, and the complete
 247-package installed closure in
-[`manifests/kernel-builder-packages.tsv`](../manifests/kernel-builder-packages.tsv).
+`manifests/kernel-builder-packages.tsv` (`manifests/kernel-builder-packages.tsv`, archived 2026-09-29).
 It removes volatile package logs and generated APT binary caches, normalizes
 the OCI timestamp, and verifies each finished image with networking disabled.
 Signed snapshot indexes and packages use local build-cache mounts only to

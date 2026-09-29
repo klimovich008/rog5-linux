@@ -1,13 +1,13 @@
 # Retained artifact identities
 
-Use [the current pointer](../manifests/current-artifact.json) to distinguish the
+Use the current pointer (`manifests/current-artifact.json`, archived 2026-09-29) to distinguish the
 last observed runtime from the prepared signed candidate and new source work.
 Neither a directory name nor `status: active` authorizes a boot or installation.
 The existing signing, exact-byte admission and consumed-claim checks remain
 authoritative. Current review fixes are **NOT INSTALLED**; an affected-driver
 compile produces an unsigned test artifact, not a candidate.
 
-[The set inventory](../manifests/artifact-sets.json) contains one manifest object
+The set inventory (`manifests/artifact-sets.json`, archived 2026-09-29) contains one manifest object
 per retained directory set. It covers all 827 rows in `manifests/artifacts.tsv`,
 all 177 tracked artifact files and the named private prepared IOMMU package:
 442 sets total. Per-output status resolves mixed sets. `retired` means a retained
