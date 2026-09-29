@@ -11,7 +11,10 @@ the mainline kernel runs directly on the hardware.
 
 ## Status
 
-As of 2026-09-29.
+As of 2026-09-29. Green is ready, yellow partial, blue needs a test, red
+missing ([what's left and tests to do](docs/whats-left.md)):
+
+![Component status map](docs/images/status-map.svg)
 
 ### What works
 
@@ -37,10 +40,13 @@ As of 2026-09-29.
 |---|---|---|
 | Geekbench 6 CPU, single-core | 1580 | ~1450-1500 |
 | Geekbench 6 CPU, multi-core | 4191 | ~3550-3650 |
-| Geekbench 6 Vulkan | ~4950-5140 | |
+| Geekbench 6 Vulkan, normal thermal limits | ~4660-4780 | ~4509 |
+| Geekbench 6 Vulkan, `rog5-perf-mode performance` | 5405 | |
 
 The Vulkan result requires the included drirc turnip workaround
 `tu_restrict_subgroup_size_64` (see [`configs/drirc/`](configs/drirc/)).
+Sustained GPU speed is limited by the case (skin) temperature policy; see
+[`test-results/2026-09-29-gpu-performance.md`](test-results/2026-09-29-gpu-performance.md).
 
 ### Partial / known issues
 
