@@ -1,6 +1,6 @@
 #!/bin/sh
 # Move the Wi-Fi client link from the kit's wpa_supplicant/dhcpcd units to
-# NetworkManager, so Denial (NetworkManagerService over D-Bus) can scan,
+# NetworkManager, so the shell (Phosh, over D-Bus) can scan,
 # connect, forget and configure networks. Runs on the phone as root.
 #
 #   rog5-wifi-networkmanager.sh apply     configure, import, switch over
