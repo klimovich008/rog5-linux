@@ -63,3 +63,4 @@
 0095-drm-msm-dp-ROG5-bring-up-knobs-dp_widebus-dp_tpg-and-a-mode-line.patch
 0096-drm-msm-dp-ROG5-sink-status-log-and-stock-equivalence-knobs.patch
 0097-drm-msm-phy-qmp-ROG5-knobs-for-DPU-block-order-DP-drive-floor-and-TX-polarity.patch
+0098-drm-msm-dp-check-the-link-bandwidth-with-the-link-pixel-rate.patch

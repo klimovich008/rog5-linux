@@ -1,0 +1,50 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: check the link bandwidth with the link pixel rate
+
+msm_dp_bridge_mode_valid() halves the pixel clock when the wide bus is
+available and then uses the halved clock for both the DP_MAX_PIXEL_CLK
+check and the link bandwidth check. The wide bus halves the interface
+clock only; the data on the link is unchanged (only YUV 420 halves it).
+With the ROG5 side port limited to HBR x2 (4.32 Gbit/s), 3840x1080@60
+(6.84 Gbit/s at 24 bpp) was offered and failed. Use the link pixel rate
+for the bpp choice and the bandwidth check.
+
+--- a/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 13:23:02.274603445 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 13:23:02.288683796 +0200
+@@ -766,7 +766,7 @@
+ 	struct msm_dp_link_info *link_info;
+ 	u32 mode_rate_khz = 0, supported_rate_khz = 0, mode_bpp = 0;
+ 	struct msm_dp *dp;
+-	int mode_pclk_khz = mode->clock;
++	int mode_pclk_khz = mode->clock, link_pclk_khz;
+ 	bool is_yuv_420;
+ 
+ 	dp = to_dp_bridge(bridge)->msm_dp_display;
+@@ -788,7 +788,14 @@
+ 	if (is_yuv_420 && !msm_dp_display->panel->vsc_sdp_supported)
+ 		return MODE_NO_420;
+ 
+-	if (is_yuv_420 || msm_dp_display->wide_bus_supported)
++	/*
++	 * The wide bus halves the interface clock, not the data on the link:
++	 * only YUV 420 halves the link rate. Check the bandwidth with the link
++	 * pixel rate (ROG5: 3840x1080 passed at HBR with the wide bus on).
++	 */
++	link_pclk_khz = is_yuv_420 ? mode->clock / 2 : mode->clock;
++
++	if (is_yuv_420 || msm_dp_wide_bus_available(dp))
+ 		mode_pclk_khz /= 2;
+ 
+ 	if (mode_pclk_khz > DP_MAX_PIXEL_CLK_KHZ)
+@@ -799,9 +806,9 @@
+ 		mode_bpp = default_bpp;
+ 
+ 	mode_bpp = msm_dp_panel_get_mode_bpp(msm_dp_display->panel,
+-			mode_bpp, mode_pclk_khz);
++			mode_bpp, link_pclk_khz);
+ 
+-	mode_rate_khz = mode_pclk_khz * mode_bpp;
++	mode_rate_khz = link_pclk_khz * mode_bpp;
+ 	supported_rate_khz = link_info->num_lanes * link_info->rate * 8;
+ 
+ 	if (mode_rate_khz > supported_rate_khz)
