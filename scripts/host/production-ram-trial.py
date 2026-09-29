@@ -29,7 +29,19 @@ import sys
 import threading
 import time
 
-SERIAL = 'ROG5-SERIAL-REDACTED'
+def _device_serial():
+    """The phone's fastboot serial lives outside git: $ROG5_DEVICE_SERIAL or
+    ~/.config/rog5/device-serial (one line, mode 0600)."""
+    value = os.environ.get('ROG5_DEVICE_SERIAL', '').strip()
+    if not value:
+        try:
+            value = (Path.home()/'.config/rog5/device-serial').read_text().strip()
+        except OSError:
+            value = ''
+    return value or 'ROG5-SERIAL-UNSET'
+
+
+SERIAL = _device_serial()
 PRODUCT = 'lahaina'
 IMAGE_SIZE = 134217728
 USB = Path(os.environ.get('ROG5_TRIAL_USB', '/sys/bus/usb/devices/1-1.2'))

@@ -62,6 +62,8 @@ def wifi():
     state = rd(f'/sys/class/net/{link}/operstate') if link else ''
     # The kit's wpa_supplicant has no wpa_cli socket; ask the driver instead.
     assoc = sh(f'iw dev {link} link 2>/dev/null | grep -E "Connected to|freq:|signal:|tx bitrate:"') if link else ''
+    # the access point BSSID identifies the owner's location: keep only "Connected"
+    assoc = re.sub(r'([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', 'xx:xx:xx:xx:xx:xx', assoc)
     ip = sh(f'ip -4 -br addr show {link} 2>/dev/null') if link else ''
     ok = state == 'up' and 'Connected to' in assoc and '.' in ip
     return result('pass' if ok else 'partial' if link else 'missing', interface=link, operstate=state,

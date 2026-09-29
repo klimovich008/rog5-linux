@@ -15,6 +15,8 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO/'scripts/host/production-ram-trial.py'
 SERIAL = 'ROG5-SERIAL-REDACTED'
+# the launcher reads the real serial from outside git; pin it to the fake device
+os.environ['ROG5_DEVICE_SERIAL'] = SERIAL
 
 FASTBOOT = r'''#!/bin/sh
 printf '%s\n' "$*" >>"$FAKE_LOG"
