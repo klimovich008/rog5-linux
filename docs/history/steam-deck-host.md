@@ -33,7 +33,7 @@ scripts/host/verify-steam-deck-builder.sh
 That profile pins the current reproducible rootfs identity and the
 byte-identical ASUS 5.4 oracle proof. It does not replace the frozen
 historical profile; see the
-[qualification result](../test-results/2026-07-30-steam-deck-asus-builder-qualified.md).
+[qualification result](../../test-results/2026-07-30-steam-deck-asus-builder-qualified.md).
 
 If a normalized rootfs identity ever differs, emit the underlying
 file-content and metadata stream for a direct diff:

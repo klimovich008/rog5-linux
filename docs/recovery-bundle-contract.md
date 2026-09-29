@@ -16,7 +16,9 @@ by stable recovery. The implementation is
 and QEMU aggregate are `scripts/device/build-recovery-bundle-verifier.sh` and
 `scripts/host/test-recovery-bundle-aarch64.sh`. The timestamped no-cache
 builder bootstrap is
-`scripts/host/build-recovery-bundle-verifier-image.sh`.
+`scripts/host/build-recovery-bundle-verifier-image.sh`. (Those three were archived
+on 2026-09-29 with the stable-recovery tooling; the verifier source, its host
+fault suite and the packager below are in use.)
 The atomic host packager is
 `scripts/host/prepare-recovery-runtime-bundle.py`, with refusal,
 determinism, metadata, native-verifier, and host-server coverage in

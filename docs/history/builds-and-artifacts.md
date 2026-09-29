@@ -246,7 +246,7 @@ changes. The importer refuses an existing volume and copies only inside the
 resolved rootless local-volume store before independently resealing it; it
 uses a random ownership label so failure cleanup cannot remove a same-named
 replacement, and it does not depend on a builder image. See the
-[Steam Deck host setup](../steam-deck-host.md) for the fresh-host runbook.
+[Steam Deck host setup](steam-deck-host.md) for the fresh-host runbook.
 
 Run a network-disabled kernel build with the verified image:
 

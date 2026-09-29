@@ -18,31 +18,31 @@ noVNC port in one SSH process.
 The sealed v10 diagnostic root contains the required Plasma/KRDP packages but
 predates the locked `rog5-agent` browser service. Keep its old Chromium unit
 disabled. The
-[offline userspace audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+[offline userspace audit](../../test-results/2026-07-27-arch-userspace-readiness-offline.md)
 requires current agent isolation and systemd checks before remote automation
 is promoted. A
-[fresh successor root](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+[fresh successor root](../../test-results/2026-07-27-arch-successor-rootfs-offline.md)
 now passes those offline checks. Its
-[protected export](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+[protected export](../../test-results/2026-07-27-arch-successor-protected-export-offline.md)
 also passes recursive and mutation verification. Its
-[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+[pre-live HOLD](../../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
 adds an explicit-token headless first-boot/reboot gate but does not start
 Plasma or KRDP. The root has not been booted, and remote GUI remains a later
 hardware/runtime acceptance tier.
 
 The newer
-[successor-v2 root](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+[successor-v2 root](../../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
 and its separate
-[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+[protected export](../../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 retain the same headless/optional-Plasma model while hardening the VPN-hotspot
 transition boundary. The
-[v2 pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+[v2 pre-live HOLD](../../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
 now verifies screen-off headless first boot, one normal reboot, and strict-SSH
 evidence flow, but does not start Plasma or KRDP. The root remains unserved
 and unbooted; no result authorizes a live cycle.
 
 The
-[successor-v3 protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+[successor-v3 protected pre-live HOLD](../../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
 extends that headless path with the confined physical-power-key service. Its
 target gate requires one real `pmic_pwrkey` input plus the exact active
 service, while still keeping Chromium, Plasma/KRDP, ttyd, and VPN hotspot
@@ -137,7 +137,7 @@ throttling. The image contains no browser session or provider credential.
 Initial capability is read, summarize, and draft. Connecting an account,
 sending mail, or submitting job applications stays behind explicit approval,
 as described in
-[security-automation.md](security-automation.md).
+[security-automation.md](../security-automation.md).
 
 The persistent Alpine 3.24 fallback now passes a narrower live checkpoint on
 its installed `5.4.134` vendor kernel: nested KWin Wayland, Plasma,
@@ -146,12 +146,12 @@ panel state is `off` and brightness is zero. The Linux host tunnel is enabled,
 loopback-only, and recovered after an induced SSH-process exit without
 duplicating the phone supervisor. An induced Chromium exit restored the
 browser and CDP in eight seconds. See the
-[live report](../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
+[live report](../../test-results/2026-07-27-alpine-remote-gui-linux-tunnel-live.md).
 This does not accept Linux 7.1 display/GPU support, a physical DRM Plasma
 session, KRDP, or a wide-area VPN path.
 
 A separate
-[screen-off resource report](../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+[screen-off resource report](../../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
 attributes about 390 MiB PSS to KDE, 345 MiB to Chromium, and 66.7 MiB to
 remote transport. With about 10.1 GiB available, zero swap, and 0.78%
 aggregate CPU in the low-overhead sample, the measured optimization is to

@@ -30,12 +30,12 @@ When another document disagrees with it, current state wins.
 - [post-wipe-restoration.md](post-wipe-restoration.md): rebuilding the Linux environment after a factory reset.
 - [asus-charging-recovery.md](asus-charging-recovery.md): the completed stock charging repair; guard against repeating it.
 
-## Host, remote access, licensing
+## Remote access and licensing
 
-- [steam-deck-host.md](steam-deck-host.md): the Steam Deck as build and analysis host.
-- [remote-gui.md](remote-gui.md): loopback-only remote tools through SSH forwarding.
 - [security-automation.md](security-automation.md): account boundary for remote AI clients and personal data.
 - [licensing-provenance.md](licensing-provenance.md): licensing and provenance inventory.
+- Remote desktop today: the headless Sway virtual desktop and the wayvnc phone
+  mirror (`configs/rog5-desktop`, `configs/systemd-user`), reached over SSH.
 
 ## Reviews
 
