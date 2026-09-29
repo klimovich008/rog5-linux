@@ -1,29 +1,36 @@
 #!/bin/sh
 # ROG5 desktop mode switcher (runs as root).
 #
-# External display connected and stable, and the Phosh session unlocked ->
+# External display connected and stable, and the phone unlocked in Phosh ->
 # GNOME desktop (rog5-gnome, touchscreen as touchpad). Display unplugged, or
-# the GNOME session idle -> Phosh, which starts on its PIN lock screen. GNOME
-# never starts from a locked phone, so plugging a monitor in does not bypass
-# the PIN. /var/lib/rog5/desktop-mode holds auto (default) or off.
+# GNOME idle for IDLE_SECS -> Phosh, which starts on its PIN lock screen.
+#
+# GNOME never starts from a locked phone: a new Phosh session briefly
+# reports LockedHint=no before its lock screen is up, so GNOME starts only
+# after this Phosh session has been seen locked and then unlocked.
+# /var/lib/rog5/desktop-mode holds auto (default) or off.
 set -u
 STATUS=/sys/class/drm/card1-DP-1/status
 MODE_FILE=/var/lib/rog5/desktop-mode
-ON_AFTER=6      # seconds of stable connection before switching to GNOME
-OFF_AFTER=4     # seconds of stable disconnection before switching back
-up=0 down=0
+ON_AFTER=6        # seconds of stable connection before switching to GNOME
+OFF_AFTER=4       # seconds of stable disconnection before switching back
+IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
+up=0 down=0 idle=0
+seen_locked_session=
 
-session_prop() {        # service prop -> value of the phone user's session
+phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
-		[ "$(loginctl show-session "$s" -p Service --value 2>/dev/null)" = "$1" ] || continue
+		[ "$(loginctl show-session "$s" -p Service --value 2>/dev/null)" = phosh ] || continue
 		[ "$(loginctl show-session "$s" -p State --value 2>/dev/null)" = closing ] && continue
-		loginctl show-session "$s" -p "$2" --value 2>/dev/null
+		echo "$s"
 		return
 	done
 }
 
 to_phosh() {
 	echo "rog5-desktop-mode: $1 -> Phosh"
+	seen_locked_session=
+	systemctl stop rog5-gnome.service
 	systemctl start rog5-phosh.service
 }
 
@@ -35,19 +42,42 @@ while :; do
 	else
 		down=$((down + 1)) up=0
 	fi
+	sess=$(phone_session)
 	if systemctl -q is-active rog5-gnome.service; then
+		if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
+			idle=$((idle + 1))
+		else
+			idle=0
+		fi
 		if [ "$mode" = off ]; then
 			to_phosh "desktop mode off"
 		elif [ "$down" -ge "$OFF_AFTER" ]; then
 			to_phosh "display unplugged"
-		elif [ "$(session_prop phosh IdleHint)" = yes ]; then
-			to_phosh "GNOME idle"
+		elif [ "$idle" -ge "$IDLE_SECS" ]; then
+			to_phosh "GNOME idle ${IDLE_SECS}s"
 		fi
-	elif [ "$mode" = auto ] && [ "$up" -ge "$ON_AFTER" ] &&
-	     systemctl -q is-active rog5-phosh.service &&
-	     [ "$(session_prop phosh LockedHint)" = no ]; then
+		continue
+	fi
+	idle=0
+	case ,$(systemctl is-active rog5-phosh.service rog5-denial.service 2>/dev/null | paste -sd,), in
+	*,active,*|*,activating,*|*,reloading,*) ;;
+	*)
+		# no session runs (a failed GNOME start): never leave the phone
+		# without its lock screen
+		to_phosh "no session"
+		continue ;;
+	esac
+	systemctl -q is-active rog5-phosh.service || continue
+	[ -n "$sess" ] || continue
+	locked=$(loginctl show-session "$sess" -p LockedHint --value 2>/dev/null)
+	[ "$locked" = yes ] && seen_locked_session=$sess
+	if [ "$mode" = auto ] && [ "$up" -ge "$ON_AFTER" ] && [ "$locked" = no ] &&
+	   [ "$seen_locked_session" = "$sess" ]; then
 		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
-		systemctl start rog5-gnome.service
+		systemctl stop rog5-phosh.service
+		if ! systemctl start rog5-gnome.service; then
+			to_phosh "GNOME failed to start"
+		fi
 		up=0
 	fi
 done

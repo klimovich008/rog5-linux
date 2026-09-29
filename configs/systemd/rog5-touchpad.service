@@ -1,7 +1,7 @@
 # The touchscreen as a touchpad while the GNOME desktop mode runs.
 [Unit]
 Description=ROG5 touchscreen as touchpad (desktop mode)
-PartOf=rog5-gnome.service
+BindsTo=rog5-gnome.service
 After=rog5-gnome.service
 
 [Service]
