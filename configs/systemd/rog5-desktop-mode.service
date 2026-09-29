@@ -1,0 +1,11 @@
+[Unit]
+Description=ROG5 desktop mode: GNOME on an external display, Phosh otherwise
+After=rog5-phosh.service
+
+[Service]
+ExecStart=/usr/local/libexec/rog5-desktop-mode
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# The touchscreen as a touchpad while the GNOME desktop mode runs.
+[Unit]
+Description=ROG5 touchscreen as touchpad (desktop mode)
+PartOf=rog5-gnome.service
+After=rog5-gnome.service
+
+[Service]
+ExecStartPre=/usr/bin/modprobe -d /run/rog5-modules uinput
+ExecStart=/usr/local/libexec/rog5-touchpad
+Restart=on-failure
+RestartSec=2

@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Use the ROG5 touchscreen as a touchpad (desktop mode on an external display).
+
+Grabs the front touchscreen exclusively and re-emits its multitouch slots
+through a virtual touchpad (uinput, INPUT_PROP_POINTER, BTN_TOOL_* finger
+counts, real resolution), so libinput gives the usual touchpad behaviour:
+tap to click, two-finger scroll and right-click, gestures, and the GNOME
+touchpad settings. Stop the process to give the touchscreen back.
+"""
+import argparse
+import glob
+import os
+import signal
+import sys
+
+import evdev
+from evdev import ecodes as e
+
+NAME = 'ASUS ROG5 MP2 front FTS3658U'
+# 1080x2448 px panel at ~395 dpi: 68.4 x 155 mm for 17280 x 39168 touch units.
+RESOLUTION = 253
+TOOLS = (e.BTN_TOOL_FINGER, e.BTN_TOOL_DOUBLETAP, e.BTN_TOOL_TRIPLETAP,
+         e.BTN_TOOL_QUADTAP, e.BTN_TOOL_QUINTTAP)
+
+
+def find_touchscreen(name):
+    for path in sorted(glob.glob('/dev/input/event*')):
+        try:
+            dev = evdev.InputDevice(path)
+        except OSError:
+            continue
+        if dev.name == name:
+            return dev
+        dev.close()
+    return None
+
+
+def make_touchpad(src):
+    absinfo = dict(src.capabilities(absinfo=True)[e.EV_ABS])
+
+    def axis(code, like=None):
+        info = absinfo[like if like is not None else code]
+        return code, evdev.AbsInfo(value=0, min=info.min, max=info.max, fuzz=0, flat=0,
+                                   resolution=RESOLUTION if code in (
+                                       e.ABS_X, e.ABS_Y, e.ABS_MT_POSITION_X, e.ABS_MT_POSITION_Y) else 0)
+
+    caps = {
+        e.EV_KEY: [e.BTN_LEFT, e.BTN_RIGHT, e.BTN_TOUCH, *TOOLS],
+        e.EV_ABS: [axis(e.ABS_X), axis(e.ABS_Y), axis(e.ABS_MT_SLOT),
+                   axis(e.ABS_MT_TOUCH_MAJOR), axis(e.ABS_MT_POSITION_X),
+                   axis(e.ABS_MT_POSITION_Y), axis(e.ABS_MT_TRACKING_ID)],
+    }
+    return evdev.UInput(caps, name='ROG5 phone touchpad', vendor=0x0b05, product=0x5ad0,
+                        version=1, bustype=e.BUS_VIRTUAL, input_props=[e.INPUT_PROP_POINTER])
+
+
+def run(src, pad):
+    slots = {}          # slot -> tracking id (active contacts)
+    slot = 0
+    tool = None
+    for ev in src.read_loop():
+        if ev.type == e.EV_ABS:
+            if ev.code == e.ABS_MT_SLOT:
+                slot = ev.value
+            elif ev.code == e.ABS_MT_TRACKING_ID:
+                if ev.value < 0:
+                    slots.pop(slot, None)
+                else:
+                    slots[slot] = ev.value
+            if ev.code in (e.ABS_X, e.ABS_Y, e.ABS_MT_SLOT, e.ABS_MT_TOUCH_MAJOR,
+                           e.ABS_MT_POSITION_X, e.ABS_MT_POSITION_Y, e.ABS_MT_TRACKING_ID):
+                pad.write(ev.type, ev.code, ev.value)
+        elif ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH:
+            pad.write(e.EV_KEY, e.BTN_TOUCH, ev.value)
+        elif ev.type == e.EV_SYN and ev.code == e.SYN_REPORT:
+            count = len(slots)
+            want = TOOLS[min(count, len(TOOLS)) - 1] if count else None
+            if want != tool:
+                if tool is not None:
+                    pad.write(e.EV_KEY, tool, 0)
+                if want is not None:
+                    pad.write(e.EV_KEY, want, 1)
+                tool = want
+            if not count:
+                pad.write(e.EV_KEY, e.BTN_TOUCH, 0)
+            pad.syn()
+        elif ev.type == e.EV_SYN and ev.code == e.SYN_DROPPED:
+            slots.clear()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('--name', default=NAME, help='touchscreen input device name')
+    args = parser.parse_args()
+    src = find_touchscreen(args.name)
+    if src is None:
+        sys.exit(f'touchscreen {args.name!r} not found')
+    pad = make_touchpad(src)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    src.grab()
+    print(f'{src.path} -> {pad.device.path if pad.device else "uinput"} (grabbed)', flush=True)
+    try:
+        run(src, pad)
+    finally:
+        try:
+            src.ungrab()
+        except OSError:
+            pass
+        pad.close()
+
+
+if __name__ == '__main__':
+    main()
