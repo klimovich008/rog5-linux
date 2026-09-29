@@ -111,10 +111,10 @@
 &mdss_dp_out {
 	data-lanes = <0 1>;
 	/*
-	 * HBR max: through the USB-C HDMI hub the side port counts ~25k symbol
-	 * errors/s on lane 1 at HBR2 and the converter never shows the DPU
-	 * stream; HBR is clean and shows the desktop (2026-09-29). Also bounds
-	 * mode validation. Drop the HBR2 cap once HBR2 signal integrity is fixed.
+	 * Up to HBR2. A USB-C monitor with native DP input gets 3840x1080@60 at
+	 * HBR2; a DP-to-HDMI converter (USB-C HDMI hub) trains at HBR2 but its
+	 * HDMI output stays dark, so kernel patch 0110 caps only such converters
+	 * at HBR (msm.dp_pcon_max_rate) (2026-09-30).
 	 */
-	link-frequencies = /bits/ 64 <1620000000 2700000000>;
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000>;
 };
