@@ -1,0 +1,13 @@
+<!--
+  ROG5 (Adreno 660, Mesa turnip 26.2): with double thread size turnip reports
+  maxComputeWorkGroupInvocations 2048 but maxComputeWorkGroupSize[0] 1024;
+  Geekbench 6 then dispatches {2048,1,1} and the GPU hangs (gpu fault,
+  hangcheck recover). Keep the subgroup size at 64 (invocations 1024).
+-->
+<driconf>
+    <device driver="turnip">
+        <application name="All" executable_regexp=".*">
+            <option name="tu_restrict_subgroup_size_64" value="true" />
+        </application>
+    </device>
+</driconf>
