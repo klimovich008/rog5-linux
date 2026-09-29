@@ -147,8 +147,11 @@ def network():
 
 def kernel_health():
     log = sh('journalctl -k -b --no-pager -o cat', 60)
-    pats = {'warn_bug_oops': r'WARNING: CPU|\bBUG:|Internal error:|Oops:|Call trace:',
-            'gpu_fault': r'hangcheck|gpu fault|smmu.*fault.*3d|gmu.*(timed? ?out|fault|fail)|recover(ing)? gpu',
+    pats = {'warn_bug_oops': r'WARNING: CPU|\bBUG:|Internal error:|\bOops:|Call trace:',
+            'gpu_fault': r'hangcheck|gpu fault|gmu.*(timed? ?out|fault|fail)|recover(ing)? gpu',
+            # The display engine (SIDs 0x820/0xc20) faults ~10 times at the
+            # bootloader-splash handover on every boot; count the rest.
+            'smmu_fault': r'Unhandled context fault(?!.*cbfrsynra=0x(820|c20),)',
             'dpu_underrun': r'underrun', 'usb_errors': r'usb .*error|device descriptor read',
             'ufs': r'ufshcd.*(err|fail)'}
     lines = log.splitlines()
@@ -160,7 +163,7 @@ def kernel_health():
     hits['warn_bug_oops'] -= known
     samples = {k: [l for l in log.splitlines() if re.search(v, l, re.I)][:3] for k, v in pats.items() if hits[k]}
     dumps = sh('coredumpctl list --since "$(uptime -s)" --no-legend 2>/dev/null').splitlines()
-    ok = not hits['warn_bug_oops'] and not hits['gpu_fault'] and not dumps
+    ok = not hits['warn_bug_oops'] and not hits['gpu_fault'] and not hits['smmu_fault'] and not dumps
     return result('pass' if ok else 'partial', counts=hits, known_clk_reparent_traces=known,
                   samples=samples, coredumps=dumps,
                   err_lines=int(sh('journalctl -k -b -p err --no-pager -o cat | wc -l') or 0))
@@ -185,10 +188,14 @@ def suspend_cycle():
             break
         time.sleep(0.5)
     slept = time.time() - t0
-    time.sleep(10)
+    time.sleep(5)
     after = rd('/sys/power/suspend_stats/success', '0')
     usb_after = usb_devices()
-    net = network()
+    for _ in range(8):  # Wi-Fi reassociated 11 s after resume on r183
+        net = network()
+        if net['status'] == 'pass':
+            break
+        time.sleep(5)
     gpu = sh('sudo -u phone vkmark --winsys headless -b vertex:duration=3 2>&1 | grep -o "Score: [0-9]*"', 60)
     if policy == 'active':
         sh('systemctl start rog5-sleep-policy')
