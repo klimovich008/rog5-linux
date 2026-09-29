@@ -1,63 +1,30 @@
 # ROG Phone 5 native Linux — Claude Code guide
 
-Native Arch Linux ARM on the ASUS ROG Phone 5 (SM8350). The accepted headless
-server boots from local storage through slot B. ASUS WW33 slot A is the
-charging/rescue route. Claude Code has been the only coordinator since
-2026-09-23. Codex/ChatGPT is retired; see `docs/history/codex-era.md`.
+Native Arch Linux ARM on the ASUS ROG Phone 5 (SM8350) with Linux 7.2.7 and
+the `patches/linux-7.2.7` series. Phosh is the phone shell; GNOME runs as
+"desktop mode" on an external monitor. It boots from local storage through
+slot B; ASUS WW33 slot A is the charging/rescue route. Claude Code has been
+the only coordinator since 2026-09-23 (Codex era: `docs/history/codex-era.md`).
+The Denial shell was dropped and removed on 2026-09-29.
 
 ## Goal
 
-Set 2026-09-23, after `production-7.2.7-r3` became the slot-B default: **make
-the default kernel a usable native Linux phone, meaning every non-cellular hardware
-block works or is explicitly marked unsupported, then run a Denial touch
-session on the OLED.** Cellular is excluded. The previous goal (fast module
-loop, signed-tag upgrades, 7.2.7 as the default) is done. Its leftover config trim
-continues only when a build blocks work.
+The user's goal (2026-09-29): **a fully usable Linux phone that also works as
+a Linux server, takes USB hubs, is reliable, gives maximum performance when
+needed and is power efficient in standby.** Cellular is excluded. The earlier
+milestones (clock and self-recovery, display/GPU at boot, Wi-Fi, touch and
+buttons, graphics stack, audio) are done; the open work and its order are in
+[`ROADMAP.md`](ROADMAP.md), and every component's state is in
+`docs/status/components.json` (shown in `docs/current-state.md` and
+`docs/whats-left.md`).
 
-Each milestone ends with a new default bundle. First a RAM trial of the
-image, then `install-default-kernel.py` with a fresh descriptor, then two
-ordinary boots that commit healthy (see "Making a production kernel the
+Each change that reaches the phone ends with a new default bundle: a RAM trial
+of the image, then `install-default-kernel.py` with a fresh descriptor, then
+two ordinary boots that commit healthy (see "Making a production kernel the
 default" in `docs/development.md`). Driver iteration uses `rog5-dev module`.
 Ask the user only for what needs eyes, ears or fingers, and batch those checks.
-
-1. **Clock and self-recovery.** Correct time after a reboot without network
-   (PM8350 RTC, or NTP over the USB link), ramoops/pstore at the stock
-   debug region `0x9b800000`, and a watchdog that survives kexec. Pass: time
-   is right after a cold boot, and a forced panic leaves a pstore record that the
-   next boot reads.
-2. **Display and GPU at boot, without manual steps.** The default DT enables
-   MDSS/DSI/panel/gpucc/refgen, and modules autoload in the right order. Fix
-   the GPU SMMU deferred probe instead of the `drivers_probe` workaround.
-   Pass: three boots each show `/dev/dri/card*` and `renderD*` and the A660
-   initialized, with no new WARN. The user sees the panel lit once.
-3. **Wi-Fi.** Enable PCIe0 in the DT, add the WCN6851 firmware and
-   `regulatory.db`, and keep the radio off until it's configured. Pass: scan,
-   associate, DHCP, then 10 minutes of traffic with no firmware crash. The
-   network name and password come from the user.
-4. **Touch and buttons.** Autoload the FocalTech touch driver, and map evdev
-   coordinates to the panel. Keep the three keys and LED from the buttons
-   milestone. Pass: `libinput debug-events` shows the four corners the user
-   touches, plus power/volume events.
-5. **Graphics stack.** Mesa freedreno/turnip on Arch ARM, then a
-   hardware-rendered test such as kmscube or weston on the panel. Pass:
-   GPU-rendered frames at the panel refresh rate, with no GPU faults or hangs
-   over 10 minutes.
-6. **Denial session.** Build the pinned ARM64 compositor, engine and AOT shell
-   from `configs/denial/source-lock-v1.json`, then run it on the OLED with
-   touch. Pass: the completion criteria in `ROADMAP.md`: GPU acceleration, two
-   native Wayland apps and text entry, three starts, a 60-minute
-   interactive/idle run, screen off and wake, compositor recovery, and
-   update/rollback.
-7. **Audio.** Speaker, earpiece, microphones and headset through the
-   q6/LPASS path. Pass: the user hears a test tone on each output, and a
-   recording plays back.
-8. **The rest, as a tracked table.** Bluetooth, sensors (VCNL36866 first),
-   charging control, suspend/resume and cameras. Each one is qualified or marked
-   unsupported or untested in `docs/port-status.md`.
-
-Order is 1 → 2 → 3/4 → 5 → 6, with 7 and 8 fitted in where they don't block.
-Status of each step goes in the generated block of `docs/current-state.md`,
-not here.
+After an install, update `bundles` and the affected components in
+`docs/status/components.json` and run `python3 scripts/host/render-current-state.py`.
 
 ## Where things live (don't break these)
 
@@ -81,9 +48,10 @@ not here.
 
 ## Orientation (cheap reads only)
 
-- `git status --short`, `git rev-parse HEAD`, then `sed -n 1,8p docs/current-state.md`.
-  The rest of that file is a 300 KB historical log; grep it, never load it whole.
-- Newest `test-results/2026-09-*.md` and `manifests/current-artifact.json`.
+- `git status --short`, `git rev-parse HEAD`, then `sed -n 1,60p docs/current-state.md`
+  (short; its block is generated from `docs/status/components.json`). The old
+  300 KB log is `docs/history/current-state-log-2026-07-to-09.md`: grep it, never load it whole.
+- Newest `test-results/2026-09-*.md` (month index: `test-results/README.md`).
 - `grep -n` `docs/development-lessons.md` for the specific issue only.
 - Private evidence lives in `~/.local/state/rog5-*`. List it shallowly and never
   `grep -r` across it (hundreds of GB). Registered worktrees: `git worktree list`.
@@ -92,8 +60,8 @@ not here.
   `05c6 900e` is the Qualcomm crashdump screen. `lsusb | grep 0b05` cannot see
   Linux. Host NCM interface: `enp4s0f3u1u2` with 10.77.0.1/30 (after a replug
   run `nmcli con up rog5-standalone-shared`). An ordinary reboot boots the
-  selector's primary, or its fallback `production-7.2.7-safe-r2` after an
-  uncommitted boot (V11 was the fallback until 2026-09-26 and stays on p24).
+  selector's primary, or its fallback `production-7.2.7-safe-r6` after an
+  uncommitted boot (older fallbacks, down to V11, stay on p24).
   Manual rescue runbook: docs/development.md.
 - External references (pmOS pdx215, sm8350-mainline OnePlus DT, old i005d DTS):
   see the Claude memory `sm8350-references`.
@@ -110,7 +78,7 @@ not here.
   expensive builds/CI. Never repeat a completed check on unchanged inputs.
   Unneeded full kernel builds have cost about 45 min; incremental builds take seconds to minutes.
 - Unit suites are standalone (`python3 scripts/device/test-<name>.py`, mostly
-  under 10 s). `rog5-dev test active` (about 750 s) runs once on frozen source,
+  under 10 s). `rog5-dev test active` (about 2 minutes) runs once on frozen source,
   not per edit. `rog5-dev select BASE HEAD` picks the tier.
 - The integrated tiers need the environment of the last passing run. The
   runner fails fast and marks every remaining suite BLOCKED, and the report
@@ -126,9 +94,8 @@ not here.
   `QEMU_LD_PREFIX=<dir> ROG5_TEST_QEMU=/usr/bin/qemu-aarch64-static ROG5_TEST_BUSYBOX=<dir>/bin/busybox python3 <test>`.
 - Controller sources are hash-pinned in a chain. Before editing a pinned file,
   find its consumers with `git grep -l $(git show HEAD:<file> | sha256sum | cut -c1-64)`.
-  Pins live in sources (`display-component.py` `SOURCE_PINS`), fixtures
-  (`scripts/device/fixtures/*/source-pins.json`) and controller patches
-  (`patches/display-controller/*.patch`, which are themselves pinned downstream).
+  Pins live in fixtures (`scripts/device/fixtures/*/source-pins.json`, e.g. the
+  touch input-core chain) and in the kernel builder's recorded inputs.
   Dated `test-results/` are history: never rewrite them. Re-pin forward, then
   rerun every consumer suite and compare against a clean `git worktree` of HEAD.
 - A hardware trial must answer one question that offline tests cannot. VM or
@@ -138,9 +105,12 @@ not here.
 
 ## Records
 
-After each run: a compact result in the generated block of `current-state.md`,
-one dated `test-results/` report, and reusable lessons only in
-`development-lessons.md`. Before ending a work session, review repeated failures,
+After each run: the component status in `docs/status/components.json` (then
+`scripts/host/render-current-state.py`), one dated `test-results/` report
+(then `scripts/host/index-test-results.py`), and reusable lessons only in
+`development-lessons.md`. Code and docs retired on 2026-09-29 are listed in
+`docs/history/archived-files.tsv`; restore one with
+`git checkout archive/pre-cleanup-2026-09-29 -- <path>` (local tag, never pushed). Before ending a work session, review repeated failures,
 slow stages and unnecessary work against the goal. Apply a scoped improvement
 when the results justify it. Don't let process work replace phone progress.
 
