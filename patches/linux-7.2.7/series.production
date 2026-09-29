@@ -65,3 +65,4 @@
 0097-drm-msm-phy-qmp-ROG5-knobs-for-DPU-block-order-DP-drive-floor-and-TX-polarity.patch
 0098-drm-msm-dp-check-the-link-bandwidth-with-the-link-pixel-rate.patch
 0099-drm-msm-dpu-vote-the-core-clock-for-the-full-pixel-clock-on-video-mode-interfaces.patch
+0100-drm-msm-dpu-ROG5-bus-vote-floor-for-video-mode-interfaces.patch

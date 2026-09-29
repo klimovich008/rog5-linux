@@ -1,0 +1,58 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 bus vote floor for video-mode interfaces
+
+With only the DP output lit (USB-C HDMI hub, 1920x1080@60) the DPU voted
+~0.5 GB/s average bandwidth and the 800 MB/s min_dram_ib peak, and INTF_0
+underran on every frame (the monitor showed the underflow colour). Fixed
+votes measured on the phone, core clock at the 200 MHz OPP (0099):
+avg=peak=0.5/1/2/3 GB/s -> underrun on every frame; 4 and 8 GB/s -> 0 of
+~317 frames; 4 GB/s avg with 0.5 peak, or 0.5 avg with 4 peak, still
+underran. While the DSI command-mode panel is on, its votes hid this.
+
+Floor both the average and the peak vote at dpu_video_min_bw_kbps
+(default 4000000 kB/s, 0 = off) while a video-mode encoder drives the CRTC.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c	2026-09-29 15:10:31.443316723 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c	2026-09-29 15:10:31.456691996 +0200
+@@ -166,6 +166,30 @@
+ 	return to_dpu_kms(priv->kms);
+ }
+ 
++/*
++ * ROG5: a video-mode interface (DP) fetches in real time on the sink's
++ * timing. With only DP lit on SM8350 the votes were ~0.5 GB/s avg and the
++ * 800 MB/s min_dram_ib peak; INTF_0 underran on every frame until both avg
++ * and peak were >= 4 GB/s (3 GB/s still underran; with the DSI panel on its
++ * votes hid this). Floor both while a video-mode encoder drives the CRTC;
++ * 0 disables.
++ */
++static uint dpu_video_min_bw_kbps = 4000000;
++module_param(dpu_video_min_bw_kbps, uint, 0644);
++MODULE_PARM_DESC(dpu_video_min_bw_kbps,
++		 "min avg and peak DPU bus vote (kB/s) while a video-mode (DP) interface is active, 0 = off");
++
++static bool _dpu_core_perf_crtc_is_video(struct drm_crtc *crtc,
++					 struct drm_crtc_state *state)
++{
++	struct drm_encoder *encoder;
++
++	drm_for_each_encoder_mask(encoder, crtc->dev, state->encoder_mask)
++		if (dpu_encoder_get_intf_mode(encoder) == INTF_MODE_VIDEO)
++			return true;
++	return false;
++}
++
+ static void _dpu_core_perf_calc_crtc(const struct dpu_core_perf *core_perf,
+ 				     struct drm_crtc *crtc,
+ 				     struct drm_crtc_state *state,
+@@ -181,6 +205,10 @@
+ 	perf->bw_ctl = _dpu_core_perf_calc_bw(perf_cfg, crtc);
+ 	perf->max_per_pipe_ib = perf_cfg->min_dram_ib;
+ 	perf->core_clk_rate = _dpu_core_perf_calc_clk(perf_cfg, crtc, state);
++	if (dpu_video_min_bw_kbps && _dpu_core_perf_crtc_is_video(crtc, state)) {
++		perf->bw_ctl = max_t(u64, perf->bw_ctl, (u64)dpu_video_min_bw_kbps * 1000);
++		perf->max_per_pipe_ib = max_t(u32, perf->max_per_pipe_ib, dpu_video_min_bw_kbps);
++	}
+ 	DRM_DEBUG_ATOMIC(
+ 		"crtc=%d clk_rate=%llu core_ib=%u core_ab=%u\n",
+ 			crtc->base.id, perf->core_clk_rate,
