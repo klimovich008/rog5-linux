@@ -54,10 +54,11 @@ storage-write scope and backups, independent watchdog/fallback, and permanent
 non-retry of experimental post-COMMIT or ambiguous execution. Diagnostic
 authority does not authorize another device, destructive storage, or a retry.
 
-Use docs/release-acceptance.md as the definition of done and docs/development.md
-for test tiers and experimental versus accepted-release operation. Fix a new
-finding now only if it blocks qualification or materially threatens the
-release; otherwise record it in the existing backlog. Reopen a completed
+Use the component status in docs/status/components.json (shown in
+docs/current-state.md) and ROADMAP.md as the definition of done, and
+docs/development.md for test tiers, RAM trials and installs. Fix a new
+finding now only if it blocks the current goal or materially threatens the
+installed default; otherwise record it in ROADMAP.md or components.json. Reopen a completed
 review only when new evidence materially changes its conclusion.
 
 Collect only needed non-secret diagnostics; never dump whole environments,

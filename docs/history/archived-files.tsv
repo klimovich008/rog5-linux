@@ -1354,7 +1354,6 @@ scripts/host/test-native-wifi-discovery.py	wifi-bringup
 scripts/host/test-validate-wifi-candidate-dtb.sh	wifi-bringup
 scripts/host/validate-wifi-candidate-dtb.sh	wifi-bringup
 scripts/host/verify-buttons-indicator-source-contract.py	wifi-bringup
-third_party/iw/README.md	wifi-bringup
 tools/pmic_rail_reader/rog5-pmic-rail-readonly.c	wifi-bringup
 tools/rpmh_state_reader/decode.py	wifi-bringup
 tools/rpmh_state_reader/Makefile	wifi-bringup

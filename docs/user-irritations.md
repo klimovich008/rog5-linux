@@ -144,6 +144,9 @@ see. Each item says whether it needs a lab action to trigger.
   - `/opt/denial` takes 194 MB;
   - the phoc.ini comment still refers to Denial.
   Fix: disable them, or remove them if Denial is retired. **S**, confirmed.
+  2026-09-29: Denial is retired; its units, daemons and configs are removed from
+  the repository (docs/history/cleanup-2026-09-29.md); the phone-side uninstall
+  is separate.
 - **Workarounds whose reason has gone:**
   - `~phone/.config/environment.d/60-rog5-mutter.conf` sets `MUTTER_DEBUG_DISABLE_HW_CURSORS=1`. The test result itself says the cursor A/B test was confounded and the real cause was the DPU clock. The software cursor costs GPU time and adds pointer lag in desktop mode.
   - `/etc/drirc` forces `tu_restrict_subgroup_size_64` for every Vulkan app, to avoid one Geekbench hang.

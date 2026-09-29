@@ -5,15 +5,16 @@ description: Change or diagnose this ROG5 project's kernel, modules, DTB, initra
 
 # ROG5 fast loop
 
-Start with `docs/current-state.md`, Git status and HEAD. Then read the latest
+Start with `docs/current-state.md` (short; generated from
+`docs/status/components.json`), Git status and HEAD. Then read the latest
 relevant result and applicable R1–R10 sections of `docs/development-lessons.md`.
 Active context is a pointer, not another required history load. Read the full
 pre-build/live checklists before issuing a successor.
 Use bounded log excerpts and metadata-only PR queries for orientation, not the
 entire historical diff or lifecycle transcript.
 
-Use the existing mandatory acceptance matrix as the definition of done. Work
-the highest-value failing/blocked outcome to evidence. Unrelated findings go
+Use the component status in `docs/status/components.json` and `ROADMAP.md` as
+the definition of done. Work the highest-value open item to evidence. Unrelated findings go
 to the existing backlog; reopen completed reviews only for materially new
 evidence. No new architecture review or feature expansion for its own sake.
 
@@ -51,7 +52,7 @@ This non-retry rule governs experimental execution, not ordinary repeated
 boots of an accepted release. Follow the distinct operation rules in
 docs/development.md; verify installed bytes before using the normal boot path.
 
-Historical QMP-UFS/GPU matrices are nightly unless changed. Do not repeat full
+Do not repeat full
 local CI on unchanged source, or full remote CI for admission-only data when
 isolated artifact/trust checks suffice. Publication/release gates remain.
 
