@@ -39,7 +39,7 @@ class TierSelectorTest(unittest.TestCase):
             self.assertEqual(len(tests),len(set(tests)))
 
     def test_explicit_development_impact_and_dependencies(self):
-        observer='scripts/host/check-standalone-root.py'
+        observer='scripts/host/source-teardown-observation.py'
         service='scripts/device/rog5-healthd.py'
         for paths,impact in ((['docs/current-state.md'],'documentation'),
                             ([observer,'README.md','test-results/2026-09-05-headless-acceptance.md'],'read-only-observer'),
@@ -50,7 +50,7 @@ class TierSelectorTest(unittest.TestCase):
             self.assertFalse(d['remote_ci_before_experiment'])
             self.assertFalse(d['release_qualified'])
             self.assertEqual(d['status'],'NOT RUN')
-        for dependency in ('scripts/host/check-deployed-server.py',
+        for dependency in ('scripts/host/production-ram-trial.py',
                            'packaging/arch/rog5-healthd.service',
                            'initramfs/persistent-root-shutdown-standalone',
                            'scripts/host/new-claim-consumer.py',
@@ -63,9 +63,9 @@ class TierSelectorTest(unittest.TestCase):
         self.assertFalse(MODULE.development_decision([observer,'test-results/runtime.md'])['eligible'])
 
     def test_development_mixed_checks_are_unioned(self):
-        d=MODULE.development_decision(['scripts/host/check-standalone-root.py',
+        d=MODULE.development_decision(['scripts/host/source-teardown-observation.py',
                                      'scripts/device/rog5-healthd.py'])
-        self.assertIn('scripts/host/test-check-standalone-root.py',d['focused_tests'])
+        self.assertIn('scripts/host/test-source-teardown-observation.py',d['focused_tests'])
         self.assertIn('scripts/device/test-rog5-healthd.py',d['focused_tests'])
         self.assertTrue(d['exact_target_required'])
         self.assertTrue(d['service_experiment_required'])
@@ -91,12 +91,12 @@ class TierSelectorTest(unittest.TestCase):
     def test_cpu_power_cap_is_critical_even_when_mixed_with_observer(self):
         for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/power-profile.sh',
                      'scripts/device/headless-cpu-policy.py','packaging/arch/rog5-headless-cpu-policy.service'):
-            d=MODULE.development_decision([path,'scripts/host/check-standalone-root.py'])
+            d=MODULE.development_decision([path,'scripts/host/source-teardown-observation.py'])
             self.assertIn('critical-runtime',d['impact_categories'])
             self.assertEqual(d['tier'],'ci')
             self.assertFalse(d['eligible'])
             self.assertTrue(d['remote_ci_before_experiment'])
-            self.assertIn('scripts/host/test-check-standalone-root.py',d['focused_tests'])
+            self.assertIn('scripts/host/test-source-teardown-observation.py',d['focused_tests'])
 
     def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
         selected = set(self.tier_tests("probe"))
@@ -145,7 +145,7 @@ class TierSelectorTest(unittest.TestCase):
     def test_shared_lifecycle_uses_full_ci(self) -> None:
         self.assertEqual(
             MODULE.classify(
-                ["scripts/host/run-minimal-headless-live-cycle.py"]
+                ["scripts/host/production-ram-trial.py"]
             ),
             ("ci", "yes"),
         )

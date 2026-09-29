@@ -4265,8 +4265,8 @@ controller are still required.
 
 Deliver the mobile Arch phone described in the [roadmap](../ROADMAP.md), with
 the buttons/status LED milestone first. Preserve the headless server and its
-existing [acceptance contract](release-acceptance.md) and
-[mandatory matrix](../configs/release-acceptance.json) as the baseline.
+existing [acceptance contract](history/release-acceptance.md) and
+mandatory matrix (`configs/release-acceptance.json`, archived 2026-09-29) as the baseline.
 Missing prerequisites/evidence are BLOCKED or NOT RUN, never PASS.
 Use the clarified roadmap for scope; unrelated work stays in the backlog.
 

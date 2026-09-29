@@ -38,7 +38,7 @@ software and have its own tests; it is not established by that demonstration.
 5. Make daily operation reliable: charging, battery/thermal behavior, suspend
    and wake, shutdown/startup, networking, updates and recovery. Existing
    failures remain open and must be resolved before calling the phone ready
-   for daily use. Preserve the [headless acceptance matrix](docs/release-acceptance.md)
+   for daily use. Preserve the [headless acceptance matrix](docs/history/release-acceptance.md)
    as evidence for the baseline; do not relabel failed rows.
 
 Use exact-kernel incremental module builds and focused tests. Prefer Rust for

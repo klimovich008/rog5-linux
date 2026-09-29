@@ -19,11 +19,11 @@ kept because tests or other records still refer to them.
 - [kernel-port.md](kernel-port.md): Linux 7.x board-port plan and source-reuse assessments.
 - [arch-linux.md](arch-linux.md): Arch Linux ARM userspace image contract (written for the SSH-only server profile).
 - [test-plan.md](test-plan.md): *(historical)* detailed tiered test plan; still documents the `quick` tier prerequisites.
-- [release-acceptance.md](release-acceptance.md): headless server release acceptance contract and `rog5-dev accept` commands.
+- [release-acceptance.md](history/release-acceptance.md): headless server release acceptance contract and `rog5-dev accept` commands.
 - [core-compatibility-oracle.md](core-compatibility-oracle.md): machine-enforced contract derived from ASUS 5.4 behavior for new kernel candidates.
 - [core-source-dtb-contract.md](core-source-dtb-contract.md): checks that a kernel source tree still contains the drivers and bindings the DTB needs.
 - [artifact-retention.md](artifact-retention.md): retained artifact identities and the artifact-set inventory.
-- [repository-governance.md](repository-governance.md): proposed branch protection and required CI checks.
+- [repository-governance.md](history/repository-governance.md): proposed branch protection and required CI checks.
 - [steam-deck-host.md](steam-deck-host.md): Steam Deck setup as the x86_64 cross-build and analysis host.
 - [host-storage-cleanup.md](host-storage-cleanup.md): plan-driven cleanup of reproducible host build state.
 - [licensing-provenance.md](licensing-provenance.md): licensing and provenance inventory; unresolved distribution work.

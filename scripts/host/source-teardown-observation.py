@@ -26,9 +26,11 @@ def require(condition,reason):
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
+# Formerly defaults.source_teardown of the retired release-acceptance catalog.
+SOURCE_TEARDOWN={'observer_seconds':5,'receipt_seconds':60}
+
 def timing():
-    contract=json.loads((REPO/'configs/release-acceptance.json').read_text())
-    value=contract['defaults']['source_teardown']
+    value=dict(SOURCE_TEARDOWN)
     require(set(value)=={'observer_seconds','receipt_seconds'}
         and all(type(v) is int for v in value.values())
         and 0<value['observer_seconds']<value['receipt_seconds']<=60,'source teardown timing')

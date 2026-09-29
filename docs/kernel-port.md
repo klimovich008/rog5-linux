@@ -2,7 +2,7 @@
 
 ## Bounded source-reuse assessment — 2026-09-06
 
-This review does not change the [headless acceptance contract](release-acceptance.md).
+This review does not change the [headless acceptance contract](history/release-acceptance.md).
 No kernel/control change, download of boot images, large checkout, phone restart,
 or charging-threshold adjustment is justified by these references. Existing
 ASUS source, accepted artifacts and current dirty work were preserved.

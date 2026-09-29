@@ -545,7 +545,7 @@ their bounded gates while unrelated baseline qualification failures remain
 open. The acceptance matrix below still defines baseline release qualification,
 and its failures must not be relabelled as success.
 
-The mandatory matrix in [release acceptance](release-acceptance.md) is the
+The mandatory matrix in [release acceptance](history/release-acceptance.md) is the
 definition of done. Select the highest-value failing or blocked outcome, state
 one question, and work to evidence. Fix newly found defects now only if they
 block qualification or materially threaten the release. Put unrelated work in

@@ -25,8 +25,8 @@ NARRATIVE_REPORT = 'test-results/2026-09-05-headless-acceptance.md'
 # dependency outside these reviewed leaves broadens the decision. In particular
 # the deployed verifier, units, power gates and runner itself are not leaves.
 DEVELOPMENT_LEAVES = {
-    'scripts/host/check-standalone-root.py': (
-        'read-only-observer', 'scripts/host/test-check-standalone-root.py'),
+    'scripts/host/source-teardown-observation.py': (
+        'read-only-observer', 'scripts/host/test-source-teardown-observation.py'),
     'scripts/device/rog5-healthd.py': (
         'isolated-userspace', 'scripts/device/test-rog5-healthd.py'),
 }
