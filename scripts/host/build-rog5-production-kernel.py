@@ -15,11 +15,11 @@ import sys
 import time
 
 REPO = Path(__file__).resolve().parents[2]
-CONFIG = REPO/'configs/kernel/rog5-production-build.json'
-PATCHES = REPO/'patches/linux-7.1.4'
+CONFIG = REPO/'configs/kernel/rog5-production-build-7.2.7.json'
+PATCHES = REPO/'patches/linux-7.2.7'
 MIN_FREE = 3 * 1024**3
 DIAGNOSTIC_SOURCE = REPO/'scripts/host/check-production-build-diagnostics.py'
-WARNING_POLICY = REPO/'configs/kernel/rog5-production-warning-policy.json'
+WARNING_POLICY = REPO/'configs/kernel/rog5-production-warning-policy-7.2.7.json'
 DT_COMPOSITION = REPO/'scripts/device/test-mobile-dt-composition.py'
 TOUCH_PROVIDERS = REPO/'scripts/device/verify-mobile-touch-providers.py'
 
@@ -179,7 +179,7 @@ def main():
         if process.returncode: raise RuntimeError(name+' failed; see '+str(output/(name+'.log')))
     try:
         config = args.config.resolve(); policy = json.loads(config.read_text())
-        patches = REPO/policy.get('patch_dir', 'patches/linux-7.1.4'); groups = series(patches)
+        patches = REPO/policy.get('patch_dir', 'patches/linux-7.2.7'); groups = series(patches)
         warning_policy_path = REPO/policy.get('warning_policy_file', str(WARNING_POLICY.relative_to(REPO)))
         result['repository'] = dict(commit=capture(['git','-C',str(REPO),'rev-parse','HEAD']),
             tree=capture(['git','-C',str(REPO),'rev-parse','HEAD^{tree}']),
