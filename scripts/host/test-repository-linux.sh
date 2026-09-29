@@ -39,110 +39,14 @@ if [[ $tier == quick || $tier == rootfs ]]; then
 		fail 'quick tier cgroup is not delegated writable'
 fi
 
-if [[ $tier != active && $tier != probe ]]; then
-python3 - "$repo" <<'PY'
-from pathlib import Path
-import subprocess
-import sys
-
-repo = Path(sys.argv[1])
-shell_interpreters = {
-    b"#!/bin/bash": "bash",
-    b"#!/usr/bin/bash": "bash",
-    b"#!/usr/bin/env bash": "bash",
-    b"#!/bin/sh": "sh",
-}
-isolated_python_shebang = b"#!/usr/bin/env -S -i /usr/bin/python3 -I -S"
-tracked = subprocess.run(
-    ["git", "-C", str(repo), "ls-files", "-z", "*.py", "*.sh"],
-    check=True,
-    stdout=subprocess.PIPE,
-).stdout
-shell_count = 0
-for raw in tracked.split(b"\0"):
-    if not raw:
-        continue
-    path = repo / raw.decode()
-    source = path.read_bytes()
-    first_line = source.partition(b"\n")[0]
-    if path.suffix == ".py" or first_line == isolated_python_shebang:
-        compile(source, str(path), "exec")
-        continue
-    shell_count += 1
-    interpreter = shell_interpreters.get(first_line)
-    if interpreter is None:
-        raise SystemExit(f"unsupported tracked shell shebang: {path}: {first_line!r}")
-    subprocess.run([interpreter, "-n", str(path)], check=True)
-if shell_count == 0:
-    raise SystemExit("git returned no tracked shell scripts")
-PY
+# Entry points, Markdown links, secret scan and (outside active/probe) the
+# shell/Python syntax of every tracked script: scripts/host/check-repository-static.py.
+static_args=()
+if [[ $tier == active || $tier == probe ]]; then
+	static_args=(--skip-syntax)
 fi
-
-python3 - "$repo" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-repo = Path(sys.argv[1])
-documents = [
-    repo / "README.md",
-    repo / "ROADMAP.md",
-    *sorted((repo / "docs").glob("*.md")),
-]
-for entry in ("docs/current-state.md", "docs/active-context.md", "docs/development.md"):
-    if not (repo / entry).is_file():
-        raise SystemExit(f"missing context entry point: {entry}")
-link = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-broken = []
-for document in documents:
-    fenced = False
-    for number, line in enumerate(document.read_text().splitlines(), 1):
-        if line.lstrip().startswith(("```", "~~~")):
-            fenced = not fenced
-            continue
-        if fenced:
-            continue
-        for match in link.finditer(line):
-            target = match.group(1).strip()
-            if target.startswith("<") and target.endswith(">"):
-                target = target[1:-1]
-            target = target.split("#", 1)[0].split("?", 1)[0]
-            if (
-                not target
-                or "://" in target
-                or target.startswith(("mailto:", "#"))
-            ):
-                continue
-            candidate = (document.parent / target).resolve()
-            try:
-                candidate.relative_to(repo)
-            except ValueError:
-                broken.append((document, number, match.group(1)))
-                continue
-            if not candidate.exists():
-                broken.append((document, number, match.group(1)))
-
-if broken:
-    for document, number, target in broken:
-        print(
-            f"{document.relative_to(repo)}:{number}: "
-            f"missing local link target {target}",
-            file=sys.stderr,
-        )
-    raise SystemExit(1)
-print(
-    f"PASS {len(documents)} source Markdown files have valid local targets"
-)
-PY
-
-if [[ $tier != active && $tier != probe ]] && git -C "$repo" grep -nE \
-	'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OPENROUTER_API_KEY[[:space:]]*=[[:space:]]*['"'"'"]?[A-Za-z0-9_-]{20}' \
-	-- \
-	':!scripts/host/test-repository-linux.sh' \
-	':!scripts/host/Test-Repository.ps1'
-then
-	fail 'repository contains a private-key header or literal OpenRouter key'
-fi
+python3 "$repo/scripts/host/check-repository-static.py" --repo "$repo" "${static_args[@]}" ||
+	fail 'static repository check'
 
 }
 

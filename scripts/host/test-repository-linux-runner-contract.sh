@@ -33,7 +33,7 @@ PYLIST
 done
 for token in \
 	'DURATION %s %dms' \
-	'if [[ $tier != active && $tier != probe ]]; then' \
+	'python3 "$repo/scripts/host/check-repository-static.py" --repo "$repo"' \
 	'isolated_tests=(' \
 	'parallel_pids=(' \
 	'parallel_status_files=(' \
