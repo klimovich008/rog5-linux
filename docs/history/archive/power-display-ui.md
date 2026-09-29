@@ -45,7 +45,7 @@ rog5-screen-toggle.sh toggle
 It discovers the writable backlight, validates its range, preserves brightness, and changes its state record only after a successful sysfs write. `rog5-server-inhibit.service` uses systemd's native inhibitor API to block system sleep and short power-key shutdown without blocking idle display blanking; stopping that service restores explicit suspend policy. Headless logind ignores a short power press, while a long press retains the emergency power-off action. Plasma/PowerDevil power-button screen toggling still requires a live input test after the mainline input port.
 
 The
-[successor-v3 offline root](../../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+[successor-v3 offline root](../../../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
 now enables a small standard-library handler that requires exactly one
 `pmic_pwrkey` character device and invokes the toggle only for
 `EV_KEY/KEY_POWER` press value `1`. Release, repeat, other-key, truncated
@@ -53,7 +53,7 @@ record, and failed-toggle cases are rejected. Its root service has no network
 or block-device access and only the identity-switch capabilities needed by
 the existing KScreen helper. This is software readiness, not physical-button
 or display acceptance. The later
-[protected pre-live HOLD](../../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+[protected pre-live HOLD](../../../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
 pins the handler/service into a recursively sealed read-only root and requires
 one real `pmic_pwrkey` character device plus an active, zero-restart service
 before any target gate could request fallback. It still does not synthesize
@@ -73,7 +73,7 @@ if DPMS is unavailable once display bring-up begins. Power measurements must
 compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
 
 The
-[headless display-isolation candidate](../../test-results/2026-08-09-headless-display-isolation-offline.md)
+[headless display-isolation candidate](../../../test-results/2026-08-09-headless-display-isolation-offline.md)
 now closes one offline minimal-server gap: the accepted DTB disabled MDSS and
 every display link but left the separate DISPCC provider implicitly enabled.
 Its one-property overlay explicitly disables DISPCC, while a structural
@@ -124,7 +124,7 @@ temperature, and wall-power measurements over a longer interval before
 trimming services.
 
 The persistent Alpine fallback's
-[screen-off resource baseline](../../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+[screen-off resource baseline](../../../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
 measured about 390 MiB KDE PSS, 345 MiB Chromium PSS, and 66.7 MiB remote
 transport PSS. About 10.1 GiB remained available, swap stayed at zero, and a
 separate low-overhead 30-second sample measured 0.78% aggregate CPU with the
@@ -134,7 +134,7 @@ physical DRM/KWin, KRDP, fixed workloads, and valid battery or wall-power
 telemetry.
 
 The
-[vendor boot-log HOLD](../../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+[vendor boot-log HOLD](../../../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
 also measured 272 KiB of `sda` writes and 56 ms of block-I/O time during one
 30-second screen-off interval. Chromium accounted for 88 KiB of attributable
 physical writes, compared with 12 KiB from the ext4 journal and 4 KiB from

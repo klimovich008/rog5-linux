@@ -106,4 +106,4 @@ gadget names, stale and cross-boot anchors, expiry during discovery, wrong
 ports, duplicate products without class interfaces, duplicate interfaces,
 wrong drivers, indirect routes, malformed keys, unsafe outputs, and missing
 guards. See the
-[offline evidence](../../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
+[offline evidence](../../../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).

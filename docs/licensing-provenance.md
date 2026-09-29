@@ -18,7 +18,7 @@ permission to redistribute. This is a source inventory, not a legal conclusion.
 | Third-party tools | Existing per-project notices, e.g. third_party/iw/COPYING | Preserve upstream notices and package metadata for each distributed tool |
 | Denial modifier patch and review excerpts | Exact Denial `85b2303e` LICENSE and compositor metadata declare GPL-3.0-or-later; Smithay `812bd332` LICENSE.txt carries the MIT notice | Preserve the respective upstream notices; these pins and local test adapters do not choose a project-wide license |
 
-See [artifact retention](artifact-retention.md) for the forward large-artifact
+See [artifact retention](history/artifact-retention.md) for the forward large-artifact
 policy. Preserve sealed historical objects; do not rewrite Git history to change
 notices or remove large objects. Add SPDX only after provenance establishes the
 appropriate identifier. The new GENI excerpts preserve source notices; the local

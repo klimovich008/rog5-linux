@@ -3885,7 +3885,7 @@ The reviewed source, disabled overlay and portable test are now integrated at
 cases and 24,324 decoder checks per C build mode in both ordinary and optimized
 Python (0.573/0.520 seconds). It is wired into the repository runner. Full CI
 for this new integration is pending; the earlier 752742fc result remains scoped
-to its own source. See [front-touch prototype](../front-touch-prototype.md).
+to its own source. See [front-touch prototype](../hardware/front-touch-prototype.md).
 
 The current-kernel GPU audit found that GMU power-level setup errors were
 ignored. Existing patch 0012 fixes that exact path; eight actual-source

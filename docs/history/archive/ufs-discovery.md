@@ -24,7 +24,7 @@ auto-BKOPS three times after enumeration. The query guard blocked every
 stalled in WLUN shutdown. The authorized emergency reset immediately restored
 the exact fallback kernel; no UFS filesystem was probed or mounted, no
 partition was changed, and nothing was flashed. The full result is in
-[`2026-07-24-ufs-discovery-v1-live.md`](../../test-results/2026-07-24-ufs-discovery-v1-live.md).
+[`2026-07-24-ufs-discovery-v1-live.md`](../../../test-results/2026-07-24-ufs-discovery-v1-live.md).
 
 The three-patch v2 replacement at deterministic Linux commit
 `cfd385a1c754684dd28b63a4559e04baa5e902b1` and tree
@@ -45,7 +45,7 @@ query/SCSI counts were zero, and no BKOPS, UFS error-handler, or fatal
 signature appeared. The untouched watchdog chain automatically restored the
 exact fallback kernel with a changed boot identity. The complete evidence is
 in
-[`2026-07-24-ufs-discovery-v2-live.md`](../../test-results/2026-07-24-ufs-discovery-v2-live.md).
+[`2026-07-24-ufs-discovery-v2-live.md`](../../../test-results/2026-07-24-ufs-discovery-v2-live.md).
 
 ## Build chain
 

@@ -19,9 +19,9 @@ scripts/host/test-recovery-fetch-aarch64.sh
 ```
 
 The accepted helper and responder-integration evidence is
-[fixed fetch offline result](../../test-results/2026-07-28-recovery-fixed-fetch-offline.md).
+[fixed fetch offline result](../../../test-results/2026-07-28-recovery-fixed-fetch-offline.md).
 The host-side evidence is
-[fixed host server result](../../test-results/2026-07-28-recovery-host-server-offline.md).
+[fixed host server result](../../../test-results/2026-07-28-recovery-host-server-offline.md).
 
 The production build has no endpoint, path, identity, timeout, crash, write,
 or seccomp override. The responder invokes it under the rollback watchdog,

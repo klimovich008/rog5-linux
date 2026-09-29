@@ -44,7 +44,7 @@ bounded legacy `kexec_load`. Those binaries are now integrated into the
 shell-free stable-recovery initramfs and reproducible ASUS 5.4 wrapper using
 only a disposable trust root. The exact verifier and acquisition
 contracts are documented in
-[recovery runtime bundle contract](recovery-bundle-contract.md) and
+[recovery runtime bundle contract](../recovery-bundle-contract.md) and
 [fixed recovery bundle transport](archive/recovery-fetch-contract.md). The resulting
 image was used once through an exact guarded runner and remains outside the
 durable temporary-boot allowlist. That action grants no repeat authority.
@@ -82,7 +82,7 @@ fallback before SSH because the candidate selected historical DTB v1. The
 corrected target remains non-runnable until a new trust root, complete
 release-pin update, independent review, and one standing-authorized live
 sequence admitted by the exact lifecycle gates are complete. See the
-[live result](../test-results/2026-07-29-headless-stable-recovery-live.md).
+[live result](../../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Invariants
 
@@ -440,7 +440,7 @@ payload automatically.
 
 The exact first-version format, bounds, fixed paths, generated command line,
 FDT policy, reproducible build, and remaining integration gates are in
-[recovery runtime bundle contract](recovery-bundle-contract.md). The stable
+[recovery runtime bundle contract](../recovery-bundle-contract.md). The stable
 image embeds only a public verification key and policy. A runtime bundle
 contains:
 
@@ -467,7 +467,7 @@ production trust root and a rebuilt/allowlisted wrapper. The central standing
 authorization covers one technically admitted cycle; the consumed live trust
 root cannot authorize another bundle.
 See the
-[corrected offline result](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
+[corrected offline result](../../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
 ## PREPARE transport and replay evidence
 
@@ -545,7 +545,7 @@ transition. That requires a separately admitted controlled live cycle. If it
 does not survive, the next oracle experiment remains the possible Qualcomm
 debug UART; no physical UART capability is currently claimed.
 
-The [offline refreeze](../test-results/2026-08-09-recovery-postmortem-refreeze-offline.md)
+The [offline refreeze](../../test-results/2026-08-09-recovery-postmortem-refreeze-offline.md)
 subsequently integrated this exact responder into twin shell-free initramfses
 and two clean, source-sealed ASUS 5.4 wrapper builds. Config, kernel, initramfs,
 raw boot-v3, unsigned AVB, and source seals compare byte-for-byte, and the
@@ -556,7 +556,7 @@ recovery identities; it may not replay one candidate after an ambiguous
 result.
 
 The exact transaction is now specified by a pure
-[two-claim sequence reference](../test-results/2026-08-10-retention-sequence-reference-offline.md).
+[two-claim sequence reference](../../test-results/2026-08-10-retention-sequence-reference-offline.md).
 Its two unregistered draft records bind one cycle digest, both recovery AVBs,
 the candidate, and runtime manifest. The state model places the execution
 claim before its rollback-armed recovery, then requires correlated target and
@@ -568,7 +568,7 @@ consumed claim set and never authorize retry. The model has no filesystem,
 credential, process, or device surface; its draft records remain absent from
 the generic consumer, so it is not a live runner or boot authority.
 
-The separate [offline transaction journal](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+The separate [offline transaction journal](../../test-results/2026-08-10-retention-cycle-transaction-offline.md)
 defines the crash-safe handoff that the future runner must consume. It uses
 one cycle-digest directory and append-only, no-follow, single-link canonical
 events with a SHA-256 predecessor chain, file and directory `fsync`, pathname
@@ -579,7 +579,7 @@ single preclaimed `postmortem-status` read. A reopened ambiguous intent is
 terminal-only. This module has no live entry point and does not call any
 existing helper or claim consumer; it therefore does not grant authority.
 
-The [callback adapter fixture](../test-results/2026-08-10-retention-cycle-adapter-offline.md)
+The [callback adapter fixture](../../test-results/2026-08-10-retention-cycle-adapter-offline.md)
 adds the exact helper-to-intent map without implementing an executor. Its six
 descriptors cover the two generic claim-consumer calls, production recovery
 boot gate, nonce-framed ACM fallback `RESTART2` helper, observation gate, and
@@ -587,7 +587,7 @@ candidate/boot-ID postmortem read. Tests inject callbacks and prove the
 corresponding event is already the last fsynced journal record. Callback
 failure or invalid output cannot advance the transaction, and a reopened
 intent cannot be called again. The separate
-[executor contract](../test-results/2026-08-10-retention-cycle-executor-contract-offline.md)
+[executor contract](../../test-results/2026-08-10-retention-cycle-executor-contract-offline.md)
 is also pure data: it pins all helper bytes and modes, `/usr/bin/python3 -B`
 or `/usr/bin/bash --noprofile --norc`, exact parent-independent environments,
 devnull stdin, separate bounded stdout/stderr, deadlines, process-group
@@ -596,7 +596,7 @@ known-hosts path for ACM fallback and no private-key input. Neither module
 launches a process or opens credentials, so current HOLD gates and empty
 claim/policy state remain authoritative.
 
-The [pure descriptor/output boundary](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+The [pure descriptor/output boundary](../../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
 models what a later launcher would have to prove, but performs no I/O. Every
 program is a single-link repository-owner-owned regular file opened no-follow and matched
 to its contract hash. `/usr/bin/python3` additionally binds and revalidates
@@ -612,7 +612,7 @@ host-pin snapshot. The execution and observation schemas are testable, but
 their selected gates remain HOLD and have no current successful producer.
 The boundary still supplies no executor, credential access, or authority.
 
-The follow-on [offline runtime fixture](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md)
+The follow-on [offline runtime fixture](../../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md)
 now binds those pure objects to an actual, disconnected child lifecycle. It
 holds and revalidates the fsynced intent plus exact program, interpreter, and
 optional public-pin descriptors; creates distinct empty CLOEXEC pipes only
@@ -627,7 +627,7 @@ adapter-ineligible. Production descriptor execution is explicitly unproven,
 and there is still no launcher, claim, credential, recovery-gate wiring, or
 phone authority.
 
-The separate [held-descriptor execution fixture](../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md)
+The separate [held-descriptor execution fixture](../../test-results/2026-08-10-retention-cycle-descriptor-execution-offline.md)
 now crosses the next process boundary without touching those helpers. It
 `fexecve`s the pinned Python interpreter, names an exact harmless probe through
 held descriptor 198, enters the held repository with `fchdir()`, and proves a
@@ -654,10 +654,10 @@ bytecode writes and revalidates child-property, driver, and optional mount
 inventories so a path appearing during an absence check fails closed. Passing
 it proves only the fallback's observable runtime state at that point; it does
 not establish that firmware preserved the bytes. See the
-[offline result](../test-results/2026-08-09-fallback-ramoops-transition-preflight-offline.md).
+[offline result](../../test-results/2026-08-09-fallback-ramoops-transition-preflight-offline.md).
 
 Stable recovery's UDC selection is now independently fail-closed. The
-[offline exact-UDC checkpoint](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+[offline exact-UDC checkpoint](../../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
 removes the former arbitrary-first fallback and requires one stable exact
 `a600000.dwc3`, with revalidation immediately before and after configfs
 binding. Delayed exact enumeration remains accepted; zero-at-deadline, wrong,
@@ -683,7 +683,7 @@ The observation archive further removes `/usr/libexec/rog5-bundle-fetch`,
 hash-pinned historical archives cannot be substituted for one another. This
 is defense in depth around a mode-bound responder, not a claim that one
 binary can safely infer its role from missing tools. The
-[offline result](../test-results/2026-08-09-observation-only-recovery-offline.md)
+[offline result](../../test-results/2026-08-09-observation-only-recovery-offline.md)
 proves reproducible initramfs composition and hostile refusal only. It does
 not provide an outer wrapper, boot authority, or evidence that ramoops
 survives a physical transition.
@@ -788,7 +788,7 @@ fields. Any uninspectable ACM node fails closed. This diagnostic layer is
 observational: it does not weaken exact product selection, read/write access,
 the two-second stable-identity dwell, final revalidation, or the one-invocation
 rule. See the
-[offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+[offline classifier result](../../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 
 ## Rollout order
 

@@ -6,9 +6,9 @@ resume remain unqualified.** Ordinary non-wakeup system-sleep callbacks are
 implemented; hibernation returns `-EBUSY`, and wake gestures are unsupported.
 No accepted image or activation policy selects it.
 
-Source is in [tools/rog5-fts3658u](../tools/rog5-fts3658u/README.md). The private
+Source is in [tools/rog5-fts3658u](../../tools/rog5-fts3658u/README.md). The private
 draft compatible is `asus,rog5-mp2-fts3658u`; it is not an upstream binding or a
-generic EDT alias. The [disabled overlay](../dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso)
+generic EDT alias. The [disabled overlay](../../dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso)
 keeps I2C4, its touch child, L3C and L8C disabled, and leaves SPI4 disabled.
 
 ## Focused host test
@@ -159,7 +159,7 @@ registration does not exercise physical resource teardown.
 ## Current composed DT and provider checks
 
 The production board build now checks display, GPU and inert-touch composition
-against all bindings. The [local touch binding](../tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml)
+against all bindings. The [local touch binding](../../tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml)
 requires the prototype to remain disabled; it is not an upstream hardware-support
 claim. `test-rog5-touch-binding.py` uses real DTB fixtures and the schema library
 to check missing supplies even where the CLI suppresses those errors on disabled
@@ -232,7 +232,7 @@ cannot qualify touch. A separate exact-DT touch trial remains necessary.
 
 ## Remaining gates
 
-Follow the [development workflow](development.md) for any future build or trial.
+Follow the [development workflow](../development.md) for any future build or trial.
 First qualify the complete module/provider/firmware closure and composed DT
 against one exact kernel and base. Before asking for a touch, establish normal
 `5652` identification, unique expected input/IRQ ownership, current boot/health,

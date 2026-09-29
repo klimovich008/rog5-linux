@@ -37,7 +37,10 @@ def check_entry_points(repo):
 
 
 def check_links(repo):
-    documents = [repo / "README.md", repo / "ROADMAP.md", *sorted((repo / "docs").glob("*.md"))]
+    # Live documents only: docs/history/ and docs/reviews/ keep dated records as they were.
+    documents = [repo / "README.md", repo / "ROADMAP.md", *sorted((repo / "docs").glob("*.md")),
+                 *(path for folder in ("hardware", "status")
+                   for path in sorted((repo / "docs" / folder).glob("*.md")))]
     broken = []
     for document in documents:
         if not document.is_file():

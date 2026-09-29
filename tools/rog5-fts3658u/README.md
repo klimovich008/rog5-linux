@@ -10,7 +10,7 @@ sleep uses the existing power and normal-ID sequence; hibernation returns
 `-EBUSY`, and touch cannot wake the system. Do not treat it as a production
 touchscreen driver.
 
-Read the [protocol, dependencies and qualification status](../../docs/front-touch-prototype.md).
+Read the [protocol, dependencies and qualification status](../../docs/hardware/front-touch-prototype.md).
 Run the focused host test from the repository root:
 
 ```sh

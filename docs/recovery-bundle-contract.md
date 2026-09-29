@@ -27,7 +27,7 @@ rollback watchdog, calls the verifier through a private descriptor handoff,
 and loads the exact verified files. All three binaries are present in the
 reproducible offline initramfs and wrapper checkpoint, but no production
 release image has been authorized. The helper and its protocol are documented in
-[fixed recovery bundle transport](archive/recovery-fetch-contract.md). This
+[fixed recovery bundle transport](history/archive/recovery-fetch-contract.md). This
 checkpoint cannot authorize a phone action. A production signing key does
 not exist. Tests generate an ephemeral Ed25519 key under a temporary
 directory and delete it when the test exits.

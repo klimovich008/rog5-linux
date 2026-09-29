@@ -39,7 +39,7 @@ The broad ranges are now live-proven. Without them, ADSP PAS metadata was
 allocated at stock-owned `0xfe400000` and secure firmware returned `-EINVAL`.
 With them, metadata moved to free `0xec000000`, both SCM layers returned zero,
 and ADSP stayed `running`. See the
-[v7 ADSP report](../../test-results/2026-07-25-network-root-adsp-live.md).
+[v7 ADSP report](../../../test-results/2026-07-25-network-root-adsp-live.md).
 
 The `rmtfs_mem` label remains available for disabled upstream remote-processor
 references, but the recovery overlay now disables the reserved-memory node
@@ -92,7 +92,7 @@ accepted v3 artifacts differ in exactly four approved isolation properties;
 the compiled current base passes the same oracle with ten approved changes.
 The implementation, malicious fixtures, signal-abort test, and hashes are in
 the
-[corrected DTB semantic oracle](../../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
+[corrected DTB semantic oracle](../../../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
 
 GPUCC isolation is required because an attended live
 `gpucc_sm8350` probe stalled until the rollback watchdog reset the phone. A

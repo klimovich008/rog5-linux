@@ -19,16 +19,16 @@ corrected headless candidate, or any live allowlist entry:
 
 The policy is split into:
 
-- [`rog5-stable-wrapper-slim-v1.fragment`](../../configs/kernel/rog5-stable-wrapper-slim-v1.fragment),
+- [`rog5-stable-wrapper-slim-v1.fragment`](../../../configs/kernel/rog5-stable-wrapper-slim-v1.fragment),
   the reviewed Kconfig delta;
-- [`rog5-stable-wrapper-slim-v1.json`](../../configs/kernel/rog5-stable-wrapper-slim-v1.json),
+- [`rog5-stable-wrapper-slim-v1.json`](../../../configs/kernel/rog5-stable-wrapper-slim-v1.json),
   the identity, required-capability, forbidden-symbol, and minimum-reduction
   contract;
-- [`verify-stable-wrapper-slim-config.py`](../../scripts/host/verify-stable-wrapper-slim-config.py),
+- [`verify-stable-wrapper-slim-config.py`](../../../scripts/host/verify-stable-wrapper-slim-config.py),
   the fail-closed baseline/candidate auditor;
-- [`generate-stable-wrapper-slim-config.sh`](../../scripts/host/generate-stable-wrapper-slim-config.sh),
+- [`generate-stable-wrapper-slim-config.sh`](../../../scripts/host/generate-stable-wrapper-slim-config.sh),
   the network-disabled generator;
-- [`build-asus-kexec-stage-slim.sh`](../../scripts/device/build-asus-kexec-stage-slim.sh),
+- [`build-asus-kexec-stage-slim.sh`](../../../scripts/device/build-asus-kexec-stage-slim.sh),
   the source-sealed compile-only builder.
 
 ## Retained recovery boundary
@@ -113,7 +113,7 @@ than only grepping their literals.
 ## Offline result
 
 The exact evidence is recorded in the
-[2026-07-30 offline report](../../test-results/2026-07-30-stable-wrapper-config-slimming-offline.md).
+[2026-07-30 offline report](../../../test-results/2026-07-30-stable-wrapper-config-slimming-offline.md).
 Relative to the accepted wrapper configuration:
 
 | Measure | Accepted baseline | Slim v1 | Reduction |

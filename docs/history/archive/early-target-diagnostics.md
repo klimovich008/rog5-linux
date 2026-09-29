@@ -432,9 +432,9 @@ primitives, including FUTEX, MEMFD_CREATE, MULTIUSER, POSIX_TIMERS, SECCOMP,
 SHMEM, and TMPFS. The clean local full-system gate and complete repository CI
 pass. See the [real OpenSSH QEMU
 result](../test-results/2026-08-08-real-openssh-qemu-gate-offline.md).
-The [host collector result](../../test-results/2026-08-01-early-target-host-collector-offline.md)
+The [host collector result](../../../test-results/2026-08-01-early-target-host-collector-offline.md)
 records its hardware-free acceptance. Promotion steps 1 through 6 now pass:
-the [offline candidate result](../../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md)
+the [offline candidate result](../../../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md)
 records byte-identical disposable-signed bundles, stable-recovery wrappers,
 raw/AVB images, native verification, and private-key destruction. The complete
 local `ci` tier passes. Independent final review reports no actionable
@@ -452,7 +452,7 @@ evidence, verifies fallback and final cleanup, and resolves the intent only as
 `FALLBACK_RETURNED`. Sixteen admission tests and thirty-four lifecycle methods
 pass;
 see the
-[offline lifecycle result](../../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
+[offline lifecycle result](../../../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
 The first independent review's readiness-liveness, evidence-binding, and
 mutable-policy findings are fixed with hostile regressions. Independent
 closure review reports no remaining actionable findings, and the complete

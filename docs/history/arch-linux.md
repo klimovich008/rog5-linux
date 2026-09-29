@@ -112,7 +112,7 @@ SHA-256
 `2abe8c533179da598c37939ff8ebb4667a243bd8140c2d497237e41fbea72e6a`.
 Both in-root and clean-extraction verification pass. This result uses the
 public-only fixture key and is not live authority. See the
-[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
+[hardening report](../../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
 
 Seal the v2 source archive without package-network access:
 
@@ -143,7 +143,7 @@ Format v3 retains the verified `network-root-v1` wire profile while adding
 v1/v2 parsers remain exact. The future live-credential gate must reject the
 fixture fingerprint; no private key was read or stored during these builds.
 See the
-[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
+[key-bound package report](../../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
 
 The corresponding authority-free candidate uses the UFS-disabled network
 kernel, accepted GPU/RMTFS-isolated v3 recovery DTB, and a dedicated
@@ -157,8 +157,8 @@ target NCM, then returned to fallback before SSH at the same roughly
 DTB and a regression test requires its exact hash. This correction remains
 `status=offline`, `authority=none`, has no live trust key, and has not been
 booted. See the
-[runtime result](../test-results/2026-07-29-headless-runtime-integration-offline.md)
-and [live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md).
+[runtime result](../../test-results/2026-07-29-headless-runtime-integration-offline.md)
+and [live rejection](../../test-results/2026-07-29-headless-stable-recovery-live.md).
 
 ## Historical desktop profiles
 
@@ -226,42 +226,42 @@ not replaced the manifest-pinned live root, been exported over NFS, or booted
 on the phone.
 
 The later
-[userspace readiness audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+[userspace readiness audit](../../test-results/2026-07-27-arch-userspace-readiness-offline.md)
 keeps every sealed diagnostic root unchanged, confirms its full
 Plasma/KRDP/server package set and secret-free headless policy, and
 fail-first fixes a systemd ordering cycle in future hotspot packaging.
 Current staging now verifies both the hardened Chromium and hotspot units.
 The resulting
-[successor archive](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+[successor archive](../../test-results/2026-07-27-arch-successor-rootfs-offline.md)
 is 2,006,999,039 bytes with SHA-256
 `88c2d671a26f577aef963212cda17bc61baa888d77d0c1aaf1ca25c6fb3ad62a`.
 It contains 655 current packages and passes the complete verifier before
 archival and after clean extraction. The later
-[protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+[protected-export result](../../test-results/2026-07-27-arch-successor-protected-export-offline.md)
 pins that identity in the manifest and verifies a 181,239-entry,
 root-owned, read-only Btrfs subvolume plus three tamper cases. The
-[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+[pre-live HOLD](../../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
 adds one explicit-token, verifier-first NFS case and a strict-SSH first-boot
 runner covering coldplug, sysusers/tmpfiles, agent isolation, headless
 screen-off state, volatile machine identity, watchdog handoff, and normal
 reboot. It has not been booted and no live cycle is authorized.
 
 The newer
-[successor-v2 archive](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+[successor-v2 archive](../../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
 is 2,007,001,876 bytes with SHA-256
 `0da5f1dbc05588fcda444b6ba6d8a66db8fa9749691b1f7e37132de9e8a88078`.
 It retains all 655 packages and accepted v1 evidence while adding
 kill-switch-first hotspot transitions, partial-failure rollback, and
 AP-before-firewall cleanup. Its separate
-[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+[protected export](../../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
 passes complete recursive verification and four mutation cases. Its
-[pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+[pre-live HOLD](../../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
 adds dedicated verifier-first NFS, screen-off first-boot, strict-SSH,
 watchdog-handoff, and one-reboot controls. The unarmed host check passed; no
 NFS window or boot ran, and the root remains HOLD.
 
 The later
-[successor-v3 development archive](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+[successor-v3 development archive](../../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
 is 2,007,033,670 bytes with SHA-256
 `a7c286491d2fde97e17024b36f514d595196975da1988c986f70819c964eb8d7`.
 It keeps all 655 packages, reruns the byte-exact v2 verifier, then installs
@@ -269,7 +269,7 @@ and enables a confined `pmic_pwrkey` press handler for the existing
 DPMS/backlight toggle. Both staged and clean-extracted roots pass the v3
 verifier, and an independent archive contract rejects unsafe paths and
 runtime credentials. Its separate
-[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+[protected pre-live HOLD](../../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
 adds a root-owned read-only Btrfs export, four rejected COW mutations, an
 exact-root verifier-first NFS control, a power-input-aware first-boot gate,
 and a strict no-retry runner. The unarmed server preserves byte-identical
@@ -305,10 +305,10 @@ host NFS isolation, normal systemd coldplug, key-only SSH, and zero-storage
 boots pass. NetworkManager's USB exclusion is accepted, but Wi-Fi, greetd,
 Plasma, KRDP, and Mesa still require their separate hardware gates before the
 device is called usable. The
-[read-only vendor Wi-Fi contract](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+[read-only vendor Wi-Fi contract](../../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
 proves the exact `17cb:1103`/`17cb:0108` PCI endpoint and matching staged
 ath11k inputs. The later
-[offline WCN6855/PCIe acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+[offline WCN6855/PCIe acceptance](../../test-results/2026-07-27-wcn6855-pcie-offline.md)
 adds the schema-checked board graph and reproducible matching kernel/modules,
 but remains deferred pending a packaged RAM-only client-only probe admitted
 under the central standing authorization and core-first roadmap.
@@ -364,15 +364,15 @@ cannot enter the AP client, VPN-interface loss stays closed, recreating it
 restores DNS traffic, and teardown restores nftables and forwarding sysctls.
 Receipt-marker mutation testing detects one-way UDP datagrams and TCP SYNs
 even when replies are dropped. See the historical
-[offline packet report](../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
+[offline packet report](../../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
 The
-[real-WireGuard offline gate](../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
+[real-WireGuard offline gate](../../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
 adds a credential-free kernel handshake over a local TEST-NET veth underlay
 and sends one hotspot-client packet through the unchanged production
 kill-switch. It requires nonzero handshake and encrypted transfer counters,
 refuses a network-connected container, erases its disposable mode-`0600`
 keys, and repeats with exact cleanup. The
-[v2 DNS/recovery gate](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+[v2 DNS/recovery gate](../../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
 then makes v2 the default, carries valid DNS framing over UDP and TCP,
 requires endpoint loss to remain closed, restores both protocols after
 recovery, and mutation-tests one-way DNS leakage. A real client still must

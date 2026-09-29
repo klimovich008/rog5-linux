@@ -60,4 +60,4 @@ build or nested session is preparation, not completion. Other non-cellular
 hardware remains on the roadmap with explicit qualification status.
 
 The previous roadmap, including completed migration phases and historical
-research, is preserved through the [archive index](docs/archive/README.md).
+research, is preserved through the [archive index](docs/history/archive/README.md).

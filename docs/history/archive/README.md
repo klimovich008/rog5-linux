@@ -22,8 +22,8 @@ These documents describe the July/August 2026 flows (minimal headless server,
 network root, recovery candidates, the stable-recovery wrapper era, early
 storage and UI plans) that the production slot-B boot chain replaced. Their
 status lines are historical; nothing here is a current instruction. Current
-work starts at [current state](../current-state.md) and the
-[documentation index](../README.md).
+work starts at [current state](../../current-state.md) and the
+[documentation index](../../README.md).
 
 Minimal headless server and early userspace:
 

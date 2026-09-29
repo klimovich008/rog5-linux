@@ -82,4 +82,4 @@ checkout runs all synthetic semantic and hostile cases and intentionally
 skips only those retained-tree integrations.
 
 See the
-[offline result](../test-results/2026-08-09-vcnl36866-source-port-contract-offline.md).
+[offline result](../../test-results/2026-08-09-vcnl36866-source-port-contract-offline.md).

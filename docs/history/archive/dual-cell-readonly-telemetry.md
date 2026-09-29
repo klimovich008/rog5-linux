@@ -97,7 +97,7 @@ Two distinct initially empty, uncached build trees produced byte-identical
 `.config`, `Image`, `Image.gz`, `Module.symvers`, module archive, metadata, and
 linked `qcom_battmgr.ko`. The exact candidate DTB was also independently
 constructed twice and compared before local no-replace publication. See the
-[clean-twin result](../../test-results/2026-08-09-dual-cell-readonly-clean-twin-offline.md).
+[clean-twin result](../../../test-results/2026-08-09-dual-cell-readonly-clean-twin-offline.md).
 This closes the full-build reproducibility gate only: the candidate remains
 unbooted, hardware acceptance remains unproven, and no phone or lifecycle
 authority is implied.

@@ -39,13 +39,9 @@ if [[ $tier == quick || $tier == rootfs ]]; then
 		fail 'quick tier cgroup is not delegated writable'
 fi
 
-# Entry points, Markdown links, secret scan and (outside active/probe) the
-# shell/Python syntax of every tracked script: scripts/host/check-repository-static.py.
-static_args=()
-if [[ $tier == active || $tier == probe ]]; then
-	static_args=(--skip-syntax)
-fi
-python3 "$repo/scripts/host/check-repository-static.py" --repo "$repo" "${static_args[@]}" ||
+# Entry points, Markdown links, shell/Python syntax of every tracked script
+# and the secret scan, in every tier: scripts/host/check-repository-static.py.
+python3 "$repo/scripts/host/check-repository-static.py" --repo "$repo" ||
 	fail 'static repository check'
 
 }

@@ -111,7 +111,7 @@ critical-trip handling, orderly shutdown, forced fallback timing, and rollback
 behavior remain hardware-unproven. The capability therefore remains
 `phase=future`, `candidate_status=pending`, and `authority=none`. The exact
 build and timing evidence is in the
-[offline thermal-PMIC result](../test-results/2026-08-09-network-root-thermal-pmic-candidate-offline.md).
+[offline thermal-PMIC result](../../test-results/2026-08-09-network-root-thermal-pmic-candidate-offline.md).
 
 ## Run the offline gate
 

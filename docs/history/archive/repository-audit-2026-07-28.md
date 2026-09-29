@@ -168,9 +168,9 @@ produce a machine-readable plan with, for every proposed path:
    cache, or failed build;
 5. a reproducibility command or an explicit reason it is irreplaceable.
 
-The [retention report](../../test-results/2026-07-29-artifact-retention-plan.md)
+The [retention report](../../../test-results/2026-07-29-artifact-retention-plan.md)
 and
-[machine-readable plan](../../test-results/2026-07-29-artifact-prune-plan.json)
+[machine-readable plan](../../../test-results/2026-07-29-artifact-prune-plan.json)
 now satisfy the inventory step. They conservatively classify 51 units for
 retention, 46 for review, and eight as prune candidates. All eight candidates
 have zero tracked references and zero canonical-manifest rows, but still

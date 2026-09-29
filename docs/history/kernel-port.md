@@ -2,7 +2,7 @@
 
 ## Bounded source-reuse assessment — 2026-09-06
 
-This review does not change the [headless acceptance contract](history/release-acceptance.md).
+This review does not change the [headless acceptance contract](release-acceptance.md).
 No kernel/control change, download of boot images, large checkout, phone restart,
 or charging-threshold adjustment is justified by these references. Existing
 ASUS source, accepted artifacts and current dirty work were preserved.
@@ -45,7 +45,7 @@ exact-head publication or final artifact qualification.
 
 The NCM correction and complete paired root snapshot have since passed their
 bounded physical checks; current A01 now loads the sealed software radio closure
-in QEMU. See [current state](current-state.md) for the remaining board-helper
+in QEMU. See [current state](../current-state.md) for the remaining board-helper
 qualification, not another source-reuse review. These downstream references did
 not justify the NCM fix: its evidence is the accepted Image, packet capture and
 upstream callback. Reopen this assessment only for changed upstream pins or a
@@ -136,7 +136,7 @@ proposal and other-device current scaling are not imported.
 
 Patch 0038 (`patches/linux-7.1.4/0038-power-supply-qcom-battmgr-fix-charge-units.patch`, archived 2026-09-29)
 contains only that initialization with attribution. The
-[compiled regression](../scripts/device/test-qcom-battmgr-charge-units.py)
+[compiled regression](../../scripts/device/test-qcom-battmgr-charge-units.py)
 reproduces pre-fix phone ENODATA, checks both phone variants, preserves both
 laptop units and rejects extra policy changes. Its optional `--source` argument
 checks every marked fixture excerpt and applies the patch to a temporary copy
@@ -160,7 +160,7 @@ not the proprietary firmware's regulation behavior. Full/100%, USB current
 and `voltage_max` are not substitutes for a validated charge-limit contract.
 The actual-source 0038 regression still passes (three tests, **0.204 s** total),
 without changing the accepted source or deployed module. See the existing
-[acceptance incident](../test-results/2026-09-05-headless-acceptance.md#h03-read-only-prerequisite-follow-up)
+[acceptance incident](../../test-results/2026-09-05-headless-acceptance.md#h03-read-only-prerequisite-follow-up)
 for the bounded result; no new kernel import or dedicated phone cycle follows.
 
 ### NCM bulk-transfer timer follow-up
@@ -191,7 +191,7 @@ restarts only a BUSY timer flush at the existing 300us interval. No queue,
 timeout, charging, storage or fallback policy changes. Attribution and the
 driver's GPL-2.0-or-later license are retained.
 
-The [compiled callback regression](../scripts/device/test-ncm-tx-timer.py)
+The [compiled callback regression](../../scripts/device/test-ncm-tx-timer.py)
 reproduces a stranded pending reply before the patch, verifies two BUSY results
 then successful delivery without any new traffic, and tests sustained BUSY and
 absent-device termination. Its optional `--source` check applies to a temporary
@@ -199,7 +199,7 @@ copy of the retained driver and proves the tested callback matches exactly.
 This does not model DWC3 hardware or all timer concurrency. The separately
 reviewed, consumed V7 release deployed only this kernel correction and passed
 an 8 GiB bulk-read/parallel-SSH test plus the complete current P24 snapshot.
-See the [physical checkpoint](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).
+See the [physical checkpoint](../../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).
 The earlier stall did not recur, but the host receiver separately marked its
 capture FAIL on pre-target ENODEV. Do not conflate that observation with a
 target reset or claim whole-release qualification. No additional downstream
@@ -229,7 +229,7 @@ Linux 6.18 is also retained as the LTS comparison branch because kernel.org proj
 Unpacking the original ASUS images materially helps this port. Treat it as
 artifact extraction and selective decompilation, not as a way to recreate
 maintainable source. The complete private-input workflow and acceptance gate
-are in [stock-image analysis](stock-image-analysis.md):
+are in [stock-image analysis](../hardware/stock-image-analysis.md):
 
 - unpack `boot`, `vendor_boot`, `dtbo`, and `vbmeta` to recover header
   metadata, command-line contracts, ramdisk init/uevent rules, DTB/DTBO
@@ -390,7 +390,7 @@ wrapper/package paths match byte-for-byte. Exported symbols, the full module
 archive, GPUCC module, and RCG2 object remain identical to v14. V15 adds no
 device-specific path, direct display-provider resume, register access, forced
 parent, or consumer. See the
-[v15 offline report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
+[v15 offline report](../../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-offline.md).
 
 Its single attended RAM-only probe made DISPCC active, completed all seven
 observed RCG reads, and completed GPUCC clock indexes 0 through 6 before
@@ -399,7 +399,7 @@ uninterrupted 100 ms trace delivery, with no marker gap above 0.116 seconds.
 This supports the runtime-PM ordering hypothesis but does not prove complete
 GPUCC registration. Exact fallback and host cleanup passed. V15 must not be
 rerun. The
-[v15 live report](../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
+[v15 live report](../../test-results/2026-07-25-network-root-gpucc-runtime-pm-candidate-live.md)
 defines the next trace-free v16 confirmation gate.
 
 V16 now passes that offline gate with byte-identical v15 kernel/package
@@ -412,7 +412,7 @@ Semantic and mutation tests, the baseline source test, the existing
 guarded-probe suite, nine ACM pseudoterminal tests, and the complete exact
 bundle verifier pass.
 See the
-[v16 offline report](../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
+[v16 offline report](../../test-results/2026-07-25-network-root-gpucc-confirmation-offline.md).
 
 V16's attended cycle stopped before Linux 7.1 target entry: the trace-free
 payload loaded, a 284-second operator gap exceeded the staging watchdog, and
@@ -422,9 +422,9 @@ candidate. V16 is consumed. V17 offline-accepts the same kernel and target
 contract with an atomic, guard-first load-to-execute host sequence. Its 12 ACM
 tests, semantic/mutation suite, and complete nested bundle verifier pass. See
 the
-[v16 staging-only report](../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
+[v16 staging-only report](../../test-results/2026-07-26-network-root-gpucc-confirmation-live.md)
 and
-[v17 offline report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
+[v17 offline report](../../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-offline.md).
 V17's sole live cycle passes: the compound transport sent exactly one execute,
 the trace-free GPUCC module completed registration, bound one device, and
 remained stable for 30 seconds. Every real consumer, render node, and storage
@@ -434,7 +434,7 @@ ordering only as the isolated GPUCC foundation. Before enabling a consumer,
 the next candidate must source-test and reproduce the complete GPU
 power/regulator/interconnect, Adreno SMMU, GMU, reserved-memory, and firmware
 dependency graph. See the
-[v17 live report](../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
+[v17 live report](../../test-results/2026-07-26-network-root-gpucc-atomic-confirmation-live.md).
 
 V18 splits that graph at the first independently testable consumer boundary.
 Pinned Linux 7.1.4 source proves the Adreno SMMU needs exactly seven clocks,
@@ -444,7 +444,7 @@ disabled. The unchanged v15 Image/modules/target initramfs and external GPUCC
 module are combined with a reproducible DT, nested stage, clean-built ASUS
 wrapper, and temporary-boot package. All offline gates pass without contacting
 the phone. See the
-[v18 offline report](../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
+[v18 offline report](../../test-results/2026-07-26-network-root-adreno-smmu-offline.md).
 Its one attended control-plane run stopped safely at the read-only baseline:
 `fault` matched inside the normal word `Default`, before watchdog disarm,
 module load, or SMMU bind. Exact fallback and cleanup passed, so v18 is
@@ -482,19 +482,19 @@ persistent fallback, and complete host cleanup passed. V21 is consumed,
 removed from the runnable NFS allowlist, and must never be retried. This
 accepts only the idle SMMU foundation; acceleration remains out of scope. See
 the
-[safe-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md)
+[safe-rejection report](../../test-results/2026-07-26-network-root-adreno-smmu-v18-live-rejected.md)
 and the
-[v19 no-bind report](../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
+[v19 no-bind report](../../test-results/2026-07-26-network-root-adreno-smmu-v19-live-rejected.md).
 The
-[v20 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md)
+[v20 offline report](../../test-results/2026-07-26-network-root-adreno-smmu-v20-offline.md)
 records the source proof, exact live boundary, fail-first suite, root seal, and
 historical live-eligibility decision. The
-[v20 safe baseline-rejection report](../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md)
+[v20 safe baseline-rejection report](../../test-results/2026-07-26-network-root-adreno-smmu-v20-live-rejected.md)
 records the no-action stop, source diagnosis, fallback, and v21 boundary. The
-[v21 offline report](../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md)
+[v21 offline report](../../test-results/2026-07-26-network-root-adreno-smmu-v21-offline.md)
 records the source proof, mutation suite, unchanged binary, isolated root, and
 one-shot live boundary. The
-[v21 live acceptance report](../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md)
+[v21 live acceptance report](../../test-results/2026-07-26-network-root-adreno-smmu-v21-live-accepted.md)
 records the exact bind, runtime suspend, zero-consumer boundary, fallback, and
 cleanup.
 
@@ -505,7 +505,7 @@ and applies a fail-closed fix for the ignored GMU power-level result. Two
 rootless, network-isolated builds produced byte-identical configs, Images,
 module archives, symbol tables, critical modules, and metadata. No A660
 firmware is embedded and no phone state changed. See the
-[registration build report](../test-results/2026-07-26-a660-registration-build.md).
+[registration build report](../../test-results/2026-07-26-a660-registration-build.md).
 The exact four-node DT now also passes mutation tests and duplicate builds.
 The read-only baseline and independent-watchdog registration probe pass
 offline against the exact seven modules. The isolated seven-module export,
@@ -515,17 +515,17 @@ mutation-tests and hash-pins the exact accepted v21 report/marker, reads it
 only from the immutable NFS lower, removes `NOT_ACCEPTED`, builds a new
 root-owned seven-module/zero-firmware export, rejects the old and consumed
 roots, and re-passes the unchanged package's complete verifier. See the
-[registration v2 report](../test-results/2026-07-26-a660-registration-v2-offline.md).
+[registration v2 report](../../test-results/2026-07-26-a660-registration-v2-offline.md).
 Registration v3 then fixes the remaining automatic-bind assumption by carrying
 the accepted exact `3da0000.iommu` reprobe forward before DRM dependencies.
 Its new export, A660 watchdog handoff, compound target gate, strict one-shot
 host runner, and complete verifier all pass offline. See the
-[registration v3 report](../test-results/2026-07-26-a660-registration-v3-offline.md).
+[registration v3 report](../../test-results/2026-07-26-a660-registration-v3-offline.md).
 The sole live cycle then passed one exact SMMU reprobe, seven-module GPU/GMU
 registration, two IOMMU attachments, one unopened headless render node, a
 zero-firmware 30-second settle, exact fallback, and complete host cleanup.
 V3 is consumed. See the
-[registration v3 live acceptance](../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
+[registration v3 live acceptance](../../test-results/2026-07-26-a660-registration-v3-live-accepted.md).
 The next audit proves that provisioning files without an open triggers
 nothing. It accepts only a future diagnostic first-open branch that requests
 SQE/GMU firmware and deliberately fails before ucode, runtime power, hardware
@@ -538,13 +538,13 @@ exactly once, returned `EUCLEAN`, crossed no ucode/power/HFI/ZAP boundary,
 retained zero DRM descriptors/storage/faults, and returned through exact
 fallback plus complete cleanup. V4 is consumed. A mutation-tested nonsecret
 marker pins the exact report and evidence checkpoint. See the
-[firmware-only boundary report](../test-results/2026-07-26-a660-firmware-only-boundary.md)
+[firmware-only boundary report](../../test-results/2026-07-26-a660-firmware-only-boundary.md)
 and
-[request-only build report](../test-results/2026-07-26-a660-firmware-request-only-build.md),
+[request-only build report](../../test-results/2026-07-26-a660-firmware-request-only-build.md),
 then the
-[request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
+[request-only v4 offline report](../../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md)
 and
-[request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
+[request-only v4 live acceptance](../../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).
 
 The ucode-allocation source boundary is now accepted offline. On exact
 A660.1 it creates one SQE object, one privileged shadow object, and one
@@ -552,31 +552,31 @@ privileged power-up reglist object through three GPU-VM/SMMU mappings before
 GPU/GMU runtime power or register access. The normal A6xx destroy path does
 not fully release this state, so a future diagnostic must provide explicit
 all-path rollback and an atomic one-shot gate. See the
-[ucode-allocation boundary report](../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
+[ucode-allocation boundary report](../../test-results/2026-07-26-a660-ucode-allocation-boundary.md).
 
 The default-off rollback-safe diagnostic now passes its exact patch verifier,
 strict checkpatch, and eight source mutations; see the
-[ucode-allocation patch report](../test-results/2026-07-26-a660-ucode-allocation-patch.md).
+[ucode-allocation patch report](../../test-results/2026-07-26-a660-ucode-allocation-patch.md).
 Two isolated builds now pass with byte-identical outputs, an unchanged
 Image/config/ABI, an exact MSM-only delta, BTF, and zero embedded firmware;
 see the
-[ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).
+[ucode-allocation build report](../../test-results/2026-07-26-a660-ucode-allocation-build.md).
 The fresh root/gate now passes offline with exact PID-filtered balanced
 mapping/GEM/firmware trace requirements, equal pre/post GEM snapshots, nine
 forbidden power/HFI/ZAP/SCM probes, nested watchdogs, and a fully reverified
 unchanged boot package; see the
-[ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
+[ucode-allocation v5 offline report](../../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).
 The exact one-invocation host runner now passes its fail-first and mock
 transport suite with strict SSH identity and private evidence handling. The
-[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+[pre-live control acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
 keeps the decision at **HOLD**: the root remains non-runnable through the NFS
 launcher, the phone was not contacted, and any live cycle is still
 unauthorized at that checkpoint. The subsequent
-[pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+[pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
 added one fail-first-tested, explicit-opt-in, verifier-before-state NFS case
 for exact v5 and passed the fallback/host preflight. This authorized at most
 one attended RAM-only ucode-allocation cycle, not any later GPU tier.
-The [sole v5 cycle](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md)
+The [sole v5 cycle](../../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md)
 then completed the kernel rollback but was rejected at the userspace
 public-wrapper count (`get=1`, expected `4`) before snapshot comparison.
 Exact `.rela.text` analysis shows that Clang inlined three logical
@@ -589,7 +589,7 @@ helpers directly, preserve every storage/watchdog/forbidden-event guard, and
 pass a new offline HOLD/GO process before hardware use.
 
 The
-[v6 offline package](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
+[v6 offline package](../../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md)
 now passes that offline half. It deliberately reuses the exact accepted
 kernel module because the defect was in the userspace oracle, then
 hash-pins the module and its `.rela.text` layout. Generated v6 controls trace
@@ -598,19 +598,19 @@ three successful `msm_gem_kernel_new()` returns and two
 events into logical `4/4` balance, verify exact rollback object sets, and
 retain equal post-settle GEM snapshots. Runtime, root, gate, and changed-seal
 mutation suites pass. The subsequent
-[pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+[pre-live control acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
 adds a fail-first-tested exact one-invocation runner, but it cannot start NFS
 or boot the phone. V6 is still non-runnable and **HOLD**; no phone cycle is
 authorized.
 
 The
-[v6 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+[v6 pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
 then adds one verifier-first, explicit-opt-in NFS case and passes exact
 fallback, SSH identity, credential, root, package, runner, and inactive-host
 checks. It authorizes at most one RAM-only v6 cycle under nested watchdogs and
 immediate fallback. It does not accept the hardware path or permit a retry.
 
-The [sole v6 cycle](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
+The [sole v6 cycle](../../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md)
 then reached the successful kernel allocation-and-rollback marker but was
 rejected by a second userspace-oracle error. A function-entry kprobe sees raw
 sizes: SQE `fw->size - 4 = 43288`, one-ring shadow `sizeof(u32) = 4`, and
@@ -622,7 +622,7 @@ entry-size set and still pass the unchanged equal-snapshot gate before the
 port advances to GMU resume or successful open.
 
 The
-[v7 offline package](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
+[v7 offline package](../../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md)
 now satisfies that source boundary while reusing the unchanged accepted
 module. Zero-fuzz generation and semantic mutations pin raw entry sizes
 `4/4096/43288`, page-rounded objects `4096/4096/45056`, three kernel-new
@@ -631,19 +631,19 @@ rollback, and equal settled GEM snapshots. Its root-owned protected export is
 an exact COW delta from consumed v6 and rejects predecessor and size-layer
 seal mutations. It is absent from the NFS allowlist and has no live runner.
 No phone contact occurred at that checkpoint. The
-[v7 pre-live HOLD review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+[v7 pre-live HOLD review](../../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
 now adds an exact one-shot host runner with strict SSH identity, immutable
 inputs, private logging, expected reboot disconnect, and no retry. Its mock,
 credential/root, and actual unarmed-refusal checks pass. It has no
 NFS/server/boot authority at that checkpoint. The separate
-[v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+[v7 pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
 adds one exact-root, verifier-before-state, explicit-opt-in NFS window.
 Clean synchronized Git, immutable inputs, distinct SSH identities, strict
 fallback health, inactive services, and actual unarmed refusals pass with
 zero residue. This authorizes at most one attended RAM-only v7 cycle with no
 retry and no flash.
 The
-[sole v7 live acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
+[sole v7 live acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md)
 now proves the corrected raw-size set, three successful allocations, exact
 pointer-set rollback, logical `4/4`, and an equal settled GEM snapshot on
 hardware. Runtime power, HFI, ZAP/SCM, hardware initialization, storage, and
@@ -652,7 +652,7 @@ and v7 is permanently consumed. The port may advance only to a new isolated
 runtime-power/GMU-resume boundary.
 
 That next boundary is now accepted offline, but not live. The
-[GMU resume-entry source audit](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
+[GMU resume-entry source audit](../../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md)
 pins the lazy-open, firmware/ucode, outer runtime-PM, A6xx callback, and error
 propagation call graph. The default-off exact-A660.1 patch stops immediately
 after the GMU initialized guard and before `gmu->hung`, inner PM domains,
@@ -661,33 +661,33 @@ initialization, or ZAP/SCM. It then requires the balanced outer error path and
 accepted v7 cleanup before deliberately failing the open.
 
 The
-[v8 offline build report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+[v8 offline build report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
 records two complete clean Linux 7.1.4 builds. They match byte-for-byte; the
 config, Image, ABI/symbols, GPUCC, MDT loader, and every installed module
 except `msm.ko` remain exactly v7. This accepts only the compiled diagnostic.
 The
-[v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
+[v8 runtime report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
 also accepts the zero-fuzz target controls and compiler-relocation oracle:
 accepted-v7 allocation and rollback remain logical `4/4`, one outer runtime
 resume reaches the diagnostic, and every inner PM/clock/IRQ/HFI/devfreq/LLC/
 hardware/SCM event remains forbidden. The
-[v8 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
+[v8 protected-root report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
 accepts the fresh consumed-v7-derived mode-`0555` root, exact v8 MSM-only
 payload delta, preserved credentials and firmware, complete tree comparison,
 five rejected mutations, and compound overlapping-watchdog target gate.
 NFS remained inactive and the phone was not contacted. The
-[v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+[v8 pre-live HOLD report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
 then accepts the strict one-invocation/no-retry host runner, immutable inputs,
 private evidence boundary, local credential agreement, expected reboot
 disconnect, root reverification, and actual unarmed refusal. It cannot start
 NFS or boot the phone. The
-[v8 pre-live GO report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md)
+[v8 pre-live GO report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md)
 now accepts one fail-first exact-root NFS window, the complete unchanged
 temporary-boot package, all protected-root mutations, separate pinned SSH
 identities, strict read-only fallback health, both actual unarmed refusals,
 and residue-free final host state. This authorizes exactly one attended
 RAM-only v8 entry cycle with no retry or flash. The
-[sole v8 live rejection](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
+[sole v8 live rejection](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md)
 records that cycle. The exact entry and rollback ran, but the userspace
 oracle compared zero-extended arm64 `int` returns (`4294967179`) with signed
 `-117`. The complete trace also disproved the process-global one-call
@@ -696,28 +696,28 @@ clock, IRQ, HFI, hardware, ZAP, and SCM events. Fallback and cleanup passed;
 v8 is consumed and must not be retried. A v9 oracle must sign-normalize the
 returns and compare GPU device identity using the unchanged kernel module
 before a later GMU power-preparation tier. The
-[v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
+[v9 offline runtime report](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md)
 now accepts that userspace-only correction: three unsigned-32 transports,
 signed normalization, one matching GPU-device outer PM among arbitrary
 classified generic calls, unchanged `msm.ko`, duplicate controls, and twelve
 rejected mutations. The
-[v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
+[v9 protected-root report](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md)
 now accepts the consumed-v8-derived exact-delta root and compound target gate.
 All kernel/module and firmware bytes remain v8-identical; the versioned
 signed/device-scoped controls, whole-tree/credential checks, runtime mutation
 suite, and independent final-root verification pass. It remains live HOLD
 through the
-[v9 pre-live control review](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md),
+[v9 pre-live control review](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md),
 which accepts the strict no-retry runner, one-call mock, private evidence,
 local SSH agreement, actual unarmed refusal, synchronized Git, root
 reverification, and inactive NFS/RPC. A separate attended GO review remains
 required at that checkpoint. HFI, ZAP/SCM, successful open, submission, and
 rendering remain separate. The later
-[v9 attended GO review stopped at HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+[v9 attended GO review stopped at HOLD](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
 after accepting a verifier-first explicit NFS case and every local immutable
 input. The phone is physically absent, so current fallback kernel, pstore,
 module, thermal, and identity health cannot be assumed there. The
-[sole v9 live acceptance](../test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
+[sole v9 live acceptance](../../test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
 then passed after current fallback and all GO controls returned. One
 GPU-device outer runtime-PM transition, signed `-EUCLEAN`, exact
 firmware/allocation/mapping rollback, logical `4/4`, and equal settled GEM
@@ -726,7 +726,7 @@ ZAP/SCM probe remained zero. Fallback and host cleanup passed. V9 is
 permanently consumed and absent from the server.
 
 The separately versioned
-[v10 GMU/CX runtime-PM offline tier](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+[v10 GMU/CX runtime-PM offline tier](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
 now passes its pinned-source boundary, twelve patch mutations, strict patch
 check, two isolated builds, and exact-v8 comparison. Its default-off
 one-shot stops after the first GMU-device runtime-PM get, balanced consumer
@@ -734,24 +734,24 @@ put, and synchronous linked-CX suspend. It remains above GX, clock-rate/
 enable, secure-init, MMIO, IRQ, firmware-start, HFI, hardware-init, ZAP, and
 SCM. Only `msm.ko` changes; config, Image, ABI, and every other installed
 module remain accepted-v8-identical. The
-[v10 runtime acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-runtime-offline.md)
+[v10 runtime acceptance](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-runtime-offline.md)
 adds exact GMU/linked-CX classification and fourteen rejected oracle
 mutations. The
-[protected-root/pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+[protected-root/pre-live HOLD](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
 passes the exact consumed-v9 root delta, recursive verifier, target/watchdog
 gate, no-retry runner, verifier-first bounded server case, actual unarmed
 zero-state refusal, and connected fallback health. The
-[current readiness HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
+[current readiness HOLD](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-current-readiness-hold.md)
 repeats those gates against the synchronized current branch, pins the changed
 shared-server identity, proves another byte-identical unarmed refusal, and
 selects v10 as the next candidate. The later
-[attended-GO HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+[attended-GO HOLD](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
 repeats every technical prerequisite after successor-v3 publication. The
 review passes technically but stops on the absent exact user GO; no v10 live
 authority exists.
 
 The provisional
-[v11 GMU clock-preparation tier](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+[v11 GMU clock-preparation tier](../../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
 is source/build evidence only. The pinned SM8350 GPUCC implementation makes
 GX power-on a no-op, so a GX-only diagnostic would not cross a new hardware
 boundary. V11 keeps that reference balanced and instead isolates the normal

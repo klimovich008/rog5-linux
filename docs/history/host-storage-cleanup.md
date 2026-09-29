@@ -15,7 +15,7 @@ exact approved set of 87 detached ROG5 volumes, retained all 11 referenced
 volumes, and increased filesystem availability from about 324 GiB to 474 GiB.
 The exact plan identity, candidate-set identity, retained closure, and
 before/after measurements are recorded in the
-[cleanup result](../test-results/2026-07-30-podman-volume-cleanup.md).
+[cleanup result](../../test-results/2026-07-30-podman-volume-cleanup.md).
 
 External development/cache units and the separate in-repository artifact
 candidates were not part of that execution and remain subject to a fresh
@@ -38,7 +38,7 @@ reflinks and compression made apparent and exclusive allocation differ. The
 remain. The removed files are not directly recoverable, but the wrapper
 outputs remain in the cache and the broad object trees are reproducible from
 the pinned source, builder, config, initramfs, and scripts. See the
-[cache proof](../test-results/2026-07-30-stable-recovery-wrapper-cache.md).
+[cache proof](../../test-results/2026-07-30-stable-recovery-wrapper-cache.md).
 
 ## Current finding
 

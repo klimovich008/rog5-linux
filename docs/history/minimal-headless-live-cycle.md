@@ -30,35 +30,35 @@ Generation-4 artifact sizes. Complete local CI and GitHub Actions run
 `30793088424` pass at implementation commit `38b6019`; no new image is
 admitted. Do not increase a timeout or revive a consumed image as a substitute
 for this ordering evidence. See the
-[offline correction](../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
+[offline correction](../../test-results/2026-08-03-generation-4-choreography-fix-offline.md).
 The corrected controller/server are installed, and their real bundle and
 37,735-entry deployment-root preflights pass without phone access or project
 residue; see the
-[host-install result](../test-results/2026-08-03-choreography-host-install-live.md).
+[host-install result](../../test-results/2026-08-03-choreography-host-install-live.md).
 Distinct Generation-5 AVB `abe4501f…beb1a` is now twin-reproducible over the
 unchanged recovery payload and passes the complete offline artifact gate. See the
-[Generation-5 issuance](../test-results/2026-08-03-generation-5-choreography-offline.md).
+[Generation-5 issuance](../../test-results/2026-08-03-generation-5-choreography-offline.md).
 The lifecycle now selects its exact live-capable profile, direct boot remains
 lifecycle-only, and central policy admits at most one cycle after connected
 preflight; see the
-[profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
-and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
+[profile transition](../../test-results/2026-08-03-generation-5-live-profile-offline.md)
+and [one-shot admission](../../test-results/2026-08-03-generation-5-live-admission-offline.md).
 The [standing operator authorization](archive/operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
 guard, preflight, one-shot limit, rollback rule, and no-flash boundary remains
 mandatory.
 The exact Generation-5
-[connected preflight](../test-results/2026-08-03-generation-5-connected-preflight-live.md)
+[connected preflight](../../test-results/2026-08-03-generation-5-connected-preflight-live.md)
 passed, then its sole
-[live cycle](../test-results/2026-08-03-generation-5-nfs-readiness-live.md)
+[live cycle](../../test-results/2026-08-03-generation-5-nfs-readiness-live.md)
 reached verified recovery `PREPARED` and transferred all 46,163,787 bundle
 bytes. The independent completion-to-NFS handoff still failed before COMMIT;
 no target ran. Exact Alpine fallback, strict SSH, and final host cleanup
 passed after the controller watchdog released its lock. Generation 5 is
 consumed and absent from boot policy; it must never be retried or flashed.
 The subsequent
-[offline signal-mask correction](../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
+[offline signal-mask correction](../../test-results/2026-08-03-generation-5-signal-mask-choreography-fix-offline.md)
 proves the transfer completed roughly 46 seconds before rejection. The host
 broker had allowed the controller and its watchdog to inherit blocked TERM,
 so successful transfer cleanup waited for the full watchdog instead of
@@ -68,13 +68,13 @@ focused broker/controller/lifecycle suites, complete local CI, and GitHub
 Actions run `30803393832` pass. The broker is installed at exact hash
 `fbafce24…cc42c`; both real host-only preflights pass with no final residue.
 See the
-[host installation](../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
+[host installation](../../test-results/2026-08-03-generation-5-signal-mask-host-install-live.md).
 Do not raise the NFS timeout or reuse Generation 5.
 Distinct Generation-6 AVB `6aa47517…d398` is twin-reproduced over the unchanged
 accepted recovery payload and passes its exact offline artifact gate. Its
 immutable offline profile rejects connected preflight and boot before host
 inspection. See the
-[offline result](../test-results/2026-08-03-generation-6-signal-fix-offline.md).
+[offline result](../../test-results/2026-08-03-generation-6-signal-fix-offline.md).
 The lifecycle now selects its exact live-capable profile, direct boot remains
 lifecycle-only, but its sole admitted cycle is now consumed. Connected
 preflight passed and recovery transferred the complete signed bundle while
@@ -85,16 +85,16 @@ FAIL on the production fallback udev-model mismatch; independent residue
 checks were clean. The mismatch is now reproduced and corrected offline with
 an exact four-model classifier, a realistic post-fallback fixture, and hostile
 lookalike coverage; this does not relabel the failed live proof. See the
-[offline udev correction](../test-results/2026-08-03-fallback-udev-model-classification-fix-offline.md),
-[profile transition](../test-results/2026-08-03-generation-6-live-profile-offline.md)
-and [one-shot admission](../test-results/2026-08-03-generation-6-live-admission-offline.md),
-[connected preflight](../test-results/2026-08-03-generation-6-connected-preflight-live.md),
-and [live result](../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
+[offline udev correction](../../test-results/2026-08-03-fallback-udev-model-classification-fix-offline.md),
+[profile transition](../../test-results/2026-08-03-generation-6-live-profile-offline.md)
+and [one-shot admission](../../test-results/2026-08-03-generation-6-live-admission-offline.md),
+[connected preflight](../../test-results/2026-08-03-generation-6-connected-preflight-live.md),
+and [live result](../../test-results/2026-08-03-generation-6-recovery-control-silence-live.md).
 The private timeline later proved the lifecycle hit the post-transfer cleanup
 deadline and entered fallback before it ever waited for recovery control.
 NetworkManager had made the recovery interface unmanaged and address-free but
 retained the exact fallback profile UUID as historical association data. The
-[offline choreography correction](../test-results/2026-08-03-generation-6-deferred-profile-association-fix-offline.md)
+[offline choreography correction](../../test-results/2026-08-03-generation-6-deferred-profile-association-fix-offline.md)
 accepts only that exact retained UUID or no association after all deferred
 state checks pass continuously. Thus Generation 6 did not prove recovery-side
 silence; it also did not produce a live `PREPARED` result.
@@ -106,34 +106,34 @@ fixed deadline, no COMMIT intent existed, and no target ran. Anchored Alpine
 restoration and strict SSH fallback passed; the final host cleanup proof
 exposed a remaining deadline/association defect. Generation 7 is consumed and
 its central-policy row is removed. See the
-[offline issuance](../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
-and [profile transition](../test-results/2026-08-03-generation-7-live-profile-offline.md),
-the [one-shot admission](../test-results/2026-08-03-generation-7-live-admission-offline.md),
-[connected preflight](../test-results/2026-08-03-generation-7-connected-preflight-live.md),
-and [consumed live result](../test-results/2026-08-03-generation-7-acm-stability-live.md).
-The [offline cleanup correction](../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md)
+[offline issuance](../../test-results/2026-08-03-generation-7-deferred-profile-fix-offline.md)
+and [profile transition](../../test-results/2026-08-03-generation-7-live-profile-offline.md),
+the [one-shot admission](../../test-results/2026-08-03-generation-7-live-admission-offline.md),
+[connected preflight](../../test-results/2026-08-03-generation-7-connected-preflight-live.md),
+and [consumed live result](../../test-results/2026-08-03-generation-7-acm-stability-live.md).
+The [offline cleanup correction](../../test-results/2026-08-03-generation-7-cleanup-snapshot-fix-offline.md)
 subsequently reduced one strict production host observation from about 5.72
 to 1.11 seconds by consolidating firewalld reads. The fixed deadline, dwell,
 and fail-closed residue checks are unchanged. A second
-[offline correction](../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md)
+[offline correction](../../test-results/2026-08-03-generation-7-nmcli-empty-field-fix-offline.md)
 reproduces NetworkManager 1.52.1's NULL `CON-UUID` as one empty `-g` field and
 accepts only that canonical shape after every existing identity, address,
 ownership, profile, and autoconnect check. At that correction checkpoint no
 Generation-8 image was issued or admitted. A subsequent
-[offline-only Generation-8 successor](../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
+[offline-only Generation-8 successor](../../test-results/2026-08-03-generation-8-nmcli-empty-field-successor-offline.md)
 is now host-locally twin-issued and artifact-pinned as AVB
 `f102d53c…f2415`. A separate
-[live-profile transition](../test-results/2026-08-03-generation-8-live-profile-offline.md)
+[live-profile transition](../../test-results/2026-08-03-generation-8-live-profile-offline.md)
 selects that exact tuple through the lifecycle. Its issuance record retains
 `authority=none`; the separate
-[one-shot admission](../test-results/2026-08-03-generation-8-live-admission-offline.md)
+[one-shot admission](../../test-results/2026-08-03-generation-8-live-admission-offline.md)
 added exactly one central-policy row. Commit `c667718` and GitHub Actions run
 `30832269180` passed; connected preflight then passed. The sole RAM-only boot
 transferred the complete signed bundle, but recovery control rejected because
 recovery ACM identity did not remain stable. No PREPARED record, COMMIT intent,
 or target execution existed. Exact Alpine fallback returned. Generation 8 is
 now consumed and absent from policy; see the
-[live result](../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
+[live result](../../test-results/2026-08-03-generation-8-recovery-acm-stability-live.md).
 Before any Generation-9 issuance, the recovery controller now samples ACM
 enumeration into a bounded non-sensitive classifier. It distinguishes absence,
 inspection failure, product/node/duplicate faults, unreadable or read-only
@@ -145,7 +145,7 @@ seconds and pass a final independent observation. Commit `77543ee` and
 exact-head GitHub Actions run `30838804593` pass. The lifecycle invokes this
 controller from the synchronized checkout; it is not deployed by the fixed
 root-broker installer. See the
-[offline classifier result](../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
+[offline classifier result](../../test-results/2026-08-03-generation-9-recovery-acm-classifier-offline.md).
 Distinct Generation-9 AVB `b458e64b…d008` was twin-issued on this host over
 unchanged raw recovery `f1a7c5ad…6a4ce`. Its admission checkpoint
 `eea0989` passed exact-head GitHub run `30847253087`; local key admission and
@@ -160,8 +160,8 @@ not label the phase directly. The initial exact recovery connection had
 necessarily succeeded to deliver the PREPARE that triggered the transfer. No
 COMMIT intent existed, no target ran, exact fallback returned, and final host
 cleanup passed. Generation 9 is consumed and absent from policy. See the
-[one-shot admission](../test-results/2026-08-03-generation-9-live-admission-offline.md)
-and [live result](../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
+[one-shot admission](../../test-results/2026-08-03-generation-9-live-admission-offline.md)
+and [live result](../../test-results/2026-08-03-generation-9-prepared-response-gap-live.md).
 The lifecycle rejects an existing per-profile consumption record before
 connected preflight, then atomically writes a private durable `BOOT_CLAIMED`
 record under the effective account's passwd-database home at
@@ -173,12 +173,12 @@ Generation-9 claim is now `BOOT_CLAIMED`; together with the removed policy row,
 it prevents a second run. Every successor generation must use a distinct
 recovery-profile name because this per-profile claim is permanent by design.
 A separate
-[live-profile transition](../test-results/2026-08-03-generation-9-live-profile-offline.md)
+[live-profile transition](../../test-results/2026-08-03-generation-9-live-profile-offline.md)
 selected the identical tuple through the lifecycle. Direct connected actions
 still require the lifecycle guard and exact one-shot policy basis; with the
 row removed, both connected actions reject before host inspection. Missing,
 duplicate, and wrong-basis fixtures remain regression coverage. See also the
-[offline successor](../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
+[offline successor](../../test-results/2026-08-03-generation-9-acm-classifier-successor-offline.md).
 The progress-instrumented Generation-10 successor is twin-issued at AVB
 `b983e89b…8b51`. Its immutable offline profile passed review, publication at
 `edae5d1`, and exact-head GitHub Actions run `30867110893`. The separate
@@ -195,12 +195,12 @@ Generation 10 is permanently `BOOT_CLAIMED`, absent from boot policy, consumed
 in inventory, and never reusable. Missing, duplicate, wrong-basis, and former
 exact-basis readmission states reject before host inspection.
 See the
-[offline profile](../test-results/2026-08-03-generation-10-offline-profile.md),
-[live-profile transition](../test-results/2026-08-04-generation-10-live-profile-offline.md),
-[one-shot admission](../test-results/2026-08-04-generation-10-live-admission-offline.md),
-[connected preflight](../test-results/2026-08-04-generation-10-connected-preflight-live.md),
+[offline profile](../../test-results/2026-08-03-generation-10-offline-profile.md),
+[live-profile transition](../../test-results/2026-08-04-generation-10-live-profile-offline.md),
+[one-shot admission](../../test-results/2026-08-04-generation-10-live-admission-offline.md),
+[connected preflight](../../test-results/2026-08-04-generation-10-connected-preflight-live.md),
 and
-[live result](../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
+[live result](../../test-results/2026-08-04-generation-10-request-accepted-transport-gap-live.md).
 The hardware-free successor infrastructure now adds one fixed receive-only NCM
 progress stream on port `8081`. Its device sender, exact namespace path,
 privileged host controller, irreversible root-to-user collector, and
@@ -209,16 +209,16 @@ and provisioned `quick` tiers.
 Progress absence or invalid evidence is advisory and cannot gate COMMIT;
 listener ownership conflicts still fail closed. See the
 [contract](archive/recovery-ncm-progress.md) and
-[offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
+[offline integration result](../../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 A distinct
-[Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+[Generation-11 wrapper](../../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 now reproduces across two clean builds and two offline issuances. It remains
 ignored and issuance remains `authority=none`. Its exact recovery and
 unchanged signed-target tuple passes an immutable
-[offline profile](../test-results/2026-08-04-generation-11-offline-profile.md)
+[offline profile](../../test-results/2026-08-04-generation-11-offline-profile.md)
 against both retained trees. The one-shot controller now selects the same
 tuple through a separate
-[live-capable profile](../test-results/2026-08-04-generation-11-live-profile-offline.md),
+[live-capable profile](../../test-results/2026-08-04-generation-11-live-profile-offline.md),
 while direct connected actions and absent or malformed policy fixtures reject
 before host inspection. The offline profile review and publication are complete:
 commit `98f8d27` passed exact-head GitHub Actions run `30904224177` after the
@@ -226,10 +226,10 @@ CI-only watchdog-race test was synchronized without changing production code.
 The live-profile transition passed Claude Opus review, independent Codex
 review, and complete local CI. Commit `2a483ec` passed exact-head GitHub Actions
 run `30908649494`. A separate
-[central-policy admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+[central-policy admission](../../test-results/2026-08-04-generation-11-live-admission-offline.md)
 added exactly one connected-preflight-gated RAM-only lifecycle. The
 admitted-policy and hostile-fixture tests pass offline; exact
-[connected preflight](../test-results/2026-08-04-generation-11-connected-preflight-live.md)
+[connected preflight](../../test-results/2026-08-04-generation-11-connected-preflight-live.md)
 then passed after strict fallback proof and an anchored same-port transition
 to one `lahaina` fastboot device. No recovery image boot, payload transfer, or
 Generation-11 boot claim occurred at that checkpoint. Independent spec and
@@ -237,7 +237,7 @@ standards review and complete local CI passed; commit `7b76733` published the
 connected evidence and exact-head GitHub Actions run `30921019231` passed.
 Publication commit `04132f0` then passed exact-head run `30921533485`.
 
-The [sole live cycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+The [sole live cycle](../../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
 entered the durable private claim and booted exact recovery ACM/NCM. The
 privileged `serve-progress-deferred` host path then rejected its newly started
 TCP 8081 collector as not uniquely confined before publishing the bundle-server
@@ -259,7 +259,7 @@ passed. Connected-preflight publication commit `1ee5508` and exact-head run
 `30944062957` then passed after an anchored Alpine-to-fastboot transition and
 bounded Steam TCP-8081 socket stop/restore.
 
-The [sole diagnostic run](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+The [sole diagnostic run](../../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
 entered the claim, transferred the exact signed bundle, accepted correlated
 PREPARE/COMMIT, and captured 40 lossless target frames through stage 70
 `nfs-mount-begin`. USB disconnected before stage 80 `nfs-mount-ok`; watchdog
@@ -401,7 +401,7 @@ Raw dmesg does not leave the fallback. The retained 5.4.210 source/config pins
 the behavioral oracle, but the installed 5.4.134 fallback config is not
 retained, so driver availability on that kernel remains unproven until a
 future separately admitted read-only observation. See the
-[offline checkpoint](../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md).
+[offline checkpoint](../../test-results/2026-08-10-fallback-pmic-pon-postmortem-offline.md).
 
 SSH does not enter the BusyBox line editor, but reading `authorized_keys`,
 the SSH host key, Python, and libraries from Alpine's writable `relatime`
@@ -479,7 +479,7 @@ The installation at commit `aa39503` is accepted: SteamOS read-only mode was
 restored, the socket is enabled and active with exact UID/GID `1000:1000` and
 mode `0600`, installed executable hashes match the checkout, and the real
 deployment NFS preflight crossed the root broker without PolicyKit. See the
-[live host-control result](../test-results/2026-08-01-steamos-prompt-free-host-control-live.md).
+[live host-control result](../../test-results/2026-08-01-steamos-prompt-free-host-control-live.md).
 
 After the reviewed change is committed, pushed, synchronized with `origin`,
 and its installer preflight passes, the command may run under the central
@@ -548,7 +548,7 @@ The no-replace publication contract also refuses the existing export.
 > and physically disconnected 23 seconds later, before target SSH acceptance.
 > The watchdog returned the exact Alpine fallback and strict SSH proved it.
 > Do not reuse r2; build a distinct diagnostic successor. See the
-> [live result](../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
+> [live result](../../test-results/2026-08-01-minimal-headless-r2-target-usb-loss.md).
 
 The lifecycle now selects one exact deployment profile and bundle:
 
@@ -593,7 +593,7 @@ rejects every historical profile, wrong bundle, and consumed live manifest
 before opening the private key. Candidate and bundle are checked separately:
 the target reports the stable candidate ID while recovery commits only the r2
 bundle. Exact build evidence and remaining gates are recorded in the
-[signed r2 result](../test-results/2026-07-31-headless-ssh-successor-r2-signed-build.md).
+[signed r2 result](../../test-results/2026-07-31-headless-ssh-successor-r2-signed-build.md).
 
 ## Persistent fallback USB network profile
 
@@ -760,16 +760,16 @@ the diagnostic commit before NFS startup. It is consumed and explicitly
 refused with both previous diagnostic wrappers. The corrected control policy
 requires the diagnostic bundle to match the exact v3 profile/package NFS
 handoff before commit and rejects unknown guarded bundles before phone access.
-See the [corrected production build result](../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md),
-the [generation successor](../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
-the [live NFS-bypass result](../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
-and the [generation-2 result](../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
+See the [corrected production build result](../../test-results/2026-08-01-corrected-diagnostic-recovery-production-build.md),
+the [generation successor](../../test-results/2026-08-02-listener-successor-avb-generation-offline.md),
+the [live NFS-bypass result](../../test-results/2026-08-02-diagnostic-nfs-handoff-bypass-live.md),
+and the [generation-2 result](../../test-results/2026-08-02-nfs-gated-generation-2-avb-offline.md).
 Generation-2 AVB `70fd77f7…fc72b1` changed only deterministic salt/digest
 over the same raw recovery, passed artifact and connected preflight, and
 booted once. Recovery returned `PREPARED` without a completed host transfer;
 the NFS gate stopped before COMMIT, exact fallback passed, and the wrapper is
 consumed. See the
-[generation-2 live result](../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
+[generation-2 live result](../../test-results/2026-08-02-generation-2-fresh-fetch-gap-live.md).
 Generation 3 includes fatal `/run` tmpfs validation, fresh-fetch-only PREPARE,
 and the corrected lifecycle fixture. Those changes pass 41 lifecycle tests,
 complete local CI, Claude review, GitHub Actions run `30750260056`, a
@@ -802,13 +802,13 @@ relabels the artifact consumed/offline-only, requires its absence in both
 policy gates, and updates both downstream hash pins. The image must never be
 retried or flashed.
 See the
-[generation-4 offline result](../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
+[generation-4 offline result](../../test-results/2026-08-03-generation-4-timeout-lattice-offline.md).
 The phone-free profile transition is in the
-[generation-4 live-profile result](../test-results/2026-08-03-generation-4-live-profile-offline.md).
+[generation-4 live-profile result](../../test-results/2026-08-03-generation-4-live-profile-offline.md).
 The separate authority change is in the
-[generation-4 admission result](../test-results/2026-08-03-generation-4-live-admission-offline.md).
+[generation-4 admission result](../../test-results/2026-08-03-generation-4-live-admission-offline.md).
 The sole lifecycle is in the
-[generation-4 live result](../test-results/2026-08-03-generation-4-nfs-readiness-live.md).
+[generation-4 live result](../../test-results/2026-08-03-generation-4-nfs-readiness-live.md).
 Generation-3 `boot` additionally required the lifecycle guard;
 the controller sets that explicit policy variable on its boot child after
 completing admission and connected preflight in the same invocation, and the
@@ -818,8 +818,8 @@ authenticating the caller. Post-result consumption remains the required
 versioned policy/inventory/test/hash transition described above; the live gate
 does not edit Git. See
 the
-[generation-3 production result](../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md)
-and [live result](../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
+[generation-3 production result](../../test-results/2026-08-02-generation-3-fresh-fetch-production-build.md)
+and [live result](../../test-results/2026-08-03-generation-3-transfer-timeout-live.md).
 The installed r2 bundle remains historical connected-preflight evidence only.
 
 ## Historical r2 credential-free preflight
@@ -1140,7 +1140,7 @@ Together they prove:
   this best-effort classifier cannot admit a device, and hotplug races resolve
   to an unknown observation rather than aborting the authoritative
   exact-fastboot wait; see the
-  [live anchored transition](../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md);
+  [live anchored transition](../../test-results/2026-08-03-fallback-to-fastboot-anchored-diagnostics-live.md);
 - its 30-second post-ACK COMMIT deadline exceeds the remote's 25-second
   post-ACK deadline; the phone checks that deadline after repeated health
   collection and both before and after COMMIT publication, preventing a late
@@ -1170,6 +1170,6 @@ real firewall/NFS window, or use personal/deployment credentials.
 
 The exact source identities, test result, and independent review closure are
 recorded in the
-[original lifecycle result](../test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
+[original lifecycle result](../../test-results/2026-07-29-minimal-headless-live-cycle-offline.md)
 and the
-[deployment-key admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
+[deployment-key admission result](../../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).

@@ -1144,7 +1144,7 @@ any member; this keeps interruption auditing without an fsync for every file.
 
 Current state owns accepted identities and links to evidence. Active context
 is a pointer; lessons contain failure patterns, not another chronological log.
-Use [the archive index](archive/README.md) for superseded instructions. Global
+Use [the archive index](history/archive/README.md) for superseded instructions. Global
 skills/configuration are unchanged; the project debugging skill remains
 explicit-only and does not require installing its upstream companion skills.
 

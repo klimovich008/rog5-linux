@@ -100,6 +100,6 @@ tools, and redacted proof. Materialized copies and broad kernel object trees
 may be removed after their exact entry and reconstruction proof are recorded.
 
 See the
-[offline cache proof](../test-results/2026-07-30-stable-recovery-wrapper-cache.md)
+[offline cache proof](../../test-results/2026-07-30-stable-recovery-wrapper-cache.md)
 and the
-[original twin-build proof](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
+[original twin-build proof](../../test-results/2026-07-29-corrected-headless-candidate-offline.md).

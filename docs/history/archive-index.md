@@ -12,7 +12,7 @@ This is the canonical archive for consumed diagnostic tiers, superseded
 scripts, intermediate reports, and the long-form documentation that existed
 before the stable-recovery cleanup.
 
-For current work, begin with [active-context.md](active-context.md). Use this
+For current work, begin with [active-context.md](../active-context.md). Use this
 archive only when a current contract links to historical implementation or
 evidence.
 

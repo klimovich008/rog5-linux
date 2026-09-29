@@ -105,7 +105,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   publication, complete framing, the exact vendor identity, and a real
   time-zero boot origin. It rejects SSH failure, malformed or late rings,
   outside paths, partial artifacts, and remote mutation commands. The
-  [live HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+  [live HOLD](../../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
   records why the current ring cannot close the boot-log gate.
 - `test-inspect-persistent-layout.sh` fixture-tests the read-only,
   no-repartition storage preflight. It pins the measured primary/boot LUN,
@@ -113,7 +113,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   identities; requires the marked ext4 `userdata` fallback root, a valid
   protected slot, unmounted boot-critical partitions, and at least 16 GiB
   free; and rejects eight map/state mutations. The
-  [live result](../test-results/2026-07-27-persistent-layout-preflight-live.md)
+  [live result](../../test-results/2026-07-27-persistent-layout-preflight-live.md)
   authorizes design work only and no phone write.
 - `test-alpine-charging-rescue-contract.sh` pins the coherent official WW33
   kernel, applied ASUS DTB, Alpine ramdisk, vendor image, and five matching
@@ -134,7 +134,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   mode and xattrs; detects a changed seal mode or published file; and proves
   interrupted extraction exposes no final root before atomic rename. The
   separate real-archive check accepts 181,242 path-safe entries. The
-  [offline result](../test-results/2026-07-27-persistent-arch-staging-offline.md)
+  [offline result](../../test-results/2026-07-27-persistent-arch-staging-offline.md)
   changes no persistent phone state.
 - `test-arch-headless-rootfs-contract.sh` requires the minimal root stage to
   use only the manifest-pinned base packages, disable networking, avoid
@@ -155,7 +155,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   deterministic output, and `HOLD` status for unresolved providers. It
   rejects relative roots, duplicate CNSS nodes, malformed properties, and
   mutation-capable implementation surfaces. The
-  [live contract report](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+  [live contract report](../../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
   records the exact endpoint and remaining stale regulator phandle without
   activating the radio.
 - `test-wifi-candidate-dtb.sh` requires the isolated WCN6855 PMU host/output
@@ -171,7 +171,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   two distinct build directories supplied, it verifies both and requires
   byte-identical `.config`, `Image`, `Image.gz`, module archive, and metadata.
   The
-  [offline acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+  [offline acceptance](../../test-results/2026-07-27-wcn6855-pcie-offline.md)
   records the accepted hashes; no boot or radio action is implied.
 - `test-wifi-root-overlay-contract.sh` and
   `verify-wifi-root-overlay.sh` require the exact successor-v3 root and Wi-Fi
@@ -193,7 +193,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   independent watchdog handoff, one immediate reboot, no retry, no scan,
   association, AP, Bluetooth, credentials, unload, phone, or host-network
   action. The
-  [offline package result](../test-results/2026-07-27-wcn6855-runtime-package-offline.md)
+  [offline package result](../../test-results/2026-07-27-wcn6855-runtime-package-offline.md)
   passes all gates and remains `UNBOOTED_HOLD`.
 - `test-screen-toggle.sh` exercises idempotent display state.
   `test-vpn-hotspot.sh` checks service/rule contracts and sends IPv4/IPv6
@@ -207,7 +207,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   DNS framing, a real kernel WireGuard handshake, endpoint loss/recovery,
   increasing encrypted transfer counters, and exact teardown. Run both only
   in privileged network-disabled builder containers. The
-  [offline result](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+  [offline result](../../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
   records the current hashes and mutation evidence.
 - `test-vpn-hotspot-systemd-order.sh` rejects the Arch
   dnsmasq/network-online ordering cycle and requires the complete staged-root
@@ -244,9 +244,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   headless screen-off state, exact two-file tmpfs staging, strict SSH, one
   reboot, a private log, and no retry or boot command.
   The
-  [offline protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+  [offline protected-export result](../../test-results/2026-07-27-arch-successor-protected-export-offline.md)
   records the exact accepted root and three rejected mutation cases; the
-  [pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+  [pre-live HOLD](../../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
   records the fail-first controls and actual unarmed refusal.
 - `test-arch-successor-v2-archive-contract.sh` pins the newer archive, rejects
   unsafe paths and embedded runtime credentials, and compares both installed
@@ -254,9 +254,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `test-arch-successor-v2-export.sh` then requires an exact, v1-independent,
   root-owned read-only Btrfs export and optionally rejects COW mutations to
   the seal, hotspot control, hotspot service, and account database. The
-  [v2 rootfs result](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+  [v2 rootfs result](../../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
   and
-  [v2 protected-export result](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+  [v2 protected-export result](../../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
   remain offline HOLD and add no NFS or boot authority.
 - `test-serve-arch-successor-v2-live-window.sh`,
   `test-run-network-root-arch-successor-v2-gate.sh`, and
@@ -264,7 +264,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   token and verifier-first server, headless screen-off/storage-free target,
   exact two-file tmpfs staging, strict SSH, private logging, one reboot, and
   no retry. The
-  [v2 pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+  [v2 pre-live HOLD](../../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
   records their fail-first commits and the actual unarmed zero-state check.
 - `test-power-buttond.sh` feeds native AArch64 input records to the
   standard-library handler and requires press-only toggling, truncated-record
@@ -279,9 +279,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   verifier-first exact-root token, exact seal/archive identities, one real
   `pmic_pwrkey` character device, active zero-restart handler service, strict
   SSH, one reboot, and no retry. See the
-  [v3 offline result](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+  [v3 offline result](../../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
   and
-  [protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md).
+  [protected pre-live HOLD](../../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md).
 - `test-arch-headless-rootfs-contract.sh` pins the three-package SSH-only
   profile, public-key validation, firmware-free host path, strict SSH,
   volatile identities, multi-user/sleep-inhibitor services, disabled network
@@ -307,11 +307,11 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   external canonical read-only non-fixture v3 candidate plus its exact
   admitted hash and cannot fall back to the historical candidate. See
   the
-  [runtime result](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
+  [runtime result](../../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md)
   and
-  [storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md),
+  [storage-isolation result](../../test-results/2026-07-29-storage-isolation-offline.md),
   plus the
-  [USB/NCM/SSH result](../test-results/2026-07-30-usb-ncm-ssh-offline.md).
+  [USB/NCM/SSH result](../../test-results/2026-07-30-usb-ncm-ssh-offline.md).
 - `test-pin-minimal-headless-host-key.py` covers the credential-free bridge
   between signed recovery and strict target SSH. It fixture-tests canonical
   private anchors, host-boot and 600-second freshness binding, exact
@@ -322,7 +322,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   multiple, RSA, zero, or extended keys, repository/symlink/loose-parent
   outputs, and an enumerated set of client-credential and TOFU command
   surfaces. See the
-  [bootstrap result](../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
+  [bootstrap result](../../test-results/2026-07-29-minimal-headless-host-key-bootstrap-offline.md).
 - `test-run-minimal-headless-live-cycle.py` composes the corrected boot-only
   recovery, fixed one-transfer bundle server, fixed read-only NFS exporter,
   durable intent ledger, USB-continuity host-key pin, one strict-SSH runtime
@@ -410,7 +410,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   policy. Sixteen admission tests and thirty-four lifecycle methods pass;
   normal r2
   target SSH acceptance remains unchanged. See the
-  [lifecycle result](../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
+  [lifecycle result](../../test-results/2026-08-01-early-target-diagnostic-lifecycle-offline.md).
   Signing readiness additionally requires the exact non-fixture package to
   materialize candidate record `7081a0c7…c6e8` outside Git without
   replacement; a diagnostic mutation must fail before the key path is opened;
@@ -430,9 +430,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   production signing, installation, and one temporary execution are separate
   gates.
   See the
-  [collector result](../test-results/2026-08-01-early-target-host-collector-offline.md).
+  [collector result](../../test-results/2026-08-01-early-target-host-collector-offline.md).
   The complete authority-free package identities are in the
-  [offline candidate result](../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
+  [offline candidate result](../../test-results/2026-08-01-early-target-diagnostic-candidate-offline.md).
 - The receive-only recovery NCM progress gate uses four focused suites plus the
   lifecycle. Twenty-one collector cases cover every wire truncation,
   frame/order/identity fault, wrong peer, cap, timeout, stop, and
@@ -453,9 +453,9 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   `authority=NONE`, are assessed only after durable COMMIT, and never replace
   the port-`8080` transfer receipt. See the
   [contract](archive/recovery-ncm-progress.md) and
-  [offline result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
+  [offline result](../../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
   The distinct
-  [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+  [Generation-11 wrapper](../../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
   separately passes a retained clean production twin-build. The synthetic
   issuer regression covers deterministic duplicate issuance, fresh raw and
   initramfs non-reuse, pinned AVB, and independent digest gates. The retained
@@ -477,10 +477,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   tests cover one-shot entry, reuse, content, metadata, symlink, root,
   pre-existing-destination, and pathname-replacement race cases.
   issuance `authority=none` and consumed disposition remain exact. See the
-  [live-profile transition](../test-results/2026-08-04-generation-11-live-profile-offline.md),
-  [admission result](../test-results/2026-08-04-generation-11-live-admission-offline.md),
-  [connected-preflight result](../test-results/2026-08-04-generation-11-connected-preflight-live.md),
-  and [live result](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
+  [live-profile transition](../../test-results/2026-08-04-generation-11-live-profile-offline.md),
+  [admission result](../../test-results/2026-08-04-generation-11-live-admission-offline.md),
+  [connected-preflight result](../../test-results/2026-08-04-generation-11-connected-preflight-live.md),
+  and [live result](../../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md).
 - Generation 12 adds a host-fix-only AVB domain over the byte-identical
   Generation-11 raw recovery. The issuer oracle requires deterministic twins,
   AVB non-reuse, exact raw/kernel/config/initramfs preservation, independent
@@ -505,10 +505,10 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   18-field PREPARE/COMMIT objects, validates all postmortem states and bounds,
   and rejects every missing/extra field, transaction mutation, malformed
   postmortem tuple, or cross-response change. See the
-  [offline result](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md),
-  [live-admission result](../test-results/2026-08-04-generation-12-live-admission-offline.md),
-  [connected-preflight result](../test-results/2026-08-04-generation-12-connected-preflight-live.md),
-  and [live result](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
+  [offline result](../../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md),
+  [live-admission result](../../test-results/2026-08-04-generation-12-live-admission-offline.md),
+  [connected-preflight result](../../test-results/2026-08-04-generation-12-connected-preflight-live.md),
+  and [live result](../../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md).
 - Before any Generation-13 issuance, require an explicit stage 75 immediately
   after the sole diagnostic NFS `mount` command. Stage 70 immediately precedes
   that call, stage 75 immediately follows its return, and stage 80 follows only
@@ -600,7 +600,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   record metadata changes, and non-fixed key derivation or live-transport
   surfaces. Canonical output contains only public fingerprints and hashes.
   See the
-  [admission result](../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
+  [admission result](../../test-results/2026-07-31-headless-ssh-v2-key-admission-offline.md).
 - `test-install-headless-ssh-deployment-export.py` has thirteen offline
   root-installer fixtures. They cover exact package/archive binding, fixture
   and historical-package refusal, unsafe input metadata, escaping and
@@ -616,7 +616,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   the package and archive, and pass only the archive, package, and admitted
   package hash to PolicyKit. The private key, candidate, and manifest never
   enter the privileged command. See the
-  [export-installer result](../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
+  [export-installer result](../../test-results/2026-07-31-headless-ssh-v3-export-installer-offline.md).
 - `test-prepare-recovery-candidate.py` exercises the offline candidate
   adapter with a disposable Ed25519 key, rejects live authority, unknown
   status, fields, and mutated artifacts, checks the tracked consumed-P2 and
@@ -672,7 +672,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   exact accepted DTB, tracked v3 configuration, and an explicitly selected
   byte-identical retained module archive. The host keeps the existing v1
   archive instead of duplicating 300 MB into v3. See the
-  [accepted-baseline revalidation](../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
+  [accepted-baseline revalidation](../../test-results/2026-07-31-accepted-core-baseline-revalidation.md).
 - `test-kernel-source-seal.py`,
   `test-stable-recovery-wrapper-cache.py`, and
   `test-stable-recovery-wrapper-cache-contract.sh` require a
@@ -721,7 +721,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   kexec call after acquisition failure, nested helper-tree timeout cleanup,
   abrupt responder-death propagation, new-request-ID refetch refusal, and
   rollback-watchdog death during fetch. The
-  [offline result](../test-results/2026-07-28-recovery-fixed-fetch-offline.md)
+  [offline result](../../test-results/2026-07-28-recovery-fixed-fetch-offline.md)
   grants no image or live authority.
 - `reboot-fallback-to-fastboot.sh` requires the separately pinned fallback
   host identity, exact stock kernel/init/compatible/ext4 state, empty pstore,
@@ -741,7 +741,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   bytecode-disabled execution. This remains a prerequisite for the
   observation-recovery experiment, not evidence that retention occurred.
 - Before any retention experiment can be admitted, the
-  [two-identity offline review](../test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
+  [two-identity offline review](../../test-results/2026-08-09-retention-cycle-two-identity-review-offline.md)
   must bind distinct non-nested execution and observation evidence roots,
   exact signed-bundle/initramfs/boot-v3/AVB identities, the fixed transition
   order, exact generic claim-consumer state, and zero temporary-boot `allow`
@@ -754,7 +754,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   was destroyed, and the separately built observation-only identity is
   unchanged. The dependency-incomplete 2,253-second build is superseded and
   is not an admissible input. The
-  [production execution refreeze](../test-results/2026-08-10-production-retention-execution-refreeze-offline.md)
+  [production execution refreeze](../../test-results/2026-08-10-production-retention-execution-refreeze-offline.md)
   reports undefined claims, zero policy `allow` rows, `authority=none`,
   `retention=unproven`, `missing_pstore=inconclusive`, and recommendation
   `HOLD`. It grants no credential, claim, policy row, phone action, or boot
@@ -766,13 +766,13 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   artifact test proves the repository-owned current recovery init,
   `exact-a600000-v1`, and an independent initramfs hash before archive
   inspection. The
-  [current production gate result](../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
+  [current production gate result](../../test-results/2026-08-10-current-production-recovery-live-gate-offline.md)
   adds no claim or policy row and remains `HOLD`.
 - `test-current-observation-recovery-profile.sh` binds the distinct current
   observer to one offline-only HOLD gate. It requires the exact AVB and all 22
   fixed verifier inputs, rejects hard links and co-varied initramfs twins, and
   proves connected preflight/boot stop before host inspection. The
-  [observer gate result](../test-results/2026-08-10-current-observation-recovery-live-gate-offline.md)
+  [observer gate result](../../test-results/2026-08-10-current-observation-recovery-live-gate-offline.md)
   defines no claim or lifecycle sequence and remains `HOLD`.
 - `test-retention-cycle-sequence-reference.py` proves the future two-claim
   transaction as a pure no-I/O state model. It binds both recovery identities,
@@ -780,7 +780,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   ramoops preflight, same-port bootloader/observer handoff, one postmortem
   read, and every irreversible failure disposition. The drafts remain absent
   from the consumer and policy; the
-  [offline result](../test-results/2026-08-10-retention-sequence-reference-offline.md)
+  [offline result](../../test-results/2026-08-10-retention-sequence-reference-offline.md)
   is a reference contract, not a runner or admission.
 - `test-retention-cycle-transaction.py` proves the hardware-free durable
   handoff fixture. It reconstructs every crash prefix, preserves exact claim
@@ -790,7 +790,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   invoked. Reopened action intents are terminal-only, missing output stays
   inconclusive, and source inspection proves no live, credential, claim, or
   device surface. The
-  [offline result](../test-results/2026-08-10-retention-cycle-transaction-offline.md)
+  [offline result](../../test-results/2026-08-10-retention-cycle-transaction-offline.md)
   is not a live adapter or admission.
 - `test-retention-cycle-adapter.py` proves six fixed helper descriptors can be
   mapped onto the journal without adding an executor. Each injected callback
@@ -799,7 +799,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   callback state mutation fails without advancing; reopening the intent cannot
   call again. Source inspection requires no CLI, subprocess, credential, or
   device surface, and the current gates/claim registry/policy stay closed. See
-  the [offline result](../test-results/2026-08-10-retention-cycle-adapter-offline.md).
+  the [offline result](../../test-results/2026-08-10-retention-cycle-adapter-offline.md).
 - `test-retention-cycle-executor-contract.py` proves the adapter's six helper
   descriptors have one exact hardware-free process contract. Eight hostile
   groups pin repository-owned source identity and mode, fixed interpreters and
@@ -826,7 +826,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   verified location/product/serial/pin bytes; execution and observer producers
   remain unavailable under their selected HOLD gates. Source inspection
   rejects I/O, subprocess, CLI, credential, and connected-admission surfaces.
-  The [offline result](../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
+  The [offline result](../../test-results/2026-08-10-retention-cycle-executor-boundary-offline.md)
   remains HOLD and does not authorize a launcher.
 - `test-retention-cycle-runtime-closure.py` proves the next disconnected
   runtime boundary with 13 hostile groups. It holds and revalidates the real
@@ -842,7 +842,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   before marker release both fail closed.
   The fixed offline writer does not execute `ProcessSpec.argv`; its wrapper is
   adapter-ineligible and the profile records production descriptor execution
-  unproven. See the [offline result](../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md).
+  unproven. See the [offline result](../../test-results/2026-08-10-retention-cycle-runtime-closure-offline.md).
 - `test-retention-cycle-descriptor-execution.py` proves the next disconnected
   execution layer with nine hostile groups. A pinned harmless Python probe is
   opened with the repository and interpreter, then the child uses `fchdir()`
@@ -899,7 +899,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   field except `bundle` to remain byte-equivalent, and requires distinct
   manifest hashes. The lifecycle rejects the consumed live v3 manifest before
   private-key inspection. See the
-  [r2 offline result](../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
+  [r2 offline result](../../test-results/2026-07-31-headless-ssh-successor-r2-offline.md).
 - `preflight-headless-ssh-successor-candidate.py` moves the real r2
   package/candidate/artifact/manifest check before signing-key access. Twenty-two
   offline tests require a clean pushed checkpoint first, secure external-input
@@ -980,7 +980,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   automatically with one dynamic `qpnp_pon` reader and all backlights off.
   This accepts the fallback screen correction but rejects target entry.
   Entry-v1 is consumed and must not be retried; see the
-  [live rejection](../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
+  [live rejection](../../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
 - Build diagnostic modules under `tools/diagnostics/` only against the exact fallback kernel, and record their local hashes before use.
 
 ## Tier 1 — boot and recovery
@@ -1238,7 +1238,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   two clean kernel builds, two static-helper builds, root-owned SQE/GMU-only
   export, mutation-tested target/host watchdog gate, and unchanged AVB package
   pass their complete contracts; see the
-  [request-only v4 offline report](../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).**
+  [request-only v4 offline report](../../test-results/2026-07-26-a660-firmware-request-only-v4-offline.md).**
 - Run request-only v4 at most once; require exact `EUCLEAN`, two firmware
   requests, one success marker, no surviving DRM descriptor, zero
   ucode/power/HFI/ZAP/SCM/storage/display/fault evidence, exact fallback, and
@@ -1246,7 +1246,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   persistent fallback returned with zero pstore/project modules; v4 is
   consumed and absent from the runnable allowlist. The exact report/marker
   pair is hash-pinned and mutation-tested; see the
-  [request-only v4 live acceptance](../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).**
+  [request-only v4 live acceptance](../../test-results/2026-07-26-a660-firmware-request-only-v4-live-accepted.md).**
 - Source-audit exact A660.1 ucode allocation, then require a default-off,
   read-only, atomic one-shot patch with balanced SQE, shadow, power-up
   reglist, IOVA, CPU-vmap, and firmware rollback on every path. **Passed
@@ -1255,7 +1255,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   isolated containers. Require byte-identical outputs, unchanged
   Image/config/ABI and non-MSM modules, exact MSM-only delta, BTF, both
   diagnostic modes, and zero embedded firmware. **Passed offline; see the
-  [ucode-allocation build report](../test-results/2026-07-26-a660-ucode-allocation-build.md).**
+  [ucode-allocation build report](../../test-results/2026-07-26-a660-ucode-allocation-build.md).**
 - Before any ucode-allocation live cycle, fail-first test a fresh versioned
   root/export and watchdog gate with exact map/unmap counts, zero surviving
   GEM/DRM state, no runtime power/HFI/ZAP/SCM/storage path, immutable fallback,
@@ -1264,26 +1264,26 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   nine forbidden-event probes, nested watchdogs, and unchanged full boot
   package pass; NFS remains inactive and the root is deliberately not
   runnable. See the
-  [ucode-allocation v5 offline report](../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).**
+  [ucode-allocation v5 offline report](../../test-results/2026-07-26-a660-ucode-allocation-v5-offline.md).**
 - Fail-first test the host-side live controller independently. Require a
   clean synchronized checkpoint, exact immutable root/package/gate inputs,
   strict SSH identity, one invocation, no retry or NFS/boot/flash control,
   and private evidence. **Passed offline in a mock transport suite. The
   separate
-  [pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
+  [pre-live control acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-hold.md)
   records HOLD; it does not authorize contacting the phone.**
 - Lift HOLD only after exact fallback, SSH identity, root, package, runner,
   service, and clean-Git checks pass. Add only one explicit-opt-in v5 server
   case and require its complete verifier before any host mutation. **Passed;
   the
-  [pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
+  [pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v5-prelive-go.md)
   authorized at most one attended RAM-only cycle.**
 - Run the one authorized v5 cycle exactly once, never flash, and consume the
   tier whether it passes or rejects. **Completed with safe rejection. The
   kernel completed balanced three-object rollback, but the gate stopped at
   public wrapper `get=1`, expected `4`, before settle/snapshot comparison.
   Exact fallback and host cleanup passed; v5 is consumed. See the
-  [v5 live rejection](../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).**
+  [v5 live rejection](../../test-results/2026-07-26-a660-ucode-allocation-v5-live-rejected.md).**
 - Before designing v6, hash-pin the accepted MSM module and test its symbols
   and `.rela.text` call layout. Require three logical gets inlined through
   `msm_gem_kernel_new()`, two logical puts inlined through
@@ -1298,19 +1298,19 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   ordering, exact compiler relocations, protected whole-tree export checks,
   a changed-seal mutation, and the unchanged boot package pass. NFS is
   inactive and no live runner existed at this checkpoint; see the
-  [v6 offline report](../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).**
+  [v6 offline report](../../test-results/2026-07-26-a660-ucode-allocation-v6-offline.md).**
 - Fail-first test a v6 host runner with exact immutable inputs, strict SSH
   identity, private evidence, one invocation, no retry, and no NFS/boot/flash
   control. **Passed offline. The mock proves one prepare, copy, verify, and
   gate call; local credential/root/service checks pass, NFS remains inactive,
   and the separate
-  [v6 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
+  [v6 pre-live control acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-hold.md)
   records HOLD without contacting the phone.**
 - Lift v6 HOLD only through a verifier-before-state, explicit-opt-in NFS case
   plus clean Git, exact fallback, distinct SSH identity, root/package/runner,
   credential, and inactive-service checks. **Passed. The actual unarmed
   privileged launcher refused with zero residue, and the
-  [v6 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
+  [v6 pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v6-prelive-go.md)
   authorizes at most one attended RAM-only cycle with no retry.**
 - Run that v6 cycle exactly once and consume it regardless of result.
   **Completed with safe rejection. The kernel allocation-and-rollback marker
@@ -1318,7 +1318,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   the oracle expected page-rounded `45056`, `4096`, and `4096`. The settled
   GEM snapshot was not reached. Watchdog fallback and complete host cleanup
   passed; v6 is consumed and non-runnable. See the
-  [v6 live rejection](../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md).**
+  [v6 live rejection](../../test-results/2026-07-26-a660-ucode-allocation-v6-live-rejected.md).**
 - Build a fresh v7 userspace gate from the unchanged accepted module. Pin the
   source-derived raw-size set, retain every v6 logical-vmap, pointer-union,
   firmware, forbidden-event, storage, thermal, systemd, and watchdog
@@ -1331,7 +1331,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   snapshot checks, and rejects predecessor and size-layer mutations. V7 has
   no server case or runner, NFS stayed inactive, and the phone was not
   contacted. See the
-  [v7 offline report](../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md).**
+  [v7 offline report](../../test-results/2026-07-26-a660-ucode-allocation-v7-offline.md).**
 - Fail-first test an exact one-invocation v7 host runner with strict SSH
   identity, immutable inputs, private evidence, no retry, and no
   NFS/boot/flash control. Reverify the protected root and record a separate
@@ -1339,7 +1339,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   verify, and gate call with expected reboot disconnect; local
   credential/root checks and an actual unarmed refusal pass, NFS remains
   inactive, and the
-  [v7 pre-live control acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
+  [v7 pre-live control acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-hold.md)
   records HOLD without contacting the phone.**
 - Lift v7 HOLD only through a later verifier-before-state,
   explicit-opt-in server case plus clean Git, exact fallback, credentials,
@@ -1349,7 +1349,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   credentials, package/root/runner hashes, clean synchronized Git, inactive
   services, and actual unarmed runner/server refusals pass with zero residue.
   The
-  [v7 pre-live GO review](../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
+  [v7 pre-live GO review](../../test-results/2026-07-26-a660-ucode-allocation-v7-prelive-go.md)
   authorizes at most one attended RAM-only cycle with no retry and no
   flash.**
 - Run at most one RAM-only v7 cycle under nested watchdogs, require the full
@@ -1360,7 +1360,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   was equal, and power/HFI/ZAP/SCM/storage/fault evidence stayed zero. Normal
   reboot restored exact fallback and complete host cleanup; v7 is consumed
   and non-runnable. See the
-  [v7 live acceptance](../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md).**
+  [v7 live acceptance](../../test-results/2026-07-26-a660-ucode-allocation-v7-live-accepted.md).**
 - Before enabling an Adreno rendering consumer, source-test the remaining
   GPU/GX, regulator, interconnect, GMU, reserved-memory, firmware, and complete
   consumer dependency graph. **Passed. The audit separates probe-time
@@ -1370,12 +1370,12 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   HFI, hardware initialization, or ZAP/SCM. Require an exact-A660.1,
   read-only, atomic-one-shot failed-open path and complete accepted-v7
   rollback. **Passed source and mutation tests; see the
-  [boundary report](../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md).**
+  [boundary report](../../test-results/2026-07-26-a660-gmu-resume-entry-boundary.md).**
 - Build that v8 diagnostic twice from clean pinned source in isolated,
   network-disabled containers. Require byte-identical config, Images,
   symbols, module archive, metadata, and critical modules; relative to
   accepted v7, permit only `msm.ko` to change. **Passed offline; the
-  [v8 build report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
+  [v8 build report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-offline.md)
   records exact hashes and HOLD.**
 - Before any v8 live decision, build and mutation-test a fresh protected
   storage-free root, target gate, strict no-retry runner, exact-root NFS case,
@@ -1397,13 +1397,13 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   read-only fallback health; real unarmed server/runner refusals; and final
   residue-free host state. Exactly one RAM-only v8 cycle was authorized, with
   no retry and no flash. See the
-  [v8 runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
+  [v8 runtime report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-runtime-offline.md)
   and
-  [v8 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
+  [v8 protected-root report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-root-offline.md)
   and
-  [v8 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
+  [v8 pre-live HOLD report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-hold.md)
   and
-  [v8 pre-live GO report](../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).**
+  [v8 pre-live GO report](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-prelive-go.md).**
 - Run the authorized v8 cycle exactly once and consume it regardless of
   result. **Completed with safe rejection. The kernel reached exact GMU
   resume entry, propagated deliberate `EUCLEAN`, and completed accepted
@@ -1413,7 +1413,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   inner PM/resource/HFI/hardware/ZAP/SCM probes stayed zero. The runner was
   not retried, exact fallback and cleanup passed, and v8 is permanently
   consumed. See the
-  [v8 live rejection](../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md).**
+  [v8 live rejection](../../test-results/2026-07-26-a660-gmu-resume-entry-v8-live-rejected.md).**
 - Before any GMU power-preparation tier, build a separately versioned v9
   userspace oracle around the unchanged v8 module. Require fail-first signed
   32-bit return tests, GPU-device-scoped runtime-PM matching, all existing
@@ -1423,27 +1423,27 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   `EUCLEAN`, the observed 21-call fixture with one GPU-device match, duplicate
   generation, unchanged v8 module, all retained safety constraints, and
   twelve mutations pass; see the
-  [v9 offline runtime report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
+  [v9 offline runtime report](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-runtime-offline.md).
   The consumed-v8-derived protected root and compound target gate now also
   pass: the exact unchanged kernel/seven-module/two-firmware payload,
   versioned signed/device oracle, credentials, whole-tree delta, overlapping
   watchdogs, construction cleanup, and independent final-path audit are
   verified; see the
-  [v9 protected-root report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
+  [v9 protected-root report](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-root-offline.md).
   The strict one-invocation/no-retry runner and separate pre-live review also
   pass: exact mock call counts, dynamic classified generic-PM evidence,
   private logging, local client/server SSH agreement, real unarmed refusal,
   clean synchronized Git, full root revalidation, inactive NFS/RPC, and zero
   server tokens are verified; see the
-  [v9 pre-live HOLD report](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
+  [v9 pre-live HOLD report](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-hold.md).
   A fail-first verifier-before-state exact-root server case and every local
   GO gate now also pass, including the unchanged fourteen-file package and an
   actual unarmed zero-state refusal. The
-  [v9 attended GO review stopped at HOLD](../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
+  [v9 attended GO review stopped at HOLD](../../test-results/2026-07-26-a660-gmu-resume-entry-v9-prelive-go-hold.md)
   because the phone is physically absent, so the identity-pinned current
   fallback health preflight cannot run. NFS never started at that checkpoint.
   The later
-  [sole v9 live cycle](../test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
+  [sole v9 live cycle](../../test-results/2026-07-27-a660-gmu-resume-entry-v9-live-accepted.md)
   passes one GPU-device outer PM event, signed `EUCLEAN`, exact rollback,
   logical `4/4`, equal settled snapshots, zero specific inner resources,
   exact fallback, and complete cleanup. V9 is permanently consumed and
@@ -1453,7 +1453,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   `pm_runtime_get_sync(gmu->dev)`, balance a failed get, synchronously return
   the GMU consumer and linked CX supplier to suspended state, and stop before
   GX or later resources. **Passed offline: the
-  [v10 acceptance](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
+  [v10 acceptance](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-offline.md)
   pins the source and patch, rejects twelve mutations, and accepts two
   byte-identical builds whose only changed installed module is `msm.ko`.**
 - Before any v10 live review, build a source-pinned runtime oracle and
@@ -1463,17 +1463,17 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   protected root, runtime mutation suite, target gate, watchdog,
   one-shot/no-retry runner, verifier-before-state server case, and separate
   HOLD/GO review. **The runtime/root/control requirements and separate
-  [pre-live HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
+  [pre-live HOLD](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-hold.md)
   now pass, including fourteen rejected oracle mutations, complete recursive
   root verification, actual unarmed zero-state refusal, and connected
   fallback health. The later
-  [attended-GO HOLD](../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
+  [attended-GO HOLD](../../test-results/2026-07-27-a660-gmu-cx-runtime-pm-v10-prelive-go-hold.md)
   repeats every technical prerequisite after successor-v3 publication and
   stops only on the absent exact user instruction; there is no v10 live
   authority.**
 - Before extending v10, prove whether a GX-only stage crosses a hardware
   boundary, then source-test the smallest meaningful next operation. **The
-  [v11 offline acceptance](../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
+  [v11 offline acceptance](../../test-results/2026-07-27-a660-gmu-clock-preparation-v11-offline.md)
   proves SM8350 GX power-on is a no-op, so v11 balances GX bookkeeping and
   isolates both GMU rates plus all seven clocks. Strict style, eighteen
   hostile mutations, two byte-identical isolated builds, and exact-v10
