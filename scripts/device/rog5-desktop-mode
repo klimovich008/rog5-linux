@@ -16,6 +16,7 @@ ON_AFTER=6        # seconds of stable connection before switching to GNOME
 OFF_AFTER=4       # seconds of stable disconnection before switching back
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
 SETTLE=15         # age before a never-locked Phosh session's "unlocked" counts
+POLL=3            # seconds between checks; counters below are in seconds
 up=0 down=0 idle=0 tick=0
 seen_locked_session=
 
@@ -36,20 +37,20 @@ to_phosh() {
 }
 
 while :; do
-	sleep 1
+	sleep "$POLL"
 	mode=$(cat "$MODE_FILE" 2>/dev/null || echo auto)
 	if [ "$(cat "$STATUS" 2>/dev/null)" = connected ]; then
-		up=$((up + 1)) down=0
+		up=$((up + POLL)) down=0
 	else
-		down=$((down + 1)) up=0
+		down=$((down + POLL)) up=0
 	fi
 	tick=$((tick + 1))
 	if systemctl -q is-active rog5-gnome.service; then
-		# idle is checked every 5 s (loginctl is not free on a phone)
-		if [ $((tick % 5)) -eq 0 ]; then
+		# idle is checked every other poll (loginctl is not free on a phone)
+		if [ $((tick % 2)) -eq 0 ]; then
 			sess=$(phone_session)
 			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
-				idle=$((idle + 5))
+				idle=$((idle + 2 * POLL))
 			else
 				idle=0
 			fi
