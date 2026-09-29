@@ -1,0 +1,274 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/panel: asus-rog5-ams678: keep the bootloader splash until the first frame
+
+ABL leaves the panel lit (sleep out, display on, DSC, Iris6 in analog
+bypass) with its splash in the panel RAM, and a command mode panel keeps
+showing that RAM with no DSI traffic. The driver took the reset line with
+GPIOD_OUT_HIGH at probe, which blanked the panel when the module loaded
+(~25.5 s), ~5 s before phoc's first modeset; that modeset then reset the
+panel again and switched it on before the first frame was sent.
+
+handoff (default on): request the reset line as found. When the bootloader
+left it driven and deasserted with the Iris6 in bypass, skip the reset pulse
+on the first prepare so the splash stays until the first frame replaces it.
+Otherwise hold the panel in reset at probe as before.
+
+bl_delay_ms (default 50): drm_panel_enable() restores the brightness right
+after display on, before the first frame has been sent, so the RAM content
+after a reset (garbage) was shown lit for a frame or two, at boot and on
+every unblank. Keep the DBV at 0 for bl_delay_ms after display on and apply
+the stored level from a delayed work. 0 gives the old behaviour.
+
+--- a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-29 20:58:52.707196836 +0200
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c	2026-09-29 21:00:27.116749246 +0200
+@@ -10,6 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/regulator/consumer.h>
++#include <linux/workqueue.h>
+ 
+ #include <drm/display/drm_dsc.h>
+ #include <drm/display/drm_dsc_helper.h>
+@@ -31,6 +32,11 @@
+ 	/* Serializes lifecycle and DCS backlight transactions. */
+ 	struct mutex lock;
+ 	bool initialized;
++	/* The bootloader left the panel lit; consumed by the first prepare. */
++	bool handoff;
++	/* DBV held at 0 after display on until bl_work restores it. */
++	bool bl_hold;
++	struct delayed_work bl_work;
+ 	enum ams678_supply_vote supply_vote[2];
+ 	struct drm_panel panel;
+ 	struct mipi_dsi_device *dsi;
+@@ -52,9 +58,33 @@
+ 	return container_of_const(panel, struct ams678_er2_plus_dsc, panel);
+ }
+ 
++/*
++ * Bootloader splash handoff. ABL leaves the panel lit (sleep out, display on,
++ * DSC, Iris6 in analog bypass) with its last picture in the panel RAM, and a
++ * command mode panel keeps showing that RAM without any DSI traffic. Taking
++ * the reset line at probe blanked it ~25 s into the boot, long before the
++ * first modeset. With handoff the line is left as found at probe and the
++ * first prepare skips the reset pulse, so the picture stays until the first
++ * frame replaces it.
++ */
++static bool handoff = true;
++module_param(handoff, bool, 0444);
++MODULE_PARM_DESC(handoff, "Keep the bootloader picture until the first frame (default: true)");
++
++/*
++ * After a reset the panel RAM holds garbage, and display on shows it until
++ * the first frame has been sent (the frame goes out after the panel enable).
++ * Keep the DBV at 0 (dark) for this long after display on; 0 restores the
++ * brightness right away.
++ */
++static unsigned int bl_delay_ms = 50;
++module_param(bl_delay_ms, uint, 0644);
++MODULE_PARM_DESC(bl_delay_ms, "Dark time after display on, in ms (default: 50)");
++
+ static void ams678_er2_plus_dsc_reset(struct ams678_er2_plus_dsc *ctx)
+ {
+-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	/* The line may still be as the bootloader left it (handoff). */
++	gpiod_direction_output(ctx->reset_gpio, 1);
+ 	usleep_range(1000, 2000);
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+ 	usleep_range(1000, 2000);
+@@ -247,6 +277,7 @@
+ 	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
+ 	struct device *dev = &ctx->dsi->dev;
+ 	struct drm_dsc_picture_parameter_set pps;
++	bool keep_picture;
+ 	int ret;
+ 
+ 	mutex_lock(&ctx->lock);
+@@ -254,6 +285,8 @@
+ 		ret = 0;
+ 		goto out;
+ 	}
++	keep_picture = ctx->handoff;
++	ctx->handoff = false;
+ 	/* Refuse another prepare when prior regulator ownership is unknown. */
+ 	ret = ams678_er2_plus_dsc_power_off(ctx);
+ 	if (ret)
+@@ -267,7 +300,9 @@
+ 	if (ret < 0)
+ 		goto err_disable_regulators;
+ 
+-	ams678_er2_plus_dsc_reset(ctx);
++	/* The panel is on already: a reset would drop the bootloader picture. */
++	if (!keep_picture)
++		ams678_er2_plus_dsc_reset(ctx);
+ 
+ 	ret = ams678_er2_plus_dsc_on(ctx);
+ 	if (ret < 0) {
+@@ -322,6 +357,14 @@
+ 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x53, 0x20);
+ 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x55, 0x00);
+ 	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
++	/*
++	 * drm_panel_enable() restores the brightness right after this, before
++	 * the first frame is sent: hold it (update_status keeps the level) and
++	 * apply it from bl_work once that frame is on the panel.
++	 */
++	ctx->bl_hold = !dsi_ctx.accum_err && bl_delay_ms;
++	if (ctx->bl_hold)
++		schedule_delayed_work(&ctx->bl_work, msecs_to_jiffies(bl_delay_ms));
+ 
+ 	mutex_unlock(&ctx->lock);
+ 	return dsi_ctx.accum_err;
+@@ -332,7 +375,10 @@
+ 	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
+ 	int ret;
+ 
++	/* bl_work takes the lock: stop it first. */
++	cancel_delayed_work_sync(&ctx->bl_work);
+ 	mutex_lock(&ctx->lock);
++	ctx->bl_hold = false;
+ 	if (ctx->initialized) {
+ 		ret = ams678_er2_plus_dsc_off(ctx);
+ 		if (ret < 0)
+@@ -388,26 +434,14 @@
+ 	.get_modes = ams678_er2_plus_dsc_get_modes,
+ };
+ 
+-static int ams678_er2_plus_dsc_bl_update_status(struct backlight_device *bl)
++/* Called with ctx->lock held and the panel initialized. */
++static int ams678_er2_plus_dsc_write_dbv(struct ams678_er2_plus_dsc *ctx,
++					 u16 brightness)
+ {
+-	struct mipi_dsi_device *dsi = bl_get_data(bl);
+-	struct ams678_er2_plus_dsc *ctx = mipi_dsi_get_drvdata(dsi);
+-	u16 brightness = backlight_get_brightness(bl);
++	struct mipi_dsi_device *dsi = ctx->dsi;
+ 	unsigned long mode_flags;
+ 	int ret;
+ 
+-	mutex_lock(&ctx->lock);
+-	if (!ctx->initialized) {
+-		/*
+-		 * Panel off: keep the requested level (the core stored it in
+-		 * props) and report success. drm_panel_enable() applies it via
+-		 * backlight_enable() once the panel is on, so a brightness
+-		 * restore before the first modeset (systemd-backlight at boot)
+-		 * is not lost and does not fail.
+-		 */
+-		mutex_unlock(&ctx->lock);
+-		return 0;
+-	}
+ 	mode_flags = dsi->mode_flags;
+ 	/*
+ 	 * The panel ignores 0x51 sent in HS mode: the DBV stays at the value
+@@ -428,9 +462,51 @@
+ 	/* Vendor inverted-DBV handling sends the high byte first. */
+ 	ret = mipi_dsi_dcs_set_display_brightness_large(dsi, brightness);
+ 	dsi->mode_flags = mode_flags;
++	return ret < 0 ? ret : 0;
++}
++
++static void ams678_er2_plus_dsc_bl_work(struct work_struct *work)
++{
++	struct ams678_er2_plus_dsc *ctx = container_of(to_delayed_work(work),
++						       struct ams678_er2_plus_dsc,
++						       bl_work);
++	int ret;
+ 
++	mutex_lock(&ctx->lock);
++	if (ctx->bl_hold && ctx->initialized && ctx->panel.backlight) {
++		ret = ams678_er2_plus_dsc_write_dbv(ctx,
++				backlight_get_brightness(ctx->panel.backlight));
++		if (ret)
++			dev_warn(&ctx->dsi->dev, "brightness restore failed: %d\n", ret);
++	}
++	ctx->bl_hold = false;
+ 	mutex_unlock(&ctx->lock);
+-	return ret < 0 ? ret : 0;
++}
++
++static int ams678_er2_plus_dsc_bl_update_status(struct backlight_device *bl)
++{
++	struct mipi_dsi_device *dsi = bl_get_data(bl);
++	struct ams678_er2_plus_dsc *ctx = mipi_dsi_get_drvdata(dsi);
++	u16 brightness = backlight_get_brightness(bl);
++	int ret;
++
++	mutex_lock(&ctx->lock);
++	if (!ctx->initialized || ctx->bl_hold) {
++		/*
++		 * Panel off: keep the requested level (the core stored it in
++		 * props) and report success. drm_panel_enable() applies it via
++		 * backlight_enable() once the panel is on, so a brightness
++		 * restore before the first modeset (systemd-backlight at boot)
++		 * is not lost and does not fail. During bl_hold, bl_work
++		 * applies the stored level once the first frame is out.
++		 */
++		mutex_unlock(&ctx->lock);
++		return 0;
++	}
++	ret = ams678_er2_plus_dsc_write_dbv(ctx, brightness);
++
++	mutex_unlock(&ctx->lock);
++	return ret;
+ }
+ 
+ static const struct backlight_ops ams678_er2_plus_dsc_bl_ops = {
+@@ -452,6 +528,19 @@
+ 					      &ams678_er2_plus_dsc_bl_ops, &props);
+ }
+ 
++/*
++ * ABL leaves the reset line driven high (deasserted) and the Iris6 in analog
++ * bypass when it lit the panel for its splash.
++ */
++static bool ams678_er2_plus_dsc_left_on(struct ams678_er2_plus_dsc *ctx)
++{
++	if (gpiod_get_direction(ctx->reset_gpio) != GPIO_LINE_DIRECTION_OUT)
++		return false;
++	if (gpiod_get_value_cansleep(ctx->reset_gpio) != 0)
++		return false;
++	return gpiod_get_value_cansleep(ctx->iris_bypass_ready_gpio) == 1;
++}
++
+ static int ams678_er2_plus_dsc_probe(struct mipi_dsi_device *dsi)
+ {
+ 	struct device *dev = &dsi->dev;
+@@ -470,7 +559,9 @@
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "Failed to get regulators\n");
+ 
+-	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
++	/* With handoff the line stays as found; see ams678_er2_plus_dsc_left_on(). */
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset",
++					 handoff ? GPIOD_ASIS : GPIOD_OUT_HIGH);
+ 	if (IS_ERR(ctx->reset_gpio))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
+ 				     "Failed to get reset-gpios\n");
+@@ -488,7 +579,18 @@
+ 				     "Failed to get Iris bypass-ready GPIO\n");
+ 
+ 	mutex_init(&ctx->lock);
++	INIT_DELAYED_WORK(&ctx->bl_work, ams678_er2_plus_dsc_bl_work);
+ 	ctx->dsi = dsi;
++
++	if (handoff) {
++		ctx->handoff = ams678_er2_plus_dsc_left_on(ctx);
++		if (ctx->handoff) {
++			dev_info(dev, "bootloader left the panel on: keeping its picture until the first frame\n");
++		} else {
++			dev_info(dev, "panel not left on by the bootloader: holding it in reset\n");
++			gpiod_direction_output(ctx->reset_gpio, 1);
++		}
++	}
+ 	mipi_dsi_set_drvdata(dsi, ctx);
+ 
+ 	dsi->lanes = 4;
+@@ -545,6 +647,7 @@
+ 	struct ams678_er2_plus_dsc *ctx = mipi_dsi_get_drvdata(dsi);
+ 	int ret;
+ 
++	cancel_delayed_work_sync(&ctx->bl_work);
+ 	ret = mipi_dsi_detach(dsi);
+ 	if (ret < 0)
+ 		dev_err(&dsi->dev, "Failed to detach from DSI host: %d\n", ret);

@@ -72,3 +72,5 @@
 0104-drm-msm-ROG5-export-GPU-load-frequency-and-temperature.patch
 0105-clk-qcom-gcc-sm8350-keep-the-primary-USB-GDSC-in-retention.patch
 0106-interconnect-qcom-sm8350-ROG5-urgency-forwarding-for-display.patch
+0107-iommu-arm-smmu-qcom-identity-default-domain-for-the-SM8350-MDSS.patch
+0108-drm-panel-asus-rog5-ams678-keep-the-bootloader-splash-until-the-first-frame.patch

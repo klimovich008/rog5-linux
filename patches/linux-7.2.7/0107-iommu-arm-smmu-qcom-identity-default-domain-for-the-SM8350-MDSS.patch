@@ -1,0 +1,26 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] iommu/arm-smmu-qcom: identity default domain for the SM8350 MDSS
+
+The bootloader leaves the display running when it hands over: on the ROG
+Phone 5 the MDP keeps fetching the splash buffer at 0xe5000000 (IOVA ==
+PA) through the ASUS 5.4 wrapper and the kexec. qcom_smmu_cfg_probe()
+keeps those boot streams in bypass, but as soon as the MDSS is added to its
+IOMMU group (0.063 s) it gets an empty DMA domain and every MDP fetch takes
+a translation fault (SIDs 0x820/0xc20, iova 0xe504d700...). The picture on
+the command mode panel is lost ~0.06 s into the kernel, 25 s before msm
+probes and ~30 s before the first frame.
+
+Other Qualcomm MDSS compatibles already get an identity default domain for
+this reason; add SM8350. msm still attaches its own paging domain when it
+binds, so only the window before msm probes changes.
+
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-29 20:58:52.698157526 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-09-29 20:59:01.900382601 +0200
+@@ -425,6 +425,7 @@
+ 	{ .compatible = "qcom,sm6375-mdss" },
+ 	{ .compatible = "qcom,sm8150-mdss" },
+ 	{ .compatible = "qcom,sm8250-mdss" },
++	{ .compatible = "qcom,sm8350-mdss" },
+ 	{ .compatible = "qcom,x1e80100-mdss" },
+ 	{ }
+ };
