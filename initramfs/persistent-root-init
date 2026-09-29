@@ -2654,7 +2654,12 @@ EOF
 	prepare_update_services || return 1
 	prepare_platform_services || return 1
 	prepare_wifi_services || return 1
-	ln -s /dev/null /run/systemd/system/udisks2.service
+	# udisks2 runs for removable drives: the UFS LUNs carry UDISKS_IGNORE
+	# (10-rog5-p2-storage.rules) and /etc/polkit-1/rules.d/
+	# 10-rog5-udisks-removable-only.rules refuses udisks actions on them.
+	# Without that rule udisks stays masked.
+	[ -f /newroot/etc/polkit-1/rules.d/10-rog5-udisks-removable-only.rules ] ||
+		ln -s /dev/null /run/systemd/system/udisks2.service
 	if [ "$native_wifi_boot" -eq 1 ]; then
 		/run/rog5-native-wifi/runtime install || return 1
 	fi

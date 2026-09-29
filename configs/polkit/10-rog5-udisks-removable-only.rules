@@ -1,0 +1,13 @@
+// ROG5: udisks may act only on removable drives (USB sticks and disks on the
+// bottom port or a hub). The internal UFS holds the Linux root and the
+// bootloader/firmware LUNs; refuse every udisks action on it (mount, unmount,
+// format, partition, power-off, loop over a device, ...) for every non-root
+// caller, whatever its session or group. Root does not go through polkit.
+// udisks passes the drive's properties as details; an action without a drive
+// (a loop device over a user's own file) is left to the default rules.
+polkit.addRule(function(action, subject) {
+	if (action.id.indexOf("org.freedesktop.udisks2.") == 0 &&
+	    action.lookup("drive") &&
+	    action.lookup("drive.removable") != "true")
+		return polkit.Result.NO;
+});
