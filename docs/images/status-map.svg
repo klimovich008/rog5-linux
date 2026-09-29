@@ -80,7 +80,7 @@
 <g><title>Display &amp; shell / AMOLED panel: ready - 1080x2448 at 60 Hz</title><rect x="270.3" y="327.0" width="112.1" height="158.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="273.3" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AMOLED panel</text>
 </g>
-<g><title>Display &amp; shell / Phosh: partial / not fully integrated - crashes on monitor hotplug (restarts, apps close)</title><rect x="382.3" y="327.0" width="112.1" height="158.2" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Display &amp; shell / Phosh: needs a test - hotplug crash fixed in phosh 0.57.0-1.1 (lock shields); needs a real plug/unplug test</title><rect x="382.3" y="327.0" width="112.1" height="158.2" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
 <text x="385.3" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Phosh</text>
 </g>
 <g><title>Display &amp; shell / Brightness: partial / not fully integrated - about 4 real steps</title><rect x="270.3" y="485.2" width="89.7" height="131.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
@@ -197,9 +197,9 @@
 <rect x="8" y="630" width="14" height="14" fill="#4cc417"/>
 <text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (29)</text>
 <rect x="108" y="630" width="14" height="14" fill="#e0b91b"/>
-<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (11)</text>
+<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (10)</text>
 <rect x="383" y="630" width="14" height="14" fill="#3b8fd9"/>
-<text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (5)</text>
+<text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (6)</text>
 <rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
 <text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (13)</text>
 <text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-29 (r187)</text>

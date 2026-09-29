@@ -65,9 +65,9 @@
     },
     {
      "name": "Phosh",
-     "status": "partial",
+     "status": "untested",
      "weight": 3,
-     "note": "crashes on monitor hotplug (restarts, apps close)"
+     "note": "hotplug crash fixed in phosh 0.57.0-1.1 (lock shields); needs a real plug/unplug test"
     },
     {
      "name": "Lock screen & PIN",

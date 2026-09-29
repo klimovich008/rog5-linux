@@ -21,8 +21,9 @@ it is generated from [`status/components.json`](status/components.json) by
 
 ## Works, but not fully finished
 
-- **Phosh closes all apps when an HDMI monitor is plugged/unplugged**, and
-  when switching between phone and desktop mode.
+- **Phosh crashed when an HDMI monitor was plugged/unplugged** (fixed in the
+  patched phosh 0.57.0-1.1, needs your hotplug test); switching between phone
+  and desktop mode still closes all apps.
 - **Wi-Fi** needs ~11 s to reconnect after the phone wakes (the address is
   now stable across reboots).
 - **Brightness** has only about 4 real steps.
@@ -43,7 +44,7 @@ Details and causes: [`user-irritations.md`](user-irritations.md).
 |---|---|---|---|
 | 1 | Battery standby | Unplug the phone, lock it, leave it 1-2 h | Battery % before/after (I'll read the current from the logs) |
 | 2 | HDMI without the clock pin | Plug the hub + monitor, tap "Desktop mode" | Picture OK? Blue screen or flicker? |
-| 3 | Monitor unplug | Unplug HDMI while in Phosh | Did Phosh restart / apps close? |
+| 3 | Monitor hotplug (Phosh fix) | Follow `packages/phosh/README.md`: plug/unplug 5x on the lock screen, unlock with/after, plug/unplug with apps open, desktop mode twice | Did Phosh restart or apps close? |
 | 4 | Resources app | Unlock, open Resources, look at CPU and GPU | Names, load, clock and temperature shown? |
 | 5 | Settings > About | Open it | "Cortex-A55 x4 / A78 x3 / X1" shown? |
 | 6 | Performance mode | `sudo rog5-perf-mode performance`, play/benchmark a while | Faster? Case too hot to hold? Then `normal` |
