@@ -1,0 +1,241 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 sink status log and stock-equivalence knobs
+
+With the DP controller's own test pattern the USB-C HDMI hub still shows
+nothing, so the fault is after the DPU. Following the external review
+(docs/reviews/2026-09-29-gpt-6-astra-dp-review.md):
+
+- log the sink's link/sink status (0x200-0x207), symbol error counts
+  (0x210), ESI (0x2002, 0x200c), PCON status (0x3036) and optionally the
+  sink CRC at 20 ms, 100 ms, 1 s, 5 s and 15 s after enable (dp_snoop,
+  dp_crc), cancelled on disable and unplug;
+- dp_polarity: copy the mode's sync polarity into the panel timing
+  (msm_dp_display_set_mode never did; a knob so tests stay one-variable);
+- dp_ssc=0: no downspread in DPCD 0x107 and the PHY, as the stock driver;
+- dp_safe_exit: the downstream MAINLINK_LEVELS safe-to-exit level;
+- dp_lane_map: raw logical-to-physical lane map override;
+- dp_max_rate: cap the link rate;
+- the 0095 mode line prints the effective (panel) bpp.
+
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c	2026-09-29 12:26:30.414868937 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c	2026-09-29 12:26:30.430292153 +0200
+@@ -429,6 +429,34 @@
+ 	msm_dp_write_link(ctrl, REG_DP_CONFIGURATION_CTRL, config);
+ }
+ 
++/*
++ * ROG5 DP bring-up knobs, applied at the next modeset; the defaults keep the
++ * mainline behaviour so each one can be tried alone.
++ *   dp_ssc=0         no downspread: DPCD 0x107 SPREAD_AMP clear, PHY ssc off
++ *   dp_safe_exit=1   program MAINLINK_LEVELS safe-to-exit like downstream
++ *                    (14/8/5 for 1/2/4 lanes)
++ *   dp_lane_map=N    raw LOGICAL2PHYSICAL_LANE_MAPPING (0 = from DT; 0xe4
++ *                    is identity, 0xe1 swaps logical lanes 0 and 1)
++ *   dp_max_rate=kHz  cap the link rate (270000 = HBR)
++ */
++static int msm_dp_ssc = -1;
++module_param_named(dp_ssc, msm_dp_ssc, int, 0644);
++MODULE_PARM_DESC(dp_ssc, "DP downspread: -1 = as the sink allows, 0 = off");
++static bool msm_dp_safe_exit;
++module_param_named(dp_safe_exit, msm_dp_safe_exit, bool, 0644);
++MODULE_PARM_DESC(dp_safe_exit, "program the downstream mainlink safe-to-exit level");
++static uint msm_dp_lane_map;
++module_param_named(dp_lane_map, msm_dp_lane_map, uint, 0644);
++MODULE_PARM_DESC(dp_lane_map, "raw logical-to-physical lane map, 0 = from DT");
++static uint msm_dp_max_rate;
++module_param_named(dp_max_rate, msm_dp_max_rate, uint, 0644);
++MODULE_PARM_DESC(dp_max_rate, "cap the DP link rate in kHz, 0 = no cap");
++
++static bool msm_dp_ctrl_ssc(const u8 *dpcd)
++{
++	return msm_dp_ssc && drm_dp_max_downspread(dpcd);
++}
++
+ static void msm_dp_ctrl_lane_mapping(struct msm_dp_ctrl_private *ctrl)
+ {
+ 	u32 *lane_map = ctrl->link->lane_map;
+@@ -438,6 +466,8 @@
+ 	ln_mapping |= lane_map[1] << LANE1_MAPPING_SHIFT;
+ 	ln_mapping |= lane_map[2] << LANE2_MAPPING_SHIFT;
+ 	ln_mapping |= lane_map[3] << LANE3_MAPPING_SHIFT;
++	if (msm_dp_lane_map)
++		ln_mapping = msm_dp_lane_map & 0xff;
+ 
+ 	msm_dp_write_link(ctrl, REG_DP_LOGICAL2PHYSICAL_LANE_MAPPING,
+ 			ln_mapping);
+@@ -452,6 +482,15 @@
+ 
+ 	msm_dp_ctrl_config_ctrl(ctrl);
+ 
++	if (msm_dp_safe_exit) {
++		u32 lanes = ctrl->link->link_params.num_lanes;
++		u32 levels = msm_dp_read_link(ctrl, REG_DP_MAINLINK_LEVELS);
++
++		levels &= 0xfe0;
++		levels |= lanes == 4 ? 5 : lanes == 2 ? 8 : 14;
++		msm_dp_write_link(ctrl, REG_DP_MAINLINK_LEVELS, levels);
++	}
++
+ 	test_bits_depth = msm_dp_link_get_test_bits_depth(ctrl->link, ctrl->panel->msm_dp_mode.bpp);
+ 	colorimetry_cfg = msm_dp_link_get_colorimetry_config(ctrl->link);
+ 
+@@ -1636,7 +1675,7 @@
+ 
+ 	msm_dp_aux_link_configure(ctrl->aux, &link_info);
+ 
+-	if (drm_dp_max_downspread(dpcd))
++	if (msm_dp_ctrl_ssc(dpcd))
+ 		encoding[0] |= DP_SPREAD_AMP_0_5;
+ 
+ 	/* config DOWNSPREAD_CTRL and MAIN_LINK_CHANNEL_CODING_SET */
+@@ -1798,7 +1837,7 @@
+ 
+ 	ctrl->phy_opts.dp.lanes = ctrl->link->link_params.num_lanes;
+ 	ctrl->phy_opts.dp.link_rate = ctrl->link->link_params.rate / 100;
+-	ctrl->phy_opts.dp.ssc = drm_dp_max_downspread(dpcd);
++	ctrl->phy_opts.dp.ssc = msm_dp_ctrl_ssc(dpcd);
+ 
+ 	phy_configure(phy, &ctrl->phy_opts);
+ 	phy_power_on(phy);
+@@ -2280,6 +2319,8 @@
+ 	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
+ 
+ 	rate = ctrl->panel->link_info.rate;
++	if (msm_dp_max_rate && rate > msm_dp_max_rate)
++		rate = msm_dp_max_rate;
+ 	pixel_rate = ctrl->panel->msm_dp_mode.drm_mode.clock;
+ 
+ 	msm_dp_ctrl_core_clk_enable(&ctrl->msm_dp_ctrl);
+--- a/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 12:26:30.414763894 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 12:26:30.431276544 +0200
+@@ -56,6 +56,9 @@
+ 	struct mutex plugged_lock;
+ 	bool plugged;
+ 
++	struct delayed_work snoop_work;
++	unsigned int snoop_step;
++
+ 	struct drm_device *drm_dev;
+ 
+ 	struct drm_dp_aux *aux;
+@@ -441,6 +444,7 @@
+ 
+ 	dp->panel->video_test = false;
+ 
++	cancel_delayed_work_sync(&dp->snoop_work);
+ 	msm_dp_aux_enable_xfers(dp->aux, false);
+ 
+ 	drm_dbg_dp(dp->drm_dev, "Before, type=%d sink_count=%d\n",
+@@ -587,6 +591,67 @@
+ 	return rc;
+ }
+ 
++/*
++ * ROG5: set_mode never copied the sync polarity into the panel mode, so the
++ * DP timing always used positive syncs. dp_polarity=1 copies it (a knob for
++ * now so the bring-up tests change one thing at a time).
++ */
++static bool msm_dp_polarity;
++module_param_named(dp_polarity, msm_dp_polarity, bool, 0644);
++MODULE_PARM_DESC(dp_polarity, "copy the mode's sync polarity into the DP timing");
++
++/*
++ * ROG5 bring-up: log what the sink reports while the stream runs (link and
++ * sink status, symbol errors, ESI, PCON status, optional CRC) at 20 ms,
++ * 100 ms, 1 s, 5 s and 15 s after enable. AUX only, cancelled on disable
++ * and unplug.
++ */
++static bool msm_dp_snoop = true;
++module_param_named(dp_snoop, msm_dp_snoop, bool, 0644);
++MODULE_PARM_DESC(dp_snoop, "log sink status while streaming");
++static bool msm_dp_crc;
++module_param_named(dp_crc, msm_dp_crc, bool, 0644);
++MODULE_PARM_DESC(dp_crc, "start the sink CRC (TEST_SINK) during the status log");
++
++static const unsigned int msm_dp_snoop_at_ms[] = { 20, 100, 1000, 5000, 15000 };
++
++static void msm_dp_snoop_fn(struct work_struct *work)
++{
++	struct msm_dp_display_private *dp = container_of(to_delayed_work(work),
++			struct msm_dp_display_private, snoop_work);
++	unsigned int step = dp->snoop_step;
++	u8 st[8] = {}, err[4] = {}, esi[4] = {}, esi2[4] = {}, pcon[6] = {}, crc[7] = {};
++	int r1, r2, r3, r4, r5, r6 = 0;
++
++	if (!dp->msm_dp_display.power_on)
++		return;
++
++	if (msm_dp_crc && step == 0)
++		drm_dp_dpcd_writeb(dp->aux, DP_TEST_SINK, DP_TEST_SINK_START);
++
++	r1 = drm_dp_dpcd_read(dp->aux, DP_SINK_COUNT, st, sizeof(st));
++	r2 = drm_dp_dpcd_read(dp->aux, 0x210, err, sizeof(err));
++	r3 = drm_dp_dpcd_read(dp->aux, DP_SINK_COUNT_ESI, esi, sizeof(esi));
++	r4 = drm_dp_dpcd_read(dp->aux, 0x200c, esi2, sizeof(esi2));
++	r5 = drm_dp_dpcd_read(dp->aux, 0x3036, pcon, sizeof(pcon));
++	if (msm_dp_crc)
++		r6 = drm_dp_dpcd_read(dp->aux, DP_TEST_CRC_R_CR, crc, sizeof(crc));
++
++	drm_info(dp->drm_dev,
++		 "DP sink @%ums: 200:%*ph 210:%*ph 2002:%*ph 200c:%*ph 3036:%*ph crc:%*ph (%d %d %d %d %d %d)\n",
++		 msm_dp_snoop_at_ms[step], (int)sizeof(st), st, (int)sizeof(err), err,
++		 (int)sizeof(esi), esi, (int)sizeof(esi2), esi2, (int)sizeof(pcon), pcon,
++		 (int)sizeof(crc), crc, r1, r2, r3, r4, r5, r6);
++
++	if (++step < ARRAY_SIZE(msm_dp_snoop_at_ms)) {
++		dp->snoop_step = step;
++		schedule_delayed_work(&dp->snoop_work, msecs_to_jiffies(
++			msm_dp_snoop_at_ms[step] - msm_dp_snoop_at_ms[step - 1]));
++	} else if (msm_dp_crc) {
++		drm_dp_dpcd_writeb(dp->aux, DP_TEST_SINK, 0);
++	}
++}
++
+ static int msm_dp_display_set_mode(struct msm_dp *msm_dp_display,
+ 			       struct msm_dp_display_mode *mode)
+ {
+@@ -596,6 +661,10 @@
+ 
+ 	drm_mode_copy(&dp->panel->msm_dp_mode.drm_mode, &mode->drm_mode);
+ 	dp->panel->msm_dp_mode.bpp = mode->bpp;
++	if (msm_dp_polarity) {
++		dp->panel->msm_dp_mode.h_active_low = mode->h_active_low;
++		dp->panel->msm_dp_mode.v_active_low = mode->v_active_low;
++	}
+ 	dp->panel->msm_dp_mode.out_fmt_is_yuv_420 = mode->out_fmt_is_yuv_420;
+ 	msm_dp_panel_init_panel_info(dp->panel);
+ 	return 0;
+@@ -1161,6 +1230,7 @@
+ 	dp->hpd_isr_status = 0;
+ 
+ 	mutex_init(&dp->plugged_lock);
++	INIT_DELAYED_WORK(&dp->snoop_work, msm_dp_snoop_fn);
+ 
+ 	rc = msm_dp_display_get_io(dp);
+ 	if (rc)
+@@ -1419,9 +1489,15 @@
+ 		 msm_dp_display->msm_dp_mode.drm_mode.clock,
+ 		 msm_dp_display->link->link_params.num_lanes,
+ 		 msm_dp_display->link->link_params.rate,
+-		 msm_dp_display->msm_dp_mode.bpp,
++		 msm_dp_display->panel->msm_dp_mode.bpp,
+ 		 msm_dp_display->ctrl->wide_bus_en, msm_dp_tpg);
+ 
++	if (msm_dp_snoop && dp->power_on) {
++		msm_dp_display->snoop_step = 0;
++		schedule_delayed_work(&msm_dp_display->snoop_work,
++				      msecs_to_jiffies(msm_dp_snoop_at_ms[0]));
++	}
++
+ 	rc = msm_dp_display_post_enable(dp);
+ 	if (rc) {
+ 		DRM_ERROR("DP display post enable failed, rc=%d\n", rc);
+@@ -1440,6 +1516,8 @@
+ 
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
++	cancel_delayed_work_sync(&msm_dp_display->snoop_work);
++
+ 	/*
+ 	 * PUSH_IDLE is a write to the link register block, which is only
+ 	 * clocked while the main link is up. atomic_enable leaves power_on
