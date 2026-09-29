@@ -1,5 +1,9 @@
 {
  "as_of": "2026-09-29 (r187)",
+ "bundles": {
+  "default": {"bundle": "production-7.2.7-r189", "kernel": "7.2.7 build r92", "dtb": "platform-cpucap-dp-sbumux-dtb-r2 (`09094112`)", "installed": "2026-09-29"},
+  "fallback": {"bundle": "production-7.2.7-safe-r7", "kernel": "7.2.7 build r69", "dtb": "platform-usbbtm-dtb-r2 (`bafe0488`)", "installed": "kept on p24 as the fallback"}
+ },
  "areas": [
   {
    "name": "Boot & updates",

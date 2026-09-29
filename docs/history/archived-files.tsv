@@ -1515,3 +1515,9 @@ tools/diagnostics/ramoops-raw/rog5_ramoops_raw.c	other
 tools/persistent-root-verify.c	other
 configs/kernel/rog5-native-wifi-module-roots	wifi-bringup
 tools/wifi_pwrctrl_probe/rog5-wifi-pwrctrl-probe.c	wifi-bringup
+configs/project-status.json	status
+configs/mobile/acceptance.json	status
+configs/mobile/session-policy.json	status
+configs/mobile/trial-plans.json	status
+scripts/host/check-mobile-status.py	status
+scripts/host/test-mobile-status.py	status

@@ -1,6 +1,6 @@
 # Prepared mobile hardware questions
 
-The [five trial plans](../configs/mobile/trial-plans.json) are offline plans,
+The [five trial plans](../../configs/mobile/trial-plans.json) are offline plans,
 **not armed sessions**. They bind the current test source hashes and common
 identity, power, thermal, rescue, abort, cleanup and return checks. There is no
 new candidate, admission or execution claim. Exact future candidate hashes remain

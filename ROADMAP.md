@@ -6,9 +6,9 @@ Cellular calling, SMS and mobile data are excluded. Display, touch and GPU are
 now central work. The existing headless server provides the development and
 recovery baseline; completing its matrix alone does not complete this product.
 
-The [mobile acceptance contract](configs/mobile/acceptance.json) separates exact
+The mobile acceptance contract (`configs/mobile/acceptance.json`, archived 2026-09-29) separates exact
 production-build/software evidence from candidate-bound physical evidence. Its
-physical rows start NOT RUN. The [prepared trial plans](docs/mobile-trial-plans.md)
+physical rows start NOT RUN. The [prepared trial plans](docs/history/mobile-trial-plans.md)
 cover buttons/LED, corrected 60 Hz display, touch, GPU and suspend/idle questions;
 this offline repair grants no phone-operation authority.
 

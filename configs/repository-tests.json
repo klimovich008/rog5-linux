@@ -1871,27 +1871,6 @@
       ]
     },
     {
-      "path": "scripts/host/test-mobile-status.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-production-kernel-build.py",
       "interpreter": "python3",
       "tiers": [
@@ -2373,6 +2352,50 @@
       "interpreter": "python3",
       "tiers": [
         "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-render-current-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-index-test-results.py",
+      "interpreter": "python3",
+      "tiers": [
         "ci",
         "nightly",
         "quick",

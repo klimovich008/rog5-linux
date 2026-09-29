@@ -37,8 +37,8 @@ own latency, reconnect and energy measurements before enabling it. Cable removal
 suspend/wake, idle drain and charging each need separate physical qualification.
 This proposal does not explain S06 or R01; both failures remain open.
 
-The [mobile contract](../configs/mobile/acceptance.json) separates software proof
-from candidate-bound physical proof. The [session policy](../configs/mobile/session-policy.json)
+The [mobile contract](../../configs/mobile/acceptance.json) separates software proof
+from candidate-bound physical proof. The [session policy](../../configs/mobile/session-policy.json)
 and sysusers fragment (`packaging/arch/mobile/sysusers.conf`, removed with Denial on 2026-09-29) define a non-root
 user and default-off remote services for a future mobile composition. They are
 not installed into the headless image. A regular desktop plus remote services

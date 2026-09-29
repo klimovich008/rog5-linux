@@ -531,10 +531,13 @@ tier additionally runs the real touch schema fixtures. Keep missing source or
 schema prerequisites visible; an individual driver/module build proves neither
 an enabled provider nor physical input.
 
-The mobile acceptance contract is separate from the immutable headless baseline.
-`check-mobile-status.py --write` updates only the generated current-state header;
-old checkpoints remain unchanged. Neither this status file nor an artifact
-inventory grants admission, signing or phone-execution authority.
+Status has one source, `docs/status/components.json` (installed default and
+fallback, and every component as ready/partial/untested/missing).
+`scripts/host/render-current-state.py` writes the generated block of
+[current state](current-state.md) from it and `tools/status-map/render.py`
+draws the status map; `test-render-current-state.py` (active tier) fails
+when they disagree. Status files grant no admission, signing or
+phone-execution authority.
 
 ## Qualification-first scope
 

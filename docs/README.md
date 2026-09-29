@@ -58,8 +58,8 @@ kept because tests or other records still refer to them.
 
 ## Power
 
-- [mobile-power-policy.md](mobile-power-policy.md): proposed battery-only mobile power and session policy.
-- [mobile-trial-plans.md](mobile-trial-plans.md): prepared offline plans for mobile hardware questions.
+- [mobile-power-policy.md](history/mobile-power-policy.md): proposed battery-only mobile power and session policy.
+- [mobile-trial-plans.md](history/mobile-trial-plans.md): prepared offline plans for mobile hardware questions.
 - [thermal-policy-static-oracle.md](thermal-policy-static-oracle.md): regression gate for the thermal topology in kernel source, config and DTB.
 
 ## Reviews
