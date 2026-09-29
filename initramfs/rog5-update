@@ -37,6 +37,8 @@ min_battery=${ROG5_UPDATE_MIN_BATTERY:-50}
 interval=${ROG5_UPDATE_INTERVAL:-86400}
 reboot_policy=${ROG5_UPDATE_REBOOT:-idle}
 reserve_mib=${ROG5_UPDATE_RESERVE_MIB:-3072}
+# Command that lists logind inhibitors (empty: ignore inhibitors).
+inhibit_cmd=${ROG5_UPDATE_INHIBIT_CMD-systemd-inhibit}
 dir=$state/rog5-update
 snapshots=$state/snapshots
 upper=$state/upper
@@ -388,6 +390,52 @@ display_idle() {
 	done
 }
 
+# An established inbound TCP connection from a non-loopback peer to a local
+# listening port: SSH and everything tunnelled through it, a web server, ...
+remote_client() {
+	for table in "$proc"/net/tcp "$proc"/net/tcp6; do
+		[ -r "$table" ] && cat "$table"
+	done | awk '
+		$4 == "0A" { split($2, l, ":"); listen[l[2]] = 1; next }
+		$4 == "01" { n++; local_[n] = $2; peer[n] = $3 }
+		END {
+			for (i = 1; i <= n; i++) {
+				split(local_[i], l, ":"); split(peer[i], r, ":")
+				if (!(l[2] in listen)) continue
+				a = r[1]
+				if (length(a) == 8 && a ~ /7F$/) continue
+				if (a == "00000000000000000000000001000000") continue
+				if (length(a) == 32 && substr(a, 1, 24) == "0000000000000000FFFF0000" &&
+				    substr(a, 31, 2) == "7F") continue
+				found = 1
+			}
+			exit !found
+		}'
+}
+
+# A logind inhibitor that blocks shutdown (systemd-inhibit --what=shutdown).
+shutdown_blocked() {
+	[ -n "$inhibit_cmd" ] && command -v "$inhibit_cmd" >/dev/null 2>&1 || return 1
+	"$inhibit_cmd" --list --no-legend --no-pager 2>/dev/null |
+		awk '$0 ~ /shutdown/ && $NF == "block" { found = 1 } END { exit !found }'
+}
+
+# Idle enough for an unattended reboot: the phone screen is off, no external
+# display is lit (GNOME desktop mode leaves the panel off), nothing asked to
+# stay awake, no remote client is connected and nothing inhibits shutdown.
+# The screen alone let the updater reboot a phone serving SSH or a desktop.
+system_idle() {
+	display_idle || { log 'reboot deferred: the screen is on'; return 1; }
+	for connector in "$sys"/class/drm/card*-DP-*; do
+		[ "$(cat "$connector/enabled" 2>/dev/null)" = enabled ] &&
+			{ log 'reboot deferred: an external display is in use'; return 1; }
+	done
+	[ -e "$run/rog5-stay-awake" ] && { log 'reboot deferred: /run/rog5-stay-awake'; return 1; }
+	remote_client && { log 'reboot deferred: a remote client is connected'; return 1; }
+	shutdown_blocked && { log 'reboot deferred: a shutdown inhibitor is active'; return 1; }
+	return 0
+}
+
 power_ok() {
 	external=0
 	capacity=
@@ -514,14 +562,14 @@ action_run() {
 		if [ -e "$dir/attempt" ]; then
 			# This boot runs the update; rog5-update-commit decides. After a
 			# failed commit, reboot (when idle) so the init restores.
-			if [ -e "$commit_failed" ] && [ "$reboot_policy" != never ] && display_idle; then
+			if [ -e "$commit_failed" ] && [ "$reboot_policy" != never ] && system_idle; then
 				reboot_now 0 "update $id did not commit; the next boot restores its snapshot"
 			fi
 			exit 0
 		fi
 		if [ "$action" = restore ]; then
 			[ "$reboot_policy" = never ] || reboot_now 0 "restore of update $id is armed"
-		elif [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && display_idle; }; then
+		elif [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
 			reboot_now 0 "verification boot of update $id"
 		fi
 		log "update $id waits for its $action reboot"
@@ -603,7 +651,7 @@ action_run() {
 		arm_pending "$id" verify || fail 'cannot mark the update verified'
 		log "PASS update $id installed and verified; it commits after one healthy boot"
 		history "update $id installed; verify-root PASS"
-		if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && display_idle; }; then
+		if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
 			reboot_now 0 "verification boot of update $id"
 		fi
 		exit 0

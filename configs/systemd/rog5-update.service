@@ -8,7 +8,9 @@ Type=oneshot
 ExecStart=/run/rog5-update/rog5-update run
 # Packages never upgraded automatically (space-separated; see docs/development.md).
 Environment=ROG5_UPDATE_HOLD=
-# Reboot into a verified update when the display is off (idle), at once (now),
+# Reboot into a verified update when the system is idle (screen and external
+# display off, no remote client, no /run/rog5-stay-awake, no shutdown
+# inhibitor such as `systemd-inhibit --what=shutdown <job>`), at once (now),
 # or leave it for the next ordinary reboot (never).
 Environment=ROG5_UPDATE_REBOOT=idle
 Environment=ROG5_UPDATE_MIN_BATTERY=50

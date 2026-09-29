@@ -224,7 +224,8 @@ esac''')
                    ROG5_UPDATE_LOWER=str(self.lower), ROG5_UPDATE_STATE=str(self.state),
                    ROG5_UPDATE_RUN=str(self.run), ROG5_UPDATE_SYS=str(self.sys),
                    ROG5_UPDATE_PROC=str(self.proc), ROG5_UPDATE_MOUNTS=str(self.dir/'mounts'),
-                   ROG5_UPDATE_KMSG=str(self.dir/'kmsg'), ROG5_UPDATE_RESERVE_MIB='1', ROG5_UPDATE_WAIT='2')
+                   ROG5_UPDATE_KMSG=str(self.dir/'kmsg'), ROG5_UPDATE_RESERVE_MIB='1', ROG5_UPDATE_WAIT='2',
+                   ROG5_UPDATE_INHIBIT_CMD='')
         env.update(extra)
         result = subprocess.run(['unshare', '-r', 'sh', str(self.update), action], capture_output=True,
                                 text=True, env=env, timeout=120)
@@ -557,6 +558,42 @@ class Run(Base):
         self.assertEqual(self.updater('run'), 0)
         self.assertEqual(self.reboots(), 1)
         self.assertEqual(self.calls().count('pacman -Su --noconfirm'), 1)
+
+    # /proc/net/tcp rows: sl local rem st ... ; addresses little-endian hex.
+    TCP_HEAD = '  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n'
+    SSH_LISTEN = '   0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1\n'
+
+    def assert_busy_defers_reboot(self, reason, **extra):
+        self.assertEqual(self.start(**extra), 0, self.kmsg())
+        self.assertEqual(self.fields('pending')['action'], 'verify')
+        self.assertEqual(self.reboots(), 0)
+        self.assertIn(f'reboot deferred: {reason}', self.kmsg())
+
+    def test_remote_client_defers_the_verification_reboot(self):
+        self.write(self.proc/'net/tcp', self.TCP_HEAD + self.SSH_LISTEN +
+                   '   1: 5301A8C0:0016 D001A8C0:C350 01 00000000:00000000 00:00000000 00000000     0        0 2\n')
+        self.assert_busy_defers_reboot('a remote client is connected')
+        self.write(self.proc/'net/tcp', self.TCP_HEAD + self.SSH_LISTEN)
+        self.assertEqual(self.updater('run'), 0)
+        self.assertEqual(self.reboots(), 1)
+
+    def test_loopback_client_does_not_defer_the_reboot(self):
+        self.write(self.proc/'net/tcp', self.TCP_HEAD + self.SSH_LISTEN +
+                   '   1: 0100007F:0016 0100007F:C350 01 00000000:00000000 00:00000000 00000000     0        0 2\n')
+        self.write(self.proc/'net/tcp6', self.TCP_HEAD +
+                   '   0: 00000000000000000000000000000000:0016 00000000000000000000000000000000:0000 0A 0 0 0 0 0 1\n'
+                   '   1: 0000000000000000FFFF00000100007F:0016 0000000000000000FFFF00000100007F:C351 01 0 0 0 0 0 2\n')
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertEqual(self.reboots(), 1)
+
+    def test_external_display_defers_the_verification_reboot(self):
+        self.write(self.sys/'class/drm/card1-DP-1/enabled', 'enabled\n')
+        self.assert_busy_defers_reboot('an external display is in use')
+
+    def test_shutdown_inhibitor_defers_the_verification_reboot(self):
+        stub = self.bin/'fake-inhibit'
+        self.write(stub, '#!/bin/sh\necho "backup 0 root 42 rsync shutdown:sleep nightly backup block"\n', 0o755)
+        self.assert_busy_defers_reboot('a shutdown inhibitor is active', ROG5_UPDATE_INHIBIT_CMD='fake-inhibit')
 
     def test_never_policy_leaves_the_reboot_to_the_user(self):
         self.assertEqual(self.start(ROG5_UPDATE_REBOOT='never'), 0, self.kmsg())
