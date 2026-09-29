@@ -258,7 +258,10 @@ def compose(base, package, record):
     # The watchdog consumer and its P2 acknowledgment producer are one boot
     # interface. Never refresh init while retaining a historical producer.
     changed = {'init': render_boot_template(REPO/'initramfs/persistent-root-init',
-                   dict(boot_state, KERNEL_RELEASE=release, SSH_DIAGNOSTIC_MODE='0')),
+                   # read-only UFS discovery keeps the containment gates on
+                   # (the standalone builder's default, UFS_CONTAINMENT=on)
+                   dict(boot_state, KERNEL_RELEASE=release, SSH_DIAGNOSTIC_MODE='0',
+                        UFS_CONTAINMENT='on')),
                'usr/local/sbin/rog5-p2-attest': render_boot_template(
                    REPO/'initramfs/persistent-root-attest', boot_state),
                'sbin/rog5-load-persistent-power-usb': (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes(),
