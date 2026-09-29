@@ -349,7 +349,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   See the
   [one-shot runbook](minimal-headless-live-cycle.md).
 - The active hardware-free successor is the
-  [early-target diagnostic successor](early-target-diagnostics.md). Promotion
+  [early-target diagnostic successor](archive/early-target-diagnostics.md). Promotion
   steps 1–6 now pass for its native one-way reporter, host netstring parser,
   diagnostic-only initramfs branch, volatile systemd handoff units, QEMU pivot
   test, and disposable-signed authority-free candidate. r2 is consumed and is
@@ -452,7 +452,7 @@ helpers, executes the Vulkan fault matrix, and proves descendant cleanup.
   missing, partial, malformed, mismatched, and complete captures remain
   `authority=NONE`, are assessed only after durable COMMIT, and never replace
   the port-`8080` transfer receipt. See the
-  [contract](recovery-ncm-progress.md) and
+  [contract](archive/recovery-ncm-progress.md) and
   [offline result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
   The distinct
   [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
@@ -1557,7 +1557,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   and capacity-window refusal. The future `battery-charging` capability names
   this test in the compatibility profile and the test is an exact core-CI
   entry. See the
-  [battery-series contract](battery-telemetry-series.md).
+  [battery-series contract](archive/battery-telemetry-series.md).
 - The dual-cell clean full-build path requires
   `test-qcom-battmgr-asus-cell-voltage-patch.sh`,
   `test-dual-cell-readonly-candidate-dtb.sh`, and
@@ -1574,7 +1574,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
   locally without replacement. It constructs the pinned current telemetry DTB
   directly; the historical helper's power-key expectation remains unchanged.
   The completed offline candidate has no phone or boot authority. See the
-  [dual-cell contract](dual-cell-readonly-telemetry.md).
+  [dual-cell contract](archive/dual-cell-readonly-telemetry.md).
 - Treat charging behavior/control, display, radio, physical input actuation,
   sustained battery-current direction, and GPU as untested despite accepted
   read-only battery values and the normal headless coldplug/input gates.
@@ -1621,7 +1621,7 @@ gates passed**. Persistent storage and hardware bring-up remain isolated.
 ## Tier 5 — GPU (opt-in, run last)
 
 - The fixed
-  [A660 accelerated-desktop acceptance](a660-acceptance.md) staging mode runs
+  [A660 accelerated-desktop acceptance](archive/a660-acceptance.md) staging mode runs
   under the still-armed rollback watchdog and its 540-second internal
   deadline. The signed command line must independently attest
   `network-root-v1`, `target_timeout=600`, `rollback_timeout=900`, and the

@@ -207,15 +207,15 @@ The bounded experiment is:
 7. timestamp UFS discovery, outer mount, image verification, inner mount,
    systemd, sshd, and strict key-only SSH acceptance.
 
-The [local-image v32 offline checkpoint](../test-results/2026-08-13-local-image-v32-offline.md)
+The [local-image v32 offline checkpoint](../../test-results/2026-08-13-local-image-v32-offline.md)
 proves two independent ext4 materializations produce the same canonical tree
 and seal, and pins a self-contained volatile AArch64 extraction runtime. The
-[phone staging result](../test-results/2026-08-13-generation-53-local-image-staged.md)
+[phone staging result](../../test-results/2026-08-13-generation-53-local-image-staged.md)
 then created the exact 16 GiB image in 34.718 seconds and independently
 reverified its full hash, ext4 identity, complete seal, and read-only mount
 behavior with no loop or mount residue.
 
-The [Generation 53 live result](../test-results/2026-08-14-generation-53-local-image-live.md)
+The [Generation 53 live result](../../test-results/2026-08-14-generation-53-local-image-live.md)
 then proved the staged image on hardware. Mainline resolved and locked UFS,
 mounted both userdata and the image `ro,noload`, passed the local-image seal
 and UFS-health checks, switched into the tmpfs-overlay Arch root at target
@@ -257,30 +257,30 @@ partition, verifies the full 16-GiB target prefix, changes its filesystem UUID,
 grows ext4, publishes the current-tree seal, then relocks and verifies the root
 read-only. It remains ineligible until Stage 1 has run and the unchanged Alpine
 fallback has proved the intermediate layout. The
-[offline result](../test-results/2026-08-15-storage-layout-stage2-offline.md)
+[offline result](../../test-results/2026-08-15-storage-layout-stage2-offline.md)
 records its deterministic twins and AArch64 runtime checks.
-The [Generation 54 live cycle](../test-results/2026-08-14-generation-54-fast-attestation-live.md)
+The [Generation 54 live cycle](../../test-results/2026-08-14-generation-54-fast-attestation-live.md)
 proved that UFS and local-root handoff remain fast, but also proved the
 retained BusyBox is musl-dynamic rather than static. Direct execution after
 `switch_root` failed because its interpreter was retained below
 `/run/initramfs`, not the Arch `/lib`. The
-[Generation 55 live cycle](../test-results/2026-08-14-generation-55-retained-loader-live.md)
+[Generation 55 live cycle](../../test-results/2026-08-14-generation-55-retained-loader-live.md)
 proved the corrected retained-loader execution: attestation passed at target
 uptime 274.44 seconds and strict key-only SSH accepted at uptime 291.33
 seconds, or 344.676 seconds after lifecycle start. This is 35.324 seconds
 (9.3%) faster than the approximately 380-second Generation 20 NFS baseline.
 Both ext4 layers remained `ro,noload`, OverlayFS remained tmpfs-backed, and
 exact Alpine fallback passed after a normal reboot. Generation 55 is consumed.
-The [Generation 56 repeat checkpoint](../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md)
+The [Generation 56 repeat checkpoint](../../test-results/2026-08-14-generation-56-repeat-systemd-timing-offline.md)
 keeps the target byte-identical and adds bounded read-only `systemd-analyze`
-capture. Its [live cycle](../test-results/2026-08-14-generation-56-repeat-systemd-timing-live.md)
+capture. Its [live cycle](../../test-results/2026-08-14-generation-56-repeat-systemd-timing-live.md)
 again passed exact UFS, local-image Arch, strict key-only SSH, and Alpine
 fallback in 362.241 seconds. It identified `ldconfig.service` (148.089
 seconds) and the unused headless virtual-console setup (76.694 seconds) as
 the next critical-path targets. Generation 57 changes only volatile boot
 state to skip those two costs while leaving both physical ext4 layers
 `ro,noload`. Its
-[live cycle](../test-results/2026-08-14-generation-57-volatile-systemd-live.md)
+[live cycle](../../test-results/2026-08-14-generation-57-volatile-systemd-live.md)
 passed strict SSH in 305.928 seconds. Userspace fell by 54.862 seconds, and
 neither `ldconfig` nor vconsole remained in the timing report. The next
 measured targets are early userspace/udev and SSH key generation; device-unit
@@ -288,9 +288,9 @@ blame must be separated from the actual critical chain before another change.
 Generation 58 targets only the measured 38.212-second SSH host-key step. Its
 initramfs leaves both ext4 layers `ro,noload`, masks the stock three-algorithm
 generator in tmpfs, and requires one per-boot volatile Ed25519 key before sshd.
-The [offline checkpoint](../test-results/2026-08-14-generation-58-ed25519-only-offline.md)
+The [offline checkpoint](../../test-results/2026-08-14-generation-58-ed25519-only-offline.md)
 passed clean-twin and exact one-use admission checks. The
-[live cycle](../test-results/2026-08-14-generation-58-ed25519-only-live.md)
+[live cycle](../../test-results/2026-08-14-generation-58-ed25519-only-live.md)
 proved the intended key path: the replacement service took 28 ms, stock
 `sshdgenkeys.service` was masked, only Ed25519 private/public key paths existed,
 and sshd began about 18 seconds earlier. End-to-end acceptance was 333.446
@@ -421,8 +421,8 @@ reboot, exact Alpine fallback, and host restoration passed. Generation 67 is
 revoked and must never be retried or flashed. The narrow host fix now retries
 only that indeterminate departure observation for two seconds while preserving
 immediate rejection of an exact present responder. See
-the [offline checkpoint](../test-results/2026-08-14-generation-67-early-ssh-offline.md)
-and [live result](../test-results/2026-08-14-generation-67-early-ssh-live.md).
+the [offline checkpoint](../../test-results/2026-08-14-generation-67-early-ssh-offline.md)
+and [live result](../../test-results/2026-08-14-generation-67-early-ssh-live.md).
 
 Generation 68 consumed its sole RAM-only cycle and proved the corrected
 post-`CLAIMED` recovery departure, exact UFS/local-image boot, tmpfs OverlayFS,
@@ -431,8 +431,8 @@ SSH session exceeded the runner's 10-second host deadline; `sshd` remained
 active with zero restarts and the same boot later passed exact runtime and
 diagnostics at 474.59 seconds uptime. Normal reboot, exact Alpine fallback, and
 host restoration passed. Generation 68 is revoked and must never be retried or
-flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-68-host-departure-offline.md)
-and [live result](../test-results/2026-08-14-generation-68-host-departure-live.md).
+flashed. See the [offline checkpoint](../../test-results/2026-08-14-generation-68-host-departure-offline.md)
+and [live result](../../test-results/2026-08-14-generation-68-host-departure-live.md).
 
 Generation 69 consumed its sole RAM-only cycle. It passed exact UFS, the local
 image, tmpfs OverlayFS, P2 storage attestation, and key-only `sshd`. The bounded
@@ -441,8 +441,8 @@ required marker-only output and rejected unretained extra startup output before
 running the runtime command. The same boot later passed exact runtime at
 378.07 seconds and diagnostics, then normal reboot, exact Alpine fallback, and
 host restoration passed. Generation 69 is revoked and must never be retried or
-flashed. See the [offline checkpoint](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
-and [live result](../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
+flashed. See the [offline checkpoint](../../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-offline.md)
+and [live result](../../test-results/2026-08-14-generation-69-authenticated-ssh-rendezvous-live.md).
 
 Generation 70 consumed its sole RAM-only cycle and formally passed the complete
 local-image path. Exact UFS, both `ro,noload` ext4 layers, tmpfs OverlayFS, P2
@@ -453,8 +453,8 @@ seconds. End-to-end accepted SSH took 326.300 seconds versus Generation 20's
 380-second reference. Normal reboot, exact Alpine fallback, PS_HOLD/HARD_RESET
 lineage, intent resolution, and host restoration passed. Generation 70 is
 revoked and must never be retried or flashed. See the
-[offline checkpoint](../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md)
-and [live result](../test-results/2026-08-14-generation-70-bounded-startup-output-live.md).
+[offline checkpoint](../../test-results/2026-08-14-generation-70-bounded-startup-output-offline.md)
+and [live result](../../test-results/2026-08-14-generation-70-bounded-startup-output-live.md).
 
 This completes reversible Phase 2: Generation 64 proved a write constrained to
 the existing 16-GiB image, Generations 66–70 repeatedly booted that image
@@ -463,7 +463,7 @@ local-image candidate is admitted. The next step is a dedicated-Linux layout
 proposal and exact destructive-operation review; partitioning still requires
 final operator confirmation.
 
-The first [dedicated Linux layout proposal](dedicated-linux-layout-v1.md) now
+The first [dedicated Linux layout proposal](../dedicated-linux-layout-v1.md) now
 keeps partitions 1–22 unchanged, shrinks only the tail of `userdata` from about
 228 GiB to about 195 GiB, and assigns the aligned final 32 GiB to one native
 `arch_root_a` ext4 partition. A fresh strict-SSH checkpoint measured more than

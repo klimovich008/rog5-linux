@@ -174,9 +174,9 @@ size/hash pinned, signature-verified offline, and its `bsdtar` payload executes
 against the current fallback libraries without installing the package.
 
 See the
-[offline P1 result](../test-results/2026-07-27-persistent-arch-staging-offline.md).
+[offline P1 result](../../test-results/2026-07-27-persistent-arch-staging-offline.md).
 The later
-[live P1 result](../test-results/2026-07-27-persistent-arch-staging-live.md)
+[live P1 result](../../test-results/2026-07-27-persistent-arch-staging-live.md)
 passed the exact production preflight, phone-side archive hash, atomic
 publication, and an independent post-publication whole-tree verification.
 `/rog5/roots/arch-a` now exists with promotion state `UNBOOTED`; neither
@@ -213,8 +213,8 @@ while retaining Generation 24's DTB, initramfs, USB identity, and read-only
 storage behavior. Its sole cycle still produced no target USB and exact Alpine
 returned after 25.038 seconds. It obtained no UFS inventory and performed no
 authorized storage write. Generation 25 is consumed and absent from active
-boot policy. See the [offline](../test-results/2026-08-12-generation-25-ufs-image-control-offline.md)
-and [live](../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
+boot policy. See the [offline](../../test-results/2026-08-12-generation-25-ufs-image-control-offline.md)
+and [live](../../test-results/2026-08-12-generation-25-ufs-image-control-live.md)
 results.
 
 Generation 26 tested one coherent UFS-specific memory-ownership difference.
@@ -441,7 +441,7 @@ This gate proves mainline UFS and ext4 reads. It does not authorize a writable
 mainline root.
 
 The
-[offline P2 acceptance](../test-results/2026-07-28-persistent-root-p2-offline.md)
+[offline P2 acceptance](../../test-results/2026-07-28-persistent-root-p2-offline.md)
 now supplies the exact implementation. A hardened AArch64 verifier reproduces
 the complete P1 seal; the target forces all 116 physical nodes read-only,
 mounts only exact `/dev/sda23` as `ro,noload`, uses the sealed root below a
@@ -457,9 +457,9 @@ revealed an echoed-command marker false positive and rejected peer-key
 retention. A first correction also misread missing custom UFS counters as a
 missing wrapper flag. Its live run rolled back before staging because the
 ASUS wrapper does not implement the target-only read-only UFS mode. The
-[first target rejection](../test-results/2026-07-28-persistent-root-p2-live-rejected.md)
+[first target rejection](../../test-results/2026-07-28-persistent-root-p2-live-rejected.md)
 and
-[wrapper-contract rejection](../test-results/2026-07-28-persistent-root-p2-wrapper-contract-live-rejected.md)
+[wrapper-contract rejection](../../test-results/2026-07-28-persistent-root-p2-wrapper-contract-live-rejected.md)
 record both safe fallbacks.
 
 Fail-first regressions now require an output-only marker, removal of rejected
@@ -469,18 +469,18 @@ The staging preflight freshly proves all 116 physical nodes read-only and
 zero block-backed mounts. The corrected wrapper then reached recovery,
 executed the target exactly once, and returned to exact Alpine after
 37 seconds. The
-[timing result](../test-results/2026-07-28-persistent-root-p2-config-timing-live-rejected.md)
+[timing result](../../test-results/2026-07-28-persistent-root-p2-config-timing-live-rejected.md)
 selected the old broad kernel-config branch. Offline extraction proves the
 embedded target config equals the pinned config exactly. The next fail-first
 correction decoded it once to RAM, verified its full SHA-256 identity, and
 separated config-file, decode, and identity failures. Its sole
-[config-identity run](../test-results/2026-07-28-persistent-root-p2-config-identity-live-rejected.md)
+[config-identity run](../../test-results/2026-07-28-persistent-root-p2-config-identity-live-rejected.md)
 also executed the target exactly once and returned to exact Alpine after
 37 seconds without target USB. That package is consumed.
 
 The next successor removed the live proc-config dependency and required exact
 running release `7.1.4-gcfd385a1c754` through `uname -r`. Its sole
-[kernel-release run](../test-results/2026-07-28-persistent-root-p2-kernel-release-live-rejected.md)
+[kernel-release run](../../test-results/2026-07-28-persistent-root-p2-kernel-release-live-rejected.md)
 passed recovery, executed the target exactly once, and returned to exact
 fallback after 36 seconds without target USB. The sealed root remained
 unchanged and `UNBOOTED`. The fallback panel was initially on and required
@@ -495,7 +495,7 @@ all critical settings. Two corrected raw/AVB repacks are byte-identical. Nine
 unique bounded timing markers identify any target pre-USB failure from the
 automatic-fallback interval without opening an early shell or mounting
 storage. Its sole
-[direct-procfs run](../test-results/2026-07-28-persistent-root-p2-osrelease-live-rejected.md)
+[direct-procfs run](../../test-results/2026-07-28-persistent-root-p2-osrelease-live-rejected.md)
 passed recovery, executed the target exactly once, and returned to exact
 fallback after 37 seconds without target USB. Root and host state remained
 exact; the fallback display again required a transient screen-off correction.
@@ -503,12 +503,12 @@ That package is consumed.
 
 P2 remains HOLD. The common 36-37 second interval across several different
 early checks is no longer treated as proof of branch selection. The required
-[early-entry v1 package](../test-results/2026-07-28-persistent-root-entry-v1-offline.md)
+[early-entry v1 package](../../test-results/2026-07-28-persistent-root-entry-v1-offline.md)
 now passes offline with a credential-free receive-only ACM marker emitted
 before userland storage access and an independently armed 120-second reset.
 The fallback also has a live-tested OpenRC screen lifecycle, but its
 post-cycle boot persistence is now accepted by the
-[sole entry-v1 live cycle](../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
+[sole entry-v1 live cycle](../../test-results/2026-07-28-persistent-root-entry-v1-live-rejected.md).
 That cycle executed target kexec once but never exposed a stable oracle ACM,
 so target entry remains unproved. Exact fallback, unchanged `UNBOOTED` root,
 absent selectors, and automatic screen-off service restoration passed after

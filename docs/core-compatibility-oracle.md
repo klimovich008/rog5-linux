@@ -70,8 +70,8 @@ Future capabilities remain unaccepted:
 - buttons and battery have baseline diagnostic evidence only, not
   corrected-candidate evidence. The future `battery-charging` capability now
   names the hardware-free
-  [battery-series oracle](battery-telemetry-series.md) and the hardware-free
-  [dual-cell read-only contract](dual-cell-readonly-telemetry.md), but those
+  [battery-series oracle](archive/battery-telemetry-series.md) and the hardware-free
+  [dual-cell read-only contract](archive/dual-cell-readonly-telemetry.md), but those
   gates only validate observation structure, protocol/DT boundaries, and
   phase comparison; they do not promote the capability;
 - suspend/resume, sensors, and audio remain pending.
@@ -168,5 +168,5 @@ substitute for phone-side CPU/RAM, storage, USB, SSH, lifecycle, thermal, or
 hardware acceptance.
 
 The
-[minimal-headless runtime acceptance contract](minimal-headless-runtime-acceptance.md)
+[minimal-headless runtime acceptance contract](archive/minimal-headless-runtime-acceptance.md)
 defines that next phone-side record and its offline mutation coverage.

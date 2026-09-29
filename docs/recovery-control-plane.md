@@ -45,7 +45,7 @@ shell-free stable-recovery initramfs and reproducible ASUS 5.4 wrapper using
 only a disposable trust root. The exact verifier and acquisition
 contracts are documented in
 [recovery runtime bundle contract](recovery-bundle-contract.md) and
-[fixed recovery bundle transport](recovery-fetch-contract.md). The resulting
+[fixed recovery bundle transport](archive/recovery-fetch-contract.md). The resulting
 image was used once through an exact guarded runner and remains outside the
 durable temporary-boot allowlist. That action grants no repeat authority.
 
@@ -125,7 +125,7 @@ only a strict bundle identifier and expected manifest hash to the fixed
 acquisition helper; requests cannot provide a URL, host, interface, or port.
 The helper binds `usb0` and source `169.254.77.2`, then connects only to
 `169.254.77.1:8080`. It uses the canonical length-framed binary stream in
-[fixed recovery bundle transport](recovery-fetch-contract.md), not HTTP:
+[fixed recovery bundle transport](archive/recovery-fetch-contract.md), not HTTP:
 
 ```text
 format=rog5-fetch-request-v1
@@ -490,7 +490,7 @@ This closes the Generation-9 host observability defect: a later Alpine product
 mismatch can no longer masquerade as the initial recovery failure. Generation
 10 then proved that ACM progress alone can still disappear after
 `REQUEST_ACCEPTED`. The separate receive-only
-[NCM progress contract](recovery-ncm-progress.md) now has a bounded device
+[NCM progress contract](archive/recovery-ncm-progress.md) now has a bounded device
 sender, host collector core, and hostile hardware-free tests. It is advisory
 and cannot authorize COMMIT. Privileged broker/lifecycle integration and the
 exact AArch64 gate remain mandatory before another recovery image is issued.

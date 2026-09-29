@@ -7,16 +7,16 @@ lifecycle correlation, and hardware-free regression tests are implemented.
 The implementation passes the complete local Linux `ci` and provisioned
 `quick` tiers and the hash-pinned host controller is installed and
 host-preflighted. A distinct
-[Generation-11 successor](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
+[Generation-11 successor](../../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
 was clean-built twice and issued twice offline as AVB
 `8472b206476e9a3143dec000b7f2369678c11248ad10203ef0646389e6bcf562`.
 Its exact recovery and unchanged signed-target tuple now passes immutable
 offline profile `headless-diagnostic-generation11-offline-v1` against both
 retained trees. At that offline-profile checkpoint it was ignored, unadmitted,
 unbooted, absent from boot policy, and `authority=none`. A later
-[one-shot admission](../test-results/2026-08-04-generation-11-live-admission-offline.md)
+[one-shot admission](../../test-results/2026-08-04-generation-11-live-admission-offline.md)
 added the sole exact central-policy row for a connected-preflight-gated RAM-only
-lifecycle. Its [sole live cycle](../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
+lifecycle. Its [sole live cycle](../../test-results/2026-08-04-generation-11-progress-listener-confinement-live.md)
 reached exact recovery ACM/NCM, then failed closed before the bundle-server
 ready marker because the privileged host path rejected its started TCP 8081
 collector as not uniquely confined. The capture remained
@@ -24,7 +24,7 @@ collector as not uniquely confined. The capture remained
 transfer, COMMIT intent, NFS, or target occurred. Exact fallback and cleanup
 passed. Generations 10 and 11 are consumed and must never be retried.
 
-A [production-faithful host-only reproduction](../test-results/2026-08-04-generation-11-progress-listener-scope-reproduction-offline.md)
+A [production-faithful host-only reproduction](../../test-results/2026-08-04-generation-11-progress-listener-scope-reproduction-offline.md)
 then captured the collector as `169.254.77.1%enp4s0f3u1u2:8081`, the expected
 effect of its `SO_BINDTODEVICE` confinement. The old controller searched for
 an unscoped endpoint. The correction parses one `ss` record and requires the
@@ -36,7 +36,7 @@ and exact-head GitHub CI passed at implementation commit `1f3cc66`. This result
 grants no reuse or successor boot authority.
 
 The distinct
-[Generation-12 offline successor](../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md)
+[Generation-12 offline successor](../../test-results/2026-08-04-generation-12-host-confinement-successor-offline.md)
 is AVB `615d7498…d72cf6` over the byte-identical Generation-11 raw recovery,
 kernel, and NCM-capable initramfs. Both deterministic trees pass immutable
 offline profile `headless-diagnostic-generation12-offline-v1`. Central policy
@@ -45,7 +45,7 @@ Actions run `30935842119` passed. The later transition added exact live profile
 `headless-diagnostic-generation12-live-v1`, selected it only through the
 one-shot lifecycle, admitted one exact central-policy row, and required
 irreversible entry of its private durable boot claim. Connected preflight and
-the [sole live cycle](../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
+the [sole live cycle](../../test-results/2026-08-04-generation-12-nfs-mount-disconnect-live.md)
 then passed their gates. Recovery progress completed all five records; the
 target emitted 40 lossless frames through stage 70 `nfs-mount-begin`, then USB
 disconnected before stage 80. Exact fallback and cleanup passed. Generation 12
@@ -208,7 +208,7 @@ image had been booted, no payload or target SSH path had started, and no
 Generation-11 boot claim existed.
 Independent spec and standards review and complete local CI passed. Commit
 `7b76733` published the
-[connected-preflight evidence](../test-results/2026-08-04-generation-11-connected-preflight-live.md),
+[connected-preflight evidence](../../test-results/2026-08-04-generation-11-connected-preflight-live.md),
 and exact-head GitHub Actions run `30921019231` passed. Publication commit
 `04132f0` passed exact-head run `30921533485`.
 

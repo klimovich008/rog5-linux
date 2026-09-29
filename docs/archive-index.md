@@ -53,7 +53,7 @@ git worktree remove /tmp/rog5-pre-stable-recovery
 - duplicate chronological material removed from `README.md`, `ROADMAP.md`,
   or `docs/current-state.md`;
 - any tracked file later removed under the reduction plan in
-  [repository audit](repository-audit-2026-07-28.md).
+  [repository audit](archive/repository-audit-2026-07-28.md).
 
 An archived control has no execution authority. Restoring source for study
 does not restore permission to run its live action or boot its image.

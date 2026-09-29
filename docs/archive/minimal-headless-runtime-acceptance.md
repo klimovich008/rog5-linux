@@ -105,12 +105,12 @@ runtime regression bounds for this device, not generic ROG Phone 5 SKU
 requirements.
 
 The strengthened storage checks are documented in the
-[offline storage-isolation result](../test-results/2026-07-29-storage-isolation-offline.md).
+[offline storage-isolation result](../../test-results/2026-07-29-storage-isolation-offline.md).
 They preserve the current zero-storage profile and do not authorize the
 separate persistent-root design.
 
 The strengthened USB/NCM/SSH checks are documented in the
-[offline USB/NCM/SSH result](../test-results/2026-07-30-usb-ncm-ssh-offline.md).
+[offline USB/NCM/SSH result](../../test-results/2026-07-30-usb-ncm-ssh-offline.md).
 They bind the target-side gadget and current SSH transport to the independent
 host-side USB continuity/bootstrap checks; neither side alone is used as proof
 of the complete link.
@@ -182,10 +182,10 @@ scripts/host/test-repository-linux.sh ci
 ```
 
 See the
-[CPU/RAM topology evidence](../test-results/2026-07-29-cpu-ram-topology-offline.md),
+[CPU/RAM topology evidence](../../test-results/2026-07-29-cpu-ram-topology-offline.md),
 the earlier
-[runtime evidence](../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md),
-and [core compatibility oracle](core-compatibility-oracle.md).
+[runtime evidence](../../test-results/2026-07-29-minimal-headless-runtime-acceptance-offline.md),
+and [core compatibility oracle](../core-compatibility-oracle.md).
 
 ## Remaining live work
 

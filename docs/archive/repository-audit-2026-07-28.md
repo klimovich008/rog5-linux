@@ -73,7 +73,7 @@ This makes tracked-file reduction recoverable. It does **not** preserve
 ignored binaries, build trees, private evidence, or credentials. Those local
 files must not be deleted merely because the Git tag exists.
 
-See [archive index](archive-index.md) for recovery commands and the category
+See [archive index](../archive-index.md) for recovery commands and the category
 boundary.
 
 ## Classification
@@ -168,9 +168,9 @@ produce a machine-readable plan with, for every proposed path:
    cache, or failed build;
 5. a reproducibility command or an explicit reason it is irreplaceable.
 
-The [retention report](../test-results/2026-07-29-artifact-retention-plan.md)
+The [retention report](../../test-results/2026-07-29-artifact-retention-plan.md)
 and
-[machine-readable plan](../test-results/2026-07-29-artifact-prune-plan.json)
+[machine-readable plan](../../test-results/2026-07-29-artifact-prune-plan.json)
 now satisfy the inventory step. They conservatively classify 51 units for
 retention, 46 for review, and eight as prune candidates. All eight candidates
 have zero tracked references and zero canonical-manifest rows, but still
@@ -181,7 +181,7 @@ is not an acceptable deduplication method; filesystem-native reflinks or
 read-only content-addressed storage are safer future options. No ignored
 artifact was deleted or deduplicated while generating the plan.
 
-The later [host storage cleanup runbook](host-storage-cleanup.md) extends this
+The later [host storage cleanup runbook](../host-storage-cleanup.md) extends this
 read-only process to external ROG5 development trees, the ROG5 cache, and
 rootless Podman volumes. Its planner retains referenced or dirty state,
 retains all volumes whenever any Podman container exists, omits absolute home
@@ -210,7 +210,7 @@ success ambiguous. A noninteractive shell with echo disabled would not solve
 arbitrary execution, stale replies, or at-most-once behavior.
 
 The required replacement is specified in
-[stable recovery control plane](recovery-control-plane.md). It includes a
+[stable recovery control plane](../recovery-control-plane.md). It includes a
 device-minted session, framed requests, a replay ledger, atomic execute claim,
 host write-ahead intent, signed runtime manifests, and out-of-band outcome
 classification.

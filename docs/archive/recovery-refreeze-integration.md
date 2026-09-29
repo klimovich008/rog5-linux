@@ -140,7 +140,7 @@ discovered physical node read-only and requires the measured 116-node
 topology before USB bind. `avbtool` verified the complete hash descriptor.
 
 The full evidence and repeatable command are in
-[stable recovery wrapper reproducibility](../test-results/2026-07-28-stable-recovery-wrapper-offline.md).
+[stable recovery wrapper reproducibility](../../test-results/2026-07-28-stable-recovery-wrapper-offline.md).
 `scripts/host/test-stable-recovery-wrapper-offline.sh` pins the source marker,
 reference config, boot template, Android image tools, and kernel-builder
 identity; runs both builds without container network access; and refuses
@@ -155,9 +155,9 @@ kernel Image `491195f7f0e5205f3e6a4d4e52da79f03f5a4ae3ad3b92854cf41f6ed5240eea`,
 raw boot-v3 `28b4fec683fd8d7bfa7305700faa837bfa14aef1608da591fb3b42bc515f5fe0`,
 and AVB image `64537159174c8aea99d52d87a7eefc1c363b82acf61bbe664cfc69bed23eb21d`.
 See
-[stable recovery review hardening](../test-results/2026-07-28-stable-recovery-review-hardening-offline.md).
+[stable recovery review hardening](../../test-results/2026-07-28-stable-recovery-review-hardening-offline.md).
 
-The current [exact-UDC checkpoint](../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
+The current [exact-UDC checkpoint](../../test-results/2026-08-09-stable-recovery-exact-udc-offline.md)
 removes the historical arbitrary-first-controller fallback. One exact
 `a600000.dwc3` may appear after the bounded wait, but it must remain the sole
 candidate across selection, pre-bind, and post-bind checks. Zero-at-deadline,
@@ -166,7 +166,7 @@ wrong, renamed, multiple, and changing candidate sets fail closed. Twin
 disposable trust input and are not wrapped or boot-authorized.
 
 The follow-up
-[observation-only checkpoint](../test-results/2026-08-09-observation-only-recovery-offline.md)
+[observation-only checkpoint](../../test-results/2026-08-09-observation-only-recovery-offline.md)
 derives a second explicit recovery identity from a verified current full
 archive. `observation-only-v1` serves postmortem `HELLO`/`STATUS` only,
 rejects prepare/commit before any ledger or helper mutation, and refuses to
@@ -175,7 +175,7 @@ verifier, public key, kexec binary, and bundle root. Cross-locale twin builds
 reproduce at 5,371,780 bytes and `613d6e3e…70db`; hostile tests prove that a
 full archive cannot satisfy the observer contract and that a wrong mode or
 injected kexec binary is rejected. The later
-[outer-wrapper checkpoint](../test-results/2026-08-09-observation-recovery-wrapper-offline.md)
+[outer-wrapper checkpoint](../../test-results/2026-08-09-observation-recovery-wrapper-offline.md)
 runs two fresh ASUS 5.4 builds because the initramfs is embedded in `Image`;
 reusing the full-recovery Image fails closed. The observer twins reproduce
 kernel `efcc4db8…a6ab`, raw boot-v3 `fdcf9b85…a163`, and unsigned AVB
@@ -189,7 +189,7 @@ v3-isolated DTB twice, verifies both execution plans, and repeats the complete
 wrapper/raw/AVB build. The twins match byte-for-byte; the private key is
 destroyed before success, and every candidate remains `authority=none`. See
 the
-[corrected headless twin build](../test-results/2026-07-29-corrected-headless-candidate-offline.md).
+[corrected headless twin build](../../test-results/2026-07-29-corrected-headless-candidate-offline.md).
 
 ## Remaining promotion boundary
 

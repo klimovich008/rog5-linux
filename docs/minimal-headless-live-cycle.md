@@ -43,7 +43,7 @@ lifecycle-only, and central policy admits at most one cycle after connected
 preflight; see the
 [profile transition](../test-results/2026-08-03-generation-5-live-profile-offline.md)
 and [one-shot admission](../test-results/2026-08-03-generation-5-live-admission-offline.md).
-The [standing operator authorization](operator-standing-authorization.md)
+The [standing operator authorization](archive/operator-standing-authorization.md)
 covers the in-scope credentials, host changes, connected preflights, and
 admitted temporary boot without another consent prompt. Every invocation-time
 guard, preflight, one-shot limit, rollback rule, and no-flash boundary remains
@@ -208,7 +208,7 @@ post-COMMIT assessment pass focused tests and the complete local Linux `ci`
 and provisioned `quick` tiers.
 Progress absence or invalid evidence is advisory and cannot gate COMMIT;
 listener ownership conflicts still fail closed. See the
-[contract](recovery-ncm-progress.md) and
+[contract](archive/recovery-ncm-progress.md) and
 [offline integration result](../test-results/2026-08-04-generation-11-ncm-progress-host-integration-offline.md).
 A distinct
 [Generation-11 wrapper](../test-results/2026-08-04-generation-11-ncm-progress-wrapper-offline.md)
