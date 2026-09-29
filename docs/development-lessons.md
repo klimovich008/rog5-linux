@@ -721,7 +721,7 @@ Successor prerequisites:
 ## Working agreement for the main chat
 
 The 2026-09-10 kernel-first correction adds three prevention rules to the
-[feedback loop](development.md#feedback-after-each-run):
+[feedback loop](history/development-log-2026-07-to-09.md#feedback-after-each-run):
 
 - Before starting an expensive build, name the current hardware dependency it
   resolves. Denial compilation must not displace unqualified display, touch,
