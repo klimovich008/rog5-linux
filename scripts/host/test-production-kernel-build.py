@@ -12,7 +12,7 @@ spec=importlib.util.spec_from_file_location('board',REPO/'scripts/host/build-rog
 B=importlib.util.module_from_spec(spec);spec.loader.exec_module(B)
 class BoardBuild(unittest.TestCase):
     def test_generated_board_flags_make_labels_available_to_real_overlay(self):
-        # Evaluate Linux7.1.4 Makefile.dtbs' per-target expression with GNU make
+        # Evaluate Linux Makefile.dtbs' per-target expression with GNU make
         # and use the resulting flags in actual dtc/fdtoverlay invocations.
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);src=root/'source';repo=root/'repo';repo.mkdir()
@@ -70,10 +70,10 @@ class BoardBuild(unittest.TestCase):
             objects=Path(directory)
             release=objects/'include/config/kernel.release';release.parent.mkdir(parents=True)
             header=objects/'include/generated/utsrelease.h';header.parent.mkdir(parents=True)
-            release.write_text('7.1.4-rog5-production\n')
-            header.write_text('#define UTS_RELEASE "7.1.4-rog5-production"\n')
-            self.assertEqual(B.compiled_release(objects),'7.1.4-rog5-production')
-            header.write_text('#define UTS_RELEASE "7.1.4"\n')
+            release.write_text('7.2.7-rog5-production\n')
+            header.write_text('#define UTS_RELEASE "7.2.7-rog5-production"\n')
+            self.assertEqual(B.compiled_release(objects),'7.2.7-rog5-production')
+            header.write_text('#define UTS_RELEASE "7.2.7"\n')
             with self.assertRaises(ValueError):B.compiled_release(objects)
             header.unlink()
             with self.assertRaises(OSError):B.compiled_release(objects)
@@ -86,24 +86,22 @@ class BoardBuild(unittest.TestCase):
             source.unlink();self.assertFalse(B.inputs_unchanged(inputs,root))
     def test_all_patches_partition_and_known_diagnostics_stay_out(self):
         groups=B.series()
-        self.assertEqual((len(groups['production']),len(groups['diagnostic'])),(18,26))
-        self.assertTrue(any(x.startswith('0040-') for x in groups['production']))
-        self.assertTrue(any(x.startswith('0041-') for x in groups['production']))
-        self.assertTrue(any(x.startswith('0042-') for x in groups['production']))
-        self.assertTrue(any(x.startswith('0043-') for x in groups['production']))
-        self.assertTrue(any(x.startswith('0044-') for x in groups['production']))
-        for number in [4,5,6,7,8,9,10,11,13,14,15,16,17,19,20,21,22,23,24,25,27,28,29,30,31,32]:
-            self.assertTrue(any(x.startswith(f'{number:04d}-') for x in groups['diagnostic']))
-    def test_7_2_7_policy_selects_its_rebased_series(self):
-        policy=json.loads((B.REPO/'configs/kernel/rog5-production-build-7.2.7.json').read_text())
-        base=json.loads(B.CONFIG.read_text())
+        production=set(groups['production'])
+        self.assertGreaterEqual(len(production),70)
+        for number in (1,2,3,35,36,37,40,41,42,43,44,99):
+            self.assertTrue(any(x.startswith(f'{number:04d}-') for x in production),number)
+        # Carried but out of production (see series.diagnostic for the reasons).
+        for number in (74,75,84,85,86,87):
+            self.assertTrue(any(x.startswith(f'{number:04d}-') for x in groups['diagnostic']),number)
+        self.assertFalse(production&set(groups['diagnostic']))
+    def test_defaults_are_the_7_2_7_production_policy(self):
+        policy=json.loads(B.CONFIG.read_text())
+        self.assertEqual(B.CONFIG,B.REPO/'configs/kernel/rog5-production-build-7.2.7.json')
         self.assertEqual(policy['patch_dir'],'patches/linux-7.2.7')
+        self.assertEqual(B.PATCHES,B.REPO/policy['patch_dir'])
+        self.assertEqual(B.WARNING_POLICY,B.REPO/policy['warning_policy_file'])
         self.assertEqual(policy['base_commit'],'f42acb3678424d1e08f6ed27c0d8ba8a125e14d6')
-        specific=('base_commit','base_archive_sha256','patch_dir','base_description','warning_policy_file')
-        self.assertEqual({k:v for k,v in policy.items() if k not in specific},{k:v for k,v in base.items() if k not in specific})
-        groups=B.series(B.REPO/policy['patch_dir'])
-        self.assertEqual(groups['diagnostic'],[])
-        self.assertEqual(groups['production'],B.series()['production'])
+        self.assertEqual(B.series(B.REPO/policy['patch_dir']),B.series())
     def test_missing_duplicate_and_overlap_are_rejected(self):
         for mutation in ('missing','duplicate','overlap','path'):
             with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as d:
@@ -137,5 +135,7 @@ class BoardBuild(unittest.TestCase):
         self.assertEqual(policy['physical_validation'],'NOT RUN')
         self.assertIn('FTS3658U',policy['limitations'][0])
         self.assertIn('arbitrary SCSI',policy['limitations'][1])
-        self.assertEqual(policy['required']['CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE'],'y')
+        # 7.2.7 production mounts UFS read-write through the stock driver.
+        self.assertEqual(policy['required']['CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE'],'n')
+        self.assertEqual(policy['required']['CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY'],'n')
 if __name__=='__main__':unittest.main()
