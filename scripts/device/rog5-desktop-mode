@@ -16,9 +16,8 @@ ON_AFTER=6        # seconds of stable connection before switching to GNOME
 OFF_AFTER=4       # seconds of stable disconnection before switching back
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
 SETTLE=15         # age before a never-locked Phosh session's "unlocked" counts
-up=0 down=0 idle=0
+up=0 down=0 idle=0 tick=0
 seen_locked_session=
-first_seen_session= first_seen_at=0
 
 phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
@@ -44,12 +43,16 @@ while :; do
 	else
 		down=$((down + 1)) up=0
 	fi
-	sess=$(phone_session)
+	tick=$((tick + 1))
 	if systemctl -q is-active rog5-gnome.service; then
-		if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
-			idle=$((idle + 1))
-		else
-			idle=0
+		# idle is checked every 5 s (loginctl is not free on a phone)
+		if [ $((tick % 5)) -eq 0 ]; then
+			sess=$(phone_session)
+			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
+				idle=$((idle + 5))
+			else
+				idle=0
+			fi
 		fi
 		if [ "$mode" = off ]; then
 			to_phosh "desktop mode off"
@@ -70,16 +73,18 @@ while :; do
 		continue ;;
 	esac
 	systemctl -q is-active rog5-phosh.service || continue
+	# without a display there is nothing to decide: skip the session queries
+	[ "$up" -gt 0 ] || continue
+	sess=$(phone_session)
 	[ -n "$sess" ] || continue
 	now=$(cut -d. -f1 /proc/uptime)
-	if [ "$first_seen_session" != "$sess" ]; then
-		first_seen_session=$sess first_seen_at=$now
-	fi
+	born=$(loginctl show-session "$sess" -p TimestampMonotonic --value 2>/dev/null)
+	born=$(( ${born:-0} / 1000000 ))
 	locked=$(loginctl show-session "$sess" -p LockedHint --value 2>/dev/null)
 	[ "$locked" = yes ] && seen_locked_session=$sess
 	settled=no
 	{ [ "$seen_locked_session" = "$sess" ] ||
-	  [ $((now - first_seen_at)) -ge "$SETTLE" ]; } && settled=yes
+	  [ $((now - born)) -ge "$SETTLE" ]; } && settled=yes
 	if [ "$mode" = auto ] && [ "$up" -ge "$ON_AFTER" ] && [ "$locked" = no ] &&
 	   [ "$settled" = yes ]; then
 		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
