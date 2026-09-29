@@ -1,0 +1,31 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 apply the swing floor from the first training attempt
+
+0097 added msm.dp_min_vlevel / dp_min_plevel, applied in
+msm_dp_link_adjust_levels(). Link training first resets the levels to 0/0
+and only adjusts them when the sink asks for more, so a sink that accepted
+0/0 never saw the floor and HBR2 swing experiments ran at 0/0 (GPT-6-Astra
+review 2026-09-29). Start from the clamped floor instead, keeping the
+voltage + pre-emphasis <= 3 rule.
+
+--- a/drivers/gpu/drm/msm/dp/dp_link.c	2026-09-29 23:07:51.744895689 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_link.c	2026-09-29 23:07:51.759059238 +0200
+@@ -1190,8 +1190,16 @@
+ 
+ void msm_dp_link_reset_phy_params_vx_px(struct msm_dp_link *msm_dp_link)
+ {
+-	msm_dp_link->phy_params.v_level = 0;
+-	msm_dp_link->phy_params.p_level = 0;
++	/*
++	 * ROG5: start training at the dp_min_vlevel/dp_min_plevel floor. With
++	 * 0/0 here a sink that accepts the first attempt never reached
++	 * msm_dp_link_adjust_levels(), so the floor was silently skipped.
++	 */
++	u8 v = msm_dp_min_vlevel > 0 ? min(msm_dp_min_vlevel, DP_TRAIN_LEVEL_MAX) : 0;
++	u8 p = msm_dp_min_plevel > 0 ? min(msm_dp_min_plevel, DP_TRAIN_LEVEL_MAX) : 0;
++
++	msm_dp_link->phy_params.v_level = v;
++	msm_dp_link->phy_params.p_level = min_t(u8, p, DP_TRAIN_LEVEL_MAX - v);
+ }
+ 
+ u32 msm_dp_link_get_test_bits_depth(struct msm_dp_link *msm_dp_link, u32 bpp)
