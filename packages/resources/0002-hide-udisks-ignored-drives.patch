@@ -1,0 +1,313 @@
+From b1f3ab173d25c6b7e7f6cf60f5340da2e085a04f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 30 Sep 2026 01:25:23 +0200
+Subject: [PATCH] Hide drives udev marks with UDISKS_IGNORE=1 unless they are
+ in use
+
+Block devices with UDISKS_IGNORE=1 in the udev database are hidden from
+user interfaces by udisks (firmware LUNs, boot partitions, ...). Skip them
+in the drive list too, but keep any such drive whose own block device or one
+of its partitions is mounted, used as swap or held by another block device,
+so the disk that backs the running system stays visible.
+---
+ src/utils/drive.rs | 248 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 246 insertions(+), 2 deletions(-)
+
+diff --git a/src/utils/drive.rs b/src/utils/drive.rs
+index f2322d2..5da427f 100644
+--- a/src/utils/drive.rs
++++ b/src/utils/drive.rs
+@@ -9,7 +9,7 @@ use log::trace;
+ use path_dedot::ParseDot;
+ use process_data::pci_slot::PciSlot;
+ use std::{
+-    collections::HashMap,
++    collections::{HashMap, HashSet},
+     fmt::Display,
+     path::{Path, PathBuf},
+     str::FromStr,
+@@ -17,6 +17,12 @@ use std::{
+ 
+ const PATH_SYSFS: &str = "/sys/block";
+ 
++const PATH_UDEV_DATA: &str = "/run/udev/data";
++
++const PATH_MOUNTINFO: &str = "/proc/self/mountinfo";
++
++const PATH_SWAPS: &str = "/proc/swaps";
++
+ static RE_DRIVE: Lazy<Regex> = lazy_regex!(
+     r" *(?P<read_ios>[0-9]*) *(?P<read_merges>[0-9]*) *(?P<read_sectors>[0-9]*) *(?P<read_ticks>[0-9]*) *(?P<write_ios>[0-9]*) *(?P<write_merges>[0-9]*) *(?P<write_sectors>[0-9]*) *(?P<write_ticks>[0-9]*) *(?P<in_flight>[0-9]*) *(?P<io_ticks>[0-9]*) *(?P<time_in_queue>[0-9]*) *(?P<discard_ios>[0-9]*) *(?P<discard_merges>[0-9]*) *(?P<discard_sectors>[0-9]*) *(?P<discard_ticks>[0-9]*) *(?P<flush_ios>[0-9]*) *(?P<flush_ticks>[0-9]*)"
+ );
+@@ -120,6 +126,71 @@ pub struct Drive {
+     pub sysfs_path: PathBuf,
+ }
+ 
++/// Block devices that currently back a mounted filesystem or a swap area
++#[derive(Debug, Default, Clone, PartialEq, Eq)]
++struct UsedBlockDevices {
++    /// "MAJOR:MINOR" of mounted filesystems
++    dev_numbers: HashSet<String>,
++    /// mount sources and swap areas, e.g. "/dev/sda23"
++    sources: HashSet<String>,
++}
++
++impl UsedBlockDevices {
++    fn current() -> Self {
++        Self::parse(
++            &std::fs::read_to_string(PATH_MOUNTINFO).unwrap_or_default(),
++            &std::fs::read_to_string(PATH_SWAPS).unwrap_or_default(),
++        )
++    }
++
++    fn parse(mountinfo: &str, swaps: &str) -> Self {
++        let mut used = Self::default();
++
++        // 36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw
++        for line in mountinfo.lines() {
++            let Some((before, after)) = line.split_once(" - ") else {
++                continue;
++            };
++            if let Some(dev) = before.split_whitespace().nth(2) {
++                used.dev_numbers.insert(dev.to_string());
++            }
++            if let Some(source) = after
++                .split_whitespace()
++                .nth(1)
++                .filter(|source| source.starts_with("/dev/"))
++            {
++                used.sources.insert(source.to_string());
++            }
++        }
++
++        // Filename    Type        Size    Used    Priority
++        // /dev/zram0  partition   4194300 0       100
++        for line in swaps.lines().skip(1) {
++            if let Some(source) = line
++                .split_whitespace()
++                .next()
++                .filter(|source| source.starts_with("/dev/"))
++            {
++                used.sources.insert(source.to_string());
++            }
++        }
++
++        used
++    }
++
++    fn contains(&self, block_device: &str, dev: &str) -> bool {
++        (!dev.is_empty() && self.dev_numbers.contains(dev))
++            || (!block_device.is_empty()
++                && self.sources.contains(&format!("/dev/{block_device}")))
++    }
++}
++
++/// Returns whether the contents of a udev database entry
++/// (`/run/udev/data/b<MAJOR>:<MINOR>`) contain `UDISKS_IGNORE=1`
++fn udev_data_ignored(data: &str) -> bool {
++    data.lines().any(|line| line.trim_end() == "E:UDISKS_IGNORE=1")
++}
++
+ impl Display for DriveType {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         write!(
+@@ -190,6 +261,8 @@ impl Drive {
+         let mut list = Vec::new();
+         trace!("Finding entries in {PATH_SYSFS}");
+         let entries = std::fs::read_dir(PATH_SYSFS)?;
++        // only read when a drive is marked as ignored by udev
++        let mut used_devices: Option<UsedBlockDevices> = None;
+         for entry in entries {
+             let entry = entry?;
+             let block_device = entry.file_name().to_string_lossy().to_string();
+@@ -197,11 +270,60 @@ impl Drive {
+             if block_device.is_empty() {
+                 continue;
+             }
+-            list.push(entry.path());
++            let path = entry.path();
++            if Self::udisks_ignored(&path) {
++                let used_devices = used_devices.get_or_insert_with(UsedBlockDevices::current);
++                if Self::in_use(&path, used_devices) {
++                    trace!("{block_device} has UDISKS_IGNORE=1 but is in use, keeping it");
++                } else {
++                    trace!("Skipping {block_device}: udev set UDISKS_IGNORE=1 and it is not in use");
++                    continue;
++                }
++            }
++            list.push(path);
+         }
+         Ok(list)
+     }
+ 
++    /// Returns whether udev marked the block device behind `sysfs_path` with
++    /// `UDISKS_IGNORE=1`, i.e. it should not be shown in user interfaces
++    /// (firmware/boot partitions, internal LUNs, ...)
++    fn udisks_ignored<P: AsRef<Path>>(sysfs_path: P) -> bool {
++        let Ok(dev) = read_parsed::<String>(sysfs_path.as_ref().join("dev")) else {
++            return false;
++        };
++        std::fs::read_to_string(Path::new(PATH_UDEV_DATA).join(format!("b{dev}")))
++            .is_ok_and(|data| udev_data_ignored(&data))
++    }
++
++    /// Returns whether the drive or one of its partitions is mounted, used as
++    /// swap or held by another block device (device mapper, RAID, ...)
++    fn in_use<P: AsRef<Path>>(sysfs_path: P, used_devices: &UsedBlockDevices) -> bool {
++        let sysfs_path = sysfs_path.as_ref();
++
++        let block_is_used = |path: &Path| {
++            let name = path
++                .file_name()
++                .map(|name| name.to_string_lossy().to_string())
++                .unwrap_or_default();
++            let dev = read_parsed::<String>(path.join("dev")).unwrap_or_default();
++            let has_holders = std::fs::read_dir(path.join("holders"))
++                .is_ok_and(|mut holders| holders.next().is_some());
++            has_holders || used_devices.contains(&name, &dev)
++        };
++
++        if block_is_used(sysfs_path) {
++            return true;
++        }
++
++        std::fs::read_dir(sysfs_path).is_ok_and(|entries| {
++            entries.flatten().any(|entry| {
++                let path = entry.path();
++                path.join("partition").exists() && block_is_used(&path)
++            })
++        })
++    }
++
+     pub fn display_name(&self) -> String {
+         let capacity_formatted = convert_storage(self.capacity().unwrap_or_default() as f64, true);
+         match self.drive_type {
+@@ -475,3 +597,125 @@ impl Drive {
+         ThemedIcon::new("unknown-drive-type-symbolic").into()
+     }
+ }
++
++#[cfg(test)]
++mod test {
++    use super::{Drive, UsedBlockDevices, udev_data_ignored};
++    use pretty_assertions::assert_eq;
++    use std::path::{Path, PathBuf};
++
++    // ROG Phone 5: the root overlay's lower and upper filesystems live on
++    // partitions of the main UFS LUN (sda), the other LUNs are unmounted
++    const MOUNTINFO: &str = "\
++22 1 0:20 / / rw,relatime - overlay overlay rw,lowerdir=/.rog5/root-ro,upperdir=/.rog5/state/upper
++23 22 8:24 / /.rog5/root-ro ro,relatime - ext4 /dev/sda24 ro
++24 22 8:23 / /.rog5/userdata-rw rw,relatime - ext4 /dev/sda23 rw
++25 22 7:0 / /.rog5/state rw,relatime - ext4 /dev/loop0 rw
++26 22 0:5 / /dev rw,nosuid shared:2 - devtmpfs devtmpfs rw,size=5822504k
++27 22 7:1 /etc/pacman.d/gnupg /etc/pacman.d/gnupg rw,relatime shared:3 - ext4 /dev/loop1 rw
++";
++
++    const SWAPS: &str = "\
++Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority
++/dev/zram1                              partition\t4194300\t\t0\t\t100
++";
++
++    const UDEV_DATA_IGNORED: &str = "\
++S:disk/by-path/platform-1d84000.ufshc-scsi-0:0:0:1
++I:25136051
++E:UDISKS_IGNORE=1
++E:ID_SCSI=1
++E:ID_VENDOR=SKhynix
++G:systemd
++";
++
++    struct FakeSysfs(PathBuf);
++
++    impl FakeSysfs {
++        fn new(name: &str) -> Self {
++            let path = std::env::temp_dir().join(format!(
++                "resources-drive-test-{}-{name}",
++                std::process::id()
++            ));
++            let _ = std::fs::remove_dir_all(&path);
++            std::fs::create_dir_all(&path).unwrap();
++            Self(path)
++        }
++
++        fn block(&self, rel: &str, dev: &str, partition: bool, holders: &[&str]) -> PathBuf {
++            let path = self.0.join(rel);
++            std::fs::create_dir_all(path.join("holders")).unwrap();
++            std::fs::write(path.join("dev"), format!("{dev}\n")).unwrap();
++            if partition {
++                std::fs::write(path.join("partition"), "1\n").unwrap();
++            }
++            for holder in holders {
++                std::fs::create_dir_all(path.join("holders").join(holder)).unwrap();
++            }
++            path
++        }
++    }
++
++    impl Drop for FakeSysfs {
++        fn drop(&mut self) {
++            let _ = std::fs::remove_dir_all(&self.0);
++        }
++    }
++
++    #[test]
++    fn udev_data_ignore_flag() {
++        assert!(udev_data_ignored(UDEV_DATA_IGNORED));
++        assert!(!udev_data_ignored("E:ID_SCSI=1\nE:UDISKS_IGNORE=0\n"));
++        assert!(!udev_data_ignored("E:UDISKS_IGNORE=10\n"));
++        assert!(!udev_data_ignored(""));
++    }
++
++    #[test]
++    fn used_block_devices_parse() {
++        let used = UsedBlockDevices::parse(MOUNTINFO, SWAPS);
++
++        assert!(used.contains("sda23", "8:23"));
++        assert!(used.contains("sda24", ""));
++        assert!(used.contains("", "8:24"));
++        assert!(used.contains("zram1", "253:1"));
++        assert!(used.contains("loop1", "7:1"));
++        assert!(!used.contains("sdb", "8:16"));
++        assert!(!used.contains("sda", "8:0"));
++        assert!(!used.contains("zram0", "253:0"));
++        assert!(!used.contains("", ""));
++        assert!(!used.sources.contains("devtmpfs"));
++        assert!(!used.sources.contains("Filename"));
++    }
++
++    #[test]
++    fn in_use_via_partition_mount() {
++        let sysfs = FakeSysfs::new("partition-mount");
++        let sda = sysfs.block("sda", "8:0", false, &[]);
++        sysfs.block("sda/sda1", "8:1", true, &[]);
++        sysfs.block("sda/sda23", "8:23", true, &[]);
++        let sdb = sysfs.block("sdb", "8:16", false, &[]);
++        sysfs.block("sdb/sdb1", "8:17", true, &[]);
++
++        let used = UsedBlockDevices::parse(MOUNTINFO, SWAPS);
++
++        assert!(Drive::in_use(&sda, &used));
++        assert!(!Drive::in_use(&sdb, &used));
++        assert!(!Drive::in_use(Path::new("/nonexistent/sdz"), &used));
++    }
++
++    #[test]
++    fn in_use_via_swap_and_holders() {
++        let sysfs = FakeSysfs::new("swap-holders");
++        let zram1 = sysfs.block("zram1", "253:1", false, &[]);
++        let zram0 = sysfs.block("zram0", "253:0", false, &[]);
++        let sdc = sysfs.block("sdc", "8:32", false, &[]);
++        sysfs.block("sdc/sdc2", "8:34", true, &["dm-0"]);
++
++        let used = UsedBlockDevices::parse(MOUNTINFO, SWAPS);
++
++        assert!(Drive::in_use(&zram1, &used));
++        assert!(!Drive::in_use(&zram0, &used));
++        assert!(Drive::in_use(&sdc, &used));
++        assert_eq!(UsedBlockDevices::parse("", ""), UsedBlockDevices::default());
++    }
++}
+-- 
+2.50.1
+

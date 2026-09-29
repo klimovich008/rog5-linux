@@ -1,10 +1,11 @@
 # resources (GNOME Resources) for the ROG Phone 5
 
 Patched build of [Resources](https://gitlab.gnome.org/GNOME/Incubator/resources)
-1.10.2 so it shows the SM8350 GPU and CPU correctly. `PKGBUILD` is the Arch Linux
-packaging (1.10.2-1) with `aarch64` added, `pkgrel=1.1` and one patch.
+1.10.2 so it shows the SM8350 GPU and CPU correctly and does not list the
+firmware UFS LUNs as drives. `PKGBUILD` is the Arch Linux packaging (1.10.2-1)
+with `aarch64` added, `pkgrel=1.2` and two patches.
 
-## What the patch does
+## What the patches do
 
 `0001-adreno-and-heterogeneous-cpus.patch` (against tag `v1.10.2`):
 
@@ -31,12 +32,28 @@ packaging (1.10.2-1) with `aarch64` added, `pkgrel=1.1` and one patch.
     zones (`cpu*thermal`, `cluster*thermal`) when no known hwmon/zone exists
     (it showed nothing before).
 
+`0002-hide-udisks-ignored-drives.patch` (on top of 0001):
+
+- Drives
+  - A block device whose udev database entry (`/run/udev/data/b<MAJ>:<MIN>`)
+    has `E:UDISKS_IGNORE=1` is left out of the drive list, the same hint
+    udisks/Nautilus/GNOME Disks use to hide it. The initramfs sets it on every
+    `sd*` (`/run/udev/rules.d/10-rog5-p2-storage.rules`) and udisks sets it on
+    `ram*`/`zram*`.
+  - Exception: an ignored drive stays listed while it is in use, i.e. the
+    disk or one of its partitions is a mount source (by `MAJ:MIN` or
+    `/dev/<name>` in `/proc/self/mountinfo`), is an active swap area
+    (`/proc/swaps`) or has holders (dm/md). So the main UFS LUN `sda`
+    (236 GiB; `sda23`/`sda24` back the root overlay) is still shown with its
+    I/O, while the unmounted read-only LUNs `sdb`..`sdg` (8 MB x3, 2.3 GB,
+    32 MB x2) are hidden. Unit tests use the phone's mount layout.
+
 ## Rebuild (on the phone, as the `phone` user, never as root)
 
     pacman -S --needed rust appstream meson git       # as root, once
     cd /home/phone/build/resources/pkg                # copy of this directory
     makepkg -f                                        # runs the unit tests too
-    sudo pacman -U resources-1.10.2-1.1-aarch64.pkg.tar.*
+    sudo pacman -U resources-1.10.2-1.2-aarch64.pkg.tar.*
 
 `/etc/pacman.conf` has `resources` in `IgnorePkg` (next to `phoc`) so a repo
 update does not replace it. To move to a new upstream version, bump `pkgver`,

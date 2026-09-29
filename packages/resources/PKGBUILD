@@ -1,11 +1,12 @@
 # Maintainer: Balló György <ballogyor+arch at gmail dot com>
 # ROG Phone 5 (SM8350) build: Arch Linux packaging 1.10.2-1 plus a patch adding
-# Qualcomm Adreno (msm) GPU support and heterogeneous (big.LITTLE) CPU parsing.
+# Qualcomm Adreno (msm) GPU support and heterogeneous (big.LITTLE) CPU parsing,
+# plus a patch hiding udev-ignored (UDISKS_IGNORE=1) drives that are not in use.
 # Kept out of upgrades via IgnorePkg in /etc/pacman.conf.
 
 pkgname=resources
 pkgver=1.10.2
-pkgrel=1.1
+pkgrel=1.2
 pkgdesc='Monitor for system resources and processes'
 arch=(x86_64 aarch64)
 url='https://apps.gnome.org/Resources/'
@@ -30,14 +31,17 @@ makedepends=(
   rust
 )
 source=("git+https://gitlab.gnome.org/GNOME/Incubator/resources.git#tag=v$pkgver"
-        0001-adreno-and-heterogeneous-cpus.patch)
+        0001-adreno-and-heterogeneous-cpus.patch
+        0002-hide-udisks-ignored-drives.patch)
 b2sums=('0125b1833c10a0e11df3b5c0078bc2f323a50a05a749f38c0e50150ace77f1fdb7878fe32c4b4dc00f2d20438f98dabeb35b1dcb9ba1a5e161152d135dea37a0'
-        'f6dac29d97bcdddff129520e28e9ff300457ae9c2e6bdcfc91cb5c8c532c499058fe35c399def911688cd3e10f6aca81158476a5d1d9f213a6e927f32bdbc0c2')
+        'f6dac29d97bcdddff129520e28e9ff300457ae9c2e6bdcfc91cb5c8c532c499058fe35c399def911688cd3e10f6aca81158476a5d1d9f213a6e927f32bdbc0c2'
+        '0e9f7d0f753b27cfc7263238f10de0a73d8eb91222866157e35aafe69dc2935927414b62bf342d5b7938400bf1effaee4a793e8dee73f9d8969f43dde743745a')
 
 prepare() {
   cd $pkgname
 
   git apply -3 ../0001-adreno-and-heterogeneous-cpus.patch
+  git apply -3 ../0002-hide-udisks-ignored-drives.patch
 
   CARGO_HOME="$srcdir/build/cargo" \
     cargo fetch --locked --target "$(rustc --print host-tuple)"
