@@ -1,0 +1,36 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 apply video-mode perf votes before the encoders start
+
+drm_atomic_helper_commit_modeset_enables() enables the CRTC, then the
+encoders; a video-mode encoder starts the INTF timing engine in its enable,
+but dpu_core_perf_crtc_update() only runs in atomic_flush afterwards. The
+first frames therefore scan out on the previous (low) bus/clock votes. On
+the ROG5 DP output (USB-C HDMI hub, 1080p60, DSI panel off) INTF_0 underran
+from the first frame and kept underrunning on every frame (380/380) even
+after the votes were raised (bus 4 GB/s via 0100), until the next modeset,
+after which 0/314. With the votes fixed before the enable (debugfs fixed
+perf mode) there was no underrun either.
+
+Apply the new performance state in dpu_crtc_enable() for CRTCs driving a
+video-mode encoder, before the encoders are enabled.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c	2026-09-29 15:38:28.260808836 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c	2026-09-29 15:38:28.274383127 +0200
+@@ -1309,6 +1309,17 @@
+ 	trace_dpu_crtc_enable(DRMID(crtc), true, dpu_crtc);
+ 	dpu_crtc->enabled = true;
+ 
++	/*
++	 * The encoders are enabled after the CRTC, and a video-mode encoder
++	 * starts its timing engine there, before atomic_flush applies the
++	 * votes computed in atomic_check. Scanning out on the old (low) bus
++	 * and clock votes, INTF_0 (DP on the ROG5) underran from the first
++	 * frame and stayed in underrun until the next modeset. Apply the new
++	 * performance state before the encoders start.
++	 */
++	if (request_bandwidth)
++		dpu_core_perf_crtc_update(crtc, 1);
++
+ 	if (!old_crtc_state->self_refresh_active) {
+ 		drm_for_each_encoder_mask(encoder, crtc->dev, crtc->state->encoder_mask)
+ 			dpu_encoder_assign_crtc(encoder, crtc);
