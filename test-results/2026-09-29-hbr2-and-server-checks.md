@@ -13,9 +13,16 @@
   also at 8 bpc (285 MHz TMDS, below the 340 MHz HDMI 1.4 limit). The earlier
   "lane-1 errors" reading of HBR2 was probably wrong: the DP side trains; the
   PCON's HDMI output does not come up at HBR2.
-- Back at HBR / 1920x1080@60 / 8 bpc the monitor stayed dark too (under
-  investigation: DP TPG colour bars enabled to separate phone from hub/monitor).
-- Production default restored to HBR: r191 = kernel r93 + platform-cpucap-dp-sbumux-dtb-r2,
+- Back at HBR / 1920x1080@60 / 8 bpc the monitor stayed dark too, even with
+  the DP controller's test pattern (TPG): the hub's HDMI PCON stayed stuck
+  after the HBR2 attempts. After the user reconnected the hub and the phone
+  rebooted (a force reboot during r191's first boot sent it to the safe-r7
+  fallback, which booted fine on the 16-192 GiB ramdisk; r192 = r191
+  content was then reinstalled), the monitor showed GNOME again at
+  1920x1080@60 over HBR and the USB keyboard worked (user-confirmed
+  2026-09-30 00:0x). HBR stays the production default; HBR2 output needs
+  the PCON's HDMI 2.0 (TMDS > 340 MHz / FRL) setup investigated.
+- Production default restored to HBR: r191/r192 = kernel r93 + platform-cpucap-dp-sbumux-dtb-r2,
   /etc/tmpfiles.d/rog5-dp.conf dp_max_rate 270000 again.
 
 ## Automatic desktop mode

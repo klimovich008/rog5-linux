@@ -1,8 +1,18 @@
 {
- "as_of": "2026-09-29 (r187)",
+ "as_of": "2026-09-30 (r192)",
  "bundles": {
-  "default": {"bundle": "production-7.2.7-r189", "kernel": "7.2.7 build r92", "dtb": "platform-cpucap-dp-sbumux-dtb-r2 (`09094112`)", "installed": "2026-09-29"},
-  "fallback": {"bundle": "production-7.2.7-safe-r7", "kernel": "7.2.7 build r69", "dtb": "platform-usbbtm-dtb-r2 (`bafe0488`)", "installed": "kept on p24 as the fallback"}
+  "default": {
+   "bundle": "production-7.2.7-r189",
+   "kernel": "7.2.7 build r92",
+   "dtb": "platform-cpucap-dp-sbumux-dtb-r2 (`09094112`)",
+   "installed": "2026-09-29"
+  },
+  "fallback": {
+   "bundle": "production-7.2.7-safe-r7",
+   "kernel": "7.2.7 build r69",
+   "dtb": "platform-usbbtm-dtb-r2 (`bafe0488`)",
+   "installed": "kept on p24 as the fallback"
+  }
  },
  "areas": [
   {
@@ -92,13 +102,14 @@
     {
      "name": "DP alt mode 1080p60",
      "status": "ready",
-     "weight": 2
+     "weight": 2,
+     "note": "user-confirmed with USB keyboard behind the hub (2026-09-30)"
     },
     {
      "name": "HBR2 / higher modes",
      "status": "missing",
      "weight": 1,
-     "note": "lane-1 errors"
+     "note": "link trains at HBR2 but the hub HDMI PCON shows no picture (needs HDMI 2.0 setup); 1080p60 over HBR works"
     },
     {
      "name": "DP-only without perf pin",
@@ -110,7 +121,7 @@
      "name": "GNOME desktop mode",
      "status": "partial",
      "weight": 2,
-     "note": "switching closes all apps"
+     "note": "starts automatically when a display is connected and the phone is unlocked; switching closes apps"
     },
     {
      "name": "Touchscreen as touchpad",

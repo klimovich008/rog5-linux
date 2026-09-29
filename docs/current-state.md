@@ -5,7 +5,7 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-09-29 (r187) (source: `docs/status/components.json`).
+Status as of 2026-09-30 (r192) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
@@ -19,7 +19,7 @@ Partial:
 - Boot & updates / Unattended package updates: may reboot while the phone is used as a server (idle = backlight off)
 - Boot & updates / Boot time: ~75 s to Phosh; initramfs waits, UFS 9.5 s
 - Display & shell / Brightness: about 4 real steps
-- External display / GNOME desktop mode: switching closes all apps
+- External display / GNOME desktop mode: starts automatically when a display is connected and the phone is unlocked; switching closes apps
 - Connectivity / Wi-Fi: stable MAC/IP since 2026-09-29; 11 s reconnect after wake
 - USB / Bottom port (USB 2.0 host): 5 V switched by hand
 - Power / Idle background wakeups: desktop-mode switcher and sleep policy poll
@@ -40,7 +40,7 @@ Missing:
 
 - Boot & updates / Reboot to fastboot: reboot argument ignored by the shutdown script
 - Display & shell / High refresh rate: 60 Hz only
-- External display / HBR2 / higher modes: lane-1 errors
+- External display / HBR2 / higher modes: link trains at HBR2 but the hub HDMI PCON shows no picture (needs HDMI 2.0 setup); 1080p60 over HBR works
 - Connectivity / Bluetooth headset mic (HFP)
 - Connectivity / Cellular modem: out of scope
 - Connectivity / GPS

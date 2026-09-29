@@ -131,13 +131,13 @@
 </g>
 <rect x="495.4" y="262.1" width="249.1" height="178.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="499.4" y="274.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">External display</text>
-<g><title>External display / DP alt mode 1080p60: ready</title><rect x="496.4" y="279.1" width="141.2" height="80.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / DP alt mode 1080p60: ready - user-confirmed with USB keyboard behind the hub (2026-09-30)</title><rect x="496.4" y="279.1" width="141.2" height="80.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="499.4" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode 1080p60</text>
 </g>
-<g><title>External display / GNOME desktop mode: partial / not fully integrated - switching closes all apps</title><rect x="496.4" y="359.1" width="141.2" height="80.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / GNOME desktop mode: partial / not fully integrated - starts automatically when a display is connected and the phone is unlocked; switching closes apps</title><rect x="496.4" y="359.1" width="141.2" height="80.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="499.4" y="371.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop mode</text>
 </g>
-<g><title>External display / HBR2 / higher modes: missing - lane-1 errors</title><rect x="637.6" y="279.1" width="105.9" height="53.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / HBR2 / higher modes: missing - link trains at HBR2 but the hub HDMI PCON shows no picture (needs HDMI 2.0 setup); 1080p60 over HBR works</title><rect x="637.6" y="279.1" width="105.9" height="53.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
 <text x="640.6" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">HBR2 / higher m…</text>
 </g>
 <g><title>External display / DP-only without perf pin: needs a test - 0106 NoC QoS candidate</title><rect x="637.6" y="332.4" width="105.9" height="53.3" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
@@ -202,5 +202,5 @@
 <text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (6)</text>
 <rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
 <text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (13)</text>
-<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-29 (r187)</text>
+<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-30 (r192)</text>
 </svg>
