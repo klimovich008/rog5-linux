@@ -74,7 +74,7 @@ class TierSelectorTest(unittest.TestCase):
     def test_critical_one_line_paths_cannot_use_development_fast_path(self):
         for path in ('patches/linux/module.patch','dts/qcom/phone.dts',
                      'configs/boot-admission-policy.tsv','initramfs/power',
-                     'scripts/device/build-qcom-wdt-module.sh','manifests/power-usb-active.json'):
+                     'scripts/device/build-watchdog-module.sh','manifests/power-usb-active.json'):
             d=MODULE.development_decision([path])
             self.assertFalse(d['eligible'])
             self.assertTrue(d['final_composition_required'])

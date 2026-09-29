@@ -1282,3 +1282,14 @@ scripts/host/collect-display-post-switch.py	display-controller
 scripts/host/production-display-trial.py	display-controller
 scripts/host/test-controller-bindings.py	display-controller
 scripts/host/test-display-post-switch-report.py	display-controller
+scripts/device/build-qcom-wdt-candidate-dtb.sh	watchdog
+scripts/device/build-qcom-wdt-module.sh	watchdog
+scripts/device/build-softdog-module.sh	watchdog
+scripts/device/build-watchdog-mmio-snapshot.sh	watchdog
+scripts/device/test-build-qcom-wdt-module.sh	watchdog
+scripts/device/test-build-softdog-module.sh	watchdog
+scripts/device/test-qcom-wdt-candidate-dtb.sh	watchdog
+scripts/device/test-qcom-wdt-observer.sh	watchdog
+tools/qcom_wdt_observer/Makefile	watchdog
+tools/qcom_wdt_observer/rog5-qcom-wdt-observer.c	watchdog
+tools/watchdog_mmio_snapshot/rog5-watchdog-mmio-snapshot.c	watchdog
