@@ -12,7 +12,7 @@ MODE_FILE=/var/lib/rog5/desktop-mode
 OFF_AFTER=4       # seconds of stable disconnection before switching back
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
 POLL=3            # seconds between checks; counters below are in seconds
-up=0 down=0 idle=0 tick=0
+up=0 down=0 idle=0 tick=0 nosess=0
 
 phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
@@ -63,14 +63,26 @@ while :; do
 		continue
 	fi
 	idle=0
-	case ,$(systemctl is-active rog5-phosh.service rog5-denial.service 2>/dev/null | paste -sd,), in
-	*,active,*|*,activating,*|*,reloading,*) ;;
+	# A switch in progress (Phosh stopping before GNOME starts, queued jobs)
+	# is not "no session": only act when nothing runs or is queued for a
+	# while, e.g. after a failed GNOME start. Acting early cancelled the
+	# "Desktop mode" launcher's GNOME start (14:16).
+	states=,$(systemctl is-active rog5-phosh.service rog5-gnome.service rog5-denial.service 2>/dev/null | paste -sd,),
+	case $states in
+	*,active,*|*,activating,*|*,deactivating,*|*,reloading,*) nosess=0 ;;
 	*)
-		# no session runs (a failed GNOME start): never leave the phone
-		# without its lock screen
-		to_phosh "no session"
-		continue ;;
+		if systemctl list-jobs --no-legend 2>/dev/null | grep -qE "rog5-(phosh|gnome|denial)"; then
+			nosess=0
+		else
+			nosess=$((nosess + POLL))
+		fi ;;
 	esac
+	if [ "$nosess" -ge 10 ]; then
+		# never leave the phone without its lock screen
+		to_phosh "no session"
+		nosess=0
+	fi
+	continue
 	# GNOME is never started from here: only the "Desktop mode" launcher on
 	# the unlocked phone starts it (Phosh's lock state is not reliably visible
 	# to logind: a restarted Phosh on its lock screen reported LockedHint=no).
