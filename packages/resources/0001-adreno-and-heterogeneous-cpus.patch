@@ -1,0 +1,639 @@
+From 84ed992822fadc7c09b34ab2a69532e5fa4a309e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 16:50:38 +0200
+Subject: [PATCH] Support Qualcomm Adreno (msm) GPUs and heterogeneous ARM CPUs
+
+---
+ lib/process_data/src/lib.rs |   5 +-
+ src/utils/cpu.rs            | 237 ++++++++++++++++++++++++++++++------
+ src/utils/gpu/mod.rs        |  57 ++++++++-
+ src/utils/gpu/msm.rs        | 146 ++++++++++++++++++++++
+ 4 files changed, 401 insertions(+), 44 deletions(-)
+ create mode 100644 src/utils/gpu/msm.rs
+
+diff --git a/lib/process_data/src/lib.rs b/lib/process_data/src/lib.rs
+index db9522a..2e28bc1 100644
+--- a/lib/process_data/src/lib.rs
++++ b/lib/process_data/src/lib.rs
+@@ -73,6 +73,7 @@ static GFX_NS_DRM_FIELDS: Lazy<HashMap<&str, Vec<&str>>> = Lazy::new(|| {
+     HashMap::from_iter([
+         ("amdgpu", vec!["drm-engine-compute", "drm-engine-gfx"]),
+         ("i915", vec!["drm-engine-render"]),
++        ("msm", vec!["drm-engine-gpu"]),
+         ("v3d", vec!["drm-engine-render"]),
+     ])
+ });
+@@ -113,6 +114,7 @@ static MEM_DRM_FIELDS: Lazy<HashMap<&str, Vec<&str>>> = Lazy::new(|| {
+         ("amdgpu", vec!["drm-memory-gtt", "drm-memory-vram"]),
+         ("amdxdna_accel_driver", vec!["drm-total-memory"]),
+         ("i915", vec!["drm-total-local0", "drm-total-system0"]),
++        ("msm", vec!["drm-total-memory"]),
+         ("v3d", vec!["drm-total-memory"]),
+         ("xe", vec!["drm-total-gtt", "drm-total-vram0"]),
+     ])
+@@ -765,7 +767,8 @@ impl ProcessData {
+                         .map(|names| Self::parse_drm_fields(fdinfo, names, &RE_DRM_TIME))
+                         .unwrap_or_default(),
+                 },
+-                "v3d" => GpuUsageStats::V3dStats {
++                // msm reports the same kind of statistics as v3d: a single engine and total memory
++                "v3d" | "msm" => GpuUsageStats::V3dStats {
+                     gfx_ns: GFX_NS_DRM_FIELDS
+                         .get(driver.as_str())
+                         .map(|names| Self::parse_drm_fields(fdinfo, names, &RE_DRM_TIME))
+diff --git a/src/utils/cpu.rs b/src/utils/cpu.rs
+index 9c4bb4d..a1186ef 100644
+--- a/src/utils/cpu.rs
++++ b/src/utils/cpu.rs
+@@ -16,30 +16,37 @@ const KNOWN_HWMONS: &[&str] = &["zenpower", "coretemp", "k10temp"];
+ 
+ const KNOWN_THERMAL_ZONES: &[&str] = &["cpu-thermal", "x86_pkg_temp", "acpitz"];
+ 
+-static RE_LSCPU_MODEL_NAME: Lazy<Regex> = lazy_regex!(r"Model name:\s*(.*)");
++// Per-core or per-cluster thermal zones as found on many ARM SoCs, e.g. "cpu0-thermal",
++// "cpu4-top-thermal" or "cluster0-thermal"
++static RE_CPU_THERMAL_ZONE: Lazy<Regex> = lazy_regex!(r"^(cpu|cluster)[0-9a-z_-]*thermal$");
++
++static RE_LSCPU_MODEL_NAME: Lazy<Regex> = lazy_regex!(r"(?m)^\s*Model name:\s*(.*)$");
+ 
+ static RE_LSCPU_ARCHITECTURE: Lazy<Regex> = lazy_regex!(r"Architecture:\s*(.*)");
+ 
+ static RE_LSCPU_CPUS: Lazy<Regex> = lazy_regex!(r"CPU\(s\):\s*(.*)");
+ 
+-static RE_LSCPU_SOCKETS: Lazy<Regex> = lazy_regex!(r"Socket\(s\):\s*(.*)");
++static RE_LSCPU_SOCKETS: Lazy<Regex> = lazy_regex!(r"(?m)^\s*Socket\(s\):\s*(.*)$");
+ 
+-static RE_LSCPU_CORES: Lazy<Regex> = lazy_regex!(r"Core\(s\) per socket:\s*(.*)");
++static RE_LSCPU_CORES: Lazy<Regex> = lazy_regex!(r"(?m)^\s*Core\(s\) per socket:\s*(.*)$");
+ 
+ static RE_LSCPU_VIRTUALIZATION: Lazy<Regex> = lazy_regex!(r"Virtualization:\s*(.*)");
+ 
+-static RE_LSCPU_MAX_MHZ: Lazy<Regex> = lazy_regex!(r"CPU max MHz:\s*(.*)");
++static RE_LSCPU_MAX_MHZ: Lazy<Regex> = lazy_regex!(r"(?m)^\s*CPU max MHz:\s*(.*)$");
+ 
+ static RE_PROC_STAT: Lazy<Regex> = lazy_regex!(
+     r"cpu\d+ *(?P<user>\d*) *(?P<nice>\d*) *(?P<system>\d*) *(?P<idle>\d*) *(?P<iowait>\d*) *(?P<irq>\d*) *(?P<softirq>\d*) *(?P<steal>\d*) *(?P<guest>\d*) *(?P<guest_nice>\d*)"
+ );
+ 
+-static CPU_TEMPERATURE_PATH: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
++/// Paths of the CPU temperature sensors, the CPU temperature is the highest of them
++static CPU_TEMPERATURE_PATHS: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+     search_for_hwmons(KNOWN_HWMONS)
+         .or_else(|| search_for_thermal_zones(KNOWN_THERMAL_ZONES))
+-        .or_else(|| {
++        .map(|path| vec![path])
++        .or_else(search_for_cpu_thermal_zones)
++        .unwrap_or_else(|| {
+             warn!("No CPU temperature sensor found!");
+-            None
++            Vec::new()
+         })
+ });
+ 
+@@ -102,6 +109,28 @@ fn search_for_thermal_zones(types: &[&'static str]) -> Option<PathBuf> {
+     None
+ }
+ 
++fn search_for_cpu_thermal_zones() -> Option<Vec<PathBuf>> {
++    trace!("Collecting per-core and per-cluster thermal zones for CPU temperature…");
++
++    let paths: Vec<PathBuf> = glob("/sys/class/thermal/thermal_zone*")
++        .unwrap()
++        .flatten()
++        .filter(|path| {
++            read_parsed::<String>(path.join("type"))
++                .is_ok_and(|read_type| RE_CPU_THERMAL_ZONE.is_match(&read_type))
++        })
++        .map(|path| path.join("temp"))
++        .collect();
++
++    if paths.is_empty() {
++        trace!("No per-core or per-cluster CPU thermal zones found");
++        None
++    } else {
++        debug!("CPU temperature sensors located at {paths:?} (type: thermal zones, using maximum)");
++        Some(paths)
++    }
++}
++
+ #[derive(Debug)]
+ pub struct CpuData {
+     pub new_thread_usages: Vec<Result<(u64, u64)>>,
+@@ -147,28 +176,94 @@ pub struct CpuInfo {
+ }
+ 
+ impl CpuInfo {
++    /// Splits `lscpu` output into its per-core-type sections. Heterogeneous CPUs (e.g. ARM
++    /// big.LITTLE) get one section per core type, each beginning with its "Model name:" line.
++    fn lscpu_core_type_sections(lscpu_output: &str) -> Vec<&str> {
++        let starts: Vec<usize> = RE_LSCPU_MODEL_NAME
++            .find_iter(lscpu_output)
++            .map(|m| m.start())
++            .collect();
++
++        if starts.is_empty() {
++            return vec![lscpu_output];
++        }
++
++        starts
++            .iter()
++            .enumerate()
++            .map(|(i, start)| {
++                let end = starts.get(i + 1).copied().unwrap_or(lscpu_output.len());
++                &lscpu_output[*start..end]
++            })
++            .collect()
++    }
++
++    fn capture_parsed<T: std::str::FromStr>(regex: &Regex, haystack: &str) -> Option<T> {
++        regex
++            .captures(haystack)
++            .and_then(|captures| captures.get(1))
++            .and_then(|capture| capture.as_str().trim().parse().ok())
++    }
++
+     fn parse_lscpu<S: AsRef<str>>(lscpu_output: S) -> Self {
+         let lscpu_output = lscpu_output.as_ref();
+ 
+-        let model_name = RE_LSCPU_MODEL_NAME
+-            .captures(lscpu_output)
+-            .and_then(|captures| {
+-                captures
+-                    .get(1)
+-                    .map(|capture| Self::trade_mark_symbols(capture.as_str()))
++        let sections = Self::lscpu_core_type_sections(lscpu_output);
++
++        // (model name, number of physical cores) of each core type
++        let mut core_types: Vec<(String, Option<usize>)> = Vec::new();
++        for section in &sections {
++            let Some(name) = RE_LSCPU_MODEL_NAME
++                .captures(section)
++                .and_then(|captures| captures.get(1))
++                .map(|capture| Self::trade_mark_symbols(capture.as_str().trim()))
++            else {
++                continue;
++            };
++
++            let cores = Self::capture_parsed::<usize>(&RE_LSCPU_CORES, section).map(|cores| {
++                cores.saturating_mul(
++                    Self::capture_parsed::<usize>(&RE_LSCPU_SOCKETS, section).unwrap_or(1),
++                )
+             });
+ 
++            if let Some((_, existing_cores)) = core_types
++                .iter_mut()
++                .find(|(existing_name, _)| *existing_name == name)
++            {
++                *existing_cores = existing_cores.zip(cores).map(|(a, b)| a + b);
++            } else {
++                core_types.push((name, cores));
++            }
++        }
++
++        let model_name = match core_types.as_slice() {
++            [] => None,
++            [(name, _)] => Some(name.clone()),
++            core_types if core_types.iter().all(|(_, cores)| cores.is_some()) => Some(
++                core_types
++                    .iter()
++                    .map(|(name, cores)| format!("{}× {name}", cores.unwrap_or_default()))
++                    .collect::<Vec<_>>()
++                    .join(" + "),
++            ),
++            core_types => Some(
++                core_types
++                    .iter()
++                    .map(|(name, _)| name.as_str())
++                    .collect::<Vec<_>>()
++                    .join(", "),
++            ),
++        };
++
+         let architecture = RE_LSCPU_ARCHITECTURE
+             .captures(lscpu_output)
+             .and_then(|captures| captures.get(1).map(|capture| capture.as_str().into()));
+ 
+-        let sockets = RE_LSCPU_SOCKETS
+-            .captures(lscpu_output)
+-            .and_then(|captures| {
+-                captures
+-                    .get(1)
+-                    .and_then(|capture| capture.as_str().parse().ok())
+-            });
++        let sockets = sections
++            .iter()
++            .filter_map(|section| Self::capture_parsed::<usize>(&RE_LSCPU_SOCKETS, section))
++            .max();
+ 
+         let logical_cpus = RE_LSCPU_CPUS.captures(lscpu_output).and_then(|captures| {
+             captures
+@@ -176,28 +271,28 @@ impl CpuInfo {
+                 .and_then(|capture| capture.as_str().parse().ok())
+         });
+ 
+-        let physical_cpus = RE_LSCPU_CORES.captures(lscpu_output).and_then(|captures| {
+-            captures
+-                .get(1)
+-                .and_then(|capture| capture.as_str().parse::<usize>().ok())
+-                .map(|int| int.saturating_mul(sockets.unwrap_or(1)))
+-        });
++        // sum up the cores of all core types
++        let physical_cpus = sections
++            .iter()
++            .filter_map(|section| {
++                Self::capture_parsed::<usize>(&RE_LSCPU_CORES, section).map(|cores| {
++                    cores.saturating_mul(
++                        Self::capture_parsed::<usize>(&RE_LSCPU_SOCKETS, section).unwrap_or(1),
++                    )
++                })
++            })
++            .reduce(usize::saturating_add);
+ 
+         let virtualization = RE_LSCPU_VIRTUALIZATION
+             .captures(lscpu_output)
+             .and_then(|captures| captures.get(1).map(|capture| capture.as_str().into()));
+ 
+-        let max_speed = RE_LSCPU_MAX_MHZ
+-            .captures(lscpu_output)
+-            .and_then(|captures| {
+-                captures.get(1).and_then(|capture| {
+-                    capture
+-                        .as_str()
+-                        .parse::<f64>()
+-                        .ok()
+-                        .map(|float| float * 1_000_000.0)
+-                })
+-            });
++        // the fastest core type determines the maximum speed
++        let max_speed = sections
++            .iter()
++            .filter_map(|section| Self::capture_parsed::<f64>(&RE_LSCPU_MAX_MHZ, section))
++            .map(|float| float * 1_000_000.0)
++            .reduce(f64::max);
+ 
+         Self {
+             model_name,
+@@ -320,11 +415,21 @@ pub fn get_cpu_usage() -> Vec<Result<(u64, u64)>> {
+ ///
+ /// Will return `Err` if there was no way to read the CPU temperature.
+ pub fn get_temperature() -> Result<f32> {
+-    if let Some(path) = CPU_TEMPERATURE_PATH.as_ref() {
+-        read_sysfs_thermal(path)
+-    } else {
++    if CPU_TEMPERATURE_PATHS.is_empty() {
+         bail!("no CPU temperature sensor found")
+     }
++
++    let mut last_error = None;
++    let mut temperature: Option<f32> = None;
++
++    for path in CPU_TEMPERATURE_PATHS.iter() {
++        match read_sysfs_thermal(path) {
++            Ok(t) => temperature = Some(temperature.map_or(t, |max| max.max(t))),
++            Err(e) => last_error = Some(e),
++        }
++    }
++
++    temperature.ok_or_else(|| last_error.unwrap_or_else(|| anyhow!("no CPU temperature")))
+ }
+ 
+ fn read_sysfs_thermal<P: AsRef<Path>>(path: P) -> Result<f32> {
+@@ -389,4 +494,56 @@ mod test {
+ 
+         assert_eq!(parsed, expected)
+     }
++
++    const LSCPU_OUTPUT_HETEROGENEOUS: &str = concat!(
++        "Architecture:                            aarch64\n",
++        "CPU op-mode(s):                          32-bit, 64-bit\n",
++        "Byte Order:                              Little Endian\n",
++        "CPU(s):                                  8\n",
++        "On-line CPU(s) list:                     0-7\n",
++        "Vendor ID:                               ARM\n",
++        "Model name:                              Cortex-A55\n",
++        "Model:                                   0\n",
++        "Thread(s) per core:                      1\n",
++        "Core(s) per socket:                      4\n",
++        "Socket(s):                               1\n",
++        "Stepping:                                r2p0\n",
++        "CPU max MHz:                             1804.8000\n",
++        "CPU min MHz:                             300.0000\n",
++        "Model name:                              Cortex-A78\n",
++        "Model:                                   0\n",
++        "Thread(s) per core:                      1\n",
++        "Core(s) per socket:                      3\n",
++        "Socket(s):                               1\n",
++        "Stepping:                                r1p0\n",
++        "CPU max MHz:                             2419.2000\n",
++        "CPU min MHz:                             710.4000\n",
++        "Model name:                              Cortex-X1\n",
++        "Model:                                   0\n",
++        "Thread(s) per core:                      1\n",
++        "Core(s) per socket:                      1\n",
++        "Socket(s):                               1\n",
++        "Stepping:                                r1p0\n",
++        "CPU max MHz:                             2841.6001\n",
++        "CPU min MHz:                             844.8000\n",
++        "NUMA node(s):                            1\n",
++        "NUMA node0 CPU(s):                       0-7\n",
++    );
++
++    #[test]
++    fn lscpu_heterogeneous() {
++        let parsed = CpuInfo::parse_lscpu(LSCPU_OUTPUT_HETEROGENEOUS);
++
++        let expected = CpuInfo {
++            model_name: Some("4× Cortex-A55 + 3× Cortex-A78 + 1× Cortex-X1".into()),
++            architecture: Some("aarch64".into()),
++            logical_cpus: Some(8),
++            physical_cpus: Some(8),
++            sockets: Some(1),
++            virtualization: None,
++            max_speed: Some(2841.6001 * 1_000_000.0),
++        };
++
++        assert_eq!(parsed, expected)
++    }
+ }
+diff --git a/src/utils/gpu/mod.rs b/src/utils/gpu/mod.rs
+index 521fed6..fa5e1e6 100644
+--- a/src/utils/gpu/mod.rs
++++ b/src/utils/gpu/mod.rs
+@@ -1,5 +1,6 @@
+ mod amd;
+ mod intel;
++mod msm;
+ mod nvidia;
+ mod other;
+ mod v3d;
+@@ -15,7 +16,7 @@ use std::{
+     str::FromStr,
+ };
+ 
+-use self::{amd::AmdGpu, intel::IntelGpu, nvidia::NvidiaGpu, other::OtherGpu};
++use self::{amd::AmdGpu, intel::IntelGpu, msm::MsmGpu, nvidia::NvidiaGpu, other::OtherGpu};
+ use crate::utils::{
+     link::{Link, LinkData},
+     read_parsed,
+@@ -36,6 +37,8 @@ const BLOCKLISTED_DRIVERS: &[&str] = &["simple-framebuffer", "evdi"];
+ 
+ static RE_CARD_ENUMARATOR: Lazy<Regex> = lazy_regex!(r"(\d+)\/?$");
+ 
++static RE_ADRENO_COMPATIBLE: Lazy<Regex> = lazy_regex!(r"^qcom,adreno-(\d{3})(?:\.\d+)?$");
++
+ #[derive(Debug)]
+ pub struct GpuData {
+     pub gpu_identifier: GpuIdentifier,
+@@ -119,6 +122,7 @@ pub enum Gpu {
+     Amd(AmdGpu),
+     Intel(IntelGpu),
+     Nvidia(NvidiaGpu),
++    Msm(MsmGpu),
+     V3d(V3dGpu),
+     Other(OtherGpu),
+ }
+@@ -154,7 +158,13 @@ pub trait GpuImpl {
+     // It's also used as a fallback.
+ 
+     fn drm_name(&self) -> Result<String> {
+-        Ok(self.device().context("no device")?.name().to_owned())
++        if let Some(device) = self.device() {
++            return Ok(device.name().to_owned());
++        }
++
++        // Non-PCI (e.g. SoC) GPUs have no PCI ID to look up, so try to derive a name from the
++        // devicetree compatible strings instead
++        of_compatible_name(self.sysfs_path().join("device/of_node/compatible"))
+     }
+ 
+     fn drm_usage(&self) -> Result<isize> {
+@@ -211,6 +221,7 @@ impl std::ops::Deref for Gpu {
+             Gpu::Amd(gpu) => gpu,
+             Gpu::Intel(gpu) => gpu,
+             Gpu::Nvidia(gpu) => gpu,
++            Gpu::Msm(gpu) => gpu,
+             Gpu::V3d(gpu) => gpu,
+             Gpu::Other(gpu) => gpu,
+         }
+@@ -264,7 +275,7 @@ impl Gpu {
+ 
+         let mut hwmon_vec: Vec<PathBuf> = Vec::new();
+         for hwmon in glob(&format!(
+-            "{}/hwmon/hwmon?",
++            "{}/hwmon/hwmon*",
+             sysfs_device_path.to_string_lossy()
+         ))?
+         .flatten()
+@@ -294,6 +305,13 @@ impl Gpu {
+             bail!("blocklisted driver");
+         }
+ 
++        // SoCs often expose their display controller as a separate DRM card which has no render
++        // node since it can't render anything, so it's not a GPU
++        if vid == 0 && !has_render_node(&sysfs_device_path) {
++            debug!("Skipping {path:?} ({driver}): no render node, display-only device");
++            bail!("display-only device");
++        }
++
+         let (gpu, gpu_category) = if vid == VID_AMD || driver == "amdgpu" {
+             (
+                 Gpu::Amd(AmdGpu::new(
+@@ -327,6 +345,17 @@ impl Gpu {
+                 )),
+                 "NVIDIA",
+             )
++        } else if msm::DRIVER_NAMES.contains(&driver.as_str()) {
++            (
++                Gpu::Msm(MsmGpu::new(
++                    device,
++                    gpu_identifier,
++                    driver,
++                    path.to_path_buf(),
++                    hwmon_vec.first().cloned(),
++                )),
++                "msm",
++            )
+         } else if driver == "v3d" {
+             (
+                 Gpu::V3d(V3dGpu::new(
+@@ -375,3 +404,25 @@ impl Gpu {
+         }
+     }
+ }
++
++/// Returns whether the DRM device at `sysfs_device_path` exposes a render node (renderD*).
++fn has_render_node(sysfs_device_path: &Path) -> bool {
++    glob(&format!("{}/drm/renderD*", sysfs_device_path.to_string_lossy()))
++        .is_ok_and(|mut paths| paths.any(|path| path.is_ok()))
++}
++
++/// Derives a human-readable GPU name from a devicetree `compatible` file (a list of
++/// NUL-separated strings), e.g. "qcom,adreno-660.1" → "Qualcomm Adreno 660".
++fn of_compatible_name<P: AsRef<Path>>(compatible_path: P) -> Result<String> {
++    let compatible = read_parsed::<String>(compatible_path)?;
++
++    compatible
++        .split('\0')
++        .find_map(|compatible| {
++            RE_ADRENO_COMPATIBLE
++                .captures(compatible)
++                .and_then(|captures| captures.get(1))
++                .map(|model| format!("Qualcomm Adreno {}", model.as_str()))
++        })
++        .context("no known devicetree compatible")
++}
+diff --git a/src/utils/gpu/msm.rs b/src/utils/gpu/msm.rs
+new file mode 100644
+index 0000000..562f3c6
+--- /dev/null
++++ b/src/utils/gpu/msm.rs
+@@ -0,0 +1,146 @@
++use anyhow::{Context, Result, bail};
++use glob::glob;
++use process_data::gpu_usage::GpuIdentifier;
++
++use std::path::{Path, PathBuf};
++
++use crate::utils::{pci::Device, read_parsed};
++
++use super::GpuImpl;
++
++/// Drivers used by Qualcomm Adreno GPUs: `adreno` is the platform driver bound to the GPU
++/// device, `msm` is the name of the DRM driver.
++pub const DRIVER_NAMES: &[&str] = &["adreno", "msm"];
++
++#[derive(Debug, Clone, Default)]
++
++pub struct MsmGpu {
++    pub device: Option<&'static Device>,
++    pub gpu_identifier: GpuIdentifier,
++    pub driver: String,
++    sysfs_path: PathBuf,
++    first_hwmon_path: Option<PathBuf>,
++}
++
++impl MsmGpu {
++    pub fn new(
++        device: Option<&'static Device>,
++        gpu_identifier: GpuIdentifier,
++        driver: String,
++        sysfs_path: PathBuf,
++        first_hwmon_path: Option<PathBuf>,
++    ) -> Self {
++        Self {
++            device,
++            gpu_identifier,
++            driver,
++            sysfs_path,
++            first_hwmon_path,
++        }
++    }
++
++    /// Current GPU frequency as reported by devfreq, in Hz.
++    fn devfreq_core_frequency(&self) -> Result<f64> {
++        let cur_freq = glob(&format!(
++            "{}/device/devfreq/*/cur_freq",
++            self.sysfs_path.to_string_lossy()
++        ))?
++        .flatten()
++        .next()
++        .context("no devfreq found")?;
++
++        read_parsed::<f64>(cur_freq)
++    }
++
++    /// Highest temperature of the thermal zones covering the GPU (e.g. `gpu-top-thermal` and
++    /// `gpu-bottom-thermal`), in °C.
++    fn thermal_zone_temperature() -> Result<f64> {
++        glob("/sys/class/thermal/thermal_zone*")?
++            .flatten()
++            .filter(|path| {
++                read_parsed::<String>(path.join("type")).is_ok_and(|zone_type| {
++                    zone_type.starts_with("gpu") && zone_type.ends_with("thermal")
++                })
++            })
++            .filter_map(|path| read_parsed::<f64>(path.join("temp")).ok())
++            .map(|millicelsius| millicelsius / 1000.0)
++            .reduce(f64::max)
++            .context("no GPU thermal zone found")
++    }
++}
++
++impl GpuImpl for MsmGpu {
++    fn device(&self) -> Option<&'static Device> {
++        self.device
++    }
++
++    fn gpu_identifier(&self) -> GpuIdentifier {
++        self.gpu_identifier
++    }
++
++    fn driver(&self) -> &str {
++        &self.driver
++    }
++
++    fn sysfs_path(&self) -> &Path {
++        &self.sysfs_path
++    }
++
++    fn first_hwmon(&self) -> Option<&Path> {
++        self.first_hwmon_path.as_deref()
++    }
++
++    fn name(&self) -> Result<String> {
++        self.drm_name()
++    }
++
++    fn usage(&self) -> Result<f64> {
++        self.drm_usage().map(|usage| usage as f64 / 100.0)
++    }
++
++    fn encode_usage(&self) -> Result<f64> {
++        bail!("encode usage not implemented for msm")
++    }
++
++    fn decode_usage(&self) -> Result<f64> {
++        bail!("decode usage not implemented for msm")
++    }
++
++    fn combined_media_engine(&self) -> Result<bool> {
++        bail!("video engine is not part of the GPU on msm")
++    }
++
++    fn used_vram(&self) -> Result<u64> {
++        bail!("msm GPUs use shared system memory")
++    }
++
++    fn total_vram(&self) -> Result<u64> {
++        bail!("msm GPUs use shared system memory")
++    }
++
++    fn temperature(&self) -> Result<f64> {
++        self.hwmon_temperature()
++            .or_else(|_| Self::thermal_zone_temperature())
++    }
++
++    fn power_usage(&self) -> Result<f64> {
++        self.hwmon_power_usage()
++    }
++
++    fn core_frequency(&self) -> Result<f64> {
++        self.hwmon_core_frequency()
++            .or_else(|_| self.devfreq_core_frequency())
++    }
++
++    fn vram_frequency(&self) -> Result<f64> {
++        bail!("msm GPUs use shared system memory")
++    }
++
++    fn power_cap(&self) -> Result<f64> {
++        self.hwmon_power_cap()
++    }
++
++    fn power_cap_max(&self) -> Result<f64> {
++        self.hwmon_power_cap_max()
++    }
++}
+-- 
+2.50.1
+
