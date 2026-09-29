@@ -34,5 +34,7 @@ ExecStartPre=+/usr/local/libexec/rog5-kms-reset /dev/dri/card1
 # Phosh shows no title-bar buttons ('appmenu:'); a desktop needs them. The
 # setting is shared with Phosh, so put it back when GNOME stops.
 ExecStartPre=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:minimize,maximize,close"'
+# Phosh keeps no wallpaper (00-rog5-phosh); the desktop gets GNOME's default.
+ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.background picture-uri file:///usr/share/backgrounds/gnome/adwaita-l.jxl; gsettings set org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/gnome/adwaita-d.jxl; gsettings set org.gnome.desktop.background picture-options zoom'
 ExecStart=/usr/bin/gnome-session
-ExecStopPost=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:"'
+ExecStopPost=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:"; gsettings reset org.gnome.desktop.background picture-uri; gsettings reset org.gnome.desktop.background picture-uri-dark; gsettings reset org.gnome.desktop.background picture-options'
