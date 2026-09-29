@@ -41,11 +41,12 @@ enumerated() {
 	ls -d /sys/bus/platform/devices/$udc/xhci-hcd.*/usb*/[0-9]*-[1-9]* >/dev/null 2>&1
 }
 
-# DisplayPort alt mode shares the side port's QMP combo PHY: a dwc3
-# unbind/bind re-initialises it and kills a DP link that just trained (a hub
-# with HDMI stayed dark on the phone while working on the Steam Deck,
-# 2026-09-28). Checked at the moment of the re-init: DP connects a few
-# seconds after the attach that started this script.
+# DisplayPort alt mode shares the side port's QMP combo PHY. The re-init
+# used to be skipped while DP was attached (a hub stayed dark on 2026-09-28,
+# but DP had other faults then). On 2026-09-30 a dwc3 unbind/bind with a USB-C
+# KVM monitor at 1080p kept the DP link up and made the monitor's hub,
+# keyboard and mouse enumerate; skipping it left them dead after every replug.
+# dp_attached is only logged now.
 dp_attached() {
 	for dp in /sys/class/drm/card*-DP-*/status; do
 		[ "$(cat "$dp" 2>/dev/null)" = connected ] && return 0
@@ -54,10 +55,7 @@ dp_attached() {
 }
 
 reinit() {
-	if dp_attached; then
-		log "DP sink attached; leaving $udc alone"
-		return 1
-	fi
+	dp_attached && log "DP sink attached; re-initialising $udc anyway (DP stays up)"
 	echo "$udc" >/sys/bus/platform/drivers/dwc3/unbind || { log 'FAIL unbind'; return 1; }
 	sleep 1
 	echo "$udc" >/sys/bus/platform/drivers/dwc3/bind || { log 'FAIL bind'; return 1; }
