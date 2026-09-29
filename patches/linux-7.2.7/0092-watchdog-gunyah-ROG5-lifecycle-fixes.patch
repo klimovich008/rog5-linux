@@ -1,0 +1,88 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] watchdog: gunyah: ROG5: lifecycle fixes (probe cleanup, suspend errors, no core pings in suspend)
+
+Review follow-ups for 0088 (external review 2026-09-28):
+- probe starts the watchdog before registering it; if registration fails,
+  stop it again, otherwise nothing pets it and it bites.
+- suspend: a failed stop left an armed, unpetted watchdog across the
+  sleep; return the error so the suspend is aborted instead.
+- resume: log a failed restart (the resume still continues).
+- tell the watchdog core to stop its ping worker in suspend
+  (WDOG_NO_PING_ON_SUSPEND), so it doesn't ping the stopped hardware.
+- restart: program bark 1 ms before a 2 ms bite instead of bark == bite,
+  which Haven reports as expired at enable.
+
+--- a/drivers/watchdog/gunyah_wdt.c
++++ b/drivers/watchdog/gunyah_wdt.c
+@@ -143,9 +143,12 @@
+ static int gunyah_wdt_restart(struct watchdog_device *wdd,
+ 			      unsigned long action, void *data)
+ {
+-	/* Set timeout to 1ms and send a ping */
++	/*
++	 * Bite 2 ms after the ping, bark 1 ms before it: Haven reports a
++	 * watchdog with bark == bite as expired at enable (see start()).
++	 */
+ 	gunyah_wdt_call(GUNYAH_WDT_CONTROL, WDT_CTRL_DISABLE, 0);
+-	gunyah_wdt_call(GUNYAH_WDT_SET_TIME, 1, 1);
++	gunyah_wdt_call(GUNYAH_WDT_SET_TIME, 1, 2);
+ 	gunyah_wdt_call(GUNYAH_WDT_CONTROL, WDT_CTRL_ENABLE, 0);
+ 	gunyah_wdt_call(GUNYAH_WDT_PING, 0, 0);
+ 
+@@ -216,8 +219,17 @@
+ 
+ 	platform_set_drvdata(pdev, wdd);
+ 	watchdog_set_restart_priority(wdd, 0);
++	/* Our suspend callback stops the hardware: stop the core's pings too. */
++	watchdog_stop_ping_on_suspend(wdd);
++
++	ret = devm_watchdog_register_device(dev, wdd);
++	if (ret) {
++		/* Started above: nothing would pet it any more. */
++		gunyah_wdt_stop(wdd);
++		return ret;
++	}
+ 
+-	return devm_watchdog_register_device(dev, wdd);
++	return 0;
+ }
+ 
+ static void gunyah_wdt_remove(struct platform_device *pdev)
+@@ -230,20 +242,32 @@
+ static int gunyah_wdt_suspend(struct device *dev)
+ {
+ 	struct watchdog_device *wdd = dev_get_drvdata(dev);
++	int ret;
+ 
+-	if (watchdog_active(wdd) || watchdog_hw_running(wdd))
+-		gunyah_wdt_stop(wdd);
++	if (!watchdog_active(wdd) && !watchdog_hw_running(wdd))
++		return 0;
+ 
+-	return 0;
++	/* An armed watchdog nobody pets during suspend would bite: abort. */
++	ret = gunyah_wdt_stop(wdd);
++	if (ret)
++		dev_err(dev, "failed to stop the watchdog for suspend: %d\n", ret);
++
++	return ret;
+ }
+ 
+ static int gunyah_wdt_resume(struct device *dev)
+ {
+ 	struct watchdog_device *wdd = dev_get_drvdata(dev);
++	int ret;
++
++	if (!watchdog_active(wdd) && !watchdog_hw_running(wdd))
++		return 0;
+ 
+-	if (watchdog_active(wdd) || watchdog_hw_running(wdd))
+-		gunyah_wdt_start(wdd);
++	ret = gunyah_wdt_start(wdd);
++	if (ret)
++		dev_err(dev, "failed to restart the watchdog after resume: %d\n", ret);
+ 
++	/* A resume failure would leave the system down; keep going unprotected. */
+ 	return 0;
+ }
+ 
