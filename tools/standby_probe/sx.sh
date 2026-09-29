@@ -30,7 +30,9 @@ snap before
 before=$(cat /sys/power/suspend_stats/success)
 echo 1 > $T/tracing_on
 echo "sx-$TAG: suspend start" > /dev/kmsg
-rtcwake -m no -s $SECS; systemctl suspend --check-inhibitors=no
+# Never suspend without a wake alarm (review 2026-09-29).
+rtcwake -m no -s $SECS || { echo "sx-$TAG: rtcwake failed, not suspending" > /dev/kmsg; echo 0 > $T/tracing_on; exit 1; }
+systemctl suspend --check-inhibitors=no
 i=0; while [ "$(cat /sys/power/suspend_stats/success)" = "$before" ] && [ $i -lt $((SECS+60)) ]; do sleep 1; i=$((i+1)); done
 sleep 2
 echo 0 > $T/tracing_on

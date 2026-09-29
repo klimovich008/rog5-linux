@@ -44,10 +44,22 @@ def boot():
                   uptime_s=int(float(rd('/proc/uptime').split()[0])))
 
 
+# Components that worked on every production boot since r167; any of them not
+# passing fails the trial (a missing GPU or Wi-Fi must not pass, review
+# 2026-09-29).
+REQUIRED_HW = ('audio', 'battery_charger', 'buttons', 'display', 'dsp_remoteprocs', 'gpu', 'rtc',
+               'storage', 'thermal_cpufreq', 'touch', 'vibration', 'wifi')
+
+
 def hardware():
-    out = json.loads(sh(f'{sys.executable} {HERE}/hwcheck.py', 300) or '{}')
-    summary = out.get('_summary', {})
-    return result('pass' if not summary.get('error') else 'partial', **summary)
+    try:
+        out = json.loads(sh(f'{sys.executable} {HERE}/hwcheck.py', 300))
+        summary = out['_summary']
+    except (ValueError, KeyError, TypeError):
+        return result('error', note='hwcheck.py produced no summary')
+    broken = sorted(c for c in REQUIRED_HW if out.get(c, {}).get('status') != 'pass')
+    status = 'fail' if broken else 'partial' if summary.get('error') else 'pass'
+    return result(status, required_not_passing=broken, **summary)
 
 
 def cpu_identity():
@@ -69,18 +81,24 @@ def gpu_hwmon():
     return None
 
 
+def gpu_temp_mc():
+    # Hottest GPU thermal zone (the msm_gpu hwmon exports no temperature).
+    temps = [int(rd(z + '/temp', '0') or 0) for z in glob.glob('/sys/class/thermal/thermal_zone*')
+             if rd(z + '/type').startswith('gpu')]
+    return max(temps, default=0)
+
+
 def gpu_monitor():
     """Sample the exported load/clock/temperature while vkmark runs headless."""
     busy_path, hw = CARD + '/gpu_busy_percent', gpu_hwmon()
     if not os.path.exists(busy_path) or not hw:
         return result('missing', gpu_busy_percent=os.path.exists(busy_path), hwmon=hw)
-    idle = {'busy': rd(busy_path), 'freq_hz': rd(hw + '/freq1_input'), 'temp_mC': rd(hw + '/temp1_input')}
+    idle = {'busy': rd(busy_path), 'freq_hz': rd(hw + '/freq1_input'), 'temp_mC': gpu_temp_mc()}
     samples, stop = [], threading.Event()
 
     def sample():
         while not stop.is_set():
-            samples.append((int(rd(busy_path, '0')), int(rd(hw + '/freq1_input', '0')),
-                            int(rd(hw + '/temp1_input', '0') or 0)))
+            samples.append((int(rd(busy_path, '0')), int(rd(hw + '/freq1_input', '0')), gpu_temp_mc()))
             time.sleep(0.25)
 
     t = threading.Thread(target=sample)
@@ -149,9 +167,9 @@ def kernel_health():
     log = sh('journalctl -k -b --no-pager -o cat', 60)
     pats = {'warn_bug_oops': r'WARNING: CPU|\bBUG:|Internal error:|\bOops:|Call trace:',
             'gpu_fault': r'hangcheck|gpu fault|gmu.*(timed? ?out|fault|fail)|recover(ing)? gpu',
-            # The display engine (SIDs 0x820/0xc20) faults ~10 times at the
-            # bootloader-splash handover on every boot; count the rest.
-            'smmu_fault': r'Unhandled context fault(?!.*cbfrsynra=0x(820|c20),)',
+            # Every SMMU fault counts: 0107 removed the ~10 display faults
+            # (SIDs 0x820/0xc20) that the splash handover caused on each boot.
+            'smmu_fault': r'Unhandled context fault',
             'dpu_underrun': r'underrun', 'usb_errors': r'usb .*error|device descriptor read',
             'ufs': r'ufshcd.*(err|fail)'}
     lines = log.splitlines()
@@ -197,6 +215,7 @@ def suspend_cycle():
             break
         time.sleep(5)
     gpu = sh('sudo -u phone vkmark --winsys headless -b vertex:duration=3 2>&1 | grep -o "Score: [0-9]*"', 60)
+    gpu = gpu if re.fullmatch(r'Score: \d+', gpu) else ''  # a timeout returns 'TIMEOUT'
     if policy == 'active':
         sh('systemctl start rog5-sleep-policy')
     ok = int(after) > int(before) and net['status'] == 'pass' and gpu and usb_after == usb_before

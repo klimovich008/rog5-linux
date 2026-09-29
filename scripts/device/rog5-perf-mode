@@ -17,6 +17,14 @@
 set -eu
 state=${ROG5_PERF_MODE_STATE:-/var/lib/rog5/perf-mode}
 zones=${ROG5_PERF_MODE_ZONES:-/sys/class/thermal}
+lock=${ROG5_PERF_MODE_LOCK:-/run/rog5-perf-mode.lock}
+
+# One change at a time: two concurrent runs could interleave their trip
+# writes and leave the trips crossed (review 2026-09-29).
+serialize() {
+	command -v flock >/dev/null 2>&1 || return 0
+	exec 9>"$lock" && flock -w 10 9 || { echo 'rog5-perf-mode: another change is running' >&2; exit 1; }
+}
 
 skin_zone() {
 	for z in "$zones"/thermal_zone*; do
@@ -72,12 +80,14 @@ status)
 	echo "skin: $(($(cat "$z/temp") / 1000)) C"
 	;;
 normal | performance)
+	serialize
 	apply "$cmd"
 	mkdir -p "$(dirname "$state")"
 	echo "$cmd" >"$state"
 	echo "mode: $cmd"
 	;;
 apply)
+	serialize
 	m=$(cat "$state" 2>/dev/null || echo normal)
 	apply "$m"
 	echo "mode: $m"
