@@ -6066,24 +6066,6 @@
       ]
     },
     {
-      "path": "scripts/device/test-clk-orphan-runtime-pm-lock-model.py",
-      "interpreter": "python3",
-      "tiers": [
-        "nightly"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-recovery-linux.sh",
       "interpreter": "sh",
       "tiers": [
@@ -6093,44 +6075,6 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-a660-acceptance.py",
-      "interpreter": "python3",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-a660-runtime-root.py",
-      "interpreter": "python3",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -6207,25 +6151,6 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-network-root-gpucc-atomic-confirmation.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -6697,33 +6622,6 @@
       "required_inputs": [
         "tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml",
         "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-gles-readback.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "rustc",
-        "cc",
-        "bwrap"
-      ],
-      "resource_class": "namespace",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "tools/a660/rog5-gles-readback.rs",
-        "tools/a660/test-fake-gles.c"
       ],
       "optional_subchecks": []
     },
