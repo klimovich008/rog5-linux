@@ -45,6 +45,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 PY
 }
 
+# steamui.so links GTK 2 (not in Arch Linux ARM: packages/gtk2) and the
+# client runs lsof for its IPC checks.
+missing=
+ldconfig -p | grep -q 'libgtk-x11-2\.0\.so\.0 ' || missing="$missing gtk2 (packages/gtk2)"
+command -v lsof >/dev/null || missing="$missing lsof"
+[ -z "$missing" ] || echo "steam-arm64-install: warning: Steam will not start without:$missing" >&2
+
 curl -fsS --max-time 60 "$cdn/$manifest" -o "$tmp/manifest"
 mkdir -p "$root"
 # Every package of the manifest (what Steam's bootstrapper fetches): its "file"
