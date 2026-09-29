@@ -89,3 +89,26 @@ kernel source; no DP work there).
   253/253 frames; with core_perf fixed 460 MHz, 0/255. The hardware-cursor
   A/B was confounded by the clock left over from the previous session.
   rog5-gnome pins the clock while the desktop runs; kernel floor TODO.
+
+## DP-only underruns: what is known (15:00-16:00, r178-r180)
+- Kernel patches: 0099 core clock floor (pixel clock), 0100 bus floor 4 GB/s
+  avg+peak for video mode, 0101 apply video-mode perf votes in crtc enable
+  (trace confirms votes precede dpu_enc_enable). All are in r180.
+- Fixed-vote sweep (GNOME started after rog5-kms-reset): 0.5-3 GB/s avg=peak
+  underrun every frame; 4 and 8 GB/s clean; avg-only or peak-only 4 GB/s
+  underrun.
+- But with identical steady-state interconnect votes and display clocks
+  (diffed), a fresh GNOME start underruns on every frame in normal perf mode
+  (r180), and a GNOME restart without kms-reset underruns even in fixed
+  mode. A second modeset (1080p -> 720p -> 1080p) cleared a latched
+  underrun once (r179). Underruns latch at the first enable.
+- Stock Android (analysis): votes only ~0.6 GB/s avg, 2.5 GB/s peak floor,
+  86 MHz core, and programs NoC QoS urgency forwarding on qxm_mdp0/1 and
+  qnm_mnoc_hf (mainline sm8350.c has no QoS). creq LUT differs.
+- Working configuration kept: rog5-gnome.service pins core_perf fixed mode
+  (460 MHz, 15.5 GB/s) before GNOME starts, after rog5-kms-reset. The user
+  confirmed the desktop works this way.
+- Next: program NoC QoS (urg_fwd) for the mdp nodes, the stock creq LUT, and
+  find what differs at the first enable (INTF/DSPP/merge-3d state after
+  runtime PM, VBIF). The GNOME restart loop in testing caused a core dump
+  once (VT already taken).
