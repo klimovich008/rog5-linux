@@ -54,26 +54,79 @@ def make_touchpad(src):
                         version=1, bustype=e.BUS_VIRTUAL, input_props=[e.INPUT_PROP_POINTER])
 
 
+# A position change larger than this within one contact is treated as a
+# new contact (lift + touch): libinput discards such "touch jumps" and the
+# pointer skips (seen with the FTS controller on quick re-taps).
+JUMP_MM = 12
+
+
 def run(src, pad):
-    slots = {}          # slot -> tracking id (active contacts)
+    """Rebuild each frame cleanly: per slot the tracking id before the
+    position, jumps split into a new contact, finger-count tool bits."""
+    cur = {}            # slot -> {'id', 'x', 'y', 'major'} as reported
+    out = {}            # slot -> (our tracking id, x, y) as emitted
+    dirty = set()
     slot = 0
     tool = None
+    next_id = 1
+    jump = JUMP_MM * RESOLUTION
     for ev in src.read_loop():
         if ev.type == e.EV_ABS:
             if ev.code == e.ABS_MT_SLOT:
                 slot = ev.value
-            elif ev.code == e.ABS_MT_TRACKING_ID:
-                if ev.value < 0:
-                    slots.pop(slot, None)
-                else:
-                    slots[slot] = ev.value
-            if ev.code in (e.ABS_X, e.ABS_Y, e.ABS_MT_SLOT, e.ABS_MT_TOUCH_MAJOR,
-                           e.ABS_MT_POSITION_X, e.ABS_MT_POSITION_Y, e.ABS_MT_TRACKING_ID):
-                pad.write(ev.type, ev.code, ev.value)
-        elif ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH:
-            pad.write(e.EV_KEY, e.BTN_TOUCH, ev.value)
+                continue
+            c = cur.setdefault(slot, {'id': -1, 'x': 0, 'y': 0, 'major': 0})
+            if ev.code == e.ABS_MT_TRACKING_ID:
+                c['id'] = ev.value
+            elif ev.code == e.ABS_MT_POSITION_X:
+                c['x'] = ev.value
+            elif ev.code == e.ABS_MT_POSITION_Y:
+                c['y'] = ev.value
+            elif ev.code == e.ABS_MT_TOUCH_MAJOR:
+                c['major'] = ev.value
+            else:
+                continue
+            dirty.add(slot)
+        elif ev.type == e.EV_SYN and ev.code == e.SYN_DROPPED:
+            for sl in list(out):
+                pad.write(e.EV_ABS, e.ABS_MT_SLOT, sl)
+                pad.write(e.EV_ABS, e.ABS_MT_TRACKING_ID, -1)
+            out.clear()
+            cur.clear()
+            dirty.clear()
         elif ev.type == e.EV_SYN and ev.code == e.SYN_REPORT:
-            count = len(slots)
+            for sl in sorted(dirty):
+                c = cur[sl]
+                prev = out.get(sl)
+                if c['id'] < 0:
+                    if prev:
+                        pad.write(e.EV_ABS, e.ABS_MT_SLOT, sl)
+                        pad.write(e.EV_ABS, e.ABS_MT_TRACKING_ID, -1)
+                        del out[sl]
+                    continue
+                pad.write(e.EV_ABS, e.ABS_MT_SLOT, sl)
+                if prev and (abs(c['x'] - prev[1]) > jump or abs(c['y'] - prev[2]) > jump):
+                    # split: end this contact now, start a new one next frame
+                    pad.write(e.EV_ABS, e.ABS_MT_TRACKING_ID, -1)
+                    del out[sl]
+                    continue
+                if not prev:
+                    pad.write(e.EV_ABS, e.ABS_MT_TRACKING_ID, next_id)
+                    tid = next_id
+                    next_id = next_id + 1 if next_id < 65535 else 1
+                else:
+                    tid = prev[0]
+                pad.write(e.EV_ABS, e.ABS_MT_POSITION_X, c['x'])
+                pad.write(e.EV_ABS, e.ABS_MT_POSITION_Y, c['y'])
+                pad.write(e.EV_ABS, e.ABS_MT_TOUCH_MAJOR, c['major'])
+                out[sl] = (tid, c['x'], c['y'])
+            # a split contact reappears on the next frame of its slot
+            dirty = {sl for sl, c in cur.items() if c['id'] >= 0 and sl not in out}
+            count = len(out)
+            if out:
+                first = out[min(out)]
+                pad.write(e.EV_ABS, e.ABS_X, first[1])
+                pad.write(e.EV_ABS, e.ABS_Y, first[2])
             want = TOOLS[min(count, len(TOOLS)) - 1] if count else None
             if want != tool:
                 if tool is not None:
@@ -81,11 +134,8 @@ def run(src, pad):
                 if want is not None:
                     pad.write(e.EV_KEY, want, 1)
                 tool = want
-            if not count:
-                pad.write(e.EV_KEY, e.BTN_TOUCH, 0)
+            pad.write(e.EV_KEY, e.BTN_TOUCH, 1 if count else 0)
             pad.syn()
-        elif ev.type == e.EV_SYN and ev.code == e.SYN_DROPPED:
-            slots.clear()
 
 
 def main():

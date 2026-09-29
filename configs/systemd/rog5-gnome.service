@@ -27,4 +27,8 @@ UtmpIdentifier=tty7
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
 ExecStartPre=+/usr/bin/chvt 7
+# Phosh shows no title-bar buttons ('appmenu:'); a desktop needs them. The
+# setting is shared with Phosh, so put it back when GNOME stops.
+ExecStartPre=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:minimize,maximize,close"'
 ExecStart=/usr/bin/gnome-session
+ExecStopPost=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:"'
