@@ -1,0 +1,68 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 cap the link rate only behind an HDMI converter
+
+The USB-C HDMI hub (DP-to-HDMI protocol converter) trains at HBR2 but its
+HDMI output stays dark, so the board DT capped every DP link at HBR. A USB-C
+monitor with native DP input then only got 1920x1080 on a 3840x1080 panel.
+
+Cap link_info.rate (default 270000 kHz, msm.dp_pcon_max_rate, 0 = off) only
+when the sink is a branch whose downstream port is TMDS (HDMI/DVI), right
+after the downstream port info is read. Mode validation, bpp selection and
+training all read link_info.rate, so they stay consistent (unlike the
+training-only msm.dp_max_rate knob).
+
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-30 00:33:55.063958750 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-30 00:33:55.077774055 +0200
+@@ -217,6 +217,43 @@
+ module_param_named(dp_max_bpc, msm_dp_max_bpc, int, 0644);
+ MODULE_PARM_DESC(dp_max_bpc, "cap DP bits per component, applied at the next modeset (0 = no cap)");
+ 
++/*
++ * ROG5: a DP-to-HDMI/DVI protocol converter (USB-C HDMI hub) trains at HBR2
++ * but its HDMI output stays dark (2026-09-29), while native DP sinks (a USB-C
++ * monitor) are fine at HBR2. Cap only converters, in link_info.rate itself so
++ * mode validation, bpp selection and training all agree (0 = no cap).
++ */
++static uint msm_dp_pcon_max_rate = 270000;
++module_param_named(dp_pcon_max_rate, msm_dp_pcon_max_rate, uint, 0644);
++MODULE_PARM_DESC(dp_pcon_max_rate, "cap the link rate (kHz) behind a DP-to-HDMI/DVI converter, 0 = no cap");
++
++static void msm_dp_panel_cap_pcon_rate(struct msm_dp_panel *msm_dp_panel)
++{
++	struct msm_dp_link_info *link_info = &msm_dp_panel->link_info;
++	const u8 *dpcd = msm_dp_panel->dpcd;
++	int i;
++
++	if (!msm_dp_pcon_max_rate || !drm_dp_is_branch(dpcd) ||
++	    (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) != DP_DWN_STRM_PORT_TYPE_TMDS ||
++	    link_info->rate <= msm_dp_pcon_max_rate)
++		return;
++
++	if (link_info->use_rate_set) {
++		for (i = link_info->rate_set; i >= 0; i--)
++			if (link_info->supported_rates[i] &&
++			    link_info->supported_rates[i] <= msm_dp_pcon_max_rate)
++				break;
++		if (i < 0)
++			return;
++		link_info->rate_set = i;
++		link_info->rate = link_info->supported_rates[i];
++	} else {
++		link_info->rate = msm_dp_pcon_max_rate;
++	}
++	drm_info(msm_dp_panel->connector ? msm_dp_panel->connector->dev : NULL,
++		 "DP: HDMI/DVI converter, link rate capped at %u kHz\n", link_info->rate);
++}
++
+ static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
+ 		u32 mode_edid_bpp, u32 mode_pclk_khz)
+ {
+@@ -298,6 +335,8 @@
+ 	if (rc)
+ 		return rc;
+ 
++	msm_dp_panel_cap_pcon_rate(msm_dp_panel);
++
+ 	drm_edid_free(msm_dp_panel->drm_edid);
+ 
+ 	msm_dp_panel->drm_edid = drm_edid_read_ddc(connector, &panel->aux->ddc);

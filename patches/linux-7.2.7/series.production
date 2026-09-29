@@ -75,3 +75,4 @@
 0107-iommu-arm-smmu-qcom-identity-default-domain-for-the-SM8350-MDSS.patch
 0108-drm-panel-asus-rog5-ams678-keep-the-bootloader-splash-until-the-first-frame.patch
 0109-drm-msm-dp-ROG5-apply-the-swing-floor-from-the-first-training-attempt.patch
+0110-drm-msm-dp-ROG5-cap-the-link-rate-only-behind-an-HDMI-converter.patch
