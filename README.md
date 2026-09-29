@@ -96,26 +96,26 @@ The signing key is kept outside the repository.
 
 | Path | Purpose |
 |---|---|
-| `patches/` | Kernel series (`linux-7.2.7/` is production) and userspace patches (Denial, Flutter, GTK, Wayland) |
+| `patches/` | Kernel series (`linux-7.2.7/` is production; `asus-5.4.210/` is the provenance of the pinned ASUS wrapper kernel) |
 | `dts/` | SM8350 / ROG Phone 5 device trees and overlays |
 | `configs/` | Kernel fragments, systemd units, Phosh and GNOME desktop settings, firewall, udev, drirc, test registry |
 | `initramfs/` | Boot-time init, slot-B loader, persistent-root attestation, updater and rescue sources |
-| `packaging/` | Arch (and historical Alpine) packaging and host services |
+| `packaging/` | Arch packaging (patched phoc) and phone service units |
 | `scripts/host/` | Builders, packaging, RAM trials, orchestration (`rog5-dev`) and host tests |
 | `scripts/device/` | On-phone helpers and their unit tests |
-| `tools/` | Native helpers and verifiers (audio, GPU, LEDs, haptics, Wi-Fi, power diagnostics) |
-| `manifests/` | Artifact records, candidate identities and acceptance policy |
-| `containers/` | Reproducible builder and verifier containers |
+| `tools/` | Out-of-tree modules and native helpers (touch, haptics, LEDs, sensors, Wi-Fi/BT activation, KMS, standby probes, status map) |
+| `containers/` | The historical kernel-builder recipe the aarch64 trial-state test verifies |
 | `third_party/` | Vendored tools with their upstream notices |
 | `tests/`, `test-fixtures/` | Fixtures for the repository test suites |
-| `test-results/` | Dated, redacted hardware and offline evidence |
-| `docs/` | Documentation (see below) |
-| `build/`, `artifacts/` | Build outputs, mostly ignored by Git; a few pinned CI fixtures |
+| `test-results/` | Dated, redacted hardware and offline evidence ([month index](test-results/README.md)) |
+| `docs/` | Documentation (see below); superseded documents are in `docs/history/` |
+| `build/`, `artifacts/` | Build outputs and local artifacts, ignored by Git |
 
 ## Documentation
 
-Start at the [documentation index](docs/README.md). The authoritative handoff
-is [current state](docs/current-state.md) (read its generated block first).
+Start at the [documentation index](docs/README.md). Status is in
+[current state](docs/current-state.md), generated from
+[`docs/status/components.json`](docs/status/components.json).
 [Development](docs/development.md) covers building, the fast module loop,
 making a kernel the default and manual rescue. [ROADMAP.md](ROADMAP.md) lists
 outstanding priorities.
@@ -126,3 +126,8 @@ No project-wide license has been selected yet; existing per-file notices apply.
 See [licensing and provenance](docs/licensing-provenance.md). Proprietary
 firmware, signing keys, credentials and per-device backups are not in this
 repository.
+
+Code and documents retired on 2026-09-29 (Linux 7.1.4, the headless-server,
+network-root and recovery-candidate eras, and the abandoned Denial shell) are
+listed in [`docs/history/archived-files.tsv`](docs/history/archived-files.tsv)
+and summarized in [`docs/history/cleanup-2026-09-29.md`](docs/history/cleanup-2026-09-29.md).

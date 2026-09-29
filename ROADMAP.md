@@ -1,63 +1,47 @@
 # ROG5 priorities
 
-The user's clarified destination on 2026-09-10 is a usable native Arch Linux
-phone with a touch-first mobile interface and non-cellular hardware support.
-Cellular calling, SMS and mobile data are excluded. Display, touch and GPU are
-now central work. The existing headless server provides the development and
-recovery baseline; completing its matrix alone does not complete this product.
+Goal (the user's words, 2026-09-29): a fully usable Linux phone that also works
+as a Linux server, takes USB hubs, is reliable, gives maximum performance when
+needed and is power efficient in standby. Phosh is the phone shell and GNOME
+the desktop mode on an external monitor. Cellular (calls, SMS, mobile data)
+is out of scope. The Denial shell was dropped on 2026-09-29.
 
-The mobile acceptance contract (`configs/mobile/acceptance.json`, archived 2026-09-29) separates exact
-production-build/software evidence from candidate-bound physical evidence. Its
-physical rows start NOT RUN. The [prepared trial plans](docs/history/mobile-trial-plans.md)
-cover buttons/LED, corrected 60 Hz display, touch, GPU and suspend/idle questions;
-this offline repair grants no phone-operation authority.
+Status is tracked per component in
+[`docs/status/components.json`](docs/status/components.json) and shown in
+[current state](docs/current-state.md); the user-facing list and the tests
+that need the user's hands are in [what's left](docs/whats-left.md).
 
-The reference is the [OnePlus 12R Denial demonstration](https://www.reddit.com/r/mobilelinux/comments/1w80kvt/arch_linux_on_a_oneplus_12r_powered_by_the_denial/).
-[Denial](https://github.com/denialwm/denial) is the selected compositor for the
-native mobile session. Its author's post described the
-demonstrated mobile build and Droidloom Android app runner as unreleased at
-posting. An Android app compatibility milestone must use available, inspectable
-software and have its own tests; it is not established by that demonstration.
+## Order of work
 
-1. Preserve the completed buttons/default-off LED component milestone and
-   healthy server return. The strict single-pulse trial's extra presses remain
-   recorded separately; persistent integration of the RAM fixes is pending.
-2. Bring up the OLED display path, FocalTech touch and accelerated Adreno
-   rendering through separate, specific hardware questions. Reuse historical
-   evidence where inputs match, including the [60 Hz status-screen result](test-results/2026-09-02-display-status-screen-development.md)
-   on the separate display kernel. That result does not establish display on
-   the current server kernel. Prove scanout, touch coordinates and hardware
-   rendering before attempting a full mobile shell.
-3. Run an ARM64 Wayland mobile session with launcher, touch navigation,
-   on-screen keyboard, settings, screen lock and practical Linux applications.
-   Use Denial's public mobile shell and matching ARM64 engine/AOT bundle.
-   Track any missing behavior against these requirements.
-4. Qualify audio, Bluetooth, sensors/rotation, cameras and remaining useful
-   non-cellular hardware as separate milestones. Track working, unsupported
-   and untested features explicitly.
-5. Make daily operation reliable: charging, battery/thermal behavior, suspend
-   and wake, shutdown/startup, networking, updates and recovery. Existing
-   failures remain open and must be resolved before calling the phone ready
-   for daily use. Preserve the [headless acceptance matrix](docs/history/release-acceptance.md)
-   as evidence for the baseline; do not relabel failed rows.
+1. **Reliability and daily use.** Phosh must survive monitor hotplug and the
+   phone/desktop switch without closing apps; unattended updates must not
+   reboot the phone while it serves something; "restart to fastboot" should
+   work; the boot splash should go straight from the bootloader logo to the
+   lock screen.
+2. **Standby efficiency.** Reach deep standby (CX/DDR collapse): the DDR floor
+   is held by a non-APPS RPMh master (~79 mA in standby today). Keep the
+   sleep policy's wakeups low.
+3. **Performance when needed.** A Phosh toggle for `rog5-perf-mode`; GPU
+   system cache (patch 0107) and display NoC QoS (0106) candidates;
+   DisplayPort without the core-clock pin, then HBR2 for higher modes.
+4. **USB and server use.** The bottom port's 5 V should follow the attached
+   device instead of `rog5-usb-bottom on`; Wi-Fi should keep one MAC/IP and
+   reconnect faster after wake; journal retention should cover more than a
+   day.
+5. **Remaining hardware.** Brightness range (the panel's Iris6 path), earpiece,
+   3.5 mm jack, Bluetooth headset microphone, high refresh rate, then cameras,
+   fingerprint, NFC and AirTriggers as far as feasible.
 
-Use exact-kernel incremental module builds and focused tests. Prefer Rust for
-suitable new components and isolated live userspace trials where supported;
-eBPF/JIT is for supported runtime diagnostics. DT and early-boot changes still
-need a controlled boot. Keep the accepted server/rescue baseline and existing
-identity, signing, power, storage and one-use recovery guards at every step.
+## How to work
 
-A kernel change requires a specific unresolved hardware question. Reproduce
-host parser, packaging and service-sandbox failures offline first. No stage
-requires completing unrelated hardware work before its own bounded test.
+- Each hardware question gets one RAM trial of a signed bundle
+  (`production-ram-trial.py`), then `install-default-kernel.py` makes a good
+  image the default; see [development](docs/development.md).
+- Driver iteration uses `rog5-dev module` against the running kernel.
+- Kernel patches live in `patches/linux-7.2.7`; `rebase-kernel-series.py`
+  moves the series to a new stable base.
+- Record each run in a dated `test-results/` report, the component status in
+  `components.json`, and reusable lessons in `docs/development-lessons.md`.
 
-The [Denial bring-up record](test-results/2026-09-10-denial-bringup.md) tracks
-source pins and the current hardware gap. Completion needs a real-phone touch
-session with confirmed GPU acceleration, two usable native Wayland applications
-and text entry, three authorized starts, a 60-minute interactive/idle observation,
-screen-off/wake, compositor recovery and verified updates/rollback. A successful
-build or nested session is preparation, not completion. Other non-cellular
-hardware remains on the roadmap with explicit qualification status.
-
-The previous roadmap, including completed migration phases and historical
-research, is preserved through the [archive index](docs/history/archive/README.md).
+The earlier roadmaps (headless server acceptance, network root, Denial) are
+kept in [docs/history/](docs/history/).
