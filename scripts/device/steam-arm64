@@ -1,0 +1,17 @@
+#!/bin/sh
+# Start the native aarch64 Steam client installed by steam-arm64-install.
+#
+# Valve's steam.sh has no aarch64 path, so this does its two jobs for
+# steamrtarm64: the library path, and restarting the client when it exits
+# with 42 (it does that after installing its own update).
+#
+#   steam-arm64 [steam arguments]
+root=${STEAMROOT:-$HOME/.local/share/Steam}
+[ -x "$root/steamrtarm64/steam" ] || { echo "steam-arm64: not installed; run steam-arm64-install" >&2; exit 1; }
+export LD_LIBRARY_PATH="$root/steamrtarm64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+while :; do
+	"$root/steamrtarm64/steam" -noverifyfiles "$@"
+	status=$?
+	[ "$status" = 42 ] || exit "$status"
+	echo "steam-arm64: restarting Steam by request" >&2
+done

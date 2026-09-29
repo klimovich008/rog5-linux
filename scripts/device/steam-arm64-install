@@ -5,8 +5,8 @@
 # (client-update.steamstatic.com/steam_client_linuxarm64, and _publicbeta_
 # for the beta). This downloads the client bootstrap package from that
 # manifest, checks its SHA-256 against the manifest, unpacks it into
-# ~/.local/share/Steam and adds a "Steam" launcher; the client downloads the
-# rest of itself (UI, runtime) on first start. The phone kernel uses 4 KiB
+# ~/.local/share/Steam and adds a "Steam" launcher (steam-arm64, which
+# restarts the client after its self-update). The phone kernel uses 4 KiB
 # pages, so no muvm VM is needed (Asahi needs it for 16 KiB pages). x86-only
 # games additionally need FEX; native aarch64 games and the client do not.
 #
@@ -18,6 +18,32 @@ manifest=steam_client_linuxarm64
 cdn=https://client-update.steamstatic.com
 root=${STEAMROOT:-$HOME/.local/share/Steam}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+
+# Valve's zips name entries with Windows separators (steamrt64\locales\af.pak)
+# and hold symlinks; unzip would create files with backslashes in their names.
+unzip_steam() {
+	python3 - "$1" "$2" <<'PY'
+import os, shutil, stat, sys, zipfile
+root = os.path.realpath(sys.argv[2])
+with zipfile.ZipFile(sys.argv[1]) as z:
+    for info in z.infolist():
+        name = info.filename.replace("\\", "/")
+        path = os.path.normpath(os.path.join(root, name))
+        if os.path.commonpath([root, path]) != root:
+            sys.exit(f"steam-arm64-install: {name} escapes {root}")
+        if name.endswith("/"):
+            os.makedirs(path, exist_ok=True)
+            continue
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if os.path.lexists(path) and not os.path.isdir(path):
+            os.unlink(path)
+        if stat.S_ISLNK(info.external_attr >> 16):
+            os.symlink(z.read(info).decode(), path)
+            continue
+        with z.open(info) as src, open(path, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+PY
+}
 
 curl -fsS --max-time 60 "$cdn/$manifest" -o "$tmp/manifest"
 mkdir -p "$root"
@@ -52,7 +78,7 @@ cat >"$apps/steam-arm64.desktop" <<EOF
 Type=Application
 Name=Steam
 Comment=Valve's native aarch64 Steam client
-Exec=env LD_LIBRARY_PATH=$root/steamrtarm64 $root/steamrtarm64/steam -noverifyfiles %U
+Exec=steam-arm64 %U
 Icon=steam
 Terminal=false
 Categories=Game;

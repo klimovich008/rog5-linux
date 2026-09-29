@@ -8,6 +8,10 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
+# graphical-session.target is also up in GNOME (desktop mode), where mutter has
+# no wlr virtual pointer and wayvnc failed every 3 s: run only beside phoc (a
+# failed ExecCondition skips the unit without a restart).
+ExecCondition=/usr/bin/pgrep -u %U -x phoc
 ExecStart=/usr/bin/wayvnc --output=DSI-1 --socket=%t/wayvnc-phone.sock 127.0.0.1 5900
 # wayvnc exited 0 on a Wayland protocol error (2026-09-28), so on-failure
 # left remote input dead.
