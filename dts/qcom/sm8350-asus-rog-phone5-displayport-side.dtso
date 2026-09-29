@@ -1,30 +1,33 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * DisplayPort alternate mode on the side (left) Type-C port, for an external
- * monitor or a USB-C hub with HDMI (docked mode). Stage 1: USB stays
- * high-speed (usb_1_dwc3 keeps only the usb2 PHY), so the USB network link
- * the phone is reached over does not change; the QMP USB3/DP combo PHY stays
- * in its default USB3+DP mode, i.e. 2 DP lanes (pin assignment D, what USB-C
- * hubs with HDMI use).
+ * monitor or a USB-C hub with HDMI (docked mode). USB stays high-speed
+ * (usb_1_dwc3 keeps only the usb2 PHY); the QMP USB3/DP combo PHY stays in
+ * USB3+DP mode with 2 DP lanes (pin assignment D, what USB-C hubs with HDMI
+ * use), exactly like sm8350-hdk.dts (orientation-switch only, data-lanes
+ * <0 1>).
  *
- * The Type-C port must not depend on anything the ramdisk cannot load: with
- * the combo PHY or a gpio-sbu-mux as orientation/mode switches on the
- * connector graph, typec_register_port() deferred until their modules
- * loaded (the PHY pulls in drm through aux-bridge), UCSI never registered
- * port0 and the ramdisk failed "power-usb-telemetry-timeout" (r129/r131,
- * 2026-09-27). So:
- *  - the dp composition deletes "orientation-switch" from the combo PHY (it
- *    then registers no typec switch/mux and keeps USB3+DP);
- *  - the SBU/AUX 2:1 switch is fixed by GPIO hogs instead of gpio-sbu-mux:
- *    enable TLMM 167 low (stock drives it low while DP is configured),
- *    select PM8350C GPIO1 low (normal orientation). A flipped plug gets no
- *    AUX: turn the plug over.
- * From the stock ZS673KS tree (compare-displayport-dex report): HPD comes
- * from the ADSP over pmic_glink altmode (aux-hpd-bridge on the connector),
- * combo PHY supplies vdda-phy = L1B 0.88 V, vdda-pll = L6B 1.2 V (the base
- * dts has them swapped).
- * Needs usbotg (connector@0) and the combo PHY, aux bridge and
- * pmic_glink_altmode modules (boot-modules, before msm).
+ * Plug orientation (the ADSP reports it in the pmic_glink altmode
+ * notification; pmic_glink_altmode calls typec_switch_set() on every
+ * orientation-switch on the connector graph) must reach BOTH:
+ *  - the combo PHY (DP lanes on TX1/RX1 or TX2/RX2: SW_PORTSELECT), and
+ *  - the discrete SBU/AUX 2:1 switch: enable TLMM 167 (stock drives it low
+ *    while DP is configured, high when idle), select PM8350C GPIO1
+ *    (stock: aux-sel = 1 for CC2/flipped) (ZS673KS-ER1 overlay, dp_power.c).
+ * This is the sc8280xp-lenovo-thinkpad-x13s pattern (pi3usb102
+ * gpio-sbu-mux: enable active-low, select active-high).
+ *
+ * UCSI's typec_register_port() looks these switches up through the same
+ * connector graph and defers until their drivers are bound (UCSI gives up
+ * after 10 s), so the ramdisk must load gpio-sbu-mux and
+ * phy-qcom-qmp-combo (+ aux-bridge, drm_kms_helper) BEFORE ucsi_glink
+ * (r129/r131 failed "power-usb-telemetry-timeout" without that).
+ *
+ * The combo PHY holds the USB30_PRIM GDSC itself (r132: after an unplug with
+ * the USB controller runtime-suspended, gcc_usb3_prim_phy_aux_clk was
+ * "stuck at 'off'"). Supplies from the stock tree / HDK: vdda-phy = L1B
+ * 0.88 V, vdda-pll = L6B 1.2 V (the base dts has them swapped).
+ * Needs usbotg (connector@0).
  */
 /dts-v1/;
 /plugin/;
@@ -32,25 +35,45 @@
 #include <dt-bindings/clock/qcom,gcc-sm8350.h>
 #include <dt-bindings/gpio/gpio.h>
 
-&tlmm {
-	rog5-dp-aux-en-hog {
-		gpio-hog;
-		gpios = <167 GPIO_ACTIVE_HIGH>;
-		output-low;
-		line-name = "dp-aux-enable-n";
+&{/} {
+	/*
+	 * The switch part number is unknown (stock has no node for it), so only
+	 * the generic compatible the driver matches.
+	 */
+	rog5_dp_sbu_mux: typec-sbu-mux {
+		compatible = "gpio-sbu-mux";
+		enable-gpios = <&tlmm 167 GPIO_ACTIVE_LOW>;
+		select-gpios = <&pm8350c_gpios 1 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_dp_aux_en_default>;
+
+		mode-switch;
+		orientation-switch;
+
+		port {
+			rog5_dp_sbu_mux_ep: endpoint {
+				remote-endpoint = <&rog5_side_sbu_in>;
+			};
+		};
 	};
 };
 
-&pm8350c_gpios {
-	rog5-dp-aux-sel-hog {
-		gpio-hog;
-		gpios = <1 GPIO_ACTIVE_HIGH>;
-		output-low;
-		line-name = "dp-aux-select";
+&tlmm {
+	/* stock sde_dp_aux_active, retargeted to gpio167 by ZS673KS-ER1 */
+	rog5_dp_aux_en_default: rog5-dp-aux-en-default-state {
+		pins = "gpio167";
+		function = "gpio";
+		bias-disable;
+		drive-strength = <8>;
 	};
 };
 
 &{/pmic-glink/connector@0/ports} {
+	/* restated (same values as usbotg) so dtc can check the new ports */
+	#address-cells = <1>;
+	#size-cells = <0>;
+
 	port@1 {
 		reg = <1>;
 
@@ -58,18 +81,22 @@
 			remote-endpoint = <&usb_1_qmpphy_out>;
 		};
 	};
+
+	port@2 {
+		reg = <2>;
+
+		rog5_side_sbu_in: endpoint {
+			remote-endpoint = <&rog5_dp_sbu_mux_ep>;
+		};
+	};
 };
 
-/*
- * The combo PHY must hold the USB30_PRIM GDSC itself (as on sc8280xp/sm8550):
- * with the USB controller runtime-suspended after an unplug, the DP hotplug's
- * phy_init found gcc_usb3_prim_phy_aux_clk "stuck at 'off'" (-EBUSY), link
- * training never ran and phoc hung on a DP-1 without modes (r132).
- */
 &usb_1_qmpphy {
 	power-domains = <&gcc USB30_PRIM_GDSC>;
 	vdda-phy-supply = <&vreg_l1b_0p88>;
 	vdda-pll-supply = <&vreg_l6b_1p2>;
+	/* already in sm8350.dtsi; restated because the stage-1b compose deleted it */
+	orientation-switch;
 	status = "okay";
 };
 

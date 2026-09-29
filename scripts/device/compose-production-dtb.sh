@@ -349,16 +349,20 @@ if [ "$dp" = 1 ]; then
 	dtc -@ -q -I dts -O dtb -o "$work/dp.dtbo" "$work/dp.pp"
 	fdtoverlay -i "$work/composed.dtb" -o "$work/dp.dtb" "$work/dp.dtbo"
 	mv "$work/dp.dtb" "$work/composed.dtb"
-	# The Type-C port must not wait for the combo PHY (its module needs drm):
-	# without orientation-switch the PHY registers no typec switch/mux and
-	# stays in USB3+DP mode.
-	fdtput -d "$work/composed.dtb" /soc@0/phy@88e8000 orientation-switch
+	# Orientation reaches the combo PHY (orientation-switch, no mode-switch:
+	# USB3+DP, 2 lanes, as on sm8350-hdk) and the gpio-sbu-mux (orientation +
+	# mode switch). UCSI defers port0 until both are bound, so the ramdisk
+	# loads gpio_sbu_mux and phy_qcom_qmp_combo before ucsi_glink.
 	[ "$(fdtget "$work/composed.dtb" /soc@0/display-subsystem@ae00000/displayport-controller@ae90000 status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/phy@88e8000 status)" = okay ] &&
-		! fdtget "$work/composed.dtb" /soc@0/phy@88e8000 orientation-switch >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" /soc@0/phy@88e8000 orientation-switch >/dev/null 2>&1 &&
 		! fdtget "$work/composed.dtb" /soc@0/phy@88e8000 mode-switch >/dev/null 2>&1 &&
-		fdtget "$work/composed.dtb" /soc@0/pinctrl@f100000/rog5-dp-aux-en-hog gpio-hog >/dev/null &&
-		fdtget "$work/composed.dtb" /pmic-glink/connector@0/ports/port@1 reg >/dev/null ||
+		[ "$(fdtget "$work/composed.dtb" /typec-sbu-mux compatible)" = gpio-sbu-mux ] &&
+		fdtget "$work/composed.dtb" /typec-sbu-mux orientation-switch >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" /typec-sbu-mux mode-switch >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" /soc@0/pinctrl@f100000/rog5-dp-aux-en-hog gpio-hog >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" /pmic-glink/connector@0/ports/port@1 reg >/dev/null &&
+		fdtget "$work/composed.dtb" /pmic-glink/connector@0/ports/port@2 reg >/dev/null ||
 		{ echo 'FAIL dp composition' >&2; exit 1; }
 fi
 # qupicc: the QUP0/1/2 core BCMs get a Linux provider (kernel patch 0066,
