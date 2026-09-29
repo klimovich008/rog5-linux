@@ -43,3 +43,13 @@ r174 sink log (0x200-0x207, 0x210-0x213, ESI, 0x3036):
 Reviews: docs/reviews/2026-09-29-gpt-6-astra-dp-review.md; Fable review and
 the Steam Frame research in the session scratchpad (Valve publishes no Frame
 kernel source; no DP work there).
+
+## Result (r175, 13:13)
+- **Picture works at HBR.** The user sees browser windows on the external monitor: 1920x1080@60, 2 lanes x 2.7 Gbit/s, 24 bpp, widebus on, mainline DPU block order. The display core runs at the normal 345 MHz; a fixed 460 MHz was not needed.
+- The earlier "blue square" was the empty extended Phosh desktop (32:9 monitor, 16:9 mode, centred), not DPU underflow.
+- Persistent setting: /etc/tmpfiles.d/rog5-dp.conf (configs/tmpfiles/rog5-dp.conf) writes msm.dp_max_rate=270000 at boot. msm loads from the ramdisk, so modprobe.d does not apply.
+- Open:
+  - HBR2 lane-1 errors, needed for 3840x1080. Floor tests were inconclusive because phoc fell back to 3840x1080 on mode switches.
+  - Mode validation ignores the rate cap.
+  - Whether 0080 top-down is safe to keep; the picture works with dpu_rm_top_down=0.
+  - The Phosh launch splash outlives Chromium's startup.
