@@ -1,0 +1,49 @@
+#!/bin/sh
+# systemd-sleep hook (install as /usr/lib/systemd/system-sleep/rog5-usb-sleep):
+# after resume, rebind every xHCI controller that had USB devices attached
+# before the suspend and has none afterwards.
+#
+# s2idle with a hub on the side port (a600000.usb, xhci-hcd.1.auto) left the
+# controller doing DMA while it was being suspended: ~31k SMMU context faults
+# from SID 0x0, "xhci-hcd: WARNING: Host System Error", and the hub never
+# re-enumerated ("couldn't allocate usb_device") until the xHCI was rebound
+# (2026-09-29, r182). rog5-sleep-policy stays awake while a USB device is
+# attached; this hook repairs suspends it does not start. Unbinding the xHCI
+# before suspend instead reset the phone during suspend entry (r182), so the
+# hook only acts after resume. A device unplugged while asleep costs a
+# harmless rebind.
+set -u
+drv=${ROG5_USB_SLEEP_DRIVER:-/sys/bus/platform/drivers/xhci-hcd}
+list=${ROG5_USB_SLEEP_STATE:-/run/rog5-usb-sleep}
+settle=${ROG5_USB_SLEEP_SETTLE:-3}
+log() { printf 'rog5-usb-sleep: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
+
+# Prints the attached (non-root-hub) devices of controller $1.
+devices() {
+	for bus in "$1"/usb[0-9]*; do
+		[ -d "$bus" ] || continue
+		n=${bus##*/usb}
+		ls "$bus" | grep "^$n-[0-9.]*\$"
+	done
+}
+
+case ${1-} in
+pre)
+	: >"$list"
+	for c in "$drv"/xhci-hcd.*; do
+		[ -n "$(devices "$c")" ] && echo "${c##*/}" >>"$list"
+	done
+	;;
+post)
+	[ -s "$list" ] || exit 0
+	sleep "$settle"
+	while read -r name; do
+		[ -n "$(devices "$drv/$name")" ] && continue
+		log "$name lost its USB devices over suspend; rebinding"
+		echo "$name" >"$drv/unbind" 2>/dev/null
+		echo "$name" >"$drv/bind" || log "WARN could not rebind $name"
+	done <"$list"
+	rm -f "$list"
+	;;
+esac
+exit 0

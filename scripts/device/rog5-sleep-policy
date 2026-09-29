@@ -4,8 +4,14 @@
 #
 # rog5-server-inhibit keeps logind from sleeping at all, which is right on
 # USB power. On battery this daemon decides instead:
-#   - USB power online, screen on, /run/rog5-stay-awake present, or a remote
-#     client connected (unless ROG5_SLEEP_SSH_BLOCKS=0): stay awake. A remote
+#   - USB power online, screen on, /run/rog5-stay-awake present, a USB device
+#     attached in host mode (a hub, a drive, ...), or a remote client
+#     connected (unless ROG5_SLEEP_SSH_BLOCKS=0): stay awake. A USB device
+#     blocks sleep because s2idle with the side-port xHCI in use killed the
+#     controller (2026-09-29, r182: ~31k SMMU faults from SID 0x0 while
+#     suspending, "Host System Error", the hub never came back until the
+#     xHCI was rebound); rog5-usb-sleep detaches and reattaches it if the
+#     phone is suspended anyway. A remote
 #     client is any established inbound TCP connection from a non-loopback
 #     address to a local listening port (SSH and everything tunnelled
 #     through it, a web server, ...);
@@ -45,6 +51,7 @@ poll_s=${ROG5_SLEEP_POLL:-5}
 usb=${ROG5_SLEEP_USB:-/sys/class/power_supply/qcom-battmgr-usb/online}
 dpms=${ROG5_SLEEP_DPMS:-/sys/class/drm/card1-DSI-1/dpms}
 stay=${ROG5_SLEEP_STAY:-/run/rog5-stay-awake}
+usb_devices=${ROG5_SLEEP_USB_DEVICES:-/sys/bus/usb/devices}
 ssh_blocks=${ROG5_SLEEP_SSH_BLOCKS:-1}
 suspend_cmd=${ROG5_SLEEP_SUSPEND_CMD:-systemctl suspend --check-inhibitors=no}
 state=${ROG5_SLEEP_STATE:-/run/rog5-sleep-policy}
@@ -84,6 +91,8 @@ awake_reason() {
 	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return; }
 	[ "$(cat "$dpms" 2>/dev/null)" = Off ] || { echo screen-on; return; }
 	[ -e "$stay" ] && { echo stay-awake-file; return; }
+	# Root hubs are usbN; anything attached below them is N-port[.port...].
+	ls "$usb_devices" 2>/dev/null | grep -q '^[0-9]*-[0-9.]*$' && { echo usb-device; return; }
 	if [ "$ssh_blocks" = 1 ] && [ -n "$(remote_clients)" ]; then
 		echo remote-client; return
 	fi

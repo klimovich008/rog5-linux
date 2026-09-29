@@ -3,13 +3,15 @@
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
-export ROG5_SLEEP_WIFI_PS=0 ROG5_SLEEP_MODE=suspend ROG5_SLEEP_USB=$t/usb ROG5_SLEEP_DPMS=$t/dpms ROG5_SLEEP_STAY=$t/stay ROG5_SLEEP_SSH_BLOCKS=0 ROG5_SLEEP_KMSG=/dev/null
+export ROG5_SLEEP_WIFI_PS=0 ROG5_SLEEP_MODE=suspend ROG5_SLEEP_USB=$t/usb ROG5_SLEEP_DPMS=$t/dpms ROG5_SLEEP_STAY=$t/stay ROG5_SLEEP_USB_DEVICES=$t/usbdev ROG5_SLEEP_SSH_BLOCKS=0 ROG5_SLEEP_KMSG=/dev/null
 check() { got=$("$here/rog5-sleep-policy" --once); [ "$got" = "$1" ] || { echo "FAIL expected $1 got $got ($2)"; exit 1; }; }
 echo 1 >$t/usb; echo Off >$t/dpms; check usb-power 'plugged in, screen off'
 echo 0 >$t/usb; echo On >$t/dpms; check screen-on 'battery, screen on'
 echo Off >$t/dpms; check sleep-eligible 'battery, screen off'
 : >$t/stay; check stay-awake-file 'stay-awake file'
-rm $t/stay; rm $t/dpms; check screen-on 'no dpms file: never sleep blind'
+rm $t/stay; mkdir -p $t/usbdev/usb3 $t/usbdev/3-0:1.0; check sleep-eligible 'root hubs only'
+mkdir $t/usbdev/3-1 $t/usbdev/3-1.1; check usb-device 'hub and drive on the side port'
+rm -r $t/usbdev; rm $t/dpms; check screen-on 'no dpms file: never sleep blind'
 
 # Loop: the suspend command returns before the kernel suspends (like
 # systemctl). The daemon must wait for suspend_stats to move before it reads

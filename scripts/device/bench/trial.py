@@ -166,23 +166,36 @@ def kernel_health():
                   err_lines=int(sh('journalctl -k -b -p err --no-pager -o cat | wc -l') or 0))
 
 
+def usb_devices():
+    return sorted(d for d in os.listdir('/sys/bus/usb/devices') if re.fullmatch(r'\d+-[\d.]+', d))
+
+
 def suspend_cycle():
     policy = sh('systemctl is-active rog5-sleep-policy')
     if policy == 'active':
         sh('systemctl stop rog5-sleep-policy')
     before = rd('/sys/power/suspend_stats/success', '0')
+    usb_before = usb_devices()
     t0 = time.time()
-    out = sh('rtcwake -m mem -s 20 2>&1', 120)
+    # Like rog5-sleep-policy: systemctl suspend, so system-sleep hooks run
+    # (rtcwake -m mem writes /sys/power/state directly and skips them).
+    out = sh('rtcwake -m no -s 20 2>&1 && systemctl suspend --check-inhibitors=no 2>&1', 60)
+    for _ in range(120):
+        if rd('/sys/power/suspend_stats/success', '0') != before:
+            break
+        time.sleep(0.5)
     slept = time.time() - t0
-    time.sleep(8)
+    time.sleep(10)
     after = rd('/sys/power/suspend_stats/success', '0')
+    usb_after = usb_devices()
     net = network()
     gpu = sh('sudo -u phone vkmark --winsys headless -b vertex:duration=3 2>&1 | grep -o "Score: [0-9]*"', 60)
     if policy == 'active':
         sh('systemctl start rog5-sleep-policy')
-    ok = int(after) > int(before) and net['status'] == 'pass' and gpu
+    ok = int(after) > int(before) and net['status'] == 'pass' and gpu and usb_after == usb_before
     return result('pass' if ok else 'fail', rtcwake=out.splitlines()[-1:], wall_s=round(slept, 1),
                   suspend_success=f'{before}->{after}', wifi_after=net['evidence'], gpu_after=gpu,
+                  usb_before=usb_before, usb_after=usb_after,
                   last_failed=rd('/sys/power/suspend_stats/last_failed_dev'))
 
 
