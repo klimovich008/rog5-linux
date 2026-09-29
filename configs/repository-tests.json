@@ -8046,7 +8046,7 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [
-        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
         "scripts/device/fixtures/ams678-regulator/cases.c",
         "scripts/device/fixtures/fts3658u-regulator/stubs.h",
         "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.1.4.c"
@@ -8077,8 +8077,8 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [
-        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
-        "patches/linux-7.1.4/0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch",
+        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "patches/linux-7.2.7/0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch",
         "scripts/device/test-ams678-lifecycle.py",
         "scripts/device/fixtures/ams678/backlight-v7.1.4.c",
         "scripts/device/fixtures/ams678/cases.c",
@@ -8135,7 +8135,7 @@
       "exact_source": true,
       "required_inputs": [
         "dts/qcom/sm8350-asus-rog-phone5.dts",
-        "patches/linux-7.1.4/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch"
+        "patches/linux-7.2.7/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch"
       ],
       "optional_subchecks": []
     },

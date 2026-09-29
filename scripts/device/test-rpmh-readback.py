@@ -7,7 +7,12 @@ import tempfile
 import unittest
 
 REPO=Path(__file__).resolve().parents[2]
-PATCH=REPO/'patches/linux-7.1.4/0035-soc-qcom-rpmh-timeout-safe-readback.patch'
+PATCH=REPO/'patches/linux-7.2.7/0035-soc-qcom-rpmh-timeout-safe-readback.patch'
+
+# Pristine Linux v7.2.7 copies of the two changed transport files (no earlier
+# patch in the series touches them); the patch is applied to them for real.
+PRISTINE=REPO/'scripts/device/fixtures/rpmh-v7.2.7'
+APPLIED=('drivers/soc/qcom/rpmh.c','drivers/soc/qcom/rpmh-rsc.c')
 
 def postimages():
     result={}; path=None; hunk=False
@@ -16,7 +21,16 @@ def postimages():
             path=line.split()[-1][2:];result[path]=[];hunk=False
         elif line.startswith('@@ '):hunk=True
         elif hunk and line[:1] in ('+',' '):result[path].append(line[1:])
-    return {p:'\n'.join(lines)+'\n' for p,lines in result.items()}
+    images={p:'\n'.join(lines)+'\n' for p,lines in result.items()}
+    with tempfile.TemporaryDirectory(prefix='rog5-rpmh-apply-') as tmp:
+        for path in APPLIED:
+            target=Path(tmp)/path;target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes((PRISTINE/Path(path).name).read_bytes())
+        include=[arg for path in APPLIED for arg in ('--include',path)]
+        subprocess.run(['git','apply','--check',*include,str(PATCH)],cwd=tmp,check=True)
+        subprocess.run(['git','apply',*include,str(PATCH)],cwd=tmp,check=True)
+        for path in APPLIED:images[path]=(Path(tmp)/path).read_text()
+    return images
 
 def function(text,name):
     for m in re.finditer(r'\b'+re.escape(name)+r'\(',text):

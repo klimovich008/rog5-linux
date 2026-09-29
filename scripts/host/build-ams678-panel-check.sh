@@ -20,8 +20,8 @@ apply_panel_patch() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 linux_git=$(realpath -e -- "$1")
 output=$(realpath -m -- "$2")
-base=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
-patch=$repo/patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
+base=f42acb3678424d1e08f6ed27c0d8ba8a125e14d6
+patch=$repo/patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
 [[ ! -e $output && ! -L $output ]] || { echo 'FAIL output already exists' >&2; exit 1; }
 [[ $(kernel_git "$(dirname "$linux_git")" -C "$linux_git" rev-parse "$base^{commit}") == "$base" ]]
 # Archive immutable Git bytes; neither checkout cleanliness nor HEAD implies

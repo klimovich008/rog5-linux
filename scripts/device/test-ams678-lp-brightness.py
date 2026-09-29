@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-PATCHES = ROOT / 'patches/linux-7.1.4'
+PATCHES = ROOT / 'patches/linux-7.2.7'
 BASE = PATCHES / '0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch'
 FIX = PATCHES / '0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch'
 DRIVER = 'drivers/gpu/drm/panel/panel-asus-rog5-ams678.c'

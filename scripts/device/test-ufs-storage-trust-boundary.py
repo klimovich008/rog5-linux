@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-PATCHES = ROOT / "patches/linux-7.1.4"
+PATCHES = ROOT / "patches/linux-7.2.7"
 NAME = "ufshcd_discovery_scsi_allowed"
 
 

@@ -364,7 +364,7 @@ jobs:
           else
             changed=$(git diff --name-only "$BASE" HEAD)
             if grep -Eq \
-              '^(patches/linux-7\.1\.4/0037-|scripts/device/(test-ams678[^/]*|fixtures/(ams678(-regulator)?|fts3658u-regulator)/)|scripts/host/(build-ams678-panel-check\.sh|test-ams678-compile-location\.py)$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              '^(patches/linux-7\.2\.7/0037-|scripts/device/(test-ams678[^/]*|fixtures/(ams678(-regulator)?|fts3658u-regulator)/)|scripts/host/(build-ams678-panel-check\.sh|test-ams678-compile-location\.py)$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
               selected=yes
             fi
           fi
@@ -388,9 +388,9 @@ jobs:
           git -C build/panel-linux-source init
           git -C build/panel-linux-source fetch --depth=1 \
             https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
-            refs/tags/v7.1.4
+            refs/tags/v7.2.7
           test "$(git -C build/panel-linux-source rev-parse FETCH_HEAD^{commit})" = \
-            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+            f42acb3678424d1e08f6ed27c0d8ba8a125e14d6
       - name: Apply exact base and compile affected ARM64 driver
         if: steps.panel.outputs.selected == 'yes'
         run: |

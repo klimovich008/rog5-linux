@@ -17,7 +17,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'scripts/device/fixtures/ams678'
-DEFAULT = ROOT / 'patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch'
+DEFAULT = ROOT / 'patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch'
 
 
 def driver_source(patch):

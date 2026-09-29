@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 R=Path(__file__).resolve().parents[2]
-PATCH=R/'patches/linux-7.1.4/0036-regulator-qcom-rpmh-asus-s12-oem-point.patch'
+PATCH=R/'patches/linux-7.2.7/0036-regulator-qcom-rpmh-asus-s12-oem-point.patch'
 
 def additions():
     return '\n'.join(line[1:] for line in PATCH.read_text().splitlines()

@@ -9,7 +9,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURE = REPO / "scripts/device/fixtures/qcom-battmgr-charge-units.c"
-PATCH = REPO / "patches/linux-7.1.4/0038-power-supply-qcom-battmgr-fix-charge-units.patch"
+PATCH = REPO / "patches/linux-7.2.7/0038-power-supply-qcom-battmgr-fix-charge-units.patch"
 DRIVER = Path("drivers/power/supply/qcom_battmgr.c")
 FRAGMENTS = re.compile(r"/\* source: ([\w-]+) \*/\n(.*?)/\* end: \1 \*/", re.S)
 

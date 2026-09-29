@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-patch=$repo/patches/linux-7.1.4/0026-clk-resume-runtime-pm-providers-around-orphan-walks.patch
+patch=$repo/patches/linux-7.2.7/0026-clk-resume-runtime-pm-providers-around-orphan-walks.patch
 source_root=${ROG5_LINUX_SOURCE:-/home/deck/.local/state/rog5-qmp-ufs-first-clock-name-stage-20260813-r1/linux-source}
 expected_source=d327b6f0251129e0c80f32fe9309f8278e800db7
 explicit_source=${ROG5_LINUX_SOURCE:+1}

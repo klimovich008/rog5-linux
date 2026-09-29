@@ -19,12 +19,12 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
-PATCH = ROOT / 'patches/linux-7.1.4/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch'
+PATCH = ROOT / 'patches/linux-7.2.7/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch'
 BOARD = ROOT / 'dts/qcom/sm8350-asus-rog-phone5.dts'
 BINDING = 'Documentation/devicetree/bindings/soc/qcom/qcom,rpmh-rsc.yaml'
 BASE_SCHEMA_SHA = '894c22ae16e15b9c32f7269cd8607986c0c2fa86af1d62903c918d6c1e1f69d9'
 ASUS_SCHEMA_SHA = '99f5978a4e902b8df1d7450f9fc49de1d3147822d45ab8797e8cf9b89f453e79'
-BASE_BOARD_SHA = '51bfb90a66d06eec89ff08a85bcfe7e1e0850d458e0df6792d91beba6ef3edc2'
+BASE_BOARD_SHA = '96157b90367651b874e0a701e76db02e3ab6e77117459e01ea03707f4bc57064'  # after 7fbf2c32 (SID 5 PMIC)
 PAIR = '\tcompatible = "asus,rog-phone5-rpmh-apps-rsc", "qcom,rpmh-rsc";\n'
 RSC_PATH = '/soc@0/rsc@18200000'
 
@@ -106,6 +106,14 @@ static int cpu_pm_register_notifier(struct notifier *n) {
     if (n->notifier_call != rpmh_rsc_cpu_pm_callback) return -99;
     cpu_calls++; return 0;
 }
+static unsigned devm_calls;
+static void rpmh_rsc_cpu_pm_unregister(void *data) { (void)data; }
+/* Linux 7.2 pairs the CPU_PM notifier with a devm unregister action. */
+static int devm_add_action_or_reset(struct device *d, void (*action)(void *), void *data) {
+    (void)d;
+    if (action != rpmh_rsc_cpu_pm_unregister || !data) return -98;
+    devm_calls++; return 0;
+}
 static int rpmh_rsc_pd_attach(struct rsc_drv *d, struct device *v) {
     (void)d; (void)v; genpd_calls++; return attach_error;
 }
@@ -119,9 +127,10 @@ static int check(unsigned solver, int domain, int error,
     struct rsc_drv drv = {0};
     struct platform_device pdev = {{domain ? &drv : NULL}};
     hardware = solver << DRV_HW_SOLVER_SHIFT;
-    attach_error = error; genpd_calls = cpu_calls = 0;
+    attach_error = error; genpd_calls = cpu_calls = devm_calls = 0;
     int ret = probe(&drv, &pdev);
-    return ret != want_return || genpd_calls != want_genpd || cpu_calls != want_cpu;
+    return ret != want_return || genpd_calls != want_genpd || cpu_calls != want_cpu ||
+           devm_calls != want_cpu;
 }
 int main(void) {
     if (strcmp(rpmh_drv_match[0].compatible, "qcom,rpmh-rsc") ||

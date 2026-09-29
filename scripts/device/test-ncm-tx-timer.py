@@ -9,7 +9,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 FIXTURE = REPO / 'scripts/device/fixtures/ncm-tx-timer.c'
-PATCH = REPO / 'patches/linux-7.1.4/0039-usb-gadget-ncm-restart-busy-tx-timer.patch'
+PATCH = REPO / 'patches/linux-7.2.7/0039-usb-gadget-ncm-restart-busy-tx-timer.patch'
 DRIVER = Path('drivers/usb/gadget/function/f_ncm.c')
 FRAGMENT = re.compile(r'/\* source: ncm_tx_timeout \*/\n(.*?)/\* end: ncm_tx_timeout \*/', re.S)
 

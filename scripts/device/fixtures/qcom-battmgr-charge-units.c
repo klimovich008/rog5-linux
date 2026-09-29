@@ -4,7 +4,7 @@
  * Copyright (c) 2022, Linaro Ltd
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
-/* Extracts of Linux 7.1.4 qcom_battmgr.c, with host-only test scaffolding.
+/* Extracts of Linux 7.2.7 qcom_battmgr.c (after 0018), with host-only test scaffolding.
  * The marked fragments are checked against retained source by the runner.
  * Tests unit selection/readout, not GLINK transport or physical regulation.
  */
@@ -30,7 +30,11 @@ struct qcom_battmgr {
 	enum qcom_battmgr_variant variant;
 	enum qcom_battmgr_unit unit;
 	struct { int design_capacity, last_full_capacity; } info;
+	void *wls_psy;
 };
+#define IS_ERR(pointer) ((pointer) == (void *)-1)
+#define PTR_ERR(pointer) (-EINVAL)
+#define dev_err_probe(device, error, message) ((void)(device), (error))
 enum {
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
@@ -39,25 +43,29 @@ enum {
 };
 struct value { int intval; };
 
-static void probe(struct qcom_battmgr *battmgr)
+static int probe(struct qcom_battmgr *battmgr)
 {
 	const int sm8350_bat_psy_desc = 1, sm8550_bat_psy_desc = 2;
 	const int *psy_desc = NULL;
+	void *dev = NULL;
 /* source: protocol-selection */
 	if (battmgr->variant == QCOM_BATTMGR_SC8280XP ||
 	    battmgr->variant == QCOM_BATTMGR_X1E80100) {
 /* end: protocol-selection */
 		/* Laptop unit comes from BATTMGR_BAT_INFO, represented by input. */
+		if (IS_ERR(battmgr->wls_psy))
 /* source: phone-probe */
+			return dev_err_probe(dev, PTR_ERR(battmgr->wls_psy),
+					     "failed to register wireless charing power supply\n");
 	} else {
 		if (battmgr->variant == QCOM_BATTMGR_SM8550)
 			psy_desc = &sm8550_bat_psy_desc;
 		else
-			psy_desc = &sm8350_bat_psy_desc;
-
 /* end: phone-probe */
+			psy_desc = &sm8350_bat_psy_desc;
 	}
 	(void)psy_desc;
+	return 0;
 }
 
 static int read_capacity(struct qcom_battmgr *battmgr, int prop,
@@ -104,7 +112,8 @@ int main(void)
 				.unit = initial_unit, .info = { 6000000, 5800000 } };
 			int expected_unit = (variant == QCOM_BATTMGR_SM8350 ||
 				variant == QCOM_BATTMGR_SM8550) ? 1 : initial_unit;
-			probe(&b);
+			if (probe(&b))
+				return 2;
 			for (int prop = 0; prop < 4; prop++) {
 				struct value val = { .intval = -1 };
 				int rc = read_capacity(&b, prop, &val);

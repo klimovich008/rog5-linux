@@ -2,12 +2,12 @@
 set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
-patch=$repo/patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
-fragment=$repo/configs/kernel/rog5-display-60hz.fragment
-expected=92e600fc5701a3e70ebc7940dddc7d018360ee9c30f0efa3d5dfdc687f499da1
+patch=$repo/patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
+policy=$repo/configs/kernel/rog5-production-build-7.2.7.json
+expected=6967fbef059e84b9319414ea834b8eafafeb7fe716675e0ba3a3d3f69ae02b8e
 
 [ -f "$patch" ] && [ ! -L "$patch" ]
-[ -f "$fragment" ] && [ ! -L "$fragment" ]
+[ -f "$policy" ] && [ ! -L "$policy" ]
 [ "$(sha256sum "$patch" | cut -d ' ' -f 1)" = "$expected" ]
 [ "$(git apply --numstat "$patch")" = "$(printf '%s\n' \
 	'73	0	Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml' \
@@ -39,17 +39,19 @@ if grep -Eq 'iris-cmd-list|iris-lightup-sequence|debugfs|ioctl|90hz|120hz|144hz'
 	echo 'FAIL initial panel patch contains Pixelworks PQ or higher-rate scope' >&2
 	exit 1
 fi
-[ "$(grep -Fxc 'CONFIG_DRM_PANEL_ASUS_ROG5_AMS678=y' "$fragment")" -eq 1 ]
-grep -Fqx 'CONFIG_REGULATOR_QCOM_REFGEN=y' "$fragment"
-grep -Fqx 'CONFIG_LOCALVERSION="-rog5-display60-v1"' "$fragment"
-grep -Fqx '# CONFIG_LOCALVERSION_AUTO is not set' "$fragment"
-for symbol in DRM_MSM_KMS DRM_MSM_DPU DRM_MSM_DSI DRM_MSM_DSI_7NM_PHY \
-	DRM_FBDEV_EMULATION DRM_CLIENT_DEFAULT_FBDEV VT_CONSOLE \
-	BACKLIGHT_CLASS_DEVICE; do
-	grep -Fqx "CONFIG_${symbol}=y" "$fragment"
-done
+# The production build policy carries the panel as a module next to the
+# MSM KMS/DSI stack and the DSI reference generator.
+python3 - "$policy" <<'PY'
+import json, sys
+required = json.load(open(sys.argv[1]))['required']
+for key, value in (('CONFIG_DRM_PANEL_ASUS_ROG5_AMS678', 'm'), ('CONFIG_DRM_MSM', 'm'),
+                   ('CONFIG_DRM_MSM_KMS', 'y'), ('CONFIG_DRM_MSM_DSI', 'y'),
+                   ('CONFIG_REGULATOR_QCOM_REFGEN', 'y')):
+    if required.get(key) != value:
+        raise SystemExit(f'FAIL production policy {key}={required.get(key)}, want {value}')
+PY
 
-echo 'PASS artifact identity and static 60 Hz/configuration constraints'
+echo 'PASS artifact identity and static 60 Hz/production configuration constraints'
 python3 "$repo/scripts/device/test-ams678-lifecycle.py"
 python3 "$repo/scripts/host/test-ams678-compile-location.py"
 
@@ -57,9 +59,9 @@ if [ -n "${ROG5_LINUX_SOURCE:-}" ]; then
 	[ -e "$ROG5_LINUX_SOURCE/.git" ] && [ ! -L "$ROG5_LINUX_SOURCE" ]
 	[ -z "$(git -C "$ROG5_LINUX_SOURCE" status --porcelain)" ]
 	[ "$(git -C "$ROG5_LINUX_SOURCE" rev-parse HEAD)" = \
-		7a5cef0db4795d9d453a12e0f61b5b7634fc4d40 ]
+		f42acb3678424d1e08f6ed27c0d8ba8a125e14d6 ]
 	git -C "$ROG5_LINUX_SOURCE" apply --check "$patch"
-	echo 'PASS applicability: exact Linux v7.1.4 base'
+	echo 'PASS applicability: exact Linux v7.2.7 base'
 else
 	echo 'NOT RUN patch applicability: ROG5_LINUX_SOURCE unset'
 fi

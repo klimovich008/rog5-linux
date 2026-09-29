@@ -1,6 +1,6 @@
 {
   "repo_head": "1e13857a766e973edad77c95fd39fc83a6230bc7",
-  "kernel_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "kernel_base": "f42acb3678424d1e08f6ed27c0d8ba8a125e14d6",
   "packet_bytes": 245779,
   "packet_sha256": "d1f74ace77ba8bd7e285d4b0f896b78bddfe0a926ebc979c82a1f35dd4c08e8b",
   "sources": [
@@ -41,8 +41,8 @@
     },
     {
       "label": "linux/drivers/input/input.c",
-      "bytes": 72056,
-      "sha256": "2a1cb7234dc6f7c124a779117fe7a070a55855f8082870ba7f9dc262e360e5bd"
+      "bytes": 72114,
+      "sha256": "b3ecf6d187bfa59ac0d0c534c49b7d92d9c56aff5a8bea0668d337b9d03f27a5"
     },
     {
       "label": "linux/drivers/input/input-mt.c",
@@ -51,8 +51,8 @@
     },
     {
       "label": "linux/include/linux/input.h",
-      "bytes": 21447,
-      "sha256": "9b844d36af0446090c4ec9910fb3d25f04b5e76c18cc359082d90b146eb01676"
+      "bytes": 21563,
+      "sha256": "31f4cb19edd49247dc466ec9c674e099e54afb834cc0e9518d6e6d1578413658"
     },
     {
       "label": "linux/include/linux/input/mt.h",

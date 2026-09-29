@@ -7,7 +7,7 @@ fail() {
 }
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-patch=${PATCH_FILE:-$repo/patches/linux-7.1.4/0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch}
+patch=${PATCH_FILE:-$repo/patches/linux-7.2.7/0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch}
 source_dir=${SOURCE_DIR:-}
 
 [ -f "$patch" ] && [ ! -L "$patch" ] && [ -r "$patch" ] ||
@@ -69,12 +69,12 @@ fi
 if [ -n "$source_dir" ]; then
 	[ -d "$source_dir/.git" ] || fail "source is not a Git worktree: $source_dir"
 	[ "$(git -C "$source_dir" rev-parse HEAD)" = \
-		7a5cef0db4795d9d453a12e0f61b5b7634fc4d40 ] ||
-		fail 'source HEAD is not pinned Linux 7.1.4'
+		f42acb3678424d1e08f6ed27c0d8ba8a125e14d6 ] ||
+		fail 'source HEAD is not pinned Linux 7.2.7'
 	[ -z "$(git -C "$source_dir" status --porcelain)" ] ||
 		fail 'pinned Linux source is dirty'
 	git -C "$source_dir" apply --check "$patch" ||
-		fail 'patch does not apply to pinned Linux 7.1.4'
+		fail 'patch does not apply to pinned Linux 7.2.7'
 fi
 
 echo 'PASS ROG5 cell-voltage patch is opt-in, read-only, exact-length, serialized, and one-file bounded'

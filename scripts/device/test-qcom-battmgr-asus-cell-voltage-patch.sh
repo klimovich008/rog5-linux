@@ -7,7 +7,7 @@ fail() {
 }
 
 repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-patch=$repo/patches/linux-7.1.4/0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch
+patch=$repo/patches/linux-7.2.7/0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch
 verifier=$repo/scripts/device/verify-qcom-battmgr-asus-cell-voltage-patch.sh
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT INT TERM

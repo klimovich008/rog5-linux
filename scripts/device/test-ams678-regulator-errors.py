@@ -12,7 +12,7 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 SHARED = ROOT / 'scripts/device/fixtures/fts3658u-regulator'
 CASES_FILE = ROOT / 'scripts/device/fixtures/ams678-regulator/cases.c'
-PATCH = ROOT / 'patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch'
+PATCH = ROOT / 'patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch'
 CASES = ('cycles', 'vdd-child-disable', 'vdd-parent-disable', 'io-parent-disable',
          'vdd-enable-unwind', 'io-enable-unwind', 'unknown-vdd-other-held', 'unknown-io-other-held')
 FUNCTIONS = ('_regulator_handle_consumer_disable', '_regulator_disable',
