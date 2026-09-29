@@ -909,7 +909,7 @@ Limits:
 
 Complete the builds, focused tests, review, staging and no-press runtime checks
 before asking the user to be available. The
-[local-root physical-key reader](../scripts/device/observe-local-root-physical-key.sh)
+local-root physical-key reader (`scripts/device/observe-local-root-physical-key.sh`, archived 2026-09-29)
 supports `--preflight`: it checks the actual input FD, driver, device tree and
 inhibitor, then exits without a READY prompt or event reads. Run the relevant
 key preflights before the handoff; keep the existing NFS-specific gate separate.

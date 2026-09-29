@@ -1046,28 +1046,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-qemu-watchdog-artifact.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/device/test-persistent-root-watchdog.py",
       "interpreter": "python3",
       "tiers": [
@@ -1580,29 +1558,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-observe-local-root-physical-key.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/device/test-optional-display-runtime.py",
       "interpreter": "python3",
       "tiers": [
@@ -1876,51 +1831,22 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-probe-network-root-battery-telemetry.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-network-root-init.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires an ARM64 target archive (ROG5_TEST_TARGET_ARCHIVE) and isolated ARM userspace tools",
+          "scope": "subcheck",
+          "reason": "The ARM64 busybox archive is private (the V9 base ramdisk); the pure-Python extraction checks stay mandatory.",
+          "inputs": [
+            "ROG5_TEST_TARGET_ARCHIVE"
+          ],
+          "test_ids": [
+            "Extraction.test_shell_children_keep_target_release",
+            "Extraction.test_actual_archive_ownership_is_root_inside_namespace"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/host/test-repository-test-report.py",
@@ -2092,27 +2018,6 @@
     },
     {
       "path": "scripts/device/test-persistent-root-power-usb-composition.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-network-root-pdr-override.sh",
       "interpreter": "sh",
       "tiers": [
         "ci",
@@ -2783,27 +2688,6 @@
       ]
     },
     {
-      "path": "scripts/device/test-observe-persistent-usb-liveness.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-rog5-host-doctor.py",
       "interpreter": "python3",
       "tiers": [
@@ -2968,48 +2852,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-qemu-network-root-nfs-hostile.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-qemu-systemd-runtime.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-kernel-builder-bootstrap-contract.sh",
       "interpreter": "bash",
       "tiers": [
@@ -3073,90 +2915,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-network-root-kernel-rebuild-contract.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-network-root-kernel-builder-acceleration.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-network-root-thermal-pmic-candidate.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-network-root-dual-cell-readonly-candidate.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-suspend-pm-test-source-contract.py",
       "interpreter": "python3",
       "tiers": [
@@ -3196,103 +2954,7 @@
       ]
     },
     {
-      "path": "scripts/host/test-network-root-suspend-pm-test-candidate.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": false,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "line",
-          "message": "SKIP retained accepted Linux source is optional in CI",
-          "scope": "whole_test",
-          "reason": "This whole historical suspend candidate source integration requires the retained source tree; no current production build is inferred.",
-          "inputs": [
-            "build/linux-stable-v7.1.4-source"
-          ],
-          "test_ids": []
-        }
-      ]
-    },
-    {
-      "path": "scripts/device/test-run-network-root-suspend-pm-test-devices.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-reconstruct-recovery-base-v18r-contract.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-reconstruct-network-root-v3-contract.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rebuild-headless-network-root-initramfs-contract.sh",
       "interpreter": "bash",
       "tiers": [
         "ci",
@@ -3871,27 +3533,6 @@
           ]
         }
       ]
-    },
-    {
-      "path": "scripts/device/test-run-network-root-physical-keys.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
     },
     {
       "path": "scripts/host/test-core-compatibility-oracle.py",
@@ -4780,27 +4421,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-headless-network-root.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-compare-root-archives.py",
       "interpreter": "python3",
       "tiers": [
@@ -5487,27 +5107,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-observe-storage-layout-stage1-prewrite.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-storage-layout-stage2-contract.py",
       "interpreter": "python3",
       "tiers": [
@@ -6103,25 +5702,6 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-network-root-acm.py",
-      "interpreter": "python3",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-persistent-root-acm.py",
       "interpreter": "python3",
       "tiers": [
@@ -6160,45 +5740,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-network-root-host.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-capture-vendor-kernel-log.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-sync-network-root-time.sh",
       "interpreter": "bash",
       "tiers": [
         "quick",

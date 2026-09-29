@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline-root extraction must not escape through paths or archive links."""
 import importlib.util
+import os
 from pathlib import Path
 import stat
 import shutil
@@ -12,6 +13,14 @@ M = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(M)
 
 
+# An ARM64 busybox target archive: the private V9 base ramdisk by default.
+TARGET_ARCHIVE = Path(os.environ.get(
+    "ROG5_TEST_TARGET_ARCHIVE",
+    Path.home() / ".local/state/rog5-cpu-startup-20260908.kjE4IqCf/buttons-successor-unsigned-r2/target-a.cpio.gz"))
+ARM_READY = bool(shutil.which("bwrap") and shutil.which("qemu-aarch64-static") and TARGET_ARCHIVE.is_file())
+SKIP = "requires an ARM64 target archive (ROG5_TEST_TARGET_ARCHIVE) and isolated ARM userspace tools"
+
+
 def entry(mode, body=b""):
     fields = [0] * 13
     fields[1], fields[4] = mode, 1
@@ -19,24 +28,22 @@ def entry(mode, body=b""):
 
 
 class Extraction(unittest.TestCase):
-    @unittest.skipUnless(shutil.which("bwrap") and shutil.which("qemu-aarch64-static"),
-                         "requires optional isolated ARM userspace tools")
+    @unittest.skipUnless(ARM_READY, SKIP)
     def test_shell_children_keep_target_release(self):
-        release = "7.1.4-sealed-child-test"
+        release = "7.2.7-sealed-child-test"
         result, _ = M.run(
-            M.REPO / "artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz",
+            TARGET_ARCHIVE,
             release, ["sh", "-ec", "uname -r; /bin/busybox uname -r"],
             qemu=Path(shutil.which("qemu-aarch64-static")),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, ((release + "\n") * 2).encode())
 
-    @unittest.skipUnless(shutil.which("bwrap") and shutil.which("qemu-aarch64-static"),
-                         "requires optional isolated ARM userspace tools")
+    @unittest.skipUnless(ARM_READY, SKIP)
     def test_actual_archive_ownership_is_root_inside_namespace(self):
         result, _ = M.run(
-            M.REPO / "artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz",
-            "7.1.4-test", ["stat", "-c", "%u:%g:%a", "/bin/busybox"],
+            TARGET_ARCHIVE,
+            "7.2.7-test", ["stat", "-c", "%u:%g:%a", "/bin/busybox"],
             qemu=Path(shutil.which("qemu-aarch64-static")),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -71,4 +78,4 @@ class Extraction(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
