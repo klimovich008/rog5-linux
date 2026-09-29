@@ -1,0 +1,42 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: vote the core clock for the full pixel clock on video-mode interfaces
+
+_dpu_core_perf_calc_clk() derives the core clock from the active pixel rate
+(vtotal * hdisplay * vrefresh), 1.05x. A video-mode interface scans out on
+the sink's timing, so the DPU has to keep up with the full pixel clock. On
+the ROG5 side port with only DP lit (1920x1080@60, pixel clock 148.5 MHz),
+the vote was 136 MHz (150 MHz OPP) and INTF_0 underran on every frame (the
+monitor showed the underflow colour); while the DSI command-mode panel was
+also on, its vote kept the core at 345 MHz and hid this. With the vote at
+156 MHz (200 MHz OPP): 0 underruns in 385 frames.
+
+Use the mode's pixel clock as the floor when a video-mode encoder drives
+the CRTC.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c	2026-09-29 14:25:58.862006401 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c	2026-09-29 14:25:58.875426875 +0200
+@@ -118,6 +118,24 @@
+ 
+ 	mode_clk = (u64)mode->vtotal * mode->hdisplay * drm_mode_vrefresh(mode);
+ 
++	/*
++	 * A video-mode interface (DP) scans out on the sink's timing: the DPU
++	 * has to keep up with the full pixel clock, blanking included. The
++	 * active-pixel rate alone voted 136 MHz for 1080p60 (pixel clock
++	 * 148.5 MHz) and INTF_0 underran on every frame on the ROG5 side port
++	 * once the panel (whose command mode kept the clock at 345 MHz) was off.
++	 */
++	{
++		struct drm_encoder *encoder;
++
++		drm_for_each_encoder_mask(encoder, crtc->dev, state->encoder_mask) {
++			if (dpu_encoder_get_intf_mode(encoder) == INTF_MODE_VIDEO) {
++				mode_clk = max_t(u64, mode_clk, (u64)mode->clock * 1000);
++				break;
++			}
++		}
++	}
++
+ 	if (dpu_cmd_mode_clk_pct > 100) {
+ 		struct drm_encoder *encoder;
+ 
