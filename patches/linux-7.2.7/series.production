@@ -77,3 +77,5 @@
 0109-drm-msm-dp-ROG5-apply-the-swing-floor-from-the-first-training-attempt.patch
 0110-drm-msm-dp-ROG5-cap-the-link-rate-only-behind-an-HDMI-converter.patch
 0111-ASoC-qcom-sm8250-ROG5-really-run-SENARY-MI2S-at-24-bits.patch
+0112-phy-qcom-snps-femto-v2-fix-the-AUTO_RESUME-clear-and-the-REFCLK-select.patch
+0113-usb-dwc3-ROG5-set-PHY-host-mode-before-xHCI-on-a-role-switch-opt-in-UTMI-POR.patch

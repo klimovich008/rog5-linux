@@ -1,0 +1,100 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: ROG5 set PHY host mode before xHCI on a role switch; opt-in UTMI POR
+
+On the ROG5 side port, after a USB-C role change with DisplayPort
+attached, every full-speed device fails "device descriptor read/64,
+error -71" until the dwc3 core is rebound and held in device mode for
+~8 s (scripts/device/rog5-usb-reconnect).
+
+__dwc3_set_mode() registers xHCI first and puts the PHYs in host mode
+afterwards, while dwc3_core_init_mode() does it the other way round for a
+host-only controller. Match the host-only order, so the PHY knows its role
+before the root hub starts enumerating.
+
+phy-qcom-snps-femto-v2 only records the mode. Add a module parameter,
+role_change_por (default off), that pulses the UTMI power-on reset with
+the override sequence init uses whenever the mode changes between host and
+device. This is an experiment to test whether stale HS PHY state causes
+the -71 (GPT-6.1-Sol's leading hypothesis); it is off by default.
+
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -241,6 +241,15 @@
+ 
+ 	switch (desired_dr_role) {
+ 	case DWC3_GCTL_PRTCAP_HOST:
++		/*
++		 * Put the PHYs in host mode before xHCI is registered and starts
++		 * enumerating, as dwc3_core_init_mode() does for dr_mode host.
++		 */
++		for (i = 0; i < dwc->num_usb2_ports; i++)
++			phy_set_mode(dwc->usb2_generic_phy[i], PHY_MODE_USB_HOST);
++		for (i = 0; i < dwc->num_usb3_ports; i++)
++			phy_set_mode(dwc->usb3_generic_phy[i], PHY_MODE_USB_HOST);
++
+ 		ret = dwc3_host_init(dwc);
+ 		if (ret) {
+ 			dev_err(dwc->dev, "failed to initialize host\n");
+@@ -248,11 +257,6 @@
+ 			if (dwc->usb2_phy)
+ 				otg_set_vbus(dwc->usb2_phy->otg, true);
+ 
+-			for (i = 0; i < dwc->num_usb2_ports; i++)
+-				phy_set_mode(dwc->usb2_generic_phy[i], PHY_MODE_USB_HOST);
+-			for (i = 0; i < dwc->num_usb3_ports; i++)
+-				phy_set_mode(dwc->usb3_generic_phy[i], PHY_MODE_USB_HOST);
+-
+ 			if (dwc->dis_split_quirk) {
+ 				reg = dwc3_readl(dwc, DWC3_GUCTL3);
+ 				reg |= DWC3_GUCTL3_SPLITDISABLE;
+--- a/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
++++ b/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
+@@ -226,11 +226,48 @@
+ 	return qcom_snps_hsphy_resume(hsphy);
+ }
+ 
++/*
++ * ROG5: after a USB-C role change with DisplayPort attached, full-speed
++ * devices fail with -71 until the controller is rebound and held in device
++ * mode (rog5-usb-reconnect). Opt-in experiment: pulse the UTMI power-on
++ * reset on a real host <-> device change, with the sequence init uses.
++ */
++static bool role_change_por;
++module_param(role_change_por, bool, 0644);
++MODULE_PARM_DESC(role_change_por, "Pulse the UTMI POR on a host/device role change (ROG5 experiment)");
++
++static void qcom_snps_hsphy_por(struct qcom_snps_hsphy *hsphy)
++{
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_CFG0,
++				   UTMI_PHY_CMN_CTRL_OVERRIDE_EN,
++				   UTMI_PHY_CMN_CTRL_OVERRIDE_EN);
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_HS_PHY_CTRL2,
++				   USB2_SUSPEND_N_SEL | USB2_SUSPEND_N,
++				   USB2_SUSPEND_N_SEL | USB2_SUSPEND_N);
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_UTMI_CTRL5,
++				   POR, POR);
++	usleep_range(100, 150);
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_UTMI_CTRL5,
++				   POR, 0);
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_HS_PHY_CTRL2,
++				   USB2_SUSPEND_N_SEL, 0);
++	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_CFG0,
++				   UTMI_PHY_CMN_CTRL_OVERRIDE_EN, 0);
++}
++
+ static int qcom_snps_hsphy_set_mode(struct phy *phy, enum phy_mode mode,
+ 				    int submode)
+ {
+ 	struct qcom_snps_hsphy *hsphy = phy_get_drvdata(phy);
+ 
++	if (role_change_por && hsphy->phy_initialized && hsphy->mode != mode &&
++	    (hsphy->mode == PHY_MODE_USB_HOST ||
++	     hsphy->mode == PHY_MODE_USB_DEVICE)) {
++		dev_info(&phy->dev, "role change %d -> %d: UTMI POR\n",
++			 hsphy->mode, mode);
++		qcom_snps_hsphy_por(hsphy);
++	}
++
+ 	hsphy->mode = mode;
+ 	return 0;
+ }

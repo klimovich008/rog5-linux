@@ -1,0 +1,38 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] phy: qcom: snps-femto-v2: fix the AUTO_RESUME clear and the REFCLK select
+
+qcom_snps_hsphy_write_mask() takes (mask, value). Two calls have them the
+other way round:
+
+- The host suspend path pulses USB2_AUTO_RESUME and then "clears" it with
+  mask 0, which writes the register back unchanged, so AUTO_RESUME stays
+  set after the pulse.
+- Init writes REFCLK_SEL_DEFAULT (2) as the mask and REFCLK_SEL_MASK (3) as
+  the value: bit 1 is set but bit 0 keeps whatever it held, so the select
+  is not guaranteed to be 2.
+
+The downstream msm-5.4 driver (phy-msm-snps-hs.c) writes both with
+(mask, value) = (USB2_AUTO_RESUME, 0) and (REFCLK_SEL_MASK,
+REFCLK_SEL_DEFAULT). Found by GPT-6.1-Sol while reviewing the ROG5 USB -71
+failure after a role switch; not known to cause it.
+
+--- a/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
++++ b/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
+@@ -193,7 +193,7 @@
+ 		usleep_range(500, 1000);
+ 		qcom_snps_hsphy_write_mask(hsphy->base,
+ 					   USB2_PHY_USB_PHY_HS_PHY_CTRL2,
+-					   0, USB2_AUTO_RESUME);
++					   USB2_AUTO_RESUME, 0);
+ 	}
+ 
+ 	return 0;
+@@ -426,7 +426,7 @@
+ 					USB2_PHY_USB_PHY_HS_PHY_CTRL_COMMON1,
+ 					PLLBTUNE, PLLBTUNE);
+ 	qcom_snps_hsphy_write_mask(hsphy->base, USB2_PHY_USB_PHY_REFCLK_CTRL,
+-					REFCLK_SEL_DEFAULT, REFCLK_SEL_MASK);
++					REFCLK_SEL_MASK, REFCLK_SEL_DEFAULT);
+ 	qcom_snps_hsphy_write_mask(hsphy->base,
+ 					USB2_PHY_USB_PHY_HS_PHY_CTRL_COMMON1,
+ 					VBUSVLDEXTSEL0, VBUSVLDEXTSEL0);
