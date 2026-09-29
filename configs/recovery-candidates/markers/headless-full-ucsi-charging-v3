@@ -1,4 +1,0 @@
-format=rog5-target-attempt-marker-v1
-candidate=headless-full-ucsi-charging-v3
-predecessor=headless-full-ucsi-charging-v2
-purpose=ordered-profile-bundle-nfs-commit-full-pmic-glink-ucsi-discriminator

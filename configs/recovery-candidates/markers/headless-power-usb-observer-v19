@@ -1,4 +1,0 @@
-format=rog5-recovery-candidate-marker-v1
-candidate=headless-power-usb-observer-v19
-predecessor=headless-power-usb-observer-v18
-purpose=remove-rejected-pdr-module-btf-only

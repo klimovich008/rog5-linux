@@ -1,4 +1,0 @@
-format=rog5-recovery-candidate-marker-v1
-candidate=headless-power-usb-observer-v27
-predecessor=headless-power-usb-observer-v26
-purpose=stage-local-image-over-proven-nfs-ssh
