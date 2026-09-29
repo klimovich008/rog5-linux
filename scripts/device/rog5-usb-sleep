@@ -3,12 +3,13 @@
 # after resume, rebind every xHCI controller that had USB devices attached
 # before the suspend and has none afterwards.
 #
-# s2idle with a hub on the side port (a600000.usb, xhci-hcd.1.auto) left the
-# controller doing DMA while it was being suspended: ~31k SMMU context faults
-# from SID 0x0, "xhci-hcd: WARNING: Host System Error", and the hub never
+# s2idle with a hub on the side port (a600000.usb, xhci-hcd.1.auto) collapsed
+# the controller's power domain: on resume it fetched from stale IOVAs (~31k
+# SMMU context faults from SID 0x0), "xhci-hcd: WARNING: Host System Error",
+# and the hub never
 # re-enumerated ("couldn't allocate usb_device") until the xHCI was rebound
-# (2026-09-29, r182). rog5-sleep-policy stays awake while a USB device is
-# attached; this hook repairs suspends it does not start. Unbinding the xHCI
+# (2026-09-29, r182). Kernel patch 0105 (usb30_prim_gdsc in retention) fixed
+# the cause on r184; this hook stays as a safety net. Unbinding the xHCI
 # before suspend instead reset the phone during suspend entry (r182), so the
 # hook only acts after resume. A device unplugged while asleep costs a
 # harmless rebind.

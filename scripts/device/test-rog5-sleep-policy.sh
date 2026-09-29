@@ -10,7 +10,8 @@ echo 0 >$t/usb; echo On >$t/dpms; check screen-on 'battery, screen on'
 echo Off >$t/dpms; check sleep-eligible 'battery, screen off'
 : >$t/stay; check stay-awake-file 'stay-awake file'
 rm $t/stay; mkdir -p $t/usbdev/usb3 $t/usbdev/3-0:1.0; check sleep-eligible 'root hubs only'
-mkdir $t/usbdev/3-1 $t/usbdev/3-1.1; check usb-device 'hub and drive on the side port'
+mkdir $t/usbdev/3-1 $t/usbdev/3-1.1; check sleep-eligible 'hub and drive, default: hubs survive suspend (0105)'
+ROG5_SLEEP_USB_DEVICE_BLOCKS=1 check usb-device 'hub and drive, USB devices block sleep'
 rm -r $t/usbdev; rm $t/dpms; check screen-on 'no dpms file: never sleep blind'
 
 # Loop: the suspend command returns before the kernel suspends (like
