@@ -1,0 +1,58 @@
+#!/bin/sh
+# Install Valve's native aarch64 Linux Steam client for the current user.
+#
+# Valve publishes the ARM64 client on its own update CDN
+# (client-update.steamstatic.com/steam_client_linuxarm64, and _publicbeta_
+# for the beta). This downloads the client bootstrap package from that
+# manifest, checks its SHA-256 against the manifest, unpacks it into
+# ~/.local/share/Steam and adds a "Steam" launcher; the client downloads the
+# rest of itself (UI, runtime) on first start. The phone kernel uses 4 KiB
+# pages, so no muvm VM is needed (Asahi needs it for 16 KiB pages). x86-only
+# games additionally need FEX; native aarch64 games and the client do not.
+#
+#   steam-arm64-install [--beta]     (run as the desktop user, not root)
+set -eu
+[ "$(id -u)" != 0 ] || { echo 'steam-arm64-install: run as the desktop user, not root' >&2; exit 1; }
+manifest=steam_client_linuxarm64
+[ "${1-}" = --beta ] && manifest=steam_client_publicbeta_linuxarm64
+cdn=https://client-update.steamstatic.com
+root=${STEAMROOT:-$HOME/.local/share/Steam}
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+
+curl -fsS --max-time 60 "$cdn/$manifest" -o "$tmp/manifest"
+# The "bins_linuxarm64_linuxarm64" block: its "file" and "sha2" values.
+block=$(awk '/"bins_linuxarm64_linuxarm64"/{f=1} f{print} f&&/}/{exit}' "$tmp/manifest")
+file=$(printf '%s\n' "$block" | awk -F'"' '$2=="file"{print $4; exit}')
+sha=$(printf '%s\n' "$block" | awk -F'"' '$2=="sha2"{print $4; exit}')
+[ -n "$file" ] && [ -n "$sha" ] || { echo 'steam-arm64-install: package not in the manifest' >&2; exit 1; }
+
+echo "downloading $file"
+curl -fL --max-time 900 "$cdn/$file" -o "$tmp/bins.zip"
+echo "$sha  $tmp/bins.zip" | sha256sum -c --quiet || { echo 'steam-arm64-install: SHA-256 mismatch' >&2; exit 1; }
+mkdir -p "$root"
+unzip -o -qq "$tmp/bins.zip" -d "$root"
+# Valve's zip carries no permissions: mark ELF programs and #! scripts
+# executable.
+find "$root" -type f -size +3c | while IFS= read -r f; do
+	case $(head -c 4 "$f" | od -An -c | tr -d ' \n') in
+	177ELF* | '#!'*) chmod +x "$f" ;;
+	esac
+done
+chmod -R go-w "$root"
+[ -x "$root/steamrtarm64/steam" ] || { echo "steam-arm64-install: no $root/steamrtarm64/steam" >&2; exit 1; }
+
+apps=$HOME/.local/share/applications
+mkdir -p "$apps"
+cat >"$apps/steam-arm64.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Steam
+Comment=Valve's native aarch64 Steam client
+Exec=env LD_LIBRARY_PATH=$root/steamrtarm64 $root/steamrtarm64/steam -noverifyfiles %U
+Icon=steam
+Terminal=false
+Categories=Game;
+MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;
+X-Purism-FormFactor=Workstation;Mobile;
+EOF
+echo "installed: $root/steamrtarm64/steam (manifest $manifest); launcher: Steam"
