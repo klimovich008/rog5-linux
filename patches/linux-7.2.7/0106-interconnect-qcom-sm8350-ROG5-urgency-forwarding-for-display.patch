@@ -1,0 +1,93 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] interconnect: qcom: sm8350: ROG5 urgency forwarding for display
+
+The stock (lahaina) kernel programs NoC QoS on SM8350: the display's
+real-time masters qxm_mdp0/1 (mmss_noc 0x16000/0x16080) and the MMNOC HF port
+into the memory NoC (qnm_mnoc_hf, gem_noc 0x23000/0x63000) forward urgency
+(QOS_SLV_URG_MSG_EN) at priority 0. Mainline sm8350.c programs none, and the
+DisplayPort output latches a DPU underrun on its first enable unless DDR
+bandwidth is pinned high.
+
+Add the same QoS boxes, and regmap configs for mmss_noc and gem_noc so
+icc-rpmh programs them at probe, as sc7280 does for identical ports.
+
+--- a/drivers/interconnect/qcom/sm8350.c	2026-09-29 18:03:30.762757105 +0200
++++ b/drivers/interconnect/qcom/sm8350.c	2026-09-29 18:03:45.348207875 +0200
+@@ -510,6 +510,12 @@
+ 	.name = "qnm_mnoc_hf",
+ 	.channels = 2,
+ 	.buswidth = 32,
++	.qosbox = &(const struct qcom_icc_qosbox) {
++		.num_ports = 2,
++		.port_offsets = { 0x23000, 0x63000 },
++		.prio = 0,
++		.urg_fwd = 1,
++	},
+ 	.num_links = 1,
+ 	.link_nodes = { &qns_llcc },
+ };
+@@ -631,6 +637,12 @@
+ 	.name = "qxm_mdp0",
+ 	.channels = 1,
+ 	.buswidth = 32,
++	.qosbox = &(const struct qcom_icc_qosbox) {
++		.num_ports = 1,
++		.port_offsets = { 0x16000 },
++		.prio = 0,
++		.urg_fwd = 1,
++	},
+ 	.num_links = 1,
+ 	.link_nodes = { &qns_mem_noc_hf },
+ };
+@@ -639,6 +651,12 @@
+ 	.name = "qxm_mdp1",
+ 	.channels = 1,
+ 	.buswidth = 32,
++	.qosbox = &(const struct qcom_icc_qosbox) {
++		.num_ports = 1,
++		.port_offsets = { 0x16080 },
++		.prio = 0,
++		.urg_fwd = 1,
++	},
+ 	.num_links = 1,
+ 	.link_nodes = { &qns_mem_noc_hf },
+ };
+@@ -1756,7 +1774,21 @@
+ 	[SLAVE_SERVICE_GEM_NOC] = &srvc_sys_gemnoc,
+ };
+ 
++/*
++ * ROG5: like the stock (lahaina) kernel and sc7280, forward urgency from the
++ * display's real-time masters (qxm_mdp0/1) and the MMNOC HF port into the
++ * memory NoC, so DPU fetch keeps priority while DDR is contended.
++ */
++static const struct regmap_config sm8350_gem_noc_regmap_config = {
++	.reg_bits = 32,
++	.reg_stride = 4,
++	.val_bits = 32,
++	.max_register = 0xb3ffc,
++	.fast_io = true,
++};
++
+ static const struct qcom_icc_desc sm8350_gem_noc = {
++	.config = &sm8350_gem_noc_regmap_config,
+ 	.nodes = gem_noc_nodes,
+ 	.num_nodes = ARRAY_SIZE(gem_noc_nodes),
+ 	.bcms = gem_noc_bcms,
+@@ -1823,7 +1855,16 @@
+ 	[SLAVE_SERVICE_MNOC] = &srvc_mnoc,
+ };
+ 
++static const struct regmap_config sm8350_mmss_noc_regmap_config = {
++	.reg_bits = 32,
++	.reg_stride = 4,
++	.val_bits = 32,
++	.max_register = 0x1f07c,
++	.fast_io = true,
++};
++
+ static const struct qcom_icc_desc sm8350_mmss_noc = {
++	.config = &sm8350_mmss_noc_regmap_config,
+ 	.nodes = mmss_noc_nodes,
+ 	.num_nodes = ARRAY_SIZE(mmss_noc_nodes),
+ 	.bcms = mmss_noc_bcms,

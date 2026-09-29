@@ -71,3 +71,4 @@
 0103-arm64-cpuinfo-ROG5-name-Arm-cores-in-model-name.patch
 0104-drm-msm-ROG5-export-GPU-load-frequency-and-temperature.patch
 0105-clk-qcom-gcc-sm8350-keep-the-primary-USB-GDSC-in-retention.patch
+0106-interconnect-qcom-sm8350-ROG5-urgency-forwarding-for-display.patch
