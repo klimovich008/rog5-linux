@@ -21,6 +21,11 @@
 # and re-initialises the controller only if that does not happen. A charger
 # (DCP) or an already configured link is left alone.
 set -u
+# One run at a time: the re-init changes the role and udev starts this
+# service again; a second run cycling the controller mid-sequence left the
+# USB-C KVM dead (2026-09-30).
+exec 9>/run/rog5-usb-reconnect.lock
+flock -n 9 || exit 0
 udc=a600000.usb
 gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
 supply=/sys/class/power_supply/qcom-battmgr-usb
@@ -82,6 +87,10 @@ if host_mode; then
 	echo "$now" >"$stamp"
 	log "host mode, nothing enumerated after ${host_wait_s}s; re-initialising $udc"
 	reinit || exit 1
+	# UCSI puts the rebound controller straight back into host mode, which
+	# still fails; hold device mode for the settle time first (the manual
+	# sequence that worked).
+	echo device >"$role" 2>/dev/null
 	sleep "$host_settle_s"
 	echo host >"$role" || { log 'FAIL set host role'; exit 1; }
 	waited=0
