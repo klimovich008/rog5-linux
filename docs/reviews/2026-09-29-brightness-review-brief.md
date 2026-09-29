@@ -28,23 +28,23 @@ analysis; challenge its assumptions.
   (stock-shape `51 hh ll` is allowed).
 
 ## Where to look
-- Repo: /home/deck/.local/state/rog5-prod-boot-20260923
+- Repo: ~/.local/state/rog5-prod-boot-20260923
   - Patches: patches/linux-7.2.7/0037 (panel driver), 0043 (brightness in LP),
     0045 (map to DBV high levels = current production), 0061, 0074, 0075
     (diagnostic series).
   - Earlier analysis with ranked hypotheses and experiments E0-E6 (never
     run): test-results/2026-09-27-brightness-reanalysis.md
   - Lessons: docs/development-lessons.md (search 0x51 / brightness / padded).
-- Patched kernel source: /home/deck/.local/state/rog5-kernel-7.2.7-build-r71/source
+- Patched kernel source: ~/.local/state/rog5-kernel-7.2.7-build-r71/source
   (drivers/gpu/drm/panel/panel-asus-rog5-ams678.c, drivers/gpu/drm/msm/dsi/).
 - Lab module (planned, unused):
-  /tmp/claude-1000/-home-deck-Projects-rog-phone-linux-migration/2cc1c994-1a4f-4a0b-aca7-41804577680f/scratchpad/brightness-investigation/rog5_dsi_lab/
+  <session-scratchpad>/brightness-investigation/rog5_dsi_lab/
   and phone state snapshot .../brightness-investigation/phone/state.txt
 - Stock ASUS 5.4 kernel (techpack display incl. Iris6 driver):
-  /home/deck/.local/state/rog5-kernel-compare-20260927/stock
+  ~/.local/state/rog5-kernel-compare-20260927/stock
   (techpack/display/msm/dsi/, iris sources), stock DT:
-  /home/deck/.local/state/rog5-stock-payload-20260927/dtbo/dtbo0.dts,
-  vendor files under /home/deck/.local/state/rog5-stock-payload-20260927/.
+  ~/.local/state/rog5-stock-payload-20260927/dtbo/dtbo0.dts,
+  vendor files under ~/.local/state/rog5-stock-payload-20260927/.
 
 ## Questions
 1. What alternative explanations did the earlier analysis miss or dismiss too

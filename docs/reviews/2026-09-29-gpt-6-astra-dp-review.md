@@ -5,7 +5,7 @@ Everything was read-only. `modeset.b64` decompresses byte-for-byte to `modeset-d
 **First, three corrections to the evidence**
 
 - The supplied log captures `widebus 1, tpg 0`. I accept the brief’s separate TPG result, but this file does not validate that experiment. Verify the TPG register enables, not just the module parameter.
-- `bpp 36` in the summary is misleading. [dp_panel.c:775](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_panel.c:775) clamps the panel’s bpp to 24; the controller uses that value. Patch 0095 logs the unclamped display-mode copy.
+- `bpp 36` in the summary is misleading. [dp_panel.c:775](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_panel.c:775) clamps the panel’s bpp to 24; the controller uses that value. Patch 0095 logs the unclamped display-mode copy.
 - The second training pass actually succeeds at **voltage 0 / emphasis 0**. The first pass needed voltage 1. Also, the two complete intervals from video-ready to disconnect are approximately **17.51 s and 19.09 s**, rather than a fixed 18.5-second timer.
 
 **1. Ranked remaining causes**
@@ -24,10 +24,10 @@ The important comparisons follow.
 
 **PHY/PLL: substantially closer to stock than the “v4/v5 versus 5nm” names suggest.**
 
-Mainline selects the v4 DP PLL tables, v5 TX table and v4 configuration routines for SM8350 in [phy-qcom-qmp-combo.c:2794](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:2794). That mixture is consistent with the stock register programming; replacing it wholesale with a differently named “5nm” table would be unjustified.
+Mainline selects the v4 DP PLL tables, v5 TX table and v4 configuration routines for SM8350 in [phy-qcom-qmp-combo.c:2794](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:2794). That mixture is consistent with the stock register programming; replacing it wholesale with a differently named “5nm” table would be unjustified.
 
-- HBR2 PLL values match: `HSCLK_SEL=01`, `DEC_START=8c`, fractional bytes `00/00/0a`, lock compare `1f/1c`, lock enable `08`, VCO divider `02`. Compare [mainline:1248](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:1248) with [stock dp_pll_5nm.c:214](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:214).
-- The mainline v5 TX initialization matches stock’s 5nm TX initialization, including interface select `3b`, resistance offsets `11/11`, and band `04`: [mainline:1311](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:1311), [stock:284](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:284).
+- HBR2 PLL values match: `HSCLK_SEL=01`, `DEC_START=8c`, fractional bytes `00/00/0a`, lock compare `1f/1c`, lock enable `08`, VCO divider `02`. Compare [mainline:1248](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:1248) with [stock dp_pll_5nm.c:214](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:214).
+- The mainline v5 TX initialization matches stock’s 5nm TX initialization, including interface select `3b`, resistance offsets `11/11`, and band `04`: [mainline:1311](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:1311), [stock:284](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:284).
 - HBR2 drive/emphasis tables match stock. At voltage 1/emphasis 0, both produce **DRV `29`, EMP `22`**, including mux-enable bits. At 0/0, both produce `22/20`. Mainline’s temporary default drive `27` differs from stock’s update routine default `2a`, but the selected table values overwrite it.
 - Orientation programming also matches:
 
@@ -39,33 +39,33 @@ Mainline selects the v4 DP PLL tables, v5 TX table and v4 configuration routines
 | Both high-Z driver controls | `10` | `10` |
 | Default polarity inversion registers | `0a / 0a` | `0a / 0a` |
 
-Compare [mainline mode configuration:3155](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:3155) and its PHY setup at 3471 with [stock PLL:333](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:333) and [stock late PHY initialization:471](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog.c:471). I found no DP P/N-swap override in the supplied stock DTS/DTBO.
+Compare [mainline mode configuration:3155](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/phy/qualcomm/phy-qcom-qmp-combo.c:3155) and its PHY setup at 3471 with [stock PLL:333](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:333) and [stock late PHY initialization:471](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog.c:471). I found no DP P/N-swap override in the supplied stock DTS/DTBO.
 
-**SPARE0 is not an obvious missing hardware requirement.** Stock writes lane count/orientation there, then its separately implemented PLL driver reads it into software variables: [writer:206](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog_v420.c:206), [reader:170](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:170). Mainline already holds those variables in the combined driver. This evidence supports treating SPARE0 as a software handoff, not blindly adding its write.
+**SPARE0 is not an obvious missing hardware requirement.** Stock writes lane count/orientation there, then its separately implemented PLL driver reads it into software variables: [writer:206](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog_v420.c:206), [reader:170](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_pll_5nm.c:170). Mainline already holds those variables in the combined driver. This evidence supports treating SPARE0 as a software handoff, not blindly adding its write.
 
 **SSC is a real inconsistency.**
 
-[Mainline dp_ctrl.c:1801](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_ctrl.c:1801) requests SSC, and line 1639 advertises downspread at DPCD `107`. The combo PHY copies the options but never consumes `dp_opts.ssc`; its selected DP tables do not program SSC.
+[Mainline dp_ctrl.c:1801](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_ctrl.c:1801) requests SSC, and line 1639 advertises downspread at DPCD `107`. The combo PHY copies the options but never consumes `dp_opts.ssc`; its selected DP tables do not program SSC.
 
-Stock instead writes `DOWNSPREAD_CTRL=0` at [dp_ctrl.c:536](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_ctrl.c:536). Its optional PLL SSC programming uses period `0136` and HBR2 step `085c`, gated by `qcom,ssc-feature-enable`; that property was absent from the inspected stock DTS/DTBO.
+Stock instead writes `DOWNSPREAD_CTRL=0` at [dp_ctrl.c:536](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_ctrl.c:536). Its optional PLL SSC programming uses period `0136` and HBR2 step `085c`, gated by `qcom,ssc-feature-enable`; that property was absent from the inspected stock DTS/DTBO.
 
 Therefore, **neither “SSC is enabled” nor its actual hardware state is established by the log**. Read the SSC registers. A coherent no-SSC configuration is a cheap stock-equivalence test, although this discrepancy alone is not strong proof of the failure.
 
 **Controller/MSA: several checks pass; two differences deserve attention.**
 
-- `CONFIGURATION_CTRL=4157` and `MISC0=21` agree with stock’s RGB, 8-bpc, two-lane, enhanced-framing, synchronous/static-MVID setup: [stock dp_panel.c:2721](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_panel.c:2721). ASSR is clear.
+- `CONFIGURATION_CTRL=4157` and `MISC0=21` agree with stock’s RGB, 8-bpc, two-lane, enhanced-framing, synchronous/static-MVID setup: [stock dp_panel.c:2721](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_panel.c:2721). ASSR is clear.
 - The logged TU allocation is correct in aggregate: TU size 32; one TU with 14 valid symbols and four with 13 gives **13.2 symbols/TU**, exactly `32 × 148.5 × 3 / (540 × 2)`. This lowers suspicion of a gross bpp/TU arithmetic error; it does not validate every FIFO timing parameter.
-- **Sync polarity is lost.** [dp_display.c:1500](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_display.c:1500) computes `h_active_low`/`v_active_low`, but [the copy at line 597](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_display.c:597) omits them. [dp_panel.c:710](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_panel.c:710) subsequently programs the panel’s zero-initialized fields. The logged mode flags are `0xa`, requesting negative H/V sync. Expected width/polarity is therefore `8005802c`, whereas this path constructs `0005002c`. Stock preserves the requested polarities. This is a definite bug, but polarity alone does not necessarily prevent a converter locking.
-- **Stock sets `MAINLINK_LEVELS`’ safe-to-exit threshold to 8 for two lanes**: [dp_catalog.c:2204](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog.c:2204). Mainline only writes this register in PHY-test paths. Its normal path also explicitly sets `FB_BOUNDARY_SEL`, unlike stock’s mainlink enable. Read both registers and test these differences individually.
+- **Sync polarity is lost.** [dp_display.c:1500](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_display.c:1500) computes `h_active_low`/`v_active_low`, but [the copy at line 597](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_display.c:597) omits them. [dp_panel.c:710](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_panel.c:710) subsequently programs the panel’s zero-initialized fields. The logged mode flags are `0xa`, requesting negative H/V sync. Expected width/polarity is therefore `8005802c`, whereas this path constructs `0005002c`. Stock preserves the requested polarities. This is a definite bug, but polarity alone does not necessarily prevent a converter locking.
+- **Stock sets `MAINLINK_LEVELS`’ safe-to-exit threshold to 8 for two lanes**: [dp_catalog.c:2204](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog.c:2204). Mainline only writes this register in PHY-test paths. Its normal path also explicitly sets `FB_BOUNDARY_SEL`, unlike stock’s mainlink enable. Read both registers and test these differences individually.
 - Mainline’s normal enable preserves the scrambler-bypass bit rather than explicitly clearing it. That is a reason to **read back bit 4**, not evidence that it is currently set.
 
 **Clock source: intended wiring is correct; achieved rate is unproven.**
 
 The DTS assigns the link clock to the PHY link output and both pixel sources to the PHY VCO-divider output. At HBR2, the intended rates are **540 MHz link**, **1.35 GHz pixel parent**, and **148.5 MHz stream pixel with widebus off**.
 
-The critical distinction is that [mainline MSA generation:2398](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_ctrl.c:2398) computes M/N from requested rates. [Stock:168](/home/deck/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog_v420.c:168) reads the DISPCC pixel M/N registers.
+The critical distinction is that [mainline MSA generation:2398](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/gpu/drm/msm/dp/dp_ctrl.c:2398) computes M/N from requested rates. [Stock:168](~/.local/state/rog5-kernel-compare-20260927/stock/techpack/display/msm/dp/dp_catalog_v420.c:168) reads the DISPCC pixel M/N registers.
 
-Moreover, [clk_rcg2_dp_set_rate():1780](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/clk/qcom/clk-rcg2.c:1780) preserves the existing HID divider. A non-unity divider is worth checking. PHY clock `recalc_rate` itself returns values from software options, not frequency measurements.
+Moreover, [clk_rcg2_dp_set_rate():1780](~/.local/state/rog5-kernel-7.2.7-build-r75/source/drivers/clk/qcom/clk-rcg2.c:1780) preserves the existing HID divider. A non-unity divider is worth checking. PHY clock `recalc_rate` itself returns values from software options, not frequency measurements.
 
 Read the SM8350-adjusted pixel RCG at **`af021a8`**, its CFG/M/N/D registers, the selected parent and `clk_get_rate()`. Correct printed MVID/NVID cannot replace that check.
 
@@ -99,7 +99,7 @@ Add bounded delayed snapshots at roughly 20 ms, 100 ms, 1 s, 5 s and 15 s, seria
 - `210–213`: lane 0/1 symbol-error counts, including validity bits.
 - `2002–2005` and `200c–200f`: ESI events and mirrored link/sink status. **Include `2005`**; `2003/2004` alone miss stream/HDMI-link event bits.
 - `3036–303b` only with capability-aware interpretation. `303b` is HDMI-link-active; `3036` is post-FRL status, not a universal TMDS-lock register. A legacy converter’s zero/NACK is inconclusive.
-- CRC: check support at `246`; start through **`270`**, then read `240–246` and verify the count advances. `246` is not the start register. These addresses are defined in [drm_dp.h](/home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source/include/drm/display/drm_dp.h:932).
+- CRC: check support at `246`; start through **`270`**, then read `240–246` and verify the count advances. `246` is not the start register. These addresses are defined in [drm_dp.h](~/.local/state/rog5-kernel-7.2.7-build-r75/source/include/drm/display/drm_dp.h:932).
 
 Predictions:
 

@@ -2190,7 +2190,7 @@ are in `final-checks-r89`; registration records are in `registration-r89`.
 
 On a fresh reply that the user is ready at the Deck, immediately run the already
 prepared command, without another build or preflight:
-`python3 -B /home/deck/.local/state/rog5-denial-20260910-r1/oled-startup-live-driver-r1/run-privilege-probe.py --run-id r1 --authenticate`.
+`python3 -B ~/.local/state/rog5-denial-20260910-r1/oled-startup-live-driver-r1/run-privilege-probe.py --run-id r1 --authenticate`.
 Its check-only result passes, graphical environment and tkinter are available,
 and the exclusive `privilege-probe-r1` directory is still absent. It performs only
 UID0 guardian/runuser-UID1000 probes, no phone/network/claim actions. Password input
@@ -2647,7 +2647,7 @@ send this exact command to retained exec PTY **44286** (shell PID 251096), witho
 rebuilding or repeating preparation:
 
 ```sh
-/usr/bin/python3 -I -B /home/deck/.local/state/rog5-denial-20260910-r1/kernel-log-relay-live-r1/probe.py
+/usr/bin/python3 -I -B ~/.local/state/rog5-denial-20260910-r1/kernel-log-relay-live-r1/probe.py
 ```
 
 It validates the terminal, uses only the retained touch authentication primitive,

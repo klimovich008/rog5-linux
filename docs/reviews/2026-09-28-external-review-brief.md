@@ -12,7 +12,7 @@ USB hubs, is reliable, fast when needed and efficient in standby.
 
 ## Where things are
 - Repo (branch agent/production-boot-20260923):
-  /home/deck/.local/state/rog5-prod-boot-20260923
+  ~/.local/state/rog5-prod-boot-20260923
   - Kernel patches for 7.2.7: patches/linux-7.2.7/ (series.production,
     series.diagnostic); build: scripts/host/build-rog5-production-kernel.py
   - Device-tree overlays: dts/qcom/*.dtso, composed by
@@ -61,7 +61,7 @@ A. Deep sleep never reached: AOP sys-PM violator log (CXPC mode) shows only
    Notes: test-results/2026-09-27-phosh-suspend.md, memory of experiments in
    scratchpad. What is missed?
 B. DP alt mode through a USB-C HDMI hub: see
-   /tmp/claude-1000/-home-deck-Projects-rog-phone-linux-migration/2cc1c994-1a4f-4a0b-aca7-41804577680f/scratchpad/dp-research/COMBINED.md
+   <session-scratchpad>/dp-research/COMBINED.md
    (orientation not applied to the SBU mux/PHY; msm_dp PUSH_IDLE on a dead
    link hangs the SoC, fixed by 0091; open: dark monitor in the good
    orientation — reconnect helper, 10-bit colour vs HDMI converter, or 3D

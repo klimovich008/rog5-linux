@@ -27,7 +27,7 @@ locations.
 Run from the host:
 
 ```sh
-/home/deck/.local/state/rog5-post-wipe-restoration-20260817-r1/VERIFY.sh
+~/.local/state/rog5-post-wipe-restoration-20260817-r1/VERIFY.sh
 ```
 
 The verifier checks the exact Arch, Alpine-boot, and stock-boot identities;

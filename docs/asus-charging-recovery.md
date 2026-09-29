@@ -5,7 +5,7 @@ Status: completed on 2026-08-19.
 This document is a guard against repeating the completed repair. Detailed
 build, flash, and charging evidence is retained privately under:
 
-`/home/deck/.local/state/rog5-super-explicit-ab-20260819-r1/`
+`~/.local/state/rog5-super-explicit-ab-20260819-r1/`
 
 ## Root cause
 

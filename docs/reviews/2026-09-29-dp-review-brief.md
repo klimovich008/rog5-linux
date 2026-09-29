@@ -46,17 +46,17 @@ covered yet.
 6. No DPU underruns or IRQ timeouts.
 
 ## Code
-- Patched source: /home/deck/.local/state/rog5-kernel-7.2.7-build-r75/source
+- Patched source: ~/.local/state/rog5-kernel-7.2.7-build-r75/source
   (drivers/gpu/drm/msm/dp/, drivers/phy/qualcomm/phy-qcom-qmp-combo.c,
   drivers/soc/qcom/pmic_glink_altmode.c, drivers/usb/typec/mux/gpio-sbu-mux.c)
-- Our patches: /home/deck/.local/state/rog5-prod-boot-20260923/patches/linux-7.2.7/
+- Our patches: ~/.local/state/rog5-prod-boot-20260923/patches/linux-7.2.7/
   (0080, 0091, 0093, 0094, 0095 touch DP/DPU)
 - Stock ASUS 5.4 downstream (working DP on this phone):
-  /home/deck/.local/state/rog5-kernel-compare-20260927/stock
+  ~/.local/state/rog5-kernel-compare-20260927/stock
   techpack/display/msm/dp/ (dp_catalog_v420.c, dp_ctrl.c, dp_link.c,
   dp_panel.c, dp_pll_5nm.c or similar), and
   arch/arm64/boot/dts/vendor/qcom/display/lahaina-sde.dtsi (sde_dp node),
-  stock DTBO decompiled: /home/deck/.local/state/rog5-stock-payload-20260927/dtbo/dtbo0.dts
+  stock DTBO decompiled: ~/.local/state/rog5-stock-payload-20260927/dtbo/dtbo0.dts
 - Earlier research: earlier-research-COMBINED.md, earlier-fable-opinion.md.
 
 ## Questions
