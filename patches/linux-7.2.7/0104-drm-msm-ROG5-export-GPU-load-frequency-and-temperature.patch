@@ -97,7 +97,7 @@ zone, millidegrees).
 +static SENSOR_DEVICE_ATTR_RO(freq1_label, freq1_label, 0);
 +
 +static const char * const msm_gpu_tz_names[] = {
-+	"gpu_top_thermal", "gpu_bottom_thermal", "gpuss0_thermal", "gpuss1_thermal",
++	"gpu-top-thermal", "gpu-bottom-thermal", "gpuss-0-thermal", "gpuss-1-thermal",
 +};
 +
 +static ssize_t temp1_input_show(struct device *dev,
