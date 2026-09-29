@@ -1,0 +1,13 @@
+path	family
+scripts/host/Build-MainlineInDocker.ps1	windows
+scripts/host/Get-A660Firmware.ps1	windows
+scripts/host/Get-ArchRootfs.ps1	windows
+scripts/host/Get-PlatformTools.ps1	windows
+scripts/host/Get-RecoveryPackages.ps1	windows
+scripts/host/Stage-ArchRootfs.ps1	windows
+scripts/host/Start-RemoteTunnel.ps1	windows
+scripts/host/Stop-RemoteTunnel.ps1	windows
+scripts/host/Test-Boot.ps1	windows
+scripts/host/Test-KernelFragment.ps1	windows
+scripts/host/Test-Repository.ps1	windows
+scripts/host/test-linux-rootfs-tools.sh	windows
