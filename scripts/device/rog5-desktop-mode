@@ -49,6 +49,11 @@ while :; do
 		# idle is checked every other poll (loginctl is not free on a phone)
 		if [ $((tick % 2)) -eq 0 ]; then
 			sess=$(phone_session)
+			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p LockedHint --value)" = yes ]; then
+				# GNOME's own lock needs GDM: hand over to the Phosh lock screen
+				to_phosh "GNOME locked"
+				continue
+			fi
 			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
 				idle=$((idle + 2 * POLL))
 			else

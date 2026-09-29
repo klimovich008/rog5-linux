@@ -53,3 +53,21 @@ kernel source; no DP work there).
   - Mode validation ignores the rate cap.
   - Whether 0080 top-down is safe to keep; the picture works with dpu_rm_top_down=0.
   - The Phosh launch splash outlives Chromium's startup.
+
+## GNOME desktop mode on DP (14:00-14:10)
+- rog5-kms-reset before GNOME fixed "switching CRTC directly" (plane-0 left on
+  the panel CRTC by Phosh): 0 failed flips, and the scanout captured with
+  rog5-kms-grab shows a correct GNOME frame.
+- **But the monitor shows solid underflow blue:** DPU INTF_0 underrun IRQ
+  [0,24] fires on every frame (+198 underruns for +198 vsyncs while the
+  pointer moved). mutter renders 10-bit XR30 (linear) buffers; Phosh/phoc
+  (XR24) gave a picture on DP at 13:13, and the first GNOME test (13:36)
+  worked before the KMS reset put DP on crtc-0.
+- Next test: modetest on DP XR24 vs XR30, counting [0,24]/[0,25]. `-M msm`
+  opens card0 (GPU only; GetResources fails) and `-D /dev/dri/card1` is
+  taken as a bus id; find the right device argument. Then force mutter to
+  8 bpc or fix the DPU 2101010 fetch.
+- GNOME session: the power key tried to suspend, and the rog5-server
+  inhibitor made polkit ask for a password; power-button-action is now
+  'nothing' in GNOME. GNOME idle-delay is 600 s, and a GNOME lock hands over
+  to the Phosh lock screen.
