@@ -89,7 +89,7 @@ class TierSelectorTest(unittest.TestCase):
         self.assertFalse(d['eligible'])
 
     def test_cpu_power_cap_is_critical_even_when_mixed_with_observer(self):
-        for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/power-profile.sh',
+        for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/new-power-profile.sh',
                      'scripts/device/headless-cpu-policy.py','packaging/arch/rog5-headless-cpu-policy.service'):
             d=MODULE.development_decision([path,'scripts/host/source-teardown-observation.py'])
             self.assertIn('critical-runtime',d['impact_categories'])
@@ -206,7 +206,7 @@ class TierSelectorTest(unittest.TestCase):
 
     def test_unknown_paths_always_escalate(self) -> None:
         for path in (".github/workflows/offline-smoke.yml", "manifests/new.json",
-                     "scripts/device/kernel-build-contract.sh", "new/input"):
+                     "scripts/device/new-kernel-contract.sh", "new/input"):
             with self.subTest(path=path):
                 self.assertEqual(MODULE.classify(["README.md", path]), ("ci", "yes"))
 
