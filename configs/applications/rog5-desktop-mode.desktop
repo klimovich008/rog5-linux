@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop mode
+Comment=GNOME desktop on the external monitor; the phone screen becomes a touchpad
+Exec=systemctl start --no-block rog5-gnome.service
+Icon=video-display
+Categories=System;
+OnlyShowIn=Phosh;

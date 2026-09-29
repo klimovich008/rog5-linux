@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Phone mode
+Comment=Leave the desktop and return to the phone (Phosh lock screen)
+Exec=systemctl start --no-block rog5-phosh.service
+Icon=phone
+Categories=System;
+OnlyShowIn=GNOME;

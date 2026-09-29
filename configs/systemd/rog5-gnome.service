@@ -1,5 +1,6 @@
 # GNOME desktop for the "phone" user on an external display (desktop mode),
-# started by rog5-desktop-mode only while the Phosh session is unlocked. No
+# started from the "Desktop mode" launcher on the unlocked phone (polkit rule
+# 60-rog5-desktop-mode: active local session only). No
 # display manager, so GNOME's own screen lock (it needs GDM) is off: when
 # GNOME goes idle or the display is unplugged, rog5-desktop-mode starts Phosh
 # again, which comes up on its PIN lock screen. The touchscreen is a touchpad
@@ -7,7 +8,9 @@
 [Unit]
 Description=GNOME desktop on the external display (ROG5 desktop mode)
 Requires=rog5-platform-modules.service
-After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service
+# After=rog5-phosh: when one replaces the other, the stop finishes before the
+# start (Phosh's tty hangup killed GNOME's start when both ran at once).
+After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service rog5-phosh.service
 Conflicts=rog5-phosh.service rog5-denial.service
 Wants=rog5-touchpad.service
 ConditionPathExists=/usr/bin/gnome-session

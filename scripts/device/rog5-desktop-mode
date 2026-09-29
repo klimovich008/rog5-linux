@@ -1,24 +1,18 @@
 #!/bin/sh
 # ROG5 desktop mode switcher (runs as root).
 #
-# External display connected and stable, and the phone unlocked in Phosh ->
-# GNOME desktop (rog5-gnome, touchscreen as touchpad). Display unplugged, or
-# GNOME idle for IDLE_SECS -> Phosh, which starts on its PIN lock screen.
-#
-# GNOME never starts from a locked phone: a new Phosh session briefly
-# reports LockedHint=no before its lock screen is up, so an unlocked session
-# counts only once it has been seen locked or is at least SETTLE seconds old.
+# Returns from the GNOME desktop (rog5-gnome, started by the "Desktop mode"
+# launcher) to Phosh when the display is unplugged, GNOME idles for
+# IDLE_SECS, GNOME locks, or the mode file says off; and makes sure a session
+# runs. It never starts GNOME itself.
 # /var/lib/rog5/desktop-mode holds auto (default) or off.
 set -u
 STATUS=/sys/class/drm/card1-DP-1/status
 MODE_FILE=/var/lib/rog5/desktop-mode
-ON_AFTER=6        # seconds of stable connection before switching to GNOME
 OFF_AFTER=4       # seconds of stable disconnection before switching back
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
-SETTLE=15         # age before a never-locked Phosh session's "unlocked" counts
 POLL=3            # seconds between checks; counters below are in seconds
 up=0 down=0 idle=0 tick=0
-seen_locked_session=
 
 phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
@@ -31,7 +25,6 @@ phone_session() {       # id of the phone user's graphical (phosh PAM) session
 
 to_phosh() {
 	echo "rog5-desktop-mode: $1 -> Phosh"
-	seen_locked_session=
 	systemctl stop rog5-gnome.service
 	systemctl start rog5-phosh.service
 }
@@ -78,26 +71,7 @@ while :; do
 		to_phosh "no session"
 		continue ;;
 	esac
-	systemctl -q is-active rog5-phosh.service || continue
-	# without a display there is nothing to decide: skip the session queries
-	[ "$up" -gt 0 ] || continue
-	sess=$(phone_session)
-	[ -n "$sess" ] || continue
-	now=$(cut -d. -f1 /proc/uptime)
-	born=$(loginctl show-session "$sess" -p TimestampMonotonic --value 2>/dev/null)
-	born=$(( ${born:-0} / 1000000 ))
-	locked=$(loginctl show-session "$sess" -p LockedHint --value 2>/dev/null)
-	[ "$locked" = yes ] && seen_locked_session=$sess
-	settled=no
-	{ [ "$seen_locked_session" = "$sess" ] ||
-	  [ $((now - born)) -ge "$SETTLE" ]; } && settled=yes
-	if [ "$mode" = auto ] && [ "$up" -ge "$ON_AFTER" ] && [ "$locked" = no ] &&
-	   [ "$settled" = yes ]; then
-		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
-		systemctl stop rog5-phosh.service
-		if ! systemctl start rog5-gnome.service; then
-			to_phosh "GNOME failed to start"
-		fi
-		up=0
-	fi
+	# GNOME is never started from here: only the "Desktop mode" launcher on
+	# the unlocked phone starts it (Phosh's lock state is not reliably visible
+	# to logind: a restarted Phosh on its lock screen reported LockedHint=no).
 done
