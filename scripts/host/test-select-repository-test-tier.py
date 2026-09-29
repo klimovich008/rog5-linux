@@ -19,6 +19,10 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+# Stand-ins for a probe-only tool and its QEMU-backed source (the real
+# early-target diagnostics were archived on 2026-09-29).
+EXAMPLE_PROBE = "scripts/host/example-probe.py"
+EXAMPLE_QEMU = "tools/example_probe/example-probe.c"
 
 
 class TierSelectorTest(unittest.TestCase):
@@ -97,26 +101,16 @@ class TierSelectorTest(unittest.TestCase):
     def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
         selected = set(self.tier_tests("probe"))
         for changed in MODULE.PROBE_ONLY:
-            if changed == MODULE.PROBE_QEMU:
-                required = "scripts/device/test-build-early-target-diag.sh"
-            else:
-                path = Path(changed)
-                required = str(path if path.name.startswith("test-")
-                               else path.with_name("test-" + path.name))
+            path = Path(changed)
+            required = str(path if path.name.startswith("test-")
+                           else path.with_name("test-" + path.name))
             with self.subTest(changed=changed):
                 self.assertIn(required, selected)
         self.assertIn("scripts/host/test-select-repository-test-tier.py", selected)
 
-    def test_probe_only_changes_use_fast_tier(self) -> None:
-        self.assertEqual(
-            MODULE.classify(
-                [
-                    "scripts/device/observe-early-mainline-power.sh",
-                    "scripts/host/early-target-diagnostics.py",
-                ]
-            ),
-            ("probe", "no"),
-        )
+    def test_former_probe_only_paths_now_need_ci(self) -> None:
+        self.assertEqual(MODULE.PROBE_ONLY, frozenset())
+        self.assertEqual(MODULE.classify(["scripts/host/new-probe-tool.py"]), ("ci", "yes"))
 
     def test_docs_only_use_active_tier(self) -> None:
         self.assertEqual(
@@ -124,6 +118,8 @@ class TierSelectorTest(unittest.TestCase):
             ("active", "no"),
         )
 
+    @patch.object(MODULE, "PROBE_ONLY", frozenset({EXAMPLE_PROBE, EXAMPLE_QEMU}))
+    @patch.object(MODULE, "PROBE_QEMU", EXAMPLE_QEMU)
     def test_agent_guidance_markdown_uses_active_tier(self) -> None:
         for path in ("AGENTS.md", "CLAUDE.md", ".claude/skills/rog5-fast-loop/SKILL.md",
                      ".agents/skills/rog5-fast-loop/SKILL.md",
@@ -131,7 +127,7 @@ class TierSelectorTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(MODULE.classify([path]), ("active", "no"))
                 self.assertEqual(MODULE.classify([
-                    path, "scripts/host/early-target-diagnostics.py",
+                    path, EXAMPLE_PROBE,
                 ]), ("probe", "no"))
 
     def test_agent_runtime_files_and_consumed_evidence_stay_broad(self) -> None:
@@ -154,13 +150,15 @@ class TierSelectorTest(unittest.TestCase):
             ("ci", "yes"),
         )
 
+    @patch.object(MODULE, "PROBE_ONLY", frozenset({EXAMPLE_PROBE, EXAMPLE_QEMU}))
+    @patch.object(MODULE, "PROBE_QEMU", EXAMPLE_QEMU)
     def test_reviewed_narrative_uses_same_ci_and_development_scope(self):
         report = MODULE.NARRATIVE_REPORT
         for paths in ([report], [report, 'docs/current-state.md', 'README.md']):
             self.assertTrue(MODULE.development_decision(paths)['eligible'])
             self.assertEqual(MODULE.classify(paths), ('active', 'no'))
         self.assertEqual(MODULE.classify([
-            report, 'scripts/host/early-target-diagnostics.py']), ('probe', 'no'))
+            report, EXAMPLE_PROBE]), ('probe', 'no'))
         for dependency in ('initramfs/native-wifi/runtime',
                            'scripts/host/new-claim-consumer.py',
                            'test-results/runtime.md', 'new/unknown.py'):
@@ -172,7 +170,7 @@ class TierSelectorTest(unittest.TestCase):
             "initramfs/network-root-init",
             "dts/qcom/sm8350-asus.dts",
             "patches/linux/ufs.patch",
-            "tools/early_target_diag/rog5-early-target-diag.c",
+            EXAMPLE_QEMU,
         ):
             with self.subTest(path=path):
                 self.assertEqual(MODULE.classify([path])[1], "yes")
@@ -196,12 +194,14 @@ class TierSelectorTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(MODULE.classify([path]), ("ci", "yes"))
 
+    @patch.object(MODULE, "PROBE_ONLY", frozenset({EXAMPLE_PROBE, EXAMPLE_QEMU}))
+    @patch.object(MODULE, "PROBE_QEMU", EXAMPLE_QEMU)
     def test_documentation_does_not_escalate_known_probe_changes(self) -> None:
         self.assertEqual(MODULE.classify([
-            "docs/current-state.md", "scripts/host/early-target-diagnostics.py",
+            "docs/current-state.md", EXAMPLE_PROBE,
         ]), ("probe", "no"))
         self.assertEqual(MODULE.classify([
-            "README.md", "tools/early_target_diag/rog5-early-target-diag.c",
+            "README.md", EXAMPLE_QEMU,
         ]), ("probe", "yes"))
 
     def test_unknown_paths_always_escalate(self) -> None:

@@ -12,20 +12,11 @@ import sys
 
 
 REPO = Path(__file__).resolve().parents[2]
-PROBE_ONLY = frozenset(
-    {
-        "scripts/device/observe-early-mainline-power.sh",
-        "scripts/device/probe-network-root-battery-telemetry.sh",
-        "scripts/device/test-observe-early-mainline-power.sh",
-        "scripts/device/test-probe-network-root-battery-telemetry.sh",
-        "scripts/host/collect-early-target-diagnostics.py",
-        "scripts/host/early-target-diagnostics.py",
-        "scripts/host/test-collect-early-target-diagnostics.py",
-        "scripts/host/test-early-target-diagnostics.py",
-        "tools/early_target_diag/rog5-early-target-diag.c",
-    }
-)
-PROBE_QEMU = "tools/early_target_diag/rog5-early-target-diag.c"
+# Paths whose changes need only the probe tier. The early-target diagnostic
+# tools that used it were archived on 2026-09-29; add new probe-only tools
+# here together with their own regression suite in the probe tier.
+PROBE_ONLY: frozenset[str] = frozenset()
+PROBE_QEMU = None
 # This current narrative has no runtime/builder consumers (reviewed with
 # git grep). Do not generalize to other test-results: many are sealed inputs.
 NARRATIVE_REPORT = 'test-results/2026-09-05-headless-acceptance.md'
@@ -120,7 +111,7 @@ def classify(paths: list[str]) -> tuple[str, str]:
                if not documentation(path) and path != NARRATIVE_REPORT]
     if not runtime:
         return "active", "no"
-    if all(path in PROBE_ONLY for path in runtime):
+    if PROBE_ONLY and all(path in PROBE_ONLY for path in runtime):
         return "probe", "yes" if PROBE_QEMU in runtime else "no"
     # Only demonstrated narrow coverage may opt out of full CI and QEMU.
     return "ci", "yes"
