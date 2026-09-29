@@ -6,3 +6,4 @@ Exec=systemctl start --no-block rog5-phosh.service
 Icon=phone
 Categories=System;
 OnlyShowIn=GNOME;
+X-Purism-FormFactor=Workstation;Mobile;

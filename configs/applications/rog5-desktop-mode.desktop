@@ -6,3 +6,4 @@ Exec=systemctl start --no-block rog5-gnome.service
 Icon=video-display
 Categories=System;
 OnlyShowIn=Phosh;
+X-Purism-FormFactor=Workstation;Mobile;
