@@ -9,9 +9,12 @@ softdog soft_panic=1
 rog5_gmu_bind
 # Display and GPU (milestone 2): KMS on card0, the A660 as a separate render
 # device; gpucc and refgen are built in.
-# No kernel fbdev/fbcon client: at msm probe (~24 s) it modesets the panel,
-# which shows glitches until Denial's first frame. Without it the bootloader
-# splash stays up until Denial takes the display over.
+# No kernel fbdev/fbcon client: at msm probe (~25 s) it modesets the panel,
+# which shows glitches until the compositor's first frame. Without it the
+# panel keeps the bootloader splash in its RAM until phoc's modeset, provided
+# the MDP fetch does not fault (0107) and the panel driver does not reset the
+# panel at probe (0108 handoff=1); see
+# test-results/2026-09-29-boot-splash-handover.md.
 drm_client_lib active=
 # DisplayPort alt mode on the side port (dp DTB feature): the QMP USB3/DP combo
 # PHY provides the DP link clocks, so it must be there before msm binds the DP
