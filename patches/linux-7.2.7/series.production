@@ -69,3 +69,4 @@
 0101-drm-msm-dpu-ROG5-apply-video-mode-perf-votes-before-the-encoders-start.patch
 0102-drm-msm-a6xx-ROG5-gpu_corner_offsets-GPU-undervolt-by-RPMh-corner.patch
 0103-arm64-cpuinfo-ROG5-name-Arm-cores-in-model-name.patch
+0104-drm-msm-ROG5-export-GPU-load-frequency-and-temperature.patch
