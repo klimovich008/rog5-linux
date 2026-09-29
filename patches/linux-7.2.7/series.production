@@ -58,3 +58,4 @@
 0090-clk-qcom-gcc-sm8350-keep-the-secondary-USB-GDSC-in-retention.patch
 0091-drm-msm-dp-ROG5-no-PUSH_IDLE-without-a-link-store-debugfs-connector.patch
 0092-watchdog-gunyah-ROG5-lifecycle-fixes.patch
+0093-drm-msm-dp-ROG5-cap-bpp-at-the-branch-downstream-max-bpc.patch

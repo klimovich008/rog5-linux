@@ -1,0 +1,36 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 cap bpp at the branch device's downstream max bpc
+
+A USB-C HDMI hub on the ROG5 side port is a DP-to-HDMI branch device.
+msm DP picks bpp from the monitor's EDID only (12 bpc deep colour on the
+test monitor -> 30 bpp after the 30 bpp cap), so the converter receives a
+10 bpc stream. The link trains and dp_video_ready fires, but the monitor
+stays dark and the converter bounces HPD after every modeset. i915,
+amdgpu and nouveau limit the depth with drm_dp_downstream_max_bpc(),
+which returns 8 for HDMI/DVI/VGA ports without detailed caps; msm never
+called it. Do the same in msm_dp_panel_get_supported_bpp().
+
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-29 10:54:29.340120862 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-29 10:54:29.352445488 +0200
+@@ -217,9 +217,21 @@
+ 	const struct msm_dp_link_info *link_info;
+ 	const u32 max_supported_bpp = 30, min_supported_bpp = 18;
+ 	u32 bpp, data_rate_khz;
++	int ds_max_bpc;
+ 
+ 	bpp = min(mode_edid_bpp, max_supported_bpp);
+ 
++	/*
++	 * A DP-to-HDMI/DVI branch (USB-C HDMI hub) only passes the depth its
++	 * downstream port supports: 8 bpc when it has no detailed caps. The
++	 * EDID bpc is the monitor's, not the converter's.
++	 */
++	ds_max_bpc = drm_dp_downstream_max_bpc(msm_dp_panel->dpcd,
++					       msm_dp_panel->downstream_ports,
++					       msm_dp_panel->drm_edid);
++	if (ds_max_bpc > 0)
++		bpp = min_t(u32, bpp, ds_max_bpc * 3);
++
+ 	link_info = &msm_dp_panel->link_info;
+ 	data_rate_khz = link_info->num_lanes * link_info->rate * 8;
+ 
