@@ -1,0 +1,105 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 put the protocol converter in HDMI mode; dp_max_bpc knob
+
+A USB-C HDMI hub (DPCD rev 1.4 branch, HDMI downstream port, 600 MHz,
+12 bpc) trains the link and reports dp_video_ready, but the monitor never
+locks and the hub bounces HPD ~20 s after each modeset, at 3840x1080 and
+1920x1080 alike. The Steam Deck (amdgpu) drives the same hub and monitor.
+i915 and amdgpu write DP_PROTOCOL_CONVERTER_CONTROL_0 (0x3050) to select
+HDMI output (the reset state is DVI, which cannot carry the 10 bpc stream
+msm sends); msm never did. Configure the converter before each link
+bring-up, cap a DVI-mode converter at 8 bpc, and add msm.dp_max_bpc
+(0644, 0 = off) so the depth can be tested without rebuilding.
+
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-29 11:35:45.383002689 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c	2026-09-29 11:35:45.402537010 +0200
+@@ -13,6 +13,7 @@
+ #include <drm/drm_print.h>
+ 
+ #include <linux/io.h>
++#include <linux/moduleparam.h>
+ #include <linux/types.h>
+ #include <asm/byteorder.h>
+ 
+@@ -211,6 +212,11 @@
+ 	return rc;
+ }
+ 
++/* ROG5 bring-up knob: cap bits per component on DP (0 = no cap). */
++static int msm_dp_max_bpc;
++module_param_named(dp_max_bpc, msm_dp_max_bpc, int, 0644);
++MODULE_PARM_DESC(dp_max_bpc, "cap DP bits per component, applied at the next modeset (0 = no cap)");
++
+ static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
+ 		u32 mode_edid_bpp, u32 mode_pclk_khz)
+ {
+@@ -231,6 +237,12 @@
+ 					       msm_dp_panel->drm_edid);
+ 	if (ds_max_bpc > 0)
+ 		bpp = min_t(u32, bpp, ds_max_bpc * 3);
++	/* A converter in DVI mode (non-HDMI sink) carries 8 bpc only. */
++	if (drm_dp_is_branch(msm_dp_panel->dpcd) && msm_dp_panel->connector &&
++	    !msm_dp_panel->connector->display_info.is_hdmi)
++		bpp = min_t(u32, bpp, 24);
++	if (msm_dp_max_bpc >= 6)
++		bpp = min_t(u32, bpp, msm_dp_max_bpc * 3);
+ 
+ 	link_info = &msm_dp_panel->link_info;
+ 	data_rate_khz = link_info->num_lanes * link_info->rate * 8;
+@@ -313,6 +325,35 @@
+ 	msm_dp_panel->drm_edid = NULL;
+ }
+ 
++/*
++ * A DP-to-HDMI protocol converter (PCON) resets to DVI output unless the
++ * source selects HDMI mode (DPCD 0x3050); DVI has no deep colour, no
++ * infoframes and no audio. i915 and amdgpu configure it before every link
++ * bring-up; do the same, with no colour-space conversion (0x3051/0x3052).
++ */
++void msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel)
++{
++	struct msm_dp_panel_private *panel;
++	const u8 *dpcd = msm_dp_panel->dpcd;
++	u8 mode, readback = 0xff;
++	bool hdmi;
++
++	if (dpcd[DP_DPCD_REV] < 0x13 || !drm_dp_is_branch(dpcd))
++		return;
++
++	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
++	hdmi = msm_dp_panel->connector && msm_dp_panel->connector->display_info.is_hdmi;
++	mode = hdmi ? DP_HDMI_DVI_OUTPUT_CONFIG : 0;
++
++	if (drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_0, mode) != 1)
++		DRM_WARN("DP: failed to set protocol converter %s mode\n", hdmi ? "HDMI" : "DVI");
++	drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_1, 0);
++	drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_2, 0);
++	drm_dp_dpcd_readb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_0, &readback);
++	drm_info(panel->drm_dev, "DP: protocol converter %s mode (0x3050=0x%02x)\n",
++		 hdmi ? "HDMI" : "DVI", readback);
++}
++
+ u32 msm_dp_panel_get_mode_bpp(struct msm_dp_panel *msm_dp_panel,
+ 		u32 mode_edid_bpp, u32 mode_pclk_khz)
+ {
+--- a/drivers/gpu/drm/msm/dp/dp_panel.h	2026-09-29 11:35:45.384384329 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_panel.h	2026-09-29 11:35:45.402590841 +0200
+@@ -49,6 +49,7 @@
+ int msm_dp_panel_timing_cfg(struct msm_dp_panel *msm_dp_panel, bool wide_bus_en);
+ int msm_dp_panel_read_sink_caps(struct msm_dp_panel *msm_dp_panel,
+ 		struct drm_connector *connector);
++void msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel);
+ void msm_dp_panel_unplugged(struct msm_dp_panel *msm_dp_panel,
+ 			    struct drm_connector *connector);
+ u32 msm_dp_panel_get_mode_bpp(struct msm_dp_panel *msm_dp_panel, u32 mode_max_bpp,
+--- a/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 11:35:45.385857670 +0200
++++ b/drivers/gpu/drm/msm/dp/dp_display.c	2026-09-29 11:35:45.402696572 +0200
+@@ -1385,6 +1385,8 @@
+ 		force_link_train = true;
+ 	}
+ 
++	msm_dp_panel_config_pcon(msm_dp_display->panel);
++
+ 	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
+ 	if (rc) {
+ 		DRM_ERROR("Failed link training (rc=%d)\n", rc);

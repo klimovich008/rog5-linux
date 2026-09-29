@@ -59,3 +59,4 @@
 0091-drm-msm-dp-ROG5-no-PUSH_IDLE-without-a-link-store-debugfs-connector.patch
 0092-watchdog-gunyah-ROG5-lifecycle-fixes.patch
 0093-drm-msm-dp-ROG5-cap-bpp-at-the-branch-downstream-max-bpc.patch
+0094-drm-msm-dp-ROG5-put-the-protocol-converter-in-HDMI-mode-dp_max_bpc-knob.patch
