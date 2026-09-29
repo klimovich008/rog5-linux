@@ -1,0 +1,89 @@
+#!/bin/sh
+# rog5-perf-mode: choose how early the skin (case) temperature throttles the
+# big CPU cores and the GPU.
+#
+#   normal       skin trips 42/46 C (the board DT default, between stock's
+#                NORMAL 36 C and GAME 39 C profiles)
+#   performance  skin trips 56/57 C, stock thermal-engine's PERF profile
+#                (X Mode): the GPU holds 840 MHz under sustained load
+#                (Geekbench 6 Vulkan 4670 -> 5405, case up to ~49 C,
+#                test-results/2026-09-29-gpu-performance.md)
+#
+# The 65 C critical trip (orderly shutdown) and the CPU/GPU junction trips
+# (90-110 C) are never changed. The choice persists in $state and is applied
+# at boot by rog5-perf-mode.service ("apply").
+#
+#   rog5-perf-mode [status|normal|performance|apply]
+set -eu
+state=${ROG5_PERF_MODE_STATE:-/var/lib/rog5/perf-mode}
+zones=${ROG5_PERF_MODE_ZONES:-/sys/class/thermal}
+
+skin_zone() {
+	for z in "$zones"/thermal_zone*; do
+		[ "$(cat "$z/type" 2>/dev/null)" = skin-thermal ] && { echo "$z"; return 0; }
+	done
+	return 1
+}
+
+# Writes the two passive trips (the higher one first when raising, the lower
+# one first when lowering, so they never cross).
+set_trips() {
+	z=$1 lo=$2 hi=$3
+	# shellcheck disable=SC2046
+	set -- $(for i in 0 1 2; do
+		[ "$(cat "$z/trip_point_${i}_type" 2>/dev/null)" = passive ] &&
+			echo "$(cat "$z/trip_point_${i}_temp") $i"
+	done | sort -n | awk '{print $2}')
+	[ $# -eq 2 ] || { echo 'rog5-perf-mode: skin zone needs exactly two passive trips' >&2; exit 1; }
+	p_lo=$1 p_hi=$2
+	if [ "$hi" -gt "$(cat "$z/trip_point_${p_hi}_temp")" ]; then
+		echo "$hi" >"$z/trip_point_${p_hi}_temp"
+		echo "$lo" >"$z/trip_point_${p_lo}_temp"
+	else
+		echo "$lo" >"$z/trip_point_${p_lo}_temp"
+		echo "$hi" >"$z/trip_point_${p_hi}_temp"
+	fi
+}
+
+mode_of() {
+	# Reports the mode the live trips correspond to.
+	z=$1 m=
+	for i in 0 1 2; do
+		[ "$(cat "$z/trip_point_${i}_type")" = passive ] || continue
+		[ "$(cat "$z/trip_point_${i}_temp")" -ge 56000 ] && m=performance
+	done
+	echo "${m:-normal}"
+}
+
+apply() {
+	z=$(skin_zone) || { echo 'rog5-perf-mode: no skin-thermal zone' >&2; exit 1; }
+	case $1 in
+	normal) set_trips "$z" 42000 46000 ;;
+	performance) set_trips "$z" 56000 57000 ;;
+	*) echo "rog5-perf-mode: unknown mode $1" >&2; exit 2 ;;
+	esac
+}
+
+cmd=${1:-status}
+case $cmd in
+status)
+	z=$(skin_zone) || { echo 'no skin-thermal zone'; exit 1; }
+	echo "mode: $(mode_of "$z") (saved: $(cat "$state" 2>/dev/null || echo normal))"
+	echo "skin: $(($(cat "$z/temp") / 1000)) C"
+	;;
+normal | performance)
+	apply "$cmd"
+	mkdir -p "$(dirname "$state")"
+	echo "$cmd" >"$state"
+	echo "mode: $cmd"
+	;;
+apply)
+	m=$(cat "$state" 2>/dev/null || echo normal)
+	apply "$m"
+	echo "mode: $m"
+	;;
+*)
+	echo 'usage: rog5-perf-mode [status|normal|performance|apply]' >&2
+	exit 2
+	;;
+esac

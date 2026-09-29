@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply the saved ROG5 performance mode (skin thermal limits)
+# The skin-thermal zone appears once the PMIC ADC/ADC-TM modules are loaded.
+After=rog5-platform-modules.service
+Wants=rog5-platform-modules.service
+ConditionPathExists=/var/lib/rog5/perf-mode
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/rog5-perf-mode apply
+
+[Install]
+WantedBy=multi-user.target
