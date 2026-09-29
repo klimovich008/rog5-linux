@@ -5,24 +5,22 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-09-29 (r185) (source: `docs/status/components.json`).
+Status as of 2026-09-29 (r187) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
-| Default | `production-7.2.7-r185` | 7.2.7 build r86 | platform-cpucap-dp-sbumux-dtb-r2 (`09094112`) | 2026-09-29 |
-| Fallback | `production-7.2.7-safe-r6` | 7.2.7 build r69 | platform-usbbtm-dtb-r2 (`bafe0488`) | kept on p24 as the fallback |
+| Default | `production-7.2.7-r189` | 7.2.7 build r92 | platform-cpucap-dp-sbumux-dtb-r2 (`09094112`) | 2026-09-29 |
+| Fallback | `production-7.2.7-safe-r7` | 7.2.7 build r69 | platform-usbbtm-dtb-r2 (`bafe0488`) | kept on p24 as the fallback |
 
-Components: 29 ready, 12 partial, 5 needs a test, 13 missing.
+Components: 29 ready, 10 partial, 6 needs a test, 13 missing.
 
 Partial:
 
 - Boot & updates / Unattended package updates: may reboot while the phone is used as a server (idle = backlight off)
-- Boot & updates / Boot splash: glitches between bootloader and Phosh
 - Boot & updates / Boot time: ~75 s to Phosh; initramfs waits, UFS 9.5 s
 - Display & shell / Brightness: about 4 real steps
-- Display & shell / Phosh: crashes on monitor hotplug (restarts, apps close)
 - External display / GNOME desktop mode: switching closes all apps
-- Connectivity / Wi-Fi: new MAC/IP each boot; 11 s reconnect after wake
+- Connectivity / Wi-Fi: stable MAC/IP since 2026-09-29; 11 s reconnect after wake
 - USB / Bottom port (USB 2.0 host): 5 V switched by hand
 - Power / Idle background wakeups: desktop-mode switcher and sleep policy poll
 - Performance / Performance mode: rog5-perf-mode CLI; no toggle in Phosh yet
@@ -31,10 +29,11 @@ Partial:
 
 Needs a test:
 
+- Boot & updates / Boot splash: r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check
+- Display & shell / Phosh: hotplug crash fixed in phosh 0.57.0-1.1 (lock shields); needs a real plug/unplug test
 - External display / DP-only without perf pin: 0106 NoC QoS candidate
 - Connectivity / Hotspot
 - Power / Battery standby measurement: needs the phone unplugged
-- Performance / GPU system cache (0107)
 - Audio / Bluetooth audio
 
 Missing:
