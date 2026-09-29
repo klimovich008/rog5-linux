@@ -67,3 +67,4 @@
 0099-drm-msm-dpu-vote-the-core-clock-for-the-full-pixel-clock-on-video-mode-interfaces.patch
 0100-drm-msm-dpu-ROG5-bus-vote-floor-for-video-mode-interfaces.patch
 0101-drm-msm-dpu-ROG5-apply-video-mode-perf-votes-before-the-encoders-start.patch
+0102-drm-msm-a6xx-ROG5-gpu_corner_offsets-GPU-undervolt-by-RPMh-corner.patch

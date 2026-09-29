@@ -1,0 +1,128 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/a6xx: ROG5 gpu_corner_offsets: GPU undervolt by RPMh corner
+
+The GPU voltage per OPP is the RPMh GX ("gfx.lvl") corner from the OPP's
+opp-level; AOP/firmware owns the actual millivolts. Add a writable
+parameter msm.gpu_corner_offsets="MHz:-steps,..." that lowers the GX corner
+index of those OPPs by that many cmd-db levels (never below the lowest
+non-zero level; raising is refused). The MX secondary vote stays at the
+stock corner's level. On write the GX vote table is rebuilt under the GMU
+lock; the GMU receives it with the HFI perf table at its next resume
+(GPU idle -> slumber -> resume). Nothing persists across a reboot. The
+ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
+840 MHz uses 416 (TURBO_L1) by default.
+
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-09-29 15:40:41.410641672 +0200
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-09-29 15:40:41.432186325 +0200
+@@ -1702,6 +1702,35 @@
+ 	return val;
+ }
+ 
++/*
++ * ROG5 GPU undervolt: gpu_corner_offsets="MHz:-steps,..." lowers the GX RPMh
++ * corner (gfx.lvl index) of those GPU OPPs by that many cmd-db levels,
++ * never below the lowest non-zero level. MX stays at the stock corner's
++ * level. Rebuilt on write; the GMU gets the table at its next resume (HFI
++ * perf table). Not persistent: empty after every boot. Raising is refused.
++ */
++static char rog5_gpu_corner_offsets[256];
++static struct a6xx_gmu *rog5_gmu;
++static DEFINE_MUTEX(rog5_gmu_uv_lock);
++
++static int rog5_gpu_corner_steps(unsigned long freq)
++{
++	const char *p = rog5_gpu_corner_offsets;
++	unsigned long mhz = freq / 1000000;
++
++	while (p && *p) {
++		unsigned long f;
++		int steps, n = 0;
++
++		if (sscanf(p, "%lu:%d%n", &f, &steps, &n) == 2 && f == mhz)
++			return steps < 0 ? -steps : 0;
++		p = strchr(p, ',');
++		if (p)
++			p++;
++	}
++	return 0;
++}
++
+ static int a6xx_gmu_rpmh_arc_votes_init(struct device *dev, u32 *votes,
+ 		unsigned long *freqs, int freqs_count,
+ 		const char *pri_id, const char *sec_id)
+@@ -1753,6 +1782,18 @@
+ 			return -EINVAL;
+ 		}
+ 
++		if (!strcmp(pri_id, "gfx.lvl")) {
++			int steps = rog5_gpu_corner_steps(freqs[i]);
++
++			if (steps && pindex > 1) {
++				u8 lowered = pindex - min_t(int, steps, pindex - 1);
++
++				dev_info(dev, "undervolt %lu MHz: gfx level %u -> %u\n",
++					 freqs[i] / 1000000, pri[pindex], pri[lowered]);
++				pindex = lowered;
++			}
++		}
++
+ 		/*
+ 		 * Look for a level in in the secondary list that matches. If
+ 		 * nothing fits, use the maximum non zero vote
+@@ -1834,6 +1875,47 @@
+  * and BCM parameters to build the votes.
+  */
+ 
++static int rog5_gpu_corner_offsets_set(const char *val, const struct kernel_param *kp)
++{
++	struct a6xx_gpu *a6xx_gpu;
++	int ret;
++
++	if (strlen(val) >= sizeof(rog5_gpu_corner_offsets))
++		return -ENOSPC;
++	if (strchr(val, '+'))
++		return -EINVAL;	/* lowering only */
++
++	mutex_lock(&rog5_gmu_uv_lock);
++	strscpy(rog5_gpu_corner_offsets, val, sizeof(rog5_gpu_corner_offsets));
++	strim(rog5_gpu_corner_offsets);
++	ret = 0;
++	if (rog5_gmu) {
++		a6xx_gpu = container_of(rog5_gmu, struct a6xx_gpu, gmu);
++		mutex_lock(&rog5_gmu->lock);
++		ret = a6xx_gmu_rpmh_arc_votes_init(&a6xx_gpu->base.base.pdev->dev,
++				rog5_gmu->gx_arc_votes, rog5_gmu->gpu_freqs,
++				rog5_gmu->nr_gpu_freqs, "gfx.lvl",
++				IS_ERR_OR_NULL(cmd_db_read_aux_data("gmxc.lvl", NULL)) ?
++				"mx.lvl" : "gmxc.lvl");
++		mutex_unlock(&rog5_gmu->lock);
++	}
++	mutex_unlock(&rog5_gmu_uv_lock);
++	return ret;
++}
++
++static const struct kernel_param_ops rog5_gpu_corner_offsets_ops = {
++	.set = rog5_gpu_corner_offsets_set,
++	.get = param_get_string,
++};
++static struct kparam_string rog5_gpu_corner_offsets_kps = {
++	.maxlen = sizeof(rog5_gpu_corner_offsets),
++	.string = rog5_gpu_corner_offsets,
++};
++module_param_cb(gpu_corner_offsets, &rog5_gpu_corner_offsets_ops,
++		&rog5_gpu_corner_offsets_kps, 0600);
++MODULE_PARM_DESC(gpu_corner_offsets,
++		 "ROG5 GPU undervolt: MHz:-steps,... lowers the GX RPMh corner per OPP (next GMU resume)");
++
+ static int a6xx_gmu_rpmh_votes_init(struct a6xx_gmu *gmu)
+ {
+ 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+@@ -1851,6 +1933,8 @@
+ 	/* If GMxC is present, prefer that as secondary rail for GX votes */
+ 	sec_id = IS_ERR_OR_NULL(gmxc) ? "mx.lvl" : "gmxc.lvl";
+ 
++	rog5_gmu = gmu;
++
+ 	/* Build the GX votes */
+ 	ret = a6xx_gmu_rpmh_arc_votes_init(&gpu->pdev->dev, gmu->gx_arc_votes,
+ 		gmu->gpu_freqs, gmu->nr_gpu_freqs, "gfx.lvl", sec_id);
