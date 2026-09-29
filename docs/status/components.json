@@ -1,84 +1,372 @@
 {
-  "as_of": "2026-09-29 (r185)",
-  "areas": [
-    {"name": "Boot & updates", "components": [
-      {"name": "Signed boot chain", "status": "ready", "weight": 3, "note": "slot-B wrapper, try-once selector, signed fallback safe-r6"},
-      {"name": "Kernel updates", "status": "ready", "weight": 2, "note": "file writes on p24, automatic fallback"},
-      {"name": "Unattended package updates", "status": "partial", "weight": 2, "note": "may reboot while the phone is used as a server (idle = backlight off)"},
-      {"name": "Boot splash", "status": "partial", "weight": 2, "note": "glitches between bootloader and Phosh"},
-      {"name": "Boot time", "status": "partial", "weight": 1, "note": "~75 s to Phosh; initramfs waits, UFS 9.5 s"},
-      {"name": "Reboot to fastboot", "status": "missing", "weight": 1, "note": "reboot argument ignored by the shutdown script"}
-    ]},
-    {"name": "Display & shell", "components": [
-      {"name": "AMOLED panel", "status": "ready", "weight": 3, "note": "1080x2448 at 60 Hz"},
-      {"name": "Brightness", "status": "partial", "weight": 2, "note": "about 4 real steps"},
-      {"name": "High refresh rate", "status": "missing", "weight": 1, "note": "60 Hz only"},
-      {"name": "Phosh", "status": "partial", "weight": 3, "note": "crashes on monitor hotplug (restarts, apps close)"},
-      {"name": "Lock screen & PIN", "status": "ready", "weight": 1},
-      {"name": "App launch feedback", "status": "ready", "weight": 1, "note": "Chromium desktop file fixed; Firefox splash still times out"}
-    ]},
-    {"name": "External display", "components": [
-      {"name": "DP alt mode 1080p60", "status": "ready", "weight": 2},
-      {"name": "HBR2 / higher modes", "status": "missing", "weight": 1, "note": "lane-1 errors"},
-      {"name": "DP-only without perf pin", "status": "untested", "weight": 1, "note": "0106 NoC QoS candidate"},
-      {"name": "GNOME desktop mode", "status": "partial", "weight": 2, "note": "switching closes all apps"},
-      {"name": "Touchscreen as touchpad", "status": "ready", "weight": 1}
-    ]},
-    {"name": "Connectivity", "components": [
-      {"name": "Wi-Fi", "status": "partial", "weight": 3, "note": "new MAC/IP each boot; 11 s reconnect after wake"},
-      {"name": "Bluetooth", "status": "ready", "weight": 2},
-      {"name": "Bluetooth headset mic (HFP)", "status": "missing", "weight": 1},
-      {"name": "Tailscale", "status": "ready", "weight": 1},
-      {"name": "Hotspot", "status": "untested", "weight": 1},
-      {"name": "Cellular modem", "status": "missing", "weight": 3, "note": "out of scope"},
-      {"name": "GPS", "status": "missing", "weight": 1},
-      {"name": "NFC", "status": "missing", "weight": 1}
-    ]},
-    {"name": "USB", "components": [
-      {"name": "Side port host + hubs", "status": "ready", "weight": 3, "note": "survives suspend since 0105"},
-      {"name": "Charging via hub", "status": "ready", "weight": 1},
-      {"name": "Bottom port (USB 2.0 host)", "status": "partial", "weight": 1, "note": "5 V switched by hand"},
-      {"name": "USB gadget (network to a PC)", "status": "ready", "weight": 1}
-    ]},
-    {"name": "Power", "components": [
-      {"name": "Charging & limits", "status": "ready", "weight": 2, "note": "charge limit and bypass"},
-      {"name": "Suspend (s2idle)", "status": "ready", "weight": 2},
-      {"name": "Deep standby (CX/DDR collapse)", "status": "missing", "weight": 3, "note": "DDR held at 200 MHz by another RPMh master; ~79 mA"},
-      {"name": "Battery standby measurement", "status": "untested", "weight": 1, "note": "needs the phone unplugged"},
-      {"name": "Idle background wakeups", "status": "partial", "weight": 1, "note": "desktop-mode switcher and sleep policy poll"}
-    ]},
-    {"name": "Performance", "components": [
-      {"name": "CPU", "status": "ready", "weight": 3, "note": "GB6 1580/4191 (above Android)"},
-      {"name": "GPU (Vulkan/GL)", "status": "ready", "weight": 3, "note": "GB6 Vulkan 4670 normal, 5405 performance mode"},
-      {"name": "Performance mode", "status": "partial", "weight": 1, "note": "rog5-perf-mode CLI; no toggle in Phosh yet"},
-      {"name": "GPU system cache (0107)", "status": "untested", "weight": 1},
-      {"name": "Thermal protection", "status": "ready", "weight": 2, "note": "skin + junction trips, 65 C shutdown"},
-      {"name": "System monitor (Resources)", "status": "ready", "weight": 1}
-    ]},
-    {"name": "Audio", "components": [
-      {"name": "Speakers", "status": "ready", "weight": 2},
-      {"name": "Microphones", "status": "ready", "weight": 1},
-      {"name": "Earpiece", "status": "missing", "weight": 1},
-      {"name": "3.5 mm jack", "status": "missing", "weight": 1},
-      {"name": "Bluetooth audio", "status": "untested", "weight": 1}
-    ]},
-    {"name": "Sensors & hardware", "components": [
-      {"name": "Touchscreen", "status": "ready", "weight": 2},
-      {"name": "Buttons", "status": "ready", "weight": 1},
-      {"name": "Vibration", "status": "ready", "weight": 1},
-      {"name": "Motion sensors (SLPI)", "status": "ready", "weight": 2},
-      {"name": "Light / proximity", "status": "ready", "weight": 1},
-      {"name": "Cameras", "status": "missing", "weight": 3},
-      {"name": "Fingerprint", "status": "missing", "weight": 1},
-      {"name": "AirTriggers", "status": "missing", "weight": 1},
-      {"name": "RGB logo LED", "status": "partial", "weight": 1}
-    ]},
-    {"name": "Server", "components": [
-      {"name": "SSH (keys only)", "status": "ready", "weight": 2},
-      {"name": "Firewall (nftables)", "status": "ready", "weight": 1},
-      {"name": "128 GiB persistent root", "status": "ready", "weight": 2},
-      {"name": "Hardware watchdog", "status": "ready", "weight": 1},
-      {"name": "Journal retention", "status": "partial", "weight": 1, "note": "200 MB cap keeps ~11 h"}
-    ]}
-  ]
+ "as_of": "2026-09-29 (r187)",
+ "areas": [
+  {
+   "name": "Boot & updates",
+   "components": [
+    {
+     "name": "Signed boot chain",
+     "status": "ready",
+     "weight": 3,
+     "note": "slot-B wrapper, try-once selector, signed fallback safe-r6"
+    },
+    {
+     "name": "Kernel updates",
+     "status": "ready",
+     "weight": 2,
+     "note": "file writes on p24, automatic fallback"
+    },
+    {
+     "name": "Unattended package updates",
+     "status": "partial",
+     "weight": 2,
+     "note": "may reboot while the phone is used as a server (idle = backlight off)"
+    },
+    {
+     "name": "Boot splash",
+     "status": "untested",
+     "weight": 2,
+     "note": "r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check"
+    },
+    {
+     "name": "Boot time",
+     "status": "partial",
+     "weight": 1,
+     "note": "~75 s to Phosh; initramfs waits, UFS 9.5 s"
+    },
+    {
+     "name": "Reboot to fastboot",
+     "status": "missing",
+     "weight": 1,
+     "note": "reboot argument ignored by the shutdown script"
+    }
+   ]
+  },
+  {
+   "name": "Display & shell",
+   "components": [
+    {
+     "name": "AMOLED panel",
+     "status": "ready",
+     "weight": 3,
+     "note": "1080x2448 at 60 Hz"
+    },
+    {
+     "name": "Brightness",
+     "status": "partial",
+     "weight": 2,
+     "note": "about 4 real steps"
+    },
+    {
+     "name": "High refresh rate",
+     "status": "missing",
+     "weight": 1,
+     "note": "60 Hz only"
+    },
+    {
+     "name": "Phosh",
+     "status": "partial",
+     "weight": 3,
+     "note": "crashes on monitor hotplug (restarts, apps close)"
+    },
+    {
+     "name": "Lock screen & PIN",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "App launch feedback",
+     "status": "ready",
+     "weight": 1,
+     "note": "Chromium desktop file fixed; Firefox splash still times out"
+    }
+   ]
+  },
+  {
+   "name": "External display",
+   "components": [
+    {
+     "name": "DP alt mode 1080p60",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "HBR2 / higher modes",
+     "status": "missing",
+     "weight": 1,
+     "note": "lane-1 errors"
+    },
+    {
+     "name": "DP-only without perf pin",
+     "status": "untested",
+     "weight": 1,
+     "note": "0106 NoC QoS candidate"
+    },
+    {
+     "name": "GNOME desktop mode",
+     "status": "partial",
+     "weight": 2,
+     "note": "switching closes all apps"
+    },
+    {
+     "name": "Touchscreen as touchpad",
+     "status": "ready",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "Connectivity",
+   "components": [
+    {
+     "name": "Wi-Fi",
+     "status": "partial",
+     "weight": 3,
+     "note": "stable MAC/IP since 2026-09-29; 11 s reconnect after wake"
+    },
+    {
+     "name": "Bluetooth",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Bluetooth headset mic (HFP)",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "Tailscale",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Hotspot",
+     "status": "untested",
+     "weight": 1
+    },
+    {
+     "name": "Cellular modem",
+     "status": "missing",
+     "weight": 3,
+     "note": "out of scope"
+    },
+    {
+     "name": "GPS",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "NFC",
+     "status": "missing",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "USB",
+   "components": [
+    {
+     "name": "Side port host + hubs",
+     "status": "ready",
+     "weight": 3,
+     "note": "survives suspend since 0105"
+    },
+    {
+     "name": "Charging via hub",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Bottom port (USB 2.0 host)",
+     "status": "partial",
+     "weight": 1,
+     "note": "5 V switched by hand"
+    },
+    {
+     "name": "USB gadget (network to a PC)",
+     "status": "ready",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "Power",
+   "components": [
+    {
+     "name": "Charging & limits",
+     "status": "ready",
+     "weight": 2,
+     "note": "charge limit and bypass"
+    },
+    {
+     "name": "Suspend (s2idle)",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Deep standby (CX/DDR collapse)",
+     "status": "missing",
+     "weight": 3,
+     "note": "DDR held at 200 MHz by another RPMh master; ~79 mA"
+    },
+    {
+     "name": "Battery standby measurement",
+     "status": "untested",
+     "weight": 1,
+     "note": "needs the phone unplugged"
+    },
+    {
+     "name": "Idle background wakeups",
+     "status": "partial",
+     "weight": 1,
+     "note": "desktop-mode switcher and sleep policy poll"
+    }
+   ]
+  },
+  {
+   "name": "Performance",
+   "components": [
+    {
+     "name": "CPU",
+     "status": "ready",
+     "weight": 3,
+     "note": "GB6 1580/4191 (above Android)"
+    },
+    {
+     "name": "GPU (Vulkan/GL)",
+     "status": "ready",
+     "weight": 3,
+     "note": "GB6 Vulkan 4670 normal, 5405 performance mode"
+    },
+    {
+     "name": "Performance mode",
+     "status": "partial",
+     "weight": 1,
+     "note": "rog5-perf-mode CLI; no toggle in Phosh yet"
+    },
+    {
+     "name": "Thermal protection",
+     "status": "ready",
+     "weight": 2,
+     "note": "skin + junction trips, 65 C shutdown"
+    },
+    {
+     "name": "System monitor (Resources)",
+     "status": "ready",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "Audio",
+   "components": [
+    {
+     "name": "Speakers",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Microphones",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Earpiece",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "3.5 mm jack",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "Bluetooth audio",
+     "status": "untested",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "Sensors & hardware",
+   "components": [
+    {
+     "name": "Touchscreen",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Buttons",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Vibration",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Motion sensors (SLPI)",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Light / proximity",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Cameras",
+     "status": "missing",
+     "weight": 3
+    },
+    {
+     "name": "Fingerprint",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "AirTriggers",
+     "status": "missing",
+     "weight": 1
+    },
+    {
+     "name": "RGB logo LED",
+     "status": "partial",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "name": "Server",
+   "components": [
+    {
+     "name": "SSH (keys only)",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Firewall (nftables)",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "128 GiB persistent root",
+     "status": "ready",
+     "weight": 2
+    },
+    {
+     "name": "Hardware watchdog",
+     "status": "ready",
+     "weight": 1
+    },
+    {
+     "name": "Journal retention",
+     "status": "partial",
+     "weight": 1,
+     "note": "200 MB cap keeps ~11 h"
+    }
+   ]
+  }
+ ]
 }

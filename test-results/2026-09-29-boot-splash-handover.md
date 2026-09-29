@@ -164,3 +164,15 @@ change is needed. Then:
 5. **Backlight choreography only** (for example DBV 0 until phosh is up): does
    nothing for glitch 1 (bad frames at 0.06 s) and turns the logo off early;
    the `bl_delay_ms` part of 0108 is the useful piece of it.
+
+## On-phone result (r187, 2026-09-29 21:53)
+
+production-7.2.7-r187 (kernel r91-splash = r86 + 0107 + 0108) installed as
+the default over Wi-Fi; the first boot committed healthy. Journal checks:
+`Unhandled context fault` 0 (r185: 10 at every boot), MDSS iommu group 6
+type `identity`, "bootloader left the panel on: keeping its picture until the
+first frame" once, handoff=Y, bl_delay_ms=50, no `WARNING: CPU`, kernel
+error lines 37 -> 7. `trial.py --suspend`: all checks pass (suspend with the
+hub, Wi-Fi 3.5 ms RTT after resume, GPU, zero SMMU/GPU faults). The visual
+check (film a boot; three blank/unblank cycles) is for the user
+(docs/whats-left.md, test 9).

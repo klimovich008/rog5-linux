@@ -1,209 +1,206 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="654" viewBox="0 0 960 654">
 <rect width="960" height="654" fill="#1f2229"/>
-<rect x="2.0" y="2.0" width="264.4" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<rect x="2.0" y="2.0" width="267.3" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="6.0" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Connectivity</text>
-<g><title>Connectivity / Wi-Fi: partial / not fully integrated - new MAC/IP each boot; 11 s reconnect after wake</title><rect x="3.0" y="19.0" width="131.2" height="133.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Connectivity / Wi-Fi: partial / not fully integrated - stable MAC/IP since 2026-09-29; 11 s reconnect after wake</title><rect x="3.0" y="19.0" width="132.6" height="133.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="6.0" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Wi-Fi</text>
 </g>
-<g><title>Connectivity / Cellular modem: missing - out of scope</title><rect x="134.2" y="19.0" width="131.2" height="133.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="137.2" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cellular modem</text>
+<g><title>Connectivity / Cellular modem: missing - out of scope</title><rect x="135.6" y="19.0" width="132.6" height="133.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="138.6" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cellular modem</text>
 </g>
-<g><title>Connectivity / Bluetooth: ready</title><rect x="3.0" y="152.8" width="75.0" height="156.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Connectivity / Bluetooth: ready</title><rect x="3.0" y="152.8" width="75.8" height="156.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="6.0" y="164.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth</text>
 </g>
-<g><title>Connectivity / Bluetooth headset mic (HFP): missing</title><rect x="78.0" y="152.8" width="75.0" height="78.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="81.0" y="164.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth …</text>
+<g><title>Connectivity / Bluetooth headset mic (HFP): missing</title><rect x="78.8" y="152.8" width="75.8" height="78.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="81.8" y="164.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth …</text>
 </g>
-<g><title>Connectivity / Tailscale: ready</title><rect x="78.0" y="230.9" width="75.0" height="78.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="81.0" y="242.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Tailscale</text>
+<g><title>Connectivity / Tailscale: ready</title><rect x="78.8" y="230.9" width="75.8" height="78.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="81.8" y="242.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Tailscale</text>
 </g>
-<g><title>Connectivity / Hotspot: needs a test</title><rect x="153.0" y="152.8" width="56.2" height="104.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="156.0" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hotspot</text>
+<g><title>Connectivity / Hotspot: needs a test</title><rect x="154.6" y="152.8" width="56.8" height="104.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="157.6" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hotspot</text>
 </g>
-<g><title>Connectivity / GPS: missing</title><rect x="209.2" y="152.8" width="56.2" height="104.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="212.2" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">GPS</text>
+<g><title>Connectivity / GPS: missing</title><rect x="211.4" y="152.8" width="56.8" height="104.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="214.4" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">GPS</text>
 </g>
-<g><title>Connectivity / NFC: missing</title><rect x="153.0" y="256.9" width="112.5" height="52.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="156.0" y="268.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">NFC</text>
+<g><title>Connectivity / NFC: missing</title><rect x="154.6" y="256.9" width="113.7" height="52.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="157.6" y="268.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">NFC</text>
 </g>
-<rect x="2.0" y="310.0" width="264.4" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<rect x="2.0" y="310.0" width="267.3" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="6.0" y="322.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Sensors &amp; hardware</text>
-<g><title>Sensors &amp; hardware / Cameras: missing</title><rect x="3.0" y="327.0" width="157.5" height="111.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Sensors &amp; hardware / Cameras: missing</title><rect x="3.0" y="327.0" width="159.2" height="111.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
 <text x="6.0" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cameras</text>
 </g>
-<g><title>Sensors &amp; hardware / Touchscreen: ready</title><rect x="160.5" y="327.0" width="105.0" height="111.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="163.5" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen</text>
+<g><title>Sensors &amp; hardware / Touchscreen: ready</title><rect x="162.2" y="327.0" width="106.1" height="111.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="165.2" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen</text>
 </g>
-<g><title>Sensors &amp; hardware / Motion sensors (SLPI): ready</title><rect x="3.0" y="438.5" width="98.4" height="119.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Sensors &amp; hardware / Motion sensors (SLPI): ready</title><rect x="3.0" y="438.5" width="99.5" height="119.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="6.0" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Motion sensors…</text>
 </g>
-<g><title>Sensors &amp; hardware / Buttons: ready</title><rect x="3.0" y="557.5" width="98.4" height="59.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Sensors &amp; hardware / Buttons: ready</title><rect x="3.0" y="557.5" width="99.5" height="59.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="6.0" y="569.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Buttons</text>
 </g>
-<g><title>Sensors &amp; hardware / Vibration: ready</title><rect x="101.4" y="438.5" width="82.0" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="104.4" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Vibration</text>
+<g><title>Sensors &amp; hardware / Vibration: ready</title><rect x="102.5" y="438.5" width="82.9" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="105.5" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Vibration</text>
 </g>
-<g><title>Sensors &amp; hardware / Light / proximity: ready</title><rect x="183.4" y="438.5" width="82.0" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="186.4" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Light / pro…</text>
+<g><title>Sensors &amp; hardware / Light / proximity: ready</title><rect x="185.4" y="438.5" width="82.9" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="188.4" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Light / pro…</text>
 </g>
-<g><title>Sensors &amp; hardware / Fingerprint: missing</title><rect x="101.4" y="509.9" width="54.7" height="107.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="104.4" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Fingerpri…</text>
+<g><title>Sensors &amp; hardware / Fingerprint: missing</title><rect x="102.5" y="509.9" width="55.3" height="107.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="105.5" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Fingerpri…</text>
 </g>
-<g><title>Sensors &amp; hardware / AirTriggers: missing</title><rect x="156.1" y="509.9" width="54.7" height="107.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="159.1" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">AirTrigge…</text>
+<g><title>Sensors &amp; hardware / AirTriggers: missing</title><rect x="157.7" y="509.9" width="55.3" height="107.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="160.7" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">AirTrigge…</text>
 </g>
-<g><title>Sensors &amp; hardware / RGB logo LED: partial / not fully integrated</title><rect x="210.8" y="509.9" width="54.7" height="107.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="213.8" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">RGB logo …</text>
+<g><title>Sensors &amp; hardware / RGB logo LED: partial / not fully integrated</title><rect x="213.0" y="509.9" width="55.3" height="107.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="216.0" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">RGB logo …</text>
 </g>
-<rect x="266.4" y="2.0" width="223.7" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="270.4" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Boot &amp; updates</text>
-<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-r6</title><rect x="267.4" y="19.0" width="133.0" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="270.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Signed boot chain</text>
+<rect x="269.3" y="2.0" width="226.2" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="273.3" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Boot &amp; updates</text>
+<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-r6</title><rect x="270.3" y="19.0" width="134.5" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="273.3" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Signed boot chain</text>
 </g>
-<g><title>Boot &amp; updates / Kernel updates: ready - file writes on p24, automatic fallback</title><rect x="400.5" y="19.0" width="88.7" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="403.5" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Kernel updat…</text>
+<g><title>Boot &amp; updates / Kernel updates: ready - file writes on p24, automatic fallback</title><rect x="404.8" y="19.0" width="89.7" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="407.8" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Kernel updat…</text>
 </g>
-<g><title>Boot &amp; updates / Unattended package updates: partial / not fully integrated - may reboot while the phone is used as a server (idle = backlight off)</title><rect x="267.4" y="150.8" width="147.8" height="79.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="270.4" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Unattended package upd…</text>
+<g><title>Boot &amp; updates / Unattended package updates: partial / not fully integrated - may reboot while the phone is used as a server (idle = backlight off)</title><rect x="270.3" y="150.8" width="149.4" height="79.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="273.3" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Unattended package upd…</text>
 </g>
-<g><title>Boot &amp; updates / Boot splash: partial / not fully integrated - glitches between bootloader and Phosh</title><rect x="267.4" y="229.9" width="147.8" height="79.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="270.4" y="241.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot splash</text>
+<g><title>Boot &amp; updates / Boot splash: needs a test - r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check</title><rect x="270.3" y="229.9" width="149.4" height="79.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="273.3" y="241.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot splash</text>
 </g>
-<g><title>Boot &amp; updates / Boot time: partial / not fully integrated - ~75 s to Phosh; initramfs waits, UFS 9.5 s</title><rect x="415.3" y="150.8" width="73.9" height="79.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="418.3" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot time</text>
+<g><title>Boot &amp; updates / Boot time: partial / not fully integrated - ~75 s to Phosh; initramfs waits, UFS 9.5 s</title><rect x="419.7" y="150.8" width="74.7" height="79.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="422.7" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot time</text>
 </g>
-<g><title>Boot &amp; updates / Reboot to fastboot: missing - reboot argument ignored by the shutdown script</title><rect x="415.3" y="229.9" width="73.9" height="79.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="418.3" y="241.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Reboot to …</text>
+<g><title>Boot &amp; updates / Reboot to fastboot: missing - reboot argument ignored by the shutdown script</title><rect x="419.7" y="229.9" width="74.7" height="79.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="422.7" y="241.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Reboot to …</text>
 </g>
-<rect x="266.4" y="310.0" width="223.7" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="270.4" y="322.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Display &amp; shell</text>
-<g><title>Display &amp; shell / AMOLED panel: ready - 1080x2448 at 60 Hz</title><rect x="267.4" y="327.0" width="110.9" height="158.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="270.4" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AMOLED panel</text>
+<rect x="269.3" y="310.0" width="226.2" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="273.3" y="322.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Display &amp; shell</text>
+<g><title>Display &amp; shell / AMOLED panel: ready - 1080x2448 at 60 Hz</title><rect x="270.3" y="327.0" width="112.1" height="158.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="273.3" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AMOLED panel</text>
 </g>
-<g><title>Display &amp; shell / Phosh: partial / not fully integrated - crashes on monitor hotplug (restarts, apps close)</title><rect x="378.3" y="327.0" width="110.9" height="158.2" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="381.3" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Phosh</text>
+<g><title>Display &amp; shell / Phosh: partial / not fully integrated - crashes on monitor hotplug (restarts, apps close)</title><rect x="382.3" y="327.0" width="112.1" height="158.2" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="385.3" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Phosh</text>
 </g>
-<g><title>Display &amp; shell / Brightness: partial / not fully integrated - about 4 real steps</title><rect x="267.4" y="485.2" width="88.7" height="131.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="270.4" y="497.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Brightness</text>
+<g><title>Display &amp; shell / Brightness: partial / not fully integrated - about 4 real steps</title><rect x="270.3" y="485.2" width="89.7" height="131.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="273.3" y="497.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Brightness</text>
 </g>
-<g><title>Display &amp; shell / High refresh rate: missing - 60 Hz only</title><rect x="356.1" y="485.2" width="88.7" height="65.9" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="359.1" y="497.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">High refresh…</text>
+<g><title>Display &amp; shell / High refresh rate: missing - 60 Hz only</title><rect x="359.9" y="485.2" width="89.7" height="65.9" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="362.9" y="497.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">High refresh…</text>
 </g>
-<g><title>Display &amp; shell / Lock screen &amp; PIN: ready</title><rect x="356.1" y="551.1" width="88.7" height="65.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="359.1" y="563.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Lock screen …</text>
+<g><title>Display &amp; shell / Lock screen &amp; PIN: ready</title><rect x="359.9" y="551.1" width="89.7" height="65.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="362.9" y="563.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Lock screen …</text>
 </g>
-<g><title>Display &amp; shell / App launch feedback: ready - Chromium desktop file fixed; Firefox splash still times out</title><rect x="444.8" y="485.2" width="44.3" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="447.8" y="495.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">App la…</text>
+<g><title>Display &amp; shell / App launch feedback: ready - Chromium desktop file fixed; Firefox splash still times out</title><rect x="449.6" y="485.2" width="44.8" height="131.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="452.6" y="495.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">App lau…</text>
 </g>
-<rect x="490.2" y="2.0" width="257.3" height="267.8" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="494.2" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Performance</text>
-<g><title>Performance / CPU: ready - GB6 1580/4191 (above Android)</title><rect x="491.2" y="19.0" width="139.3" height="124.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">CPU</text>
+<rect x="495.4" y="2.0" width="243.5" height="260.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="499.4" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Performance</text>
+<g><title>Performance / CPU: ready - GB6 1580/4191 (above Android)</title><rect x="496.4" y="19.0" width="120.7" height="145.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">CPU</text>
 </g>
-<g><title>Performance / GPU (Vulkan/GL): ready - GB6 Vulkan 4670 normal, 5405 performance mode</title><rect x="491.2" y="143.9" width="139.3" height="124.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="155.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GPU (Vulkan/GL)</text>
+<g><title>Performance / GPU (Vulkan/GL): ready - GB6 Vulkan 4670 normal, 5405 performance mode</title><rect x="617.2" y="19.0" width="120.7" height="145.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="620.2" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GPU (Vulkan/GL)</text>
 </g>
-<g><title>Performance / Thermal protection: ready - skin + junction trips, 65 C shutdown</title><rect x="630.4" y="19.0" width="116.0" height="99.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="633.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Thermal protection</text>
+<g><title>Performance / Thermal protection: ready - skin + junction trips, 65 C shutdown</title><rect x="496.4" y="164.3" width="120.7" height="96.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="176.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Thermal protection</text>
 </g>
-<g><title>Performance / Performance mode: partial / not fully integrated - rog5-perf-mode CLI; no toggle in Phosh yet</title><rect x="630.4" y="118.9" width="58.0" height="99.9" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="633.4" y="128.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Performan…</text>
+<g><title>Performance / Performance mode: partial / not fully integrated - rog5-perf-mode CLI; no toggle in Phosh yet</title><rect x="617.2" y="164.3" width="60.4" height="96.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="620.2" y="174.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Performanc…</text>
 </g>
-<g><title>Performance / GPU system cache (0107): needs a test</title><rect x="688.5" y="118.9" width="58.0" height="99.9" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="691.5" y="128.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">GPU syste…</text>
+<g><title>Performance / System monitor (Resources): ready</title><rect x="677.5" y="164.3" width="60.4" height="96.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="680.5" y="174.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">System mon…</text>
 </g>
-<g><title>Performance / System monitor (Resources): ready</title><rect x="630.4" y="218.9" width="116.0" height="50.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="633.4" y="230.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">System monitor (R…</text>
+<rect x="738.9" y="2.0" width="219.1" height="260.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="742.9" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Power</text>
+<g><title>Power / Deep standby (CX/DDR collapse): missing - DDR held at 200 MHz by another RPMh master; ~79 mA</title><rect x="739.9" y="19.0" width="130.3" height="134.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="742.9" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Deep standby (CX/DD…</text>
 </g>
-<rect x="747.5" y="2.0" width="210.5" height="267.8" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="751.5" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Power</text>
-<g><title>Power / Deep standby (CX/DDR collapse): missing - DDR held at 200 MHz by another RPMh master; ~79 mA</title><rect x="748.5" y="19.0" width="125.1" height="138.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="751.5" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Deep standby (CX/D…</text>
+<g><title>Power / Charging &amp; limits: ready - charge limit and bypass</title><rect x="870.2" y="19.0" width="86.8" height="134.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="873.2" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging &amp; l…</text>
 </g>
-<g><title>Power / Charging &amp; limits: ready - charge limit and bypass</title><rect x="873.6" y="19.0" width="83.4" height="138.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="876.6" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging &amp; …</text>
+<g><title>Power / Suspend (s2idle): ready</title><rect x="739.9" y="153.5" width="108.6" height="107.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="742.9" y="165.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Suspend (s2idle)</text>
 </g>
-<g><title>Power / Suspend (s2idle): ready</title><rect x="748.5" y="157.8" width="104.3" height="111.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="751.5" y="169.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Suspend (s2idle)</text>
+<g><title>Power / Battery standby measurement: needs a test - needs the phone unplugged</title><rect x="848.4" y="153.5" width="54.3" height="107.6" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="851.4" y="163.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Battery s…</text>
 </g>
-<g><title>Power / Battery standby measurement: needs a test - needs the phone unplugged</title><rect x="852.7" y="157.8" width="104.3" height="55.5" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="855.7" y="169.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Battery standby…</text>
+<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher and sleep policy poll</title><rect x="902.7" y="153.5" width="54.3" height="107.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="905.7" y="163.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Idle back…</text>
 </g>
-<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher and sleep policy poll</title><rect x="852.7" y="213.3" width="104.3" height="55.5" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="855.7" y="225.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Idle background…</text>
+<rect x="495.4" y="262.1" width="249.1" height="178.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="499.4" y="274.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">External display</text>
+<g><title>External display / DP alt mode 1080p60: ready</title><rect x="496.4" y="279.1" width="141.2" height="80.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode 1080p60</text>
 </g>
-<rect x="490.2" y="269.8" width="251.9" height="174.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="494.2" y="281.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">External display</text>
-<g><title>External display / DP alt mode 1080p60: ready</title><rect x="491.2" y="286.8" width="142.8" height="78.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="298.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode 1080p60</text>
+<g><title>External display / GNOME desktop mode: partial / not fully integrated - switching closes all apps</title><rect x="496.4" y="359.1" width="141.2" height="80.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="371.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop mode</text>
 </g>
-<g><title>External display / GNOME desktop mode: partial / not fully integrated - switching closes all apps</title><rect x="491.2" y="364.9" width="142.8" height="78.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="376.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop mode</text>
+<g><title>External display / HBR2 / higher modes: missing - lane-1 errors</title><rect x="637.6" y="279.1" width="105.9" height="53.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">HBR2 / higher m…</text>
 </g>
-<g><title>External display / HBR2 / higher modes: missing - lane-1 errors</title><rect x="634.0" y="286.8" width="53.6" height="104.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="637.0" y="296.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">HBR2 / h…</text>
+<g><title>External display / DP-only without perf pin: needs a test - 0106 NoC QoS candidate</title><rect x="637.6" y="332.4" width="105.9" height="53.3" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="344.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP-only without…</text>
 </g>
-<g><title>External display / DP-only without perf pin: needs a test - 0106 NoC QoS candidate</title><rect x="687.5" y="286.8" width="53.6" height="104.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="690.5" y="296.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">DP-only …</text>
+<g><title>External display / Touchscreen as touchpad: ready</title><rect x="637.6" y="385.7" width="105.9" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="397.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen as …</text>
 </g>
-<g><title>External display / Touchscreen as touchpad: ready</title><rect x="634.0" y="390.9" width="107.1" height="52.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="637.0" y="402.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen as …</text>
+<rect x="495.4" y="440.0" width="249.1" height="178.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="499.4" y="452.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Server</text>
+<g><title>Server / SSH (keys only): ready</title><rect x="496.4" y="457.0" width="141.2" height="80.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">SSH (keys only)</text>
 </g>
-<rect x="490.2" y="443.9" width="251.9" height="174.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="494.2" y="455.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Server</text>
-<g><title>Server / SSH (keys only): ready</title><rect x="491.2" y="460.9" width="142.8" height="78.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="472.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">SSH (keys only)</text>
+<g><title>Server / 128 GiB persistent root: ready</title><rect x="496.4" y="537.0" width="141.2" height="80.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="499.4" y="549.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">128 GiB persistent ro…</text>
 </g>
-<g><title>Server / 128 GiB persistent root: ready</title><rect x="491.2" y="539.0" width="142.8" height="78.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="494.2" y="551.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">128 GiB persistent ro…</text>
+<g><title>Server / Firewall (nftables): ready</title><rect x="637.6" y="457.0" width="105.9" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Firewall (nftab…</text>
 </g>
-<g><title>Server / Firewall (nftables): ready</title><rect x="634.0" y="460.9" width="53.6" height="104.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="637.0" y="470.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Firewall…</text>
+<g><title>Server / Hardware watchdog: ready</title><rect x="637.6" y="510.4" width="105.9" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="522.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Hardware watchd…</text>
 </g>
-<g><title>Server / Hardware watchdog: ready</title><rect x="687.5" y="460.9" width="53.6" height="104.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="690.5" y="470.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hardware…</text>
+<g><title>Server / Journal retention: partial / not fully integrated - 200 MB cap keeps ~11 h</title><rect x="637.6" y="563.7" width="105.9" height="53.3" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="640.6" y="575.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Journal retenti…</text>
 </g>
-<g><title>Server / Journal retention: partial / not fully integrated - 200 MB cap keeps ~11 h</title><rect x="634.0" y="565.0" width="107.1" height="52.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="637.0" y="577.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Journal retenti…</text>
+<rect x="744.5" y="262.1" width="213.5" height="178.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="748.5" y="274.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">USB</text>
+<g><title>USB / Side port host + hubs: ready - survives suspend since 0105</title><rect x="745.5" y="279.1" width="105.7" height="160.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="748.5" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Side port host …</text>
 </g>
-<rect x="742.1" y="269.8" width="215.9" height="174.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="746.1" y="281.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">USB</text>
-<g><title>USB / Side port host + hubs: ready - survives suspend since 0105</title><rect x="743.1" y="286.8" width="107.0" height="156.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="746.1" y="298.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Side port host …</text>
+<g><title>USB / Charging via hub: ready</title><rect x="851.3" y="279.1" width="105.7" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="291.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging via hub</text>
 </g>
-<g><title>USB / Charging via hub: ready</title><rect x="850.0" y="286.8" width="53.5" height="104.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="853.0" y="296.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Charging…</text>
+<g><title>USB / Bottom port (USB 2.0 host): partial / not fully integrated - 5 V switched by hand</title><rect x="851.3" y="332.4" width="105.7" height="53.3" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="344.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bottom port (US…</text>
 </g>
-<g><title>USB / Bottom port (USB 2.0 host): partial / not fully integrated - 5 V switched by hand</title><rect x="903.5" y="286.8" width="53.5" height="104.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="906.5" y="296.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bottom p…</text>
+<g><title>USB / USB gadget (network to a PC): ready</title><rect x="851.3" y="385.7" width="105.7" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="397.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">USB gadget (net…</text>
 </g>
-<g><title>USB / USB gadget (network to a PC): ready</title><rect x="850.0" y="390.9" width="107.0" height="52.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="853.0" y="402.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">USB gadget (net…</text>
+<rect x="744.5" y="440.0" width="213.5" height="178.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="748.5" y="452.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Audio</text>
+<g><title>Audio / Speakers: ready</title><rect x="745.5" y="457.0" width="105.7" height="106.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="748.5" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speakers</text>
 </g>
-<rect x="742.1" y="443.9" width="215.9" height="174.1" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="746.1" y="455.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Audio</text>
-<g><title>Audio / Speakers: ready</title><rect x="743.1" y="460.9" width="107.0" height="104.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="746.1" y="472.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speakers</text>
+<g><title>Audio / Microphones: ready</title><rect x="745.5" y="563.7" width="105.7" height="53.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="748.5" y="575.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Microphones</text>
 </g>
-<g><title>Audio / Microphones: ready</title><rect x="743.1" y="565.0" width="107.0" height="52.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="746.1" y="577.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Microphones</text>
+<g><title>Audio / Earpiece: missing</title><rect x="851.3" y="457.0" width="105.7" height="53.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Earpiece</text>
 </g>
-<g><title>Audio / Earpiece: missing</title><rect x="850.0" y="460.9" width="53.5" height="104.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="853.0" y="470.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Earpiece</text>
+<g><title>Audio / 3.5 mm jack: missing</title><rect x="851.3" y="510.4" width="105.7" height="53.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="522.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">3.5 mm jack</text>
 </g>
-<g><title>Audio / 3.5 mm jack: missing</title><rect x="903.5" y="460.9" width="53.5" height="104.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="906.5" y="470.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">3.5 mm j…</text>
-</g>
-<g><title>Audio / Bluetooth audio: needs a test</title><rect x="850.0" y="565.0" width="107.0" height="52.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="853.0" y="577.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth audio</text>
+<g><title>Audio / Bluetooth audio: needs a test</title><rect x="851.3" y="563.7" width="105.7" height="53.3" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="854.3" y="575.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth audio</text>
 </g>
 <rect x="8" y="630" width="14" height="14" fill="#4cc417"/>
 <text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (29)</text>
 <rect x="108" y="630" width="14" height="14" fill="#e0b91b"/>
-<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (12)</text>
+<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (11)</text>
 <rect x="383" y="630" width="14" height="14" fill="#3b8fd9"/>
 <text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (5)</text>
 <rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
 <text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (13)</text>
-<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-29 (r185)</text>
+<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-29 (r187)</text>
 </svg>

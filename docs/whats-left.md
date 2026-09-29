@@ -1,6 +1,6 @@
 # What's left (short version)
 
-As of 2026-09-29, kernel bundle r185. The picture below shows the same list
+As of 2026-09-29, kernel bundle r187. The picture below shows the same list
 at a glance (green ready, yellow partial, blue needs a test, red missing);
 it is generated from [`status/components.json`](status/components.json) by
 `tools/status-map/render.py`.
@@ -23,8 +23,8 @@ it is generated from [`status/components.json`](status/components.json) by
 
 - **Phosh closes all apps when an HDMI monitor is plugged/unplugged**, and
   when switching between phone and desktop mode.
-- **Wi-Fi gets a new MAC/IP address on every boot** and needs ~11 s to
-  reconnect after the screen wakes the phone.
+- **Wi-Fi** needs ~11 s to reconnect after the phone wakes (the address is
+  now stable across reboots).
 - **Brightness** has only about 4 real steps.
 - **Desktop mode** forces the display chip to a fixed high clock while GNOME
   runs (safe, but warmer).
@@ -32,7 +32,7 @@ it is generated from [`status/components.json`](status/components.json) by
   performance` / `normal`), not yet as a Phosh toggle.
 - **Unattended updates** may reboot the phone while it serves something with
   the screen off.
-- **Boot screen** shows glitches between the ASUS logo and the lock screen.
+- **Boot screen**: r187 should keep the ASUS logo until the spinner (needs your visual check).
 - **Bottom USB port** needs its 5 V switched on by hand (`rog5-usb-bottom on`).
 
 Details and causes: [`user-irritations.md`](user-irritations.md).

@@ -55,3 +55,12 @@ mostly CPU/submission bound.
   Built and packaged, not yet booted.
 - The drirc `tu_restrict_subgroup_size_64` workaround applies to all apps;
   it could be limited to Geekbench.
+
+## r186: LLCC GPU slice write-allocate (0107 on agent/gpu-perf-exp)
+
+Same method. PERF thermal limits (840 MHz held, the fair comparison):
+GB6 Vulkan 5448 ([6919340](https://browser.geekbench.com/v6/compute/6919340))
+vs 5405 on r185 (+0.8 %, noise). Normal limits: 4950
+([6919325](https://browser.geekbench.com/v6/compute/6919325)), but that run
+started 3 C cooler and was throttled 64 % of the time instead of 100 %, so it
+is not comparable. No measurable benefit: not carried into production.
