@@ -9,7 +9,9 @@ After=graphical-session.target
 
 [Service]
 ExecStart=/usr/bin/wayvnc --output=DSI-1 --socket=%t/wayvnc-phone.sock 127.0.0.1 5900
-Restart=on-failure
+# wayvnc exited 0 on a Wayland protocol error (2026-09-28), so on-failure
+# left remote input dead.
+Restart=always
 RestartSec=3
 
 [Install]

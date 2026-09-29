@@ -10,6 +10,8 @@ idle-delay=uint32 60
 
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
+# 24-hour clock (the region formats come from LC_* = pl_PL.UTF-8).
+clock-format='24h'
 
 [sm/puri/phosh]
 favorites=['org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']
@@ -35,3 +37,7 @@ picture-uri=''
 picture-uri-dark=''
 primary-color='#000000'
 color-shading-type='solid'
+
+# Files: a single tap opens (double tap was needed on the touchscreen).
+[org/gnome/nautilus/preferences]
+click-policy='single'
