@@ -1,0 +1,50 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] arm64: cpuinfo: ROG5 name Arm cores in "model name"
+
+arm64 prints no "model name" line for native tasks, so libgtop (GNOME
+Settings "Processor") shows nothing and other tools fall back to "Unknown".
+Print the core name from MIDR for common Arm cores (Cortex-A55/A76/A77/A78/
+X1/A510/A710/X2); unknown parts keep the old output. On the ROG Phone 5
+libgtop then reports "Cortex-A55 x 4, Cortex-A78 x 3, Cortex-X1".
+
+--- a/arch/arm64/kernel/cpuinfo.c	2026-09-29 16:15:15.677587160 +0200
++++ b/arch/arm64/kernel/cpuinfo.c	2026-09-29 16:15:15.690930385 +0200
+@@ -219,6 +219,29 @@
+ };
+ #endif /* CONFIG_COMPAT */
+ 
++/*
++ * ROG5: arm64 prints no "model name", so libgtop (GNOME Settings "Processor")
++ * shows nothing and other tools fall back to "Unknown". Name the Arm cores
++ * from MIDR; unknown parts keep the old output.
++ */
++static const char *cpuinfo_arm_core_name(u32 midr)
++{
++	if (MIDR_IMPLEMENTOR(midr) != ARM_CPU_IMP_ARM)
++		return NULL;
++
++	switch (MIDR_PARTNUM(midr)) {
++	case ARM_CPU_PART_CORTEX_A55: return "Cortex-A55";
++	case ARM_CPU_PART_CORTEX_A76: return "Cortex-A76";
++	case ARM_CPU_PART_CORTEX_A77: return "Cortex-A77";
++	case ARM_CPU_PART_CORTEX_A78: return "Cortex-A78";
++	case ARM_CPU_PART_CORTEX_X1: return "Cortex-X1";
++	case ARM_CPU_PART_CORTEX_A510: return "Cortex-A510";
++	case ARM_CPU_PART_CORTEX_A710: return "Cortex-A710";
++	case ARM_CPU_PART_CORTEX_X2: return "Cortex-X2";
++	default: return NULL;
++	}
++}
++
+ static int c_show(struct seq_file *m, void *v)
+ {
+ 	int j;
+@@ -236,6 +259,8 @@
+ 	if (compat)
+ 		seq_printf(m, "model name\t: ARMv8 Processor rev %d (%s)\n",
+ 			   MIDR_REVISION(midr), COMPAT_ELF_PLATFORM);
++	else if (cpuinfo_arm_core_name(midr))
++		seq_printf(m, "model name\t: %s\n", cpuinfo_arm_core_name(midr));
+ 
+ 	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
+ 		   loops_per_jiffy / (500000UL/HZ),
