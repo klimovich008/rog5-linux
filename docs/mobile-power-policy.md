@@ -5,7 +5,7 @@ radio-refused readiness and Wi-Fi preparation remain unchanged: USB power is
 required and Wi-Fi power saving is disabled for latency. The radio-refused path
 is a guarded headless recovery condition, not evidence of a usable local shell.
 
-[The offline evaluator](../scripts/host/assess-mobile-power.py) accepts only
+The offline evaluator (`scripts/host/assess-mobile-power.py`, archived 2026-09-29) accepts only
 identity-bound, fresh complete telemetry and a working local interface. Its
 fixtures cover battery-only startup, cable removal, degraded networking,
 stale/mismatched observations, missing zones and thermal/voltage/capacity
