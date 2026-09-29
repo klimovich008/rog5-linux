@@ -3830,7 +3830,7 @@ and unactivated. Full local source CI passed at
 admission and full paired-root qualification remain pending.
 
 Denial source, engine source dependencies and Rust toolchain are pinned in the
-[source lock](../configs/denial/source-lock-v1.json). The isolated Rust 1.98
+source lock (`configs/denial/source-lock-v1.json`, removed with Denial on 2026-09-29). The isolated Rust 1.98
 builder is provisioned. The ARM64 control client built offline in 22.010 seconds
 and passed emulated help/version checks. Full ARM64 compositor compilation also
 passed in 464.094 seconds under the same 3 GiB limit. Both resulting binaries
