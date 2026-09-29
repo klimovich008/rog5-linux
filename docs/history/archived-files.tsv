@@ -728,7 +728,6 @@ tools/qemu-network-root-nfs/production-init.sh	network-root
 tools/qemu-smoke/init.c	network-root
 tools/qemu-smoke/page-fault.c	network-root
 artifacts/network-root-v3/config-7.1.4-network-root	network-root
-artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb	network-root
 artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz	network-root
 configs/recovery-candidates/storage-layout-stage2-direct-chunk1-v1.json	storage-layout
 configs/recovery-candidates/storage-layout-stage2-direct-extent18-v1.json	storage-layout

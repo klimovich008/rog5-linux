@@ -20,8 +20,10 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "tools/recovery_control/rog5-bundle-verify.c"
+# A real source-built ROG5 DTB (the July network-root recovery DTB, kept as a
+# fixture when artifacts/network-root-v3 was archived on 2026-09-29).
 ACCEPTED_TARGET_DTB = (
-    REPO / "artifacts/network-root-v3/"
+    REPO / "tests/fixtures/recovery-bundle/"
     "sm8350-asus-rog-phone5-recovery.dtb"
 )
 SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
