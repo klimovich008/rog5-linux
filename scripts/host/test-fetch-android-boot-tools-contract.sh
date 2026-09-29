@@ -37,8 +37,14 @@ for token in \
 	grep -Fq -- "$token" "$fetcher" ||
 		fail "Android boot-tool bootstrap omits contract token: $token"
 done
-grep -Fq 'run: scripts/host/fetch-android-boot-tools.sh' "$workflow" ||
-	fail 'clean recovery CI does not bootstrap the exact Android boot tools'
+for token in \
+	'scripts/host/fetch-android-boot-tools.sh && exit 0' \
+	'path: artifacts/android-boot-tools-v1' \
+	"grep -E '^(mkbootimg|unpack|gki|avb)_sha=[0-9a-f]{64}\$' scripts/host/fetch-android-boot-tools.sh" \
+	'sha256sum -c -'; do
+	[[ $(grep -Fc -- "$token" "$workflow") == 2 ]] ||
+		fail "head and merge CI do not both restore, bootstrap and verify the exact Android boot tools: $token"
+done
 if grep -Eq \
 	'\b(fastboot|adb|sudo|pkexec)\b|(^|[;&|[:space:]])(ssh|scp)([[:space:]]|$)|/dev/(sd|nvme|ufs)' \
 	"$fetcher"; then

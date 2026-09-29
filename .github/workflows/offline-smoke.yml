@@ -79,8 +79,35 @@ jobs:
             pkg-config
       - name: Record actual runner environment
         run: scripts/host/record-ci-environment.sh build/test-reports/environment
+      - name: Restore pinned Android boot tools
+        id: boot-tools-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: artifacts/android-boot-tools-v1
+          key: android-boot-tools-v1-d2bb0af5-a4a2d67b-${{ hashFiles('scripts/host/fetch-android-boot-tools.sh') }}
       - name: Bootstrap pinned Android boot tools
-        run: scripts/host/fetch-android-boot-tools.sh
+        if: steps.boot-tools-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          # android.googlesource.com answers 503 at times; the fetcher refuses
+          # partial output, so a later attempt starts clean.
+          for attempt in 1 2 3 4; do
+            scripts/host/fetch-android-boot-tools.sh && exit 0
+            rm -rf artifacts/android-boot-tools-v1
+            sleep $((attempt * 30))
+          done
+          exit 1
+      - name: Verify pinned Android boot tools
+        shell: bash
+        run: |
+          eval "$(grep -E '^(mkbootimg|unpack|gki|avb)_sha=[0-9a-f]{64}$' scripts/host/fetch-android-boot-tools.sh)"
+          root=artifacts/android-boot-tools-v1
+          sha256sum -c - <<EOF
+          $mkbootimg_sha  $root/mkbootimg.py
+          $unpack_sha  $root/unpack_bootimg.py
+          $gki_sha  $root/gki/generate_gki_certificate.py
+          $avb_sha  $root/avbtool.py
+          EOF
       - name: Build canonical boot-v3 template
         if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/build-canonical-boot-v3-template.sh
@@ -155,8 +182,35 @@ jobs:
             pkg-config
       - name: Record actual runner environment
         run: scripts/host/record-ci-environment.sh build/test-reports/environment
+      - name: Restore pinned Android boot tools
+        id: boot-tools-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: artifacts/android-boot-tools-v1
+          key: android-boot-tools-v1-d2bb0af5-a4a2d67b-${{ hashFiles('scripts/host/fetch-android-boot-tools.sh') }}
       - name: Bootstrap pinned Android boot tools
-        run: scripts/host/fetch-android-boot-tools.sh
+        if: steps.boot-tools-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          # android.googlesource.com answers 503 at times; the fetcher refuses
+          # partial output, so a later attempt starts clean.
+          for attempt in 1 2 3 4; do
+            scripts/host/fetch-android-boot-tools.sh && exit 0
+            rm -rf artifacts/android-boot-tools-v1
+            sleep $((attempt * 30))
+          done
+          exit 1
+      - name: Verify pinned Android boot tools
+        shell: bash
+        run: |
+          eval "$(grep -E '^(mkbootimg|unpack|gki|avb)_sha=[0-9a-f]{64}$' scripts/host/fetch-android-boot-tools.sh)"
+          root=artifacts/android-boot-tools-v1
+          sha256sum -c - <<EOF
+          $mkbootimg_sha  $root/mkbootimg.py
+          $unpack_sha  $root/unpack_bootimg.py
+          $gki_sha  $root/gki/generate_gki_certificate.py
+          $avb_sha  $root/avbtool.py
+          EOF
       - name: Build canonical boot-v3 template
         if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/build-canonical-boot-v3-template.sh
@@ -230,7 +284,7 @@ jobs:
           else
             changed=$(git diff --name-only "$BASE" HEAD)
             if grep -Eq \
-              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|scripts/device/(test-rog5-(rpmh|touch)-binding|test-mobile-dt-composition|verify-mobile-touch-providers|verify-display-60hz-dtb-delta|verify-recovery-dtb-delta)\.py$|tools/rog5-fts3658u/.*\.yaml$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              '^(patches/linux-7\.2\.7/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|scripts/device/(test-rog5-(rpmh|touch)-binding|test-mobile-dt-composition|verify-mobile-touch-providers|verify-display-60hz-dtb-delta|verify-recovery-dtb-delta)\.py$|tools/rog5-fts3658u/.*\.yaml$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
               selected=yes
             fi
           fi
@@ -259,13 +313,14 @@ jobs:
           git -C build/board-linux-source init
           git -C build/board-linux-source fetch --depth=1 \
             https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
-            refs/tags/v7.1.4
+            refs/tags/v7.2.7
           test "$(git -C build/board-linux-source rev-parse FETCH_HEAD^{commit})" = \
-            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+            f42acb3678424d1e08f6ed27c0d8ba8a125e14d6
       - name: Compile production series with merged board configuration
         if: steps.board.outputs.selected == 'yes'
         run: |
           scripts/host/build-rog5-production-kernel.py \
+            --config configs/kernel/rog5-production-build-7.2.7.json \
             --linux-git build/board-linux-source --output build/board-production --jobs 2
       - name: Exercise exact-source board schema and RPMh lifecycle checks
         if: steps.board.outputs.selected == 'yes'
