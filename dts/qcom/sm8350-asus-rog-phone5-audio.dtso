@@ -157,6 +157,16 @@
 		pinctrl-names = "default";
 		sound-name-prefix = "RCV";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+
+		/*
+		 * GPIO2 is the INT output (stock: gpio-ctrl2 = <4>, push-pull,
+		 * active low). Left at the reset default (high-impedance input) the
+		 * amplifier never drove the line: IRQ1_STATUS stayed set with PLL
+		 * lock/unlock pending while msmgpio 2/90 counted 0 (2026-09-30).
+		 */
+		cirrus,gpio-ctrl2 {
+			gpio-ctrl = <0x4>;
+		};
 	};
 
 	rog5_amp_spk: amplifier@31 {
@@ -169,5 +179,8 @@
 		pinctrl-names = "default";
 		sound-name-prefix = "SPK";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+		cirrus,gpio-ctrl2 {
+			gpio-ctrl = <0x4>;
+		};
 	};
 };
