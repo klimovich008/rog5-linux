@@ -84,3 +84,8 @@ kernel source; no DP work there).
 - Workaround: ~phone/.config/environment.d/60-rog5-mutter.conf
   (configs/environment.d). Kernel follow-up: why a cursor-plane SSPP on the
   DP pipe underruns.
+- **Correction (14:25):** the real cause is the DPU core clock. With only DP
+  lit msm votes 136 MHz for 1080p60 (pixel clock 148.5 MHz): underrun on
+  253/253 frames; with core_perf fixed 460 MHz, 0/255. The hardware-cursor
+  A/B was confounded by the clock left over from the previous session.
+  rog5-gnome pins the clock while the desktop runs; kernel floor TODO.
