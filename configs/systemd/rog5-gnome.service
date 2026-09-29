@@ -27,6 +27,10 @@ UtmpIdentifier=tty7
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
 ExecStartPre=+/usr/bin/chvt 7
+# mutter does not detach planes a previous compositor left on a CRTC it does
+# not use (plane-0 on the panel CRTC after Phosh): every frame on DP then
+# failed with "switching CRTC directly". Start from an all-off KMS state.
+ExecStartPre=+/usr/local/libexec/rog5-kms-reset /dev/dri/card1
 # Phosh shows no title-bar buttons ('appmenu:'); a desktop needs them. The
 # setting is shared with Phosh, so put it back when GNOME stops.
 ExecStartPre=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:minimize,maximize,close"'

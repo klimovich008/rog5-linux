@@ -6,8 +6,8 @@
 # GNOME idle for IDLE_SECS -> Phosh, which starts on its PIN lock screen.
 #
 # GNOME never starts from a locked phone: a new Phosh session briefly
-# reports LockedHint=no before its lock screen is up, so GNOME starts only
-# after this Phosh session has been seen locked and then unlocked.
+# reports LockedHint=no before its lock screen is up, so an unlocked session
+# counts only once it has been seen locked or is at least SETTLE seconds old.
 # /var/lib/rog5/desktop-mode holds auto (default) or off.
 set -u
 STATUS=/sys/class/drm/card1-DP-1/status
@@ -15,8 +15,10 @@ MODE_FILE=/var/lib/rog5/desktop-mode
 ON_AFTER=6        # seconds of stable connection before switching to GNOME
 OFF_AFTER=4       # seconds of stable disconnection before switching back
 IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
+SETTLE=15         # age before a never-locked Phosh session's "unlocked" counts
 up=0 down=0 idle=0
 seen_locked_session=
+first_seen_session= first_seen_at=0
 
 phone_session() {       # id of the phone user's graphical (phosh PAM) session
 	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
@@ -69,10 +71,17 @@ while :; do
 	esac
 	systemctl -q is-active rog5-phosh.service || continue
 	[ -n "$sess" ] || continue
+	now=$(cut -d. -f1 /proc/uptime)
+	if [ "$first_seen_session" != "$sess" ]; then
+		first_seen_session=$sess first_seen_at=$now
+	fi
 	locked=$(loginctl show-session "$sess" -p LockedHint --value 2>/dev/null)
 	[ "$locked" = yes ] && seen_locked_session=$sess
+	settled=no
+	{ [ "$seen_locked_session" = "$sess" ] ||
+	  [ $((now - first_seen_at)) -ge "$SETTLE" ]; } && settled=yes
 	if [ "$mode" = auto ] && [ "$up" -ge "$ON_AFTER" ] && [ "$locked" = no ] &&
-	   [ "$seen_locked_session" = "$sess" ]; then
+	   [ "$settled" = yes ]; then
 		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
 		systemctl stop rog5-phosh.service
 		if ! systemctl start rog5-gnome.service; then
