@@ -134,7 +134,7 @@ independently describes this same defect. Its Fairphone test is not ROG5 proof;
 upstream merge was not established. The separate charge-counter/CHARGE_NOW
 proposal and other-device current scaling are not imported.
 
-[Patch 0038](../patches/linux-7.1.4/0038-power-supply-qcom-battmgr-fix-charge-units.patch)
+Patch 0038 (`patches/linux-7.1.4/0038-power-supply-qcom-battmgr-fix-charge-units.patch`, archived 2026-09-29)
 contains only that initialization with attribution. The
 [compiled regression](../scripts/device/test-qcom-battmgr-charge-units.py)
 reproduces pre-fix phone ENODATA, checks both phone variants, preserves both
@@ -186,7 +186,7 @@ The substantial transmit requeue count is supporting context, not causal proof.
 describes this precise callback defect. A separate
 [August 24 test report](https://lkml.iu.edu/2608.3/00281.html) reports multi-second
 NCM stalls on Raspberry Pi; that is independent corroboration, not ROG5 proof.
-[Patch 0039](../patches/linux-7.1.4/0039-usb-gadget-ncm-restart-busy-tx-timer.patch)
+Patch 0039 (`patches/linux-7.1.4/0039-usb-gadget-ncm-restart-busy-tx-timer.patch`, archived 2026-09-29)
 restarts only a BUSY timer flush at the existing 300us interval. No queue,
 timeout, charging, storage or fallback policy changes. Attribution and the
 driver's GPL-2.0-or-later license are retained.

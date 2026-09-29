@@ -106,10 +106,10 @@ class EvidenceBinding(unittest.TestCase):
     def test_changed_zero_exit_log_is_not_requalified(self):
         with tempfile.TemporaryDirectory() as directory:
             build=Path(directory);(build/'source').mkdir();(build/'objects').mkdir()
-            modules=build/'modules/lib/modules/7.1.4';modules.mkdir(parents=True)
+            modules=build/'modules/lib/modules/7.2.7';modules.mkdir(parents=True)
             (modules/'modules.builtin').write_text('');(modules/'modules.dep').write_text('')
             provenance=build/'module-provenance.json';provenance.write_text('[]')
-            raw={'linux_base':json.loads(checker.POLICY.read_text())['base_commit'],'release':'7.1.4','stages':{},'outputs':{'module-provenance.json':checker.sha(provenance)}}
+            raw={'linux_base':json.loads(checker.POLICY.read_text())['base_commit'],'release':'7.2.7','stages':{},'outputs':{'module-provenance.json':checker.sha(provenance)}}
             for stage in ('kernel-build','modules-install','depmod','dtbs-check'):
                 log=build/(stage+'.log');log.write_text('')
                 raw['stages'][stage]={'status':'PASS','log_sha256':checker.sha(log)}

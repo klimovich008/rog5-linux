@@ -9,7 +9,7 @@ import re
 import sys
 
 REPO=Path(__file__).resolve().parents[2]
-POLICY=REPO/'configs/kernel/rog5-production-warning-policy.json'
+POLICY=REPO/'configs/kernel/rog5-production-warning-policy-7.2.7.json'
 INITIALIZER='warning: initializer overrides prior initialization of this subobject [-Winitializer-overrides]'
 
 def sha(path):
