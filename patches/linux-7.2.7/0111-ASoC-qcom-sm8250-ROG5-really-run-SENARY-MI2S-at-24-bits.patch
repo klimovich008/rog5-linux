@@ -1,0 +1,35 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: sm8250: ROG5 really run SENARY MI2S at 24 bits
+
+0079 made the backend fixup pick S24_LE for SENARY MI2S RX with
+snd_mask_set_format(), but that only sets one more bit in the format mask,
+which still holds the front end's format. params_format() takes the lowest
+set bit, so with an S16_LE front end (PipeWire, aplay's default) the back
+end stayed S16_LE: the AFE port was configured for 16-bit words while its
+bit clock ran at 3.072 MHz for 32-bit slots, and the codecs expected 2 x 32
+bit frames.
+
+On the ROG5 the port then ran at twice the rate (6 s of audio played in
+3 s) and both CS35L45 amplifiers stayed silent: their status showed no
+signal (CHIP_STATUS bit 2, BOOST_STATUS bit 2 and IRQ1_STS_1 bits 24/12
+never set), while an S24_LE front end (back end S24_LE) played in real
+time with those bits set exactly during the tone.
+
+Clear the mask before setting the format. The other back ends keep S16_LE,
+which they already got (S16_LE is the lowest bit the q6asm front ends offer).
+
+--- a/sound/soc/qcom/sm8250.c	2026-09-30 01:22:27.324498846 +0200
++++ b/sound/soc/qcom/sm8250.c	2026-09-30 01:22:27.336695286 +0200
+@@ -69,6 +69,12 @@
+ 
+ 	rate->min = rate->max = 48000;
+ 	channels->min = channels->max = 2;
++	/*
++	 * snd_mask_set_format() only adds a bit: the mask still holds the
++	 * front end's format, and the lowest set bit wins. Clear it first, or
++	 * an S16_LE front end keeps SENARY MI2S at 16 bits.
++	 */
++	snd_mask_none(fmt);
+ 	snd_mask_set_format(fmt, cpu_dai->id == SENARY_MI2S_RX ?
+ 			    SNDRV_PCM_FORMAT_S24_LE : SNDRV_PCM_FORMAT_S16_LE);
+ 
