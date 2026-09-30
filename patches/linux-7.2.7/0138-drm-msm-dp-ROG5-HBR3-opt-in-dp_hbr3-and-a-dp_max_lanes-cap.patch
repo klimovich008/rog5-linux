@@ -1,0 +1,80 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 HBR3 opt-in (dp_hbr3) and a dp_max_lanes cap
+
+The DT now lists 8.1 GHz (the SM8350 QMP HBR3 serdes values and the
+swing/pre-emphasis tables match stock msm-5.4's dp_pll_5nm.c and
+dp_catalog_v420.c, and stock allows HBR3), but HBR3 is not qualified on the
+side port and a cable yet, and 4 lanes at HBR2 (17.28 Gbit/s) already carry
+5120x1440@60 at 30 bpp. Cap external DP at HBR2 unless msm.dp_hbr3=1 is set.
+
+msm.dp_max_lanes (1, 2 or 4; 0 = no cap) caps the lane count, for 2 vs 4
+lane A/B tests and as a fallback without a reboot if the extra lane pair of
+a pin assignment C/E link misbehaves (on clock-recovery failures msm lowers
+the rate before the lane count, so a bad lane pair can end at RBR).
+
+Both are applied where the sink capabilities are read (next plug-in), so
+mode validation, bpp selection and link training use the same limits (unlike
+the training-only msm.dp_max_rate). eDP sinks are left alone.
+
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c
+@@ -87,6 +87,27 @@
+ 	}
+ }
+ 
++/*
++ * ROG5: HBR3 (8.1 Gbit/s per lane) is in the DT (PHY tables and PLL values
++ * match stock msm-5.4, which allows it) but not yet qualified on the side
++ * port and cable; 4 lanes at HBR2 (17.28 Gbit/s) already carry 5120x1440@60
++ * at 30 bpp. Opt in with msm.dp_hbr3=1: read at the next plug-in (DPCD read),
++ * so mode validation, bpp selection and training all see the same rate.
++ */
++static bool msm_dp_hbr3;
++module_param_named(dp_hbr3, msm_dp_hbr3, bool, 0644);
++MODULE_PARM_DESC(dp_hbr3, "ROG5: allow HBR3 on external DP, applied at the next plug-in (default off: HBR2 max)");
++
++/*
++ * ROG5: lane cap for A/B tests and as a no-reboot fallback if the extra lane
++ * pair of a pin assignment C/E link misbehaves (on clock-recovery failures
++ * msm lowers the rate before the lane count): 1, 2 or 4; 0 = no cap. Next
++ * plug-in.
++ */
++static uint msm_dp_max_lanes;
++module_param_named(dp_max_lanes, msm_dp_max_lanes, uint, 0644);
++MODULE_PARM_DESC(dp_max_lanes, "ROG5: cap external DP lanes (1, 2, 4; 0 = no cap), applied at the next plug-in");
++
+ static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel)
+ {
+ 	int rc, max_lttpr_lanes, max_lttpr_rate, phy_lanes;
+@@ -193,6 +214,15 @@
+ 		/* Limit link rate from LTTPR capabilities, if any */
+ 		if (max_lttpr_rate && max_lttpr_rate < link_info->rate)
+ 			link_info->rate = max_lttpr_rate;
++
++		/* ROG5: HBR3 only when asked for (msm.dp_hbr3); not for eDP */
++		if (!msm_dp_hbr3 && !dpcd[DP_EDP_CONFIGURATION_CAP] &&
++		    link_info->rate > 540000) {
++			drm_info(panel->drm_dev,
++				 "DP: sink offers %u kHz, capped at HBR2 (msm.dp_hbr3=0)\n",
++				 link_info->rate);
++			link_info->rate = 540000;
++		}
+ 	}
+ 
+ 	link_info->num_lanes = drm_dp_max_lane_count(dpcd);
+@@ -214,6 +244,15 @@
+ 		link_info->num_lanes = phy_lanes;
+ 	}
+ 
++	/* ROG5: msm.dp_max_lanes (only the valid lane counts 1, 2, 4) */
++	if ((msm_dp_max_lanes == 1 || msm_dp_max_lanes == 2 || msm_dp_max_lanes == 4) &&
++	    !msm_dp_panel->dpcd[DP_EDP_CONFIGURATION_CAP] &&
++	    link_info->num_lanes > msm_dp_max_lanes) {
++		drm_info(panel->drm_dev, "DP: lanes capped at %u (msm.dp_max_lanes)\n",
++			 msm_dp_max_lanes);
++		link_info->num_lanes = msm_dp_max_lanes;
++	}
++
+ 	/* Limit data lanes from LTTPR capabilities, if any */
+ 	if (max_lttpr_lanes && max_lttpr_lanes < link_info->num_lanes)
+ 		link_info->num_lanes = max_lttpr_lanes;

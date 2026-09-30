@@ -358,14 +358,18 @@ if [ "$dp" = 1 ]; then
 	dtc -@ -q -I dts -O dtb -o "$work/dp.dtbo" "$work/dp.pp"
 	fdtoverlay -i "$work/composed.dtb" -o "$work/dp.dtb" "$work/dp.dtbo"
 	mv "$work/dp.dtb" "$work/composed.dtb"
-	# Orientation reaches the combo PHY (orientation-switch, no mode-switch:
-	# USB3+DP, 2 lanes, as on sm8350-hdk) and the gpio-sbu-mux (orientation +
+	# Orientation and the pin assignment reach the combo PHY (orientation +
+	# mode switch: C/E DP only with 4 lanes, D USB3+DP with 2; kernel 0136/
+	# 0137 clamp msm to the routed lanes) and the gpio-sbu-mux (orientation +
 	# mode switch). UCSI defers port0 until both are bound, so the ramdisk
 	# loads gpio_sbu_mux and phy_qcom_qmp_combo before ucsi_glink.
+	dp_out=/soc@0/display-subsystem@ae00000/displayport-controller@ae90000/ports/port@1/endpoint
 	[ "$(fdtget "$work/composed.dtb" /soc@0/display-subsystem@ae00000/displayport-controller@ae90000 status)" = okay ] &&
 		[ "$(fdtget "$work/composed.dtb" /soc@0/phy@88e8000 status)" = okay ] &&
 		fdtget "$work/composed.dtb" /soc@0/phy@88e8000 orientation-switch >/dev/null 2>&1 &&
-		! fdtget "$work/composed.dtb" /soc@0/phy@88e8000 mode-switch >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" /soc@0/phy@88e8000 mode-switch >/dev/null 2>&1 &&
+		[ "$(fdtget "$work/composed.dtb" "$dp_out" data-lanes)" = '0 1 2 3' ] &&
+		[ "$(fdtget -t x "$work/composed.dtb" "$dp_out" link-frequencies)" = '0 608f3d00 0 a0eebb00 1 41dd7600 1 e2cc3100' ] &&
 		[ "$(fdtget "$work/composed.dtb" /typec-sbu-mux compatible)" = gpio-sbu-mux ] &&
 		fdtget "$work/composed.dtb" /typec-sbu-mux orientation-switch >/dev/null 2>&1 &&
 		fdtget "$work/composed.dtb" /typec-sbu-mux mode-switch >/dev/null 2>&1 &&

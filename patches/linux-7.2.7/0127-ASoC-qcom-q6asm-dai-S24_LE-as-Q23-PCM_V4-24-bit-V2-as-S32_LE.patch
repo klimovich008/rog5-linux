@@ -1,0 +1,142 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: q6asm-dai: send S24_LE as Q23 PCM_V4, offer the 24-bit V2 format as S32_LE
+
+q6asm-dai offered S24_LE and opened it as MULTI_CHANNEL_PCM_V2 with
+bits_per_sample 24. The ADSP takes V2 24-bit samples from the most
+significant 24 bits of a 32-bit word (Q31), so an S24_LE stream (24 bits
+in the low bits) reached it 256 times too small. On the ROG Phone 5
+(SM8350, MultiMedia1 -> SENARY MI2S at 24 bits -> 2 x CS35L45) PipeWire
+with S24_32LE played the same clip far quieter than with S16LE at every
+amplifier setting, with identical amplifier and protection state (user
+A/B, 2026-10-01). Capture has the same mismatch: V2 24-bit recording
+data is MSB-aligned, so S24_LE capture returned wrong samples.
+
+Playback:
+- S16_LE: unchanged (PCM_V2, 16 bits);
+- S24_LE: PCM_V4, bits_per_sample 24, sample_word_size 32, Q23 (the
+  "8.24" format), little endian;
+- S32_LE (new): the proven PCM_V2 24-bit format, which is S32_LE with the
+  low 8 bits dropped; an msbits constraint reports 24 significant bits.
+Capture: S16_LE unchanged; S24_LE replaced by S32_LE (PCM_V2 24-bit, the
+DSP writes the samples to the top 24 bits). There is no V4 encoder
+configuration here, so S24_LE capture is refused.
+
+Unknown formats now fail hw_params instead of keeping a stale bit width.
+
+--- a/sound/soc/qcom/qdsp6/q6asm-dai.c
++++ b/sound/soc/qcom/qdsp6/q6asm-dai.c
+@@ -63,6 +63,7 @@ struct q6asm_dai_rtd {
+ 	uint64_t bytes_received;
+ 	uint64_t copied_total;
+ 	uint16_t bits_per_sample;
++	uint32_t pcm_format;	/* FORMAT_LINEAR_PCM or FORMAT_LINEAR_PCM_V4 */
+ 	snd_pcm_uframes_t queue_ptr;
+ 	uint16_t source; /* Encoding source bit mask */
+ 	struct audio_client *audio_client;
+@@ -90,7 +91,7 @@ static const struct snd_pcm_hardware q6asm_dai_hardware_capture = {
+ 				SNDRV_PCM_INFO_INTERLEAVED |
+ 				SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME),
+ 	.formats =              (SNDRV_PCM_FMTBIT_S16_LE |
+-				SNDRV_PCM_FMTBIT_S24_LE),
++				SNDRV_PCM_FMTBIT_S32_LE),
+ 	.rates =                SNDRV_PCM_RATE_8000_48000,
+ 	.rate_min =             8000,
+ 	.rate_max =             48000,
+@@ -113,7 +114,8 @@ static const struct snd_pcm_hardware q6asm_dai_hardware_playback = {
+ 				SNDRV_PCM_INFO_INTERLEAVED |
+ 				SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME),
+ 	.formats =              (SNDRV_PCM_FMTBIT_S16_LE |
+-				SNDRV_PCM_FMTBIT_S24_LE),
++				SNDRV_PCM_FMTBIT_S24_LE |
++				SNDRV_PCM_FMTBIT_S32_LE),
+ 	.rates =                SNDRV_PCM_RATE_8000_192000,
+ 	.rate_min =             8000,
+ 	.rate_max =             192000,
+@@ -139,7 +141,8 @@ static const struct snd_pcm_hardware q6asm_dai_hardware_playback = {
+ 				  SNDRV_PCM_RATE_176400 |		\
+ 				  SNDRV_PCM_RATE_192000),		\
+ 			.formats = (SNDRV_PCM_FMTBIT_S16_LE |		\
+-					SNDRV_PCM_FMTBIT_S24_LE),	\
++					SNDRV_PCM_FMTBIT_S24_LE |	\
++					SNDRV_PCM_FMTBIT_S32_LE),	\
+ 			.channels_min = 1,				\
+ 			.channels_max = 8,				\
+ 			.rate_min =     8000,				\
+@@ -151,7 +154,7 @@ static const struct snd_pcm_hardware q6asm_dai_hardware_playback = {
+ 				  SNDRV_PCM_RATE_12000 |		\
+ 				  SNDRV_PCM_RATE_24000),		\
+ 			.formats = (SNDRV_PCM_FMTBIT_S16_LE |		\
+-				    SNDRV_PCM_FMTBIT_S24_LE),		\
++				    SNDRV_PCM_FMTBIT_S32_LE),		\
+ 			.channels_min = 1,				\
+ 			.channels_max = 4,				\
+ 			.rate_min =     8000,				\
+@@ -266,7 +269,7 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
+ 
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+ 		ret = q6asm_open_write(prtd->audio_client, prtd->stream_id,
+-				       FORMAT_LINEAR_PCM,
++				       prtd->pcm_format,
+ 				       0, prtd->bits_per_sample, false);
+ 	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+ 		ret = q6asm_open_read(prtd->audio_client, prtd->stream_id,
+@@ -287,7 +290,14 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
+ 		goto routing_err;
+ 	}
+ 
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
++	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK &&
++	    prtd->pcm_format == FORMAT_LINEAR_PCM_V4) {
++		/* S24_LE: 24 bits in the low bits of a 32-bit word */
++		ret = q6asm_media_format_block_multi_ch_pcm_v4(
++				prtd->audio_client, prtd->stream_id,
++				runtime->rate, runtime->channels, NULL,
++				24, 32, ASM_PCM_Q_FORMAT_Q23);
++	} else if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+ 		ret = q6asm_media_format_block_multi_ch_pcm(
+ 				prtd->audio_client, prtd->stream_id,
+ 				runtime->rate, runtime->channels, NULL,
+@@ -464,6 +474,11 @@ static int q6asm_dai_open(struct snd_soc_component *component,
+ 		}
+ 	}
+ 
++	/* S32_LE travels as the V2 24-bit format: 24 significant bits */
++	ret = snd_pcm_hw_constraint_msbits(runtime, 0, 32, 24);
++	if (ret < 0)
++		dev_err(dev, "constraint for msbits ret = %d\n", ret);
++
+ 	ret = snd_pcm_hw_constraint_step(runtime, 0,
+ 		SNDRV_PCM_HW_PARAM_PERIOD_SIZE, 480);
+ 	if (ret < 0) {
+@@ -546,13 +561,31 @@ static int q6asm_dai_hw_params(struct snd_soc_component *component,
+ 	prtd->pcm_size = params_buffer_bytes(params);
+ 	prtd->periods = params_periods(params);
+ 
++	/*
++	 * MULTI_CHANNEL_PCM_V2 carries 24-bit samples in the most significant
++	 * 24 bits of a 32-bit word, both ways: that is S32_LE (the DSP drops
++	 * or zeroes the low 8 bits). S24_LE sent as V2 reached the DSP as
++	 * Q31 and played 48 dB too quiet, so S24_LE uses PCM_V4 in the
++	 * 8.24 (Q23) format. Capture has no V4 encoder config here and only
++	 * offers S16_LE and S32_LE.
++	 */
+ 	switch (params_format(params)) {
+ 	case SNDRV_PCM_FORMAT_S16_LE:
+ 		prtd->bits_per_sample = 16;
++		prtd->pcm_format = FORMAT_LINEAR_PCM;
+ 		break;
+ 	case SNDRV_PCM_FORMAT_S24_LE:
++		if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
++			return -EINVAL;
++		prtd->bits_per_sample = 24;
++		prtd->pcm_format = FORMAT_LINEAR_PCM_V4;
++		break;
++	case SNDRV_PCM_FORMAT_S32_LE:
+ 		prtd->bits_per_sample = 24;
++		prtd->pcm_format = FORMAT_LINEAR_PCM;
+ 		break;
++	default:
++		return -EINVAL;
+ 	}
+ 
+ 	return 0;

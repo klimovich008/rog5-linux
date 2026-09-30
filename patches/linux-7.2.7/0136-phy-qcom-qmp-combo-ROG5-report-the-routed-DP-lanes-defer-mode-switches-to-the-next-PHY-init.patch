@@ -1,0 +1,314 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] phy: qcom-qmp-combo: ROG5 report the routed DP lanes, defer mode switches to the next PHY init
+
+With mode-switch on the side port's combo PHY, the pmic_glink pin
+assignment picks the PHY mode: C/E (a monitor with native DP input, the MSI
+MPG 491C offers C) DP-only with 4 lanes, D (USB-C hubs with HDMI) USB3+DP
+with 2. Gaps that made that unsafe:
+
+- nothing told the DP controller how many lanes the assignment routes, so a
+  4-lane receiver behind assignment D would train 4 lanes into the USB3 pair;
+- typec_mux_set() returned 0 without switching while DP was powered ("delaying
+  switch", but nothing applied it later), so a monitor swapped for a hub
+  before the compositor turned the old stream off kept the old mode;
+- dp power_on ignored serdes/PLL errors and returned 0;
+- a failed forced common re-init decremented init_count it never incremented.
+
+Now the lanes DP may use are published as the DP PHY's bus width (msm reads
+it at the next HPD, 0137): those of the requested mode (C/E 4, D 2), except
+that a USB3-only request (SAFE/USB from pmic_glink or UCSI, e.g. while a
+monitor sleeps) keeps the lanes of the DP routing still applied. configure()
+and power_on() refuse more lanes than that, and power_on() also refuses more
+lanes than the applied mode drives and any DP power on in USB3-only mode. A
+DP mode deferred because DP was powered is applied at the next first PHY
+init (qmp_combo_com_init() from zero users), where no PHY user or AUX
+transfer is active, instead of forcing a common restart under a live AUX
+channel. power_on() returns the serdes/PLL errors with the DP PHY powered
+down again; the mux restart stops (no register access) if the forced init
+fails, and a forced init failure no longer decrements init_count.
+
+The mux path also powered the USB3 PHY on entering a USB3 mode even with no
+USB controller using it (the side dwc3 is USB2-only): only do that while a
+consumer has it initialised (tracked under phy_mutex).
+
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
+@@ -2295,10 +2295,14 @@
+ 	struct mutex phy_mutex;
+ 	int init_count;
+ 	enum qmpphy_mode qmpphy_mode;
++	/* ROG5: last mode the Type-C mux asked for (qmpphy_mode: the applied one) */
++	enum qmpphy_mode req_mode;
+ 
+ 	struct phy *usb_phy;
+ 	enum phy_mode phy_mode;
+ 	unsigned int usb_init_count;
++	/* ROG5: a USB controller has initialised the USB3 PHY */
++	bool usb_consumer;
+ 
+ 	struct phy *dp_phy;
+ 	unsigned int dp_aux_cfg;
+@@ -3602,6 +3606,38 @@
+ 	return 0;
+ }
+ 
++/*
++ * ROG5: DP lanes a mode leaves to DP. DP-only (pin assignment C/E) drives all
++ * four lanes; USB3+DP (D) only the two opposite the USB3 pair.
++ */
++static unsigned int qmp_combo_dp_max_lanes(enum qmpphy_mode mode)
++{
++	return mode == QMPPHY_MODE_DP_ONLY ? 4 : 2;
++}
++
++/*
++ * ROG5: the mode whose lanes DP may use: the requested one, except that a
++ * USB3-only request (SAFE/USB from pmic_glink or UCSI, e.g. while a monitor
++ * sleeps) never takes lanes from the DP routing still applied.
++ */
++static enum qmpphy_mode qmp_combo_dp_lane_mode(struct qmp_combo *qmp)
++{
++	return qmp->req_mode == QMPPHY_MODE_USB3_ONLY ? qmp->qmpphy_mode : qmp->req_mode;
++}
++
++static bool qmp_combo_dp_lanes_ok(struct qmp_combo *qmp, unsigned int lanes)
++{
++	return lanes != 3 && lanes <= qmp_combo_dp_max_lanes(qmp_combo_dp_lane_mode(qmp));
++}
++
++/* Caller holds phy_mutex. */
++static void qmp_combo_dp_publish_lanes(struct qmp_combo *qmp)
++{
++	if (!IS_ERR_OR_NULL(qmp->dp_phy))
++		phy_set_bus_width(qmp->dp_phy,
++				  qmp_combo_dp_max_lanes(qmp_combo_dp_lane_mode(qmp)));
++}
++
+ static int qmp_combo_dp_configure(struct phy *phy, union phy_configure_opts *opts)
+ {
+ 	const struct phy_configure_opts_dp *dp_opts = &opts->dp;
+@@ -3610,6 +3646,15 @@
+ 
+ 	mutex_lock(&qmp->phy_mutex);
+ 
++	/* ROG5: never more lanes than the Type-C pin assignment routes to DP */
++	if (!qmp_combo_dp_lanes_ok(qmp, dp_opts->lanes)) {
++		dev_err(qmp->dev, "DP: %u lanes requested, pin assignment allows %u\n",
++			dp_opts->lanes,
++			qmp_combo_dp_max_lanes(qmp_combo_dp_lane_mode(qmp)));
++		mutex_unlock(&qmp->phy_mutex);
++		return -EINVAL;
++	}
++
+ 	memcpy(&qmp->dp_opts, dp_opts, sizeof(*dp_opts));
+ 	if (qmp->dp_opts.set_voltages) {
+ 		cfg->configure_dp_tx(qmp);
+@@ -3648,6 +3693,20 @@
+ 	if (!force && qmp->init_count++)
+ 		return 0;
+ 
++	/*
++	 * ROG5: a DP pin assignment change that arrived while DP was powered
++	 * (typec_mux_set deferred it) takes effect at this first init, when no
++	 * PHY user (and no AUX transfer) is active. A USB3-only request keeps
++	 * the DP routing: the DP partner left, the next DP request decides.
++	 */
++	if (!force && qmp->req_mode != qmp->qmpphy_mode &&
++	    qmp->req_mode != QMPPHY_MODE_USB3_ONLY) {
++		dev_info(qmp->dev, "applying deferred qmpphy mode %d (was %d)\n",
++			 qmp->req_mode, qmp->qmpphy_mode);
++		qmp->qmpphy_mode = qmp->req_mode;
++		qmp_combo_dp_publish_lanes(qmp);
++	}
++
+ 	ret = regulator_bulk_enable(cfg->num_vregs, qmp->vregs);
+ 	if (ret) {
+ 		dev_err(qmp->dev, "failed to enable regulators, err=%d\n", ret);
+@@ -3742,7 +3801,9 @@
+ err_disable_regulators:
+ 	regulator_bulk_disable(cfg->num_vregs, qmp->vregs);
+ err_decrement_count:
+-	qmp->init_count--;
++	/* ROG5: a forced (re)init never incremented it */
++	if (!force)
++		qmp->init_count--;
+ 
+ 	return ret;
+ }
+@@ -3806,10 +3867,33 @@
+ 	const struct qmp_phy_cfg *cfg = qmp->cfg;
+ 	void __iomem *tx = qmp->dp_tx;
+ 	void __iomem *tx2 = qmp->dp_tx2;
++	int ret;
+ 
+ 	mutex_lock(&qmp->phy_mutex);
+ 
+-	qmp_combo_dp_serdes_init(qmp);
++	/* ROG5: no DP lanes are routed in USB3-only mode (DP PCS in reset) */
++	if (qmp->qmpphy_mode == QMPPHY_MODE_USB3_ONLY) {
++		dev_err(qmp->dev, "DP: power on in USB3-only mode refused\n");
++		ret = -ENODEV;
++		goto out_unlock;
++	}
++
++	/*
++	 * ROG5: never more lanes than the pin assignment routes, nor than the
++	 * applied mode drives (a switch deferred while DP was powered is only
++	 * applied at the next PHY init).
++	 */
++	if (!qmp_combo_dp_lanes_ok(qmp, qmp->dp_opts.lanes) ||
++	    qmp->dp_opts.lanes > qmp_combo_dp_max_lanes(qmp->qmpphy_mode)) {
++		dev_err(qmp->dev, "DP: %u lanes in qmpphy mode %d (requested %d)\n",
++			qmp->dp_opts.lanes, qmp->qmpphy_mode, qmp->req_mode);
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	ret = qmp_combo_dp_serdes_init(qmp);
++	if (ret)
++		goto err_power_down;
+ 
+ 	qmp_configure_lane(qmp->dev, tx, cfg->dp_tx_tbl, cfg->dp_tx_tbl_num, 1);
+ 	qmp_configure_lane(qmp->dev, tx2, cfg->dp_tx_tbl, cfg->dp_tx_tbl_num, 2);
+@@ -3818,13 +3902,24 @@
+ 	cfg->configure_dp_tx(qmp);
+ 
+ 	/* Configure link rate, swing, etc. */
+-	cfg->configure_dp_phy(qmp);
++	ret = cfg->configure_dp_phy(qmp);
++	if (ret)
++		goto err_power_down;
+ 
+ 	qmp->dp_powered_on = true;
+ 
+ 	mutex_unlock(&qmp->phy_mutex);
+ 
+ 	return 0;
++
++err_power_down:
++	dev_err(qmp->dev, "DP: PHY power on failed at %u x %u: %d\n",
++		qmp->dp_opts.lanes, qmp->dp_opts.link_rate, ret);
++	writel(DP_PHY_PD_CTL_PSR_PWRDN, qmp->dp_dp_phy + QSERDES_DP_PHY_PD_CTL);
++out_unlock:
++	mutex_unlock(&qmp->phy_mutex);
++
++	return ret;
+ }
+ 
+ static int qmp_combo_dp_power_off(struct phy *phy)
+@@ -3936,6 +4031,7 @@
+ 	}
+ 
+ 	qmp->usb_init_count++;
++	qmp->usb_consumer = true;
+ 
+ out_unlock:
+ 	mutex_unlock(&qmp->phy_mutex);
+@@ -3957,6 +4053,7 @@
+ 		goto out_unlock;
+ 
+ 	qmp->usb_init_count--;
++	qmp->usb_consumer = false;
+ 
+ out_unlock:
+ 	mutex_unlock(&qmp->phy_mutex);
+@@ -4436,6 +4533,7 @@
+ 	const struct qmp_phy_cfg *cfg = qmp->cfg;
+ 	enum qmpphy_mode new_mode;
+ 	unsigned int svid;
++	int ret;
+ 
+ 	guard(mutex)(&qmp->phy_mutex);
+ 
+@@ -4466,13 +4564,26 @@
+ 		new_mode = QMPPHY_MODE_USB3_ONLY;
+ 	}
+ 
++	/*
++	 * ROG5: the lane count of the new assignment applies at once: msm
++	 * reads it (PHY bus width) at the next HPD, and configure/power_on
++	 * refuse more lanes, even while the switch itself is deferred.
++	 */
++	qmp->req_mode = new_mode;
++	qmp_combo_dp_publish_lanes(qmp);
++
+ 	if (new_mode == qmp->qmpphy_mode) {
+ 		dev_dbg(qmp->dev, "typec_mux_set: same qmpphy mode, bail out\n");
+ 		return 0;
+ 	}
+ 
+ 	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY && qmp->dp_powered_on) {
+-		dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
++		/* ROG5: qmp_combo_com_init() applies a DP mode at the next PHY init */
++		if (new_mode != QMPPHY_MODE_USB3_ONLY)
++			dev_info(qmp->dev, "DP PHY in use: qmpphy mode %d -> %d deferred to the next PHY init\n",
++				 qmp->qmpphy_mode, new_mode);
++		else
++			dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
+ 		return 0;
+ 	}
+ 
+@@ -4480,6 +4591,7 @@
+ 		qmp->qmpphy_mode, new_mode);
+ 
+ 	qmp->qmpphy_mode = new_mode;
++	qmp_combo_dp_publish_lanes(qmp);
+ 
+ 	if (qmp->init_count) {
+ 		if (qmp->usb_init_count)
+@@ -4491,14 +4603,25 @@
+ 		qmp_combo_com_exit(qmp, true);
+ 
+ 		/* Now everything's powered down, power up the right PHYs */
+-		qmp_combo_com_init(qmp, true);
++		ret = qmp_combo_com_init(qmp, true);
++		if (ret) {
++			/* ROG5: resources are off again: no PHY register access */
++			dev_err(qmp->dev, "typec_mux_set: PHY restart failed: %d\n", ret);
++			return ret;
++		}
+ 
+ 		if (new_mode == QMPPHY_MODE_DP_ONLY) {
+ 			if (qmp->usb_init_count)
+ 				qmp->usb_init_count--;
+ 		}
+ 
+-		if (new_mode == QMPPHY_MODE_USB3DP || new_mode == QMPPHY_MODE_USB3_ONLY) {
++		/*
++		 * ROG5: only power the USB3 PHY for a USB controller that uses it
++		 * (the side dwc3 is USB2-only): powered for nothing it costs power
++		 * and shows SuperSpeed terminations to the partner.
++		 */
++		if ((new_mode == QMPPHY_MODE_USB3DP || new_mode == QMPPHY_MODE_USB3_ONLY) &&
++		    qmp->usb_consumer) {
+ 			qmp_combo_usb_power_on(qmp->usb_phy);
+ 			if (!qmp->usb_init_count)
+ 				qmp->usb_init_count++;
+@@ -4874,6 +4997,7 @@
+ 		goto err_node_put;
+ 
+ 	qmp->qmpphy_mode = QMPPHY_MODE_USB3DP;
++	qmp->req_mode = QMPPHY_MODE_USB3DP;
+ 
+ 	if (of_property_present(dev->of_node, "mode-switch") ||
+ 	    of_property_present(dev->of_node, "orientation-switch")) {
+@@ -4907,6 +5031,7 @@
+ 		} else {
+ 			dev_warn(dev, "unable to determine orientation & mode from data-lanes");
+ 		}
++		qmp->req_mode = qmp->qmpphy_mode;
+ 	}
+ 
+ 	ret = drm_aux_bridge_register(dev);
+@@ -4946,6 +5071,11 @@
+ 
+ 	phy_set_drvdata(qmp->dp_phy, qmp);
+ 
++	/* ROG5: DP lanes the (requested) Type-C mode routes, for msm */
++	mutex_lock(&qmp->phy_mutex);
++	qmp_combo_dp_publish_lanes(qmp);
++	mutex_unlock(&qmp->phy_mutex);
++
+ 	if (usb_np == dev->of_node)
+ 		phy_provider = devm_of_phy_provider_register(dev, qmp_combo_phy_xlate);
+ 	else

@@ -1,0 +1,82 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 msm.dpu_mode_clk_check=full|halved for A/B tests of 0114
+
+0114 validates every mode at the full pixel clock against the 460 MHz max
+core clock (rejecting pixel clocks above ~438 MHz), because 0099 votes the
+full pixel clock for video-mode interfaces. The blue screens that motivated
+it (5120x1440@60 at 469 MHz, 3840x1080@100 at 453 MHz) were most likely the
+DSPP reassignment bug fixed by 0130-0132, and stock msm-5.4 sizes each layer
+mixer for pclk * 1.05 / num_lm while allowing 675 MHz DP with the same
+460 MHz core clock: 0114 is a quarantine, not a proven limit.
+
+Add msm.dpu_mode_clk_check (0644): "full" (default, 0114 unchanged) or
+"halved" (upstream's rule, restricted to modes wide enough to get two layer
+mixers: hdisplay > MAX_HDISPLAY_SPLIT with 3D merge, no DSC on DP). It is
+read at every mode validation (connector probe and every modeset), so
+5120x1440@60 can be tested at runtime by setting it and re-probing (replug). The core clock vote is
+unchanged: 0099 still asks for the full pixel clock x 1.05, clamped to 460 MHz.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1702,6 +1702,48 @@
+ 	return 0;
+ }
+ 
++/*
++ * ROG5 A/B knob for 0114, msm.dpu_mode_clk_check (checked at every mode
++ * validation, i.e. the next connector probe and every modeset):
++ *  full   - validate the full pixel clock against the max core clock, as 0099
++ *           votes it (default; rejects pixel clocks above ~438 MHz);
++ *  halved - upstream's rule: a mode wider than MAX_HDISPLAY_SPLIT runs on two
++ *           layer mixers through 3D merge, so each needs half the pixel clock
++ *           (stock msm-5.4 sizes mixers the same way and allows 675 MHz DP
++ *           with the same 460 MHz core clock). For testing modes such as
++ *           5120x1440@60 (469 MHz); the vote itself is unchanged (clamped
++ *           to the max core clock).
++ */
++enum { DPU_MODE_CLK_CHECK_FULL, DPU_MODE_CLK_CHECK_HALVED };
++static int dpu_mode_clk_check = DPU_MODE_CLK_CHECK_FULL;
++
++static int dpu_mode_clk_check_set(const char *val, const struct kernel_param *kp)
++{
++	if (sysfs_streq(val, "full"))
++		WRITE_ONCE(dpu_mode_clk_check, DPU_MODE_CLK_CHECK_FULL);
++	else if (sysfs_streq(val, "halved"))
++		WRITE_ONCE(dpu_mode_clk_check, DPU_MODE_CLK_CHECK_HALVED);
++	else
++		return -EINVAL;
++
++	return 0;
++}
++
++static int dpu_mode_clk_check_get(char *buf, const struct kernel_param *kp)
++{
++	return sysfs_emit(buf, "%s\n",
++			  READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED ?
++			  "halved" : "full");
++}
++
++static const struct kernel_param_ops dpu_mode_clk_check_ops = {
++	.set = dpu_mode_clk_check_set,
++	.get = dpu_mode_clk_check_get,
++};
++module_param_cb(dpu_mode_clk_check, &dpu_mode_clk_check_ops, NULL, 0644);
++MODULE_PARM_DESC(dpu_mode_clk_check,
++		 "ROG5: mode clock check, full (default) or halved (upstream 3D-merge rule, A/B testing)");
++
+ static enum drm_mode_status dpu_crtc_mode_valid(struct drm_crtc *crtc,
+ 						const struct drm_display_mode *mode)
+ {
+@@ -1724,7 +1766,12 @@
+ 	 * core clock / clk factor was offered but could not be driven:
+ 	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
+ 	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
++	 * msm.dpu_mode_clk_check=halved restores the halving for A/B tests.
+ 	 */
++	if (READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED &&
++	    dpu_kms->catalog->caps->has_3d_merge &&
++	    mode->hdisplay > MAX_HDISPLAY_SPLIT)
++		adjusted_mode_clk /= 2;
+ 
+ 	/*
+ 	 * The given mode, adjusted for the perf clock factor, should not exceed

@@ -2,10 +2,13 @@
 /*
  * DisplayPort alternate mode on the side (left) Type-C port, for an external
  * monitor or a USB-C hub with HDMI (docked mode). USB stays high-speed
- * (usb_1_dwc3 keeps only the usb2 PHY); the QMP USB3/DP combo PHY stays in
- * USB3+DP mode with 2 DP lanes (pin assignment D, what USB-C hubs with HDMI
- * use), exactly like sm8350-hdk.dts (orientation-switch only, data-lanes
- * <0 1>).
+ * (usb_1_dwc3 keeps only the usb2 PHY, so the USB3 lane pairs are free).
+ * The QMP USB3/DP combo PHY is also the port's mode-switch: pin assignment
+ * C/E (DP only: a monitor with native DP input, e.g. the MSI MPG 491C) gives
+ * 4 DP lanes, D (DP + USB3: USB-C hubs with HDMI) 2 lanes. Kernel patch 0136
+ * reports the lanes an assignment routes as the DP PHY's bus width and 0137
+ * clamps msm to it, so a 4-lane receiver behind assignment D trains 2 lanes;
+ * a pin change while DP is powered is applied at the next PHY init.
  *
  * Plug orientation (the ADSP reports it in the pmic_glink altmode
  * notification; pmic_glink_altmode calls typec_switch_set() on every
@@ -97,6 +100,8 @@
 	vdda-pll-supply = <&vreg_l6b_1p2>;
 	/* already in sm8350.dtsi; restated because the stage-1b compose deleted it */
 	orientation-switch;
+	/* C/E -> DP only (4 lanes), D -> USB3 + DP (2 lanes) */
+	mode-switch;
 	status = "okay";
 };
 
@@ -109,12 +114,17 @@
 };
 
 &mdss_dp_out {
-	data-lanes = <0 1>;
+	/* 4 at most; the pin assignment decides (0136/0137: D -> 2) */
+	data-lanes = <0 1 2 3>;
 	/*
-	 * Up to HBR2. A USB-C monitor with native DP input gets 3840x1080@60 at
+	 * Up to HBR3, like stock (same PHY swing/pre-emphasis tables and PLL
+	 * values), but HBR3 stays off until qualified: 0138 caps at HBR2 unless
+	 * msm.dp_hbr3=1 (4 x HBR2 = 17.28 Gbit/s already carries 5120x1440@60
+	 * at 30 bpp). A USB-C monitor with native DP input gets 3840x1080@60 at
 	 * HBR2; a DP-to-HDMI converter (USB-C HDMI hub) trains at HBR2 but its
 	 * HDMI output stays dark, so kernel patch 0110 caps only such converters
 	 * at HBR (msm.dp_pcon_max_rate) (2026-09-30).
 	 */
-	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000>;
+	link-frequencies = /bits/ 64
+		<1620000000 2700000000 5400000000 8100000000>;
 };

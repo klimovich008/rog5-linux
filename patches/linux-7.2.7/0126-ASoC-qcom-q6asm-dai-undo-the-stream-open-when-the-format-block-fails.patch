@@ -1,0 +1,54 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: q6asm-dai: undo the stream open when the format block fails
+
+q6asm_dai_prepare() opens the ASM stream, maps the period buffers and
+opens the COPP route before it sends the PCM media format (playback) or
+encoder configuration (capture). When the DSP rejects that last command,
+prepare only logged it (dev_info) and returned the error with the stream
+still open, the buffers still mapped and the route still open, but with
+the state not RUNNING. Neither the next prepare (it only closes a RUNNING
+stream, then opens the same stream id again) nor close (same check)
+undid it, so the DSP session stayed busy. Capture also queued its read
+buffers on the failed stream.
+
+Close the route, the stream and the mappings on that error like the
+earlier error paths do, queue the capture buffers only after a
+successful configuration, and log the failure as an error.
+
+--- a/sound/soc/qcom/qdsp6/q6asm-dai.c
++++ b/sound/soc/qcom/qdsp6/q6asm-dai.c
+@@ -298,19 +298,28 @@ static int q6asm_dai_prepare(struct snd_soc_component *component,
+ 							   runtime->rate,
+ 							   runtime->channels,
+ 							   prtd->bits_per_sample);
++	}
++	/*
++	 * A rejected format leaves the stream open, its buffers mapped and
++	 * the COPP routed while the state is not RUNNING, so neither the next
++	 * prepare nor close would undo it and the DSP session stays busy.
++	 */
++	if (ret < 0) {
++		dev_err(dev, "%s: CMD Format block failed: %d\n", __func__, ret);
++		goto format_err;
++	}
+ 
++	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+ 		/* Queue the buffers */
+ 		for (i = 0; i < runtime->periods; i++)
+ 			q6asm_read(prtd->audio_client, prtd->stream_id);
+-
+ 	}
+-	if (ret < 0)
+-		dev_info(dev, "%s: CMD Format block failed\n", __func__);
+-	else
+-		prtd->state = Q6ASM_STREAM_RUNNING;
++	prtd->state = Q6ASM_STREAM_RUNNING;
+ 
+-	return ret;
++	return 0;
+ 
++format_err:
++	q6routing_stream_close(soc_prtd->dai_link->id, substream->stream);
+ routing_err:
+ 	q6asm_cmd(prtd->audio_client, prtd->stream_id,  CMD_CLOSE);
+ open_err:
