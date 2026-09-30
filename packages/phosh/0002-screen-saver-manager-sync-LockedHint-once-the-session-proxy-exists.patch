@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 build <klimovich008@gmail.com>
+Date: Wed, 30 Sep 2026 04:00:00 +0200
+Subject: [PATCH] screen-saver-manager: Sync LockedHint once the session proxy
+ exists
+
+Phosh locks in main() before the screen saver manager has its logind
+session proxy, and on_lockscreen_manager_locked_changed() only tells logind
+when the proxy exists. So the startup lock never reached logind: LockedHint
+stayed "no" on a locked phone until the next lock/unlock change. Anything
+that trusts LockedHint (here: the ROG5 desktop-mode switcher, which must not
+start an unlocked desktop from a locked phone) sees a locked phone as
+unlocked. Sync the current state when the proxy arrives.
+---
+--- a/src/screen-saver-manager.c	2026-09-30 03:26:06.849063369 +0200
++++ b/src/screen-saver-manager.c	2026-09-30 03:26:06.866182450 +0200
+@@ -675,6 +675,11 @@
+     "swapped-object-signal::lock", G_CALLBACK (on_logind_lock), self,
+     "swapped-object-signal::unlock", G_CALLBACK (on_logind_unlock), self,
+     NULL);
++
++  /* The shell may have locked before we had the session proxy (phosh locks
++   * in main() before the screen saver manager exists), so that change never
++   * reached logind and LockedHint stayed "no" on a locked phone. Sync it. */
++  on_lockscreen_manager_locked_changed (self);
+ }
+ 
+ 
