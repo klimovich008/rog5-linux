@@ -1,0 +1,17 @@
+# Battery care for an always-plugged phone and bypass ("direct power")
+# charging: keeps qcom-battmgr-bat charge_behaviour and the charge limit set
+# from /etc/rog5/charge-policy (rog5-charge-policy). The kernel keeps these
+# values in memory only; stopping the service hands the charger back in its
+# default state (auto, no limit).
+[Unit]
+Description=ROG5 charge policy (charge limit, bypass charging)
+After=rog5-platform-modules.service
+
+[Service]
+ExecStart=/usr/local/sbin/rog5-charge-policy
+ExecStopPost=/usr/local/sbin/rog5-charge-policy stop
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

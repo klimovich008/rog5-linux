@@ -1,0 +1,33 @@
+# /etc/rog5/charge-policy: read by rog5-charge-policy every 30 s.
+# `rog5-charge-policy mode ...`, `limit END [START]` and `full` edit or
+# override it from the command line. Values shown are the defaults.
+
+# limit: keep the battery between start and end % (always-plugged server);
+# at end the charger runs the phone from USB and the cells rest (bypass).
+# full: normal charging to 100 %. bypass: never charge on external power.
+# off: leave the charger alone.
+mode=limit
+start=70
+end=80
+
+# Bypass (no charging, the adapter carries the load) while on external power
+# and rog5-perf-mode is "performance", or while the battery is at or above
+# bypass_temp C (until it cools to bypass_temp_clear; 0 disables).
+bypass_perf=1
+bypass_temp=40
+bypass_temp_clear=37
+# Never bypass below this capacity.
+bypass_min=30
+# The adapter can't carry the load if the battery discharges faster than
+# discharge_ma for discharge_s while bypassing: normal charging for backoff_s.
+discharge_ma=200
+discharge_s=120
+backoff_s=900
+
+# 1: above end+3 % on external power, run from the battery down to end
+# (USB input suspended). Leave at 0 until rog5-sleep-policy treats
+# force-discharge as external power, or it suspends the phone meanwhile.
+drain=0
+
+# Longest "rog5-charge-policy full" override, in hours.
+full_hours=12

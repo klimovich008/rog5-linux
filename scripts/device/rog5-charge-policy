@@ -1,0 +1,360 @@
+#!/bin/sh
+# rog5-charge-policy: battery care for an always-plugged ROG5 (server use)
+# and bypass ("direct power") charging.
+#
+# Kernel side (patch 0082, qcom-battmgr-bat): charge_behaviour inhibit-charge
+# sends the ASUS OEM SET_CHG_LIMIT_MODE2 {BYPASS, 1}: the ADSP charger runs
+# the system from VBUS and the cells rest (measured on r144 and r204: battery
+# current 0 with the adapter carrying the load). charge_control_end_threshold
+# makes the kernel pause the same way once the capacity reaches END and
+# resume at or below START. force-discharge suspends USB input (the phone
+# runs from the battery and qcom-battmgr-usb reports online 0).
+#
+# This daemon keeps those knobs set from /etc/rog5/charge-policy (key=value,
+# defaults in brackets):
+#   mode=limit    [limit] keep the battery between start and end %; the
+#                 kernel pauses charging (bypass) at end, resumes at start
+#         full    normal charging to 100 %
+#         bypass  never charge while on external power (inhibit-charge)
+#         off     leave the charger alone (auto, no limit)
+#   start=70 end=80                      the limit window (end 20..100)
+#   bypass_perf=1   inhibit-charge while rog5-perf-mode is in performance
+#                   (skin trips raised: gaming/desktop load), so charging
+#                   adds no heat
+#   bypass_temp=40 bypass_temp_clear=37  inhibit-charge while the battery is
+#                   at or above bypass_temp C, until it cools to _clear (0 off)
+#   bypass_min=30   never inhibit below this capacity: charge first
+#   discharge_ma=200 discharge_s=120 backoff_s=900
+#                   if the battery discharges faster than discharge_ma for
+#                   discharge_s while inhibited, the adapter can't carry the
+#                   load: go back to auto for backoff_s so the battery
+#                   recharges as soon as the load drops
+#   drain=0         1: above end+3 % on external power, run from the battery
+#                   (force-discharge) down to end, e.g. after a full charge;
+#                   never below 50 %. Off by default (USB input is suspended
+#                   meanwhile; see "Drain" below).
+#   full_hours=12   the longest a "full" override lasts
+#
+#   rog5-charge-policy                run the loop (rog5-charge-policy.service)
+#   rog5-charge-policy --once         evaluate and apply once, print the decision
+#   rog5-charge-policy status         live state and the saved settings
+#   rog5-charge-policy mode MODE      save mode= and apply it now
+#   rog5-charge-policy limit END [START]  save a limit window (START
+#                                     defaults to END-5), mode=limit
+#   rog5-charge-policy full           charge to 100 % once (until Full,
+#                                     unplug or full_hours), then back to mode
+#   rog5-charge-policy cancel-full    drop that override
+#   rog5-charge-policy stop           auto, no limit (ExecStopPost)
+#
+# Any read or write error, an unknown mode or a missing kernel interface
+# ends in auto (normal charging). The policy never leaves force-discharge
+# set without its own drain decision, and a new boot always starts in auto
+# (the kernel keeps these values in memory only).
+#
+# Drain: while USB input is suspended, anything that reads
+# qcom-battmgr-usb/online sees the charger as gone: rog5-perf-mode auto, the
+# desktop, and rog5-sleep-policy, which suspended the phone 60 s after the
+# screen went off during a force-discharge test (2026-09-30). Enable drain
+# only once the sleep policy counts force-discharge as external power, or
+# with /etc/rog5/sleep-mode "reachable". The drain stops when the Type-C
+# partner disappears.
+set -u
+bat=${ROG5_CHG_BAT:-/sys/class/power_supply/qcom-battmgr-bat}
+usb=${ROG5_CHG_USB:-/sys/class/power_supply/qcom-battmgr-usb}
+partner=${ROG5_CHG_PARTNER:-/sys/class/typec/port0-partner}
+zones=${ROG5_CHG_ZONES:-/sys/class/thermal}
+conf=${ROG5_CHG_CONF:-/etc/rog5/charge-policy}
+state=${ROG5_CHG_STATE:-/run/rog5-charge-policy}
+poll_s=${ROG5_CHG_POLL:-30}
+kmsg=${ROG5_CHG_KMSG:-/dev/kmsg}
+
+log() { printf 'rog5-charge-policy: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
+now() { cut -d. -f1 /proc/uptime; }
+num() { case $1 in '' | *[!0-9]*) return 1 ;; esac; }
+# A signed integer (sysfs readings).
+int() { case $1 in '' | - | *[!0-9-]* | ?*-*) return 1 ;; esac; }
+# Drops leading zeros ("08" is not a valid number in shell arithmetic).
+norm() { echo "$1" | sed 's/^0*\([0-9]\)/\1/'; }
+
+# Settings: defaults, then the config file (only known keys, at most six
+# digits for the numbers; anything else is ignored with a warning).
+load_conf() {
+	mode=limit start=70 end=80 bypass_perf=1 bypass_temp=40 bypass_temp_clear=37
+	bypass_min=30 discharge_ma=200 discharge_s=120 backoff_s=900 drain=0 full_hours=12
+	[ -r "$conf" ] || return 0
+	while IFS='=' read -r k v; do
+		k=$(echo "$k" | tr -d ' \t') v=$(echo "${v%%#*}" | tr -d ' \t')
+		case $k in
+		'' | '#'*) continue ;;
+		mode) case $v in limit | full | bypass | off) mode=$v ;; *) log "WARN unknown mode '$v', using off"; mode=off ;; esac ;;
+		start | end | bypass_perf | bypass_temp | bypass_temp_clear | bypass_min | discharge_ma | discharge_s | backoff_s | drain | full_hours)
+			if num "$v" && [ ${#v} -le 6 ]; then v=$(norm "$v"); eval "$k=\$v"; else log "WARN ignoring $k='$v'"; fi ;;
+		*) log "WARN unknown setting '$k'" ;;
+		esac
+	done <"$conf"
+	# The kernel accepts end 20..100 and start below end.
+	[ "$end" -ge 20 ] && [ "$end" -le 100 ] || { log "WARN end=$end out of range, using 80"; end=80; }
+	[ "$start" -lt "$end" ] || start=$((end - 5))
+	[ "$bypass_temp_clear" -le "$bypass_temp" ] || bypass_temp_clear=$bypass_temp
+}
+
+# The selected charge_behaviour ("[auto] inhibit-charge force-discharge").
+behaviour() { sed 's/.*\[\(.*\)\].*/\1/' "$bat/charge_behaviour" 2>/dev/null; }
+
+# rog5-perf-mode performance: a passive skin trip at or above 56 C.
+perf_mode() {
+	for z in "$zones"/thermal_zone*; do
+		[ "$(cat "$z/type" 2>/dev/null)" = skin-thermal ] || continue
+		for i in 0 1 2; do
+			[ "$(cat "$z/trip_point_${i}_type" 2>/dev/null)" = passive ] &&
+				[ "$(cat "$z/trip_point_${i}_temp" 2>/dev/null)" -ge 56000 ] 2>/dev/null && return 0
+		done
+	done
+	return 1
+}
+
+# Runtime flags in $state (lost at reboot, like the kernel values).
+flag() { [ -e "$state/$1" ]; }
+set_flag() { : >"$state/$1"; }
+clear_flag() { rm -f "$state/$1"; }
+stamp_get() { cat "$state/$1" 2>/dev/null; }
+
+# Writes a sysfs value only when it differs: every threshold write clears the
+# kernel's limit hold, which would resume charging inside the window.
+# A charge_behaviour write re-runs the kernel worker (two ADSP reads).
+put() { # file value
+	if [ "$1" = charge_behaviour ]; then cur_val=$(behaviour); else cur_val=$(cat "$bat/$1" 2>/dev/null); fi
+	[ "$cur_val" = "$2" ] && return 0
+	echo "$2" >"$bat/$1" 2>/dev/null || { log "FAIL writing $1=$2"; return 1; }
+}
+
+# Thresholds first (end before start when setting a limit, so a start above
+# the old end never moves end), behaviour last.
+apply() { # behaviour start end
+	if [ "$3" -ge 100 ]; then
+		put charge_control_end_threshold 100 && put charge_control_start_threshold 0
+	else
+		put charge_control_end_threshold "$3" && put charge_control_start_threshold "$2"
+	fi || return 1
+	put charge_behaviour "$1"
+}
+
+# Back to the kernel defaults: auto, no limit.
+fail_safe() {
+	log "WARN $1; falling back to auto"
+	echo auto >"$bat/charge_behaviour" 2>/dev/null
+	put charge_control_end_threshold 100
+	put charge_control_start_threshold 0
+	clear_flag draining
+}
+
+# One evaluation. Sets $want_beh $want_start $want_end $reason; returns 2
+# when a battery reading is unusable.
+decide() {
+	load_conf
+	t=$(now)
+	want_beh=auto want_start=0 want_end=100 reason=
+	eff=$mode
+	if flag full; then
+		f=$(stamp_get full); num "$f" || f=$t
+		if [ $((t - f)) -ge $((full_hours * 3600)) ]; then
+			log 'full charge override expired'; clear_flag full
+		else
+			eff=full
+		fi
+	fi
+	[ "$eff" != off ] || { reason=off; return 0; }
+
+	online=$(cat "$usb/online" 2>/dev/null)
+	# force-discharge reports the charger as offline; the partner tells
+	# whether it is still attached.
+	if flag draining && [ -e "$partner" ]; then online=1; fi
+	if [ "$online" != 1 ]; then
+		clear_flag draining; clear_flag low
+		if flag full && [ "$(stamp_get full-seen-online)" = 1 ]; then
+			log 'unplugged: full charge override done'; clear_flag full; clear_flag full-seen-online
+			eff=$mode
+			[ "$eff" != off ] || { reason=off; return 0; }
+		fi
+		[ "$eff" != limit ] || want_start=$start want_end=$end
+		reason=battery; return 0
+	fi
+	flag full && echo 1 >"$state/full-seen-online"
+
+	cap=$(cat "$bat/capacity" 2>/dev/null) || cap=
+	temp=$(cat "$bat/temp" 2>/dev/null) || temp=
+	cur=$(cat "$bat/current_now" 2>/dev/null) || cur=
+	st=$(cat "$bat/status" 2>/dev/null) || st=
+	num "$cap" && int "$temp" && int "$cur" || return 2
+
+	if [ "$eff" = full ] && flag full && [ "$cap" -ge 100 ] && [ "$st" = Full ]; then
+		log 'battery full: full charge override done'; clear_flag full; clear_flag full-seen-online
+		eff=$mode
+		[ "$eff" != off ] || { reason=off; return 0; }
+	fi
+	[ "$eff" != limit ] || want_start=$start want_end=$end
+
+	hot=0
+	if [ "$bypass_temp" -gt 0 ]; then
+		if flag hot; then
+			if [ "$temp" -lt $((bypass_temp_clear * 10)) ]; then clear_flag hot; else hot=1; fi
+		elif [ "$temp" -ge $((bypass_temp * 10)) ]; then
+			set_flag hot; hot=1
+		fi
+	fi
+	perf=0
+	[ "$bypass_perf" != 1 ] || ! perf_mode || perf=1
+
+	# Drain after a full charge (opt-in): run from the battery down to end,
+	# never to or below the floor. Performance mode or heat hand over to
+	# bypass. The capacity check alone decides, the flag only adds the
+	# hysteresis (a stale flag can't drain further).
+	floor=$end; [ "$floor" -ge 50 ] || floor=50
+	if [ "$eff" = limit ] && [ "$drain" = 1 ] && [ "$perf" = 0 ] && [ "$hot" = 0 ] &&
+		[ "$cap" -gt "$floor" ] && { flag draining || [ "$cap" -ge $((end + 3)) ]; }; then
+		flag draining || { set_flag draining; log "draining from $cap % to $floor %"; }
+		want_beh=force-discharge reason=drain
+		return 0
+	fi
+	if flag draining; then clear_flag draining; log "drain stopped at $cap %"; fi
+
+	# Bypass wishes.
+	why=
+	[ "$eff" = bypass ] && why=bypass-mode
+	[ -z "$why" ] && [ "$perf" = 1 ] && why=performance
+	[ -z "$why" ] && [ "$hot" = 1 ] && why=battery-hot
+	[ -n "$why" ] || { clear_flag low; reason=${eff}; return 0; }
+
+	# Guards: charge first when low; give up while the adapter can't carry
+	# the load (the battery discharges) and retry after the backoff. The
+	# limit window stays: a battery the kernel paused at end resumes at start.
+	if [ "$cap" -lt "$bypass_min" ]; then reason="$why-but-low"; return 0; fi
+	b=$(stamp_get backoff)
+	if num "$b"; then
+		if [ $((t - b)) -lt "$backoff_s" ]; then reason="$why-backoff"; return 0; fi
+		clear_flag backoff
+	fi
+	if [ "$(behaviour)" = inhibit-charge ] && [ "$cur" -lt $((-discharge_ma * 1000)) ]; then
+		l=$(stamp_get low)
+		num "$l" || { echo "$t" >"$state/low"; l=$t; }
+		if [ $((t - l)) -ge "$discharge_s" ]; then
+			log "battery discharging at $((cur / 1000)) mA for ${discharge_s}s in bypass: the adapter can't carry the load, auto for ${backoff_s}s"
+			echo "$t" >"$state/backoff"; clear_flag low
+			reason="$why-backoff"; return 0
+		fi
+	else
+		clear_flag low
+	fi
+	want_beh=inhibit-charge reason=$why
+}
+
+# Logs a decision line when it changes.
+report() {
+	[ "$1" = "$(cat "$state/last" 2>/dev/null)" ] || { log "$1"; echo "$1" >"$state/last"; }
+	echo "$1"
+}
+
+# One change at a time: the loop and command-line changes (config edits,
+# overrides, evaluations) run under $state/lock. A command holds it until it
+# exits; the loop only around each evaluation.
+lock() {
+	mkdir -p "$state"
+	command -v flock >/dev/null 2>&1 || return 0
+	exec 9>"$state/lock" && flock -w 10 9 || { echo 'rog5-charge-policy: another change is running' >&2; exit 1; }
+}
+unlock() { command -v flock >/dev/null 2>&1 && flock -u 9; exec 9>&-; }
+
+evaluate() {
+	if [ ! -w "$bat/charge_behaviour" ]; then
+		report 'no-interface (kernel without charge control, 0082)'
+		return 1
+	fi
+	decide; rc=$?
+	if [ "$rc" != 0 ]; then
+		fail_safe 'battery readings unavailable'
+		report 'auto 0 100 error'
+		return 1
+	fi
+	line="$want_beh $want_start $want_end $reason"
+	if ! apply "$want_beh" "$want_start" "$want_end"; then
+		fail_safe "could not apply $line"
+		report 'auto 0 100 error'
+		return 1
+	fi
+	report "$line"
+}
+
+# Sets key=value in the config file (other lines and comments stay).
+setconf() {
+	mkdir -p "$(dirname "$conf")"
+	{ grep -v "^[[:space:]]*$1[[:space:]]*=" "$conf" 2>/dev/null; echo "$1=$2"; } >"$conf.tmp.$$" &&
+		mv "$conf.tmp.$$" "$conf"
+}
+
+cmd=${1:-run}
+case $cmd in
+mode)
+	case ${2:-} in limit | full | bypass | off) ;; *) echo 'usage: rog5-charge-policy mode limit|full|bypass|off' >&2; exit 2 ;; esac
+	lock
+	setconf mode "$2" || exit 1
+	evaluate
+	;;
+limit)
+	e=${2:-} s=${3:-}
+	if num "$e" && [ ${#e} -le 3 ]; then e=$(norm "$e"); [ -n "$s" ] || s=$((e - 5)); else e=; fi
+	if [ -z "$e" ] || ! num "$s" || [ ${#s} -gt 3 ] || [ "$e" -lt 20 ] || [ "$e" -gt 100 ] || [ "$(norm "$s")" -ge "$e" ]; then
+		echo 'usage: rog5-charge-policy limit END [START]   (END 20..100, START < END, default END-5)' >&2; exit 2
+	fi
+	lock
+	setconf end "$e" && setconf start "$(norm "$s")" && setconf mode limit || exit 1
+	evaluate
+	;;
+run)
+	load_conf
+	log "started: mode $mode, limit $start-$end %"
+	while :; do
+		lock
+		evaluate >/dev/null
+		unlock
+		sleep "$poll_s"
+	done
+	;;
+--once) lock; evaluate ;;
+status)
+	load_conf
+	echo "mode: $mode (limit $start-$end %)$(flag full && echo ', full charge override active')"
+	echo "decision: $(cat "$state/last" 2>/dev/null || echo 'not running')"
+	echo "kernel: $(behaviour), thresholds $(cat "$bat/charge_control_start_threshold" 2>/dev/null)-$(cat "$bat/charge_control_end_threshold" 2>/dev/null)"
+	c=$(cat "$bat/current_now" 2>/dev/null); int "$c" || c=0
+	tt=$(cat "$bat/temp" 2>/dev/null); int "$tt" || tt=0
+	uv=$(cat "$usb/voltage_now" 2>/dev/null); int "$uv" || uv=0
+	ui=$(cat "$usb/current_now" 2>/dev/null); int "$ui" || ui=0
+	echo "battery: $(cat "$bat/capacity" 2>/dev/null) % $(cat "$bat/status" 2>/dev/null), $((c / 1000)) mA, $((tt / 10)).$((tt % 10)) C"
+	echo "usb: online $(cat "$usb/online" 2>/dev/null), $((uv / 1000)) mV, $((ui / 1000)) mA"
+	;;
+full)
+	lock
+	now >"$state/full" && rm -f "$state/full-seen-online" "$state/draining" || exit 1
+	echo 'charging to 100 % once'
+	evaluate
+	;;
+cancel-full)
+	lock
+	rm -f "$state/full" "$state/full-seen-online"
+	evaluate
+	;;
+stop)
+	# ExecStopPost: the loop is gone. By hand, the running loop re-applies the
+	# policy at its next poll (use systemctl stop rog5-charge-policy).
+	lock
+	echo auto >"$bat/charge_behaviour" 2>/dev/null
+	put charge_control_end_threshold 100
+	put charge_control_start_threshold 0
+	rm -f "$state/last" "$state/draining" "$state/low"
+	log 'stopped: auto, no limit'
+	;;
+*)
+	sed -n '2,48p' "$0" >&2
+	exit 2
+	;;
+esac
