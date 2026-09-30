@@ -61,6 +61,16 @@ fi
 # of failing prepare and retrying every 60 s; rog5-usb-reconnect starts the
 # unit once a host configures the gadget.
 if [ "$action" = ready ]; then
+	# One tailscaled per host: both default to TUN tailscale0 and the same
+	# policy-routing table 52, so a second daemon cannot start (TUN busy) and
+	# its startup cleanup can remove the first one's rules. The packaged
+	# tailscaled (Wi-Fi and every other link, node "rog5") is primary; this
+	# pinned one (node "rog5-server") is the fallback when that one is not
+	# installed/enabled or has failed (tailscaled.service OnFailure=).
+	if systemctl -q is-enabled tailscaled.service 2>/dev/null &&
+		! systemctl -q is-failed tailscaled.service 2>/dev/null; then
+		exit 1
+	fi
 	[ "$automatic_wifi" = 1 ] && exit 0
 	[ "$(cat /sys/class/net/$interface/operstate 2>/dev/null)" = up ] && exit 0
 	exit 1
