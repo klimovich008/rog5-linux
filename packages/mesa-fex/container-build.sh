@@ -19,6 +19,9 @@ patch -Np1 </patch/0001-tu-enable-storageBuffer8BitAccess-on-a6xx-gen4.patch
 # driverVersion stays 26.2.0 (vk_get_driver_version stops at the '-').
 echo "26.2.0-rog5.$rel" >VERSION
 export MESA_GIT_SHA1_OVERRIDE=9f0a761020
+# Mesa's python generators iterate sets/dicts; a fixed hash seed keeps the
+# generated sources, and so the libraries, identical between builds.
+export PYTHONHASHSEED=0
 cd /work
 
 common="-Dbuildtype=release -Db_ndebug=true -Dprefix=/usr

@@ -100,6 +100,10 @@ For the offline checks, fetch the guest image once. The URL and XXH3 come from
 - **The fix itself.** In the generated device table, the `FD660` entry has
   `storage_8bit = true` in both builds. A copy of the table with that one
   field removed fails the check.
+- **Reproducible.** Two clean builds of r1 give identical libraries
+  (`PYTHONHASHSEED=0` for Mesa's generators):
+  `2bad5da1...` for x86_64 and `cfc1a2e2...` for i686. The full hashes are in
+  `r1/SHA256SUMS`.
 - **Closeness to the original.** The libraries are the same size as the
   originals to the byte: 17745456 (x86_64) and 15853432 (i686). `.text`
   differs by under 1.1 KB and `.rodata` by 576 bytes (build paths).
