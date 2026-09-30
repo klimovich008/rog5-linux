@@ -31,58 +31,24 @@ ln -sfn "$root" "$c/steam"
 ln -sfn "$c/bin32" "$c/bin"
 ln -sfn "$c/sdk32/steam" "$HOME/.steampath"
 ln -sfn "$c/steam.pid" "$HOME/.steampid"
-# Browser composer (HKCU\Software\Valve\Steam\OverrideBrowserComposerMode,
-# which the client passes to steamwebhelper as -composer-mode: 0 default,
-# 1 System, 2 OpenGL, 3 Gamescope). The default System composer puts CEF's own
-# X window over the whole SDL window, so the SDL hit test that implements the
-# title-bar drag (-webkit-app-region: drag -> _NET_WM_MOVERESIZE) never sees
-# the click and the window cannot be dragged by its title bar under
-# GNOME/Xwayland. The OpenGL composer draws CEF off screen into the SDL window,
-# which then gets the clicks itself. ROG5_STEAM_COMPOSER=keep leaves the
-# value alone. Only written while no client runs: Steam writes registry.vdf
-# back on exit, and a second start just hands its arguments to the running one.
-composer=${ROG5_STEAM_COMPOSER-2}
-pid=$(cat "$c/steam.pid" 2>/dev/null) || pid=
-case $composer in
-0 | 1 | 2 | 3)
-	if [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = steam ]; then
-		:
-	elif [ ! -e "$c/registry.vdf" ]; then
-		printf '"Registry"\n{\n\t"HKCU"\n\t{\n\t\t"Software"\n\t\t{\n\t\t\t"Valve"\n\t\t\t{\n\t\t\t\t"Steam"\n\t\t\t\t{\n\t\t\t\t\t"OverrideBrowserComposerMode"\t\t"%s"\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n' "$composer" >"$c/registry.vdf"
-	elif awk -v v="$composer" '
-		# Set the value inside Registry/HKCU/Software/Valve/Steam: replace the
-		# key if it is there, otherwise add it before that block closes.
-		function unq(s) { gsub(/^[ \t]*"|"[ \t]*$/, "", s); return tolower(s) }
-		BEGIN { want = "registry/hkcu/software/valve/steam"; d = 0 }
-		{
-			line = $0
-			if (line ~ /^[ \t]*\{[ \t]*$/) { d++; path[d] = pend; print; next }
-			if (line ~ /^[ \t]*\}[ \t]*$/) {
-				if (!done && cur() == want) {
-					match(line, /^[ \t]*/)
-					printf "%s\t\"OverrideBrowserComposerMode\"\t\t\"%s\"\n", substr(line, 1, RLENGTH), v; done = 1
-				}
-				d--; print; next
-			}
-			if (line ~ /^[ \t]*"[^"]*"[ \t]*$/) { pend = unq(line); print; next }
-			if (cur() == want && tolower(line) ~ /^[ \t]*"overridebrowsercomposermode"[ \t]/) {
-				match(line, /^[ \t]*/)
-				if (!done) printf "%s\"OverrideBrowserComposerMode\"\t\t\"%s\"\n", substr(line, 1, RLENGTH), v
-				done = 1; next
-			}
-			print
-		}
-		function cur(   i, p) { p = ""; for (i = 1; i <= d; i++) p = p (i > 1 ? "/" : "") path[i]; return p }
-		END { exit done ? 0 : 1 }' "$c/registry.vdf" >"$c/registry.vdf.rog5"; then
-		if cmp -s "$c/registry.vdf" "$c/registry.vdf.rog5"; then rm -f "$c/registry.vdf.rog5"; else mv -f "$c/registry.vdf.rog5" "$c/registry.vdf"; fi
-	else
-		rm -f "$c/registry.vdf.rog5"
-		echo "steam-arm64: could not find HKCU/Software/Valve/Steam in $c/registry.vdf; browser composer not set" >&2
+# Title-bar drag and edge resize: steamwebhelper implements them as an SDL hit
+# test on its window, but CEF's own X window covers that window and takes the
+# clicks; the code that cuts the drag areas out of CEF's input shape is never
+# switched on. steam-arm64-drag.so (source next to this script, built on first
+# use) switches it on inside steamwebhelper, for the Steam build it knows only.
+# ROG5_STEAM_DRAG=0 leaves it out.
+if [ "${ROG5_STEAM_DRAG-1}" != 0 ]; then
+	src=${ROG5_STEAM_DRAG_SRC:-$(dirname -- "$0")/steam-arm64-drag.c}
+	so=${XDG_CACHE_HOME:-$HOME/.cache}/rog5/steam-arm64-drag.so
+	if [ -r "$src" ] && { [ ! -e "$so" ] || [ "$src" -nt "$so" ]; }; then
+		mkdir -p "${so%/*}"
+		printf 'SDL3_0.0.0 {\n\tglobal: SDL_SetWindowHitTest; SDL_GetWindowSize;\n\tlocal: *;\n};\n' >"$so.map"
+		${CC:-cc} -O2 -shared -fPIC -Wl,--version-script="$so.map" -o "$so.new" "$src" && mv -f "$so.new" "$so" ||
+			echo "steam-arm64: could not build $so; Steam windows keep no title-bar drag" >&2
+		rm -f "$so.map" "$so.new"
 	fi
-	;;
-keep) ;;
-*) echo "steam-arm64: ignoring ROG5_STEAM_COMPOSER=$composer (0-3 or keep)" >&2 ;;
-esac
+	[ -e "$so" ] && export LD_PRELOAD="$so${LD_PRELOAD:+:$LD_PRELOAD}"
+fi
 # The client's library path goes to the client only. Like steam.sh, keep the
 # caller's values in SYSTEM_PATH/SYSTEM_LD_LIBRARY_PATH: the client puts them
 # back for the games and tools it starts, so steamrtarm64's libraries do not
