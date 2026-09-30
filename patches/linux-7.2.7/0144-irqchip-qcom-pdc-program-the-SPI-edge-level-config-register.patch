@@ -22,7 +22,18 @@ shows the state is left over from stock.
 
 Map the region when DT has it and set or clear the bit for the parent SPI
 in set_type, like downstream; clear a phantom pending state when the bit
-changes, as for a PDC type change.
+changes, as for a PDC type change. Without reg[1] nothing changes. With it,
+a failed mapping or a region that does not cover every SPI of
+qcom,pdc-ranges fails the probe (downstream treats the mapping as fatal
+too): otherwise a level interrupt behind a stale edge bit would be
+requested fine and never fire (GPT-6.1-Sol review).
+
+Not proven: that the bits survive a CX collapse. Neither this nor the
+downstream driver restores them on resume (resume does not rerun set_type),
+which suggests hardware retention or firmware restore, but no ROG5 suspend
+test has reached CX collapse yet. The writes go straight to MMIO as on the
+ASUS kernel for this board; other Qualcomm trees use SCM where the
+register is protected.
 
 --- a/drivers/irqchip/qcom-pdc.c
 +++ b/drivers/irqchip/qcom-pdc.c
@@ -35,7 +46,7 @@ changes, as for a PDC type change.
  static struct pdc_pin_region *pdc_region;
  static int pdc_region_cnt;
  static unsigned int pdc_version;
-@@ -183,6 +185,45 @@
+@@ -183,6 +185,46 @@
  	PDC_EDGE_DUAL		= 0b111,
  };
  
@@ -62,7 +73,8 @@ changes, as for a PDC type change.
 +
 +	spi = parent_hwirq - 32;
 +	reg = (spi / 32) * sizeof(u32);
-+	if (reg + sizeof(u32) > pdc_spi_cfg_size)
++	/* Probe checked that the region covers every SPI of the PDC mapping. */
++	if (WARN_ON_ONCE(reg + sizeof(u32) > pdc_spi_cfg_size))
 +		return false;
 +
 +	raw_spin_lock_irqsave(&pdc_lock, flags);
@@ -81,7 +93,7 @@ changes, as for a PDC type change.
  /**
   * qcom_pdc_gic_set_type: Configure PDC for the interrupt
   *
-@@ -198,6 +239,7 @@
+@@ -198,6 +240,7 @@
  {
  	enum pdc_irq_config_bits pdc_type;
  	enum pdc_irq_config_bits old_pdc_type;
@@ -89,7 +101,7 @@ changes, as for a PDC type change.
  	int ret;
  
  	switch (type) {
-@@ -228,6 +270,8 @@
+@@ -228,6 +271,8 @@
  	pdc_type |= (old_pdc_type & ~IRQ_i_CFG_TYPE_MASK);
  	pdc_reg_write(IRQ_i_CFG, d->hwirq, pdc_type);
  
@@ -98,7 +110,7 @@ changes, as for a PDC type change.
  	ret = irq_chip_set_type_parent(d, type);
  	if (ret)
  		return ret;
-@@ -241,7 +285,7 @@
+@@ -241,7 +286,7 @@
  	 * Doing this works because we have IRQCHIP_SET_TYPE_MASKED so the
  	 * interrupt will be cleared before the rest of the system sees it.
  	 */
@@ -107,25 +119,75 @@ changes, as for a PDC type change.
  		irq_chip_set_parent_state(d, IRQCHIP_STATE_PENDING, false);
  
  	return 0;
-@@ -410,6 +454,13 @@
+@@ -367,6 +412,29 @@
+ }
+ 
+ 
++/* Every SPI a PDC pin maps to needs its bit in the SPI config region. */
++static int pdc_check_spi_cfg_coverage(struct device_node *np)
++{
++	u32 last;
++	int i;
++
++	if (!pdc_spi_cfg_base)
++		return 0;
++
++	for (i = 0; i < pdc_region_cnt; i++) {
++		if (!pdc_region[i].cnt)
++			continue;
++		last = pdc_region[i].parent_base + pdc_region[i].cnt - 1;
++		if ((last / 32 + 1) * sizeof(u32) > pdc_spi_cfg_size) {
++			pr_err("%pOF: SPI config registers (%pa bytes) do not cover SPI %u\n",
++			       np, &pdc_spi_cfg_size, last);
++			return -EINVAL;
++		}
++	}
++
++	return 0;
++}
++
+ static int qcom_pdc_probe(struct platform_device *pdev, struct device_node *parent)
+ {
+ 	struct irq_domain *parent_domain, *pdc_domain;
+@@ -410,6 +478,21 @@
  
  	pdc_version = pdc_reg_read(PDC_VERSION_REG, 0);
  
++	/*
++	 * Optional: without it the SPI edge/level bits are left alone. When DT
++	 * describes it, it must work, or level interrupts behind SPIs marked
++	 * edge by the previous owner would be requested fine but never fire.
++	 */
 +	if (!of_address_to_resource(node, 1, &res)) {
 +		pdc_spi_cfg_size = resource_size(&res);
 +		pdc_spi_cfg_base = ioremap(res.start, pdc_spi_cfg_size);
-+		if (!pdc_spi_cfg_base)
-+			pr_warn("%pOF: unable to map the SPI config registers\n", node);
++		if (!pdc_spi_cfg_base) {
++			pr_err("%pOF: unable to map the SPI config registers\n", node);
++			ret = -ENXIO;
++			goto fail;
++		}
 +	}
 +
  	parent_domain = irq_find_host(parent);
  	if (!parent_domain) {
  		pr_err("%pOF: unable to find PDC's parent domain\n", node);
-@@ -440,6 +491,7 @@
+@@ -423,6 +506,10 @@
+ 		goto fail;
+ 	}
+ 
++	ret = pdc_check_spi_cfg_coverage(node);
++	if (ret)
++		goto fail;
++
+ 	pdc_domain = irq_domain_create_hierarchy(parent_domain,
+ 					IRQ_DOMAIN_FLAG_QCOM_PDC_WAKEUP,
+ 					PDC_MAX_GPIO_IRQS,
+@@ -440,6 +527,8 @@
  
  fail:
  	kfree(pdc_region);
 +	iounmap(pdc_spi_cfg_base);
++	pdc_spi_cfg_base = NULL;
  	iounmap(pdc_base);
  	iounmap(pdc_prev_base);
  	return ret;
