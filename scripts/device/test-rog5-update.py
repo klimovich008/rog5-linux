@@ -225,7 +225,7 @@ esac''')
                    ROG5_UPDATE_RUN=str(self.run), ROG5_UPDATE_SYS=str(self.sys),
                    ROG5_UPDATE_PROC=str(self.proc), ROG5_UPDATE_MOUNTS=str(self.dir/'mounts'),
                    ROG5_UPDATE_KMSG=str(self.dir/'kmsg'), ROG5_UPDATE_RESERVE_MIB='1', ROG5_UPDATE_WAIT='2',
-                   ROG5_UPDATE_INHIBIT_CMD='')
+                   ROG5_UPDATE_INHIBIT_CMD='', ROG5_UPDATE_REBOOT_WINDOW='')
         env.update(extra)
         result = subprocess.run(['unshare', '-r', 'sh', str(self.update), action], capture_output=True,
                                 text=True, env=env, timeout=120)
@@ -594,6 +594,21 @@ class Run(Base):
         stub = self.bin/'fake-inhibit'
         self.write(stub, '#!/bin/sh\necho "backup 0 root 42 rsync shutdown:sleep nightly backup block"\n', 0o755)
         self.assert_busy_defers_reboot('a shutdown inhibitor is active', ROG5_UPDATE_INHIBIT_CMD='fake-inhibit')
+
+    def test_playing_sound_defers_the_verification_reboot(self):
+        self.write(self.proc/'asound/card0/pcm0p/sub0/status', 'state: RUNNING\nowner_pid   : 42\n')
+        self.assert_busy_defers_reboot('sound is playing')
+
+    def test_reboot_waits_for_the_reboot_window(self):
+        hour = int(subprocess.run(['date', '+%H'], capture_output=True, text=True).stdout)
+        outside = f'{(hour + 2) % 24:02d}-{(hour + 3) % 24:02d}'
+        self.assert_busy_defers_reboot('outside the reboot window', ROG5_UPDATE_REBOOT_WINDOW=outside)
+
+    def test_reboot_window_that_wraps_midnight_admits_the_current_hour(self):
+        hour = int(subprocess.run(['date', '+%H'], capture_output=True, text=True).stdout)
+        window = f'{(hour + 23) % 24:02d}-{(hour + 1) % 24:02d}'
+        self.assertEqual(self.start(ROG5_UPDATE_REBOOT_WINDOW=window), 0, self.kmsg())
+        self.assertEqual(self.reboots(), 1)
 
     def test_never_policy_leaves_the_reboot_to_the_user(self):
         self.assertEqual(self.start(ROG5_UPDATE_REBOOT='never'), 0, self.kmsg())

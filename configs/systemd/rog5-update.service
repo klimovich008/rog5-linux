@@ -9,12 +9,19 @@ ExecStart=/run/rog5-update/rog5-update run
 # Packages never upgraded automatically (space-separated; see docs/development.md).
 Environment=ROG5_UPDATE_HOLD=
 # Reboot into a verified update when the system is idle (screen and external
-# display off, no remote client, no /run/rog5-stay-awake, no shutdown
-# inhibitor such as `systemd-inhibit --what=shutdown <job>`), at once (now),
+# display off, no sound playing, inside ROG5_UPDATE_REBOOT_WINDOW, no remote
+# client, no /run/rog5-stay-awake, no shutdown inhibitor such as
+# `systemd-inhibit --what=shutdown <job>`), at once (now),
 # or leave it for the next ordinary reboot (never).
 Environment=ROG5_UPDATE_REBOOT=idle
 Environment=ROG5_UPDATE_MIN_BATTERY=50
 Environment=ROG5_UPDATE_INTERVAL=86400
+# Local hours for the idle reboot (empty: any time).
+Environment=ROG5_UPDATE_REBOOT_WINDOW=01-06
 Nice=10
 IOSchedulingClass=idle
+# The snapshot copies the whole overlay upper (27 GB on 2026-09-30); without
+# a cap its page cache (6.8 GB peak seen) pushes the session into zram.
+# MemoryHigh only reclaims/throttles this unit, it never kills it.
+MemoryHigh=2G
 TimeoutStartSec=3h

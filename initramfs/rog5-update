@@ -39,6 +39,9 @@ reboot_policy=${ROG5_UPDATE_REBOOT:-idle}
 reserve_mib=${ROG5_UPDATE_RESERVE_MIB:-3072}
 # Command that lists logind inhibitors (empty: ignore inhibitors).
 inhibit_cmd=${ROG5_UPDATE_INHIBIT_CMD-systemd-inhibit}
+# Local hours (start-end, 24 h clock) in which an unattended reboot may run;
+# empty = any time. Default: the night, like a phone installing updates.
+reboot_window=${ROG5_UPDATE_REBOOT_WINDOW-01-06}
 dir=$state/rog5-update
 snapshots=$state/snapshots
 upper=$state/upper
@@ -414,6 +417,29 @@ remote_client() {
 		}'
 }
 
+# Sound is playing: a running ALSA playback substream (PipeWire suspends idle
+# nodes, so an open but silent device does not count).
+audio_playing() {
+	for status in "$proc"/asound/card*/pcm*p/sub*/status; do
+		[ -r "$status" ] || continue
+		grep -q '^state: RUNNING' "$status" 2>/dev/null && return 0
+	done
+	return 1
+}
+
+# Inside the allowed local-time window (start <= hour < end, may wrap midnight).
+in_reboot_window() {
+	[ -n "$reboot_window" ] || return 0
+	start=${reboot_window%-*} end=${reboot_window#*-}
+	hour=$(date +%H) && hour=${hour#0}
+	start=${start#0} end=${end#0}
+	if [ "$start" -le "$end" ]; then
+		[ "$hour" -ge "$start" ] && [ "$hour" -lt "$end" ]
+	else
+		[ "$hour" -ge "$start" ] || [ "$hour" -lt "$end" ]
+	fi
+}
+
 # A logind inhibitor that blocks shutdown (systemd-inhibit --what=shutdown).
 shutdown_blocked() {
 	[ -n "$inhibit_cmd" ] && command -v "$inhibit_cmd" >/dev/null 2>&1 || return 1
@@ -432,6 +458,8 @@ system_idle() {
 			{ log 'reboot deferred: an external display is in use'; return 1; }
 	done
 	[ -e "$run/rog5-stay-awake" ] && { log 'reboot deferred: /run/rog5-stay-awake'; return 1; }
+	audio_playing && { log 'reboot deferred: sound is playing'; return 1; }
+	in_reboot_window || { log "reboot deferred: outside the reboot window $reboot_window"; return 1; }
 	remote_client && { log 'reboot deferred: a remote client is connected'; return 1; }
 	shutdown_blocked && { log 'reboot deferred: a shutdown inhibitor is active'; return 1; }
 	return 0
