@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 build <klimovich008@gmail.com>
+Date: Wed, 30 Sep 2026 04:05:00 +0200
+Subject: [PATCH] layer-shell-effects: Handle inert layer surfaces in
+ get_alpha_layer_surface
+
+When an output goes away phoc destroys its layer surfaces; a client request
+already in flight for such a surface (Phosh asks for an alpha surface right
+after DP-1 turned off) then resolves wlr_layer_surface_v1_from_resource() to
+NULL, and handle_get_alpha_layer_surface() dereferenced it (SIGSEGV at
+phoc+0x4446c, 2026-09-29 12:40:32 and 2026-09-30 00:27:37, both 0.1-0.7 s
+after DP-1 was disabled). Hand out an inert alpha surface instead; set_alpha
+and destroy already cope with layer_surface == NULL.
+---
+--- a/src/layer-shell-effects.c	2026-09-30 03:26:23.170598996 +0200
++++ b/src/layer-shell-effects.c	2026-09-30 03:26:23.187803569 +0200
+@@ -819,6 +819,30 @@
+   self = phoc_layer_shell_effects_from_resource (layer_shell_effects_resource);
+   g_assert (PHOC_IS_LAYER_SHELL_EFFECTS (self));
+   wlr_layer_surface = wlr_layer_surface_v1_from_resource (layer_surface_resource);
++
++  if (wlr_layer_surface == NULL) {
++    /* The layer surface is inert: we destroyed it (e.g. its output went
++     * away) before the client saw the `closed` event. Hand out an inert
++     * alpha surface (layer_surface stays NULL, which set_alpha and destroy
++     * already handle) instead of dereferencing NULL. */
++    alpha_surface = g_new0 (PhocAlphaLayerSurface, 1);
++    alpha_surface->layer_shell_effects = self;
++    alpha_surface->resource = wl_resource_create (client,
++                                                  &zphoc_alpha_layer_surface_v1_interface,
++                                                  wl_resource_get_version (layer_shell_effects_resource),
++                                                  id);
++    if (alpha_surface->resource == NULL) {
++      wl_client_post_no_memory (client);
++      return;
++    }
++    wl_resource_set_implementation (alpha_surface->resource,
++                                    &alpha_layer_surface_v1_impl,
++                                    alpha_surface,
++                                    alpha_layer_surface_handle_resource_destroy);
++    self->alpha_surfaces = g_slist_prepend (self->alpha_surfaces, g_steal_pointer (&alpha_surface));
++    return;
++  }
++
+   wlr_surface = wlr_layer_surface->surface;
+   g_assert (wlr_surface);
+ 

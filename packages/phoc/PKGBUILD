@@ -1,0 +1,62 @@
+# ROG5 rebuild of Arch's phoc 0.57.0-1 with phoc's own patched wlroots.
+#
+# Arch builds phoc with -D embed-wlroots=disabled against the stock
+# wlroots0.20. Phoc's wrap carries
+# 0001-Revert-layer-shell-error-on-0-dimension-without-anch.patch because
+# phosh maps its "phosh home" layer surface with height 0 anchored only
+# bottom|left|right. Stock wlroots 0.20 rejects that ("height 0 requested
+# without setting top and bottom anchors"), phosh dies with Wayland error 71
+# right after "Phosh ready" and the session ends (2026-09-27).
+# 1.2 adds 0001-layer-shell-effects-handle-inert-layer-surfaces.patch.
+# Only the build options differ from Arch's PKGBUILD: embedded wlroots
+# (static, gles2 renderer, drm/libinput backends), no man page, no Xvfb tests.
+pkgname=phoc
+pkgver=0.57.0
+pkgrel=1.2
+pkgdesc='Display compositor designed for phones (ROG5: embedded patched wlroots)'
+arch=(aarch64)
+url='https://gitlab.gnome.org/World/Phosh/phoc'
+license=(GPL-3.0-or-later)
+depends=(
+  cairo dconf libgcc glib2 glibc gnome-desktop gsettings-desktop-schemas
+  hicolor-icon-theme libgmobile libinput libxcb libxkbcommon mutter pango
+  pixman systemd-libs wayland xorg-xwayland
+  # embedded wlroots
+  libdisplay-info libdrm libglvnd lcms2 libliftoff seatd xcb-util-errors
+  xcb-util-renderutil xcb-util-wm
+)
+makedepends=(git glib2-devel meson wayland-protocols hwdata)
+source=(
+  "git+https://gitlab.gnome.org/World/Phosh/phoc.git#tag=v$pkgver"
+  git+https://gitlab.gnome.org/GNOME/gvdb.git
+  0001-layer-shell-effects-handle-inert-layer-surfaces.patch
+)
+b2sums=('ddfd0cd92fd49df2227c2deb3b180ef3ea7ec0b921536c7a3aedf17aec680214114e00f406fefdc28dbbf0bee00d5b6d8191e6d84e830f7d3e76a75c6d41f84f'
+        'SKIP'
+        'e3d53e76c4c4aa638161f26e063640924b34fa70d6f3174916686ea5fe981d513f51ee6d977f85cbb3eb0dcfb2827f7beefb6bea2044d8f58c336668d6b39b33')
+
+prepare() {
+  ln -s "$srcdir/gvdb" "$pkgname/subprojects/gvdb"
+  # Fetches wlroots 0.20.2 and applies phoc's diff_files.
+  meson subprojects download --sourcedir $pkgname wlroots
+  grep -B6 'height 0 requested without setting top and bottom anchors' \
+    "$pkgname/subprojects/wlroots-0.20.x/types/wlr_layer_shell_v1.c" | grep -q '^#if 0' ||
+    { echo 'phoc wlroots patch not applied' >&2; return 1; }
+  # ROG5: don't dereference an inert layer surface (crash on DP-1 unplug)
+  patch -d $pkgname -p1 < 0001-layer-shell-effects-handle-inert-layer-surfaces.patch
+}
+
+build() {
+  arch-meson $pkgname build \
+    -D embed-wlroots=enabled \
+    -D man=false \
+    -D wlroots:default_library=static \
+    -D wlroots:renderers=gles2 \
+    -D wlroots:backends=drm,libinput \
+    -D wlroots:examples=false
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir" --skip-subprojects
+}
