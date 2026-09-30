@@ -1,13 +1,28 @@
 #!/bin/sh
 # Start the native aarch64 Steam client installed by steam-arm64-install.
 #
-# Valve's steam.sh has no aarch64 path, so this does its two jobs for
-# steamrtarm64: the library path, and restarting the client when it exits
-# with 42 (it does that after installing its own update).
+# Valve's steam.sh has no aarch64 path, so this does its jobs for
+# steamrtarm64: the ~/.steam links, the library path, and restarting the
+# client when it exits with 42 (it does that after installing its own update).
 #
 #   steam-arm64 [steam arguments]
 root=${STEAMROOT:-$HOME/.local/share/Steam}
 [ -x "$root/steamrtarm64/steam" ] || { echo "steam-arm64: not installed; run steam-arm64-install" >&2; exit 1; }
+# The ~/.steam links steam.sh creates, plus sdkarm64: games start through
+# ~/.steam/sdkarm64/steam-launch-wrapper and the overlay is preloaded from
+# ~/.steam/bin64/.. .
+c=$HOME/.steam
+mkdir -p "$c"
+ln -sfn "$root/ubuntu12_32" "$c/bin32"
+ln -sfn "$root/ubuntu12_64" "$c/bin64"
+ln -sfn "$root/linux32" "$c/sdk32"
+ln -sfn "$root/linux64" "$c/sdk64"
+ln -sfn "$root/linuxarm64" "$c/sdkarm64"
+ln -sfn "$root" "$c/root"
+ln -sfn "$root" "$c/steam"
+ln -sfn "$c/bin32" "$c/bin"
+ln -sfn "$c/sdk32/steam" "$HOME/.steampath"
+ln -sfn "$c/steam.pid" "$HOME/.steampid"
 export LD_LIBRARY_PATH="$root/steamrtarm64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 while :; do
 	"$root/steamrtarm64/steam" -noverifyfiles "$@"

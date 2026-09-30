@@ -7,8 +7,9 @@
 # manifest, checks its SHA-256 against the manifest, unpacks it into
 # ~/.local/share/Steam and adds a "Steam" launcher (steam-arm64, which
 # restarts the client after its self-update). The phone kernel uses 4 KiB
-# pages, so no muvm VM is needed (Asahi needs it for 16 KiB pages). x86-only
-# games additionally need FEX; native aarch64 games and the client do not.
+# pages, so no muvm VM is needed (Asahi needs it for 16 KiB pages). x86
+# games run through Steam's own FEX tool, which needs the x86 guest root
+# from steam-fex-rootfs-install (as root); native aarch64 games do not.
 #
 #   steam-arm64-install [--beta]     (run as the desktop user, not root)
 set -eu

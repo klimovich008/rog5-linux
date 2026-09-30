@@ -1,0 +1,37 @@
+#!/bin/sh
+# Install the x86 guest root that Steam's FEX compatibility tool needs to run
+# x86 games (Proton or native x86 Linux) on the aarch64 Steam client.
+#
+# FEX-Emu's fex-compat-tool uses /usr/share/guestos/fex-mesa as the x86 root
+# (SteamOS on ARM ships it; Arch Linux ARM does not). FEX-Emu's official
+# Arch Linux root image carries exactly that: an x86_64/i686 userland with a
+# Mesa that has freedreno (GL) and turnip (Vulkan, for DXVK/VKD3D) and a
+# graphics_provider.json. This downloads the image named in FEX's
+# RootFS_links.json, checks its XXH3 hash from the same list, and unpacks it.
+#
+#   steam-fex-rootfs-install          (as root; needs squashfs-tools, xxhash)
+set -eu
+[ "$(id -u)" = 0 ] || { echo 'steam-fex-rootfs-install: run as root' >&2; exit 1; }
+dest=/usr/share/guestos/fex-mesa
+cache=/var/cache/rog5-fex
+entry='ArchLinux (SquashFS)'
+mkdir -p "$cache"
+curl -fsSL --max-time 60 https://rootfs.fex-emu.gg/RootFS_links.json -o "$cache/links.json"
+set -- $(python3 - "$cache/links.json" "$entry" <<'PY'
+import json, sys
+e = json.load(open(sys.argv[1]))["v1"][sys.argv[2]]
+print(e["URL"], e["Hash"])
+PY
+)
+url=$1 hash=$2
+echo "downloading $url"
+curl -fsSL --retry 3 "$url" -o "$cache/rootfs.sqsh.part"
+mv "$cache/rootfs.sqsh.part" "$cache/rootfs.sqsh"
+got=$(xxhsum -H3 "$cache/rootfs.sqsh" | awk '{print $1}')
+[ "${got#XXH3_}" = "$hash" ] || { echo "steam-fex-rootfs-install: XXH3 $got, expected $hash" >&2; exit 1; }
+rm -rf "$dest.new"; mkdir -p "$(dirname "$dest")"
+unsquashfs -q -n -d "$dest.new" "$cache/rootfs.sqsh"
+[ -f "$dest.new/graphics_provider.json" ] || { echo "steam-fex-rootfs-install: no graphics_provider.json in the image" >&2; exit 1; }
+rm -rf "$dest"; mv "$dest.new" "$dest"
+rm -f "$cache/rootfs.sqsh"
+echo "installed: $dest ($url)"
