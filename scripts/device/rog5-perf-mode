@@ -8,11 +8,23 @@
 #                (X Mode): the GPU holds 840 MHz under sustained load
 #                (Geekbench 6 Vulkan 4670 -> 5405, case up to ~49 C,
 #                test-results/2026-09-29-gpu-performance.md)
-#   auto         performance while external power is online and an external
-#                display is connected (desktop mode on a dock: the phone lies
-#                on a desk), normal otherwise (in the hand, on battery).
-#                Re-evaluated by 92-rog5-perf-mode.rules on charger and DP
-#                hotplug events.
+#   auto         performance on external power when perf_on_power in
+#                /etc/rog5/perf-mode allows it, normal otherwise (in the
+#                hand, on battery). Re-evaluated by 92-rog5-perf-mode.rules
+#                on charger and DP hotplug events. perf_on_power=
+#                  display  [default] only with an external display
+#                           connected (desktop mode on a dock: the phone lies
+#                           on a desk)
+#                  always   whenever external power is online: a headless
+#                           server on a hub. Only where nobody holds the phone
+#                           while it charges (the case reaches ~49 C under
+#                           sustained load); rog5-charge-policy bypass_perf
+#                           stops charging meanwhile, so the cells get no
+#                           charging heat on top.
+#                  never    auto always picks normal
+#                The default stays "display": the panel being off says
+#                nothing about the phone lying on a desk, and a phone
+#                charging in the hand must not run at 56 C trips.
 #
 # The 65 C critical trip (orderly shutdown) and the CPU/GPU junction trips
 # (90-110 C) are never changed. The choice persists in $state and is applied
@@ -25,6 +37,13 @@ zones=${ROG5_PERF_MODE_ZONES:-/sys/class/thermal}
 lock=${ROG5_PERF_MODE_LOCK:-/run/rog5-perf-mode.lock}
 supplies=${ROG5_PERF_MODE_SUPPLIES:-/sys/class/power_supply}
 drm=${ROG5_PERF_MODE_DRM:-/sys/class/drm}
+conf=${ROG5_PERF_MODE_CONF:-/etc/rog5/perf-mode}
+
+# perf_on_power from the config (display unless always/never is set).
+perf_on_power() {
+	v=$(sed -n 's/^[[:space:]]*perf_on_power[[:space:]]*=[[:space:]]*\([a-z]*\).*/\1/p' "$conf" 2>/dev/null | tail -n 1)
+	case $v in always | never) echo "$v" ;; *) echo display ;; esac
+}
 
 # One change at a time: two concurrent runs could interleave their trip
 # writes and leave the trips crossed (review 2026-09-29).
@@ -70,9 +89,11 @@ mode_of() {
 	echo "${m:-normal}"
 }
 
-# auto: performance on external power with an external display connected.
+# auto: performance on external power (with an external display connected,
+# unless perf_on_power says always or never).
 auto_mode() {
-	ac=0 dp=0
+	ac=0 dp=0 pol=$(perf_on_power)
+	[ "$pol" != never ] || { echo normal; return; }
 	for s in "$supplies"/*; do
 		case $(cat "$s/type" 2>/dev/null) in
 		USB*|Mains|Wireless) [ "$(cat "$s/online" 2>/dev/null)" = 1 ] && ac=1 ;;
@@ -81,6 +102,7 @@ auto_mode() {
 	for c in "$drm"/card*-DP-*; do
 		[ "$(cat "$c/status" 2>/dev/null)" = connected ] && dp=1
 	done
+	[ "$pol" != always ] || dp=1
 	if [ "$ac" = 1 ] && [ "$dp" = 1 ]; then echo performance; else echo normal; fi
 }
 
@@ -98,7 +120,7 @@ cmd=${1:-status}
 case $cmd in
 status)
 	z=$(skin_zone) || { echo 'no skin-thermal zone'; exit 1; }
-	echo "mode: $(mode_of "$z") (saved: $(cat "$state" 2>/dev/null || echo normal)$( [ "$(cat "$state" 2>/dev/null)" = auto ] && echo ", auto picks $(auto_mode)"))"
+	echo "mode: $(mode_of "$z") (saved: $(cat "$state" 2>/dev/null || echo normal)$( [ "$(cat "$state" 2>/dev/null)" = auto ] && echo ", auto picks $(auto_mode), perf_on_power=$(perf_on_power)"))"
 	echo "skin: $(($(cat "$z/temp") / 1000)) C"
 	;;
 normal | performance | auto)

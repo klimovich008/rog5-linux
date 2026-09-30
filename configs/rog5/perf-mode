@@ -1,0 +1,9 @@
+# /etc/rog5/perf-mode: read by `rog5-perf-mode auto` on every charger and DP
+# hotplug event (run `rog5-perf-mode apply` after editing).
+# perf_on_power: when auto picks the performance skin trips (56/57 C) on
+# external power:
+#   display  only with an external display connected (desktop on a dock)
+#   always   whenever external power is online (headless server on a hub,
+#            where nobody holds the phone while it charges)
+#   never    auto always picks normal (42/46 C)
+perf_on_power=display

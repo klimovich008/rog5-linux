@@ -3,7 +3,7 @@
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
-export ROG5_PERF_MODE_ZONES=$t ROG5_PERF_MODE_STATE=$t/state/perf-mode ROG5_PERF_MODE_LOCK=$t/lock
+export ROG5_PERF_MODE_ZONES=$t ROG5_PERF_MODE_STATE=$t/state/perf-mode ROG5_PERF_MODE_LOCK=$t/lock ROG5_PERF_MODE_CONF=$t/conf
 mkdir -p $t/thermal_zone3 $t/thermal_zone36
 echo cpu4-top-thermal >$t/thermal_zone3/type
 z=$t/thermal_zone36; echo skin-thermal >$z/type; echo 40100 >$z/temp
@@ -28,6 +28,16 @@ echo 1 >$t/ps/usb/online; "$here/rog5-perf-mode" apply >/dev/null; check '65000 
 echo connected >$t/drm/card0-DP-1/status; "$here/rog5-perf-mode" apply >/dev/null; check '65000 57000 56000' 'auto desktop on ac'
 "$here/rog5-perf-mode" status | grep -q 'auto picks performance' || { echo 'FAIL status auto'; exit 1; }
 echo 0 >$t/ps/usb/online; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'auto unplugged'
+# perf_on_power in the config: display (default), always (headless server), never
+echo disconnected >$t/drm/card0-DP-1/status; echo 1 >$t/ps/usb/online
+printf '# comment\nperf_on_power = always # headless server\n' >$t/conf
+"$here/rog5-perf-mode" apply >/dev/null; check '65000 57000 56000' 'always: headless on ac'
+"$here/rog5-perf-mode" status | grep -q 'auto picks performance, perf_on_power=always' || { echo 'FAIL status always'; exit 1; }
+echo 0 >$t/ps/usb/online; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'always: battery stays normal'
+echo 1 >$t/ps/usb/online; echo connected >$t/drm/card0-DP-1/status
+echo perf_on_power=never >$t/conf; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'never: desktop on ac'
+echo perf_on_power=bogus >$t/conf; "$here/rog5-perf-mode" apply >/dev/null; check '65000 57000 56000' 'unknown value: display'
+echo disconnected >$t/drm/card0-DP-1/status; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'unknown value: display, no DP'
 "$here/rog5-perf-mode" normal >/dev/null
 if "$here/rog5-perf-mode" turbo 2>/dev/null; then echo 'FAIL unknown mode accepted'; exit 1; fi
 # concurrent changes never leave the trips crossed
