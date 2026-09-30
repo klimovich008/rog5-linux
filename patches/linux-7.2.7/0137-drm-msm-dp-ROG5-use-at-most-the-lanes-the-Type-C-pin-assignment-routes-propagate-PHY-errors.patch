@@ -9,7 +9,11 @@ routes; 0 = not reported, no limit), as stock msm-5.4 limits multi-function
 
 The sink's link_info was never cleared: the rate is only derived while it is
 0, so a previous sink's rate (a converter capped at HBR by 0110) survived an
-unplug and replug of another sink. Clear it before every capability read.
+unplug and replug of another sink. Build it from zero in a local struct for
+every capability read, apply the 0110 converter cap, then publish it in one
+step: hpd_irq reruns the read while a stream is up, and mode_valid and
+atomic_enable read link_info without a lock, so they must never see a
+cleared or not yet capped copy.
 
 phy_configure()/phy_power_on() results were ignored (also for the voltage
 updates during training). Return them, and power the PHY off only when it was
@@ -19,7 +23,8 @@ reaches the driver again (DP dead until reboot). Link clocks likewise are
 disabled only when enabled, and the main link control register (link clock
 domain) is not touched while they are off: a failed re-enable during link
 training returns with them off, and the cleanup that follows would stall the
-bus on an unclocked access.
+bus on an unclocked access. Sink requests (hpd_irq) are ignored while the
+link clocks are off for the same reason.
 
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
@@ -173,7 +178,24 @@ bus on an unclocked access.
  
  	/* aux channel down, reinit phy */
  	phy_exit(phy);
-@@ -2643,7 +2703,7 @@
+@@ -2266,6 +2326,16 @@
+ 	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
+ 	sink_request = ctrl->link->sink_request;
+ 
++	/*
++	 * ROG5: every request below touches the link registers, clocked only
++	 * with the link clocks (off after a failed link enable).
++	 */
++	if (!ctrl->link_clks_on) {
++		drm_dbg_dp(ctrl->drm_dev, "sink request 0x%x with the link off\n",
++			   sink_request);
++		return;
++	}
++
+ 	if (sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) {
+ 		drm_dbg_dp(ctrl->drm_dev, "PHY_TEST_PATTERN request\n");
+ 		if (msm_dp_ctrl_process_phy_test_request(ctrl)) {
+@@ -2643,7 +2713,7 @@
  	dev_pm_opp_set_rate(ctrl->dev, 0);
  	msm_dp_ctrl_link_clk_disable(&ctrl->msm_dp_ctrl);
  
@@ -182,7 +204,7 @@ bus on an unclocked access.
  
  	/* aux channel down, reinit phy */
  	phy_exit(phy);
-@@ -2653,10 +2713,8 @@
+@@ -2653,10 +2723,8 @@
  void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl)
  {
  	struct msm_dp_ctrl_private *ctrl;
@@ -193,7 +215,7 @@ bus on an unclocked access.
  
  	msm_dp_panel_disable_vsc_sdp(ctrl->panel);
  
-@@ -2671,7 +2729,7 @@
+@@ -2671,7 +2739,7 @@
  
  	msm_dp_ctrl_link_clk_disable(&ctrl->msm_dp_ctrl);
  
@@ -238,19 +260,31 @@ bus on an unclocked access.
  #include <linux/types.h>
  #include <asm/byteorder.h>
  
-@@ -88,7 +89,7 @@
+@@ -86,11 +87,16 @@
+ 	}
+ }
  
- static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel)
+-static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel)
++/*
++ * ROG5: fills the caller's link_info (msm_dp_panel_read_sink_caps() publishes
++ * it in one step once every cap is applied: hpd_irq reruns this while a
++ * stream is up, and mode_valid/atomic_enable read link_info without a lock).
++ */
++static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel,
++				  struct msm_dp_link_info *link_info)
  {
 -	int rc, max_lttpr_lanes, max_lttpr_rate;
 +	int rc, max_lttpr_lanes, max_lttpr_rate, phy_lanes;
  	struct msm_dp_panel_private *panel;
- 	struct msm_dp_link_info *link_info;
+-	struct msm_dp_link_info *link_info;
  	struct msm_dp_link *link;
-@@ -102,6 +103,12 @@
+ 	u8 *dpcd, major, minor;
+ 
+@@ -101,7 +107,12 @@
+ 		return rc;
  
  	msm_dp_panel->vsc_sdp_supported = drm_dp_vsc_sdp_supported(panel->aux, dpcd);
- 	link_info = &msm_dp_panel->link_info;
+-	link_info = &msm_dp_panel->link_info;
 +	/*
 +	 * ROG5: recompute everything for this sink. The rate below is only
 +	 * derived while it is 0, so a previous sink's rate (a converter capped
@@ -260,7 +294,7 @@ bus on an unclocked access.
  	link_info->revision = dpcd[DP_DPCD_REV];
  	major = (link_info->revision >> 4) & 0x0f;
  	minor = link_info->revision & 0x0f;
-@@ -194,6 +201,19 @@
+@@ -194,6 +205,19 @@
  	if (link_info->num_lanes > link->max_dp_lanes)
  		link_info->num_lanes = link->max_dp_lanes;
  
@@ -280,3 +314,59 @@ bus on an unclocked access.
  	/* Limit data lanes from LTTPR capabilities, if any */
  	if (max_lttpr_lanes && max_lttpr_lanes < link_info->num_lanes)
  		link_info->num_lanes = max_lttpr_lanes;
+@@ -227,9 +251,9 @@
+ module_param_named(dp_pcon_max_rate, msm_dp_pcon_max_rate, uint, 0644);
+ MODULE_PARM_DESC(dp_pcon_max_rate, "cap the link rate (kHz) behind a DP-to-HDMI/DVI converter, 0 = no cap");
+ 
+-static void msm_dp_panel_cap_pcon_rate(struct msm_dp_panel *msm_dp_panel)
++static void msm_dp_panel_cap_pcon_rate(struct msm_dp_panel *msm_dp_panel,
++				       struct msm_dp_link_info *link_info)
+ {
+-	struct msm_dp_link_info *link_info = &msm_dp_panel->link_info;
+ 	const u8 *dpcd = msm_dp_panel->dpcd;
+ 	int i;
+ 
+@@ -322,6 +346,7 @@
+ 	int rc, bw_code;
+ 	int count;
+ 	struct msm_dp_panel_private *panel;
++	struct msm_dp_link_info link_info;
+ 
+ 	if (!msm_dp_panel || !connector) {
+ 		DRM_ERROR("invalid input\n");
+@@ -330,18 +355,18 @@
+ 
+ 	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
+ 
+-	rc = msm_dp_panel_read_dpcd(msm_dp_panel);
++	rc = msm_dp_panel_read_dpcd(msm_dp_panel, &link_info);
+ 	if (rc) {
+ 		DRM_ERROR("read dpcd failed %d\n", rc);
+ 		return rc;
+ 	}
+ 
+-	bw_code = drm_dp_link_rate_to_bw_code(msm_dp_panel->link_info.rate);
++	bw_code = drm_dp_link_rate_to_bw_code(link_info.rate);
+ 	if (!is_link_rate_valid(bw_code) ||
+-			!is_lane_count_valid(msm_dp_panel->link_info.num_lanes) ||
++			!is_lane_count_valid(link_info.num_lanes) ||
+ 			(bw_code > msm_dp_panel->max_bw_code)) {
+-		DRM_ERROR("Illegal link rate=%d lane=%d\n", msm_dp_panel->link_info.rate,
+-				msm_dp_panel->link_info.num_lanes);
++		DRM_ERROR("Illegal link rate=%d lane=%d\n", link_info.rate,
++				link_info.num_lanes);
+ 		return -EINVAL;
+ 	}
+ 
+@@ -358,7 +383,10 @@
+ 	if (rc)
+ 		return rc;
+ 
+-	msm_dp_panel_cap_pcon_rate(msm_dp_panel);
++	msm_dp_panel_cap_pcon_rate(msm_dp_panel, &link_info);
++
++	/* ROG5: publish the sink's link limits in one step, caps applied */
++	msm_dp_panel->link_info = link_info;
+ 
+ 	drm_edid_free(msm_dp_panel->drm_edid);
+ 

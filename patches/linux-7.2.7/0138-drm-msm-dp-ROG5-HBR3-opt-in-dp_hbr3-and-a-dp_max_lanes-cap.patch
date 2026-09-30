@@ -18,11 +18,10 @@ the training-only msm.dp_max_rate). eDP sinks are left alone.
 
 --- a/drivers/gpu/drm/msm/dp/dp_panel.c
 +++ b/drivers/gpu/drm/msm/dp/dp_panel.c
-@@ -87,6 +87,27 @@
- 	}
+@@ -88,6 +88,27 @@
  }
  
-+/*
+ /*
 + * ROG5: HBR3 (8.1 Gbit/s per lane) is in the DT (PHY tables and PLL values
 + * match stock msm-5.4, which allows it) but not yet qualified on the side
 + * port and cable; 4 lanes at HBR2 (17.28 Gbit/s) already carry 5120x1440@60
@@ -43,10 +42,11 @@ the training-only msm.dp_max_rate). eDP sinks are left alone.
 +module_param_named(dp_max_lanes, msm_dp_max_lanes, uint, 0644);
 +MODULE_PARM_DESC(dp_max_lanes, "ROG5: cap external DP lanes (1, 2, 4; 0 = no cap), applied at the next plug-in");
 +
- static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel)
- {
- 	int rc, max_lttpr_lanes, max_lttpr_rate, phy_lanes;
-@@ -193,6 +214,15 @@
++/*
+  * ROG5: fills the caller's link_info (msm_dp_panel_read_sink_caps() publishes
+  * it in one step once every cap is applied: hpd_irq reruns this while a
+  * stream is up, and mode_valid/atomic_enable read link_info without a lock).
+@@ -197,6 +218,15 @@
  		/* Limit link rate from LTTPR capabilities, if any */
  		if (max_lttpr_rate && max_lttpr_rate < link_info->rate)
  			link_info->rate = max_lttpr_rate;
@@ -62,7 +62,7 @@ the training-only msm.dp_max_rate). eDP sinks are left alone.
  	}
  
  	link_info->num_lanes = drm_dp_max_lane_count(dpcd);
-@@ -214,6 +244,15 @@
+@@ -218,6 +248,15 @@
  		link_info->num_lanes = phy_lanes;
  	}
  

@@ -23,9 +23,21 @@ lanes than the applied mode drives and any DP power on in USB3-only mode. A
 DP mode deferred because DP was powered is applied at the next first PHY
 init (qmp_combo_com_init() from zero users), where no PHY user or AUX
 transfer is active, instead of forcing a common restart under a live AUX
-channel. power_on() returns the serdes/PLL errors with the DP PHY powered
-down again; the mux restart stops (no register access) if the forced init
-fails, and a forced init failure no longer decrements init_count.
+channel. A USB3-only request is also deferred while the DP PHY is
+initialised (a DP sink session in msm), so a late USB state from UCSI's
+typec_set_mode() between the DP notification and the stream enable cannot
+take the lanes away; the side port's USB3 PHY is unused. power_on() returns
+the serdes/PLL errors with the DP PHY powered down again, and configure/
+power_on accept only 1, 2 or 4 lanes.
+
+Forced restarts (mux and orientation switch) can fail in com_init() and left
+init_count decremented and resources off while users remained: a com_on flag
+now tracks whether the common block is enabled. Register accesses (DP power
+on/off, voltage configure, calibrate, USB power off, runtime PM) are skipped
+or refused while it is off, com_exit() does not disable twice, the next
+non-forced init re-enables it, the restart paths return the error before
+touching registers, and a forced init failure no longer decrements
+init_count.
 
 The mux path also powered the USB3 PHY on entering a USB3 mode even with no
 USB controller using it (the side dwc3 is USB2-only): only do that while a
@@ -33,9 +45,16 @@ consumer has it initialised (tracked under phy_mutex).
 
 --- a/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
 +++ b/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
-@@ -2295,10 +2295,14 @@
+@@ -2294,11 +2294,21 @@
+ 
  	struct mutex phy_mutex;
  	int init_count;
++	/*
++	 * ROG5: common resources (regulators, clocks, resets) are enabled. A
++	 * failed forced restart (Type-C mux/orientation) leaves them off with
++	 * init_count >= 1: no register access then, the next init re-enables.
++	 */
++	bool com_on;
  	enum qmpphy_mode qmpphy_mode;
 +	/* ROG5: last mode the Type-C mux asked for (qmpphy_mode: the applied one) */
 +	enum qmpphy_mode req_mode;
@@ -48,7 +67,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  	struct phy *dp_phy;
  	unsigned int dp_aux_cfg;
-@@ -3602,6 +3606,38 @@
+@@ -3602,6 +3612,39 @@
  	return 0;
  }
  
@@ -73,7 +92,8 @@ consumer has it initialised (tracked under phy_mutex).
 +
 +static bool qmp_combo_dp_lanes_ok(struct qmp_combo *qmp, unsigned int lanes)
 +{
-+	return lanes != 3 && lanes <= qmp_combo_dp_max_lanes(qmp_combo_dp_lane_mode(qmp));
++	return (lanes == 1 || lanes == 2 || lanes == 4) &&
++	       lanes <= qmp_combo_dp_max_lanes(qmp_combo_dp_lane_mode(qmp));
 +}
 +
 +/* Caller holds phy_mutex. */
@@ -87,7 +107,7 @@ consumer has it initialised (tracked under phy_mutex).
  static int qmp_combo_dp_configure(struct phy *phy, union phy_configure_opts *opts)
  {
  	const struct phy_configure_opts_dp *dp_opts = &opts->dp;
-@@ -3610,6 +3646,15 @@
+@@ -3610,6 +3653,21 @@
  
  	mutex_lock(&qmp->phy_mutex);
  
@@ -100,11 +120,33 @@ consumer has it initialised (tracked under phy_mutex).
 +		return -EINVAL;
 +	}
 +
++	/* ROG5: set_voltages writes the TX registers */
++	if (dp_opts->set_voltages && !qmp->com_on) {
++		mutex_unlock(&qmp->phy_mutex);
++		return -EIO;
++	}
++
  	memcpy(&qmp->dp_opts, dp_opts, sizeof(*dp_opts));
  	if (qmp->dp_opts.set_voltages) {
  		cfg->configure_dp_tx(qmp);
-@@ -3648,6 +3693,20 @@
- 	if (!force && qmp->init_count++)
+@@ -3629,7 +3687,9 @@
+ 
+ 	mutex_lock(&qmp->phy_mutex);
+ 
+-	if (cfg->calibrate_dp_phy)
++	if (!qmp->com_on)
++		ret = -EIO;	/* ROG5: common resources off */
++	else if (cfg->calibrate_dp_phy)
+ 		ret = cfg->calibrate_dp_phy(qmp);
+ 
+ 	mutex_unlock(&qmp->phy_mutex);
+@@ -3645,9 +3705,24 @@
+ 	int ret;
+ 	u32 val;
+ 
+-	if (!force && qmp->init_count++)
++	/* ROG5: also re-enable resources a failed forced restart left off */
++	if (!force && qmp->init_count++ && qmp->com_on)
  		return 0;
  
 +	/*
@@ -124,7 +166,16 @@ consumer has it initialised (tracked under phy_mutex).
  	ret = regulator_bulk_enable(cfg->num_vregs, qmp->vregs);
  	if (ret) {
  		dev_err(qmp->dev, "failed to enable regulators, err=%d\n", ret);
-@@ -3742,7 +3801,9 @@
+@@ -3733,6 +3808,8 @@
+ 	qphy_setbits(qmp->pcs, cfg->regs[QPHY_PCS_POWER_DOWN_CONTROL],
+ 			SW_PWRDN);
+ 
++	qmp->com_on = true;
++
+ 	return 0;
+ 
+ err_disable_clocks:
+@@ -3742,7 +3819,9 @@
  err_disable_regulators:
  	regulator_bulk_disable(cfg->num_vregs, qmp->vregs);
  err_decrement_count:
@@ -135,7 +186,27 @@ consumer has it initialised (tracked under phy_mutex).
  
  	return ret;
  }
-@@ -3806,10 +3867,33 @@
+@@ -3754,6 +3833,10 @@
+ 	if (!force && --qmp->init_count)
+ 		return 0;
+ 
++	/* ROG5: already off after a failed forced restart */
++	if (!qmp->com_on)
++		return 0;
++
+ 	reset_control_bulk_assert(cfg->num_resets, qmp->resets);
+ 
+ 	clk_disable_unprepare(qmp->pipe_clk);
+@@ -3761,6 +3844,8 @@
+ 
+ 	regulator_bulk_disable(cfg->num_vregs, qmp->vregs);
+ 
++	qmp->com_on = false;
++
+ 	return 0;
+ }
+ 
+@@ -3806,10 +3891,39 @@
  	const struct qmp_phy_cfg *cfg = qmp->cfg;
  	void __iomem *tx = qmp->dp_tx;
  	void __iomem *tx2 = qmp->dp_tx2;
@@ -144,6 +215,12 @@ consumer has it initialised (tracked under phy_mutex).
  	mutex_lock(&qmp->phy_mutex);
  
 -	qmp_combo_dp_serdes_init(qmp);
++	if (!qmp->com_on) {
++		dev_err(qmp->dev, "DP: power on with the common block off refused\n");
++		ret = -EIO;
++		goto out_unlock;
++	}
++
 +	/* ROG5: no DP lanes are routed in USB3-only mode (DP PCS in reset) */
 +	if (qmp->qmpphy_mode == QMPPHY_MODE_USB3_ONLY) {
 +		dev_err(qmp->dev, "DP: power on in USB3-only mode refused\n");
@@ -170,7 +247,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  	qmp_configure_lane(qmp->dev, tx, cfg->dp_tx_tbl, cfg->dp_tx_tbl_num, 1);
  	qmp_configure_lane(qmp->dev, tx2, cfg->dp_tx_tbl, cfg->dp_tx_tbl_num, 2);
-@@ -3818,13 +3902,24 @@
+@@ -3818,13 +3932,24 @@
  	cfg->configure_dp_tx(qmp);
  
  	/* Configure link rate, swing, etc. */
@@ -196,7 +273,30 @@ consumer has it initialised (tracked under phy_mutex).
  }
  
  static int qmp_combo_dp_power_off(struct phy *phy)
-@@ -3936,6 +4031,7 @@
+@@ -3833,8 +3958,9 @@
+ 
+ 	mutex_lock(&qmp->phy_mutex);
+ 
+-	/* Assert DP PHY power down */
+-	writel(DP_PHY_PD_CTL_PSR_PWRDN, qmp->dp_dp_phy + QSERDES_DP_PHY_PD_CTL);
++	/* Assert DP PHY power down (ROG5: only while clocked) */
++	if (qmp->com_on)
++		writel(DP_PHY_PD_CTL_PSR_PWRDN, qmp->dp_dp_phy + QSERDES_DP_PHY_PD_CTL);
+ 
+ 	qmp->dp_powered_on = false;
+ 
+@@ -3905,6 +4031,10 @@
+ 	struct qmp_combo *qmp = phy_get_drvdata(phy);
+ 	const struct qmp_phy_cfg *cfg = qmp->cfg;
+ 
++	/* ROG5: nothing to stop while the common block is off */
++	if (!qmp->com_on)
++		return 0;
++
+ 	/* PHY reset */
+ 	qphy_setbits(qmp->pcs, cfg->regs[QPHY_SW_RESET], SW_RESET);
+ 
+@@ -3936,6 +4066,7 @@
  	}
  
  	qmp->usb_init_count++;
@@ -204,7 +304,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  out_unlock:
  	mutex_unlock(&qmp->phy_mutex);
-@@ -3957,6 +4053,7 @@
+@@ -3957,6 +4088,7 @@
  		goto out_unlock;
  
  	qmp->usb_init_count--;
@@ -212,7 +312,57 @@ consumer has it initialised (tracked under phy_mutex).
  
  out_unlock:
  	mutex_unlock(&qmp->phy_mutex);
-@@ -4436,6 +4533,7 @@
+@@ -4051,7 +4183,7 @@
+ 
+ 	dev_vdbg(dev, "Suspending QMP phy, mode:%d\n", qmp->phy_mode);
+ 
+-	if (!qmp->init_count) {
++	if (!qmp->init_count || !qmp->com_on) {
+ 		dev_vdbg(dev, "PHY not initialized, bailing out\n");
+ 		return 0;
+ 	}
+@@ -4071,7 +4203,7 @@
+ 
+ 	dev_vdbg(dev, "Resuming QMP phy, mode:%d\n", qmp->phy_mode);
+ 
+-	if (!qmp->init_count) {
++	if (!qmp->init_count || !qmp->com_on) {
+ 		dev_vdbg(dev, "PHY not initialized, bailing out\n");
+ 		return 0;
+ 	}
+@@ -4407,6 +4539,7 @@
+ {
+ 	struct qmp_combo *qmp = typec_switch_get_drvdata(sw);
+ 	const struct qmp_phy_cfg *cfg = qmp->cfg;
++	int ret;
+ 
+ 	if (orientation == qmp->orientation || orientation == TYPEC_ORIENTATION_NONE)
+ 		return 0;
+@@ -4415,11 +4548,19 @@
+ 	qmp->orientation = orientation;
+ 
+ 	if (qmp->init_count) {
+-		if (qmp->usb_init_count)
+-			qmp_combo_usb_power_off(qmp->usb_phy);
+-		qmp_combo_com_exit(qmp, true);
++		if (qmp->com_on) {
++			if (qmp->usb_init_count)
++				qmp_combo_usb_power_off(qmp->usb_phy);
++			qmp_combo_com_exit(qmp, true);
++		}
+ 
+-		qmp_combo_com_init(qmp, true);
++		/* ROG5: no register access when the restart failed */
++		ret = qmp_combo_com_init(qmp, true);
++		if (ret) {
++			dev_err(qmp->dev, "typec_switch_set: PHY restart failed: %d\n", ret);
++			mutex_unlock(&qmp->phy_mutex);
++			return ret;
++		}
+ 		if (qmp->usb_init_count)
+ 			qmp_combo_usb_power_on(qmp->usb_phy);
+ 		if (qmp->dp_init_count)
+@@ -4436,6 +4577,7 @@
  	const struct qmp_phy_cfg *cfg = qmp->cfg;
  	enum qmpphy_mode new_mode;
  	unsigned int svid;
@@ -220,7 +370,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  	guard(mutex)(&qmp->phy_mutex);
  
-@@ -4466,13 +4564,26 @@
+@@ -4466,13 +4608,35 @@
  		new_mode = QMPPHY_MODE_USB3_ONLY;
  	}
  
@@ -237,8 +387,18 @@ consumer has it initialised (tracked under phy_mutex).
  		return 0;
  	}
  
- 	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY && qmp->dp_powered_on) {
+-	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY && qmp->dp_powered_on) {
 -		dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
++	/*
++	 * ROG5: also keep the DP routing for a USB3-only request (SAFE/USB,
++	 * also from UCSI's typec_set_mode()) while DP is initialised (a DP
++	 * sink session in msm): a late USB state between the DP notification
++	 * and the stream enable must not take the lanes away. The next DP
++	 * request decides; the side port's USB3 PHY is unused anyway.
++	 */
++	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY &&
++	    (qmp->dp_powered_on ||
++	     (new_mode == QMPPHY_MODE_USB3_ONLY && qmp->dp_init_count))) {
 +		/* ROG5: qmp_combo_com_init() applies a DP mode at the next PHY init */
 +		if (new_mode != QMPPHY_MODE_USB3_ONLY)
 +			dev_info(qmp->dev, "DP PHY in use: qmpphy mode %d -> %d deferred to the next PHY init\n",
@@ -248,16 +408,27 @@ consumer has it initialised (tracked under phy_mutex).
  		return 0;
  	}
  
-@@ -4480,6 +4591,7 @@
+@@ -4480,25 +4644,39 @@
  		qmp->qmpphy_mode, new_mode);
  
  	qmp->qmpphy_mode = new_mode;
 +	qmp_combo_dp_publish_lanes(qmp);
  
  	if (qmp->init_count) {
- 		if (qmp->usb_init_count)
-@@ -4491,14 +4603,25 @@
- 		qmp_combo_com_exit(qmp, true);
+-		if (qmp->usb_init_count)
+-			qmp_combo_usb_power_off(qmp->usb_phy);
++		if (qmp->com_on) {
++			if (qmp->usb_init_count)
++				qmp_combo_usb_power_off(qmp->usb_phy);
+ 
+-		if (qmp->dp_init_count)
+-			writel(DP_PHY_PD_CTL_PSR_PWRDN, qmp->dp_dp_phy + QSERDES_DP_PHY_PD_CTL);
++			if (qmp->dp_init_count)
++				writel(DP_PHY_PD_CTL_PSR_PWRDN, qmp->dp_dp_phy + QSERDES_DP_PHY_PD_CTL);
+ 
+-		qmp_combo_com_exit(qmp, true);
++			qmp_combo_com_exit(qmp, true);
++		}
  
  		/* Now everything's powered down, power up the right PHYs */
 -		qmp_combo_com_init(qmp, true);
@@ -284,7 +455,7 @@ consumer has it initialised (tracked under phy_mutex).
  			qmp_combo_usb_power_on(qmp->usb_phy);
  			if (!qmp->usb_init_count)
  				qmp->usb_init_count++;
-@@ -4874,6 +4997,7 @@
+@@ -4874,6 +5052,7 @@
  		goto err_node_put;
  
  	qmp->qmpphy_mode = QMPPHY_MODE_USB3DP;
@@ -292,7 +463,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  	if (of_property_present(dev->of_node, "mode-switch") ||
  	    of_property_present(dev->of_node, "orientation-switch")) {
-@@ -4907,6 +5031,7 @@
+@@ -4907,6 +5086,7 @@
  		} else {
  			dev_warn(dev, "unable to determine orientation & mode from data-lanes");
  		}
@@ -300,7 +471,7 @@ consumer has it initialised (tracked under phy_mutex).
  	}
  
  	ret = drm_aux_bridge_register(dev);
-@@ -4946,6 +5071,11 @@
+@@ -4946,6 +5126,11 @@
  
  	phy_set_drvdata(qmp->dp_phy, qmp);
  
