@@ -62,6 +62,7 @@ wake_irq=${ROG5_SLEEP_WAKE_IRQ:-/sys/power/pm_wakeup_irq}
 wake_ports=${ROG5_SLEEP_WAKE_PORTS-}
 mode_file=${ROG5_SLEEP_MODE_FILE:-/etc/rog5/sleep-mode}
 wifi_ps=${ROG5_SLEEP_WIFI_PS:-1}
+ext_displays=${ROG5_SLEEP_EXT_DISPLAYS:-/sys/class/drm/card*-DP-*}
 
 # The configured mode: suspend or reachable.
 sleep_mode() {
@@ -90,6 +91,13 @@ now() { cut -d. -f1 /proc/uptime; }
 awake_reason() {
 	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return; }
 	[ "$(cat "$dpms" 2>/dev/null)" = Off ] || { echo screen-on; return; }
+	# Desktop mode: the panel is off while GNOME drives an external display
+	# (on battery this suspended a desktop in use 60 s after the monitor's
+	# power went away). A blanked external display (DPMS Off) does not count.
+	for c in $ext_displays; do
+		[ "$(cat "$c/enabled" 2>/dev/null)" = enabled ] &&
+			[ "$(cat "$c/dpms" 2>/dev/null)" = On ] && { echo external-display; return; }
+	done
 	[ -e "$stay" ] && { echo stay-awake-file; return; }
 	# Root hubs are usbN; anything attached below them is N-port[.port...].
 	if [ "$usb_device_blocks" = 1 ] && ls "$usb_devices" 2>/dev/null | grep -q '^[0-9]*-[0-9.]*$'; then
@@ -114,7 +122,7 @@ remote_clients() {
 		part == 0 { up[$2] = 1; next }
 		part == 1 { n = split($4, a, ":"); listen[a[n]] = 1; next }
 		{ n = split($3, l, ":"); addr = substr($3, 1, length($3) - length(l[n]) - 1)
-		  gsub(/^\[|\]$/, "", addr); sub(/^::ffff:/, "", addr); sub(/%.*/, "", addr)
+		  gsub(/\[|\]/, "", addr); sub(/%.*/, "", addr); sub(/^::ffff:/, "", addr)
 		  if ((l[n] in listen) && (addr in up) && $4 !~ /^(127\.|\[::1\]|\[::ffff:127\.)/) print }'
 }
 
