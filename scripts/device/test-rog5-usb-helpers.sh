@@ -16,6 +16,11 @@ echo "$c \$*" >>"$t/calls"
 exit 0
 EOS
 done
+# dmesg: the kernel log of the test (pmic_glink_altmode notifications).
+cat >"$t/bin/dmesg" <<EOS
+#!/bin/sh
+cat "$t/dmesg" 2>/dev/null
+EOS
 cat >"$t/bin/pgrep" <<EOS
 #!/bin/sh
 [ -e "$t/sleeping" ]
@@ -37,6 +42,12 @@ if [ "\$1" = 1 ] && [ -e "$t/flip-host" ]; then
 	rm "$t/flip-host"
 	echo host >"$t/sys/class/usb_role/a600000.usb-role-switch/role"
 	echo '[host] device' >"$t/sys/class/typec/port0/data_role"
+fi
+# "lit-at" N: the compositor's first modeset lights the DP connector at the
+# Nth 1 s wait.
+if [ "\$1" = 1 ] && [ -e "$t/lit-at" ]; then
+	n=\$((\$(cat "$t/lit-at") - 1)); echo \$n >"$t/lit-at"
+	[ \$n = 0 ] && { rm "$t/lit-at"; mkdir -p "$t/sys/class/drm/card1-DP-1"; echo connected >"$t/sys/class/drm/card1-DP-1/status"; }
 fi
 # "hub-after-hpd": the monitor's hub enumerates on its own after HPD.
 [ "\$1" = 2 ] && [ -e "$t/hub-after-hpd" ] && mkdir -p "$t/sys/bus/platform/devices/a600000.usb/xhci-hcd.1.auto/usb3/3-1"
@@ -63,12 +74,12 @@ exit 0
 EOS
 chmod +x "$t/bin"/*
 export PATH="$t/bin:$PATH" ROG5_USB_SYS=$t/sys ROG5_USB_RUN=$t/run ROG5_USB_KMSG=$t/kmsg
-export ROG5_USB_HOST_SETTLE=7 ROG5_USB_HOST_WAIT=1 ROG5_USB_HOST_RETRY_S=35 ROG5_USB_SLEEP_SETTLE=0 ROG5_USB_DP_WAIT=3
+export ROG5_USB_HOST_SETTLE=7 ROG5_USB_HOST_WAIT=1 ROG5_USB_HOST_RETRY_S=35 ROG5_USB_SLEEP_SETTLE=0 ROG5_USB_DP_WAIT=3 ROG5_USB_DP_LIT_WAIT=6
 
 reset() {
 	rm -rf "$t/sys" "$t/run" "$t/kmsg" "$t/calls" "$t/sleeping" "$t/settle-role" "$t/settle-typec" "$t/settle-unplug" "$t/systemd-run-fails" \
 		"$t/flip-host" "$t/flip-at" "$t/event-during" "$t/event-suspend" "$t/kick-result" "$t/kick-dp" \
-		"$t/kick-suspend" "$t/hub-after-hpd"
+		"$t/kick-suspend" "$t/hub-after-hpd" "$t/dmesg" "$t/lit-at"
 	mkdir -p "$t/run" "$t/sys/class/usb_role/a600000.usb-role-switch" "$t/sys/class/typec/port0" \
 		"$t/sys/bus/platform/drivers/dwc3" "$t/sys/bus/platform/devices/a600000.usb/power" \
 		"$t/sys/bus/platform/devices/a600000.usb/driver" "$t/sys/bus/platform/drivers/xhci-hcd"
@@ -355,6 +366,31 @@ grep -q '^kick' "$t/calls" || fail 'no kick before the suspend'
 kick_setup; : >"$t/kick-dp"; : >"$t/hub-after-hpd"
 reconnect
 [ ! -s "$unbind" ] || fail 'working hub re-initialised after the kick'
+# r207 boot: the ADSP entered DP alt mode (pin_assignment=3 hpd=1) before
+# the compositor's first modeset lit the connector: no kick; wait for the
+# connector, then the usual re-init.
+an='pmic_glink_altmode.pmic_glink_altmode pmic_glink.altmode.0: DP port=0'
+kick_setup
+printf '[   25.31] %s pin_assignment=0 mux_ctrl=0 orientation=2 hpd=0 irq=0\n[   25.32] %s pin_assignment=3 mux_ctrl=2 orientation=0 hpd=1 irq=0\n' "$an" "$an" >"$t/dmesg"
+echo 4 >"$t/lit-at"
+reconnect
+! grep -q '^kick' "$t/calls" || fail 'kick although the ADSP was in DP alt mode'
+grep -q a600000.usb "$unbind" || fail 'no re-init once the connector lit'
+! grep -q 'no kick' "$t/kmsg" || fail 'connector lit, but reported as missing'
+# ... and when the connector does not light within the wait: still no kick
+kick_setup
+printf '[   25.32] %s pin_assignment=3 mux_ctrl=2 orientation=0 hpd=1 irq=0\n' "$an" >"$t/dmesg"
+reconnect
+! grep -q '^kick' "$t/calls" || fail 'kick although the ADSP was in DP alt mode (connector dark)'
+grep -q 'DP alt mode entered (pin_assignment/hpd 3 1) but no DP connector after 6s; no kick' "$t/kmsg" || fail 'dark connector not logged'
+grep -q a600000.usb "$unbind" || fail 'no re-init with a dark connector'
+[ "$(grep -c 'sleep 1' "$t/calls")" -ge 5 ] || fail 'display stack not given the longer wait'
+# r206 boot: only pin_assignment=0 (or DP left after an unplug): kick
+kick_setup
+printf '[   25.01] %s pin_assignment=3 mux_ctrl=2 orientation=0 hpd=1 irq=0\n[   26.00] %s pin_assignment=0 mux_ctrl=0 orientation=2 hpd=0 irq=0\n' "$an" "$an" >"$t/dmesg"
+reconnect
+[ "$(grep -c '^kick' "$t/calls")" = 1 ] || fail 'no kick without DP alt mode'
+grep -q 'last notification: 0 0' "$t/kmsg" || fail 'last notification not logged'
 # leaving host mode clears the budget
 kick_setup; echo 2 >"$t/run/rog5-usb-reconnect.kicks"; echo none >"$t/sys/class/usb_role/a600000.usb-role-switch/role"; rm -r "$t/sys/class/typec/port0-partner"
 reconnect

@@ -110,10 +110,21 @@ gaveup=$run/rog5-usb-reconnect.gaveup
 # (ucsi_dr_swap). So a host port with a PD partner that powers the phone,
 # nothing enumerated and no DP sink after $dp_wait_s gets this request, at
 # most $max_kicks times per attach ($kicks, cleared when the port leaves
-# host mode). A partner that accepts the swap is switched back to host.
+# host mode).
+# The DRM connector is no proof: on r207 the ADSP had entered DP alt mode
+# at 25.3 s ("pin_assignment=3 ... hpd=1") but the connector showed
+# "connected" only with the compositor's first modeset at 38 s, so an
+# unneeded kick at 37.7 s was accepted by the monitor, and the swap back to
+# host blanked DP for 2 s. The last pmic_glink_altmode notification of the
+# side port in the kernel log decides now: pin_assignment != 0 means DP alt
+# mode is entered (an unplug reports 0), so there is no kick; the helper
+# waits up to $dp_lit_wait_s from the start of the run for the connector
+# and then re-initialises anyway. A partner that accepts the swap must be
+# switched back: as the UFP the phone cannot host the monitor's hub.
 kicks=$run/rog5-usb-reconnect.kicks
 max_kicks=${ROG5_USB_DP_KICKS:-2}
 dp_wait_s=${ROG5_USB_DP_WAIT:-10}
+dp_lit_wait_s=${ROG5_USB_DP_LIT_WAIT:-30}
 
 # The USB-link Tailscale (rog5-tailscaled) skips itself while usb0 is down.
 start_usb_tailscale() { systemctl --no-block start rog5-tailscaled.service 2>/dev/null || true; }
@@ -142,6 +153,18 @@ dp_attached() {
 	return 1
 }
 dp_state() { if dp_attached; then echo dp; else echo nodp; fi; }
+# The side port's last DP notification in the kernel log as
+# "<pin_assignment> <hpd>", or nothing.
+altmode_last() {
+	dmesg 2>/dev/null |
+		sed -n 's/.*pmic_glink_altmode.* DP port=0 pin_assignment=\([0-9]*\) .*hpd=\([0-9]*\).*/\1 \2/p' |
+		tail -n 1
+}
+# DP alt mode entered (pin assignment set) according to that notification.
+altmode_dp() {
+	am=$(altmode_last)
+	[ -n "$am" ] && [ "${am%% *}" != 0 ]
+}
 # A PD partner that supplies power to the phone (monitor, dock).
 pd_source_partner() {
 	[ "$(cat "${typec_role%/data_role}-partner/supports_usb_power_delivery" 2>/dev/null)" = yes ] &&
@@ -213,18 +236,32 @@ schedule_run() { # delay-seconds reason
 # when a device enumerates; returns 0 otherwise (the re-init follows).
 dp_kick() {
 	pd_source_partner || return 0
-	# Give the ADSP up to $dp_wait_s from the start of this run.
+	dp_attached && return 0
+	# Give the ADSP up to $dp_wait_s from the start of this run; once it
+	# has entered DP alt mode, give the display stack up to $dp_lit_wait_s.
 	waited=$host_wait_s
-	while [ "$waited" -lt "$dp_wait_s" ]; do
-		dp_attached && return 0
+	while [ "$waited" -lt "$dp_lit_wait_s" ]; do
+		if dp_attached; then
+			# The monitor's hub may enumerate on its own now.
+			sleep 2
+			enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+			host_mode || return 1
+			return 0
+		fi
 		enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
 		host_mode || return 1
+		[ "$waited" -ge "$dp_wait_s" ] && ! altmode_dp && break
 		sleep 1
 		waited=$((waited + 1))
 	done
 	# Everything may have changed during the last second.
 	dp_attached && return 0
 	enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+	if altmode_dp; then
+		log "DP alt mode entered (pin_assignment/hpd $am) but no DP connector after ${dp_lit_wait_s}s; no kick"
+		host_mode || return 1
+		return 0
+	fi
 	typec_host && pd_source_partner || { host_mode && return 0; return 1; }
 	k=$(cat "$kicks" 2>/dev/null || echo 0)
 	case $k in ''|*[!0-9]*) k=0 ;; esac
@@ -235,7 +272,7 @@ dp_kick() {
 	# most) and the swap wait (5 s); a command timeout also resets the PPM.
 	# That fits the sleep hook's 50 s wait for this run in practice; a
 	# suspend that comes in on a hung PPM is only logged by the hook.
-	log "PD partner without DP after ${dp_wait_s}s; UCSI data-role request to restart discovery (kick $((k + 1))/$max_kicks)"
+	log "PD partner without DP alt mode after ${dp_wait_s}s (last notification: ${am:-none}); UCSI data-role request to restart discovery (kick $((k + 1))/$max_kicks)"
 	echo device >"$typec_role" 2>/dev/null
 	sleep 1
 	if grep -qs '\[device\]' "$typec_role"; then
