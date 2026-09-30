@@ -5,4 +5,6 @@
 # can never collapse DDR or CX. With "auto" dwc3 autosuspends after detach
 # (0055 already drops the pull-up on role NONE) and the glue disables its
 # clocks and interconnect paths.
-ACTION=="add|change", SUBSYSTEM=="platform", KERNEL=="a6f8800.usb|a600000.usb", ATTR{power/control}="auto"
+# "bind" too: dwc3_probe() calls pm_runtime_forbid(), so every rebind by
+# rog5-usb-reconnect reset a600000.usb to "on" until the next boot.
+ACTION=="add|change|bind", SUBSYSTEM=="platform", KERNEL=="a6f8800.usb|a600000.usb", ATTR{power/control}="auto"

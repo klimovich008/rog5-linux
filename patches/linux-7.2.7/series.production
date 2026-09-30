@@ -82,3 +82,4 @@
 0114-drm-msm-dpu-ROG5-reject-modes-above-the-core-clock-at-the-full-pixel-clock.patch
 0115-ASoC-cs35l45-ROG5-mask-unused-IRQ-sources-and-the-PLL-IRQs-like-stock.patch
 0116-arm64-mm-ROG5-log-user-SEA-with-the-PFN-optional-retire.patch
+0117-usb-dwc3-qcom-don-t-dereference-a-missing-xHCI-hcd-on-suspend.patch

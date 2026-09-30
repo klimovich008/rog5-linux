@@ -3,11 +3,35 @@
 // bootloader/firmware LUNs; refuse every udisks action on it (mount, unmount,
 // format, partition, power-off, loop over a device, ...) for every non-root
 // caller, whatever its session or group. Root does not go through polkit.
-// udisks passes the drive's properties as details; an action without a drive
-// (a loop device over a user's own file) is left to the default rules.
+// udisks passes the drive's properties as details. Actions without a drive
+// are refused too when they can reach the UFS: RAID creation (the manager
+// passes only member devices, no drive) and loop devices whose backing file
+// lives on the UFS userdata (the root overlay and server-state images). A
+// loop device over a user's own image file is left to the default rules.
+function rog5UfsLoop(device) {
+	var m = /^\/dev\/(loop[0-9]+)(p[0-9]+)?$/.exec(device || "");
+	if (!m)
+		return false;
+	try {
+		var f = polkit.spawn(["/usr/bin/cat",
+				      "/sys/block/" + m[1] + "/loop/backing_file"]);
+		return f.indexOf("/.rog5/") == 0;
+	} catch (e) {
+		// Not attached (no backing_file): nothing on the UFS behind it.
+		return false;
+	}
+}
+
 polkit.addRule(function(action, subject) {
-	if (action.id.indexOf("org.freedesktop.udisks2.") == 0 &&
-	    action.lookup("drive") &&
+	if (action.id.indexOf("org.freedesktop.udisks2.") != 0)
+		return polkit.Result.NOT_HANDLED;
+	if (action.id == "org.freedesktop.udisks2.manage-md-raid" ||
+	    action.id.indexOf("org.freedesktop.udisks2.lvm2.") == 0)
+		return polkit.Result.NO;
+	if (action.lookup("drive") &&
 	    action.lookup("drive.removable") != "true")
 		return polkit.Result.NO;
+	if (rog5UfsLoop(action.lookup("device")))
+		return polkit.Result.NO;
+	return polkit.Result.NOT_HANDLED;
 });

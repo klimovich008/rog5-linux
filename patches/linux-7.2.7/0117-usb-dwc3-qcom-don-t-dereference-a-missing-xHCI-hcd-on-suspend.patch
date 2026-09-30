@@ -1,0 +1,42 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: qcom: don't dereference a missing xHCI hcd on suspend
+
+The xHCI platform device created by dwc3 outlives its driver: after
+"echo xhci-hcd.N.auto > /sys/bus/platform/drivers/xhci-hcd/unbind" it has no
+driver data. With wakeup-source set on the glue, system suspend then reaches
+dwc3_qcom_read_usb2_speed(), which dereferences hcd->self.root_hub with a
+NULL hcd. On the ROG Phone 5 (oops=panic) this reset the phone at the first
+s2idle after a suspend hook had unbound the xHCI (2026-09-29 17:29). Report
+an unknown speed instead. Both the legacy and the flattened glue have the
+code. Found by the ROG5 night review (USB agent).
+
+--- a/drivers/usb/dwc3/dwc3-qcom-legacy.c	2026-09-30 03:27:24.424661081 +0200
++++ b/drivers/usb/dwc3/dwc3-qcom-legacy.c	2026-09-30 03:27:32.073981862 +0200
+@@ -327,6 +327,12 @@
+ 	 * FIXME: Fix this layering violation.
+ 	 */
+ 	hcd = platform_get_drvdata(dwc->xhci);
++	/*
++	 * The xHCI platform device outlives its driver: with xhci-hcd unbound
++	 * (sysfs unbind) there is no hcd, and system suspend used to oops here.
++	 */
++	if (!hcd)
++		return USB_SPEED_UNKNOWN;
+ 
+ #ifdef CONFIG_USB
+ 	udev = usb_hub_find_child(hcd->self.root_hub, port_index + 1);
+--- a/drivers/usb/dwc3/dwc3-qcom.c	2026-09-30 03:27:24.431737571 +0200
++++ b/drivers/usb/dwc3/dwc3-qcom.c	2026-09-30 03:27:32.074072073 +0200
+@@ -239,6 +239,12 @@
+ 	 * FIXME: Fix this layering violation.
+ 	 */
+ 	hcd = platform_get_drvdata(dwc->xhci);
++	/*
++	 * The xHCI platform device outlives its driver: with xhci-hcd unbound
++	 * (sysfs unbind) there is no hcd, and system suspend used to oops here.
++	 */
++	if (!hcd)
++		return USB_SPEED_UNKNOWN;
+ 
+ #ifdef CONFIG_USB
+ 	udev = usb_hub_find_child(hcd->self.root_hub, port_index + 1);
