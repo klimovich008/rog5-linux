@@ -25,7 +25,7 @@ Partial:
 - Power / Idle background wakeups: desktop-mode switcher event-driven (~0.1 % CPU), tailscaled retry loop gone; sleep policy still polls every 5 s
 - Performance / Performance mode: rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet
 - Sensors & hardware / RGB logo LED
-- Apps / Steam (native arm64): title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on Proton 9; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage
+- Apps / Steam (native arm64): title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage
 
 Needs a test:
 

@@ -466,7 +466,7 @@
      "name": "Steam (native arm64)",
      "status": "partial",
      "weight": 2,
-     "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on Proton 9; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage"
+     "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage"
     },
     {
      "name": "Browsers",

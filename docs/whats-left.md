@@ -23,7 +23,7 @@ partial, blue needs a test, red missing); it is generated from
 - **Steam** can be dragged by its title bar and resized at its edges in GNOME
   (a small preload shim, c75efe81). DXVK 3 now has what it needs on the
   phone's own Vulkan driver (vulkan-freedreno 26.2.3-1.1, held back from
-  updates); BioShock runs on Proton 9.
+  updates); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX.
 - **Music and background jobs** keep the phone awake on battery (the sleep
   policy honours audio playback and sleep inhibitors, 10cc4116).
 - **Server disks**: a configured USB disk is mounted at boot, without a
