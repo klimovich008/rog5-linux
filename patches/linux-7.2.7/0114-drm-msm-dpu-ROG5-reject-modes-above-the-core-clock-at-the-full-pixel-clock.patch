@@ -1,0 +1,34 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 reject modes above the core clock at the full pixel clock
+
+dpu_crtc_mode_valid() halves the mode clock when the SoC has 3D merge,
+while 0099 makes a video-mode interface vote the core clock for the full
+pixel clock. Modes between the two limits were offered and then clamped to
+the 460 MHz SM8350 maximum: on the MSI MPG 491C, 5120x1440@60 (469 MHz)
+and 3840x1080@100 (453 MHz, x1.05 clk factor = 476 MHz) both came up as
+the plain underrun colour (blue) on the first enable after a plug-in or a
+boot, while 3840x1080@60 (266.5 MHz) works.
+
+Validate against the full pixel clock, as the vote does. With the 105%
+factor this rejects pixel clocks above ~438 MHz; the DSI panel (command
+mode, ~180 MHz) is unaffected. Suggested by GPT-6.1-Sol's review
+(docs/reviews/2026-09-30-gpt-6.1-sol-open-issues.md).
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1637,8 +1637,13 @@
+ 	adjusted_mode_clk = dpu_core_perf_adjusted_mode_clk(mode->clock,
+ 							    dpu_kms->perf.perf_cfg);
+ 
+-	if (dpu_kms->catalog->caps->has_3d_merge)
+-		adjusted_mode_clk /= 2;
++	/*
++	 * ROG5: no halving for 3D merge. A video-mode interface (DP) votes the
++	 * core clock for the full pixel clock (0099), so a mode above the max
++	 * core clock / clk factor was offered but could not be driven:
++	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
++	 * SM8350 latched the INTF underrun colour (blue) on enable.
++	 */
+ 
+ 	/*
+ 	 * The given mode, adjusted for the perf clock factor, should not exceed
