@@ -244,8 +244,8 @@ safe-r2 fallback, which came up with Wi-Fi).
 
 pacman owns only userspace. Kernel, modules and firmware come from the
 signed bundle. The primary and the fallback boot the same persistent upper,
-so a bad upgrade breaks both. `rog5-update` guards upgrades with a full copy
-of that upper:
+so a bad upgrade breaks both. `rog5-update` guards upgrades with a copy of
+that upper without user data:
 
 - **Build.** The init's snapshot restore is always compiled in. It does
   nothing until a pending record exists. `PRODUCTION_UPDATE_KIT=1` (with
@@ -259,10 +259,16 @@ of that upper:
   and either external power or battery above `ROG5_UPDATE_MIN_BATTERY`. The
   current root must pass `verify-root`. Then it does `pacman -Sy` and plans
   `-Su --print`. A plan that pulls in a package from `ROG5_UPDATE_HOLD` is
-  skipped. Next it takes a snapshot: it holds `db.lck`, runs `sync`, and does
-  `cp -dR --preserve=…,links,xattr` of upper into
-  `/.rog5/state/snapshots/<id>/upper`, sealed with an entry count and a hash
-  of the name list. It writes `pending action=restore`, upgrades the
+  skipped. Next it takes a snapshot: it holds `db.lck`, runs `sync`, and
+  copies upper with GNU tar (owners, modes, times, hard links, sparse files,
+  ACLs, all xattrs incl. `trusted.overlay.*`) into
+  `/.rog5/state/snapshots/<id>/upper`, leaving out the user data in
+  `snapshot_excludes` (`home`, `usr/share/guestos`, `var/lib/flatpak`,
+  `var/lib/systemd/coredump`, `var/log/journal`, `var/cache/pacman/pkg`;
+  20.8 of 27.0 GB on 2026-09-30, so a snapshot is about 6 GB). The v2 seal
+  holds an entry count, a hash of the name list and `excluded=`. The space
+  check counts upper without those paths. It writes `pending
+  action=restore`, upgrades the
   keyring first, then `pacman -Su`, then runs `verify-root`. On a pass it
   rewrites pending to `action=verify` and reboots once the backlight is
   off (`ROG5_UPDATE_REBOOT=idle|now|never`). On a failure the restore stays
@@ -271,8 +277,19 @@ of that upper:
 - **Init.** Before the overlay mounts, the first boot with a `verify` pending
   record writes `attempt`. A second boot without a commit, or any `restore`
   record, renames the sealed snapshot into place. It keeps the old upper as
-  `snapshots/<id>/failed-upper` and writes `rog5-update/last-result`. The
-  renames are journaled, and a later boot finishes an interrupted restore.
+  `snapshots/<id>/failed-upper`, then moves each path of the seal's
+  `excluded=` list from `failed-upper` into the restored upper, so a rollback
+  keeps the newest `/home`, Flatpaks, FEX rootfs and journal. Every parent
+  of such a path that exists in the root being replaced must be a real
+  directory there and in the snapshot; otherwise the restore is refused
+  before anything moves (`restore-refused`, the updated root boots). Then
+  it writes `rog5-update/last-result`. The renames and moves are journaled
+  (`restoring-v2` for a v2 snapshot), and a later boot finishes an
+  interrupted restore. The init accepts only paths of its own
+  `update_snapshot_excludable` list; a v1 seal (full copy) restores
+  everything. An init without v2 support refuses a v2 snapshot (the updated
+  root boots) and stops at a `restoring-v2` journal instead of finishing
+  without `/home`, so build the fallback from this init too.
   The init acts only on exact records (0:0 0444, fixed grammar) and on a
   snapshot that matches its seal. Anything else leaves upper as it is. All
   the existing checks then run on the result.
@@ -316,6 +333,15 @@ Limits:
   fallback, which restores the snapshot. The fallback stays selected until
   the default is installed again.
 - `/persist` (keyring, SSH identity, Tailscale, clock) is not in the snapshot.
+- Sockets are not copied (tar skips them; gpg-agent and services recreate
+  theirs). Hard links between user data and the system become two files.
+- A rollback moves the excluded subtrees as they are, but does not reconcile
+  their parents' `trusted.overlay.*` opaque/redirect/impure xattrs between
+  the two roots (the snapshot keeps upper's own parents). Changed ancestry
+  (e.g. an opaque `/var/lib` made after the snapshot) can change what the
+  lower shows below it.
+- User data (`snapshot_excludes`) is not rolled back. A package's files there
+  (e.g. under `/var/lib/flatpak`) keep their updated state after a rollback.
 - Files that services rewrite during the copy can be torn. pacman's own
   files are consistent.
 

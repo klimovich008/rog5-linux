@@ -1,6 +1,6 @@
 #!/bin/sh
-# Unattended pacman upgrades of the persistent root, guarded by a full copy of
-# the overlay upper. Published from the ramdisk's /rog5-update kit to
+# Unattended pacman upgrades of the persistent root, guarded by a copy of the
+# overlay upper without user data (snapshot_excludes). Published from the ramdisk's /rog5-update kit to
 # /run/rog5-update, so the updater always matches the init that restores its
 # snapshots and is not itself changed by an upgrade.
 #
@@ -21,6 +21,13 @@
 # apply_update_rollback): rog5-update/{pending,attempt,last-result,...} and
 # snapshots/<id>/{seal,upper}. Records are root 0444, written atomically.
 set -u
+
+# User data left out of snapshots: a rollback restores the system from before
+# the update but keeps these paths as they are (the init moves them from the
+# failed upper into the restored one; the v2 seal records the list). The init
+# accepts only a subsequence of its update_snapshot_excludable: keep both
+# lists equal, and extend the init's first.
+snapshot_excludes='home usr/share/guestos var/lib/flatpak var/lib/systemd/coredump var/log/journal var/cache/pacman/pkg'
 umask 077
 
 root=${ROG5_UPDATE_ROOT:-}
@@ -139,23 +146,67 @@ tree_names() {
 	(cd "$1" && find . -mindepth 1 | LC_ALL=C sort)
 }
 
+# Same grammar as the init's update_seal_fields: "<entries> <names> [excluded...]".
+seal_fields() {
+	record_exact "$1" 4 || record_exact "$1" 5 || return 1
+	awk -v id="$2" -v allowed="$snapshot_excludes" '
+	NR == 1 {
+		if ($0 == "format=rog5-overlay-snapshot-v1") lines = 4
+		else if ($0 == "format=rog5-overlay-snapshot-v2") lines = 5
+		else bad = 1
+	}
+	NR == 2 && $0 != "update_id=" id { bad = 1 }
+	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
+	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
+	NR == 5 {
+		if (substr($0, 1, 9) != "excluded=") bad = 1
+		excluded = substr($0, 10)
+		n = split(allowed, known, / /)
+		m = split(excluded, list, / /)
+		j = 1
+		for (i = 1; i <= m; i++) {
+			while (j <= n && known[j] != list[i]) j++
+			if (j > n) { bad = 1; break }
+			j++
+		}
+	}
+	END {
+		if (bad || NR != lines) exit 1
+		print entries " " names (excluded == "" ? "" : " " excluded)
+	}' "$1"
+}
+
 # Same checks as the init's verify_update_snapshot.
 snapshot_valid() {
 	id=$1
 	snapshot=$snapshots/$id
 	directory_exact "$snapshots" 700 && directory_exact "$snapshot" 700 || return 1
-	record_exact "$snapshot/seal" 4 || return 1
-	fields=$(awk -v id="$id" '
-	NR == 1 && $0 != "format=rog5-overlay-snapshot-v1" { bad = 1 }
-	NR == 2 && $0 != "update_id=" id { bad = 1 }
-	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
-	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
-	END { if (bad || NR != 4) exit 1; print entries " " names }' "$snapshot/seal") || return 1
+	fields=$(seal_fields "$snapshot/seal" "$id") || return 1
 	[ -d "$snapshot/upper" ] && [ ! -L "$snapshot/upper" ] || return 1
 	case $(stat -c '%u:%g:%a' "$snapshot/upper") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
-	[ "$(tree_names "$snapshot/upper" | wc -l | tr -d ' ')" = "${fields%% *}" ] &&
-		[ "$(tree_names "$snapshot/upper" | sha256sum | cut -d ' ' -f 1)" = "${fields#* }" ]
+	# shellcheck disable=SC2086
+	set -- $fields
+	seal_entries=$1
+	seal_names=$2
+	shift 2
+	for path in "$@"; do
+		[ ! -e "$snapshot/upper/$path" ] && [ ! -L "$snapshot/upper/$path" ] || return 1
+	done
+	[ "$(tree_names "$snapshot/upper" | wc -l | tr -d ' ')" = "$seal_entries" ] &&
+		[ "$(tree_names "$snapshot/upper" | sha256sum | cut -d ' ' -f 1)" = "$seal_names" ]
 }
+
+# KiB a snapshot of upper needs: one du of upper without the excluded user
+# data (hard links shared with it count once, like in the copy).
+snapshot_kib() (
+	set --
+	for path in $snapshot_excludes; do
+		set -- "$@" "--exclude=./$path"
+	done
+	cd "$upper" || exit 1
+	usage=$(du -skx "$@" -- .) || exit 1
+	printf '%s\n' "$usage" | cut -f 1
+)
 
 prune_snapshots() {
 	keep=$1
@@ -177,23 +228,45 @@ make_snapshot() {
 	fi
 	tmp=$snapshots/.tmp-$id
 	mkdir -m 0700 "$tmp" || return 1
+	mkdir -m 0700 "$tmp/upper" || { rm -rf -- "$tmp"; return 1; }
 	# Hold pacman's own lock so no transaction runs during the copy. The copy
-	# is a full one: a hard-link tree would share files that pacman and
+	# is a real one: a hard-link tree would share files that pacman and
 	# services later rewrite in place. The lock file itself is not kept.
+	# GNU tar keeps owners, modes, times, hard links, sparse files, ACLs and
+	# every xattr (the overlay's trusted.overlay.* included) like cp -a, and
+	# can leave the user-data paths out. Exit 1 of the archiving side only
+	# means a file changed while it was read (cp copies such files silently).
 	( set -C; : >"$pacman_lock" ) 2>/dev/null || { rm -rf -- "$tmp"; return 1; }
 	sync
-	cp -dR --preserve=mode,ownership,timestamps,links,xattr "$upper" "$tmp/upper"
-	copied=$?
-	rm -f "$pacman_lock"
+	set --
+	for path in $snapshot_excludes; do
+		set -- "$@" "--exclude=./$path"
+	done
+	{
+		tar -C "$upper" --create --file=- --format=posix --numeric-owner \
+			--one-file-system --sparse --acls --xattrs --xattrs-include='*' \
+			--anchored --no-wildcards --exclude=./var/lib/pacman/db.lck "$@" .
+		echo "$?" >"$tmp/archived"
+	} | tar -C "$tmp/upper" --extract --file=- --numeric-owner --same-owner \
+		--same-permissions --acls --xattrs --xattrs-include='*'
+	extracted=$?
+	archived=$(cat "$tmp/archived" 2>/dev/null) || archived=2
+	rm -f "$pacman_lock" "$tmp/archived"
 	rm -f "$tmp/upper/var/lib/pacman/db.lck"
-	if [ "$copied" -ne 0 ]; then
-		rm -rf -- "$tmp"
-		return 1
-	fi
+	case $extracted:$archived in
+		0:0|0:1) ;;
+		*) rm -rf -- "$tmp"; return 1 ;;
+	esac
+	# The copy's root carries upper's owner and mode (0:0 755 or 555).
+	case $(stat -c '%u:%g:%a' "$tmp/upper") in 0:0:755|0:0:555) ;; *) rm -rf -- "$tmp"; return 1 ;; esac
+	for path in $snapshot_excludes; do
+		[ ! -e "$tmp/upper/$path" ] && [ ! -L "$tmp/upper/$path" ] || { rm -rf -- "$tmp"; return 1; }
+	done
 	entries=$(tree_names "$tmp/upper" | wc -l | tr -d ' ')
 	names=$(tree_names "$tmp/upper" | sha256sum | cut -d ' ' -f 1)
-	write_record "$tmp/seal" format=rog5-overlay-snapshot-v1 "update_id=$id" \
-		"entries=$entries" "names_sha256=$names" || { rm -rf -- "$tmp"; return 1; }
+	write_record "$tmp/seal" format=rog5-overlay-snapshot-v2 "update_id=$id" \
+		"entries=$entries" "names_sha256=$names" "excluded=$snapshot_excludes" ||
+		{ rm -rf -- "$tmp"; return 1; }
 	mv "$tmp" "$snapshots/$id" || { rm -rf -- "$tmp"; return 1; }
 	sync
 	snapshot_valid "$id"
@@ -328,7 +401,8 @@ check_boot_files() {
 }
 
 # The P2 attestor, the SSH identity helper and the package keyring helper
-# run these from the booted root; a broken library shows up here.
+# run these from the booted root; a broken library shows up here. tar takes
+# the next update's snapshot.
 check_tools() {
 	awk 'BEGIN { exit 0 }' &&
 		sed -n 1p /dev/null &&
@@ -343,6 +417,7 @@ check_tools() {
 		systemctl --version >/dev/null 2>&1 &&
 		gpg --version >/dev/null 2>&1 &&
 		pacman -V >/dev/null 2>&1 &&
+		tar --version >/dev/null 2>&1 &&
 		"$root/usr/lib/systemd/systemd" --version >/dev/null 2>&1
 }
 
@@ -645,7 +720,7 @@ action_run() {
 		log 'SKIP this upgrade failed twice; waiting for new package versions'
 		exit 0
 	fi
-	used=$(du -sk "$upper" | cut -f 1)
+	used=$(snapshot_kib) || fail 'cannot size the snapshot'
 	kept=0
 	# Failed roots are retained; conservatively count no existing
 	# snapshot as reclaimable space.

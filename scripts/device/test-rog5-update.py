@@ -52,7 +52,7 @@ SSHD_T = ('port 22\npasswordauthentication no\npermitrootlogin without-password\
 PLAN = 'openssh 10.1p1-1\nsystemd 262-1\n'
 INSTALLED = 'openssh 10.0p1-1\nsystemd 261.3-1\n'
 APPLETS = ('awk', 'cat', 'chmod', 'chown', 'cmp', 'cp', 'cut', 'find', 'grep', 'ln', 'mkdir', 'mv',
-           'readlink', 'rm', 'sed', 'sha256sum', 'sort', 'stat', 'sync', 'touch', 'wc')
+           'readlink', 'rm', 'rmdir', 'sed', 'sha256sum', 'sort', 'stat', 'sync', 'touch', 'wc')
 
 
 def sha(data):
@@ -78,15 +78,26 @@ def patched(text, replacements):
 
 PINS = ((ORIGINAL_PIN, sha(POLICY)), (VOLATILE_PIN, sha(VOLATILE)))
 INIT_FUNCTIONS = ('update_record_exact', 'update_pending_fields', 'update_restoring_fields',
-                  'write_update_record', 'update_tree_names', 'verify_update_snapshot',
-                  'restore_update_snapshot', 'apply_update_rollback', 'verify_exact_regular',
+                  'write_update_record', 'update_tree_names', 'update_seal_fields', 'verify_update_snapshot',
+                  'restore_update_user_data', 'restore_update_snapshot', 'apply_update_rollback',
+                  'verify_exact_regular',
                   'prepare_volatile_root_account', 'prepare_volatile_ssh_policy',
                   'verify_systemd_update_marker', 'prepare_volatile_systemd_state')
 
 
+def excludable(text, name):
+    match = re.search(rf"^{name}='([a-z/ ]+)'$", text, re.M)
+    assert match, name
+    return match.group(1)
+
+
+EXCLUDES = excludable(INIT.read_text(), 'update_snapshot_excludable')
+
+
 def init_library(logfile):
     text = INIT.read_text()
-    body = ''.join(function(text, name) for name in INIT_FUNCTIONS)
+    body = f"update_snapshot_excludable='{EXCLUDES}'\n"
+    body += ''.join(function(text, name) for name in INIT_FUNCTIONS)
     body = patched(body, PINS + ((CACHE_PIN, sha(CACHE)), ('expected_cache_size=20207', f'expected_cache_size={len(CACHE)}')))
     return (f'set -u\ntarget_boot_id=${{TEST_BOOT_ID:-{BOOT}}}\nexpected_persistent_overlay_mode=1\n'
             f'expected_ssh_diagnostic_mode=0\nlog() {{ printf "%s\\n" "$*" >>{logfile}; }}\n' + body)
@@ -259,8 +270,10 @@ esac''')
     def fields(self, name):
         return dict(line.split('=', 1) for line in (self.udir/name).read_text().splitlines())
 
-    def snapshot(self, uid=UID, tamper=False):
-        """A sealed snapshot of an older upper (what rog5-update run makes)."""
+    def snapshot(self, uid=UID, tamper=False, excluded=None, content=None):
+        """A sealed snapshot of an older upper (what rog5-update run makes).
+        excluded=None writes a v1 seal (full copy); a string writes a v2 seal
+        with that excluded= list. content(copy) may add to the copy."""
         base = self.state/'snapshots'
         base.mkdir(mode=0o700, exist_ok=True)
         snap = base/uid
@@ -271,13 +284,30 @@ esac''')
         self.write(copy/'usr/bin/tool', 'older\n', 0o755)
         for subtree in ('etc', 'var'):
             self.write(copy/subtree/'.updated', MARKER.format(subtree + '/'))
-        names = subprocess.run(f'cd {copy} && find . -mindepth 1 | LC_ALL=C sort', shell=True,
-                               capture_output=True, text=True, check=True).stdout
-        self.write(snap/'seal', f'format=rog5-overlay-snapshot-v1\nupdate_id={uid}\n'
-                   f'entries={len(names.splitlines())}\nnames_sha256={sha(names.encode())}\n', 0o444)
+        if content:
+            content(copy)
+        self.seal(snap, uid, excluded)
         if tamper:
             self.write(copy/'extra', 'x\n')
         return snap
+
+    def seal(self, snap, uid=UID, excluded=None):
+        names = subprocess.run(f'cd {snap/"upper"} && find . -mindepth 1 | LC_ALL=C sort', shell=True,
+                               capture_output=True, text=True, check=True).stdout
+        lines = [f'format=rog5-overlay-snapshot-{"v1" if excluded is None else "v2"}', f'update_id={uid}',
+                 f'entries={len(names.splitlines())}', f'names_sha256={sha(names.encode())}']
+        if excluded is not None:
+            lines.append(f'excluded={excluded}')
+        self.write(snap/'seal', ''.join(line + '\n' for line in lines), 0o444)
+
+    def user_data(self):
+        """User data in the running (to be failed) upper, written after the snapshot."""
+        self.write(self.upper/'home/phone/notes.txt', 'written after the update\n')
+        journal = self.upper/'var/log/journal'
+        self.write(journal/'machine/system.journal', 'journal\n', 0o640)
+        journal.chmod(0o2755)
+        self.write(self.upper/'var/cache/pacman/pkg/systemd-262-1.pkg.tar.zst', 'pkg\n')
+        self.write(self.upper/'usr/share/guestos/rootfs.img', 'fex\n')
 
 
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
@@ -412,6 +442,207 @@ class InitRollback(Base):
         self.record('restoring', ['format=rog5-update-restoring-v1', f'update_id={UID}', 'reason=Bad Reason'])
         self.assertNotEqual(self.rollback(), 0)
 
+    # -- v2 snapshots: user data is not rolled back
+
+    def v2_parents(self, copy):
+        """Parents of excluded paths as rog5-update copies them from upper."""
+        for parent in ('usr/share', 'var/lib/systemd', 'var/log', 'var/cache/pacman'):
+            (copy/parent).mkdir(parents=True, exist_ok=True)
+
+    def assert_restored_with_user_data(self, snap):
+        self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v0\n')
+        self.assertEqual((self.upper/'usr/bin/tool').read_text(), 'older\n')
+        self.assertEqual((self.upper/'home/phone/notes.txt').read_text(), 'written after the update\n')
+        self.assertEqual((self.upper/'var/log/journal/machine/system.journal').read_text(), 'journal\n')
+        self.assertEqual(oct((self.upper/'var/log/journal').stat().st_mode & 0o7777), '0o2755')
+        self.assertTrue((self.upper/'var/cache/pacman/pkg/systemd-262-1.pkg.tar.zst').exists())
+        self.assertTrue((self.upper/'usr/share/guestos/rootfs.img').exists())
+        failed = snap/'failed-upper'
+        self.assertEqual((failed/'etc/pacman.conf').read_text(), 'upper-v1\n')
+        for path in EXCLUDES.split():
+            self.assertFalse((failed/path).exists(), path)
+        self.assertFalse((snap/'upper').exists())
+        for name in ('pending', 'attempt', 'restoring'):
+            self.assertFalse((self.udir/name).exists(), name)
+        self.assertEqual(self.fields('last-result')['result'], 'rolled-back')
+
+    def test_a_v2_restore_keeps_the_newest_user_data(self):
+        snap = self.snapshot(excluded=EXCLUDES, content=self.v2_parents)
+        self.user_data()
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0, (self.dir/'init.log').read_text())
+        self.assert_restored_with_user_data(snap)
+        self.assertEqual(self.rollback(BOOT2), 0)   # a normal boot afterwards
+        self.assertEqual((self.upper/'home/phone/notes.txt').read_text(), 'written after the update\n')
+
+    def assert_refused_unchanged(self, snap):
+        self.assertEqual(self.fields('last-result')['result'], 'restore-refused')
+        self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v1\n')
+        self.assertTrue((snap/'upper').is_dir())
+        self.assertFalse((snap/'failed-upper').exists())
+        for name in ('pending', 'restoring'):
+            self.assertFalse((self.udir/name).exists(), name)
+
+    def test_a_parent_the_snapshot_lacks_refuses_the_restore(self):
+        # Making a parent would lose its ACLs/xattrs: keep the updated root.
+        snap = self.snapshot(excluded=EXCLUDES)       # no usr/share, var/log, ...
+        self.user_data()
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0, (self.dir/'init.log').read_text())
+        self.assert_refused_unchanged(snap)
+        self.assertEqual((self.upper/'home/phone/notes.txt').read_text(), 'written after the update\n')
+
+    def test_absent_user_paths_stay_absent(self):
+        snap = self.snapshot(excluded=EXCLUDES, content=self.v2_parents)
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0)
+        for path in EXCLUDES.split():
+            self.assertFalse((self.upper/path).exists(), path)
+        self.assertEqual(self.fields('last-result')['result'], 'rolled-back')
+        self.assertTrue((snap/'failed-upper').is_dir())
+
+    def test_a_v1_snapshot_still_restores_everything(self):
+        snap = self.snapshot()
+        self.user_data()
+        self.pending()
+        self.journal()          # a v1 journal, as the older init writes it
+        self.assertEqual(self.rollback(), 0)
+        self.assertFalse((self.upper/'home').exists())
+        self.assertTrue((snap/'failed-upper/home/phone/notes.txt').exists())
+
+    def test_user_data_never_moves_through_a_symlinked_parent(self):
+        outside = self.dir/'outside'
+        self.write(outside/'flatpak/secret', 'not user data of this root\n')
+        snap = self.snapshot(excluded=EXCLUDES, content=self.v2_parents)
+        (self.upper/'var').mkdir(exist_ok=True)
+        (self.upper/'var/lib').symlink_to(outside)
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0)
+        self.assertTrue((outside/'flatpak/secret').exists())
+        self.assertTrue((self.upper/'var/lib').is_symlink())
+        self.assert_refused_unchanged(snap)
+
+    def test_a_non_directory_parent_in_the_snapshot_refuses_the_restore(self):
+        def whiteout_like(copy):
+            self.v2_parents(copy)
+            shutil.rmtree(copy/'var/cache')
+            self.write(copy/'var/cache', 'not a directory\n')
+        snap = self.snapshot(excluded=EXCLUDES, content=whiteout_like)
+        self.user_data()
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0, (self.dir/'init.log').read_text())
+        self.assert_refused_unchanged(snap)
+
+    def test_a_parent_changed_behind_the_journal_stops_the_boot(self):
+        snap = self.snapshot(excluded=EXCLUDES, content=self.v2_parents)
+        self.user_data()
+        self.pending()
+        self.record('restoring', ['format=rog5-update-restoring-v2', f'update_id={UID}',
+                                  'reason=boot-not-committed'])
+        self.upper.rename(snap/'failed-upper')
+        (snap/'upper').rename(self.upper)
+        shutil.rmtree(self.upper/'var/log')
+        self.write(self.upper/'var/log', 'tampered\n')
+        self.assertNotEqual(self.rollback(), 0)
+        # Nothing is lost and the journal stays for a fixed boot to finish.
+        self.assertEqual((self.upper/'home/phone/notes.txt').read_text(), 'written after the update\n')
+        self.assertTrue((snap/'failed-upper/var/log/journal/machine/system.journal').exists())
+        self.assertTrue((self.udir/'restoring').exists())
+        self.assertTrue((self.udir/'pending').exists())
+
+    def test_v2_seal_grammar(self):
+        cases = (('unknown path', 'home etc'), ('out of order', 'var/log/journal home'),
+                 ('duplicate', 'home home'), ('trailing space', 'home '), ('double space', 'home  var/log/journal'),
+                 ('parent of an entry', 'var'), ('dot dot', 'home/../etc'))
+        for label, excluded in cases:
+            with self.subTest(label):
+                subprocess.run(['chmod', '-R', 'u+w', str(self.state)])
+                shutil.rmtree(self.state/'snapshots', ignore_errors=True)
+                shutil.rmtree(self.udir, ignore_errors=True)
+                self.snapshot(excluded=excluded)
+                self.pending('restore')
+                self.assertEqual(self.rollback(), 0)
+                self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v1\n')
+                self.assertEqual(self.fields('last-result')['result'], 'restore-refused')
+        for label, excluded in (('empty list', ''), ('subsequence', 'home var/log/journal')):
+            with self.subTest(label):
+                subprocess.run(['chmod', '-R', 'u+w', str(self.state)])
+                shutil.rmtree(self.state/'snapshots', ignore_errors=True)
+                shutil.rmtree(self.udir, ignore_errors=True)
+                self.upper.mkdir(mode=0o755, exist_ok=True)
+                self.write(self.upper/'etc/pacman.conf', 'upper-v1\n')
+                self.snapshot(excluded=excluded)
+                self.pending('restore')
+                self.assertEqual(self.rollback(), 0)
+                self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v0\n')
+                shutil.rmtree(self.state/'upper')
+                (self.state/'snapshots'/UID/'failed-upper').rename(self.upper)
+
+    def test_an_excluded_path_inside_the_copy_is_refused(self):
+        def with_home(copy):
+            self.write(copy/'home/phone/old.txt', 'old\n')
+        self.snapshot(excluded=EXCLUDES, content=with_home)   # sealed with home inside
+        self.pending('restore')
+        self.assertEqual(self.rollback(), 0)
+        self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v1\n')
+        self.assertEqual(self.fields('last-result')['result'], 'restore-refused')
+
+    def faulty(self, step, after):
+        """PATH stubs: the step-th state-changing command fails (after=True:
+        after it took effect), like a reset at that point of the restore."""
+        faults = self.dir/'faults'
+        shutil.rmtree(faults, ignore_errors=True)
+        faults.mkdir()
+        counter = self.dir/'fault-count'
+        counter.write_text('0\n')
+        path = self.env.get('PATH', os.environ['PATH'])
+        for name in ('mv', 'mkdir', 'rmdir', 'chown', 'chmod', 'rm'):
+            real = shutil.which(name, path=path)
+            stub = faults/name
+            stub.write_text(f"""#!/bin/sh
+n=$(( $(cat {counter}) + 1 ))
+echo "$n" >{counter}
+if [ "$n" -eq {step} ]; then
+	{'"' + real + '" "$@"' if after else ':'}
+	exit 1
+fi
+exec "{real}" "$@"
+""")
+            stub.chmod(0o755)
+        return dict(self.env, PATH=f'{faults}:{path}')
+
+    def test_every_interrupted_v2_restore_finishes_on_the_next_boot(self):
+        for after in (False, True):
+            step = 0
+            while True:
+                step += 1
+                with self.subTest(step=step, after=after):
+                    subprocess.run(['chmod', '-R', 'u+w', str(self.state)])
+                    for name in ('snapshots', 'rog5-update', 'upper'):
+                        shutil.rmtree(self.state/name, ignore_errors=True)
+                    self.upper.mkdir(mode=0o755)
+                    self.write(self.upper/'etc/pacman.conf', 'upper-v1\n')
+                    self.write(self.upper/'var/lib/flatpak/repo/config', 'flatpak\n')
+                    self.user_data()
+                    snap = self.snapshot(excluded=EXCLUDES, content=self.v2_parents)
+                    self.pending('restore')
+                    script = init_library(self.dir/'init.log') + f'apply_update_rollback {self.state}\n'
+                    first = subprocess.run(['unshare', '-r', *self.shell, '-c', script], capture_output=True,
+                                           text=True, env=self.faulty(step, after), timeout=300).returncode
+                    if (self.udir/'restoring').exists():
+                        # An older init refuses this journal instead of finishing without /home.
+                        self.assertEqual(self.fields('restoring')['format'], 'rog5-update-restoring-v2')
+                    self.assertEqual(self.rollback(BOOT2), 0, (self.dir/'init.log').read_text())
+                    self.assert_restored_with_user_data(snap)
+                    self.assertEqual((self.upper/'var/lib/flatpak/repo/config').read_text(), 'flatpak\n')
+                if first == 0 and int((self.dir/'fault-count').read_text()) < step:
+                    self.steps = getattr(self, 'steps', []) + [step]
+                    break   # the fault was past the last step
+                self.assertLess(step, 200)
+        # Every command of the restore was interrupted once (both modes).
+        self.assertEqual(len(self.steps), 2)
+        self.assertGreater(min(self.steps), 12)
+
 
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
 class VerifyRootMatchesTheBootVerifiers(Base):
@@ -491,6 +722,7 @@ class VerifyRootMatchesTheBootVerifiers(Base):
                 ('sshd policy', lambda: self.write(self.dir/'sshd-T', SSHD_T.replace('usepam no', 'usepam yes'))),
                 ('sshd duplicate', lambda: self.write(self.dir/'sshd-T', SSHD_T + 'usepam no\n')),
                 ('broken tool', lambda: self.stub('blkid', 'exit 127')),
+                ('broken tar (next snapshot)', lambda: self.stub('tar', 'exit 127')),
                 ('systemd binary', lambda: self.write(self.root/'usr/lib/systemd/systemd', '#!/bin/sh\nexit 1\n', 0o755)),
                 ('keyring mode', lambda: (self.root/'usr/share/pacman/keyrings/archlinuxarm.gpg').chmod(0o600)),
                 ('host key', lambda: self.stub('ssh-keygen', 'echo "256 SHA256:short x"')),
@@ -533,6 +765,9 @@ class Run(Base):
         snap = self.state/'snapshots'/uid
         self.assertEqual((snap/'upper/etc/pacman.conf').read_text(), 'upper-v1\n')
         self.assertFalse((snap/'upper/var/lib/pacman/db.lck').exists())
+        seal = (snap/'seal').read_text().splitlines()
+        self.assertEqual(seal[0], 'format=rog5-overlay-snapshot-v2')
+        self.assertEqual(seal[4], f'excluded={EXCLUDES}')
         self.assertFalse((self.root/'var/lib/pacman/db.lck').exists())
         self.assertEqual(oct(snap.stat().st_mode & 0o777), '0o700')
         self.assertEqual(self.reboots(), 1)
@@ -545,6 +780,60 @@ class Run(Base):
         self.assertEqual(self.rollback(BOOT2), 0)
         self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v1\n')
         self.assertEqual(self.fields('last-result')['result'], 'rolled-back')
+
+    def test_snapshot_leaves_out_user_data_and_a_rollback_keeps_it(self):
+        self.user_data()
+        self.write(self.upper/'var/lib/flatpak/repo/config', 'flatpak v1\n')
+        self.write(self.upper/'var/lib/systemd/coredump/core.x', 'core\n')
+        self.write(self.upper/'home2/kept', 'a name that only starts like home\n')
+        self.write(self.upper/'var/log/other.log', 'system log\n')
+        # Kept exactly: modes, hard links, symlinks, special modes, xattrs.
+        os.link(self.upper/'usr/bin/tool', self.upper/'usr/bin/tool-link')
+        (self.upper/'usr/bin/alias').symlink_to('tool')
+        self.write(self.upper/'usr/bin/setgid', 'x\n', 0o2755)
+        try:
+            os.setxattr(self.upper/'usr/bin/tool', 'user.rog5', b'kept')
+            xattrs = True
+        except OSError:
+            xattrs = False
+        self.write(self.dir/'new-installed', PLAN)
+        self.assertEqual(self.start(), 0, self.kmsg())
+        uid = self.fields('pending')['update_id']
+        copy = self.state/'snapshots'/uid/'upper'
+        for path in EXCLUDES.split():
+            self.assertFalse((copy/path).exists(), path)
+        for path in ('usr/share', 'var/lib/systemd', 'var/log', 'var/cache/pacman'):
+            self.assertTrue((copy/path).is_dir(), path)
+        self.assertEqual((copy/'home2/kept').read_text(), 'a name that only starts like home\n')
+        self.assertEqual((copy/'var/log/other.log').read_text(), 'system log\n')
+        self.assertEqual(os.stat(copy/'usr/bin/tool').st_ino, os.stat(copy/'usr/bin/tool-link').st_ino)
+        self.assertEqual(os.readlink(copy/'usr/bin/alias'), 'tool')
+        self.assertEqual(oct((copy/'usr/bin/setgid').stat().st_mode & 0o7777), '0o2755')
+        self.assertEqual(oct(copy.stat().st_mode & 0o777), '0o755')
+        if xattrs:
+            self.assertEqual(os.getxattr(copy/'usr/bin/tool', 'user.rog5'), b'kept')
+        # The update fails after boot; user data written since then survives.
+        self.assertEqual(self.rollback(), 0)
+        self.write(self.upper/'etc/pacman.conf', 'upper-v2\n')
+        self.write(self.upper/'home/phone/notes.txt', 'edited after the update\n')
+        self.write(self.upper/'var/lib/flatpak/repo/config', 'flatpak v2\n')
+        self.assertEqual(self.rollback(BOOT2), 0, (self.dir/'init.log').read_text())
+        self.assertEqual(self.fields('last-result')['result'], 'rolled-back')
+        self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v1\n')
+        self.assertEqual((self.upper/'home/phone/notes.txt').read_text(), 'edited after the update\n')
+        self.assertEqual((self.upper/'var/lib/flatpak/repo/config').read_text(), 'flatpak v2\n')
+        self.assertEqual((self.upper/'var/log/journal/machine/system.journal').read_text(), 'journal\n')
+        self.assertEqual((self.upper/'var/log/other.log').read_text(), 'system log\n')
+
+    def test_space_check_does_not_count_user_data(self):
+        self.write(self.upper/'home/phone/big', b'\0' * (4 << 20))
+        self.write(self.dir/'new-installed', PLAN)
+        free = int(subprocess.run(['stat', '-f', '-c', '%a %S', str(self.state)], capture_output=True,
+                                  text=True, check=True).stdout.split()[0])
+        self.assertGreater(free, 0)
+        # 1 MiB reserve passes with 4 MiB of home that is not copied.
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertTrue((self.udir/'pending').exists())
 
     def test_display_on_defers_the_verification_reboot(self):
         self.write(self.sys/'class/backlight/panel/brightness', '120\n')
@@ -882,9 +1171,21 @@ class Contracts(unittest.TestCase):
             self.assertIn(line, update)
         self.assertIn("grep -Eq '^root:x:[0-9]+:{6}$' /etc/shadow", (REPO/'initramfs/persistent-root-attest').read_text())
         for grammar in ('^update_id=[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$', 'format=rog5-overlay-snapshot-v1',
-                        '^names_sha256=[0-9a-f]{64}$'):
+                        'format=rog5-overlay-snapshot-v2', '^names_sha256=[0-9a-f]{64}$'):
             self.assertIn(grammar, init)
             self.assertIn(grammar, update)
+        # The updater leaves out exactly what the init moves back.
+        self.assertEqual(excludable(update, 'snapshot_excludes'), EXCLUDES)
+        def program(text, name):
+            body = function(text, name)
+            return body[body.index("\n\tNR == 1 {"):body.rindex("}' ")].replace('\t', '')
+        self.assertEqual(program(init, 'update_seal_fields'), program(update, 'seal_fields'))
+
+    def test_the_move_back_is_journaled(self):
+        body = function(INIT.read_text(), 'restore_update_snapshot')
+        self.assertLess(body.index('write_update_record "$journal"'), body.index('restore_update_user_data'))
+        self.assertLess(body.index('restore_update_user_data'), body.index('write_update_record "$dir/last-result"'))
+        self.assertLess(body.index('restore_update_user_data'), body.rindex('rm -f "$journal"'))
 
     def test_units(self):
         commit = (REPO/'configs/systemd/rog5-update-commit.service').read_text()

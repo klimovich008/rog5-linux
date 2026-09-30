@@ -141,7 +141,8 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn("functions/ncm.usb0", persistent)
         self.assertNotIn("functions/acm.usb0", persistent)
         self.assertNotIn("/dev/ttyGS0", persistent)
-        self.assertNotIn("acm", persistent.lower())
+        # No ACM function at all ("pacman" in the updater's user-data list is fine).
+        self.assertNotRegex(persistent.lower(), r"(?<![a-z])acm(?![a-z])")
         self.assertIn("169.254.77.2/30", persistent)
 
         network = self.source(NETWORK_ROOT)

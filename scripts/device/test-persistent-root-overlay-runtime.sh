@@ -231,4 +231,72 @@ mock_dmesg='ufshcd-qcom fatal error
 '
 ! verify_ufs_health
 
+# Overlay loop direct I/O: attached, switched before anything opens the
+# filesystem, optional, recorded for the RAM trial, built into the ramdisk.
+losetup_line=$(grep -n -F 'losetup "$overlay_loop" "$overlay_image" || return 1' "$init" | cut -d : -f 1)
+dio_line=$(grep -n -F 'enable_overlay_loop_direct_io "$overlay_loop" "$overlay_image" \' "$init" | cut -d : -f 1)
+size_line=$(grep -n -F '[ "$(blockdev --getsize64 "$overlay_loop")" = "$overlay_bytes" ]' "$init" | cut -d : -f 1)
+identity_line=$(grep -n -F 'verify_overlay_filesystem_identity "$overlay_loop" || return 1' "$init" | cut -d : -f 1)
+[ -n "$losetup_line" ] && [ -n "$dio_line" ] && [ -n "$size_line" ] && [ -n "$identity_line" ] ||
+	fail 'overlay loop direct-I/O call is missing'
+[ "$losetup_line" -lt "$dio_line" ] && [ "$dio_line" -lt "$size_line" ] &&
+	[ "$dio_line" -lt "$identity_line" ] || fail 'overlay loop direct I/O must follow losetup and precede blkid'
+grep -Fq 'loop_dio_source=$repo/tools/loop_dio/rog5-loop-dio.c' "$builder" ||
+	fail 'builder does not build the loop direct-I/O helper'
+grep -Fq '! -path ./usr/libexec/rog5-loop-dio' "$builder" ||
+	fail 'builder does not account for the loop direct-I/O helper'
+awk '
+	/^enable_overlay_loop_direct_io\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" | sed -e "s#/sys/class/block/#$work/dio-sys/#g" -e "s#/run/#$work/dio-run/#g" \
+	-e "s#/mnt/userdata/#$work/dio-userdata/#g" >"$work/dio.sh"
+# shellcheck disable=SC1090
+. "$work/dio.sh"
+log() { printf '%s\n' "$*" >>"$work/dio.log"; }
+mkdir -p "$work/dio-sys/sda/queue" "$work/dio-sys/loop3/loop" "$work/dio-sys/loop3/queue" \
+	"$work/dio-run" "$work/dio-userdata/rog5/root"
+echo 4096 >"$work/dio-sys/sda/queue/logical_block_size"
+loop_dio_helper=$work/dio-helper
+cat >"$loop_dio_helper" <<HELPER
+#!/bin/sh
+echo "\$*" >>$work/dio-calls
+[ ! -e $work/dio-refuse ] || exit 5
+echo 1 >$work/dio-sys/loop3/loop/dio
+echo 4096 >$work/dio-sys/loop3/queue/logical_block_size
+HELPER
+chmod 0755 "$loop_dio_helper"
+dio_case() {
+	echo 0 >"$work/dio-sys/loop3/loop/dio"
+	echo 512 >"$work/dio-sys/loop3/queue/logical_block_size"
+	rm -f "$work/dio-calls" "$work/dio-run/rog5-overlay-loop-dio"
+	enable_overlay_loop_direct_io /dev/loop3 "$work/dio-image" /dev/sda || fail 'direct I/O step failed the boot'
+	grep -Fxq "result=$1" "$work/dio-run/rog5-overlay-loop-dio" ||
+		fail "direct I/O result is not $1: $(cat "$work/dio-run/rog5-overlay-loop-dio")"
+	grep -Fxq "dio=$2" "$work/dio-run/rog5-overlay-loop-dio" || fail "direct I/O state is not $2"
+}
+# A 4 KiB-block ext4 superblock field (s_log_block_size = 2 at 1048).
+printf '\002\000\000\000' | dd of="$work/dio-image" bs=1 seek=1048 conv=notrunc 2>/dev/null
+dio_case helper-0 1
+[ "$(cat "$work/dio-calls")" = '/dev/loop3 4096' ] || fail 'helper arguments'
+grep -Fq 'overlay loop loop3: direct I/O 1, logical block 4096 B (helper-0)' "$work/dio.log" ||
+	fail 'direct I/O outcome is not logged'
+: >"$work/dio-refuse"
+dio_case helper-5 0
+rm -f "$work/dio-refuse"
+: >"$work/dio-userdata/rog5/root/overlay-loop-buffered"
+dio_case opted-out 0
+[ ! -e "$work/dio-calls" ] || fail 'opt-out still ran the helper'
+rm -f "$work/dio-userdata/rog5/root/overlay-loop-buffered"
+printf '\000\000\000\000' | dd of="$work/dio-image" bs=1 seek=1048 conv=notrunc 2>/dev/null
+dio_case unsupported-4096-0 0
+[ ! -e "$work/dio-calls" ] || fail 'a 1 KiB-block filesystem must stay buffered'
+printf '\002\000\000\000' | dd of="$work/dio-image" bs=1 seek=1048 conv=notrunc 2>/dev/null
+echo 512 >"$work/dio-sys/sda/queue/logical_block_size"
+dio_case unsupported-512-2 0
+echo 4096 >"$work/dio-sys/sda/queue/logical_block_size"
+loop_dio_helper=$work/absent
+dio_case no-helper 0
+
 echo 'PASS persistent root overlay is exact-scope, shared-mount aware, and teardown ordered'
+

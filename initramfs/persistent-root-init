@@ -1685,11 +1685,19 @@ verify_overlay_workdir_pre_mount() {
 #   rog5-update/attempt    written here on the first boot of that update
 #   rog5-update/restoring  journal of an interrupted restore
 #   rog5-update/last-result
-#   snapshots/<id>/{seal,upper}  full copy of upper taken before the update
+#   snapshots/<id>/{seal,upper}  copy of upper taken before the update
 # A pending update boots once. If that boot did not commit it (the commit
 # unit removes pending), or the updater asked for a restore, the sealed
 # snapshot replaces upper before the overlay is mounted. Only exact records
 # and a matching seal are acted on; anything else leaves the root as before.
+#
+# A v2 seal lists user-data paths the copy left out (excluded=, a subsequence
+# of update_snapshot_excludable, the updater's snapshot_excludes). A restore
+# keeps their newest state: each one moves from the failed upper into the
+# restored upper, so a rollback no longer reverts /home. A v1 seal is a full
+# copy and restores everything.
+update_snapshot_excludable='home usr/share/guestos var/lib/flatpak var/lib/systemd/coredump var/log/journal var/cache/pacman/pkg'
+
 update_record_exact() {
 	record=$1
 	lines=$2
@@ -1712,7 +1720,8 @@ update_pending_fields() {
 update_restoring_fields() {
 	update_record_exact "$1" 3 || return 1
 	awk '
-	NR == 1 && $0 != "format=rog5-update-restoring-v1" { bad = 1 }
+	NR == 1 && $0 != "format=rog5-update-restoring-v1" &&
+		$0 != "format=rog5-update-restoring-v2" { bad = 1 }
 	NR == 2 { if ($0 !~ /^update_id=[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$/) bad = 1; id = substr($0, 11) }
 	NR == 3 { if ($0 !~ /^reason=[a-z][a-z-]{0,39}$/) bad = 1; reason = substr($0, 8) }
 	END { if (bad || NR != 3) exit 1; print id " " reason }' "$1"
@@ -1733,6 +1742,41 @@ update_tree_names() {
 	(cd "$1" && find . -mindepth 1 | LC_ALL=C sort)
 }
 
+# Prints "<entries> <names_sha256> [excluded paths...]" for an exact v1 (4
+# lines, nothing excluded) or v2 (5 lines) seal of snapshot <id>. The v2
+# excluded list must be a subsequence of update_snapshot_excludable, single
+# spaces, possibly empty.
+update_seal_fields() {
+	seal=$1
+	id=$2
+	update_record_exact "$seal" 4 || update_record_exact "$seal" 5 || return 1
+	awk -v id="$id" -v allowed="$update_snapshot_excludable" '
+	NR == 1 {
+		if ($0 == "format=rog5-overlay-snapshot-v1") lines = 4
+		else if ($0 == "format=rog5-overlay-snapshot-v2") lines = 5
+		else bad = 1
+	}
+	NR == 2 && $0 != "update_id=" id { bad = 1 }
+	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
+	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
+	NR == 5 {
+		if (substr($0, 1, 9) != "excluded=") bad = 1
+		excluded = substr($0, 10)
+		n = split(allowed, known, / /)
+		m = split(excluded, list, / /)
+		j = 1
+		for (i = 1; i <= m; i++) {
+			while (j <= n && known[j] != list[i]) j++
+			if (j > n) { bad = 1; break }
+			j++
+		}
+	}
+	END {
+		if (bad || NR != lines) exit 1
+		print entries " " names (excluded == "" ? "" : " " excluded)
+	}' "$seal"
+}
+
 verify_update_snapshot() {
 	state=$1
 	id=$2
@@ -1743,19 +1787,89 @@ verify_update_snapshot() {
 		[ -d "$directory" ] && [ ! -L "$directory" ] &&
 			[ "$(stat -c '%u:%g:%a' "$directory")" = 0:0:700 ] || return 1
 	done
-	update_record_exact "$seal" 4 || return 1
-	seal_fields=$(awk -v id="$id" '
-	NR == 1 && $0 != "format=rog5-overlay-snapshot-v1" { bad = 1 }
-	NR == 2 && $0 != "update_id=" id { bad = 1 }
-	NR == 3 { if ($0 !~ /^entries=(0|[1-9][0-9]{0,8})$/) bad = 1; entries = substr($0, 9) }
-	NR == 4 { if ($0 !~ /^names_sha256=[0-9a-f]{64}$/) bad = 1; names = substr($0, 14) }
-	END { if (bad || NR != 4) exit 1; print entries " " names }' "$seal") ||
-		return 1
+	seal_fields=$(update_seal_fields "$seal" "$id") || return 1
+	# shellcheck disable=SC2086
+	set -- $seal_fields
+	seal_entries=$1
+	seal_names=$2
+	shift 2
 	[ -d "$copy" ] && [ ! -L "$copy" ] || return 1
 	case $(stat -c '%u:%g:%a' "$copy") in 0:0:755|0:0:555) ;; *) return 1 ;; esac
-	[ "$(update_tree_names "$copy" | wc -l)" = "${seal_fields%% *}" ] || return 1
+	# The restore moves excluded paths into the restored upper; none may be
+	# in the copy (the name hash covers this too). Every parent of one that
+	# exists in the root being replaced (upper, or failed-upper during a
+	# journaled restore) must be a real directory there and in the copy:
+	# the move never makes or crosses anything else, so a restore that could
+	# not keep the user data is refused before upper is touched.
+	seal_source=$state/upper
+	if [ ! -e "$seal_source" ] && [ ! -L "$seal_source" ]; then
+		seal_source=$snapshot/failed-upper
+	fi
+	[ -d "$seal_source" ] && [ ! -L "$seal_source" ] || return 1
+	for seal_path in "$@"; do
+		[ ! -e "$copy/$seal_path" ] && [ ! -L "$copy/$seal_path" ] || return 1
+		seal_parent=
+		seal_rest=$seal_path
+		while [ "$seal_rest" != "${seal_rest#*/}" ]; do
+			seal_parent=$seal_parent${seal_parent:+/}${seal_rest%%/*}
+			seal_rest=${seal_rest#*/}
+			[ -e "$seal_source/$seal_parent" ] ||
+				[ -L "$seal_source/$seal_parent" ] || break
+			[ -d "$seal_source/$seal_parent" ] &&
+				[ ! -L "$seal_source/$seal_parent" ] || return 1
+			[ -d "$copy/$seal_parent" ] && [ ! -L "$copy/$seal_parent" ] ||
+				return 1
+		done
+	done
+	[ "$(update_tree_names "$copy" | wc -l)" = "$seal_entries" ] || return 1
 	[ "$(update_tree_names "$copy" | sha256sum | cut -d ' ' -f 1)" = \
-		"${seal_fields#* }" ]
+		"$seal_names" ]
+}
+
+# Moves each path the seal excluded from the failed upper into the restored
+# upper (the newest user data wins). Each move is one rename on the overlay
+# filesystem, done or skipped by what exists, so the journaled restore
+# finishes it after a reset. verify_update_snapshot already required every
+# parent that holds user data to be a real directory in both trees; anything
+# else here was changed behind the journal and stops the boot.
+restore_update_user_data() {
+	state=$1
+	id=$2
+	snapshot=$state/snapshots/$id
+	failed=$snapshot/failed-upper
+	restored=$state/upper
+	seal_fields=$(update_seal_fields "$snapshot/seal" "$id") || return 1
+	# shellcheck disable=SC2086
+	set -- $seal_fields
+	shift 2
+	for user_path in "$@"; do
+		user_parent=
+		user_rest=$user_path
+		user_present=1
+		while [ "$user_rest" != "${user_rest#*/}" ]; do
+			user_parent=$user_parent${user_parent:+/}${user_rest%%/*}
+			user_rest=${user_rest#*/}
+			if [ ! -e "$failed/$user_parent" ] && [ ! -L "$failed/$user_parent" ]; then
+				user_present=0
+				break
+			fi
+			[ -d "$failed/$user_parent" ] && [ ! -L "$failed/$user_parent" ] &&
+				[ -d "$restored/$user_parent" ] &&
+				[ ! -L "$restored/$user_parent" ] || {
+				log "update $id: /$user_parent is not a directory in both roots"
+				return 1
+			}
+		done
+		[ "$user_present" -eq 1 ] || continue
+		[ -e "$failed/$user_path" ] || [ -L "$failed/$user_path" ] || continue
+		if [ -e "$restored/$user_path" ] || [ -L "$restored/$user_path" ]; then
+			log "update $id: /$user_path is in both roots"
+			return 1
+		fi
+		mv -T "$failed/$user_path" "$restored/$user_path" || return 1
+		sync
+	done
+	return 0
 }
 
 # Returns 0 after a complete restore, 2 when the snapshot cannot be trusted
@@ -1772,7 +1886,13 @@ restore_update_snapshot() {
 	if [ ! -e "$journal" ] && [ ! -L "$journal" ]; then
 		[ ! -e "$failed" ] && [ ! -L "$failed" ] || return 2
 		verify_update_snapshot "$state" "$id" || return 2
-		write_update_record "$journal" format=rog5-update-restoring-v1 \
+		# A v2 snapshot journals as restoring-v2: an init without the
+		# user-data moves (an older fallback) refuses to finish it rather
+		# than completing a restore without /home.
+		journal_format=rog5-update-restoring-v1
+		[ "$(sed -n 1p "$snapshot/seal")" != format=rog5-overlay-snapshot-v2 ] ||
+			journal_format=rog5-update-restoring-v2
+		write_update_record "$journal" "format=$journal_format" \
 			"update_id=$id" "reason=$reason" || return 1
 	fi
 	# Each step is one rename on the overlay filesystem; the journal lets a
@@ -1802,6 +1922,8 @@ restore_update_snapshot() {
 	[ -d "$state/upper" ] && [ ! -L "$state/upper" ] &&
 		[ -d "$failed" ] && [ ! -L "$failed" ] &&
 		[ ! -e "$snapshot/upper" ] && [ ! -L "$snapshot/upper" ] || return 1
+	# Still journaled: a reset here repeats only the moves not yet done.
+	restore_update_user_data "$state" "$id" || return 1
 	write_update_record "$dir/last-result" format=rog5-update-result-v1 \
 		"update_id=$id" result=rolled-back "reason=$reason" \
 		"boot_id=$target_boot_id" || return 1
@@ -1809,7 +1931,7 @@ restore_update_snapshot() {
 	sync
 	rm -f "$journal" || return 1
 	sync
-	log "update $id rolled back ($reason); the failed upper is kept as snapshots/$id/failed-upper"
+	log "update $id rolled back ($reason); the failed upper is kept as snapshots/$id/failed-upper (user data the snapshot excluded moved back)"
 }
 
 apply_update_rollback() {
@@ -1891,6 +2013,52 @@ close_persistent_overlay_prepare() {
 	return "$close_status"
 }
 
+# Direct I/O for the overlay image's loop: the image's pages are then cached
+# once, by the overlay filesystem, not also as userdata file pages (about
+# 1 GB of duplicate page cache on 2026-09-30). The loop first takes the UFS
+# logical block size (the backing ext4's direct-I/O alignment), which only
+# works before anything claims the device, and never below the overlay
+# filesystem's own block size. Optional: without the helper, with
+# rog5/root/overlay-loop-buffered present on userdata, or when the kernel
+# refuses, the loop stays buffered as before. /run/rog5-overlay-loop-dio
+# records the outcome for the RAM-trial check.
+loop_dio_helper=/usr/libexec/rog5-loop-dio
+enable_overlay_loop_direct_io() {
+	dio_loop=$1
+	dio_image=$2
+	dio_disk=$3
+	dio_name=${dio_loop##*/}
+	dio_opt_out=/mnt/userdata/rog5/root/overlay-loop-buffered
+	dio_bytes=$(cat "/sys/class/block/${dio_disk##*/}/queue/logical_block_size" 2>/dev/null) ||
+		dio_bytes=
+	# ext4 s_log_block_size (superblock at 1024, field at +24): 1024 << n.
+	dio_fs_log=$(od -An -tu4 -j1048 -N4 "$dio_image" 2>/dev/null | tr -d ' ') ||
+		dio_fs_log=
+	if [ -e "$dio_opt_out" ] || [ -L "$dio_opt_out" ]; then
+		dio_result=opted-out
+	elif ! [ -f "$loop_dio_helper" ] || ! [ -x "$loop_dio_helper" ]; then
+		dio_result=no-helper
+	else
+		case $dio_bytes:$dio_fs_log in
+			4096:2|4096:3|4096:4|4096:5|4096:6)
+				"$loop_dio_helper" "$dio_loop" "$dio_bytes"
+				dio_result=helper-$?
+				;;
+			*) dio_result=unsupported-$dio_bytes-$dio_fs_log ;;
+		esac
+	fi
+	dio_state=$(cat "/sys/class/block/$dio_name/loop/dio" 2>/dev/null) ||
+		dio_state=unknown
+	dio_sector=$(cat "/sys/class/block/$dio_name/queue/logical_block_size" \
+		2>/dev/null) || dio_sector=unknown
+	log "overlay loop $dio_name: direct I/O $dio_state, logical block $dio_sector B ($dio_result)"
+	printf '%s\n' format=rog5-overlay-loop-dio-v1 "loop=$dio_loop" \
+		"result=$dio_result" "dio=$dio_state" "logical_block_size=$dio_sector" \
+		>/run/rog5-overlay-loop-dio 2>/dev/null &&
+		chmod 0444 /run/rog5-overlay-loop-dio 2>/dev/null
+	return 0
+}
+
 prepare_persistent_overlay_inner() {
 	[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
 		1:read-only:0 ] || return 1
@@ -1928,6 +2096,8 @@ prepare_persistent_overlay_inner() {
 	case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	losetup "$overlay_loop" "$overlay_image" || return 1
 	overlay_loop_attached=1
+	enable_overlay_loop_direct_io "$overlay_loop" "$overlay_image" \
+		"$overlay_userdata_disk"
 	[ "$(blockdev --getsize64 "$overlay_loop")" = "$overlay_bytes" ] ||
 		return 1
 	verify_overlay_filesystem_identity "$overlay_loop" || return 1

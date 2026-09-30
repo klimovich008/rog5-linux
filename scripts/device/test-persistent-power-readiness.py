@@ -114,4 +114,46 @@ cat() {
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(f'FAIL {detail} step={step}', result.stdout)
 
+class StandbyBisectTest(unittest.TestCase):
+    """The noadsp standby-bisect DTB (compose-standby-bisect-dtb.sh) is the only
+    way past the battery/UCSI checks, and only in a production ramdisk."""
+
+    def gate(self, production, props):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tree:
+            for path, value in props.items():
+                Path(tree, path).parent.mkdir(parents=True, exist_ok=True)
+                Path(tree, path).write_bytes(value.encode() + b'\0')
+            body = function(SOURCE.read_text(), 'adsp_bisect_off').replace('/proc/device-tree', tree)
+            command = ['sh']
+            if os.environ.get('ROG5_TEST_BUSYBOX'):
+                command = [os.environ['ROG5_TEST_QEMU'], os.environ['ROG5_TEST_BUSYBOX'], 'sh']
+            return subprocess.run(command, input=f'production={production}\n' + body + '\n' +
+                                  'adsp_bisect_off && echo SKIP || echo CHECK\n',
+                                  text=True, capture_output=True, timeout=4).stdout.strip()
+
+    ADSP = 'soc@0/remoteproc@3000000/'
+    BISECT = {ADSP + 'status': 'disabled', ADSP + 'rog5,standby-bisect': 'noadsp',
+              'pmic-glink/status': 'disabled'}
+
+    def test_only_the_marked_noadsp_dtb_skips_the_checks(self):
+        self.assertEqual(self.gate(1, self.BISECT), 'SKIP')
+        for label, props, production in (
+                ('development ramdisk', self.BISECT, 0),
+                ('production DTB', {self.ADSP + 'status': 'okay'}, 1),
+                ('ADSP disabled without marker', {self.ADSP + 'status': 'disabled',
+                                                  'pmic-glink/status': 'disabled'}, 1),
+                ('marker but ADSP enabled', dict(self.BISECT, **{self.ADSP + 'status': 'okay'}), 1),
+                ('pmic-glink still enabled', dict(self.BISECT, **{'pmic-glink/status': 'okay'}), 1),
+                ('other marker', dict(self.BISECT, **{self.ADSP + 'rog5,standby-bisect': 'noslpi'}), 1)):
+            with self.subTest(label):
+                self.assertEqual(self.gate(production, props), 'CHECK')
+
+    def test_the_telemetry_checks_run_unless_bisecting(self):
+        text = SOURCE.read_text()
+        tail = text[text.index('\nif adsp_bisect_off; then'):]
+        self.assertIn('\nelse\n\tcheck_power_telemetry\nfi\n', tail)
+        self.assertLess(tail.index('check_power_telemetry'), tail.index('physical_count=0'))
+
+
 if __name__=='__main__': unittest.main()

@@ -206,80 +206,111 @@ if [ "$module_mode" = tree ] && [ -d /proc/device-tree/typec-sbu-mux ]; then
 fi
 load_module ucsi_glink.ko ucsi_glink ucsi-glink
 
-attempt=0
-telemetry_deadline=$(( $(telemetry_seconds) + 20 ))
-while [ "$attempt" -lt 200 ] &&
-	[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ]; do
-	if [ -e /sys/class/power_supply/qcom-battmgr-bat ] &&
-		[ -e /sys/class/power_supply/qcom-battmgr-usb ] &&
-		[ -e /sys/class/typec/port0 ]; then
-		break
-	fi
-	attempt=$((attempt + 1))
-	sleep 0.1
-done
-[ "$attempt" -lt 200 ] &&
-	[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ] ||
-	fail telemetry-timeout 'battery or UCSI telemetry did not appear'
+# Battery, charger and Type-C checks (all from the ADSP over pmic_glink).
+check_power_telemetry() {
+	attempt=0
+	telemetry_deadline=$(( $(telemetry_seconds) + 20 ))
+	while [ "$attempt" -lt 200 ] &&
+		[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ]; do
+		if [ -e /sys/class/power_supply/qcom-battmgr-bat ] &&
+			[ -e /sys/class/power_supply/qcom-battmgr-usb ] &&
+			[ -e /sys/class/typec/port0 ]; then
+			break
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	[ "$attempt" -lt 200 ] &&
+		[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ] ||
+		fail telemetry-timeout 'battery or UCSI telemetry did not appear'
 
-battery=/sys/class/power_supply/qcom-battmgr-bat
-usb=/sys/class/power_supply/qcom-battmgr-usb
-wait_for_usb_online
-usb_voltage=0
-usb_current_max=0
-typec_data=none
-typec_power=none
-ncm_route=none
-if [ "$production" = 1 ]; then
-	if [ "$usb_online" -eq 1 ]; then
-		# Charging input must still be sane; the partner may be a charger
-		# (no host, no NCM), a PC, or a USB-PD source: fast chargers, docks
-		# and monitors negotiate 9-20 V, and a 5-6.5 V window made a boot on
-		# a PD source fail and fall back (2026-09-28).
+	battery=/sys/class/power_supply/qcom-battmgr-bat
+	usb=/sys/class/power_supply/qcom-battmgr-usb
+	wait_for_usb_online
+	usb_voltage=0
+	usb_current_max=0
+	typec_data=none
+	typec_power=none
+	ncm_route=none
+	if [ "$production" = 1 ]; then
+		if [ "$usb_online" -eq 1 ]; then
+			# Charging input must still be sane; the partner may be a charger
+			# (no host, no NCM), a PC, or a USB-PD source: fast chargers, docks
+			# and monitors negotiate 9-20 V, and a 5-6.5 V window made a boot on
+			# a PD source fail and fall back (2026-09-28).
+			usb_voltage=$(read_integer "$usb/voltage_now") ||
+				fail usb-voltage-unavailable 'USB voltage unavailable'
+			usb_current_max=$(read_integer "$usb/current_max") ||
+				fail usb-current-limit-unavailable 'USB current limit unavailable'
+			[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 21000000 ] ||
+				fail usb-voltage-invalid 'side USB voltage is invalid'
+			[ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||
+				fail usb-current-limit-invalid 'side USB current limit is invalid'
+			data_role=$(cat /sys/class/typec/port0/data_role 2>/dev/null) || data_role=
+			power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) || power_role=
+			! data_role_is_device "$data_role" || typec_data=device
+			! power_role_is_sink "$power_role" || typec_power=sink
+			[ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" != 1 ] || ncm_route=direct
+		fi
+		echo "rog5-persistent-power: production boot usb_online=$usb_online typec=$typec_data/$typec_power ncm=$ncm_route" \
+			>/dev/kmsg 2>/dev/null || true
+	else
 		usb_voltage=$(read_integer "$usb/voltage_now") ||
 			fail usb-voltage-unavailable 'USB voltage unavailable'
 		usb_current_max=$(read_integer "$usb/current_max") ||
 			fail usb-current-limit-unavailable 'USB current limit unavailable'
-		[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 21000000 ] ||
+		[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 6500000 ] ||
 			fail usb-voltage-invalid 'side USB voltage is invalid'
 		[ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||
 			fail usb-current-limit-invalid 'side USB current limit is invalid'
-		data_role=$(cat /sys/class/typec/port0/data_role 2>/dev/null) || data_role=
-		power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) || power_role=
-		! data_role_is_device "$data_role" || typec_data=device
-		! power_role_is_sink "$power_role" || typec_power=sink
-		[ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" != 1 ] || ncm_route=direct
+		data_role=$(cat /sys/class/typec/port0/data_role 2>/dev/null) ||
+			fail typec-data-role 'side USB data role is unavailable'
+		data_role_is_device "$data_role" ||
+			fail typec-data-role 'side USB is not UFP/device'
+		power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) ||
+			fail typec-power-role 'side USB power role is unavailable'
+		power_role_is_sink "$power_role" ||
+			fail typec-power-role 'side USB is not a power sink'
+		require_ncm_carrier
+		[ "$(ip -4 -o address show dev usb0 | awk '$4 == "169.254.77.2/30" { count++ } END { print count + 0 }')" -eq 1 ] ||
+			fail ncm-address 'NCM address changed'
+		route=$(ip -4 route get 169.254.77.1 2>/dev/null) ||
+			fail ncm-route-unavailable 'NCM route unavailable'
+		printf '%s\n' "$route" |
+			grep -Eq '^169[.]254[.]77[.]1 dev usb0 .* src 169[.]254[.]77[.]2( |$)' ||
+			fail ncm-route 'NCM route changed'
+		typec_data=device
+		typec_power=sink
+		ncm_route=direct
 	fi
-	echo "rog5-persistent-power: production boot usb_online=$usb_online typec=$typec_data/$typec_power ncm=$ncm_route" \
+}
+
+# Standby bisect (scripts/device/compose-standby-bisect-dtb.sh noadsp, one RAM
+# trial): the signed DTB disables the ADSP and pmic-glink and marks the ADSP
+# node, so no battery, charger or UCSI telemetry can appear. Only a production
+# ramdisk with exactly that DTB skips these checks; every other DTB, including
+# one that merely disables the ADSP, keeps them and fails closed.
+adsp_bisect_off() {
+	node=/proc/device-tree/soc@0/remoteproc@3000000
+	[ "${production:-0}" = 1 ] || return 1
+	[ "$(tr -d '\000' 2>/dev/null <"$node/rog5,standby-bisect")" = noadsp ] || return 1
+	[ "$(tr -d '\000' 2>/dev/null <"$node/status")" = disabled ] || return 1
+	[ "$(tr -d '\000' 2>/dev/null </proc/device-tree/pmic-glink/status)" = disabled ]
+}
+
+if adsp_bisect_off; then
+	battery_voltage=absent
+	battery_temp=absent
+	usb_online=absent
+	usb_voltage=absent
+	usb_current_max=absent
+	typec_data=none
+	typec_power=none
+	ncm_route=none
+	echo 'rog5-persistent-power: standby bisect DTB without the ADSP: no battery, charger or Type-C telemetry this boot' \
 		>/dev/kmsg 2>/dev/null || true
 else
-	usb_voltage=$(read_integer "$usb/voltage_now") ||
-		fail usb-voltage-unavailable 'USB voltage unavailable'
-	usb_current_max=$(read_integer "$usb/current_max") ||
-		fail usb-current-limit-unavailable 'USB current limit unavailable'
-	[ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 6500000 ] ||
-		fail usb-voltage-invalid 'side USB voltage is invalid'
-	[ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||
-		fail usb-current-limit-invalid 'side USB current limit is invalid'
-	data_role=$(cat /sys/class/typec/port0/data_role 2>/dev/null) ||
-		fail typec-data-role 'side USB data role is unavailable'
-	data_role_is_device "$data_role" ||
-		fail typec-data-role 'side USB is not UFP/device'
-	power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) ||
-		fail typec-power-role 'side USB power role is unavailable'
-	power_role_is_sink "$power_role" ||
-		fail typec-power-role 'side USB is not a power sink'
-	require_ncm_carrier
-	[ "$(ip -4 -o address show dev usb0 | awk '$4 == "169.254.77.2/30" { count++ } END { print count + 0 }')" -eq 1 ] ||
-		fail ncm-address 'NCM address changed'
-	route=$(ip -4 route get 169.254.77.1 2>/dev/null) ||
-		fail ncm-route-unavailable 'NCM route unavailable'
-	printf '%s\n' "$route" |
-		grep -Eq '^169[.]254[.]77[.]1 dev usb0 .* src 169[.]254[.]77[.]2( |$)' ||
-		fail ncm-route 'NCM route changed'
-	typec_data=device
-	typec_power=sink
-	ncm_route=direct
+	check_power_telemetry
 fi
 
 physical_count=0

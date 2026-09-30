@@ -1,0 +1,288 @@
+#!/bin/sh
+# One 60 s s2idle suspend on battery with before/after sleep counters, for the
+# standby bisect boots (compose-standby-bisect-dtb.sh). Run it detached, as
+# root, with the screen off and the cable pulled:
+#   systemd-run --unit rog5-standby-bisect --collect \
+#       /usr/local/sbin/rog5-standby-bisect-measure [OPTIONS]
+#   journalctl -u rog5-standby-bisect; cat /var/lib/rog5-standby-bisect/*/summary.txt
+#
+# Options:
+#   --secs=60        suspend length (RTC wake alarm; never suspends without one)
+#   --wait=900       wait this long for USB power to go away (cable pulled)
+#   --no-battmgr     noadsp boot: no battery/USB telemetry; the caller vouches
+#                    the cable is out (checks Type-C/USB power cannot be read)
+#   --arm-vx         before suspending, send the AOP violator-log request
+#                    {class: lpm_mon, type: cxpc, ...} through the debug module
+#                    rog5-aop-qmp (tools/standby_probe; must be loaded). A QMP
+#                    write: off by default (Sol: baseline without monitoring).
+#   --ddr-log-off    optional stock-difference test: send
+#                    {class: ddr, res: ddr_log, val: 0} through rog5-aop-qmp.
+#                    Stock 5.4 registers this as the BIMC clock of clk-aop-qmp
+#                    but no lahaina DT node consumes it and ROG5's FDT lacks
+#                    qcom,clk-stop-bimc-log, so stock never sends it at
+#                    runtime; val 0 only turns AOP DDR logging off. val 1 is
+#                    never sent.
+#
+# Reads only: /sys/kernel/debug/qcom_stats/* (AOP message RAM and SMEM),
+# power_supply attributes, suspend_stats, wakeup_sources, /proc/interrupts,
+# remoteproc state, and rog5-sleep-blockers/vx and vx_raw when that module is
+# loaded (AOP message RAM reads). It never reads rog5-sleep-blockers/votes
+# (rpmh_read of resources this kernel never wrote hung the RSC and reset the
+# phone), rog5-aop-qmp/ddr_votes or ddr_raw (each read sends a QMP message),
+# the display RSC (0xaf20000) or /sys/kernel/debug/dri/*/DP-*.
+# It stops no service. It writes: the RTC wake alarm (rtcwake), the suspend
+# request, /run/rog5-stay-awake while it runs (so rog5-sleep-policy does not
+# suspend on its own; removed afterwards if this script created it), progress
+# lines to /dev/kmsg, and its result directory.
+set -u
+PATH=${ROG5_BISECT_TEST_BIN:+$ROG5_BISECT_TEST_BIN:}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export LC_ALL=C
+secs=60 wait_s=900 battmgr=1 arm_vx=0 ddr_log_off=0
+for arg in "$@"; do
+	case $arg in
+		--secs=*) secs=${arg#*=} ;;
+		--wait=*) wait_s=${arg#*=} ;;
+		--no-battmgr) battmgr=0 ;;
+		--arm-vx) arm_vx=1 ;;
+		--ddr-log-off) ddr_log_off=1 ;;
+		*) sed -n '2,32p' "$0" >&2; exit 2 ;;
+	esac
+done
+for value in "$secs" "$wait_s"; do
+	case $value in ''|*[!0-9]*|0?*) echo 'decimal option expected (no leading zero)' >&2; exit 2 ;; esac
+done
+[ "$secs" -ge 20 ] && [ "$secs" -le 3600 ] || { echo '--secs must be 20..3600' >&2; exit 2; }
+[ "$(id -u)" = 0 ] || { echo 'run as root' >&2; exit 1; }
+
+stats=${ROG5_BISECT_STATS:-/sys/kernel/debug/qcom_stats}
+bat=${ROG5_BISECT_BAT:-/sys/class/power_supply/qcom-battmgr-bat}
+usb=${ROG5_BISECT_USB:-/sys/class/power_supply/qcom-battmgr-usb/online}
+dpms=${ROG5_BISECT_DPMS:-/sys/class/drm/card1-DSI-1/dpms}
+vxdir=/sys/kernel/debug/rog5-sleep-blockers
+qmp=/sys/kernel/debug/rog5-aop-qmp/send
+stay=${ROG5_BISECT_STAY:-/run/rog5-stay-awake}
+succ_file=${ROG5_BISECT_SUCCESS:-/sys/power/suspend_stats/success}
+dir=${ROG5_BISECT_OUT:-/var/lib/rog5-standby-bisect}/$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$dir" || exit 1
+created_stay=0
+log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" | tee -a "$dir/log.txt"; printf 'rog5-standby-bisect: %s\n' "$*" >/dev/kmsg 2>/dev/null; }
+cleanup() { [ "$created_stay" = 0 ] || rm -f "$stay"; }
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
+
+[ -d "$stats" ] || { log 'FAIL no qcom_stats (load qcom_stats)'; exit 1; }
+rd() { v=; read -r v <"$1" 2>/dev/null || v=; printf '%s' "${v:-NA}"; }
+boot() { cut -d ' ' -f 1 /proc/uptime; }
+
+# -- preconditions: rog5-sleep-policy held off, s2idle, display off, on battery
+[ -e "$stay" ] || {
+	: >"$stay" || { log 'FAIL cannot create the stay-awake file'; exit 1; }
+	created_stay=1
+}
+case " $(rd "${ROG5_BISECT_MEM_SLEEP:-/sys/power/mem_sleep}") " in *' [s2idle] '*) ;; *) log 'FAIL s2idle is not the selected mem_sleep'; exit 1 ;; esac
+[ "$(rd "$dpms")" = Off ] || { log "FAIL the phone panel is not off (dpms $(rd "$dpms"))"; exit 1; }
+for c in /sys/class/drm/card*-DP-*; do
+	[ "$(rd "$c/enabled")" != enabled ] || { log "FAIL external display ${c##*/} is enabled"; exit 1; }
+done
+if [ "$battmgr" = 1 ]; then
+	[ -r "$usb" ] || { log 'FAIL no battmgr USB supply (noadsp boot? use --no-battmgr)'; exit 1; }
+	t=0
+	while :; do
+		case $(rd "$usb") in
+			0) break ;;
+			1) ;;
+			*) log 'FAIL cannot read the USB power state'; exit 1 ;;
+		esac
+		[ "$t" -lt "$wait_s" ] || { log 'FAIL USB power never went away (pull the cable)'; exit 1; }
+		[ "$t" != 0 ] || log 'waiting for the USB cable to be pulled'
+		sleep 5; t=$((t + 5))
+	done
+	sleep 10
+else
+	[ ! -e "$usb" ] || { log 'FAIL --no-battmgr but battmgr is present'; exit 1; }
+	# No VBUS reading without the ADSP; a live NCM link means the cable is in.
+	t=0
+	while [ "$(rd /sys/class/net/usb0/carrier)" = 1 ]; do
+		[ "$t" -lt "$wait_s" ] || { log 'FAIL the USB gadget link is still up (pull the cable)'; exit 1; }
+		[ "$t" != 0 ] || log 'waiting for the USB cable to be pulled (usb0 carrier)'
+		sleep 5; t=$((t + 5))
+	done
+fi
+
+# -- snapshots (read-only)
+qstats() {
+	for f in "$stats"/*; do
+		[ -f "$f" ] || continue
+		case ${f##*/} in ddr_stats) continue ;; esac
+		text=$(tr '\n' ' ' <"$f") || return 1
+		printf '%s %s\n' "${f##*/}" "$text"
+	done
+}
+# Per-row count and tick deltas of ddr_stats, keyed by row name: the driver
+# omits frequency rows whose count is still 0, so rows can appear.
+ddr_deltas() {
+	awk -F '\t' '
+	function decode(  i, x) {
+		key = $1; sub(/:$/, "", key); count = 0; ticks = 0
+		for (i = 2; i <= NF; i++) {
+			split($i, x, ":")
+			if (x[1] == "count") count = x[2] + 0
+			if (x[1] == "Duration (ticks)") ticks = x[2] + 0
+		}
+	}
+	FNR == NR { decode(); c[key] = count; d[key] = ticks; next }
+	{ decode(); printf "%s\t%.0f\t%.0f\n", key, count - c[key], ticks - d[key] }
+	' "$dir/ddr.before" "$dir/ddr.after"
+}
+# Count and seconds delta of one qcom_stats entry, or "NA NA".
+qdelta() {
+	join "$dir/qstats.before" "$dir/qstats.after" | awk -v name="$1" '$1 == name { n = 0
+		for (i = 2; i <= NF; i++) { if ($i == "Count:") c[n] = $(i + 1); if ($i == "Duration:") { d[n] = $(i + 1); n++ } }
+		if (n == 2) { printf "%d %.1f\n", c[1] - c[0], (d[1] - d[0]) / 19200000; found = 1 } }
+		END { if (!found) print "NA NA" }'
+}
+battery() {
+	for a in status capacity charge_counter voltage_now current_now temp; do
+		printf '%s=%s\n' "$a" "$(rd "$bat/$a")"
+	done
+}
+# N current_now/voltage_now samples 1 s apart; prints mean mA and V.
+sample_current() {
+	i=0 n=$1 out=$2
+	: >"$out"
+	while [ "$i" -lt "$n" ]; do
+		printf '%s %s %s\n' "$(boot)" "$(rd "$bat/current_now")" "$(rd "$bat/voltage_now")" >>"$out"
+		i=$((i + 1)); sleep 1
+	done
+	awk '$2 ~ /^-?[0-9]+$/ { c += ($2 < 0 ? -$2 : $2); v += $3; n++ }
+		END { if (n) printf "%.1f mA %.3f V (%d samples)", c / n / 1000, v / n / 1e6, n; else printf "NA" }' "$out"
+}
+snap() {
+	qstats >"$dir/qstats.$1" || { log 'FAIL qcom_stats read'; exit 1; }
+	cat "$stats/ddr_stats" >"$dir/ddr.$1" || { log 'FAIL ddr_stats read'; exit 1; }
+	for required in ddr cxsd aosd; do
+		grep -Eq "^$required Count: [0-9]+ .*Duration: [0-9]+" "$dir/qstats.$1" ||
+			{ log "FAIL missing qcom_stats $required counter"; exit 1; }
+	done
+	grep -Eq '^DDR LPM .*count:[0-9]+' "$dir/ddr.$1" || { log 'FAIL missing DDR LPM counters'; exit 1; }
+	cat /proc/interrupts >"$dir/irq.$1"
+	awk 'NR > 1 { print $1, $2, $3, $4 }' /sys/kernel/debug/wakeup_sources >"$dir/ws.$1" 2>/dev/null
+	for r in /sys/class/remoteproc/remoteproc*; do
+		[ -d "$r" ] && printf '%s %s %s\n' "${r##*/}" "$(rd "$r/name")" "$(rd "$r/state")"
+	done >"$dir/rproc.$1"
+	if [ -r "$vxdir/vx" ]; then
+		cat "$vxdir/vx" >"$dir/vx.$1" 2>&1
+		cat "$vxdir/vx_raw" >"$dir/vx_raw.$1" 2>&1
+	fi
+	[ "$battmgr" = 0 ] || battery >"$dir/battery.$1"
+}
+
+{
+	echo "kernel=$(uname -r)"
+	echo "bisect_dtb=$(tr -d '\000' 2>/dev/null </proc/device-tree/rog5,standby-bisect || echo none)"
+	echo "cmdline=$(cat /proc/cmdline)"
+	echo "secs=$secs battmgr=$battmgr arm_vx=$arm_vx ddr_log_off=$ddr_log_off"
+	echo "mem_sleep=$(rd /sys/power/mem_sleep)"
+	echo "cpuidle_governor=$(rd /sys/devices/system/cpu/cpuidle/current_governor_ro)"
+} >"$dir/meta.env"
+# Providers still holding their boot votes (sync_state not reached, e.g. a
+# consumer that never probes) would keep CX/DDR up and confound the trial.
+find /sys/devices -maxdepth 6 -name state_synced 2>/dev/null | while read -r f; do
+	[ "$(rd "$f")" = 1 ] || echo "${f%/state_synced}"
+done >"$dir/unsynced"
+log "result directory $dir"
+cursor=$(journalctl -n0 --show-cursor -o cat 2>/dev/null | sed -n 's/^-- cursor: //p')
+
+awake_before=NA
+[ "$battmgr" = 0 ] || awake_before=$(sample_current 10 "$dir/current.before")
+if [ "$ddr_log_off" = 1 ]; then
+	[ -w "$qmp" ] || { log 'FAIL --ddr-log-off needs the rog5-aop-qmp module'; exit 1; }
+	echo '{class: ddr, res: ddr_log, val: 0}' >"$qmp" || { log 'FAIL ddr_log QMP message refused'; exit 1; }
+	log 'sent {class: ddr, res: ddr_log, val: 0}'
+fi
+if [ "$arm_vx" = 1 ]; then
+	[ -w "$qmp" ] || { log 'FAIL --arm-vx needs the rog5-aop-qmp module'; exit 1; }
+	echo '{class: lpm_mon, type: cxpc, dur: 1000, flush: 5, ts_adj: 1}' >"$qmp" ||
+		{ log 'FAIL lpm_mon QMP message refused'; exit 1; }
+fi
+snap before
+b0=$(boot)
+s0=$(rd "$succ_file")
+case $s0 in ''|*[!0-9]*) log 'FAIL suspend counter unavailable'; exit 1 ;; esac
+log "suspending for $secs s"
+# Never suspend without a wake alarm (review 2026-09-29).
+rtcwake -m no -s "$secs" >/dev/null || { log 'FAIL rtcwake could not arm the RTC; not suspending'; exit 1; }
+systemctl suspend --check-inhibitors=no || { log 'FAIL suspend request refused'; exit 1; }
+i=0
+while [ "$(rd "$succ_file")" = "$s0" ] && [ "$i" -lt $((secs + 90)) ]; do sleep 1; i=$((i + 1)); done
+sleep 3
+b1=$(boot)
+snap after
+awake_after=NA
+[ "$battmgr" = 0 ] || awake_after=$(sample_current 10 "$dir/current.after")
+[ -z "$cursor" ] || journalctl --after-cursor="$cursor" -k -o short-monotonic --no-pager >"$dir/kmsg" 2>/dev/null
+
+# -- summary
+s1=$(rd "$succ_file")
+case $s1 in ''|*[!0-9]*) log 'FAIL suspend counter unavailable'; exit 1 ;; esac
+set -- $(qdelta apss); apss_n=$1 apss_s=$2
+{
+	echo "ROG5 standby bisect: $(sed -n 's/^bisect_dtb=//p' "$dir/meta.env"), kernel $(uname -r), $(date -u +%FT%TZ)"
+	echo "suspends: $s0 -> $s1 (window $(awk -v a="$b0" -v b="$b1" 'BEGIN { printf "%.0f", b - a }') s boot clock)"
+	echo "wake: $(rd /sys/power/pm_wakeup_irq) ($(grep -h -m1 -E 'PM: suspend exit|Triggering wakeup|wakeup from' "$dir/kmsg" 2>/dev/null | cut -c1-120))"
+	echo
+	echo 'qcom_stats deltas (entries, seconds asleep; 19.2 MHz ticks):'
+	join "$dir/qstats.before" "$dir/qstats.after" 2>/dev/null | awk '{
+		n = 0; for (i = 2; i <= NF; i++) {
+			if ($i == "Count:") c[n] = $(i + 1)
+			if ($i == "Duration:") { d[n] = $(i + 1); n++ } }
+		if (n == 2) printf "  %-12s +%d  %.1f s\n", $1, c[1] - c[0], (d[1] - d[0]) / 19200000 }'
+	echo 'subsystems with no SMEM counter (never started, or not published): '"$(awk 'NF == 1 { printf "%s ", $1 }' "$dir/qstats.after")"
+	echo
+	echo 'ddr_stats deltas:'
+	ddr_deltas | awk -F '\t' '$2 != 0 || $3 != 0 || /LPM/ { printf "  %-28s +%.0f  %.1f s\n", $1, $2, $3 / 19200000 }'
+	echo
+	if [ -f "$dir/vx.after" ]; then
+		echo 'AOP violators (rog5-sleep-blockers/vx; stale unless --arm-vx):'
+		sed 's/^/  /' "$dir/vx.after" | head -n 20
+	else
+		echo 'AOP violators: rog5-sleep-blockers not loaded (vx not read)'
+	fi
+	echo
+	if [ "$battmgr" = 1 ]; then
+		echo "battery awake before: $awake_before; after: $awake_after"
+		awk -F= -v s="$(awk -v a="$b0" -v b="$b1" 'BEGIN { print b - a }')" '
+			FNR == 1 { f++ } $1 == "charge_counter" { q[f] = $2 }
+			END { if (q[1] ~ /^[0-9]+$/ && q[2] ~ /^[0-9]+$/ && s >= 5)
+				printf "charge_counter %d -> %d uAh: %.2f mAh over %.0f s = %.0f mA average (pack; ~1 mAh resolution, awake part included)\n",
+					q[1], q[2], (q[1] - q[2]) / 1000, s, (q[1] - q[2]) / 1000 / s * 3600 }' \
+			"$dir/battery.before" "$dir/battery.after"
+	else
+		echo 'battery: no battmgr in this boot (noadsp): counters only'
+	fi
+	echo
+	echo 'remoteprocs after:'; sed 's/^/  /' "$dir/rproc.after"
+	echo 'wakeup_sources with new events:'
+	awk 'NR == FNR { a[$1] = $3; next } ($3 - a[$1]) > 0 { printf "  %s +%d\n", $1, $3 - a[$1] }' \
+		"$dir/ws.before" "$dir/ws.after" 2>/dev/null
+	echo
+	lpm=$(ddr_deltas | awk -F '\t' '/LPM/ { n += $2; s += $3 } END { printf "%d %.1f\n", n, s / 19200000 }')
+	lpm_s=${lpm#* } lpm=${lpm% *}
+	set -- $(qdelta ddr); ddr_count=$1 ddr_s=$2
+	set -- $(qdelta cxsd); cx_count=$1 cx_s=$2
+	echo "APSS asleep: +$apss_n entries, $apss_s s (must cover most of the $secs s)"
+	if [ -s "$dir/unsynced" ]; then
+		echo "WARN providers without sync_state (boot votes kept; trial confounded):"
+		sed 's/^/  /' "$dir/unsynced"
+	fi
+	if [ "$((s1 - s0))" -ne 1 ]; then
+		echo "VERDICT invalid: expected exactly one successful suspend (got $((s1 - s0)))"
+	elif [ "$apss_s" = NA ] || awk -v a="$apss_s" -v s="$secs" 'BEGIN { exit !(a < 0.8 * s) }'; then
+		echo "VERDICT invalid: APSS asleep only $apss_s s of $secs s (early wake?)"
+	elif [ "$ddr_count" -gt 0 ] || [ "$lpm" -gt 0 ]; then
+		echo "VERDICT POSITIVE (preliminary; repeat against a matched baseline): qcom_stats ddr +$ddr_count ($ddr_s s), ddr_stats LPM +$lpm ($lpm_s s); cxsd +$cx_count ($cx_s s)"
+	else
+		echo "VERDICT negative: no DDR LPM (qcom_stats ddr +$ddr_count, ddr_stats LPM +$lpm), cxsd +$cx_count"
+	fi
+} >"$dir/summary.txt"
+cat "$dir/summary.txt"

@@ -14,6 +14,7 @@ state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
 tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
+loop_dio_source=$repo/tools/loop_dio/rog5-loop-dio.c
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
 expected_v10=db249f8cf242046c88ff8587355ea0eb89005b2bdafa57de8ddad43f1fe802fb
@@ -290,6 +291,7 @@ install_production_firmware() {
 
 unchanged_files() {
 	set -- ! -path ./init ! -path ./shutdown \
+		! -path ./usr/libexec/rog5-loop-dio \
 		! -path ./sbin/rog5-load-persistent-power-usb \
 		! -path ./usr/local/sbin/rog5-p2-attest \
 		! -path ./usr/local/sbin/rog5-persistent-state \
@@ -362,6 +364,21 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 
 (cd "$root" && unchanged_files) >"$work/before"
 install -m 0755 "$init" "$root/init"
+# The init's optional overlay-loop direct-I/O step (static, no libc).
+command -v clang >/dev/null || {
+	echo 'FAIL clang is required for the loop direct-I/O helper' >&2
+	exit 1
+}
+install -d -m 0755 "$root/usr/libexec"
+clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
+	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \
+	-fno-stack-protector -O2 -Wl,-e,_start -Wl,--build-id=none \
+	-Wl,-z,noexecstack -o "$root/usr/libexec/rog5-loop-dio" \
+	"$loop_dio_source"
+chmod 0755 "$root/usr/libexec/rog5-loop-dio"
+readelf -h "$root/usr/libexec/rog5-loop-dio" | grep -q 'Machine:.*AArch64'
+! readelf -d "$root/usr/libexec/rog5-loop-dio" | grep -q '(NEEDED)'
+! readelf -l "$root/usr/libexec/rog5-loop-dio" | grep -q 'Requesting program interpreter'
 # Existing qualified power firmware/modules are retained; pair the current
 # early safety gate with the refreshed init/attestation instead of old script.
 if [ -e "$root/sbin/rog5-load-persistent-power-usb" ]; then
