@@ -1,0 +1,220 @@
+#!/bin/sh
+# Install the CS35L45 speaker-protection firmware and this unit's speaker
+# calibration from the phone's own partitions. Runs on the phone as root:
+#   ssh root@PHONE sh -s <scripts/device/install-rog5-speaker-firmware
+#   ssh root@PHONE sh -s -- --uninstall <scripts/device/install-rog5-speaker-firmware
+#
+# Reads, never writes, two partitions (the vendor blobs never enter the repo):
+#   vendor_a (a read-only loop on the super partition, same fixed extent as
+#     install-rog5-sensors.sh): firmware/cs35l45-{rcv,spk}-dsp1-spk-{prot,cali}
+#     .{wmfw,bin} and cs35l45-{rcv,spk}-music.txt, checked against the stock
+#     SHA-256 below;
+#   persist (ro,noload): audio/spk_cal_val and audio/rcv_cal_val only, the
+#     factory-measured speaker resistance (CAL_R, ohms = CAL_R * 5.85714 / 8192);
+#     7728-10454 is valid, anything else falls back to 8392 (6.0 ohm, the
+#     vendor default), recorded as *_cal_source=default: rog5-audio-route then
+#     keeps that amplifier on the direct path unless speaker-dsp.conf has
+#     allow_default_calibration=1.
+# Installs:
+#   /lib/firmware/cirrus/cs35l45-{rcv,spk}-dsp1-spk-{prot,cali}.wmfw  unchanged
+#   /lib/firmware/cirrus/cs35l45-{rcv,spk}-dsp1-spk-cali.bin          unchanged
+#   /lib/firmware/cirrus/cs35l45-{rcv,spk}-dsp1-spk-prot.bin          the stock
+#     tuning plus two coefficient blocks for this unit's calibration (CSPL
+#     algorithm 0xcd, XM words 7 = CAL_R, 9 = CAL_STATUS 1, 10 = CAL_CHECKSUM
+#     CAL_R + 1, what the vendor driver writes before starting the core), so
+#     the kernel loads the calibration with the tuning, before every DSP start;
+#   /var/lib/rog5/speaker/calibration        rcv_cal_r=, spk_cal_r=, sources, hashes
+#   /var/lib/rog5/speaker/cs35l45-{rcv,spk}-music.be32   stock "music" delta (68 BE32 words)
+#   /etc/rog5/speaker-dsp.conf               only if missing: amps= (protection off)
+# Nothing changes the sound until speaker-dsp.conf enables an amplifier
+# (amps=rcv, amps=rcv spk) and rog5-audio-route runs (reboot, or
+# systemctl start rog5-audio-route.service). --uninstall removes the files
+# above except the config; rerun the route to go back to the direct path.
+set -eu
+fwdir=/lib/firmware/cirrus
+state=/var/lib/rog5/speaker
+config=/etc/rog5/speaker-dsp.conf
+# super: LP metadata slot 0, partition vendor_a = one linear extent.
+vendor_offset=$((11894784 * 512))
+vendor_size=$((2346168 * 512))
+cal_min=7728
+cal_max=10454
+cal_default=8392
+parts='rcv spk'
+
+[ "$(id -u)" = 0 ] || { echo 'run as root' >&2; exit 1; }
+
+if [ "${1:-}" = --uninstall ]; then
+	for part in $parts; do
+		for kind in prot cali; do
+			rm -f "$fwdir/cs35l45-$part-dsp1-spk-$kind.wmfw" "$fwdir/cs35l45-$part-dsp1-spk-$kind.bin"
+		done
+	done
+	rmdir "$fwdir" 2>/dev/null || true
+	rm -rf "$state"
+	echo "removed; run: systemctl start rog5-audio-route.service (direct path, DSP stopped)"
+	exit 0
+fi
+[ $# -eq 0 ] || { echo 'usage: install-rog5-speaker-firmware [--uninstall]' >&2; exit 2; }
+
+partition() {
+	for block in /sys/class/block/*; do
+		grep -qx "PARTNAME=$1" "$block/uevent" 2>/dev/null && { echo "/dev/${block##*/}"; return 0; }
+	done
+	return 1
+}
+
+work=$(mktemp -d /run/rog5-speaker-fw.XXXXXX)
+loop=
+cleanup() {
+	for m in "$work/vendor" "$work/persist"; do
+		mountpoint -q "$m" 2>/dev/null && umount "$m"
+	done
+	[ -n "$loop" ] && losetup -d "$loop" 2>/dev/null
+	rm -rf "$work"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+super=$(partition super) || { echo 'no super partition' >&2; exit 1; }
+persist=$(partition persist) || { echo 'no persist partition' >&2; exit 1; }
+mkdir -p "$work/vendor" "$work/persist" "$work/in" "$work/out"
+loop=$(losetup -r -f --show -o "$vendor_offset" --sizelimit "$vendor_size" "$super")
+[ "$(blkid -o value -s LABEL "$loop")" = vendor ] || { echo 'vendor_a extent does not hold the vendor ext4' >&2; exit 1; }
+mount -o ro,noload "$loop" "$work/vendor"
+mount -o ro,noload "$persist" "$work/persist"
+
+for part in $parts; do
+	for kind in prot cali; do
+		cp "$work/vendor/firmware/cs35l45-$part-dsp1-spk-$kind.wmfw" \
+			"$work/vendor/firmware/cs35l45-$part-dsp1-spk-$kind.bin" "$work/in/"
+	done
+	cp "$work/vendor/firmware/cs35l45-$part-music.txt" "$work/in/"
+	# Only the calibration value: persist also holds IMEI and other factory data.
+	if [ -f "$work/persist/audio/${part}_cal_val" ]; then
+		head -c 16 "$work/persist/audio/${part}_cal_val" >"$work/in/${part}_cal_val"
+	fi
+done
+umount "$work/vendor" "$work/persist"
+losetup -d "$loop"
+loop=
+
+(cd "$work/in" && sha256sum -c --quiet) <<'EOF'
+64614f4876fd7378032497b18ce809923e6cc053ab5f73451c164a8a0a388fc5  cs35l45-rcv-dsp1-spk-prot.wmfw
+64614f4876fd7378032497b18ce809923e6cc053ab5f73451c164a8a0a388fc5  cs35l45-rcv-dsp1-spk-cali.wmfw
+64614f4876fd7378032497b18ce809923e6cc053ab5f73451c164a8a0a388fc5  cs35l45-spk-dsp1-spk-prot.wmfw
+64614f4876fd7378032497b18ce809923e6cc053ab5f73451c164a8a0a388fc5  cs35l45-spk-dsp1-spk-cali.wmfw
+1bd26c89660358ff238f7907b509086070fd14511ab527fe34a0462c6a6dc43f  cs35l45-rcv-dsp1-spk-prot.bin
+12881cedb9a31ac00ae1f5fd73d5a0a1709b7b6aa7ab02fdbf36c639f747020c  cs35l45-spk-dsp1-spk-prot.bin
+d8ee6258e05857226834c36f82aa8b79e9f763c73f30725b477ca0310104358d  cs35l45-rcv-dsp1-spk-cali.bin
+16b37e89b4e2345ec2215297d50747e3c69d60986d43240ef003890854ef3f8a  cs35l45-spk-dsp1-spk-cali.bin
+c44bb172d3cbf123b6a9931777e47a9d99c6def2c0b85c3531ca251d150b8d42  cs35l45-rcv-music.txt
+c44bb172d3cbf123b6a9931777e47a9d99c6def2c0b85c3531ca251d150b8d42  cs35l45-spk-music.txt
+EOF
+
+calibration=$work/out/calibration
+printf '# install-rog5-speaker-firmware %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$calibration"
+for part in $parts; do
+	value=
+	[ ! -f "$work/in/${part}_cal_val" ] || value=$(tr -d '\000\r\n\t ' <"$work/in/${part}_cal_val")
+	source=persist
+	case $value in
+	'' | *[!0-9]*) source="default (persist value '$value' unusable)"; value=$cal_default ;;
+	*)
+		value=$(printf '%s\n' "$value" | sed 's/^0*\([0-9]\)/\1/')
+		if [ ${#value} -gt 5 ] || [ "$value" -lt $cal_min ] || [ "$value" -gt $cal_max ]; then
+			source="default (persist value $value out of $cal_min-$cal_max)"
+			value=$cal_default
+		fi
+		;;
+	esac
+	printf '%s_cal_r=%s\n%s_cal_source=%s\n' "$part" "$value" "$part" "$source" >>"$calibration"
+	echo "$part: CAL_R $value ($source)"
+
+	python3 - "$work/in/cs35l45-$part-dsp1-spk-prot.bin" "$work/out/cs35l45-$part-dsp1-spk-prot.bin" "$value" \
+		"$work/in/cs35l45-$part-music.txt" "$work/out/cs35l45-$part-music.be32" <<'EOF'
+import struct
+import sys
+
+src, dst, cal_r, music, delta = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+ALG_CSPL, XM = 0xcd, 5  # CSPL algorithm; WMFW_ADSP2_XM (unpacked 24-bit words)
+data = open(src, 'rb').read()
+if data[:4] != b'WMDR':
+    sys.exit(f'{src}: not a WMDR coefficient file')
+pos, ver = struct.unpack_from('<I', data, 4)[0], None
+while pos < len(data):
+    if len(data) - pos < 20:
+        sys.exit(f'{src}: truncated block header at {pos}')
+    offset, kind, alg, blk_ver, offset32, length = struct.unpack_from('<HHIIII', data, pos)
+    if length > len(data) - pos - 20:
+        sys.exit(f'{src}: block at {pos} overflows the file')
+    if alg == ALG_CSPL and ver is None:
+        ver = blk_ver
+    pos += (length + 20 + 3) & ~3
+if pos != len(data) or ver is None:
+    sys.exit(f'{src}: unexpected layout (end {pos} of {len(data)}, CSPL version {ver})')
+
+
+def block(word, values):
+    payload = b''.join(struct.pack('>I', v) for v in values)
+    # offset is in bytes from the algorithm's XM base (4 bytes per word)
+    return struct.pack('<HHIIII', word * 4, XM, ALG_CSPL, ver, 0, len(payload)) + payload
+
+
+# CSPL XM: 7 CAL_R, 8 CAL_AMBIENT (left alone, as the vendor driver does in
+# protection mode), 9 CAL_STATUS, 10 CAL_CHECKSUM
+with open(dst, 'wb') as f:
+    f.write(data + block(7, [cal_r]) + block(9, [1, cal_r + 1]))
+
+words = [int(x) for x in open(music).read().replace('\n', '').split(',') if x.strip()]
+if not words or words[0] != len(words) or len(words) > 100:
+    sys.exit(f'{music}: expected a word count followed by the words')
+with open(delta, 'wb') as f:
+    f.write(b''.join(struct.pack('>i', w) for w in words))
+EOF
+done
+
+for part in $parts; do
+	cp "$work/in/cs35l45-$part-dsp1-spk-prot.wmfw" "$work/in/cs35l45-$part-dsp1-spk-cali.wmfw" \
+		"$work/in/cs35l45-$part-dsp1-spk-cali.bin" "$work/out/"
+done
+(cd "$work/out" && sha256sum cs35l45-*) | sed 's/^/# sha256 /' >>"$calibration"
+
+# A legacy-location file would be loaded instead of cirrus/ (wm_adsp.c).
+for part in $parts; do
+	for f in /lib/firmware/cs35l45-$part-dsp1-spk-prot.wmfw /lib/firmware/cs35l45-$part-dsp1-spk-prot.bin; do
+		[ ! -e "$f" ] || { echo "refusing: $f exists and would be loaded instead of $fwdir" >&2; exit 1; }
+	done
+done
+
+install -d -m 0755 "$fwdir" "$state"
+for part in $parts; do
+	for f in cs35l45-$part-dsp1-spk-prot.wmfw cs35l45-$part-dsp1-spk-prot.bin \
+		cs35l45-$part-dsp1-spk-cali.wmfw cs35l45-$part-dsp1-spk-cali.bin; do
+		install -m 0644 "$work/out/$f" "$fwdir/.$f.new"
+		mv -f "$fwdir/.$f.new" "$fwdir/$f"
+	done
+	install -m 0644 "$work/out/cs35l45-$part-music.be32" "$state/cs35l45-$part-music.be32"
+done
+install -m 0644 "$calibration" "$state/calibration"
+if [ ! -e "$config" ]; then
+	install -d -m 0755 "${config%/*}"
+	cat >"$config" <<'EOF'
+# rog5-audio-route: amplifiers that play through the CS35L45 speaker-protection
+# DSP (rcv = top, spk = bottom; empty = none, the direct path). Written by
+# install-rog5-speaker-firmware with none enabled.
+amps=
+# 1: apply the stock "music" tuning delta after each DSP start
+music_delta=0
+# 1: run the DSP even if persist had no usable calibration (vendor default 8392)
+allow_default_calibration=0
+# 1: let the driver hibernate the DSP 3 s after a stream (saves power; the
+# vendor never hibernated this firmware); 0: it pauses between streams
+hibernate=0
+EOF
+	echo "wrote $config (amps= : protection off until enabled)"
+fi
+sync
+echo "installed $(ls "$fwdir"/cs35l45-*-dsp1-spk-* | wc -l) firmware files in $fwdir; calibration in $state/calibration"
+echo "enable: set amps= in $config, then systemctl start rog5-audio-route.service"

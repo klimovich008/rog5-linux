@@ -54,3 +54,28 @@ boost-current/LDPM settings may be unsupported; a wrong q6afe clock or port can
 crash the ADSP, which battery telemetry depends on; LPI GPIO10/11 are shared
 with the (disabled) WSA SoundWire pins. Unknown: which DMIC is which mic, which
 physical speaker "RCV" drives.
+
+## Speaker protection firmware (2026-10-01, pending bring-up)
+
+Stock loudness comes from the CS35L45 CSPL tuning, not from gain registers
+(both paths run 0 dB digital, 19 dBV analog). Pieces:
+- kernel 0121: firmware named by DT `cirrus,dsp-part-name`
+  (`cirrus/cs35l45-{rcv,spk}-dsp1-spk-{prot,cali}.{wmfw,bin}`); 0122: the
+  vendor BOOST_LPMODE/BPE IL limit/LDPM/pilot/BBPE settings only while the
+  protection firmware runs (`snd_soc_cs35l45.vendor_prot_regs=0` turns it off
+  at the next DSP start); 0123 (cs_dsp: coefficient write errors fail the
+  load, pre_load_coeff hook) + 0124: calibration controls read-only,
+  CAL_STATUS cleared before the .bin loads, and the core does not start
+  unless DSP memory holds CAL_R 7728-10454, CAL_STATUS 1, CAL_CHECKSUM CAL_R + 1;
+- audio DT: `cirrus,dsp-part-name`, GPIO1 = MDSYNC as on stock;
+- `scripts/device/install-rog5-speaker-firmware`: copies the firmware from the
+  phone's own vendor_a (SHA-256 checked) and the factory CAL_R from
+  persist:/audio/{rcv,spk}_cal_val, appends CAL_R/CAL_STATUS/CAL_CHECKSUM to the
+  installed prot `.bin` (the kernel writes them before the core starts), writes
+  `/var/lib/rog5/speaker/` and `/etc/rog5/speaker-dsp.conf` (`amps=`: off);
+- `initramfs/production-audio-route`: per enabled amplifier sets DSP_RX1/2 and
+  DSP_RX5/6/7 (VDD_BATTMON/VDD_BSTMON/CLASSH_TGT), preloads, checks the
+  calibration read-back and CSPL_STATE/ERRORNO, optional stock "music" delta,
+  then DACPCM = DSP_TX1; direct path on any failure. `89-rog5-alsa-state.rules`
+  keeps `alsactl restore` away from the DSP controls.
+Blobs and calibration stay on the phone; none of them is in the repository.

@@ -8,9 +8,14 @@
  *
  * SE17 sits on QUP wrapper 2, which must stay disabled at boot (it breaks the
  * Wi-Fi firmware load); the amplifiers appear when rog5_bt_activate enables the
- * wrapper after Wi-Fi, and the sound card completes then. Without DSP firmware
- * the amplifiers play ASP_RX straight to the DAC (no speaker protection), so
- * userspace keeps volumes low.
+ * wrapper after Wi-Fi, and the sound card completes then.
+ *
+ * Speaker protection: each amplifier has its own vendor tuning, named by
+ * cirrus,dsp-part-name as in the stock DT (kernel 0121):
+ * cirrus/cs35l45-{rcv,spk}-dsp1-spk-prot.{wmfw,bin}, installed from the phone's
+ * own vendor partition by install-rog5-speaker-firmware. The route helper
+ * preloads the firmware and plays through it (DACPCM = DSP_TX1) only when it is
+ * installed; otherwise the amplifiers play ASP_RX straight to the DAC.
  */
 /dts-v1/;
 /plugin/;
@@ -164,7 +169,17 @@
 		pinctrl-0 = <&rog5_amp_rcv_irq>;
 		pinctrl-names = "default";
 		sound-name-prefix = "RCV";
+		cirrus,dsp-part-name = "cs35l45-rcv";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+
+		/*
+		 * GPIO1 is MDSYNC, as on stock (gpio-ctrl1 = <2>): the two
+		 * amplifiers' protection firmwares link thermal/PICL state and
+		 * share the boost current budget over it.
+		 */
+		cirrus,gpio-ctrl1 {
+			gpio-ctrl = <0x2>;
+		};
 
 		/*
 		 * GPIO2 is the INT output (stock: gpio-ctrl2 = <4>, push-pull,
@@ -186,7 +201,11 @@
 		pinctrl-0 = <&rog5_amp_spk_irq>;
 		pinctrl-names = "default";
 		sound-name-prefix = "SPK";
+		cirrus,dsp-part-name = "cs35l45-spk";
 		cirrus,asp-sdout-hiz-ctrl = <0x3>;
+		cirrus,gpio-ctrl1 {
+			gpio-ctrl = <0x2>;
+		};
 		cirrus,gpio-ctrl2 {
 			gpio-ctrl = <0x4>;
 		};

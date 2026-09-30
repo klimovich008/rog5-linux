@@ -1,0 +1,184 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: cs35l45: ROG5: do not start the protection firmware without a valid calibration
+
+The CS35L45 speaker-protection firmware models the speaker from its
+measured resistance: the vendor driver writes CAL_R, CAL_STATUS = 1 and
+CAL_CHECKSUM = CAL_R + 1 (CSPL algorithm 0xcd, XM words 7, 9, 10) before
+every start and treats CAL_R outside 7728-10454 as invalid. This driver
+writes none of them. On the ROG5 the installer appends the unit's factory
+calibration to the tuning (.bin), so the coefficient load provides it.
+
+On boards that name their tuning (cirrus,dsp-part-name, Protection
+firmware):
+- controls overlapping XM words 7-10 (the scalars and the 500-byte
+  cspl_XM_struct_t) are created read-only and volatile, so neither a user
+  write nor a stale control cache can be replayed over the calibration at
+  a start (cs_dsp_coeff_sync_controls after pre_run) or at a hibernation
+  exit (cs_dsp_hibernate);
+- CAL_STATUS is cleared in DSP memory before the coefficient file is
+  loaded (pre_load_coeff), so only that file can make it valid;
+- pre_run reads the three words from DSP memory and refuses the start
+  unless 7728 <= CAL_R <= 10454, CAL_STATUS == 1 and
+  CAL_CHECKSUM == CAL_R + 1.
+
+A missing .bin (bin_mandatory, 0121), the stock uncalibrated .bin and a
+failed coefficient write (cs_dsp) therefore all keep the core stopped,
+whichever DAPM path starts it.
+
+--- a/sound/soc/codecs/cs35l45.h
++++ b/sound/soc/codecs/cs35l45.h
+@@ -490,6 +490,7 @@
+ 
+ struct cs35l45_private {
+ 	struct wm_adsp dsp; /* needs to be first member */
++	struct cs_dsp_client_ops dsp_client_ops;
+ 	struct device *dev;
+ 	struct regmap *regmap;
+ 	struct gpio_desc *reset_gpio;
+--- a/sound/soc/codecs/cs35l45.c
++++ b/sound/soc/codecs/cs35l45.c
+@@ -1471,6 +1471,117 @@
+ 	{. type = WMFW_ADSP2_YM,	.base = CS35L45_DSP1_YMEM_UNPACK24_0},
+ };
+ 
++/*
++ * The protection firmware must not run without the speaker's calibration:
++ * the vendor driver writes CAL_R, CAL_STATUS 1 and CAL_CHECKSUM CAL_R + 1
++ * (CSPL algorithm, XM words 7, 9, 10) before every start; its CAL_R default
++ * is 8392 and 7728-10454 is valid. On boards with a named tuning the
++ * calibration comes from the coefficient file (the installer appends it):
++ *  - controls overlapping those words (the scalars and the whole
++ *    cspl_XM_struct_t) are made read-only and volatile, so no user value or
++ *    stale cache can be written over them, at a start or a hibernation exit;
++ *  - CAL_STATUS is invalidated before the coefficient file is loaded;
++ *  - the start is refused unless DSP memory holds a valid set afterwards.
++ */
++#define CS35L45_CSPL_ALG_ID		0xCD
++#define CS35L45_CSPL_CAL_FIRST		7	/* CAL_R */
++#define CS35L45_CSPL_CAL_LAST		10	/* CAL_CHECKSUM */
++#define CS35L45_CAL_R_MIN		7728
++#define CS35L45_CAL_R_MAX		10454
++
++static bool cs35l45_calibrated_prot(struct cs35l45_private *cs35l45)
++{
++	/* 9 is WM_ADSP_FW_SPK_PROT, as in cs35l45_dsp_init() */
++	return cs35l45->dsp_part_named && cs35l45->dsp.fw == 9;
++}
++
++static int cs35l45_dsp_control_add(struct wm_adsp *dsp, struct cs_dsp_coeff_ctl *ctl)
++{
++	struct cs35l45_private *cs35l45 = container_of(dsp, struct cs35l45_private, dsp);
++	unsigned int words = DIV_ROUND_UP(ctl->len, sizeof(u32));
++
++	if (cs35l45_calibrated_prot(cs35l45) &&
++	    ctl->alg_region.alg == CS35L45_CSPL_ALG_ID &&
++	    ctl->alg_region.type == WMFW_ADSP2_XM &&
++	    ctl->offset <= CS35L45_CSPL_CAL_LAST &&
++	    ctl->offset + words > CS35L45_CSPL_CAL_FIRST)
++		ctl->flags = WMFW_CTL_FLAG_READABLE | WMFW_CTL_FLAG_VOLATILE;
++
++	return wm_adsp_control_add(ctl);
++}
++
++/* XM address of a 4-byte CSPL control, after the algorithms were set up */
++static int cs35l45_cspl_reg(struct cs_dsp *cs_dsp, const char *name, unsigned int *reg)
++{
++	struct cs_dsp_coeff_ctl *ctl;
++
++	ctl = cs_dsp_get_ctl(cs_dsp, name, WMFW_ADSP2_XM, CS35L45_CSPL_ALG_ID);
++	if (!ctl || !ctl->enabled || ctl->len != sizeof(u32))
++		return -ENOENT;
++
++	*reg = CS35L45_DSP1_XMEM_UNPACK24_0 + 4 * (ctl->alg_region.base + ctl->offset);
++
++	return 0;
++}
++
++static int cs35l45_cspl_word(struct cs_dsp *cs_dsp, const char *name, unsigned int *val)
++{
++	unsigned int reg;
++	int ret;
++
++	ret = cs35l45_cspl_reg(cs_dsp, name, &reg);
++	if (!ret)
++		ret = regmap_read(cs_dsp->regmap, reg, val);
++	if (!ret)
++		*val &= 0xFFFFFF;
++
++	return ret;
++}
++
++static int cs35l45_dsp_pre_load_coeff(struct cs_dsp *cs_dsp)
++{
++	struct wm_adsp *dsp = container_of(cs_dsp, struct wm_adsp, cs_dsp);
++	struct cs35l45_private *cs35l45 = container_of(dsp, struct cs35l45_private, dsp);
++	unsigned int reg;
++	int ret;
++
++	if (!cs35l45_calibrated_prot(cs35l45))
++		return 0;
++
++	/* Only the coefficient file may make the calibration valid. */
++	ret = cs35l45_cspl_reg(cs_dsp, "CAL_STATUS", &reg);
++	if (!ret)
++		ret = regmap_write(cs_dsp->regmap, reg, 0);
++	if (ret)
++		dev_err(cs35l45->dev, "Cannot invalidate the calibration: %d\n", ret);
++
++	return ret;
++}
++
++static int cs35l45_dsp_pre_run(struct wm_adsp *dsp)
++{
++	struct cs35l45_private *cs35l45 = container_of(dsp, struct cs35l45_private, dsp);
++	unsigned int cal_r = 0, status = 0, checksum = 0;
++
++	if (!cs35l45_calibrated_prot(cs35l45))
++		return 0;
++
++	if (cs35l45_cspl_word(&dsp->cs_dsp, "CAL_R", &cal_r) ||
++	    cs35l45_cspl_word(&dsp->cs_dsp, "CAL_STATUS", &status) ||
++	    cs35l45_cspl_word(&dsp->cs_dsp, "CAL_CHECKSUM", &checksum) ||
++	    cal_r < CS35L45_CAL_R_MIN || cal_r > CS35L45_CAL_R_MAX ||
++	    status != 1 || checksum != cal_r + 1) {
++		dev_err(cs35l45->dev,
++			"No valid speaker calibration (CAL_R %u status %u checksum %u), protection firmware not started\n",
++			cal_r, status, checksum);
++		return -EINVAL;
++	}
++
++	dev_info(cs35l45->dev, "Protection firmware calibration CAL_R %u\n", cal_r);
++
++	return 0;
++}
++
+ static int cs35l45_dsp_init(struct cs35l45_private *cs35l45)
+ {
+ 	struct wm_adsp *dsp = &cs35l45->dsp;
+@@ -1494,6 +1605,8 @@
+ 	dsp->part = part;
+ 	dsp->fw = 9; /* 9 is WM_ADSP_FW_SPK_PROT in wm_adsp.c */
+ 	dsp->toggle_preload = true;
++	dsp->pre_run = cs35l45_dsp_pre_run;
++	dsp->control_add = cs35l45_dsp_control_add;
+ 	dsp->cs_dsp.num = 1;
+ 	dsp->cs_dsp.type = WMFW_HALO;
+ 	dsp->cs_dsp.rev = 0;
+@@ -1506,6 +1619,12 @@
+ 	dsp->cs_dsp.lock_regions = 0xFFFFFFFF;
+ 
+ 	ret = wm_halo_init(dsp);
++	if (!ret) {
++		/* wm_adsp's callbacks plus the calibration invalidation */
++		cs35l45->dsp_client_ops = *dsp->cs_dsp.client_ops;
++		cs35l45->dsp_client_ops.pre_load_coeff = cs35l45_dsp_pre_load_coeff;
++		dsp->cs_dsp.client_ops = &cs35l45->dsp_client_ops;
++	}
+ 
+ 	regmap_multi_reg_write(cs35l45->regmap, cs35l45_fs_errata_patch,
+ 						   ARRAY_SIZE(cs35l45_fs_errata_patch));
+@@ -1663,3 +1782,4 @@
+ MODULE_AUTHOR("James Schulman, Cirrus Logic Inc, <james.schulman@cirrus.com>");
+ MODULE_AUTHOR("Richard Fitzgerald <rf@opensource.cirrus.com>");
+ MODULE_LICENSE("GPL");
++MODULE_IMPORT_NS("FW_CS_DSP");

@@ -86,6 +86,10 @@
 0118-drm-msm-dpu-ROG5-log-INTF-underruns-with-mode-and-core-clock.patch
 0119-drm-msm-dp-ROG5-PCON-experiments-async-MSA-sink-D3-D0-min-bpc.patch
 0120-soc-qcom-pmic_glink_altmode-ROG5-log-the-DP-pin-assignment.patch
+0121-ASoC-cs35l45-ROG5-name-the-DSP-firmware-by-cirrus-dsp-part-name.patch
+0122-ASoC-cs35l45-ROG5-vendor-boost-LDPM-and-BBPE-settings-while-protection-runs.patch
+0123-firmware-cs_dsp-fail-a-coefficient-load-on-a-write-error-add-a-pre_load_coeff-hook.patch
+0124-ASoC-cs35l45-ROG5-do-not-start-the-protection-firmware-without-a-valid-calibration.patch
 0130-drm-msm-dpu-clear-the-DSPP-pointer-when-no-DSPP-is-assigned.patch
 0131-drm-msm-dpu-only-reassign-resources-when-the-encoder-is-reprogrammed.patch
 0132-drm-msm-dpu-ROG5-reserve-DSPPs-at-every-display-modeset-while-free.patch

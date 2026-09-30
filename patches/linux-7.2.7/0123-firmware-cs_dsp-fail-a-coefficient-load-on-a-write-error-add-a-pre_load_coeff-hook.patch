@@ -1,0 +1,57 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] firmware: cs_dsp: fail a coefficient load on a write error, add a pre_load_coeff hook
+
+cs_dsp_load_coeff() logs a failed register write of a coefficient block and
+carries on, so cs_dsp_power_up() succeeds and cs_dsp_run() later starts
+the core with a partly written tuning. For speaker protection that is a
+partly loaded speaker model. Fail the load instead, as cs_dsp_load() already
+does for the firmware image.
+
+Add an optional client callback, pre_load_coeff, called under pwr_lock after
+the algorithms were set up and before the coefficient file is loaded, so a
+client can put memory the coefficient file must provide into a known state
+(the CS35L45 ROG5 patch invalidates the speaker calibration there).
+
+--- a/include/linux/firmware/cirrus/cs_dsp.h
++++ b/include/linux/firmware/cirrus/cs_dsp.h
+@@ -198,6 +198,8 @@
+  * struct cs_dsp_client_ops - client callbacks
+  * @control_add:	Called under the pwr_lock when a control is created
+  * @control_remove:	Called under the pwr_lock when a control is destroyed
++ * @pre_load_coeff:	Called under the pwr_lock after the firmware was loaded and its
++ *			algorithms set up, before the coefficient file is loaded
+  * @pre_run:		Called under the pwr_lock by cs_dsp_run() before the core is started
+  * @post_run:		Called under the pwr_lock by cs_dsp_run() after the core is started
+  * @pre_stop:		Called under the pwr_lock by cs_dsp_stop() before the core is stopped
+@@ -210,6 +212,7 @@
+ struct cs_dsp_client_ops {
+ 	int (*control_add)(struct cs_dsp_coeff_ctl *ctl);
+ 	void (*control_remove)(struct cs_dsp_coeff_ctl *ctl);
++	int (*pre_load_coeff)(struct cs_dsp *dsp);
+ 	int (*pre_run)(struct cs_dsp *dsp);
+ 	int (*post_run)(struct cs_dsp *dsp);
+ 	void (*pre_stop)(struct cs_dsp *dsp);
+--- a/drivers/firmware/cirrus/cs_dsp.c
++++ b/drivers/firmware/cirrus/cs_dsp.c
+@@ -2406,6 +2406,8 @@
+ 				cs_dsp_err(dsp,
+ 					   "%s.%d: Failed to write to %x in %s: %d\n",
+ 					   file, blocks, reg, region_name, ret);
++				/* A partly loaded tuning must not run. */
++				goto out_fw;
+ 			}
+ 		}
+ 
+@@ -2819,6 +2821,12 @@
+ 	if (ret != 0)
+ 		goto err_ena;
+ 
++	if (dsp->client_ops->pre_load_coeff) {
++		ret = dsp->client_ops->pre_load_coeff(dsp);
++		if (ret != 0)
++			goto err_ena;
++	}
++
+ 	ret = cs_dsp_load_coeff(dsp, coeff_firmware, coeff_filename);
+ 	if (ret != 0)
+ 		goto err_ena;

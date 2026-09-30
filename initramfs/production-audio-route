@@ -1,33 +1,61 @@
 #!/usr/bin/python3
 """Route MultiMedia1 to both speakers once the ROG5 sound card is up.
 
-Run by rog5-audio.service after the audio modules load. The card has no UCM
-profile, so nothing else sets it up: without this, playback reaches no amplifier.
+Run by rog5-audio.service after the audio modules load and by
+rog5-audio-route.service after ALSA restored its saved state. The card has no
+UCM profile, so nothing else sets it up: without this, playback reaches no
+amplifier.
   MultiMedia1 (card 0, device 0) -> SENARY MI2S -> CS35L45 x2
   left (ASP_RX1) -> the top amplifier (RCV), right (ASP_RX2) -> the bottom (SPK),
   as on stock: in landscape with the side port down the top edge is on the left
 Both amplifiers run in speaker mode at 0 dB digital (409; 0.25 dB steps) and
-19 dBV analog (3, the highest step, as stock). The speaker-protection DSP firmware is not loaded:
--12 dB and then -6 dB were too quiet for the user (2026-09-30), who asked for
-full power; long full-volume playback can overheat the speakers until the
-protection firmware runs. DAPM powers the amplifiers only while a stream runs.
+19 dBV analog (3, the highest step, as stock). DAPM powers the amplifiers only
+while a stream runs.
+
+Speaker protection: when install-rog5-speaker-firmware has installed the
+vendor firmware and this unit's calibration, and /etc/rog5/speaker-dsp.conf
+enables the amplifier (amps=rcv spk; missing or empty: none; the installer
+writes amps= so nothing changes until the bring-up enables it) and the
+calibration came from persist (allow_default_calibration=1 accepts the vendor
+default 8392), each enabled amplifier plays through
+its CS35L45 DSP as on stock: DSP_RX1/2 = its ASP channel, DSP_RX5/6/7 =
+VDD_BATTMON/VDD_BSTMON/CLASSH_TGT (stock driver workaround for this
+firmware), firmware preloaded, calibration (CAL_R/CAL_STATUS/CAL_CHECKSUM,
+written by the kernel from the installed .bin before the core starts) read
+back and checked, CSPL_STATE/CSPL_ERRORNO checked, optionally the stock
+"music" tuning delta (music_delta=1), and only then DACPCM Source = DSP_TX1.
+The amplifier then stays runtime-active, so its DSP pauses between streams as
+on stock instead of hibernating (hibernate=1 allows the driver's hibernation).
+Any failure puts that amplifier back on the direct path (DACPCM = ASP_RX, DSP
+stopped).
+Without the firmware or with the amplifier disabled it plays ASP_RX straight
+to the DAC (no protection): long full-volume playback can overheat the
+speakers then.
+
 With the mic DTB feature, the built-in microphones record on PCM 3
 (MultiMedia3 <- VA_CODEC_DMA_TX_0): DMIC0 (stock "dmic1", handset) left,
 DMIC2 (stock "dmic2", speaker side) right, +18 dB decimator gain as on stock.
 Those controls are optional: without the VA macro they are skipped.
+
+"audio-route --sanitize-alsa-state" (89-rog5-alsa-state.rules, before
+90-alsa-restore.rules) removes this card's DSP, DSP_RXn and DACPCM entries
+from /var/lib/alsa/asound.state, so "alsactl restore" can neither start a DSP
+nor write stale coefficients into one; this script owns those controls.
 Uses libasound through ctypes, as amixer cset would.
 """
-import ctypes
+import fcntl
+import glob
+import os
+import re
 import sys
 import time
 
 CARD_NAME = 'ASUS-ROG-Phone-5'
+CARD_ID = 'ASUSROGPhone5'
 ROUTE = (
     ('SEN_MI2S_RX Audio Mixer MultiMedia1', '1'),
     ('SPK Amplifier Mode', 'SPK'),
     ('RCV Amplifier Mode', 'SPK'),
-    ('SPK DACPCM Source', 'ASP_RX2'),
-    ('RCV DACPCM Source', 'ASP_RX1'),
     ('SPK Analog PCM Volume', '3'),
     ('RCV Analog PCM Volume', '3'),
     ('SPK Digital PCM Volume', '409'),
@@ -47,6 +75,26 @@ CAPTURE = (
     ('VA_DEC1 Volume', '102'),
 )
 WAIT_SECONDS = 60
+LOCK_FILE = '/run/rog5-audio-route.lock'
+STATE_FILE = '/var/lib/alsa/asound.state'
+# Controls this script owns; never restored by alsactl (see module docstring).
+STATE_DROP = re.compile(r'^(RCV|SPK) (DSP1 .*|DACPCM Source|DSP_RX[1-8] Source)$')
+
+# (control prefix, firmware part suffix, direct DACPCM/DSP_RX1/2 source)
+AMPS = (('RCV', 'rcv', 'ASP_RX1'), ('SPK', 'spk', 'ASP_RX2'))
+DSP_INPUTS = (('DSP_RX5 Source', 'VDD_BATTMON'), ('DSP_RX6 Source', 'VDD_BSTMON'),
+              ('DSP_RX7 Source', 'CLASSH_TGT'))
+FIRMWARE_DIR = '/lib/firmware/cirrus'
+SPEAKER_DIR = '/var/lib/rog5/speaker'
+CONFIG_FILE = '/etc/rog5/speaker-dsp.conf'
+CAL_MIN, CAL_MAX = 7728, 10454
+CSPL = 'DSP1 Protection cd '
+CSPL_ST_ERROR = 1
+CSPL_ST_OK = (0, 2)  # RUNNING, MUTED (stock cs35l45.h enum cspl_state)
+CSPL_CMD_UPDATE_PARAM = 8
+# wm_adsp keeps the last 20 characters of CSPL_UPDATE_PARAMS_CONFIG
+UPDATE_PARAMS = 'UPDATE_PARAMS_CONFIG'
+DSP_BOOT_SECONDS = 10
 
 
 def log(message):
@@ -57,6 +105,363 @@ def log(message):
         print(message, file=sys.stderr)
 
 
+def brace_delta(line):
+    delta, quote = 0, None
+    for ch in line:
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in '\'"':
+            quote = ch
+        elif ch == '{':
+            delta += 1
+        elif ch == '}':
+            delta -= 1
+    return delta
+
+
+def sanitize_alsa_state(path=STATE_FILE):
+    """Drop this card's DSP/DSP_RX/DACPCM entries from the saved ALSA state."""
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines(keepends=True)
+    except FileNotFoundError:
+        return 0
+    out, block, dropped = [], None, []
+    depth, card, name = 0, None, None
+    for line in lines:
+        if block is not None:
+            block.append(line)
+            match = re.match(r'\s*name\s+([\'"])(.*)\1\s*$', line)
+            if depth == 2 and match:
+                name = match.group(2)
+            depth += brace_delta(line)
+            if depth == 1:
+                if name and STATE_DROP.match(name):
+                    dropped.append(name)
+                else:
+                    out.extend(block)
+                block = None
+            continue
+        if depth == 0:
+            match = re.match(r'\s*state\.(\S+)\s*\{', line)
+            card = match.group(1) if match else None
+        elif depth == 1 and card == CARD_ID and re.match(r'\s*control\.\d+\s*\{', line):
+            block, name = [line], None
+            depth += brace_delta(line)
+            continue
+        out.append(line)
+        depth += brace_delta(line)
+    if depth != 0 or block is not None:
+        log(f'sanitize: {path} did not parse, left unchanged')
+        return 0
+    if not dropped:
+        return 0
+    tmp = path + '.rog5-tmp'
+    with open(tmp, 'w') as f:
+        f.writelines(out)
+        f.flush()
+        os.fsync(f.fileno())
+    os.chmod(tmp, os.stat(path).st_mode & 0o7777)
+    os.replace(tmp, path)
+    log(f'sanitize: removed {len(dropped)} speaker DSP/route entries from {path}')
+    return 0
+
+
+class Mixer:
+    """The few libasound control calls this script needs."""
+
+    def __init__(self, asound, handle):
+        self.asound, self.handle = asound, handle
+
+    def _elem(self, name):
+        a, ptr = self.asound, ctypes.c_void_p
+        eid, info, val = ptr(), ptr(), ptr()
+        a.snd_ctl_elem_id_malloc(ctypes.byref(eid))
+        a.snd_ctl_elem_info_malloc(ctypes.byref(info))
+        a.snd_ctl_elem_value_malloc(ctypes.byref(val))
+        rc = a.snd_ctl_ascii_elem_id_parse(eid, f"name='{name}'".encode())
+        if rc >= 0:
+            a.snd_ctl_elem_info_set_id(info, eid)
+            rc = a.snd_ctl_elem_info(self.handle, info)
+        if rc >= 0:
+            a.snd_ctl_elem_info_get_id(info, eid)
+            a.snd_ctl_elem_value_set_id(val, eid)
+        return rc, eid, info, val
+
+    def _free(self, eid, info, val):
+        self.asound.snd_ctl_elem_value_free(val)
+        self.asound.snd_ctl_elem_info_free(info)
+        self.asound.snd_ctl_elem_id_free(eid)
+
+    def set(self, name, value):
+        rc, eid, info, val = self._elem(name)
+        try:
+            if rc >= 0:
+                rc = self.asound.snd_ctl_ascii_value_parse(self.handle, val, info, value.encode())
+            if rc >= 0:
+                rc = self.asound.snd_ctl_elem_write(self.handle, val)
+            return rc
+        finally:
+            self._free(eid, info, val)
+
+    def get_int(self, name):
+        """Integer, boolean or enumerated item index; None on error."""
+        rc, eid, info, val = self._elem(name)
+        try:
+            if rc >= 0:
+                rc = self.asound.snd_ctl_elem_read(self.handle, val)
+            if rc < 0:
+                return None
+            kind = self.asound.snd_ctl_elem_info_get_type(info)
+            if kind == 3:  # SND_CTL_ELEM_TYPE_ENUMERATED
+                return self.asound.snd_ctl_elem_value_get_enumerated(val, 0)
+            return self.asound.snd_ctl_elem_value_get_integer(val, 0)
+        finally:
+            self._free(eid, info, val)
+
+    def get_bytes(self, name):
+        """(rc, bytes) of a BYTES control."""
+        rc, eid, info, val = self._elem(name)
+        try:
+            if rc >= 0:
+                rc = self.asound.snd_ctl_elem_read(self.handle, val)
+            if rc < 0:
+                return rc, None
+            count = self.asound.snd_ctl_elem_info_get_count(info)
+            return 0, bytes(self.asound.snd_ctl_elem_value_get_byte(val, i) for i in range(count))
+        finally:
+            self._free(eid, info, val)
+
+    def set_bytes(self, name, data):
+        rc, eid, info, val = self._elem(name)
+        try:
+            if rc >= 0 and self.asound.snd_ctl_elem_info_get_count(info) != len(data):
+                rc = -22
+            if rc >= 0:
+                for i, byte in enumerate(data):
+                    self.asound.snd_ctl_elem_value_set_byte(val, i, byte)
+                rc = self.asound.snd_ctl_elem_write(self.handle, val)
+            return rc
+        finally:
+            self._free(eid, info, val)
+
+    def get_be32(self, name):
+        rc, data = self.get_bytes(name)
+        if rc < 0 or len(data) != 4:
+            return None
+        return int.from_bytes(data, 'big')
+
+
+def read_key_values(path):
+    values = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.split('#', 1)[0].strip()
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    values[key.strip()] = value.strip()
+    except OSError:
+        pass
+    return values
+
+
+def amp_device(prefix):
+    for node in glob.glob('/sys/bus/i2c/devices/*/of_node'):
+        try:
+            with open(os.path.join(node, 'compatible'), 'rb') as f:
+                if b'cirrus,cs35l45' not in f.read():
+                    continue
+            with open(os.path.join(node, 'sound-name-prefix'), 'rb') as f:
+                if f.read().rstrip(b'\0').decode() == prefix:
+                    return os.path.dirname(node)
+        except OSError:
+            continue
+    return None
+
+
+def dt_string(device, prop):
+    try:
+        with open(os.path.join(device, 'of_node', prop), 'rb') as f:
+            return f.read().rstrip(b'\0').decode()
+    except OSError:
+        return None
+
+
+def runtime_control(device, value=None):
+    """Read or set the amplifier's runtime PM control ('auto' or 'on').
+
+    'on' keeps it out of runtime suspend. The driver hibernates a preloaded
+    DSP 3 s after its last use; volatile coefficients (CSPL_STATE, ...)
+    cannot be read or written then, and the vendor never hibernated this
+    firmware (its HAL only pauses it between streams), so by default the
+    DSP stays awake and paused (hibernate=0 in speaker-dsp.conf)."""
+    if device is None:
+        return None
+    path = os.path.join(device, 'power', 'control')
+    try:
+        if value is None:
+            with open(path) as f:
+                return f.read().strip()
+        with open(path, 'w') as f:
+            f.write(value)
+        return value
+    except OSError:
+        return None
+
+
+def runtime_status(device):
+    try:
+        with open(os.path.join(device, 'power', 'runtime_status')) as f:
+            return f.read().strip()
+    except (OSError, TypeError):
+        return None
+
+
+def unavailable(prefix, part, config, calibration):
+    """Why this amplifier stays on the direct path, or None."""
+    if part not in config.get('amps', '').replace(',', ' ').split():
+        return f'not enabled in {CONFIG_FILE}'
+    for suffix in ('wmfw', 'bin'):
+        if not os.path.isfile(f'{FIRMWARE_DIR}/cs35l45-{part}-dsp1-spk-prot.{suffix}'):
+            return 'firmware not installed'
+    if calibration.get(f'{part}_cal_source') != 'persist' and config.get('allow_default_calibration') != '1':
+        return 'no factory calibration (allow_default_calibration=1 accepts the vendor default)'
+    try:
+        cal_r = int(calibration.get(f'{part}_cal_r', ''))
+    except ValueError:
+        return f'no calibration in {SPEAKER_DIR}/calibration'
+    if not CAL_MIN <= cal_r <= CAL_MAX:
+        return f'calibration {cal_r} out of range'
+    device = amp_device(prefix)
+    if device is None:
+        return 'amplifier not found'
+    if dt_string(device, 'cirrus,dsp-part-name') != f'cs35l45-{part}':
+        return 'DT has no cirrus,dsp-part-name (old DTB)'
+    return None
+
+
+def core_running(mixer, prefix):
+    """The DSP core runs when its volatile CSPL_STATE can be read (any
+    DAPM path may keep it running, Preload or not)."""
+    return mixer.get_be32(f'{prefix} {CSPL}CSPL_STATE') is not None
+
+
+def dsp_running(mixer, prefix):
+    """Preloaded and running: stays up between streams."""
+    return mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1 and core_running(mixer, prefix)
+
+
+def apply_music_delta(mixer, prefix, part):
+    """Stock "Fast Use Case" music tuning: the first 68 words of
+    CSPL_UPDATE_PARAMS_CONFIG, then CSPL_COMMAND = UPDATE_PARAM."""
+    try:
+        with open(f'{SPEAKER_DIR}/cs35l45-{part}-music.be32', 'rb') as f:
+            delta = f.read()
+    except OSError as e:
+        return f'music delta: {e.strerror}'
+    rc, current = mixer.get_bytes(f'{prefix} {CSPL}{UPDATE_PARAMS}')
+    if rc < 0 or len(delta) > len(current) or len(delta) % 4 or \
+            int.from_bytes(delta[:4], 'big') * 4 != len(delta):
+        return f'music delta: bad sizes ({rc})'
+    rc = mixer.set_bytes(f'{prefix} {CSPL}{UPDATE_PARAMS}', delta + current[len(delta):])
+    if rc >= 0:
+        rc = mixer.set_bytes(f'{prefix} {CSPL}CSPL_COMMAND', CSPL_CMD_UPDATE_PARAM.to_bytes(4, 'big'))
+    if rc < 0:
+        return f'music delta: write failed ({rc})'
+    state = None
+    for _ in range(40):
+        state = mixer.get_be32(f'{prefix} {CSPL}CSPL_STATE')
+        if state == 0 or state == CSPL_ST_ERROR:
+            break
+        time.sleep(0.005)
+    error = mixer.get_be32(f'{prefix} {CSPL}CSPL_ERRORNO')
+    if state != 0 or error != 0:
+        return f'music delta: CSPL_STATE {state} CSPL_ERRORNO {error}'
+    return None
+
+
+def start_protection(mixer, prefix, part, direct, cal_r, config):
+    """Set up and verify the protection DSP; return None or a failure."""
+    for name, value in (('DSP_RX1 Source', direct), ('DSP_RX2 Source', direct)) + DSP_INPUTS:
+        if mixer.set(f'{prefix} {name}', value) < 0:
+            return f'could not set {name}'
+    started = False
+    if not dsp_running(mixer, prefix):
+        # A preloaded DSP that does not run: stop it before loading again.
+        if mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1:
+            mixer.set(f'{prefix} DSP1 Preload Switch', '0')
+        if mixer.set(f'{prefix} DSP1 Firmware', 'Protection') < 0:
+            return 'could not select the Protection firmware'
+        # Loads the wmfw and the .bin (tuning + this unit's calibration) and
+        # starts the core; returns when the core runs or failed to.
+        if mixer.set(f'{prefix} DSP1 Preload Switch', '1') < 0:
+            return 'preload failed'
+        started = True
+        deadline = time.monotonic() + DSP_BOOT_SECONDS
+        # The coefficient controls are added from a work item.
+        while not dsp_running(mixer, prefix):
+            if time.monotonic() > deadline:
+                return 'DSP did not start (see dmesg: firmware)'
+            time.sleep(0.1)
+    cal = [mixer.get_be32(f'{prefix} {CSPL}{name}') for name in ('CAL_R', 'CAL_STATUS', 'CAL_CHECKSUM')]
+    if cal != [cal_r, 1, cal_r + 1]:
+        return f'calibration read back {cal}, expected {[cal_r, 1, cal_r + 1]}'
+    # RUNNING, or MUTED while paused; wait out a re-initialisation.
+    for _ in range(20):
+        state = mixer.get_be32(f'{prefix} {CSPL}CSPL_STATE')
+        if state in CSPL_ST_OK or state == CSPL_ST_ERROR or state is None:
+            break
+        time.sleep(0.05)
+    error = mixer.get_be32(f'{prefix} {CSPL}CSPL_ERRORNO')
+    if state not in CSPL_ST_OK or error != 0:
+        return f'CSPL_STATE {state} CSPL_ERRORNO {error}'
+    if started and config.get('music_delta', '0') == '1':
+        failure = apply_music_delta(mixer, prefix, part)
+        if failure:
+            return failure
+    log(f'{prefix} speaker protection running (CAL_R {cal_r}, CSPL_STATE {state}'
+        f'{", started" if started else ""})')
+    return None
+
+
+def route_amp(mixer, prefix, part, direct, config, calibration):
+    """Direct path or protection DSP for one amplifier; None, or what failed
+    on the way to the direct path."""
+    reason = unavailable(prefix, part, config, calibration)
+    device = amp_device(prefix)
+    if reason is None:
+        cal_r = int(calibration[f'{part}_cal_r'])
+        if runtime_control(device, 'on') != 'on' or runtime_status(device) != 'active':
+            reason = 'amplifier did not stay runtime-active'
+        else:
+            reason = start_protection(mixer, prefix, part, direct, cal_r, config)
+        if reason is None:
+            if mixer.set(f'{prefix} DACPCM Source', 'DSP_TX1') >= 0:
+                if config.get('hibernate', '0') == '1':
+                    runtime_control(device, 'auto')
+                return None
+            reason = 'could not set DACPCM Source'
+        log(f'FAIL {prefix} speaker protection: {reason}; direct path')
+        reason = None
+    # Direct path first, then stop a DSP left from an earlier run or failure
+    # (awake: a hibernating DSP is woken by the stop anyway).
+    failure = None
+    if mixer.set(f'{prefix} DACPCM Source', direct) < 0:
+        failure = f'{prefix} DACPCM Source'
+    if mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1:
+        runtime_control(device, 'on')
+        mixer.set(f'{prefix} DSP1 Preload Switch', '0')
+    if mixer.get_int(f'{prefix} DSP1 Preload Switch') != 0 or core_running(mixer, prefix):
+        failure = failure or f'{prefix} DSP stop (still running, DACPCM {direct})'
+    if runtime_control(device) == 'on':
+        runtime_control(device, 'auto')
+    if reason and reason != f'not enabled in {CONFIG_FILE}' and reason != 'firmware not installed':
+        log(f'{prefix} speaker protection off: {reason}')
+    return failure
+
+
 def find_card(asound):
     for index in range(8):
         name = ctypes.c_char_p()
@@ -65,38 +470,38 @@ def find_card(asound):
     return None
 
 
-def set_control(asound, handle, name, value):
-    ptr = ctypes.c_void_p
-    eid, info, val = ptr(), ptr(), ptr()
-    asound.snd_ctl_elem_id_malloc(ctypes.byref(eid))
-    asound.snd_ctl_elem_info_malloc(ctypes.byref(info))
-    asound.snd_ctl_elem_value_malloc(ctypes.byref(val))
-    try:
-        rc = asound.snd_ctl_ascii_elem_id_parse(eid, f"name='{name}'".encode())
-        if rc < 0:
-            return rc
-        asound.snd_ctl_elem_info_set_id(info, eid)
-        rc = asound.snd_ctl_elem_info(handle, info)
-        if rc < 0:
-            return rc
-        asound.snd_ctl_elem_info_get_id(info, eid)
-        asound.snd_ctl_elem_value_set_id(val, eid)
-        rc = asound.snd_ctl_ascii_value_parse(handle, val, info, value.encode())
-        if rc < 0:
-            return rc
-        return asound.snd_ctl_elem_write(handle, val)
-    finally:
-        asound.snd_ctl_elem_value_free(val)
-        asound.snd_ctl_elem_info_free(info)
-        asound.snd_ctl_elem_id_free(eid)
-
-
-def main():
+def load_asound():
     asound = ctypes.CDLL('libasound.so.2')
     # These return void: without a restype, ctypes reads a stale register.
     for void in ('snd_ctl_elem_info_set_id', 'snd_ctl_elem_info_get_id', 'snd_ctl_elem_value_set_id',
-                 'snd_ctl_elem_id_free', 'snd_ctl_elem_info_free', 'snd_ctl_elem_value_free'):
+                 'snd_ctl_elem_id_free', 'snd_ctl_elem_info_free', 'snd_ctl_elem_value_free',
+                 'snd_ctl_elem_value_set_byte'):
         getattr(asound, void).restype = None
+    asound.snd_ctl_elem_value_get_byte.restype = ctypes.c_ubyte
+    asound.snd_ctl_elem_value_get_integer.restype = ctypes.c_long
+    asound.snd_ctl_elem_value_get_enumerated.restype = ctypes.c_uint
+    asound.snd_ctl_elem_info_get_count.restype = ctypes.c_uint
+    asound.snd_ctl_elem_value_set_byte.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_ubyte)
+    asound.snd_ctl_elem_value_get_byte.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+    asound.snd_ctl_elem_value_get_integer.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+    asound.snd_ctl_elem_value_get_enumerated.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+    return asound
+
+
+def main():
+    if sys.argv[1:] == ['--sanitize-alsa-state']:
+        try:
+            return sanitize_alsa_state()
+        except OSError as e:
+            log(f'sanitize: {e}')
+            return 0
+    # Not needed (nor loaded) for the sanitizer, which runs inside udevd.
+    global ctypes
+    import ctypes
+    # rog5-audio.service and rog5-audio-route.service may both run this.
+    lock = open(LOCK_FILE, 'w')
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    asound = load_asound()
     card = None
     deadline = time.monotonic() + WAIT_SECONDS
     while card is None and time.monotonic() < deadline:
@@ -111,8 +516,15 @@ def main():
     if rc < 0:
         log(f'FAIL open hw:{card}: {rc}')
         return 1
-    failed = [name for name, value in ROUTE if set_control(asound, handle, name, value) < 0]
-    capture = [set_control(asound, handle, name, value) for name, value in CAPTURE]
+    mixer = Mixer(asound, handle)
+    failed = [name for name, value in ROUTE if mixer.set(name, value) < 0]
+    capture = [mixer.set(name, value) for name, value in CAPTURE]
+    config = read_key_values(CONFIG_FILE)
+    calibration = read_key_values(f'{SPEAKER_DIR}/calibration')
+    for prefix, part, direct in AMPS:
+        failure = route_amp(mixer, prefix, part, direct, config, calibration)
+        if failure:
+            failed.append(failure)
     asound.snd_ctl_close(handle)
     if all(rc == 0 for rc in capture):
         log(f'hw:{card} microphones routed to MultiMedia3 (PCM 3)')

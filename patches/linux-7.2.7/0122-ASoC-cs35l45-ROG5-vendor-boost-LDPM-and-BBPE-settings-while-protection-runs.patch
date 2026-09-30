@@ -1,0 +1,191 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: cs35l45: ROG5: use the vendor boost, LDPM and BBPE settings while the protection firmware runs
+
+The ASUS ZS673KS driver runs the CS35L45 speaker-protection firmware (the
+same wmfw/bin that the ROG Phone 5 vendor partition ships) at a different
+analog operating point than this driver:
+
+  BOOST_LPMODE_CFG      3           (init workaround; reset 2)
+  BST_BPE_IL_LIM_THLD   0x0000002C  (DT bst-bpe-il-lim: lim1 0x2c, deltas 0;
+                                     reset 0x0006022C)
+  LDPM_CONFIG           0x00019EDE  (DT ldpm-config; cs35l45_patch 0x1B636)
+  MIXER_PILOT0_INPUT    DSP_TX2     (init; reset Zero)
+  BLOCK_ENABLES2 bit 13 BBPE on     (speaker path "BBPE Enable")
+
+Raw reads on the phone (r197, no firmware) returned the reset/patch values
+listed above. Program the vendor values right before the protection
+firmware starts and restore these values when it stops, so the bypass
+path without firmware is unchanged. BOOST_LPMODE_CFG, BST_BPE_IL_LIM_THLD
+and MIXER_PILOT0_INPUT are not readable in this regmap: they are written
+whole and kept in the register cache, so a hibernation exit restores them
+with the rest.
+
+Only boards that name their tuning (cirrus,dsp-part-name, 0121) and only
+in speaker mode. A failed write restores the defaults and fails the DSP
+start; prot_regs_set means "restore needed", so a later start always
+writes the vendor values in full. An amplifier-mode change to RCV is
+refused (checked under the DAPM mutex, which DSP starts and stops hold)
+while the vendor operating point is set. The module parameter vendor_prot_regs (default on)
+switches this off at the next DSP start, for A/B comparison without a new
+kernel.
+
+--- a/sound/soc/codecs/cs35l45.h
++++ b/sound/soc/codecs/cs35l45.h
+@@ -37,7 +37,9 @@
+ #define CS35L45_GLOBAL_SAMPLE_RATE		0x00002C0C
+ #define CS35L45_BOOST_CCM_CFG			0x00003808
+ #define CS35L45_BOOST_DCM_CFG			0x0000380C
++#define CS35L45_BOOST_LPMODE_CFG		0x00003810
+ #define CS35L45_BOOST_OV_CFG			0x0000382C
++#define CS35L45_BST_BPE_IL_LIM_THLD		0x00003C24
+ #define CS35L45_ASP_ENABLES1			0x00004800
+ #define CS35L45_ASP_CONTROL1			0x00004804
+ #define CS35L45_ASP_CONTROL2			0x00004808
+@@ -48,6 +50,7 @@
+ #define CS35L45_ASP_DATA_CONTROL1		0x00004830
+ #define CS35L45_ASP_DATA_CONTROL5		0x00004840
+ #define CS35L45_DACPCM1_INPUT			0x00004C00
++#define CS35L45_MIXER_PILOT0_INPUT		0x00004C04
+ #define CS35L45_ASPTX1_INPUT			0x00004C20
+ #define CS35L45_ASPTX2_INPUT			0x00004C24
+ #define CS35L45_ASPTX3_INPUT			0x00004C28
+@@ -180,6 +183,7 @@
+ #define CS35L45_BST_ENABLE			0x02
+ 
+ /* BLOCK_ENABLES2 */
++#define CS35L45_BBPE_EN_MASK			BIT(13)
+ #define CS35L45_ASP_EN_SHIFT			27
+ #define CS35L45_AMP_DRE_EN_SHIFT		20
+ #define CS35L45_AMP_DRE_EN_MASK		BIT(20)
+@@ -494,6 +498,7 @@
+ 	bool initialized;
+ 	bool sysclk_set;
+ 	bool dsp_part_named;
++	bool prot_regs_set;
+ 	u8 slot_width;
+ 	u8 slot_count;
+ 	int amplifier_mode;
+--- a/sound/soc/codecs/cs35l45.c
++++ b/sound/soc/codecs/cs35l45.c
+@@ -112,6 +112,73 @@
+ 	return 0;
+ }
+ 
++/*
++ * The vendor (ASUS ZS673KS) driver runs the speaker-protection firmware with
++ * its DT boost settings (bst-bpe-il-lim1-thld 0x2c with zero deltas, ldpm-config
++ * -> LDPM_CONFIG 0x19ede), BOOST_LPMODE_CFG 3, the pilot mixer fed from DSP_TX2
++ * and boost brown-out prevention (BBPE) enabled on the speaker path. Boards that
++ * name their tuning (cirrus,dsp-part-name) use the same operating point while
++ * that firmware runs and go back to this driver's values (reset defaults, LDPM
++ * from cs35l45_patch) when it stops, so the bypass path is unchanged. Takes
++ * effect at the next DSP start.
++ */
++static bool vendor_prot_regs = true;
++module_param(vendor_prot_regs, bool, 0644);
++MODULE_PARM_DESC(vendor_prot_regs,
++		 "Use the vendor boost/LDPM/BBPE settings while the protection firmware runs");
++
++static const struct reg_sequence cs35l45_vendor_prot_regs[] = {
++	{ CS35L45_BOOST_LPMODE_CFG,	0x00000003 },
++	{ CS35L45_BST_BPE_IL_LIM_THLD,	0x0000002C },
++	{ CS35L45_LDPM_CONFIG,		0x00019EDE },
++	{ CS35L45_MIXER_PILOT0_INPUT,	CS35L45_PCM_SRC_DSP_TX2 },
++};
++
++static const struct reg_sequence cs35l45_default_prot_regs[] = {
++	{ CS35L45_BOOST_LPMODE_CFG,	0x00000002 },
++	{ CS35L45_BST_BPE_IL_LIM_THLD,	0x0006022C },
++	{ CS35L45_LDPM_CONFIG,		0x0001B636 },
++	{ CS35L45_MIXER_PILOT0_INPUT,	CS35L45_PCM_SRC_ZERO },
++};
++
++static int cs35l45_set_prot_regs(struct cs35l45_private *cs35l45, bool vendor)
++{
++	int ret;
++
++	/*
++	 * prot_regs_set means "restore needed": a requested vendor setup is
++	 * always written in full, even after a failed setup and rollback.
++	 */
++	if (!vendor && !cs35l45->prot_regs_set)
++		return 0;
++
++	if (vendor) {
++		/* From the first write on, a stop has to restore the defaults. */
++		cs35l45->prot_regs_set = true;
++		ret = regmap_multi_reg_write(cs35l45->regmap, cs35l45_vendor_prot_regs,
++					     ARRAY_SIZE(cs35l45_vendor_prot_regs));
++		if (!ret)
++			ret = regmap_set_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
++					      CS35L45_BBPE_EN_MASK);
++	} else {
++		ret = regmap_clear_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
++					CS35L45_BBPE_EN_MASK);
++		if (!ret)
++			ret = regmap_multi_reg_write(cs35l45->regmap, cs35l45_default_prot_regs,
++						     ARRAY_SIZE(cs35l45_default_prot_regs));
++		if (!ret)
++			cs35l45->prot_regs_set = false;
++	}
++
++	if (ret)
++		dev_err(cs35l45->dev, "Failed to set %s protection registers: %d\n",
++			vendor ? "vendor" : "default", ret);
++	else
++		dev_dbg(cs35l45->dev, "%s protection registers\n", vendor ? "vendor" : "default");
++
++	return ret;
++}
++
+ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
+ 				  struct snd_kcontrol *kcontrol, int event)
+ {
+@@ -132,7 +199,21 @@
+ 		regmap_set_bits(cs35l45->regmap, CS35L45_PWRMGT_CTL,
+ 				   CS35L45_MEM_RDY_MASK);
+ 
+-		return wm_adsp_event(w, kcontrol, event);
++		/* 9 is WM_ADSP_FW_SPK_PROT, as in cs35l45_dsp_init() */
++		if (vendor_prot_regs && cs35l45->dsp_part_named && cs35l45->dsp.fw == 9 &&
++		    cs35l45->amplifier_mode == AMP_MODE_SPK) {
++			ret = cs35l45_set_prot_regs(cs35l45, true);
++			if (ret) {
++				cs35l45_set_prot_regs(cs35l45, false);
++				return ret;
++			}
++		}
++
++		ret = wm_adsp_event(w, kcontrol, event);
++		if (ret)
++			cs35l45_set_prot_regs(cs35l45, false);
++
++		return ret;
+ 	case SND_SOC_DAPM_PRE_PMD:
+ 		if (cs35l45->dsp.preloaded)
+ 			return 0;
+@@ -143,6 +224,8 @@
+ 				return ret;
+ 		}
+ 
++		cs35l45_set_prot_regs(cs35l45, false);
++
+ 		return wm_adsp_early_event(w, kcontrol, event);
+ 	default:
+ 		return 0;
+@@ -224,6 +307,15 @@
+ 
+ 	snd_soc_dapm_mutex_lock(dapm);
+ 
++	/*
++	 * The vendor protection operating point is for speaker mode only; DSP
++	 * starts and stops run under the DAPM mutex, so check it here.
++	 */
++	if (cs35l45->prot_regs_set) {
++		snd_soc_dapm_mutex_unlock(dapm);
++		return -EBUSY;
++	}
++
+ 	ret = regmap_read(cs35l45->regmap, CS35L45_BLOCK_ENABLES, &amp_state);
+ 	if (ret < 0) {
+ 		dev_err(cs35l45->dev, "Failed to read AMP state: %d\n", ret);
