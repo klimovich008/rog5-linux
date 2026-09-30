@@ -156,7 +156,8 @@ CONFIG_NTFS3_FS_POSIX_ACL=y
 CONFIG_NLS_UTF8=y
 
 # zram swap (configs/memory/zram-generator.conf): zstd for the best ratio,
-# lz4 for the fastest swap-in; lzo stays the forced fallback.
+# lz4 for the fastest swap-in (lz4 becomes the default; LZO is only forced
+# when no other backend is built).
 CONFIG_ZRAM_BACKEND_LZ4=y
 CONFIG_ZRAM_BACKEND_ZSTD=y
 CONFIG_CRYPTO_ZSTD=y
