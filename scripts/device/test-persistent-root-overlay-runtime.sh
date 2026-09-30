@@ -54,7 +54,10 @@ done
 for contract in \
 	'expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@' \
 	'expected_overlay_bytes=17179869184' \
-	'expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252' \
+	'expected_overlay_uuid=$rog5_overlay_fs_uuid' \
+	'rog5_overlay_fs_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252' \
+	'max_overlay_bytes=$rog5_overlay_max_bytes' \
+	'rog5_overlay_max_bytes=198567788544' \
 	'expected_overlay_label=ROG5_ROOT_RW_V1' \
 	'overlay_relative=rog5/root/root-overlay-v1.ext4' \
 	'prepare_persistent_overlay() {' \
@@ -102,8 +105,11 @@ userdata_unmount=$(grep -n '^[[:space:]]*unmount_userdata "\$userdata"' "$shutdo
 [ "$overlay_unmount" -lt "$userdata_unmount" ] || fail 'p23 unmount precedes overlay image unmount'
 
 for contract in \
-	'image_bytes=17179869184' \
-	'image_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252' \
+	'image_bytes=$rog5_overlay_create_bytes' \
+	'rog5_overlay_create_bytes=17179869184' \
+	'image_uuid=$rog5_overlay_fs_uuid' \
+	'rog5_overlay_fs_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252' \
+	'fallocate -l "$image_bytes" "$mountpoint/$relative_partial"' \
 	'image_label=ROG5_ROOT_RW_V1' \
 	'relative_final=rog5/root/root-overlay-v1.ext4' \
 	'format=rog5-persistent-root-overlay-v1' \

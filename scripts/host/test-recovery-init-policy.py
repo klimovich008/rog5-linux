@@ -236,6 +236,9 @@ class InitPolicyTest(unittest.TestCase):
         # opened (ENOMEDIUM), so any open of a USB node fails.
         stub = (
             f"root={root}\n"
+            # The loaders take their UFS node count from the device profile
+            # block at the top of the source (reference phone: 117).
+            "rog5_ufs_node_count=117\n"
             "log() { :; }\n"
             "blockdev() {\n"
             '\tname=${2##*/}\n'
@@ -342,7 +345,7 @@ class InitPolicyTest(unittest.TestCase):
             body = self.functions(SLOTB_LOADER, (name,))
             self.assertIn('! usb_attached_block "$sys_block" || continue', body)
             if name != "relock_all_storage":
-                self.assertIn('[ "$count" -eq 117 ]', body)
+                self.assertIn('[ "$count" -eq "$rog5_ufs_node_count" ]', body)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.storage_fixture(root)
@@ -422,14 +425,17 @@ class InitPolicyTest(unittest.TestCase):
             "grep -Eq '^session=[0-9a-f]{32}$'",
             source,
         )
-        self.assertIn("expected_wrapper_physical_count=117", source)
-        self.assertIn("expected_stage2_physical_count=117", source)
+        # Device profile block (reference phone: 117 UFS nodes).
+        self.assertIn("\nrog5_ufs_node_count=117\n", source)
+        self.assertIn("expected_wrapper_physical_count=$rog5_ufs_node_count", source)
+        self.assertIn("expected_stage2_physical_count=$rog5_ufs_node_count", source)
         self.assertIn(
             '"$recovery_mode" != storage-layout-stage2-v1',
             source,
         )
         self.assertIn('expected_count=$expected_stage2_physical_count', source)
-        self.assertIn('"$sys_partition/size")" = 408997568', source)
+        self.assertIn('"$sys_partition/size")" = "$rog5_userdata_sectors"', source)
+        self.assertIn("\nrog5_userdata_sectors=408997568\n", source)
         self.assertIn('"$expected_count"', source)
         self.assertIn("stage2_readonly_preflight=0", source)
         self.assertIn("stage2_readonly_preflight=1", source)

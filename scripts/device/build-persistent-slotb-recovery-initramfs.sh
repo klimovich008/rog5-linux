@@ -23,6 +23,20 @@ if [ -n "${ROG5_TRIAL_HELPER:-}" ]; then
 	trial_helper=$repo/$ROG5_TRIAL_HELPER
 fi
 expected_base=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+# Another phone's wrapper: ROG5_RECOVERY_BASE_SHA256 pins its own recovery
+# base (with its own trust key, BusyBox, kexec and verifier builds), and
+# ROG5_DEVICE_PROFILE renders the selector loader with its device profile
+# (the caller passes a rendered recovery init as INIT).
+reference_base=1
+if [ -n "${ROG5_RECOVERY_BASE_SHA256:-}" ] &&
+	[ "$ROG5_RECOVERY_BASE_SHA256" != "$expected_base" ]; then
+	printf '%s\n' "$ROG5_RECOVERY_BASE_SHA256" | grep -Eqx '[0-9a-f]{64}' || {
+		echo 'FAIL ROG5_RECOVERY_BASE_SHA256 must be 64 hex digits' >&2
+		exit 1
+	}
+	expected_base=$ROG5_RECOVERY_BASE_SHA256
+	reference_base=0
+fi
 expected_trial_helper=$(cut -d ' ' -f 1 "$(dirname "$trial_helper")/SHA256SUMS")
 epoch=1681862400
 
@@ -63,21 +77,38 @@ mkdir -p "$output_directory"
 temporary=$(mktemp "$output_directory/.loader-recovery.tmp.XXXXXX")
 cleanup() {
 	rm -rf -- "$stage"
-	rm -f -- "$temporary"
+	rm -f -- "$temporary" "$temporary.selector-loader"
 }
 trap cleanup EXIT HUP INT TERM
+if [ -n "${ROG5_DEVICE_PROFILE:-}" ]; then
+	python3 "$repo/scripts/host/rog5-device-profile" render \
+		--profile "$ROG5_DEVICE_PROFILE" "$selector_loader" \
+		"$temporary.selector-loader" || fail 'cannot render the selector loader'
+	selector_loader=$temporary.selector-loader
+fi
 
 gzip -dc "$base" | (cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
-[ "$(sha256sum "$stage/usr/libexec/rog5-bundle-verify" | cut -d ' ' -f 1)" = \
-	c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb ] ||
-	fail 'bundle verifier identity changed'
-[ "$(sha256sum "$stage/usr/sbin/kexec" | cut -d ' ' -f 1)" = \
-	5e5d0a78b3f0bcf3921ff060f4dce5011cbac24b5e12fedeb8ca03ea5b40d015 ] ||
-	fail 'kexec identity changed'
-[ "$(sha256sum "$stage/etc/rog5/recovery-bundle-ed25519.pub" | cut -d ' ' -f 1)" = \
-	cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ] ||
-	fail 'local bundle trust key changed'
+if [ "$reference_base" = 1 ]; then
+	[ "$(sha256sum "$stage/usr/libexec/rog5-bundle-verify" | cut -d ' ' -f 1)" = \
+		c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb ] ||
+		fail 'bundle verifier identity changed'
+	[ "$(sha256sum "$stage/usr/sbin/kexec" | cut -d ' ' -f 1)" = \
+		5e5d0a78b3f0bcf3921ff060f4dce5011cbac24b5e12fedeb8ca03ea5b40d015 ] ||
+		fail 'kexec identity changed'
+	[ "$(sha256sum "$stage/etc/rog5/recovery-bundle-ed25519.pub" | cut -d ' ' -f 1)" = \
+		cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ] ||
+		fail 'local bundle trust key changed'
+else
+	# The caller pinned this base by hash; its members are its own builds.
+	for member in usr/libexec/rog5-bundle-verify usr/sbin/kexec etc/rog5/recovery-bundle-ed25519.pub; do
+		[ -f "$stage/$member" ] && [ ! -L "$stage/$member" ] || fail "recovery base lacks $member"
+	done
+	[ "$(stat -c %s "$stage/etc/rog5/recovery-bundle-ed25519.pub")" = 32 ] ||
+		fail 'recovery base trust key is not a raw 32-byte Ed25519 key'
+	sha256sum "$stage/usr/libexec/rog5-bundle-verify" "$stage/usr/sbin/kexec" \
+		"$stage/etc/rog5/recovery-bundle-ed25519.pub" | sed 's#  .*/#  #' >&2
+fi
 
 rm -f -- "$stage/usr/libexec/rog5-recovery-control" \
 	"$stage/usr/libexec/rog5-bundle-fetch"

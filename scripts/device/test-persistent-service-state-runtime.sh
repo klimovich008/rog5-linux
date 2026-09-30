@@ -16,14 +16,21 @@ for path in "$helper" "$init" "$builder" "$shutdown" "$ssh_identity"; do
 done
 
 for contract in \
-	'expected_physical_count=117' \
+	'expected_physical_count=$rog5_ufs_node_count' \
+	'rog5_ufs_node_count=117' \
 	'expected_userdata_partition=23' \
-	'expected_userdata_start=18821440' \
-	'expected_userdata_sectors=408997568' \
-	'expected_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b' \
-	'expected_userdata_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5' \
-	'expected_state_uuid=52037413-561a-48f4-92c4-8ad45b748a6f' \
-	'expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6' \
+	'expected_userdata_start=$rog5_userdata_start' \
+	'rog5_userdata_start=18821440' \
+	'expected_userdata_sectors=$rog5_userdata_sectors' \
+	'rog5_userdata_sectors=408997568' \
+	'expected_userdata_partuuid=$rog5_userdata_partuuid' \
+	'rog5_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b' \
+	'expected_userdata_uuid=$rog5_userdata_fs_uuid' \
+	'rog5_userdata_fs_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5' \
+	'expected_state_uuid=$rog5_state_fs_uuid' \
+	'rog5_state_fs_uuid=52037413-561a-48f4-92c4-8ad45b748a6f' \
+	'expected_manifest_sha256=$rog5_state_manifest_sha256' \
+	'rog5_state_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6' \
 	'state_relative=rog5/state/server-state-v1.ext4' \
 	'preflight_state() {' \
 	'verify_empty_mountpoint() {' \

@@ -4,8 +4,19 @@ set -u
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 export LC_ALL=C
 export TZ=UTC
-expected_wrapper_physical_count=117
-expected_stage2_physical_count=117
+# BEGIN ROG5 DEVICE PROFILE
+# One phone's UFS layout; scripts/host/rog5-device-profile render rewrites
+# these values from a profile (default: configs/device-profiles/reference.env,
+# the reference ZS673KS 256 GB). The node count is the partitioned layout's
+# (stock + arch_root_a); the storage-preflight-v2 report below is the
+# reference phone's historical stage-1 record and is not profiled.
+rog5_ufs_node_count=117
+rog5_ufs_disk_bytes=253403070464
+rog5_userdata_start=18821440
+rog5_userdata_sectors=408997568
+# END ROG5 DEVICE PROFILE
+expected_wrapper_physical_count=$rog5_ufs_node_count
+expected_stage2_physical_count=$rog5_ufs_node_count
 empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
 bundle_root=/run/rog5-bundles
@@ -533,7 +544,7 @@ run_storage_preflight() {
 		[ ! -e "$sys_disk/partition" ] || continue
 		device=/dev/$(basename "$sys_disk")
 		[ -b "$device" ] || continue
-		[ "$(blockdev --getsize64 "$device" 2>/dev/null)" = 253403070464 ] ||
+		[ "$(blockdev --getsize64 "$device" 2>/dev/null)" = "$rog5_ufs_disk_bytes" ] ||
 			continue
 		[ "$(blockdev --getss "$device" 2>/dev/null)" = 4096 ] ||
 			continue
@@ -545,8 +556,8 @@ run_storage_preflight() {
 			partition_name=$(sed -n 's/^PARTNAME=//p' \
 				"$sys_partition/uevent" | sed -n '1p')
 			[ "$partition_name" = userdata ] || continue
-			[ "$(cat "$sys_partition/start")" = 18821440 ] || continue
-			[ "$(cat "$sys_partition/size")" = 408997568 ] || continue
+			[ "$(cat "$sys_partition/start")" = "$rog5_userdata_start" ] || continue
+			[ "$(cat "$sys_partition/size")" = "$rog5_userdata_sectors" ] || continue
 			candidate_userdata=/dev/$(basename "$sys_partition")
 		done
 		[ -n "$candidate_userdata" ] || continue

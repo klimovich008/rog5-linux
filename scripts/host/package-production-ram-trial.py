@@ -11,6 +11,7 @@ footer at the reviewed 128 MiB envelope; then re-verify the signed bundle
 with the wrapper's own trust key and the host build of rog5-bundle-verify.
 """
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -24,7 +25,36 @@ import tempfile
 REPO = Path(__file__).resolve().parents[2]
 TOOLS = REPO/'artifacts/android-boot-tools-v1'
 IMAGE_SIZE = 134217728
+# The reference phone's loader key. The key a bundle must be signed with is
+# the one the recovery base embeds (etc/rog5/recovery-bundle-ed25519.pub),
+# so another phone's wrapper and key work without editing this file.
 TRUST_RAW_SHA256 = 'cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054'
+TRUST_MEMBER = 'etc/rog5/recovery-bundle-ed25519.pub'
+# The reference phone's recovery base; another base is pinned by its caller.
+REFERENCE_RECOVERY_BASE_SHA256 = 'd2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc'
+
+
+def wrapper_sources(log, out, device_profile, recovery_base_sha256):
+    """The recovery init and the builder environment for this phone.
+
+    With a device profile the wrapper's recovery init and selector loader are
+    rendered with it (scripts/host/rog5-device-profile); a recovery base other
+    than the reference one is pinned by the hash its caller gave.
+    """
+    init = REPO/'initramfs/recovery-init'
+    env = dict(os.environ)
+    env.pop('ROG5_DEVICE_PROFILE', None)
+    env.pop('ROG5_RECOVERY_BASE_SHA256', None)
+    if device_profile:
+        profile = Path(device_profile).resolve()
+        rendered = out/'recovery-init.rendered'
+        log.run([sys.executable, REPO/'scripts/host/rog5-device-profile', 'render', '--profile', profile,
+                 init, rendered])
+        init = rendered
+        env['ROG5_DEVICE_PROFILE'] = str(profile)
+    if recovery_base_sha256 != REFERENCE_RECOVERY_BASE_SHA256:
+        env['ROG5_RECOVERY_BASE_SHA256'] = recovery_base_sha256
+    return init, env
 SHA = re.compile(r'[0-9a-f]{64}')
 NAME = re.compile(r'[a-z0-9][a-z0-9._-]{0,63}')
 
@@ -32,6 +62,33 @@ NAME = re.compile(r'[a-z0-9][a-z0-9._-]{0,63}')
 def need(ok, why):
     if not ok:
         raise ValueError(why)
+
+
+def newc_member(archive, wanted):
+    """Bytes of one regular member of a gzip newc cpio archive, or None."""
+    data = gzip.decompress(archive)
+    offset = 0
+    while offset + 110 <= len(data):
+        need(data[offset:offset+6] in (b'070701', b'070702'), 'recovery base is not newc cpio')
+        fields = [int(data[offset+6+8*i:offset+14+8*i], 16) for i in range(13)]
+        mode, size, name_size = fields[1], fields[6], fields[11]
+        name_end = offset + 110 + name_size
+        name = data[offset+110:name_end-1].decode('utf-8', 'replace')
+        start = (name_end + 3) & ~3
+        if name == 'TRAILER!!!':
+            return None
+        if name.lstrip('./') == wanted:
+            need(mode & 0o170000 == 0o100000, wanted+' is not a regular file')
+            return data[start:start+size]
+        offset = (start + size + 3) & ~3
+    return None
+
+
+def wrapper_trust_sha256(recovery_base):
+    """SHA-256 of the raw Ed25519 key the wrapper's loader verifies with."""
+    key = newc_member(Path(recovery_base).read_bytes(), TRUST_MEMBER)
+    need(key is not None and len(key) == 32, f'recovery base carries no 32-byte {TRUST_MEMBER}')
+    return hashlib.sha256(key).hexdigest()
 
 
 def sha(path):
@@ -115,7 +172,8 @@ def package(args):
     need(key.is_absolute() and key.is_file() and not key.is_symlink(), 'private key path')
     public = subprocess.run(['openssl', 'pkey', '-in', str(key), '-pubout', '-outform', 'DER'],
                             capture_output=True, check=True).stdout
-    need(hashlib.sha256(public[-32:]).hexdigest() == TRUST_RAW_SHA256,
+    trust_sha256 = wrapper_trust_sha256(inputs['recovery_base'])
+    need(hashlib.sha256(public[-32:]).hexdigest() == trust_sha256,
          'signing key is not the wrapper trust key')
     os.umask(0o077)
     out.mkdir(mode=0o700)
@@ -134,13 +192,14 @@ def package(args):
                       '--config', out/'recipe.json', '--private-key', key, '--bundle-root', bundles],
                      capture=True).decode()
     rows = dict(line.split('=', 1) for line in signed.splitlines() if '=' in line)
-    need(rows.get('trust_key_sha256') == TRUST_RAW_SHA256, 'packager trust key mismatch')
+    need(rows.get('trust_key_sha256') == trust_sha256, 'packager trust key mismatch')
     bundle = bundles/args.bundle
     manifest_sha256 = sha(bundle/'manifest')
 
     recovery = out/'recovery.cpio.gz'
+    recovery_init, env = wrapper_sources(log, out, getattr(args, 'device_profile', None), sha(inputs['recovery_base']))
     log.run([REPO/'scripts/device/build-persistent-slotb-recovery-initramfs.sh', inputs['recovery_base'],
-             REPO/'initramfs/recovery-init', 'embedded-ram', recovery, bundle])
+             recovery_init, 'embedded-ram', recovery, bundle], env=env)
 
     wrapper = build_wrapper(log, out, inputs, recovery)
 
@@ -176,6 +235,8 @@ def main():
         parser.add_argument('--'+name, required=True)
         parser.add_argument('--'+name+'-sha256', required=True)
     parser.add_argument('--private-key', required=True)
+    parser.add_argument('--device-profile', help='render the wrapper sources for this device profile '
+                        '(default: the reference phone)')
     parser.add_argument('--bundle', required=True)
     parser.add_argument('--release', default='7.1.4-rog5-production')
     parser.add_argument('--rollback-timeout', type=int, default=900)

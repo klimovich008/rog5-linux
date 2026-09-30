@@ -261,9 +261,22 @@ def write_descriptor(state, name):
     return path
 
 
+def device_profile(inputs, state):
+    """Optional "device_profile" (another phone's scripts/host/rog5-device-profile
+    file) for the ramdisk and the wrapper; absent means the reference phone."""
+    if not inputs.get('device_profile'):
+        return None
+    path = expand(inputs['device_profile'], state)
+    need(path.is_file(), f'device profile {path} missing')
+    return path
+
+
 def ramdisk_env(inputs, state, release, package, descriptor):
     env = clean_env()
     env.update(inputs['ramdisk_env'])
+    profile = device_profile(inputs, state)
+    if profile is not None:
+        env['ROG5_DEVICE_PROFILE'] = str(profile)
     base_path, base_sha = pinned(inputs['ramdisk_base'], state)
     firmware, firmware_sha = pinned(inputs['extra_firmware'], state, 'sums_sha256')
     wifi, wifi_sha = pinned(inputs['wifi_kit'], state, 'sums_sha256')
@@ -346,6 +359,8 @@ def build_bundle(args, p):
         path, digest = pinned(inputs[option], state)
         argv += ['--'+option.replace('_', '-'), path, '--'+option.replace('_', '-')+'-sha256', digest]
     argv += ['--private-key', p['key'], '--release', p['release'], '--bundle', name, '--output', output]
+    if device_profile(inputs, state) is not None:
+        argv += ['--device-profile', device_profile(inputs, state)]
     steps.run('package', argv, cwd=src, env=clean_env())
     packaged = json.loads((output/'result.json').read_text())
     need(packaged['status'] == 'PASS_PACKAGED_UNBOOTED' and packaged['bundle'] == name

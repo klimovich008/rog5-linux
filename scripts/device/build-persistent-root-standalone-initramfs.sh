@@ -366,6 +366,19 @@ mkdir "$root"
 gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 [ -x "$root/init" ] && [ -x "$root/shutdown" ]
 
+# ROG5_DEVICE_PROFILE=FILE builds the ramdisk for another phone: the init,
+# attestor and state helper are rendered with that phone's profile values
+# (scripts/host/rog5-device-profile); unset, the reference phone's are used.
+if [ -n "${ROG5_DEVICE_PROFILE:-}" ]; then
+	mkdir "$work/profiled"
+	for profiled in init attest state_helper; do
+		eval "source_path=\$$profiled"
+		python3 "$repo/scripts/host/rog5-device-profile" render \
+			--profile "$ROG5_DEVICE_PROFILE" "$source_path" \
+			"$work/profiled/$(basename "$source_path")"
+		eval "$profiled=\$work/profiled/\$(basename \"\$source_path\")"
+	done
+fi
 (cd "$root" && unchanged_files) >"$work/before"
 install -m 0755 "$init" "$root/init"
 # The init's optional overlay-loop direct-I/O step (static, no libc).

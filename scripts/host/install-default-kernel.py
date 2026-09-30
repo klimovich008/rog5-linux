@@ -35,6 +35,9 @@ TARGET_SCRIPT = REPO/'scripts/device/install-default-kernel-on-target.sh'
 VERIFIER_SOURCE = REPO/'tools/recovery_control/rog5-bundle-verify.c'
 FILES = ('Image', 'board.dtb', 'initramfs.cpio.gz', 'manifest', 'manifest.sig')
 FALLBACK = 'persistent-native-root-v11'  # the original fallback (tests, history)
+# The reference phone's loader key and storage identities. Another phone
+# passes its own with --expected-trust-sha256 (or ROG5_TRUST_RAW_SHA256) and
+# --profile (scripts/host/rog5-device-profile).
 TRUST_RAW_SHA256 = 'cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054'
 P24_UUID = '8b03827a-cc2d-4408-8558-e9b61195f96b'
 P24_SIZE = '34359717888'
@@ -170,6 +173,22 @@ def write_new(path, data):
         os.fsync(stream.fileno())
 
 
+def storage_identity(profile):
+    """p24/p23 identities from a device profile, or the reference phone's."""
+    if profile is None:
+        return dict(p24_uuid=P24_UUID, p23_uuid=P23_UUID, p24_size=P24_SIZE)
+    from importlib.machinery import SourceFileLoader
+    loader = SourceFileLoader('rog5_device_profile', str(REPO/'scripts/host/rog5-device-profile'))
+    tool = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(tool)
+    try:
+        values = tool.load(profile)
+    except (tool.ProfileError, OSError) as error:
+        need(False, f'device profile: {error}')
+    return dict(p24_uuid=values['ROG5_ROOT_FS_UUID'], p23_uuid=values['ROG5_USERDATA_FS_UUID'],
+                p24_size=values['ROG5_ROOT_BYTES'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--bundle-dir', type=Path, required=True, help='packaged bundles/<name> directory')
@@ -180,7 +199,12 @@ def main():
                         help='packaged bundles/<name> directory to install as the new fallback')
     parser.add_argument('--address', default='169.254.77.2')
     parser.add_argument('--stage', action='store_true', help='perform the persistent install')
+    parser.add_argument('--profile', type=Path,
+                        help='device profile (default: the reference phone, configs/device-profiles/reference.env)')
+    parser.add_argument('--expected-trust-sha256', default=os.environ.get('ROG5_TRUST_RAW_SHA256', TRUST_RAW_SHA256),
+                        help='SHA-256 of your raw loader key (default: the reference phone\'s key)')
     args = parser.parse_args()
+    storage = storage_identity(args.profile)
 
     need(not args.evidence.exists(), 'evidence directory exists: inspect it, never retry')
     trial_id, bundle = descriptor_fields(regular(args.descriptor))
@@ -195,7 +219,8 @@ def main():
              'the fallback ramdisk carries a trial descriptor; a fallback must never commit a trial')
     need(sorted(p.name for p in args.bundle_dir.iterdir()) == sorted(FILES), 'bundle inventory')
     payload = {name: regular(args.bundle_dir/name) for name in FILES}
-    need(sha(regular(args.trust_key)) == TRUST_RAW_SHA256, 'trust key is not the slot-B loader key')
+    need(SHA.fullmatch(args.expected_trust_sha256) is not None, '--expected-trust-sha256 must be 64 hex digits')
+    need(sha(regular(args.trust_key)) == args.expected_trust_sha256, 'trust key is not the slot-B loader key')
     carried = newc_member(payload['initramfs.cpio.gz'], 'rog5-production-trial/trial-descriptor')
     need(carried == regular(args.descriptor),
          'the bundle ramdisk does not carry this trial descriptor, so it could never commit')
@@ -257,7 +282,7 @@ def main():
         (args.evidence/'verified-fallback-plan.txt').write_text(fallback_plan)
         plan = verify_bundle(verifier, args.trust_key, roots, bundle, sha(payload['manifest']))
         (args.evidence/'verified-plan.txt').write_text(plan)
-    note(f'verified {bundle} and {fallback_name} with trust key {TRUST_RAW_SHA256[:8]}')
+    note(f'verified {bundle} and {fallback_name} with trust key {args.expected_trust_sha256[:8]}')
 
     selector, generated = SELECTOR.generate(regular(args.descriptor), payload['manifest'], fallback['manifest'],
                                             fallback_name, sha(fallback['manifest']))
@@ -275,7 +300,7 @@ def main():
         fallback_image=sha(fallback['Image']), fallback_dtb=sha(fallback['board.dtb']),
         fallback_initramfs=sha(fallback['initramfs.cpio.gz']), fallback_manifest=sha(fallback['manifest']),
         fallback_signature=sha(fallback['manifest.sig']),
-        p24_uuid=P24_UUID, p23_uuid=P23_UUID, p24_size=P24_SIZE,
+        p24_uuid=storage['p24_uuid'], p23_uuid=storage['p23_uuid'], p24_size=storage['p24_size'],
         root_mount=ROOT_MOUNT, userdata_mount=USERDATA_MOUNT,
         source_root='/run/rog5-default-kernel-'+trial_id[:16],
         sys_block='/sys/class/block', sys_power='/sys/class/power_supply',

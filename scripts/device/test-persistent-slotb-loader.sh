@@ -86,7 +86,8 @@ done
 # scripts/host/test-recovery-init-policy.py.
 grep -Fxq '		*/usb[0-9]*/*) return 0 ;;' "$init"
 [ "$(grep -Fxc '		! usb_attached_block "$sys_block" || continue' "$init")" -eq 3 ]
-[ "$(grep -Fc '[ "$count" -eq 117 ]' "$init")" -eq 2 ]
+[ "$(grep -Fc '[ "$count" -eq "$rog5_ufs_node_count" ]' "$init")" -eq 2 ]
+grep -Fxq 'rog5_ufs_node_count=117' "$init"
 s65_line=$(grep -n 'set_stage S65 PASS "$trial_selection_detail"' "$init" | cut -d: -f1)
 selection_delay_line=$(grep -n 'sleep "$selection_report_delay"' "$init" | cut -d: -f1)
 s60_line=$(grep -n 'set_stage S60 PASS bundle_verified' "$init" | cut -d: -f1)
@@ -159,6 +160,8 @@ EOF
 chmod 0700 "$work/trial-helper"
 run_trial_case() (
 	case_name=$1
+	# The loader's device profile block (reference phone values).
+	eval "$(sed -n '/^# BEGIN ROG5 DEVICE PROFILE/,/^# END ROG5 DEVICE PROFILE/p' "$init")"
 	# shellcheck disable=SC1090
 	. "$work/select-trial.sh"
 	disk=/dev/sda

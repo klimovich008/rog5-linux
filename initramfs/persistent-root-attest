@@ -14,9 +14,21 @@ progress() {
 	echo "rog5-p2-attest: PROGRESS $* uptime=$uptime" >/dev/kmsg
 }
 
-expected_physical_count=117
-expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
-expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
+# BEGIN ROG5 DEVICE PROFILE
+# One phone and one sealed root; scripts/host/rog5-device-profile render
+# rewrites these values from a profile (default:
+# configs/device-profiles/reference.env, the reference ZS673KS 256 GB).
+rog5_ufs_node_count=117
+rog5_root_bytes=34359717888
+rog5_root_fs_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
+rog5_overlay_fs_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+rog5_overlay_max_bytes=198567788544
+rog5_root_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+rog5_root_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
+# END ROG5 DEVICE PROFILE
+expected_physical_count=$rog5_ufs_node_count
+expected_seal_sha256=$rog5_root_seal_sha256
+expected_source_seal_sha256=$rog5_root_source_seal_sha256
 expected_image_bytes=17179869184
 expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
@@ -25,12 +37,13 @@ expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
 expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
-expected_native_bytes=34359717888
-expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
+expected_native_bytes=$rog5_root_bytes
+expected_native_uuid=$rog5_root_fs_uuid
 expected_overlay_bytes=17179869184
-# Grown in place is allowed (see persistent-root-init): 16-192 GiB, whole MiB.
-max_overlay_bytes=206158430208
-expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+# Grown in place is allowed (see persistent-root-init): 16 GiB up to the
+# profile's limit for this phone's userdata, whole MiB.
+max_overlay_bytes=$rog5_overlay_max_bytes
+expected_overlay_uuid=$rog5_overlay_fs_uuid
 expected_overlay_label=ROG5_ROOT_RW_V1
 overlay_record=/run/rog5-persistent-overlay.runtime
 lower=/.rog5/root-ro

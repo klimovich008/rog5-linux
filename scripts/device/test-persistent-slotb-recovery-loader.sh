@@ -24,7 +24,8 @@ done
 grep -Fq 'storage-layout-stage1-v1|storage-layout-stage2-v1|persistent-slotb-loader-v1)' "$init"
 # USB disks on the side port stay outside the exact UFS topology (isolation,
 # count and inventory); the 117-node contract itself is unchanged.
-grep -Fxq 'expected_wrapper_physical_count=117' "$init"
+grep -Fxq 'expected_wrapper_physical_count=$rog5_ufs_node_count' "$init"
+grep -Fxq 'rog5_ufs_node_count=117' "$init"
 grep -Fxq '		*/usb[0-9]*/*) return 0 ;;' "$init"
 [ "$(grep -Fxc '		! usb_attached_block "$sys_disk" || continue' "$init")" -eq 3 ]
 [ "$(grep -Fxc '		! usb_attached_block "$sys_block" || continue' "$selector_loader")" -eq 3 ]

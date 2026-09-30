@@ -3,6 +3,22 @@ set -eu
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/libexec
 
+# BEGIN ROG5 DEVICE PROFILE
+# One phone's UFS layout; scripts/host/rog5-device-profile render rewrites
+# these values from a profile (default: configs/device-profiles/reference.env,
+# the reference ZS673KS 256 GB).
+rog5_ufs_node_count=117
+rog5_ufs_disk_sectors=494927872
+rog5_userdata_start=18821440
+rog5_userdata_sectors=408997568
+rog5_userdata_fs_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+rog5_root_start=427819008
+rog5_root_sectors=67108824
+rog5_ufs_disk_bytes=253403070464
+rog5_userdata_bytes=209406754816
+rog5_root_bytes=34359717888
+# END ROG5 DEVICE PROFILE
+
 selector=/mnt/arch/boot/rog5-linux/selector
 source_root=/mnt/arch/boot/rog5-linux/bundles
 bundle_root=/run/rog5-bundles
@@ -208,7 +224,7 @@ resolve_storage() {
 	matches=0
 	for sys_disk in /sys/class/block/sd[a-z]; do
 		[ -e "$sys_disk/device" ] && [ ! -e "$sys_disk/partition" ] || continue
-		[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+		[ "$(cat "$sys_disk/size")" = "$rog5_ufs_disk_sectors" ] || continue
 		[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
 		name=$(basename "$sys_disk")
 		candidate=
@@ -217,14 +233,14 @@ resolve_storage() {
 			[ -e "$part/partition" ] || continue
 			partname=$(sed -n 's/^PARTNAME=//p' "$part/uevent" | sed -n '1p')
 			if [ "$(cat "$part/partition"):$partname" = 23:userdata ] &&
-				[ "$(cat "$part/start")" = 18821440 ] &&
-				[ "$(cat "$part/size")" = 408997568 ]; then
+				[ "$(cat "$part/start")" = "$rog5_userdata_start" ] &&
+				[ "$(cat "$part/size")" = "$rog5_userdata_sectors" ]; then
 				candidate_userdata=/dev/$(basename "$part")
 				continue
 			fi
 			[ "$(cat "$part/partition"):$partname" = 24:arch_root_a ] || continue
-			[ "$(cat "$part/start")" = 427819008 ] || continue
-			[ "$(cat "$part/size")" = 67108824 ] || continue
+			[ "$(cat "$part/start")" = "$rog5_root_start" ] || continue
+			[ "$(cat "$part/size")" = "$rog5_root_sectors" ] || continue
 			candidate=/dev/$(basename "$part")
 		done
 		[ -n "$candidate" ] && [ -n "$candidate_userdata" ] || continue
@@ -235,9 +251,9 @@ resolve_storage() {
 	done
 	[ "$matches" -eq 1 ] && [ -b "$disk" ] && [ -b "$arch_root" ] &&
 		[ -b "$userdata" ] || return 1
-	[ "$(blockdev --getsize64 "$disk")" = 253403070464 ] &&
-		[ "$(blockdev --getsize64 "$arch_root")" = 34359717888 ] &&
-		[ "$(blockdev --getsize64 "$userdata")" = 209406754816 ]
+	[ "$(blockdev --getsize64 "$disk")" = "$rog5_ufs_disk_bytes" ] &&
+		[ "$(blockdev --getsize64 "$arch_root")" = "$rog5_root_bytes" ] &&
+		[ "$(blockdev --getsize64 "$userdata")" = "$rog5_userdata_bytes" ]
 }
 
 valid_bundle_name() {
@@ -310,7 +326,7 @@ apply_fallback_request() {
 }
 
 # USB mass storage on the side port (resolved sysfs path under a usbN bus) is
-# not the UFS: it neither counts toward the exact 117 UFS nodes nor is locked
+# not the UFS: it neither counts toward the exact UFS node count nor is locked
 # (an empty card reader cannot be opened). The recovery init documents why.
 usb_attached_block() {
 	case $(readlink -f "$1") in
@@ -329,7 +345,7 @@ verify_all_storage_read_only() {
 			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
 		count=$((count + 1))
 	done
-	[ "$count" -eq 117 ]
+	[ "$count" -eq "$rog5_ufs_node_count" ]
 }
 
 relock_all_storage() {
@@ -359,7 +375,7 @@ verify_trial_write_window() {
 			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
 		count=$((count + 1))
 	done
-	[ "$count" -eq 117 ] && [ "$writable" -eq 2 ]
+	[ "$count" -eq "$rog5_ufs_node_count" ] && [ "$writable" -eq 2 ]
 }
 
 select_trial_bundle() {
@@ -403,7 +419,7 @@ select_trial_bundle() {
 			trial_failure=identity
 			identity=$(blkid "$userdata") || trial_attempt_ready=0
 			printf '%s\n' "$identity" |
-				grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' ||
+				grep -Fq " UUID=\"$rog5_userdata_fs_uuid\"" ||
 				trial_attempt_ready=0
 			printf '%s\n' "$identity" |
 				grep -Fq ' LABEL="rog5-linux"' || trial_attempt_ready=0

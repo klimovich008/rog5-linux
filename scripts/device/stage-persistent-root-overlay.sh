@@ -14,36 +14,53 @@ case ${1:-} in
 esac
 [ "$#" -eq 1 ] || fail 'unexpected overlay staging arguments'
 
+# BEGIN ROG5 DEVICE PROFILE
+# One phone's identities; scripts/host/rog5-device-profile render rewrites
+# these values from a profile (default: configs/device-profiles/reference.env,
+# the reference ZS673KS 256 GB). The image is created at
+# rog5_overlay_create_bytes (profile default: userdata minus the /persist
+# image minus max(6 GiB, 5 %)) and is fully allocated (fallocate).
+rog5_ufs_node_count=117
+rog5_ufs_disk_sectors=494927872
+rog5_userdata_start=18821440
+rog5_userdata_sectors=408997568
+rog5_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b
+rog5_userdata_fs_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+rog5_overlay_fs_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+rog5_overlay_create_bytes=17179869184
+rog5_overlay_manifest_bytes=129
+rog5_overlay_manifest_sha256=e894abd56cccdfce9ce3292438df022aa9672a8655cac6493b94cfd19d6bad5f
+# END ROG5 DEVICE PROFILE
 expected_boot_id=${EXPECTED_ROG5_BOOT_ID:-}
 expected_bundle=${EXPECTED_ROG5_BUNDLE:-}
-image_bytes=17179869184
-image_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+image_bytes=$rog5_overlay_create_bytes
+image_uuid=$rog5_overlay_fs_uuid
 image_label=ROG5_ROOT_RW_V1
-userdata_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
-userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b
+userdata_uuid=$rog5_userdata_fs_uuid
+userdata_partuuid=$rog5_userdata_partuuid
 userdata_label=rog5-linux
-userdata_start=18821440
-userdata_size=408997568
-disk_size=494927872
+userdata_start=$rog5_userdata_start
+userdata_size=$rog5_userdata_sectors
+disk_size=$rog5_ufs_disk_sectors
 mountpoint=/.rog5/userdata-rw
 image_mount=/run/rog5-root-overlay-stage
 relative_partial=rog5/root/root-overlay-v1.ext4.partial
 relative_final=rog5/root/root-overlay-v1.ext4
-manifest_text='format=rog5-persistent-root-overlay-v1
-image_bytes=17179869184
-image_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
-layout=upper,work'
+manifest_text="format=rog5-persistent-root-overlay-v1
+image_bytes=$image_bytes
+image_uuid=$image_uuid
+layout=upper,work"
 
 [ "$(id -u)" -eq 0 ] || fail 'overlay staging requires root'
 printf '%s\n' "$expected_boot_id" |
 	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
 	fail 'EXPECTED_ROG5_BOOT_ID is invalid'
 printf '%s\n' "$expected_bundle" |
-	grep -Eq '^persistent-native-root-[a-z0-9]([a-z0-9-]*[a-z0-9])?$' ||
+	grep -Eq '^[a-z0-9][a-z0-9._-]{0,63}$' ||
 	fail 'EXPECTED_ROG5_BUNDLE is invalid'
 
 for command in awk basename blkid blockdev cat chmod chown cut \
-	dumpe2fs e2fsck find findmnt flock grep id losetup mkdir mkfs.ext4 \
+	dumpe2fs e2fsck fallocate find findmnt flock grep id losetup mkdir mkfs.ext4 \
 	mount mountpoint mv readlink rmdir sed sha256sum stat sync systemctl \
 	timeout truncate umount wc; do
 	command -v "$command" >/dev/null || fail "missing staging command: $command"
@@ -99,7 +116,7 @@ verify_write_scope() {
 			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
 		count=$((count + 1))
 	done
-	[ "$count:$writable" = 117:2 ]
+	[ "$count:$writable" = "$rog5_ufs_node_count:2" ]
 }
 
 verify_power() {
@@ -182,10 +199,14 @@ else
 fi
 
 if [ -e "$mountpoint/$relative_partial" ] || [ -L "$mountpoint/$relative_partial" ]; then
-	metadata=$(stat -c '%u:%g:%a:%h:%s:%b' "$mountpoint/$relative_partial") ||
+	# A partial left by an interrupted run (allocated, no filesystem yet) is
+	# restarted; anything else is left for a human to inspect.
+	metadata=$(stat -c '%u:%g:%a:%h:%s' "$mountpoint/$relative_partial") ||
 		fail 'partial overlay metadata unavailable'
-	[ "$metadata" = "0:0:600:1:$image_bytes:0" ] ||
-		fail 'existing partial overlay is not empty'
+	case $metadata in
+		"0:0:600:1:0"|"0:0:600:1:$image_bytes") ;;
+		*) fail 'existing partial overlay is not a restartable partial' ;;
+	esac
 	blkid -p "$mountpoint/$relative_partial" >/dev/null 2>&1 &&
 		fail 'existing partial overlay has a filesystem'
 	truncate -s 0 "$mountpoint/$relative_partial"
@@ -197,13 +218,24 @@ else
 	partial_mode=new
 fi
 chmod 0600 "$mountpoint/$relative_partial"
-truncate -s "$image_bytes" "$mountpoint/$relative_partial"
+# Allocate every block now, so the overlay can never run out of space on a
+# full userdata (a sparse image would fail writes inside the loop device).
+fallocate -l "$image_bytes" "$mountpoint/$relative_partial" ||
+	fail "userdata has no room for the overlay image"
 [ "$(stat -c '%u:%g:%a:%h:%s' "$mountpoint/$relative_partial")" = \
 	"0:0:600:1:$image_bytes" ] || fail 'partial overlay metadata changed'
 
+# nodiscard: mke2fs discards a regular file by punching holes, which would
+# make the image sparse again. Allocate once more afterwards (fills any hole,
+# keeps data) and prove every byte is backed before the image is published.
 mkfs.ext4 -q -F -m 1 -L "$image_label" -U "$image_uuid" \
-	-E "hash_seed=$image_uuid,lazy_itable_init=0,lazy_journal_init=0" \
+	-E "hash_seed=$image_uuid,lazy_itable_init=0,lazy_journal_init=0,nodiscard" \
 	"$mountpoint/$relative_partial"
+fallocate -l "$image_bytes" "$mountpoint/$relative_partial" ||
+	fail "userdata has no room for the overlay image"
+set -- $(stat -c '%s %b %B' "$mountpoint/$relative_partial")
+[ "$1" = "$image_bytes" ] && [ $(($2 * $3)) -ge "$image_bytes" ] ||
+	fail 'overlay image is not fully allocated'
 
 loop_device=$(losetup -f)
 case $loop_device in /dev/loop[0-9]*) ;; *) fail 'unsafe loop device' ;; esac
@@ -228,9 +260,9 @@ mkdir -m 0700 "$image_mount/work"
 printf '%s\n' "$manifest_text" >"$image_mount/rog5-root-overlay.manifest"
 chown 0:0 "$image_mount/rog5-root-overlay.manifest"
 chmod 0444 "$image_mount/rog5-root-overlay.manifest"
-[ "$(stat -c %s "$image_mount/rog5-root-overlay.manifest")" = 129 ] &&
+[ "$(stat -c %s "$image_mount/rog5-root-overlay.manifest")" = "$rog5_overlay_manifest_bytes" ] &&
 	[ "$(sha256sum "$image_mount/rog5-root-overlay.manifest" | cut -d ' ' -f 1)" = \
-		e894abd56cccdfce9ce3292438df022aa9672a8655cac6493b94cfd19d6bad5f ] ||
+		"$rog5_overlay_manifest_sha256" ] ||
 	fail 'overlay manifest identity changed'
 sync -f "$image_mount/rog5-root-overlay.manifest"
 umount "$image_mount"

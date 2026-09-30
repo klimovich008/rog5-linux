@@ -98,7 +98,10 @@ def init_library(logfile):
     text = INIT.read_text()
     body = f"update_snapshot_excludable='{EXCLUDES}'\n"
     body += ''.join(function(text, name) for name in INIT_FUNCTIONS)
-    body = patched(body, PINS + ((CACHE_PIN, sha(CACHE)), ('expected_cache_size=20207', f'expected_cache_size={len(CACHE)}')))
+    # The lower ld.so.cache pin comes from the init's device profile block.
+    body = patched(body, PINS + (
+        ('expected_cache_sha256=$rog5_root_ld_cache_sha256', f'expected_cache_sha256={sha(CACHE)}'),
+        ('expected_cache_size=$rog5_root_ld_cache_bytes', f'expected_cache_size={len(CACHE)}')))
     return (f'set -u\ntarget_boot_id=${{TEST_BOOT_ID:-{BOOT}}}\nexpected_persistent_overlay_mode=1\n'
             f'expected_ssh_diagnostic_mode=0\nlog() {{ printf "%s\\n" "$*" >>{logfile}; }}\n' + body)
 

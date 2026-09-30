@@ -47,12 +47,25 @@ IMAGE_SIZE = 134217728
 USB = Path(os.environ.get('ROG5_TRIAL_USB', '/sys/bus/usb/devices/1-1.2'))
 ANCHOR = os.environ.get('ROG5_TRIAL_ANCHOR', '/sys/devices/pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2')
 NET = Path(os.environ.get('ROG5_TRIAL_NET', '/sys/class/net'))
-INTERFACE = 'enp4s0f3u1u2'
+# The PC's USB network interface to the phone and the SSH identity default to
+# the reference setup (a Steam Deck); another PC sets ROG5_TRIAL_INTERFACE,
+# ROG5_SSH_KEY and ROG5_KNOWN_HOSTS (or ~/.config/rog5/{ssh-key,known_hosts}).
+INTERFACE = os.environ.get('ROG5_TRIAL_INTERFACE', 'enp4s0f3u1u2')
 FASTBOOT = Path(os.environ.get('ROG5_TRIAL_FASTBOOT', '/usr/bin/fastboot'))
 SSH = os.environ.get('ROG5_TRIAL_SSH', '/usr/bin/ssh')
 STATE = Path.home()/'.local/state'
-KEY = STATE/'rog5-v13-live-inputs-20260823-r1/deployment-ssh-key'
-KNOWN_HOSTS = STATE/'rog5-native-root-release-v6-20260829-r1/v7-stable-known-hosts'
+
+
+def _host_file(variable, config_name, reference):
+    if os.environ.get(variable):
+        return Path(os.environ[variable])
+    configured = Path.home()/'.config/rog5'/config_name
+    return configured if configured.exists() else reference
+
+
+KEY = _host_file('ROG5_SSH_KEY', 'ssh-key', STATE/'rog5-v13-live-inputs-20260823-r1/deployment-ssh-key')
+KNOWN_HOSTS = _host_file('ROG5_KNOWN_HOSTS', 'known_hosts',
+                         STATE/'rog5-native-root-release-v6-20260829-r1/v7-stable-known-hosts')
 CLAIMS = Path(os.environ.get('ROG5_TRIAL_CLAIMS', STATE/'rog5-production-boot-20260923/claims'))
 SHA = re.compile(r'[0-9a-f]{64}')
 NMCLI = os.environ.get('ROG5_TRIAL_NMCLI', '/usr/bin/nmcli')

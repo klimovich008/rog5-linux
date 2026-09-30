@@ -27,6 +27,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import importlib.util
 
 REPO = Path(__file__).resolve().parents[2]
@@ -77,18 +78,26 @@ def package(args):
     os.umask(0o077)
     out.mkdir(mode=0o700)
     log = trial.Log(out)
-    env = dict(os.environ, LC_ALL='C', ROG5_TRIAL_HELPER=args.trial_helper)
+    recovery_init, env = trial.wrapper_sources(log, out, getattr(args, 'device_profile', None),
+                                               sha(inputs['recovery_base']))
+    env.update(LC_ALL='C', ROG5_TRIAL_HELPER=args.trial_helper)
+    selector_loader = REPO/'initramfs/persistent-slotb-loader-init'
+    if getattr(args, 'device_profile', None):
+        rendered = out/'selector-loader.rendered'
+        log.run([sys.executable, REPO/'scripts/host/rog5-device-profile', 'render', '--profile',
+                 Path(args.device_profile).resolve(), selector_loader, rendered])
+        selector_loader = rendered
 
     recovery = out/'recovery.cpio.gz'
     log.run([REPO/'scripts/device/build-persistent-slotb-recovery-initramfs.sh', inputs['recovery_base'],
-             REPO/'initramfs/recovery-init', REPO/'initramfs/persistent-slotb-local-loader', recovery], env=env)
+             recovery_init, REPO/'initramfs/persistent-slotb-local-loader', recovery], env=env)
     root = out/'recovery-root'
     root.mkdir()
     with open(recovery, 'rb') as archive:
         cpio = subprocess.run(['gzip', '-dc'], stdin=archive, capture_output=True, check=True).stdout
     subprocess.run(['cpio', '-idm', '--quiet', '--no-absolute-filenames'], input=cpio, cwd=root, check=True)
-    members = {'init': REPO/'initramfs/recovery-init',
-               'usr/libexec/rog5-selector-v2-loader': REPO/'initramfs/persistent-slotb-loader-init',
+    members = {'init': recovery_init,
+               'usr/libexec/rog5-selector-v2-loader': selector_loader,
                'usr/libexec/rog5-persistent-slotb-local-loader': REPO/'initramfs/persistent-slotb-local-loader',
                'usr/libexec/rog5-persistent-trial-state': helper}
     for member, source in members.items():
@@ -147,6 +156,8 @@ def main():
     parser.add_argument('--trial-helper', default='artifacts/persistent-trial-state-v2/rog5-persistent-trial-state')
     parser.add_argument('--version', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--device-profile', help='render recovery-init and the selector loader for this '
+                        'device profile (default: the reference phone)')
     print(json.dumps(package(parser.parse_args()), indent=2))
 
 

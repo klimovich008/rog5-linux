@@ -26,11 +26,18 @@ def function(source: str, name: str) -> str:
     return source[start : end + 3]
 
 
+def profile_block(source: str) -> str:
+    """The device profile block (the reference phone's values) of a source."""
+    start = source.index("# BEGIN ROG5 DEVICE PROFILE")
+    end = source.index("# END ROG5 DEVICE PROFILE", start)
+    return source[start:end]
+
+
 class PersistentRootStorageResolutionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.source = INIT.read_text(encoding="utf-8")
-        cls.resolver = function(cls.source, "find_exact_userdata")
+        cls.resolver = profile_block(cls.source) + function(cls.source, "find_exact_userdata")
         cls.udc_functions = "\n".join(
             function(cls.source, name)
             for name in (
@@ -42,7 +49,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         )
         cls.rendezvous = function(cls.source, "wait_for_deferred_ufs_rendezvous")
         cls.exact_regular = function(cls.source, "verify_exact_regular")
-        cls.volatile_state = "\n".join(
+        cls.volatile_state = profile_block(cls.source) + "\n".join(
             function(cls.source, name)
             for name in (
                 "verify_systemd_update_marker",
@@ -764,10 +771,9 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
 
         cache_hash = hashlib.sha256(b"cache\n").hexdigest()
         helper = self.volatile_state.replace(
-            "expected_cache_size=20207", "expected_cache_size=6"
+            "expected_cache_size=$rog5_root_ld_cache_bytes", "expected_cache_size=6"
         ).replace(
-            "expected_cache_sha256="
-            "ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed",
+            "expected_cache_sha256=$rog5_root_ld_cache_sha256",
             f"expected_cache_sha256={cache_hash}",
         )
         verifier = r'''
@@ -907,10 +913,12 @@ chmod() {
 
     def test_volatile_systemd_state_is_exact_and_tmpfs_only(self) -> None:
         helper = self.volatile_state
-        self.assertIn("expected_cache_size=20207", helper)
+        self.assertIn("expected_cache_size=$rog5_root_ld_cache_bytes", helper)
+        self.assertIn("expected_cache_sha256=$rog5_root_ld_cache_sha256", helper)
+        self.assertIn("\nrog5_root_ld_cache_bytes=20207\n", helper)
         self.assertIn(
-            "expected_cache_sha256="
-            "ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed",
+            "\nrog5_root_ld_cache_sha256="
+            "ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed\n",
             helper,
         )
         self.assertIn(
@@ -934,12 +942,16 @@ chmod() {
         )
         verification = function(self.source, "verify_persistent_root")
         self.assertIn(
-            'verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688',
+            'verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 \\\n'
+            '\t\t"$rog5_root_ssh_keygen_bytes" "$rog5_root_ssh_keygen_sha256"',
             verification,
         )
+        block = profile_block(self.source)
+        self.assertIn("\nrog5_root_ssh_keygen_bytes=526688\n", block)
         self.assertIn(
-            "e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e",
-            verification,
+            "\nrog5_root_ssh_keygen_sha256="
+            "e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e\n",
+            block,
         )
         self.assertIn(
             "HostKey /etc/ssh/ssh_host_ed25519_key", verification

@@ -272,6 +272,27 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   deliver` still needs a kdev tree from the running kernel's build; its
   release check now also tells builds apart.
 
+### Device profile (per-phone boot values)
+
+The boot sources accept exactly one phone and one root. Their per-phone
+values (UFS geometry and node count, userdata/p24/overlay/state UUIDs, the
+overlay size limit, the sealed root's hashes and pinned binaries) live only in
+the `# BEGIN ROG5 DEVICE PROFILE` block at the top of
+`initramfs/persistent-root-init`, `persistent-root-attest`,
+`persistent-service-state`, `persistent-slotb-loader-init`, `recovery-init`,
+`scripts/device/stage-persistent-root-overlay.sh` and
+`stage-persistent-service-state.sh`; the rest of each script uses the
+`rog5_*` names. The blocks carry the reference phone's values
+(`configs/device-profiles/reference.env`). `scripts/host/rog5-device-profile
+render` rewrites a block from another profile, and
+`build-persistent-root-standalone-initramfs.sh` does it for the init,
+attestor and state helper when `ROG5_DEVICE_PROFILE` is set.
+`scripts/host/test-rog5-device-profile.py` fails when a block and
+`reference.env` disagree or a reference value appears outside a block, so
+change both together. The overlay limit (`rog5_overlay_max_bytes`) is derived:
+userdata - 4 GiB - max(2 GiB, userdata / 32), in whole MiB (184.9 GiB on the
+reference phone, was a fixed 192 GiB).
+
 ### Making a production kernel the default
 
 The slot-B loader boots the selector's primary bundle while the p23 try-once

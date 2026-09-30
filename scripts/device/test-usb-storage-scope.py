@@ -197,7 +197,9 @@ bb() {{ "$@"; }}
     def test_init_resolution_and_every_scope_loop_skip_usb(self):
         source = INIT.read_text()
         self.assertIn('$expected_physical_count', function(INIT, 'lock_physical_storage'))
-        self.assertIn('expected_physical_count=117\n', source)
+        # The count comes from the device profile block (reference phone: 117).
+        self.assertIn('expected_physical_count=$rog5_ufs_node_count\n', source)
+        self.assertIn('rog5_ufs_node_count=117\n', source)
         for name in ('physical_topology_count', 'lock_physical_storage',
                      'verify_physical_storage_read_only', 'find_exact_userdata',
                      'find_exact_arch_root', 'write_ufs_inventory',

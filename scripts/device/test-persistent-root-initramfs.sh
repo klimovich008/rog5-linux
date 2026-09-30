@@ -134,8 +134,10 @@ done
 for contract in \
 	'find_exact_arch_root() {' \
 	'[ "$partition_name" = arch_root_a ]' \
-	'[ "$(cat "$sys_block/start")" = 427819008 ]' \
-	'[ "$(cat "$sys_block/size")" = 67108824 ]' \
+	'[ "$(cat "$sys_block/start")" = "$rog5_root_start" ]' \
+	'[ "$(cat "$sys_block/size")" = "$rog5_root_sectors" ]' \
+	'rog5_root_start=427819008' \
+	'rog5_root_sectors=67108824' \
 	'[ "$expected_native_root_mode" -eq 1 ]' \
 	'"$userdata" /mnt/root-ro' \
 	'[ "$expected_native_root_mode" -eq 0 ]'; do
@@ -339,7 +341,9 @@ for name in sys.argv[1:]:
 PY
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
-grep -Fq 'expected_physical_count=117' "$init"
+# Device identities come from the profile block (reference phone values).
+grep -Fqx 'expected_physical_count=$rog5_ufs_node_count' "$init"
+grep -Fqx 'rog5_ufs_node_count=117' "$init"
 grep -Fq "'format=rog5-persistent-root-stage-v2'" "$init" ||
 	fail 'P2 target lacks bounded stage-detail framing'
 grep -Fq 'stage_detail=${3:-none}' "$init" ||
@@ -356,9 +360,11 @@ grep -Fq '"$runtime_detail"' "$init" ||
 	fail 'P2 target does not publish the bounded power-key runtime detail'
 grep -Fq 'ufs-discovery-p${count}-a${auto_count}-h${host_count}-w${wlun_count}-e${error_count}' \
 	"$init" || fail 'P2 UFS discriminator lacks exact counters'
-grep -Fq 'expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876' \
+grep -Fqx 'expected_seal_sha256=$rog5_root_seal_sha256' "$init"
+grep -Fqx 'rog5_root_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876' \
 	"$init"
-grep -Fq 'expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167' \
+grep -Fqx 'expected_tree_sha256=$rog5_root_tree_sha256' "$init"
+grep -Fqx 'rog5_root_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167' \
 	"$init"
 grep -Fq 'expected_image_bytes=17179869184' "$init" "$attest"
 grep -Fq 'expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4' \

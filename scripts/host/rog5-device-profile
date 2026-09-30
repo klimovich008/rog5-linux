@@ -1,0 +1,487 @@
+#!/usr/bin/env python3
+"""ROG5 device profile: the per-phone, per-root identities the boot code pins.
+
+The production boot chain accepts exactly one phone and one root: the UFS
+geometry (disk size, userdata p23 and arch_root_a p24 start/size, the
+number of UFS block nodes), the filesystem UUIDs of userdata, p24, the
+overlay and the /persist state image, and the sealed root on p24 (seal
+hashes and the systemd, sshd and authorized_keys it boots). Those values sit
+in a marked block at the top of each boot script:
+
+    # BEGIN ROG5 DEVICE PROFILE
+    rog5_ufs_node_count=117
+    ...
+    # END ROG5 DEVICE PROFILE
+
+The values in the repository are the reference phone's (a ZS673KS with
+256 GB UFS and 12 GB RAM, configs/device-profiles/reference.env). Another
+phone needs its own profile, and its bundle and slot-B wrapper are built
+from sources rendered with it. The rendered sources keep every check; only
+the expected values change, and they end up inside your signed bundle.
+
+    rog5-device-profile collect-script           > inventory.sh   (run on the phone, read-only)
+    rog5-device-profile plan --inventory INV      layout for a stock phone: p23 shrink, p24, overlay size
+    rog5-device-profile make --inventory INV --root-identity ID [--base P] -o PROFILE
+    rog5-device-profile check PROFILE
+    rog5-device-profile render --profile PROFILE SOURCE OUTPUT
+    rog5-device-profile render-tree --profile PROFILE OUTDIR   every profiled source under OUTDIR
+    rog5-device-profile show-derived PROFILE      manifests and the overlay size limits
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import re
+import sys
+import uuid
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+REFERENCE = REPO / 'configs/device-profiles/reference.env'
+BEGIN = '# BEGIN ROG5 DEVICE PROFILE'
+END = '# END ROG5 DEVICE PROFILE'
+FORMAT = 'rog5-device-profile-v1'
+
+# Every source that carries a profile block, relative to the repository.
+PROFILED_SOURCES = (
+    'initramfs/persistent-root-init',
+    'initramfs/persistent-root-attest',
+    'initramfs/persistent-service-state',
+    'initramfs/persistent-slotb-loader-init',
+    'initramfs/recovery-init',
+    'scripts/device/stage-persistent-root-overlay.sh',
+    'scripts/device/stage-persistent-service-state.sh',
+)
+
+GIB = 1 << 30
+MIB = 1 << 20
+SECTOR = 512
+STATE_BYTES = 4 * GIB            # /persist image (rog5/state/server-state-v1.ext4)
+OVERLAY_MIN_BYTES = 16 * GIB     # smallest overlay image the boot accepts
+ROOT_BYTES_DEFAULT = 67108824 * SECTOR    # the reference p24: 32 GiB - 20 KiB, 8388603 blocks
+
+INT = r'[1-9][0-9]{0,15}'
+UUID = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+SHA = r'[0-9a-f]{64}'
+KEYS = {
+    'ROG5_PROFILE_FORMAT': re.escape(FORMAT),
+    'ROG5_PROFILE_NAME': r'[a-z0-9][a-z0-9-]{0,63}',
+    # UFS (sizes and starts in 512-byte sectors, as /sys/class/block reports them)
+    'ROG5_UFS_NODE_COUNT': INT,
+    'ROG5_UFS_DISK_SECTORS': INT,
+    'ROG5_USERDATA_START': INT,
+    'ROG5_USERDATA_SECTORS': INT,
+    'ROG5_USERDATA_PARTUUID': UUID,
+    'ROG5_USERDATA_FS_UUID': UUID,
+    'ROG5_ROOT_START': INT,
+    'ROG5_ROOT_SECTORS': INT,
+    'ROG5_ROOT_FS_UUID': UUID,
+    'ROG5_OVERLAY_FS_UUID': UUID,
+    'ROG5_OVERLAY_CREATE_BYTES': INT,
+    'ROG5_STATE_FS_UUID': UUID,
+    # The sealed p24 root (scripts/host/rog5-build-rootfs writes these)
+    'ROG5_ROOT_SEAL_BYTES': INT,
+    'ROG5_ROOT_SEAL_SHA256': SHA,
+    'ROG5_ROOT_SOURCE_SEAL_BYTES': INT,
+    'ROG5_ROOT_SOURCE_SEAL_SHA256': SHA,
+    'ROG5_ROOT_TREE_SHA256': SHA,
+    'ROG5_ROOT_TREE_ENTRIES': INT,
+    'ROG5_ROOT_SOURCE_ARCHIVE_SIZE': INT,
+    'ROG5_ROOT_SOURCE_ARCHIVE_SHA256': SHA,
+    'ROG5_ROOT_SYSTEMD_BYTES': INT,
+    'ROG5_ROOT_SYSTEMD_SHA256': SHA,
+    'ROG5_ROOT_SSHD_BYTES': INT,
+    'ROG5_ROOT_SSHD_SHA256': SHA,
+    'ROG5_ROOT_SSH_KEYGEN_BYTES': INT,
+    'ROG5_ROOT_SSH_KEYGEN_SHA256': SHA,
+    'ROG5_ROOT_SSHDGENKEYS_BYTES': INT,
+    'ROG5_ROOT_SSHDGENKEYS_SHA256': SHA,
+    'ROG5_ROOT_AUTHORIZED_KEYS_BYTES': INT,
+    'ROG5_ROOT_AUTHORIZED_KEYS_SHA256': SHA,
+    'ROG5_ROOT_LD_CACHE_BYTES': INT,
+    'ROG5_ROOT_LD_CACHE_SHA256': SHA,
+}
+DERIVED = (
+    'ROG5_UFS_DISK_BYTES', 'ROG5_USERDATA_BYTES', 'ROG5_ROOT_BYTES',
+    'ROG5_OVERLAY_MANIFEST_BYTES', 'ROG5_OVERLAY_MANIFEST_SHA256',
+    'ROG5_STATE_MANIFEST_BYTES', 'ROG5_STATE_MANIFEST_SHA256',
+    'ROG5_OVERLAY_MAX_BYTES',
+)
+STORAGE_KEYS = [k for k in KEYS if k.startswith(('ROG5_UFS_', 'ROG5_USERDATA_', 'ROG5_OVERLAY_', 'ROG5_STATE_'))
+                ] + ['ROG5_ROOT_START', 'ROG5_ROOT_SECTORS', 'ROG5_ROOT_FS_UUID']
+ROOT_IDENTITY_KEYS = [k for k in KEYS if k.startswith('ROG5_ROOT_') and k not in STORAGE_KEYS]
+
+
+class ProfileError(Exception):
+    pass
+
+
+def overlay_manifest(p: dict) -> str:
+    return ('format=rog5-persistent-root-overlay-v1\n'
+            f'image_bytes={p["ROG5_OVERLAY_CREATE_BYTES"]}\n'
+            f'image_uuid={p["ROG5_OVERLAY_FS_UUID"]}\n'
+            'layout=upper,work\n')
+
+
+def state_manifest(p: dict) -> str:
+    return ('format=rog5-persistent-service-state-v1\n'
+            f'image_bytes={STATE_BYTES}\n'
+            f'image_uuid={p["ROG5_STATE_FS_UUID"]}\n'
+            'layout=home,root,var-lib,var-log,etc-ssh,secrets\n')
+
+
+def overlay_limits(userdata_bytes: int) -> tuple[int, int]:
+    """(boot maximum, installer default) for the overlay image, in bytes.
+
+    Both leave the 4 GiB /persist image on userdata. The boot maximum also
+    keeps max(2 GiB, 1/32 of userdata) for ext4 metadata, boot records and
+    logs, so an image that is larger than the filesystem could ever hold
+    (a sparse one) is refused. The installer default keeps max(6 GiB, 5 %)
+    free. Both are whole MiB.
+    """
+    boot = userdata_bytes - STATE_BYTES - max(2 * GIB, userdata_bytes // 32)
+    default = userdata_bytes - STATE_BYTES - max(6 * GIB, userdata_bytes // 20)
+    return boot // MIB * MIB, default // MIB * MIB
+
+
+def parse(text: str, *, partial: bool = False) -> dict:
+    values = {}
+    for number, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        match = re.fullmatch(r'([A-Z0-9_]+)=(\S+)', line)
+        if not match:
+            raise ProfileError(f'line {number}: expected KEY=VALUE, got {raw!r}')
+        key, value = match.groups()
+        if key in DERIVED:
+            continue   # recomputed below; never trusted from a file
+        if key not in KEYS:
+            if partial:
+                continue
+            raise ProfileError(f'line {number}: unknown key {key}')
+        if key in values:
+            raise ProfileError(f'line {number}: duplicate key {key}')
+        if not re.fullmatch(KEYS[key], value):
+            raise ProfileError(f'line {number}: {key}={value!r} is not a valid value')
+        values[key] = value
+    return values
+
+
+def validate(p: dict) -> dict:
+    missing = [k for k in KEYS if k not in p]
+    if missing:
+        raise ProfileError('missing keys: ' + ', '.join(missing))
+    n = {k: int(v) for k, v in p.items() if KEYS[k] == INT}
+    disk = n['ROG5_UFS_DISK_SECTORS']
+    ud_start, ud_len = n['ROG5_USERDATA_START'], n['ROG5_USERDATA_SECTORS']
+    root_start, root_len = n['ROG5_ROOT_START'], n['ROG5_ROOT_SECTORS']
+    for name, value in (('disk', disk), ('userdata start', ud_start), ('userdata size', ud_len),
+                        ('p24 start', root_start), ('p24 size', root_len)):
+        if value % 8:
+            raise ProfileError(f'{name} is not 4 KiB aligned ({value} sectors)')
+    if not ud_start + ud_len <= root_start:
+        raise ProfileError('p24 must start after userdata ends')
+    if root_start + root_len > disk:
+        raise ProfileError('p24 extends past the end of the disk')
+    if root_len * SECTOR < 8 * GIB:
+        raise ProfileError('p24 is smaller than 8 GiB')
+    userdata = ud_len * SECTOR
+    boot_max, _ = overlay_limits(userdata)
+    create = n['ROG5_OVERLAY_CREATE_BYTES']
+    if create % MIB or not OVERLAY_MIN_BYTES <= create <= boot_max:
+        raise ProfileError(f'ROG5_OVERLAY_CREATE_BYTES must be whole MiB within '
+                           f'{OVERLAY_MIN_BYTES}..{boot_max} for this userdata')
+    if n['ROG5_UFS_NODE_COUNT'] < 24:
+        raise ProfileError('ROG5_UFS_NODE_COUNT is implausibly small')
+    uuids = [p[k] for k in ('ROG5_USERDATA_FS_UUID', 'ROG5_ROOT_FS_UUID', 'ROG5_OVERLAY_FS_UUID',
+                            'ROG5_STATE_FS_UUID')]
+    if len(set(uuids)) != len(uuids):
+        raise ProfileError('the four filesystem UUIDs must differ')
+    out = dict(p)
+    out['ROG5_UFS_DISK_BYTES'] = str(disk * SECTOR)
+    out['ROG5_USERDATA_BYTES'] = str(userdata)
+    out['ROG5_ROOT_BYTES'] = str(root_len * SECTOR)
+    om, sm = overlay_manifest(p).encode(), state_manifest(p).encode()
+    out['ROG5_OVERLAY_MANIFEST_BYTES'] = str(len(om))
+    out['ROG5_OVERLAY_MANIFEST_SHA256'] = hashlib.sha256(om).hexdigest()
+    out['ROG5_STATE_MANIFEST_BYTES'] = str(len(sm))
+    out['ROG5_STATE_MANIFEST_SHA256'] = hashlib.sha256(sm).hexdigest()
+    out['ROG5_OVERLAY_MAX_BYTES'] = str(boot_max)
+    return out
+
+
+def load(path: Path) -> dict:
+    return validate(parse(path.read_text()))
+
+
+def render(profile: dict, text: str, name: str = 'source') -> str:
+    """Rewrite the values of the profile block; everything else stays."""
+    lines = text.split('\n')
+    try:
+        begin = next(i for i, l in enumerate(lines) if l.startswith(BEGIN))
+        end = next(i for i, l in enumerate(lines) if l == END)
+    except StopIteration:
+        raise ProfileError(f'{name}: no profile block')
+    if sum(l.startswith(BEGIN) for l in lines) != 1 or lines.count(END) != 1 or end < begin:
+        raise ProfileError(f'{name}: exactly one ordered profile block is required')
+    seen = set()
+    for i in range(begin + 1, end):
+        line = lines[i]
+        if not line or line.startswith('#'):
+            continue
+        match = re.fullmatch(r'(rog5_[a-z0-9_]+)=(\S+)', line)
+        if not match:
+            raise ProfileError(f'{name}:{i + 1}: profile block lines must be rog5_name=value')
+        key = match.group(1).upper()
+        if key not in profile:
+            raise ProfileError(f'{name}:{i + 1}: {key} is not a profile key')
+        if key in seen:
+            raise ProfileError(f'{name}:{i + 1}: {key} repeated')
+        seen.add(key)
+        value = profile[key]
+        if not re.fullmatch(r'[0-9a-f-]+', value):
+            raise ProfileError(f'{key}: unsafe value {value!r}')
+        lines[i] = f'{match.group(1)}={value}'
+    if not seen:
+        raise ProfileError(f'{name}: empty profile block')
+    return '\n'.join(lines)
+
+
+def block_keys(text: str) -> list[str]:
+    inside, keys = False, []
+    for line in text.split('\n'):
+        if line.startswith(BEGIN):
+            inside = True
+        elif line == END:
+            inside = False
+        elif inside and re.match(r'rog5_[a-z0-9_]+=', line):
+            keys.append(line.split('=', 1)[0].upper())
+    return keys
+
+
+COLLECT_SCRIPT = r'''#!/bin/sh
+# ROG5 read-only storage and memory inventory (scripts/host/rog5-device-profile
+# collect-script). Reads sysfs, blkid and the device tree; writes nothing.
+set -u
+echo "format=rog5-inventory-v1"
+echo "model=$(tr -d '\0' </sys/firmware/devicetree/base/model 2>/dev/null)"
+echo "memtotal_kib=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"
+# Only a kernel that ABL started (stock Android's or the ASUS 5.4 wrapper's)
+# sees the bootloader's RAM map; a ROG5 bundle kernel sees its own DTB's.
+case $(uname -r) in 5.4.*) echo memory_source=bootloader ;; *) echo memory_source=bundle-dtb ;; esac
+for reg in /sys/firmware/devicetree/base/memory*/reg; do
+	[ -f "$reg" ] && echo "memory_reg=$(od -An -v -tx1 "$reg" | tr -d ' \n')"
+done
+nodes=0
+for d in /sys/class/block/sd*; do
+	# Same rule as the boot scripts: every sd* node with a dev, not on USB.
+	[ -e "$d/dev" ] || continue
+	case $(readlink -f "$d") in */usb[0-9]*/*) continue ;; esac
+	nodes=$((nodes + 1))
+done
+echo "ufs_nodes=$nodes"
+for d in /sys/class/block/sd[a-z]; do
+	[ -e "$d/device" ] || continue
+	case $(readlink -f "$d") in */usb*) continue ;; esac
+	disk=$(basename "$d")
+	echo "disk=$disk sectors=$(cat "$d/size") lbs=$(cat "$d/queue/logical_block_size")"
+	for p in "$d/$disk"*; do
+		[ -e "$p/partition" ] || continue
+		name=$(sed -n 's/^PARTNAME=//p' "$p/uevent")
+		case $name in userdata|arch_root_a) ;; *) continue ;; esac
+		uuid=$(sed -n 's/^PARTUUID=//p' "$p/uevent" 2>/dev/null)
+		echo "part=$(basename "$p") number=$(cat "$p/partition") name=$name start=$(cat "$p/start") sectors=$(cat "$p/size") partuuid=$uuid"
+		command -v blkid >/dev/null && echo "blkid=$(blkid -o export "/dev/$(basename "$p")" 2>/dev/null | tr '\n' ' ')"
+	done
+done
+'''
+
+
+def parse_inventory(text: str) -> dict:
+    inv = {'parts': {}, 'disks': [], 'memory_reg': []}
+    for line in text.splitlines():
+        if line.startswith('part='):
+            f = dict(x.split('=', 1) for x in line.split() if '=' in x)
+            inv['parts'][f['name']] = f
+            inv['last_part'] = f['name']
+        elif line.startswith('blkid=') and 'last_part' in inv:
+            inv['parts'][inv['last_part']]['blkid'] = dict(
+                x.split('=', 1) for x in line[6:].split() if '=' in x)
+        elif line.startswith('disk='):
+            inv['disks'].append(dict(x.split('=', 1) for x in line.split()))
+        elif line.startswith('memory_reg='):
+            inv['memory_reg'].append(line.split('=', 1)[1])
+        elif '=' in line:
+            key, value = line.split('=', 1)
+            inv[key] = value
+    if inv.get('format') != 'rog5-inventory-v1':
+        raise ProfileError('not a rog5-inventory-v1 file (use collect-script)')
+    if 'userdata' not in inv['parts']:
+        raise ProfileError('the inventory has no userdata partition')
+    number = inv['parts']['userdata'].get('number')
+    if number != '23':
+        raise ProfileError(f'userdata is partition {number}, not 23 (not a ROG Phone 5 layout?)')
+    disk = next(d for d in inv['disks'] if inv['parts']['userdata']['part'].startswith(d['disk']))
+    if disk['lbs'] != '4096':
+        raise ProfileError('the userdata disk does not use 4 KiB logical blocks')
+    inv['disk'] = disk
+    return inv
+
+
+def plan(inv: dict, root_bytes: int = ROOT_BYTES_DEFAULT) -> dict:
+    """p23/p24 layout for a phone whose userdata still spans to the end."""
+    disk_sectors = int(inv['disk']['sectors'])
+    ud = inv['parts']['userdata']
+    start, size = int(ud['start']), int(ud['sectors'])
+    if 'arch_root_a' in inv['parts']:
+        raise ProfileError('arch_root_a already exists; this phone is already partitioned')
+    # The GPT backup takes the last 5 blocks of 4 KiB (one header + four
+    # entry blocks for 128 entries); stock userdata ends right before them.
+    usable_end = start + size
+    root_sectors = root_bytes // SECTOR
+    if root_sectors % 8:
+        raise ProfileError('p24 size must be 4 KiB aligned')
+    root_start = (usable_end - root_sectors) // 8 * 8
+    root_sectors = usable_end - root_start
+    new_ud = root_start - start
+    if new_ud * SECTOR < 40 * GIB:
+        raise ProfileError('less than 40 GiB would be left for userdata')
+    boot_max, default = overlay_limits(new_ud * SECTOR)
+    return {
+        'disk_sectors': disk_sectors,
+        'userdata_start': start, 'userdata_sectors_stock': size,
+        'userdata_sectors': new_ud, 'userdata_bytes': new_ud * SECTOR,
+        'root_start': root_start, 'root_sectors': root_sectors, 'root_bytes': root_sectors * SECTOR,
+        'overlay_boot_max_bytes': boot_max, 'overlay_default_bytes': default,
+        'userdata_ext4_blocks_after_shrink': new_ud * SECTOR // 4096,
+    }
+
+
+def cmd_plan(args):
+    inv = parse_inventory(Path(args.inventory).read_text())
+    result = plan(inv, args.root_bytes)
+    print(f'# ROG5 layout plan for {inv.get("model", "unknown")} '
+          f'({int(inv["disk"]["sectors"]) * SECTOR / GIB:.1f} GiB UFS LUN, '
+          f'{int(inv.get("memtotal_kib", 0)) / 1048576:.1f} GiB RAM visible)')
+    for key, value in result.items():
+        suffix = f'  ({value / GIB:.2f} GiB)' if key.endswith('bytes') else ''
+        print(f'{key}={value}{suffix}')
+    print('# userdata p23 keeps its start; shrink its ext4 to '
+          f'{result["userdata_ext4_blocks_after_shrink"]} blocks before writing the GPT.')
+    return 0
+
+
+def cmd_make(args):
+    inv = parse_inventory(Path(args.inventory).read_text())
+    base = parse(Path(args.base).read_text()) if args.base else {}
+    ident = parse(Path(args.root_identity).read_text(), partial=True)
+    ud, root = inv['parts']['userdata'], inv['parts'].get('arch_root_a')
+    if not root:
+        raise ProfileError('the inventory has no arch_root_a (collect it after partitioning)')
+    if root.get('number') != '24':
+        raise ProfileError('arch_root_a must be partition 24')
+    blk_ud, blk_root = ud.get('blkid', {}), root.get('blkid', {})
+    if blk_ud.get('LABEL') != 'rog5-linux' or blk_ud.get('TYPE') != 'ext4':
+        raise ProfileError('userdata is not the ext4 filesystem labelled rog5-linux yet')
+    # p24 may still be empty (the profile is needed to build the bundles that
+    # go into the root image before it is flashed); if it holds a filesystem,
+    # it must be the root described by --root-identity.
+    if blk_root.get('TYPE') or blk_root.get('UUID'):
+        if blk_root.get('LABEL') != 'ROG5_ARCH_A':
+            raise ProfileError('arch_root_a holds a filesystem that is not the ROG5_ARCH_A root')
+        if blk_root.get('UUID') != ident.get('ROG5_ROOT_FS_UUID'):
+            raise ProfileError('the p24 filesystem is not the root described by --root-identity')
+    else:
+        print('note: arch_root_a is empty; the profile expects the image of --root-identity there')
+    if int(root['sectors']) * SECTOR != int(Path(args.root_identity).read_text().split(
+            'ROG5_ROOT_IMAGE_BYTES=')[1].split()[0]):
+        raise ProfileError('the root image size differs from the p24 size')
+    userdata_bytes = int(ud['sectors']) * SECTOR
+    _, default = overlay_limits(userdata_bytes)
+    p = {
+        'ROG5_PROFILE_FORMAT': FORMAT,
+        'ROG5_PROFILE_NAME': args.name,
+        'ROG5_UFS_NODE_COUNT': inv['ufs_nodes'],
+        'ROG5_UFS_DISK_SECTORS': inv['disk']['sectors'],
+        'ROG5_USERDATA_START': ud['start'],
+        'ROG5_USERDATA_SECTORS': ud['sectors'],
+        'ROG5_USERDATA_PARTUUID': ud['partuuid'].lower(),
+        'ROG5_USERDATA_FS_UUID': blk_ud['UUID'].lower(),
+        'ROG5_ROOT_START': root['start'],
+        'ROG5_ROOT_SECTORS': root['sectors'],
+        # Keep the overlay/state identities of an existing profile (the images
+        # exist already); new ones are random.
+        'ROG5_OVERLAY_FS_UUID': base.get('ROG5_OVERLAY_FS_UUID', str(uuid.uuid4())),
+        'ROG5_OVERLAY_CREATE_BYTES': base.get('ROG5_OVERLAY_CREATE_BYTES', str(default)),
+        'ROG5_STATE_FS_UUID': base.get('ROG5_STATE_FS_UUID', str(uuid.uuid4())),
+    }
+    for key in ROOT_IDENTITY_KEYS + ['ROG5_ROOT_FS_UUID']:
+        p[key] = ident[key]
+    full = validate(p)
+    text = f'# ROG5 device profile ({FORMAT}); see scripts/host/rog5-device-profile.\n'
+    text += ''.join(f'{k}={p[k]}\n' for k in KEYS)
+    Path(args.output).write_text(text)
+    print(f'wrote {args.output}; overlay image {int(full["ROG5_OVERLAY_CREATE_BYTES"]) / GIB:.2f} GiB')
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest='command', required=True)
+    sub.add_parser('collect-script')
+    s = sub.add_parser('plan'); s.add_argument('--inventory', required=True)
+    s.add_argument('--root-bytes', type=int, default=ROOT_BYTES_DEFAULT)
+    s = sub.add_parser('make'); s.add_argument('--inventory', required=True)
+    s.add_argument('--root-identity', required=True); s.add_argument('--base')
+    s.add_argument('--name', default='my-rog5'); s.add_argument('-o', '--output', required=True)
+    s = sub.add_parser('check'); s.add_argument('profile')
+    s = sub.add_parser('show-derived'); s.add_argument('profile')
+    s = sub.add_parser('render'); s.add_argument('--profile', default=str(REFERENCE))
+    s.add_argument('source'); s.add_argument('output')
+    s = sub.add_parser('render-tree'); s.add_argument('--profile', default=str(REFERENCE))
+    s.add_argument('outdir')
+    args = parser.parse_args()
+    try:
+        if args.command == 'collect-script':
+            sys.stdout.write(COLLECT_SCRIPT)
+        elif args.command == 'plan':
+            return cmd_plan(args)
+        elif args.command == 'make':
+            return cmd_make(args)
+        elif args.command == 'check':
+            load(Path(args.profile))
+            print(f'PASS {args.profile}')
+        elif args.command == 'show-derived':
+            p = load(Path(args.profile))
+            boot_max, default = overlay_limits(int(p['ROG5_USERDATA_BYTES']))
+            for key in DERIVED:
+                print(f'{key}={p[key]}')
+            print(f'overlay_boot_max_bytes={boot_max}\noverlay_default_bytes={default}')
+        elif args.command == 'render':
+            p = load(Path(args.profile))
+            src = Path(args.source)
+            out = Path(args.output)
+            if out.exists():
+                raise ProfileError(f'{out} exists')
+            out.write_text(render(p, src.read_text(), str(src)))
+            out.chmod(src.stat().st_mode & 0o777)
+        elif args.command == 'render-tree':
+            p = load(Path(args.profile))
+            outdir = Path(args.outdir)
+            for rel in PROFILED_SOURCES:
+                src, out = REPO / rel, outdir / rel
+                out.parent.mkdir(parents=True, exist_ok=True)
+                if out.exists():
+                    raise ProfileError(f'{out} exists')
+                out.write_text(render(p, src.read_text(), rel))
+                out.chmod(src.stat().st_mode & 0o777)
+            print(f'rendered {len(PROFILED_SOURCES)} sources into {outdir}')
+    except (ProfileError, OSError) as error:
+        print(f'rog5-device-profile: FAIL {error}', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

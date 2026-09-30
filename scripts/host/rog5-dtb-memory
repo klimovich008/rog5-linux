@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Check or set the RAM map in a composed ROG5 board.dtb.
+
+The DTB in a bundle carries a fixed /memory node: the reference phone's
+12 GB map as the ASUS bootloader (ABL) reported it (0x80000000 + 0x37100000,
+0xc0000000 + 5 GiB, 0x200000000 + 6 GiB). kexec passes the DTB as it is, so
+on a phone with a different RAM size (8, 16 or 18 GB) the kernel would use
+RAM that does not exist, or ignore RAM that does. The fix is to copy the
+memory node ABL gives the ASUS 5.4 wrapper on *your* phone (the collect
+script of scripts/host/rog5-device-profile prints it as memory_reg=HEX; the
+stock-capture wrapper records the whole ABL DT).
+
+Likewise the "memx" reservation (dts/qcom/sm8350-asus-rog-phone5-exec-abort-memory.dtso,
+64 MiB at 0x34a000000) is where the reference phone's wrapper left memory
+that faults on instruction fetch. It is phone- and RAM-layout-specific: on
+another phone compose without memx, read the faulting PFNs from the kernel
+log (rog5-sea) or `journalctl -u rog5-sea-retire`, and reserve your own
+range if faults repeat at the same place.
+
+    rog5-dtb-memory show DTB                 RAM ranges, total, reservations outside RAM
+    rog5-dtb-memory check DTB [--memory-reg HEX]   exit 1 if the map differs or a no-map
+                                              reservation lies outside RAM
+    rog5-dtb-memory set DTB OUT --memory-reg HEX    copy with the /memory reg replaced
+
+Needs fdtget/fdtput (device-tree-compiler). Offline; never touches a phone.
+"""
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+PAGE = 4096
+
+
+class DtbError(Exception):
+    pass
+
+
+def fdt(*args: str) -> str:
+    result = subprocess.run(list(args), capture_output=True, text=True)
+    if result.returncode:
+        raise DtbError(f'{" ".join(args)}: {result.stderr.strip()}')
+    return result.stdout
+
+
+def memory_node(dtb: str) -> str:
+    nodes = [n for n in fdt('fdtget', '-l', dtb, '/').split() if n == 'memory' or n.startswith('memory@')]
+    if len(nodes) != 1:
+        raise DtbError(f'expected one /memory node, found {nodes}')
+    return '/' + nodes[0]
+
+
+def cells(dtb: str, node: str, prop: str = 'reg') -> list[int]:
+    return [int(w, 16) for w in fdt('fdtget', '-t', 'x', dtb, node, prop).split()]
+
+
+def pairs(words: list[int]) -> list[tuple[int, int]]:
+    """(address, size) with #address-cells = #size-cells = 2."""
+    if len(words) % 4:
+        raise DtbError('reg is not a list of 64-bit (address, size) pairs')
+    return [((words[i] << 32) | words[i + 1], (words[i + 2] << 32) | words[i + 3])
+            for i in range(0, len(words), 4)]
+
+
+def parse_reg_hex(text: str) -> list[int]:
+    text = ''.join(text.split()).lower()
+    if not text or len(text) % 32 or any(c not in '0123456789abcdef' for c in text):
+        raise DtbError('--memory-reg must be hex of whole 16-byte (address, size) pairs, '
+                       'as memory_reg= in the collect-script output')
+    words = [int(text[i:i + 8], 16) for i in range(0, len(text), 8)]
+    ranges = [r for r in pairs(words) if r[1]]
+    if not ranges:
+        raise DtbError('--memory-reg has no non-empty range')
+    for address, size in ranges:
+        if address % PAGE or size % PAGE:
+            raise DtbError(f'range {address:#x}+{size:#x} is not page aligned')
+        if address < 0x80000000:
+            raise DtbError(f'range {address:#x} starts below the SM8350 DRAM base 0x80000000')
+    ordered = sorted(ranges)
+    for (a, s), (b, _) in zip(ordered, ordered[1:]):
+        if a + s > b:
+            raise DtbError('memory ranges overlap')
+    total = sum(s for _, s in ranges)
+    if not 6 << 30 <= total <= 20 << 30:
+        raise DtbError(f'total RAM {total / (1 << 30):.2f} GiB is outside 6..20 GiB (ROG Phone 5 has 8-18 GB)')
+    return words
+
+
+def reservations(dtb: str) -> list[tuple[str, int, int, bool]]:
+    out = []
+    try:
+        children = fdt('fdtget', '-l', dtb, '/reserved-memory').split()
+    except DtbError:
+        return out
+    for child in children:
+        node = f'/reserved-memory/{child}'
+        props = fdt('fdtget', '-p', dtb, node).split()
+        if 'reg' not in props:
+            continue   # dynamic (size/alloc-ranges) regions are placed by the kernel
+        for address, size in pairs(cells(dtb, node)):
+            out.append((child, address, size, 'no-map' in props))
+    return out
+
+
+def outside_ram(ram: list[tuple[int, int]], address: int, size: int) -> bool:
+    return not any(a <= address and address + size <= a + s for a, s in ram if s)
+
+
+def show(dtb: str) -> int:
+    node = memory_node(dtb)
+    ram = pairs(cells(dtb, node))
+    total = sum(s for _, s in ram)
+    print(f'{node}:')
+    for address, size in ram:
+        print(f'  {address:#011x} + {size:#011x}  ({size / (1 << 30):.2f} GiB)')
+    print(f'  total {total / (1 << 30):.2f} GiB')
+    bad = [(n, a, s) for n, a, s, nomap in reservations(dtb) if nomap and outside_ram(ram, a, s)]
+    for name, address, size in bad:
+        print(f'warning: no-map reservation {name} {address:#x}+{size:#x} lies outside RAM')
+    if any(n.startswith('memory@34a000000') for n, *_ in reservations(dtb)):
+        print('note: carries the reference phone\'s memx reservation (0x34a000000, 64 MiB)')
+    return 0
+
+
+def check(dtb: str, reg_hex: str | None) -> int:
+    node = memory_node(dtb)
+    ram = pairs(cells(dtb, node))
+    status = 0
+    if reg_hex is not None:
+        wanted = [r for r in pairs(parse_reg_hex(reg_hex)) if r[1]]
+        if sorted(r for r in ram if r[1]) != sorted(wanted):
+            print(f'FAIL {node} differs from the phone\'s memory map')
+            status = 1
+    for name, address, size, nomap in reservations(dtb):
+        if nomap and outside_ram(ram, address, size):
+            print(f'FAIL no-map reservation {name} {address:#x}+{size:#x} lies outside RAM')
+            status = 1
+    if status == 0:
+        print(f'PASS {dtb}: memory map consistent')
+    return status
+
+
+def set_reg(dtb: str, out: str, reg_hex: str) -> int:
+    words = parse_reg_hex(reg_hex)
+    if Path(out).exists():
+        raise DtbError(f'{out} exists')
+    shutil.copyfile(dtb, out)
+    node = memory_node(out)
+    fdt('fdtput', '-t', 'x', out, node, 'reg', *[f'{w:x}' for w in words])
+    status = check(out, reg_hex)
+    if status:
+        Path(out).unlink()
+        print(f'removed {out}: fix the reservations first (e.g. compose without memx)')
+    return status
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest='command', required=True)
+    s = sub.add_parser('show'); s.add_argument('dtb')
+    s = sub.add_parser('check'); s.add_argument('dtb'); s.add_argument('--memory-reg')
+    s = sub.add_parser('set'); s.add_argument('dtb'); s.add_argument('out'); s.add_argument('--memory-reg', required=True)
+    args = parser.parse_args()
+    try:
+        if args.command == 'show':
+            return show(args.dtb)
+        if args.command == 'check':
+            return check(args.dtb, args.memory_reg)
+        return set_reg(args.dtb, args.out, args.memory_reg)
+    except DtbError as error:
+        print(f'rog5-dtb-memory: FAIL {error}', file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

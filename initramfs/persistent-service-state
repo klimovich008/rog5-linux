@@ -13,23 +13,38 @@ action=${1:-}
 [ "$#" -eq 1 ] || fail 'usage: persistent-service-state preflight|start|stop'
 case $action in preflight|start|stop) ;; *) fail 'invalid action' ;; esac
 
-expected_physical_count=117
-expected_disk_sectors=494927872
+# BEGIN ROG5 DEVICE PROFILE
+# One phone's identities; scripts/host/rog5-device-profile render rewrites
+# these values from a profile (default: configs/device-profiles/reference.env).
+rog5_ufs_node_count=117
+rog5_ufs_disk_sectors=494927872
+rog5_userdata_start=18821440
+rog5_userdata_sectors=408997568
+rog5_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b
+rog5_userdata_fs_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+rog5_root_start=427819008
+rog5_root_sectors=67108824
+rog5_state_fs_uuid=52037413-561a-48f4-92c4-8ad45b748a6f
+rog5_state_manifest_bytes=160
+rog5_state_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6
+# END ROG5 DEVICE PROFILE
+expected_physical_count=$rog5_ufs_node_count
+expected_disk_sectors=$rog5_ufs_disk_sectors
 expected_logical_block_bytes=4096
 expected_userdata_partition=23
-expected_userdata_start=18821440
-expected_userdata_sectors=408997568
-expected_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b
-expected_userdata_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+expected_userdata_start=$rog5_userdata_start
+expected_userdata_sectors=$rog5_userdata_sectors
+expected_userdata_partuuid=$rog5_userdata_partuuid
+expected_userdata_uuid=$rog5_userdata_fs_uuid
 expected_userdata_label=rog5-linux
 expected_root_partition=24
-expected_root_start=427819008
-expected_root_sectors=67108824
+expected_root_start=$rog5_root_start
+expected_root_sectors=$rog5_root_sectors
 expected_state_bytes=4294967296
-expected_state_uuid=52037413-561a-48f4-92c4-8ad45b748a6f
+expected_state_uuid=$rog5_state_fs_uuid
 expected_state_label=ROG5_STATE_V1
-expected_manifest_bytes=160
-expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6
+expected_manifest_bytes=$rog5_state_manifest_bytes
+expected_manifest_sha256=$rog5_state_manifest_sha256
 device_record=/run/rog5-persistent-state-userdata-device
 runtime_record=/run/rog5-persistent-state.runtime
 runtime_next=$runtime_record.next
