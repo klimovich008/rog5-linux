@@ -1,10 +1,17 @@
-# What would irritate a real user (2026-09-29, bundle production-7.2.7-r185; re-checked 2026-09-30 on r201)
+# What would irritate a real user (2026-09-29, bundle production-7.2.7-r185; re-checked 2026-09-30 on r201 and r205)
 
 **Re-check 2026-09-30 (bundle production-7.2.7-r201, kernel build r104 =
 series.production up to 0143, without 0125-0129 and 0136-0139).** Fixed items keep their text and carry a **Fixed**
 line with the commit; open items carry **Still open**. Two new items (16,
 17) came from the night review and the DP work. Phone facts marked
 "verified 2026-09-30" were read on the phone (read-only) on r201.
+
+**Evening re-check 2026-09-30 (bundle production-7.2.7-r205 since 18:20,
+kernel build r108 = series.production up to 0144 without 0128/0129, DTB
+platform-cpucap-dp4-btmtc-memx-dtb-r9; fallback safe-r8).** Updates are marked
+"(evening)". Items 16 and 17 moved, and three new items (18-20) came from the
+day's work. Phone facts marked "verified on r205" were read on the phone
+(read-only) at 18:50.
 
 | # | Item | Now |
 |---|---|---|
@@ -15,16 +22,19 @@ line with the commit; open items carry **Still open**. Two new items (16,
 | 5 | Brightness has ~4 levels | open |
 | 6 | Wi-Fi gone 11 s after wake | open |
 | 7 | Idle background churn | mostly fixed (598189d9, 2b662fd3, 445ef722); sleep policy still polls |
-| 8 | Standby drain | open; bisect kit ready (78214337) |
-| 9 | Monitor 1080p only, hot | mostly fixed: HBR2 (0110, 6bffb233), no DPU pin (729c5e4a, ca10325b); 5120x1440/100 Hz see 17 |
+| 8 | Standby drain | open; bisect kit (78214337) needs requalifying for DTB r9 |
+| 9 | Monitor 1080p only, hot | mostly fixed: HBR2 (0110, 6bffb233), no DPU pin (729c5e4a, ca10325b), 4 lanes (955c6afe); 5120x1440/100 Hz see 17; lower-power link 0145 (b19831d3) goes into r109 |
 | 10 | Missing hardware | open |
-| 11 | Early throttling | improved: `rog5-perf-mode` (1ad11e4f) with `auto` (95a3c7d5) |
+| 11 | Early throttling | improved: `rog5-perf-mode` (1ad11e4f) with `auto` (95a3c7d5), `perf_on_power=always` (b15a6719) |
 | 12 | Slow app launch | open |
-| 13 | Slow to be fully ready | improved: Wi-Fi radio thermal gate (4c3dd95f); r201 at 23 s + 33 s |
+| 13 | Slow to be fully ready | improved: Wi-Fi radio thermal gate (4c3dd95f); r201 at 23 s + 33 s, r205 at 21 s + 35 s |
 | 14 | ~11 h of logs | fixed (598189d9, 78214337) |
 | 15 | Charger does not wake the phone | open |
-| 16 | Steam title-bar drag does nothing (new) | open, in progress |
-| 17 | 100 Hz and 5120x1440 hidden by 0114 (new) | open, in progress (4-lane DP) |
+| 16 | Steam title-bar drag does nothing (new) | fixed (c75efe81), shim lifecycle test pending |
+| 17 | 100 Hz and 5120x1440 hidden by 0114 (new) | open: 4-lane DP works (0136-0139); the modes need the `dpu_mode_clk_check=halved` test |
+| 18 | Games crash with SIGBUS (new, evening) | fixed pending a retest: memx no-map + `rog5-sea-retire` (a79182ba) |
+| 19 | Music and jobs cut by suspend on battery (new, evening) | fixed (10cc4116) |
+| 20 | USB disks mounted only after a GUI login (new, evening) | improved: `rog5-usb-storage` (93f91107); gvfs interplay untested |
 
 Scope: the phone as a daily Linux phone (Phosh), as a desktop on an external
 monitor (GNOME desktop mode) and as a small server behind USB hubs. Evidence
@@ -119,13 +129,14 @@ see. Each item says whether it needs a lab action to trigger.
   - rog5-tailscaled: `ConditionPathExists`/`BindsTo` the USB NCM interface device unit, so it runs only when the link is up.
   - Sleep policy: use longer intervals while the screen is on and the charger is attached.
   Effort **S-M**.
-- **Mostly fixed:** the desktop-mode switcher is event-driven (udev DRM + logind signals, ~0.1 % CPU instead of 1.6 %) and the Wi-Fi power-save toggling has a 60 s hold (598189d9); the ramdisk tailscaled skips itself while the USB link is down and while the packaged tailscaled runs (2b662fd3, 445ef722); the headless sway desktop starts on demand only (598189d9). **Still open:** `rog5-sleep-policy` polls every 5 s.
+- **Mostly fixed:** the desktop-mode switcher is event-driven (udev DRM + logind signals, ~0.1 % CPU instead of 1.6 %) and the Wi-Fi power-save toggling has a 60 s hold (598189d9); the ramdisk tailscaled skips itself while the USB link is down and while the packaged tailscaled runs (2b662fd3, 445ef722); the headless sway desktop starts on demand only (598189d9). **Still open:** `rog5-sleep-policy` polls every 5 s (evening: it now also checks audio playback and sleep inhibitors, 10cc4116, see item 19).
 
 ### 8. Standby battery drain
 - **User sees:** noticeable overnight drain in suspend (about 79 mA at the pack; awake idle with the screen off is about 100-106 mA).
 - **Evidence:** `test-results/2026-09-29-standby-ddr-floor.md`: DDR stays at 200 MHz in s2idle, cxsd/aosd/ddr counters stay 0, and the holder is not the APPS side (ADSP/SLPI/TZ candidates). The ADSP wakes 7-30 times a minute for battmgr.
 - **Fix:** the boot-time bisects already planned (SLPI off, ADSP variant, CDSP load). Effort **L**.
 - **Still open.** The bisect kit is ready (78214337: noslpi/noadsp/cdsp DTB variants, CDSP firmware fetch, `rog5-standby-bisect-measure`); the boots need the cable pulled (whats-left test 7). Sol's review: `reviews/2026-09-30-gpt-6.1-sol-standby.md`.
+  (evening) `compose-standby-bisect-dtb.sh` still pins DTB r5; the variants must be rebuilt on DTB r9 (keeping memx; the no-ADSP variant also removes the bottom port's automatic 5 V) before test 7 (Sol evening review, item 6). Still ~79 mA with no CX/DDR collapse.
 
 ### 9. External monitor: 1080p only, and hot while in use
 - **User sees:** a 4K or 32:9 monitor runs at 1920x1080@60 only. In desktop mode the phone gets warm even when idle.
@@ -135,6 +146,7 @@ see. Each item says whether it needs a lab action to trigger.
   - Every DP enable logs `LM_4/LM_5, invalid DSPP_-1` dpu errors and the bring-up "DP sink @Nms" dumps.
 - **Fix:** test r185 without the pin (count INTF underruns). If clean, drop the ExecStartPre. Fix HBR2 margin (vlevel/pre-emphasis tables) before removing the phoc.ini pin. Remove the DP debug logging from production. Effort **M** (pin removal S once tested; HBR2 L).
 - **Mostly fixed:** native DP monitors get HBR2; only DP-to-HDMI/DVI converters are capped at HBR (0110, 6bffb233, e7cc18e6); the MSI 491C runs 3840x1080@60. The first-enable blue screen was a DSPP reassignment, fixed at the root by 0130-0132 (729c5e4a), and `rog5-gnome` no longer pins the DPU clock (ca10325b, 5/5 clean GNOME first enables on r104). **Still open:** 5120x1440 and 100 Hz (item 17); the hub's HDMI converter stays dark at HBR2 (0119/0134 opt-in experiments).
+  (evening) The side port drives 4 lanes (0136-0139, kernel r105 and later, 955c6afe): 4 x HBR2 in both orientations after a replug on r202. One r202 boot with the monitor attached got no DP notification from the ADSP (suspected start-up race), not retested on r205. 0145 (`msm.dp_link_policy`, b19831d3) trains the lowest link rate that carries the mode (4 x HBR instead of 4 x HBR2 for 3840x1080@60, MMCX SVS instead of SVS_L1); it goes into r109 and needs `rog5-dp-power-measure` on the MSI.
 
 ### 10. Missing hardware
 - **User sees:** no camera app, no fingerprint unlock, no NFC, no 3.5 mm headphone jack, and Bluetooth headsets are A2DP-only (no microphone). There is no earpiece sink in PipeWire either (only "Speakers").
@@ -148,6 +160,7 @@ see. Each item says whether it needs a lab action to trigger.
 - **Cause:** a deliberate skin policy (stock starts even earlier, at 36 C). It works as intended, but it is a trade-off.
 - **Fix:** a "performance" profile (power-profiles-daemon hook) that raises the 42 C trip while on the charger or with the fan accessory. Effort **S**.
 - **Improved:** `rog5-perf-mode normal|performance` (1ad11e4f), and `auto` (95a3c7d5) picks the performance trips on external power with a DP display connected; set on the phone. No Phosh toggle yet.
+  (evening) `perf_on_power=display|always|never` in `/etc/rog5/perf-mode` (b15a6719); the phone has `always`, so any external power (also a headless server on a hub) gets the performance trips (verified on r205).
 
 ### 12. Apps are slow to appear from the Phosh grid
 - **User sees:** Firefox cold start takes 7-9 s (2.6 s warm). The Calculator spinner shows for about 4 s. The Firefox launch splash timed out twice today (13:46, 14:26: `Startup of app 'Firefox' ... timed out`).
@@ -160,7 +173,7 @@ see. Each item says whether it needs a lab action to trigger.
 - **User sees:** the lock screen after about 33 s. Wi-Fi comes up about 25 s later, and sound, sensors and auto-rotate only about 39 s into userspace.
 - **Evidence:** `systemd-analyze`: 21.4 s (kernel incl. ramdisk) + 39.2 s (userspace). The critical chain is `rog5-wifi-radio` 26.6 s → `rog5-bluetooth` 5.5 s → `rog5-audio` 0.6 s → `rog5-sensors`. Audio and sensors wait for Wi-Fi and BT by design ("after Wi-Fi and Bluetooth").
 - **Fix:** check whether the audio/sensor ordering after Wi-Fi is still needed (it was a QUP/ADSP ordering workaround). If so, start audio/sensors in parallel with the 26 s Wi-Fi radio bring-up. Effort **M**.
-- **Improved:** the Wi-Fi radio no longer waits for the SoC junction zones (4c3dd95f, ~16 s per boot); r201 reached multi-user at 23 s (kernel + initramfs) + 33 s (userspace) and Wi-Fi associated at ~57 s (verified 2026-09-30). The audio/sensor ordering is unchanged.
+- **Improved:** the Wi-Fi radio no longer waits for the SoC junction zones (4c3dd95f, ~16 s per boot); r201 reached multi-user at 23 s (kernel + initramfs) + 33 s (userspace) and Wi-Fi associated at ~57 s (verified 2026-09-30). The audio/sensor ordering is unchanged. (evening) r205: 21.2 s + 35.5 s = 56.7 s (verified on r205).
 
 ### 14. Only about 11 hours of logs are kept
 - **User sees:** "what happened last night?" cannot be answered. The journal starts at 09:56 today.
@@ -178,13 +191,31 @@ see. Each item says whether it needs a lab action to trigger.
 - **User sees:** in GNOME desktop mode, dragging the native Steam window by its own title bar does nothing; the window stays where it opened.
 - **Status:** confirmed (night review 2026-09-30, "Open, with a plan"). In progress.
 - **Likely cause:** mutter ignores the move request from Steam's CEF client-side title bar (probably the root coordinates it sends under XWayland). Not proven yet.
-- **Fix:** capture the X events (`xev`/`xinput` on the Steam window) while the user drags (whats-left test 6), then fix the request or add a window rule; meanwhile Super+drag should move it (GNOME default, not tried yet). Effort **M**.
+- **Fix:** capture the X events (`xev`/`xinput` on the Steam window) while the user drags (the former whats-left test 6, no longer needed), then fix the request or add a window rule; meanwhile Super+drag should move it (GNOME default, not tried yet). Effort **M**.
+- **Cause (found):** CEF's X window covers each Steam window with a full input shape, so SDL's hit test never sees the click and no `_NET_WM_MOVERESIZE` is sent; steamwebhelper's own code that cuts the drag areas out of that shape returns early because a per-window flag is never set.
+- **Fixed (evening):** `steam-arm64-drag.so`, an LD_PRELOAD shim active only for the known steamwebhelper build ID and code bytes, sets that flag; title-bar drag and edge resize work (c75efe81; cutting those holes by hand on the phone first made drag and resize work, user-confirmed; the OpenGL composer override 6b3369cd is dropped). After an unknown Steam update it prints one line (`... shim needs updating`) and only forwards; `ROG5_STEAM_DRAG=0` leaves it out. **Still open:** Sol's note that the shim keeps raw object pointers in a 128-entry table without cleanup on destruction; window churn (open/close many windows) is not tested yet.
 
 ### 17. 100 Hz and 5120x1440 are hidden on the MSI monitor (new, 2026-09-30)
 - **User sees:** the MSI MPG491C offers only up to 3840x1080@60 in the display settings; its 100 Hz and 5120x1440 modes do not appear.
 - **Status:** confirmed, deliberate for now. In progress.
 - **Evidence:** 0114 (f42d4c32) rejects modes whose full pixel clock exceeds the DPU core clock, because 5120x1440@60 and 3840x1080@100 came up blue on the 2-lane link. Sol's DPU-clock review (`reviews/2026-09-30-gpt-6.1-sol-dpu-clock.md`) calls 0114 a quarantine of two failing modes, not a proven limit, and ranks QoS/fetch latency at the first enable above the pixel-rate limit. The monitor offers DP pin assignment C (4-lane DP).
 - **Fix:** 4-lane DP (0136-0139, not in r104; 0139 makes the 0114 check switchable for A/B tests), then relax 0114 for modes that test clean. Effort **M-L**.
+- **Still open (evening):** 4-lane DP works (r105 and later, see item 9), but 5120x1440@60 and 3840x1080@100 have not been tried on it: `echo halved > /sys/module/msm/parameters/dpu_mode_clk_check` (0139) exposes them for the test, HBR3 is a separate opt-in (0138). Whats-left test 9.
+
+### 18. Games crash with SIGBUS (new, 2026-09-30 evening)
+- **User sees:** a game (Dota 2 under FEX) or Steam dies with SIGBUS.
+- **Evidence:** 0116 logs user synchronous external aborts with the PFN: instruction-fetch-only aborts at 0x34b4xxxxx/0x34bcxxxxx (r202: pfn 0x34bc8d, 0x34bc91 under Dota 2). The memx overlay (`dts/qcom/sm8350-asus-rog-phone5-exec-abort-memory.dtso`) documents why: most likely the ASUS wrapper's QTEE shared-memory bridge, left registered read/write, no execute.
+- **Fixed (pending a retest):** DT feature memx maps out 64 MiB at 0x34a000000 (no-map), and `rog5-sea-retire` soft-offlines any further block that aborts (a79182ba). The reservation is in both DTBs (r9 and safe-r8); the retire service needs 0116's abort log, which the r69 fallback kernel does not have. **Still open:** Dota 2 for 30 min (whats-left test 16); the reservation is a mitigation, not a proven bridge teardown, and the 128 MiB RAM-trial wrapper is not checked separately (Sol evening review, item 1).
+
+### 19. Music and background jobs stop when the phone suspends on battery (new, 2026-09-30 evening)
+- **User sees:** on battery with the screen off, music stops and a detached job pauses 60 s later.
+- **Evidence:** `rog5-sleep-policy` suspended with `--check-inhibitors=no` and checked neither audio nor sleep inhibitors (Sol evening review, item 5).
+- **Fixed:** 10cc4116: an ALSA playback substream RUNNING/DRAINING, any block/block-weak sleep inhibitor (except rog5-server's own) and a charger-attached force-discharge keep the phone awake. Bluetooth playback is not counted. No on-battery music/inhibitor test is recorded yet.
+
+### 20. USB disks are mounted only after a GUI login (new, 2026-09-30 evening)
+- **User sees:** a server disk on the hub is not there after a reboot until someone logs in; a stick present at boot is not mounted.
+- **Evidence:** gvfs/udisks mount removable media only for a logged-in session (Sol evening review, gap table).
+- **Improved:** `rog5-usb-storage` (93f91107) mounts the filesystems listed in `/etc/rog5/usb-storage` (by UUID/LABEL) at boot and on plug, only after the p2-attest boot gate; on r205 the configured disk was mounted at 28 s (gate PASS at 25 s; verified on r205). **Still open:** unconfigured sticks still wait for gvfs after login; whether gvfs and `rog5-usb-storage` get in each other's way is not tested (whats-left test 17).
 
 ## Cosmetic / sloppiness
 
@@ -253,6 +284,10 @@ see. Each item says whether it needs a lab action to trigger.
 | Speakers silent, then very quiet | SENARY back end at S16 against the 24-bit clock; the S24_LE front end reaches the amps far below full scale | f8aa5a5d, 33d3ea26 (0 dB), e29c5ad3 (PipeWire S16LE; the 24-bit path is still open); protection DSP on both amps (dfc54acc) |
 | Monitor USB dead after boot or replug (-71) | r194 first boot | reconnect retries (fb89fff3, 66f9944a); kernel fix pending the replug test (0142/0143, efbfe2b7) |
 | USB drives not shown in Files/Disks, ISO mounting refused | udisks masked, then a polkit rule that refused every loop | b8582e7e, fd8f73b0, fd6dd9e5 |
+| Steam title bar did not drag (item 16) | CEF's X window took every click, so SDL's hit test never ran | c75efe81 (LD_PRELOAD shim) |
+| Games died with SIGBUS (item 18) | instruction-fetch aborts in 0x34b4xxxxx/0x34bcxxxxx | memx no-map + rog5-sea-retire (a79182ba); Dota retest pending |
+| Bottom USB-C needed 5 V by hand | the RT1715 ALERT never fired: SPI 566 still marked edge from stock | 0144 PDC edge/level (317451ad, eaea30b8); auto 5 V on attach on r204/r205 |
+| Fallback could not restore update snapshots | safe-r7 predates the v2 seal | safe-r8 with the current init (ac8220d2) |
 
 ## Not reproduced / unverified
 
