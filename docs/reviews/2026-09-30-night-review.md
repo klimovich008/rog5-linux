@@ -96,3 +96,21 @@ condensed findings are here.
   so 4 lanes is possible with it; Phosh's first DP enable at 3840x1080@60 with
   a 335 MHz core clock underran 8-15 times, then stayed clean (the known
   first-enable burst).
+
+## GPT-6.1-Sol review of the display/desktop-mode patches (05:27)
+
+`2026-10-01-gpt-6.1-sol-display-patch-review.md`. Checked against what shipped:
+
+- Its "cross-session bypass" applies to the display agent's PID-based switcher
+  variant, not the shipped one (which binds `seen_locked` to the logind session
+  id). Left: a few-ms race if the phone auto-locks exactly while a monitor is
+  plugged in.
+- phosh 0002: lock notifications are connected only after the session-bus name
+  is acquired; at boot that can only lose an unlock (fails closed). Worth
+  fixing before sending upstream.
+- 0119 `dp_async_msa` flips the clock-mode bits but keeps static M/N (amdgpu
+  measures M): an experiment only; Sol suggests refusing the knob until
+  measurement exists. Also: the 8 bpc floor should reject (not override) a
+  6 bpc ceiling; `msm_dp_link_psm_config()` returns 0 when every D0 write
+  failed. Follow-ups for the next kernel.
+- 0118: say "requested core clk", READ_ONCE/WRITE_ONCE on the field (cosmetic).
