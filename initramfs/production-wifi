@@ -28,9 +28,12 @@ kmsg=${ROG5_WIFI_KMSG:-/dev/kmsg}
 secret=${ROG5_WIFI_SECRET:-/persist/secrets/wifi/network.conf}
 state=${ROG5_WIFI_STATE:-/run/rog5-wifi-association}
 runroot=${ROG5_WIFI_RUN:-/run}
-# Seconds the radio waits for every thermal zone to drop below 60 C. Boot
-# briefly heats the CPU zones past the limit (61-63 C seen on 2026-09-24),
-# which used to fail the radio for the whole boot.
+# Seconds the radio waits for the board thermal zones (battery, PMICs, skin,
+# USB connector, XO, pocket) to drop below 60 C. The SoC junction zones (CPU,
+# GPU, cluster, NSP, modem, camera, video, memory, AOSS) are not gated: they
+# have their own 90-110 C trips, and the prime core routinely passes 60 C
+# while the session starts (77 C seen), which held the radio back 16 s per
+# boot (r194: three waits, radio ready at 65 s).
 cool_wait=${ROG5_WIFI_COOL_WAIT:-90}
 power=$sys/class/power_supply
 pci=$sys/bus/pci/devices/0000:01:00.0
@@ -46,9 +49,12 @@ fail() {
 }
 number() { case $1 in ''|*[!0-9]*) return 1 ;; esac; }
 
-# The first thermal zone at or above 60 C, as "path at value", or nothing.
+# The first board thermal zone at or above 60 C, as "path at value", or nothing.
 hot_zone() {
 	for zone in "$sys"/class/thermal/thermal_zone*/temp; do
+		case $(cat "${zone%/temp}/type" 2>/dev/null) in
+		cpu*|cluster*|gpu*|nspss*|aoss*|video*|mem-*|modem*|camera*|cam-*) continue ;;
+		esac
 		value=$(cat "$zone" 2>/dev/null) && number "$value" || continue
 		[ "$value" -lt 60000 ] || { echo "${zone%/temp} at $value"; return 0; }
 	done
