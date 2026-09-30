@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Bottom USB-C port, stage B (compose feature usbbtmtc, applied on top of
+ * usbbtm): the port's RT1715 Type-C controller switches the 5 V by itself,
+ * as a Type-C source only, instead of "rog5-usb-bottom on".
+ *
+ * Stock ZS673KS-EVB-overlay.dts (&qupv3_se13_i2c, rt1711@4e): RT1715 at I2C
+ * address 0x4e on QUP SE13 = i2c13 (i2c@a94000, QUP wrapper 1 geniqup@ac0000),
+ * SDA/SCL gpio0/gpio1 function qup13 with pull-ups (lahaina-pinctrl
+ * qupv3_se13_i2c_active, same as sm8350.dtsi qup_i2c13_default), 400 kHz,
+ * ALERT on tlmm 118 (gpio, 2 mA, pull-up, active low), rp_level 0 (default
+ * USB current), Try.SNK dual role, BTM_OTG_EN = PM8350C GPIO4 for the 5 V.
+ * Mainline: tcpci_rt1711h (compatible richtek,rt1715, vbus-supply) + TCPM.
+ *
+ * Stage B is deliberately smaller than stock:
+ * - power-role "source", data-role "host", no PD: Linux presents Rp (default
+ *   current) and only a sink (Rd: stick, hub, adapter) makes TCPM enable
+ *   vbus-supply = rog5_btm_vbus (the stage-A chain: OEM 0x2102 boost request
+ *   to the ADSP, then PM8350C GPIO4). A charger or a PC (Rp) should never
+ *   attach, and TCPM does not attach as a source while VBUS is present (this
+ *   driver has no true vSafe0V query: "VBUS absent" stands in for it).
+ *   Board-level contention safety still has to be measured. The RT1715
+ *   resets with Rd on CC, so until TCPM sets Rp (boot, module load) a
+ *   charger or PC may supply VBUS: keep the bottom port empty or USB-device
+ *   only while booting. A Type-C charger is not expected to charge the phone
+ *   through the bottom port in stage B (stock's Try.SNK dual role and the
+ *   ADSP charging handshake are a later stage); the ADSP's own VBUS path is
+ *   independent, so this is an expectation, not a guarantee.
+ * - The stage-A regulator-output node (the hand switch) is deleted by the
+ *   composition: TCPM must be the only consumer of the 5 V.
+ * - No GPI DMA: with FIFO-mode SE13 every TCPCI transfer here is < 32 bytes
+ *   and goes through the FIFO. If the SE turns out to be GSI-only
+ *   (i2c-qcom-geni probe defers on its dmas), stop: stock marks SE13
+ *   qcom,shared (cross-EE lock/unlock transfers in GSI mode), which mainline
+ *   does not implement; enabling &gpi_dma1 is only an option once exclusive
+ *   ownership of SE13 is established.
+ * - QUP wrapper 1 is enabled at boot (never wrapper 2). Wrapper 2 at boot
+ *   broke the Wi-Fi firmware load by taking an SMMU context bank ahead of
+ *   PCIe (before 0064); wrapper 1 has its own stream (0x43) and must be
+ *   checked the same way (Wi-Fi up after boot) in the first trial.
+ * The side port (UCSI, port0) is untouched; this port registers as port1
+ * because tcpci_rt1711h loads from boot-modules after the initramfs' UCSI.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&qupv3_id_1 {
+	status = "okay";
+};
+
+&i2c13 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	rog5_btm_tcpc: typec@4e {
+		compatible = "richtek,rt1715";
+		reg = <0x4e>;
+		interrupts-extended = <&tlmm 118 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_btm_tcpc_alert>;
+		vbus-supply = <&rog5_btm_vbus>;
+
+		connector {
+			compatible = "usb-c-connector";
+			label = "USB-C bottom";
+			power-role = "source";
+			data-role = "host";
+			typec-power-opmode = "default";
+			pd-disable;
+		};
+	};
+};
+
+&tlmm {
+	rog5_btm_tcpc_alert: rog5-btm-tcpc-alert-state {
+		pins = "gpio118";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+};

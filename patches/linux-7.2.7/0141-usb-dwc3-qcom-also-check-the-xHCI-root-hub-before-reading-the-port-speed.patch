@@ -1,0 +1,39 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: qcom: also check the xHCI root hub before reading the port speed
+
+Follow-up to 0117. __usb_create_hcd() sets the xHCI platform device's driver
+data before usb_add_hcd() has allocated and registered the root hub, and
+usb_hub_find_child() dereferences the root hub (hdev->maxchild). A glue
+suspend in that window would oops like the NULL hcd did. Report an unknown
+speed then, as for a missing hcd. Suggested by GPT-6.1-Sol while reviewing
+0117; it does not make a concurrent xHCI removal safe (that still relies on
+stable roles and PM ordering during suspend).
+
+--- a/drivers/usb/dwc3/dwc3-qcom-legacy.c
++++ b/drivers/usb/dwc3/dwc3-qcom-legacy.c
+@@ -330,8 +330,10 @@
+ 	/*
+ 	 * The xHCI platform device outlives its driver: with xhci-hcd unbound
+ 	 * (sysfs unbind) there is no hcd, and system suspend used to oops here.
++	 * __usb_create_hcd() also sets the driver data before usb_add_hcd() has
++	 * registered the root hub, and usb_hub_find_child() dereferences it.
+ 	 */
+-	if (!hcd)
++	if (!hcd || !hcd->self.root_hub)
+ 		return USB_SPEED_UNKNOWN;
+ 
+ #ifdef CONFIG_USB
+--- a/drivers/usb/dwc3/dwc3-qcom.c
++++ b/drivers/usb/dwc3/dwc3-qcom.c
+@@ -242,8 +242,10 @@
+ 	/*
+ 	 * The xHCI platform device outlives its driver: with xhci-hcd unbound
+ 	 * (sysfs unbind) there is no hcd, and system suspend used to oops here.
++	 * __usb_create_hcd() also sets the driver data before usb_add_hcd() has
++	 * registered the root hub, and usb_hub_find_child() dereferences it.
+ 	 */
+-	if (!hcd)
++	if (!hcd || !hcd->self.root_hub)
+ 		return USB_SPEED_UNKNOWN;
+ 
+ #ifdef CONFIG_USB

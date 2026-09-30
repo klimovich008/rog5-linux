@@ -1,0 +1,254 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: qcom-legacy: ROG5 opt-in VBUS/session override only in the device role
+
+dwc3-qcom-legacy sets the QSCRATCH VBUS override (UTMI_OTG_VBUS_VALID,
+SW_SESSVLD_SEL, SS LANE0_PWR_PRESENT) at probe for every non-host dr_mode and
+never clears it, so on the ROG5 side port (dr_mode otg, usb-role-switch from
+UCSI) xHCI runs with the device-mode session asserted. The flattened
+dwc3-qcom glue clears it outside the device role through the pre_set_role
+glue callback, and the downstream msm-5.4 driver clears it when it stops the
+peripheral. The legacy glue can't set dwc->glue_ops: its core is a separate
+platform device whose dwc3_probe() resets glue_ops to NULL.
+
+- dwc3_probe() takes glue_ops from new struct dwc3_platform_data, which
+  dwc3-qcom-legacy passes through of_platform_populate() auxdata, only to a
+  core with usb-role-switch. It survives unbind/bind of the core.
+- The legacy pre_set_role callback, with the new parameter
+  dwc3_qcom_legacy.role_session_override=1 (default 0, writable at
+  runtime), turns the override on in USB_ROLE_DEVICE and off in HOST and
+  NONE. With the parameter off it only restores the probe-time state (on)
+  if it had been cleared, so the default behaviour is unchanged.
+- udc_vbus_by_role keeps 0055's pull-up gating on the role for this glue
+  (0055 skips glues with a pre_set_role hook), so the NCM gadget's
+  detach/attach path stays the one that works today.
+- The core registers its role switch during of_platform_populate(), before
+  the glue has enabled runtime PM, so a role can be set while the glue still
+  probes (e.g. a UCSI port that was waiting for the switch). Fixed with a
+  session lock and a pm_ready flag: before pm_ready the registers are
+  written directly (clocks are on since dwc3_qcom_clk_init()), and probe no
+  longer re-asserts an override that a role set has cleared; after it, a
+  failed runtime resume (system suspend) skips the write. Found by
+  GPT-6.1-Sol.
+- A core rebind (rog5-usb-reconnect) starts in the peripheral default
+  without a role set, so the session stays as the last role left it until
+  the next role set (the helper writes device, then host).
+
+This is the ROG5 -71 hypothesis "legacy glue forces the session override in
+host mode" (Sol, night review 2026-09-30); on its own it does not explain
+why only a device appearing right after the attach fails. Test before
+making it default: NCM gadget replugs and role flips with the parameter on.
+
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -1003,6 +1003,19 @@
+ };
+ 
+ /**
++ * struct dwc3_platform_data - probe-time data from a glue that populates the
++ *				core as a separate platform device
++ * @glue_ops: callbacks, as the flattened glues set them in struct dwc3
++ * @udc_vbus_by_role: gate the UDC on the role in dwc3_usb_role_switch_set()
++ *		(USB_ROLE_NONE drops the pull-up) although @glue_ops has a
++ *		pre_set_role callback
++ */
++struct dwc3_platform_data {
++	const struct dwc3_glue_ops *glue_ops;
++	bool udc_vbus_by_role;
++};
++
++/**
+  * struct dwc3 - representation of our controller
+  * @drd_work: workqueue used for role swapping
+  * @ep0_trb: trb which is used for the ctrl_req
+@@ -1023,6 +1036,7 @@
+  * @gadget: device side representation of the peripheral controller
+  * @gadget_driver: pointer to the gadget driver
+  * @glue_ops: Vendor callbacks for flattened device implementations.
++ * @udc_vbus_by_role: see struct dwc3_platform_data
+  * @bus_clk: clock for accessing the registers
+  * @ref_clk: reference clock
+  * @susp_clk: clock used when the SS phy is in low power (S3) state
+@@ -1215,6 +1229,7 @@
+ 	struct usb_gadget_driver *gadget_driver;
+ 
+ 	const struct dwc3_glue_ops	*glue_ops;
++	bool			udc_vbus_by_role;
+ 
+ 	struct clk		*bus_clk;
+ 	struct clk		*ref_clk;
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -2386,6 +2386,7 @@
+ 
+ static int dwc3_probe(struct platform_device *pdev)
+ {
++	const struct dwc3_platform_data *pdata = dev_get_platdata(&pdev->dev);
+ 	struct dwc3_probe_data probe_data = {};
+ 	struct resource *res;
+ 	struct dwc3 *dwc;
+@@ -2401,7 +2402,9 @@
+ 		return -ENOMEM;
+ 
+ 	dwc->dev = &pdev->dev;
+-	dwc->glue_ops = NULL;
++	/* Only dwc3-qcom-legacy passes platform data (of_platform_populate()). */
++	dwc->glue_ops = pdata ? pdata->glue_ops : NULL;
++	dwc->udc_vbus_by_role = pdata && pdata->udc_vbus_by_role;
+ 
+ 	probe_data.dwc = dwc;
+ 	probe_data.res = res;
+--- a/drivers/usb/dwc3/drd.c
++++ b/drivers/usb/dwc3/drd.c
+@@ -479,9 +479,11 @@
+ 	 * forced on) never tell the controller the session ended. Gate the
+ 	 * pull-up on the role instead: NONE drops it, DEVICE restores it via
+ 	 * pullup(1) -> soft reset + run/stop, after the Type-C/charger side has
+-	 * settled.
++	 * settled. dwc3-qcom-legacy keeps this with its pre_set_role hook too
++	 * (udc_vbus_by_role), so its gadget detach/attach path is unchanged.
+ 	 */
+-	if (!(dwc->glue_ops && dwc->glue_ops->pre_set_role)) {
++	if (dwc->udc_vbus_by_role ||
++	    !(dwc->glue_ops && dwc->glue_ops->pre_set_role)) {
+ 		mutex_lock(&dwc->mutex);
+ 		if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE &&
+ 		    mode == DWC3_GCTL_PRTCAP_DEVICE && dwc->gadget)
+--- a/drivers/usb/dwc3/dwc3-qcom-legacy.c
++++ b/drivers/usb/dwc3/dwc3-qcom-legacy.c
+@@ -86,6 +86,10 @@
+ 	struct notifier_block	host_nb;
+ 
+ 	enum usb_dr_mode	mode;
++	/* role_session_override state, under session_lock */
++	struct mutex		session_lock;
++	bool			vbus_override_cleared;
++	bool			pm_ready;
+ 	bool			is_suspended;
+ 	bool			pm_suspended;
+ 	struct icc_path		*icc_path_ddr;
+@@ -131,6 +135,66 @@
+ 	}
+ }
+ 
++/*
++ * ROG5 side port (usb-role-switch core): the glue forces the session valid
++ * (the QSCRATCH VBUS override: UTMI_OTG_VBUS_VALID, SW_SESSVLD_SEL and the SS
++ * LANE0_PWR_PRESENT) at probe and never clears it, so the controller runs in
++ * host mode with the device-mode session asserted; the flattened glue and the
++ * downstream msm-5.4 driver clear it outside the device role. Opt-in: with
++ * role_session_override the override follows the role (on in DEVICE only).
++ * Off restores the probe-time state (always on) at the next role change.
++ */
++static bool role_session_override;
++module_param(role_session_override, bool, 0644);
++MODULE_PARM_DESC(role_session_override,
++		 "Force the VBUS/session override only in the device role (usb-role-switch cores)");
++
++/*
++ * Called with the role switch lock held; may sleep. The core registers its
++ * role switch while the glue is still probing (clocks on, runtime PM not yet
++ * enabled): until pm_ready the registers are written directly, and probe
++ * keeps a session cleared by then.
++ */
++static void dwc3_qcom_legacy_pre_set_role(struct dwc3 *dwc, enum usb_role role)
++{
++	struct dwc3_qcom *qcom = dev_get_drvdata(dwc->dev->parent);
++	bool on = !READ_ONCE(role_session_override) || role == USB_ROLE_DEVICE;
++	int ret;
++
++	mutex_lock(&qcom->session_lock);
++	/* Nothing to do while the override is in its probe-time state. */
++	if (on && !qcom->vbus_override_cleared)
++		goto unlock;
++
++	if (qcom->pm_ready) {
++		ret = pm_runtime_resume_and_get(qcom->dev);
++		if (ret < 0) {
++			dev_warn(qcom->dev, "role %d: can't resume (%d), VBUS override stays %s\n",
++				 role, ret, qcom->vbus_override_cleared ? "off" : "on");
++			goto unlock;
++		}
++	}
++	dwc3_qcom_vbus_override_enable(qcom, on);
++	qcom->vbus_override_cleared = !on;
++	dev_dbg(qcom->dev, "role %d: VBUS override %s, HS_PHY_CTRL %08x SS_PHY_CTRL %08x\n",
++		role, on ? "on" : "off",
++		readl(qcom->qscratch_base + QSCRATCH_HS_PHY_CTRL),
++		readl(qcom->qscratch_base + QSCRATCH_SS_PHY_CTRL));
++	if (qcom->pm_ready)
++		pm_runtime_put(qcom->dev);
++unlock:
++	mutex_unlock(&qcom->session_lock);
++}
++
++static const struct dwc3_glue_ops dwc3_qcom_legacy_glue_ops = {
++	.pre_set_role = dwc3_qcom_legacy_pre_set_role,
++};
++
++static const struct dwc3_platform_data dwc3_qcom_legacy_pdata = {
++	.glue_ops = &dwc3_qcom_legacy_glue_ops,
++	.udc_vbus_by_role = true,
++};
++
+ static int dwc3_qcom_vbus_notifier(struct notifier_block *nb,
+ 				   unsigned long event, void *ptr)
+ {
+@@ -713,6 +777,12 @@
+ 	struct dwc3_qcom	*qcom = platform_get_drvdata(pdev);
+ 	struct device_node	*np = pdev->dev.of_node;
+ 	struct device		*dev = &pdev->dev;
++	/* Probe-time glue callbacks for a role-switched core (dwc3_probe()). */
++	const struct of_dev_auxdata role_switch_auxdata[] = {
++		OF_DEV_AUXDATA("snps,dwc3", 0, NULL,
++			       (void *)&dwc3_qcom_legacy_pdata),
++		{}
++	};
+ 	int			ret;
+ 
+ 	struct device_node *dwc3_np __free(device_node) = of_get_compatible_child(np,
+@@ -722,7 +792,9 @@
+ 		return -ENODEV;
+ 	}
+ 
+-	ret = of_platform_populate(np, NULL, NULL, dev);
++	ret = of_platform_populate(np, NULL,
++				   of_property_read_bool(dwc3_np, "usb-role-switch") ?
++				   role_switch_auxdata : NULL, dev);
+ 	if (ret) {
+ 		dev_err(dev, "failed to register dwc3 core - %d\n", ret);
+ 		return ret;
+@@ -753,6 +825,7 @@
+ 
+ 	platform_set_drvdata(pdev, qcom);
+ 	qcom->dev = &pdev->dev;
++	mutex_init(&qcom->session_lock);
+ 
+ 	qcom->resets = devm_reset_control_array_get_optional_exclusive(dev);
+ 	if (IS_ERR(qcom->resets)) {
+@@ -813,9 +886,14 @@
+ 
+ 	qcom->mode = usb_get_dr_mode(&qcom->dwc3->dev);
+ 
+-	/* enable vbus override for device mode */
+-	if (qcom->mode != USB_DR_MODE_HOST)
++	/*
++	 * enable vbus override for device mode (unless a role set during the
++	 * core's probe has cleared it: role_session_override)
++	 */
++	mutex_lock(&qcom->session_lock);
++	if (qcom->mode != USB_DR_MODE_HOST && !qcom->vbus_override_cleared)
+ 		dwc3_qcom_vbus_override_enable(qcom, true);
++	mutex_unlock(&qcom->session_lock);
+ 
+ 	/* register extcon to override sw_vbus on Vbus change later */
+ 	ret = dwc3_qcom_register_extcon(qcom);
+@@ -830,6 +908,9 @@
+ 	pm_runtime_set_active(dev);
+ 	pm_runtime_enable(dev);
+ 	pm_runtime_forbid(dev);
++	mutex_lock(&qcom->session_lock);
++	qcom->pm_ready = true;
++	mutex_unlock(&qcom->session_lock);
+ 
+ 	return 0;
+ 

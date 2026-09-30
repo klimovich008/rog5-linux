@@ -20,9 +20,14 @@ case ,$features, in *,disprsc,*) disprsc=1; features=$(printf %s "$features" | s
 case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^acd$//; s/,acd$//; s/,acd,/,/') ;; *) acd=0 ;; esac
 # cpucap (CPU capacity + energy model from stock) likewise.
 case ,$features, in *,cpucap,*) cpucap=1; features=$(printf %s "$features" | sed 's/^cpucap$//; s/,cpucap$//; s/,cpucap,/,/') ;; *) cpucap=0 ;; esac
+# usbbtmtc (bottom port stage B: the RT1715 Type-C controller on i2c13 switches
+# the 5 V as a source-only port instead of rog5-usb-bottom) likewise; needs
+# usbbtm, tcpci_rt1711h in boot-modules, and enables QUP wrapper 1 at boot.
+case ,$features, in *,usbbtmtc,*) usbbtmtc=1; features=$(printf %s "$features" | sed 's/^usbbtmtc$//; s/,usbbtmtc$//; s/,usbbtmtc,/,/') ;; *) usbbtmtc=0 ;; esac
 # usbbtm (bottom USB-C port as a USB 2.0 host, 5 V by hand) likewise; needs a
 # kernel with 0089 and CONFIG_REGULATOR_USERSPACE_CONSUMER=y.
 case ,$features, in *,usbbtm,*) usbbtm=1; features=$(printf %s "$features" | sed 's/^usbbtm$//; s/,usbbtm$//; s/,usbbtm,/,/') ;; *) usbbtm=0 ;; esac
+case $usbbtmtc$usbbtm in 10) echo 'FAIL usbbtmtc needs usbbtm' >&2; exit 1 ;; esac
 # mic (built-in DMICs on the LPASS VA macro) likewise; needs audio and a kernel
 # with patch 0083 (the VA macro drops its LPASS core votes when idle).
 case ,$features, in *,mic,*) mic=1; features=$(printf %s "$features" | sed 's/^mic$//; s/,mic$//; s/,mic,/,/') ;; *) mic=0 ;; esac
@@ -473,6 +478,40 @@ if [ "$usbbtm" = 1 ]; then
 		# ucsi_glink/pmic_glink_altmode need "reg" on every pmic-glink child.
 		[ "$(fdtget -l "$work/composed.dtb" /pmic-glink)" = connector@0 ] ||
 		{ echo 'FAIL usbbtm composition' >&2; exit 1; }
+fi
+if [ "$usbbtmtc" = 1 ]; then
+	grep -q '"richtek,rt1715"' "$source/drivers/usb/typec/tcpm/tcpci_rt1711h.c" ||
+		{ echo 'FAIL usbbtmtc: kernel source lacks the RT1715 TCPC driver' >&2; exit 1; }
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/usbbtmtc.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-usb-bottom-typec.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/usbbtmtc.dtbo" "$work/usbbtmtc.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/usbbtmtc.dtb" "$work/usbbtmtc.dtbo"
+	mv "$work/usbbtmtc.dtb" "$work/composed.dtb"
+	# Stage A's hand switch goes: TCPM must be the only consumer of the 5 V
+	# (an overlay cannot delete a node of the base).
+	fdtput -r "$work/composed.dtb" /rog5-btm-vbus-output
+	i2c=/soc@0/geniqup@ac0000/i2c@a94000
+	tc=$i2c/typec@4e
+	# Wrapper 1 and i2c13 on, the RT1715 alone on the bus with the 5 V chain
+	# as vbus-supply, source-only without PD; wrapper 2 and GPI DMA 1 stay off.
+	[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@ac0000 status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $i2c status)" = okay ] &&
+		[ "$(fdtget "$work/composed.dtb" $i2c clock-frequency)" = 400000 ] &&
+		[ "$(fdtget -l "$work/composed.dtb" $i2c)" = typec@4e ] &&
+		[ "$(fdtget "$work/composed.dtb" $tc compatible)" = richtek,rt1715 ] &&
+		[ "$(fdtget -tx "$work/composed.dtb" $tc reg)" = 4e ] &&
+		[ "$(fdtget "$work/composed.dtb" $tc vbus-supply)" = \
+			"$(fdtget "$work/composed.dtb" /regulator-rog5-btm-vbus phandle)" ] &&
+		[ "$(fdtget "$work/composed.dtb" $tc interrupts-extended)" = \
+			"$(fdtget "$work/composed.dtb" /soc@0/pinctrl@f100000 phandle) 118 8" ] &&
+		[ "$(fdtget "$work/composed.dtb" $tc/connector power-role)" = source ] &&
+		[ "$(fdtget "$work/composed.dtb" $tc/connector data-role)" = host ] &&
+		fdtget "$work/composed.dtb" $tc/connector pd-disable >/dev/null &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/geniqup@8c0000 status)" = disabled ] &&
+		[ "$(fdtget "$work/composed.dtb" /soc@0/dma-controller@a00000 status)" = disabled ] &&
+		! fdtget -l "$work/composed.dtb" /rog5-btm-vbus-output >/dev/null 2>&1 ||
+		{ echo 'FAIL usbbtmtc composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

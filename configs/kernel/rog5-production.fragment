@@ -118,6 +118,11 @@ CONFIG_FUSE_FS=y
 # Bottom USB-C port stage A (DT feature usbbtm): regulator-output node for
 # switching its 5 V source by hand (sysfs state).
 CONFIG_REGULATOR_USERSPACE_CONSUMER=y
+# Stage B (DT feature usbbtmtc): the RT1715 TCPC driver and TCPM, modules as in
+# the arm64 defconfig; pinned because boot-modules loads tcpci_rt1711h.
+CONFIG_TYPEC_TCPM=m
+CONFIG_TYPEC_TCPCI=m
+CONFIG_TYPEC_RT1711H=m
 
 # Server networking (2026-09-28 test campaign): Tailscale's connmark rules
 # failed ("operation not supported") and iptables-nft could not list rules;

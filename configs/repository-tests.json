@@ -2397,6 +2397,29 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-rog5-usb-helpers.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "flock"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-rog5-perf-mode.sh",
       "interpreter": "sh",
       "tiers": [

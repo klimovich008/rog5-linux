@@ -1,0 +1,7 @@
+# Bottom USB-C port, stage B (DT features usbbtm + usbbtmtc): the Type-C
+# controller switches the 5 V on attach, with nobody to run
+# "rog5-usb-bottom on", which held the bottom xHCI root hubs awake: a
+# runtime-suspended root hub there saw the connect (CCS+CSC) but never woke to
+# enumerate it (2026-09-28). Keep them awake whenever the TCPC is in the DT;
+# the controller itself is runtime-active anyway (power/control=on default).
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", KERNEL=="usb[0-9]*", DEVPATH=="*/a800000.usb/xhci-hcd.*", TEST=="/proc/device-tree/soc@0/geniqup@ac0000/i2c@a94000/typec@4e", ATTR{power/control}="on"

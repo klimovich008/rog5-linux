@@ -94,15 +94,15 @@ class BootModules(Base):
                                         f'modprobe -d {tree} gpi', f'modprobe -d {tree} rog5_fts3658u', f'modprobe -d {tree} rog5_aw8697',
                                         f'modprobe -d {tree} rog5_vcnl36866', f'modprobe -d {tree} rog5_aura', f'modprobe -d {tree} leds_qcom_flash',
                                         f'modprobe -d {tree} qcom_pon', f'modprobe -d {tree} qcom_spmi_adc5', f'modprobe -d {tree} qcom_spmi_adc_tm5', f'modprobe -d {tree} icc_bwmon', f'modprobe -d {tree} rog5_input_boost',
-                                        f'modprobe -d {tree} qcom_stats'])
-        self.assertIn('loaded rtc_pm8xxx softdog rog5_gmu_bind drm_client_lib phy_qcom_qmp_combo gpio_sbu_mux aux_bridge aux_hpd_bridge pmic_glink_altmode msm panel_asus_rog5_ams678 gpi rog5_fts3658u rog5_aw8697 rog5_vcnl36866 rog5_aura leds_qcom_flash qcom_pon qcom_spmi_adc5 qcom_spmi_adc_tm5 icc_bwmon rog5_input_boost qcom_stats', kmsg)
+                                        f'modprobe -d {tree} qcom_stats', f'modprobe -d {tree} tcpci_rt1711h'])
+        self.assertIn('loaded rtc_pm8xxx softdog rog5_gmu_bind drm_client_lib phy_qcom_qmp_combo gpio_sbu_mux aux_bridge aux_hpd_bridge pmic_glink_altmode msm panel_asus_rog5_ams678 gpi rog5_fts3658u rog5_aw8697 rog5_vcnl36866 rog5_aura leds_qcom_flash qcom_pon qcom_spmi_adc5 qcom_spmi_adc_tm5 icc_bwmon rog5_input_boost qcom_stats tcpci_rt1711h', kmsg)
 
     def test_one_failure_still_loads_the_rest_and_fails_the_unit(self):
         (self.dir/'fail-rtc_pm8xxx').touch()
         code, kmsg = self.load()
         self.assertEqual(code, 1)
         self.assertIn('FAIL modprobe rtc_pm8xxx', kmsg)
-        self.assertEqual(len(self.calls()), 23)
+        self.assertEqual(len(self.calls()), 24)
 
     def test_audio_list_loads_without_boot_settings(self):
         shutil.copy(AUDIO_LIST, self.kit/'audio-modules')

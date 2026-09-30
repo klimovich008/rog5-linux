@@ -1,0 +1,61 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] phy: qcom: snps-femto-v2: treat HOST_SS as host mode; UTMI POR only on a real role change
+
+usb_add_hcd() sets PHY_MODE_USB_HOST_SS on the primary HCD's USB2 PHY
+(usb_phy_roothub_set_mode()) right after dwc3 has set PHY_MODE_USB_HOST, and
+the femto PHY stores that mode. Two checks compared against PHY_MODE_USB_HOST
+only:
+
+- The suspend path's AUTO_RESUME pulse for host mode never ran in host mode.
+- 0113's opt-in role_change_por pulsed the UTMI POR on HOST -> HOST_SS (not a
+  role change, while xHCI was already starting) and missed HOST_SS -> DEVICE
+  (the real host-to-device change).
+
+Compare the host and device ranges instead (the enum values are contiguous).
+role_change_por stays off by default. Reviewed by GPT-6.1-Sol (agreed).
+
+--- a/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
++++ b/drivers/phy/qualcomm/phy-qcom-snps-femto-v2.c
+@@ -180,11 +180,25 @@
+ 	readl_relaxed(base + offset);
+ }
+ 
++/*
++ * dwc3 sets PHY_MODE_USB_HOST, then usb_add_hcd() sets PHY_MODE_USB_HOST_SS on
++ * the same PHY (usb_phy_roothub_set_mode()), so compare the host range.
++ */
++static bool qcom_snps_hsphy_mode_is_host(enum phy_mode mode)
++{
++	return mode >= PHY_MODE_USB_HOST && mode <= PHY_MODE_USB_HOST_SS;
++}
++
++static bool qcom_snps_hsphy_mode_is_device(enum phy_mode mode)
++{
++	return mode >= PHY_MODE_USB_DEVICE && mode <= PHY_MODE_USB_DEVICE_SS;
++}
++
+ static int qcom_snps_hsphy_suspend(struct qcom_snps_hsphy *hsphy)
+ {
+ 	dev_dbg(&hsphy->phy->dev, "Suspend QCOM SNPS PHY\n");
+ 
+-	if (hsphy->mode == PHY_MODE_USB_HOST) {
++	if (qcom_snps_hsphy_mode_is_host(hsphy->mode)) {
+ 		/* Enable auto-resume to meet remote wakeup timing */
+ 		qcom_snps_hsphy_write_mask(hsphy->base,
+ 					   USB2_PHY_USB_PHY_HS_PHY_CTRL2,
+@@ -260,9 +274,12 @@
+ {
+ 	struct qcom_snps_hsphy *hsphy = phy_get_drvdata(phy);
+ 
+-	if (role_change_por && hsphy->phy_initialized && hsphy->mode != mode &&
+-	    (hsphy->mode == PHY_MODE_USB_HOST ||
+-	     hsphy->mode == PHY_MODE_USB_DEVICE)) {
++	/* Only a real host <-> device change, not HOST -> HOST_SS from usbcore. */
++	if (role_change_por && hsphy->phy_initialized &&
++	    ((qcom_snps_hsphy_mode_is_host(hsphy->mode) &&
++	      qcom_snps_hsphy_mode_is_device(mode)) ||
++	     (qcom_snps_hsphy_mode_is_device(hsphy->mode) &&
++	      qcom_snps_hsphy_mode_is_host(mode)))) {
+ 		dev_info(&phy->dev, "role change %d -> %d: UTMI POR\n",
+ 			 hsphy->mode, mode);
+ 		qcom_snps_hsphy_por(hsphy);

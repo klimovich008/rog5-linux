@@ -1,24 +1,63 @@
 #!/bin/sh
-# ROG5 bottom USB-C port (DT feature usbbtm, patches 0089/0090): USB 2.0 host
-# with the port's 5 V switched by hand.
+# ROG5 bottom USB-C port (DT feature usbbtm, patches 0089/0090): USB 2.0 host.
 #
+# Stage A (usbbtm alone): the port's 5 V is switched by hand.
 #   rog5-usb-bottom on       switch 5 V on (devices enumerate in ~2 s)
 #   rog5-usb-bottom off      switch 5 V off
 #   rog5-usb-bottom status   5 V state and attached devices
-#
 # Only USB devices (sticks, hubs, adapters) go in the bottom port: never a
 # charger or a computer while the 5 V is on (stage A has no Type-C policy).
+#
+# Stage B (usbbtm + usbbtmtc): the RT1715 Type-C controller (TCPM, source
+# only) switches the 5 V when a USB device is plugged in and off when it is
+# unplugged; "on" and "off" are refused, "status" shows the Type-C port too.
 #
 # The controller stays runtime-active (power/control=on, the default): its
 # runtime resume lost state ("xHC error in resume", SMMU fault, dead HC) and
 # retries were unreliable; awake it costs about 5 mA, and system suspend
 # still powers it down. A runtime-suspended root hub saw a connect
 # (CCS+CSC) but never woke to enumerate it, so the root hubs are held awake
-# while the 5 V is on.
+# while the 5 V is on (stage B: always, 93-rog5-usb-bottom.rules).
 set -eu
-V=/sys/devices/platform/rog5-btm-vbus-output/state
-X=$(ls -d /sys/devices/platform/soc@0/a8f8800.usb/a800000.usb/xhci-hcd.* 2>/dev/null | head -1)
-[ -w "$V" ] && [ -n "$X" ] || { echo 'rog5-usb-bottom: no bottom port (needs the usbbtm DT and 0089)' >&2; exit 1; }
+sys=${ROG5_USB_SYS:-/sys}
+dt=${ROG5_USB_DT:-/proc/device-tree}
+V=$sys/devices/platform/rog5-btm-vbus-output/state
+X=$(ls -d "$sys"/devices/platform/soc@0/a8f8800.usb/a800000.usb/xhci-hcd.* 2>/dev/null | head -1)
+[ -n "$X" ] || { echo 'rog5-usb-bottom: no bottom port (needs the usbbtm DT and 0089)' >&2; exit 1; }
+
+devices() {
+	for d in "$X"/usb*/[0-9]*-[0-9]*; do
+		[ -e "$d/product" ] && echo "$(basename "$d"): $(cat "$d/product") $(cat "$d/speed") Mb/s"
+	done
+	return 0
+}
+
+if [ ! -e "$V" ]; then
+	[ -e "$dt/soc@0/geniqup@ac0000/i2c@a94000/typec@4e" ] ||
+		{ echo 'rog5-usb-bottom: no 5 V control (neither the stage-A switch nor the usbbtmtc TCPC)' >&2; exit 1; }
+	case ${1:-status} in
+	on|off) echo 'rog5-usb-bottom: stage B: the Type-C controller switches the 5 V on attach and detach' >&2; exit 2 ;;
+	status) ;;
+	*) echo 'usage: rog5-usb-bottom status' >&2; exit 2 ;;
+	esac
+	port=
+	for p in "$sys"/class/typec/port[0-9]; do
+		case $(readlink -f "$p/device" 2>/dev/null) in */a94000.i2c/*) port=$p ;; esac
+	done
+	if [ -z "$port" ]; then
+		echo 'typec=missing (tcpci_rt1711h not loaded or not bound: see dmesg for i2c a94000 / rt1711h)'
+	else
+		partner=none; [ -e "$port-partner" ] && partner=attached
+		echo "typec=${port##*/} power_role=$(cat "$port/power_role") data_role=$(cat "$port/data_role") partner=$partner"
+	fi
+	for r in "$sys"/class/regulator/regulator.*; do
+		[ "$(cat "$r/name" 2>/dev/null)" = btm_vbus ] && echo "5V=$(cat "$r/state" 2>/dev/null)"
+	done
+	devices
+	exit 0
+fi
+
+[ -w "$V" ] || { echo 'rog5-usb-bottom: the 5 V switch is not writable (run as root)' >&2; exit 1; }
 case ${1:-status} in
 on)
 	for h in "$X"/usb*; do echo on > "$h/power/control"; done
@@ -31,9 +70,7 @@ off)
 	;;
 status)
 	echo "5V=$(cat "$V")"
-	for d in "$X"/usb*/[0-9]*-[0-9]*; do
-		[ -e "$d/product" ] && echo "$(basename "$d"): $(cat "$d/product") $(cat "$d/speed") Mb/s"
-	done
+	devices
 	;;
 *) echo 'usage: rog5-usb-bottom on|off|status' >&2; exit 2 ;;
 esac

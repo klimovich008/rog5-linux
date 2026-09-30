@@ -132,6 +132,15 @@
 
 &usb_2 {
 	qcom,select-utmi-as-pipe-clk;
+	/*
+	 * As on the side port: without it dwc3_suspend_common() runs
+	 * dwc3_core_exit() in host mode on every system suspend, so sticks
+	 * and hubs on the bottom port are reset and re-enumerated after each
+	 * s2idle, and a keyboard there cannot wake the phone. 0090 keeps
+	 * usb30_sec_gdsc in retention, so the controller state survives;
+	 * 0117/0141 cover a glue suspend without a registered xHCI.
+	 */
+	wakeup-source;
 	status = "okay";
 };
 

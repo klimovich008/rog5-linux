@@ -1,11 +1,13 @@
 #!/bin/sh
-# Re-enumerate the USB gadget after the cable is plugged back in.
+# Re-enumerate the side USB-C port (a600000.usb) after a replug or role change.
 #
-# The dwc3 controller (a600000.usb, dr_mode=peripheral, no role switch, VBUS
-# forced valid) is never told about a detach: after an unplug/replug the link
-# stays in Suspend, the UDC in "default", and the host sees nothing attached.
-# soft_connect does not help; a driver unbind/bind (core and HS PHY re-init)
-# does, and the host enumerates the gadget at once (2026-09-26).
+# History: before the OTG overlay (dr_mode=peripheral, no role switch, VBUS
+# forced valid) the controller was never told about a detach: after an
+# unplug/replug the link stayed in Suspend, the UDC in "default", and the host
+# saw nothing attached. The UCSI role switch and 0055 now handle detach, but a
+# gadget that stays unconfigured is still re-initialised here: a driver
+# unbind/bind (core and HS PHY re-init) made the host enumerate it at once
+# (2026-09-26).
 #
 # Host mode has the opposite problem. When UCSI switches the running
 # controller from device to host, xHCI comes up but every attached device
@@ -20,19 +22,50 @@
 # data-capable attach (SDP/CDP) it waits for the host to configure the gadget
 # and re-initialises the controller only if that does not happen. A charger
 # (DCP) or an already configured link is left alone.
+#
+# Suspend interlock (with the rog5-usb-sleep hook): one reconnect transaction
+# holds $lock from start to end. The sleep hook's "pre" creates $suspending
+# and then waits for $lock, so a run in progress finishes before the system
+# suspends; a run that starts while $suspending exists (between "pre" and the
+# end of "post") exits without touching the controller. "post" does its own
+# recovery under $lock, removes $suspending and, if a run was skipped
+# meanwhile ($skipped), starts this service once more. $suspending is only
+# honoured while systemd-sleep runs, so a marker left behind by a killed hook
+# can't disable this helper until the next boot.
 set -u
+sys=${ROG5_USB_SYS:-/sys}
+run=${ROG5_USB_RUN:-/run}
+kmsg=${ROG5_USB_KMSG:-/dev/kmsg}
+lock=$run/rog5-usb-reconnect.lock
+suspending=$run/rog5-usb-suspending
+skipped=$run/rog5-usb-reconnect.skipped
+log() { printf 'rog5-usb-reconnect: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
+
 # One run at a time: the re-init changes the role and udev starts this
 # service again; a second run cycling the controller mid-sequence left the
 # USB-C KVM dead (2026-09-30).
-exec 9>/run/rog5-usb-reconnect.lock
-flock -n 9 || exit 0
+exec 9>"$lock"
+# Busy (another run, or the sleep hook): this event is dropped, as before;
+# during a suspend, "post" is told to look again.
+flock -n 9 || { [ -e "$suspending" ] && : >"$skipped"; exit 0; }
+
+suspend_in_progress() {
+	[ -e "$suspending" ] || return 1
+	pgrep -x systemd-sleep >/dev/null 2>&1 && { : >"$skipped"; return 0; }
+	log 'stale suspend marker (no systemd-sleep running); removing it'
+	rm -f "$suspending"
+	return 1
+}
+suspend_in_progress && { log 'suspend in progress; not touching the controller'; exit 0; }
+
 udc=a600000.usb
-gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
-supply=/sys/class/power_supply/qcom-battmgr-usb
+gadget=$sys/kernel/config/usb_gadget/rog5-persistent-root
+supply=$sys/class/power_supply/qcom-battmgr-usb
 wait_s=${ROG5_USB_RECONNECT_WAIT:-6}
 
-role=/sys/class/usb_role/$udc-role-switch/role
-stamp=/run/rog5-usb-reconnect.host
+role=$sys/class/usb_role/$udc-role-switch/role
+typec_role=$sys/class/typec/port0/data_role
+stamp=$run/rog5-usb-reconnect.host
 host_wait_s=${ROG5_USB_HOST_WAIT:-4}
 # After the re-init the controller comes up as a device; switching it to host
 # one second later still gave -71 at full speed, 10 s later enumerated a
@@ -40,21 +73,22 @@ host_wait_s=${ROG5_USB_HOST_WAIT:-4}
 host_settle_s=${ROG5_USB_HOST_SETTLE:-8}
 # Retries after a re-initialisation that enumerated nothing (count reset by
 # a success or by leaving host mode); each waits out the 30 s rate limit.
-retries=/run/rog5-usb-reconnect.retries
+retries=$run/rog5-usb-reconnect.retries
 max_retries=${ROG5_USB_HOST_RETRIES:-3}
 retry_s=${ROG5_USB_HOST_RETRY_S:-35}
 
 # The USB-link Tailscale (rog5-tailscaled) skips itself while usb0 is down.
 start_usb_tailscale() { systemctl --no-block start rog5-tailscaled.service 2>/dev/null || true; }
-log() { printf 'rog5-usb-reconnect: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
-state() { cat "/sys/class/udc/$udc/state" 2>/dev/null; }
-host_mode() {
-	grep -qs '^\[host\]' /sys/class/typec/port0/data_role ||
-		grep -qsx host "$role"
+state() { cat "$sys/class/udc/$udc/state" 2>/dev/null; }
+role_now() { cat "$role" 2>/dev/null; }
+# UCSI can keep the last data role after a detach: require a partner too.
+typec_host() {
+	[ -e "${typec_role%/data_role}-partner" ] && grep -qs '^\[host\]' "$typec_role"
 }
+host_mode() { typec_host || [ "$(role_now)" = host ]; }
 # Any device on the controller's root hubs (usb1-1, usb2-1, ...).
 enumerated() {
-	ls -d /sys/bus/platform/devices/$udc/xhci-hcd.*/usb*/[0-9]*-[1-9]* >/dev/null 2>&1
+	ls -d "$sys"/bus/platform/devices/$udc/xhci-hcd.*/usb*/[0-9]*-[1-9]* >/dev/null 2>&1
 }
 
 # DisplayPort alt mode shares the side port's QMP combo PHY. The re-init
@@ -64,18 +98,48 @@ enumerated() {
 # keyboard and mouse enumerate; skipping it left them dead after every replug.
 # dp_attached is only logged now.
 dp_attached() {
-	for dp in /sys/class/drm/card*-DP-*/status; do
+	for dp in "$sys"/class/drm/card*-DP-*/status; do
 		[ "$(cat "$dp" 2>/dev/null)" = connected ] && return 0
 	done
 	return 1
 }
 
+# The controller must end every run bound to dwc3: a run that stops between
+# unbind and bind (write error, SIGTERM from the sleep hook) binds it again.
+unbound=0
+restore_binding() {
+	[ "$unbound" = 1 ] || return 0
+	[ -e "$sys/bus/platform/devices/$udc/driver" ] ||
+		echo "$udc" >"$sys/bus/platform/drivers/dwc3/bind" 2>/dev/null ||
+		log "FAIL could not bind $udc again"
+	unbound=0
+}
+trap 'restore_binding' EXIT
+trap 'exit 1' HUP INT TERM
+
 reinit() {
 	dp_attached && log "DP sink attached; re-initialising $udc anyway (DP stays up)"
-	echo "$udc" >/sys/bus/platform/drivers/dwc3/unbind || { log 'FAIL unbind'; return 1; }
+	unbound=1
+	echo "$udc" >"$sys/bus/platform/drivers/dwc3/unbind" || { unbound=0; log 'FAIL unbind'; return 1; }
 	sleep 1
-	echo "$udc" >/sys/bus/platform/drivers/dwc3/bind || { log 'FAIL bind'; return 1; }
+	echo "$udc" >"$sys/bus/platform/drivers/dwc3/bind" || { log 'FAIL bind'; return 1; }
+	unbound=0
+	# dwc3_probe() forbids runtime PM again; 91-rog5-usb-runtime-pm.rules
+	# restores "auto" on bind as well.
+	echo auto >"$sys/bus/platform/devices/$udc/power/control" 2>/dev/null
 	sleep 1
+}
+
+# Look again later from a fresh run (this run holds the lock, so events
+# that arrive now are dropped). Unique unit names, collected after use: a
+# fixed name still loaded from an earlier retry made systemd-run fail.
+schedule_run() { # delay-seconds reason
+	name=rog5-usb-reconnect-retry-$(cut -d. -f1 /proc/uptime)-$$
+	systemd-run --quiet --collect --timer-property=RemainAfterElapse=no \
+		--on-active="$1" --unit="$name" \
+		/usr/bin/systemctl --no-block start rog5-usb-reconnect.service 2>/dev/null && return 0
+	log "FAIL could not schedule a new run ($2)"
+	return 1
 }
 
 if host_mode; then
@@ -91,6 +155,7 @@ if host_mode; then
 	now=$(cut -d. -f1 /proc/uptime)
 	last=$(cat "$stamp" 2>/dev/null || echo -100)
 	[ $((now - last)) -ge 30 ] || exit 0
+	suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
 	echo "$now" >"$stamp"
 	log "host mode, nothing enumerated after ${host_wait_s}s; re-initialising $udc"
 	reinit || exit 1
@@ -99,7 +164,28 @@ if host_mode; then
 	# sequence that worked).
 	echo device >"$role" 2>/dev/null
 	sleep "$host_settle_s"
-	echo host >"$role" || { log 'FAIL set host role'; exit 1; }
+	# UCSI may have changed the role during the hold: an unplug sets "none",
+	# a PC "device"; only a port that still has a USB device partner goes
+	# back to host. A new run decides about whatever changed.
+	now_role=$(role_now)
+	case $now_role in
+	device)
+		if ! typec_host; then
+			log 'partner is no longer a USB device after the settle; not switching to host'
+			rm -f "$retries"
+			schedule_run 2 'after the settle'
+			exit 0
+		fi
+		echo host >"$role" || { log 'FAIL set host role'; exit 1; }
+		;;
+	host)
+		log 'UCSI switched back to host during the settle' ;;
+	*)
+		log "role changed to '$now_role' during the settle; not switching to host"
+		rm -f "$retries"
+		schedule_run 2 'after the settle'
+		exit 0 ;;
+	esac
 	waited=0
 	while [ "$waited" -lt 10 ]; do
 		enumerated && { log 'PASS device enumerated after re-initialisation'; rm -f "$retries"; exit 0; }
@@ -110,13 +196,15 @@ if host_mode; then
 	# -71 at 54 s with nothing left to start this service, 2026-09-30):
 	# try again later, a few times, while the port stays in host mode.
 	n=$(cat "$retries" 2>/dev/null || echo 0)
+	case $n in ''|*[!0-9]*) n=0 ;; esac
 	if [ "$n" -lt "$max_retries" ]; then
-		echo $((n + 1)) >"$retries"
 		log "host mode: nothing enumerated after re-initialisation; retry $((n + 1))/$max_retries in ${retry_s}s"
-		systemd-run --quiet --on-active="$retry_s" --unit="rog5-usb-reconnect-retry-$((n + 1))" \
-			/usr/bin/systemctl --no-block start rog5-usb-reconnect.service || true
+		if schedule_run "$retry_s" "retry $((n + 1))"; then
+			echo $((n + 1)) >"$retries"
+		fi
 	else
 		log 'host mode: nothing enumerated after re-initialisation'
+		rm -f "$retries"
 	fi
 	exit 0
 fi
@@ -134,6 +222,7 @@ while [ "$waited" -lt "$wait_s" ]; do
 	sleep 1
 	waited=$((waited + 1))
 done
+suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
 log "gadget still $(state) ${wait_s}s after attach; re-initialising $udc"
 reinit || exit 1
 [ -n "$(cat "$gadget/UDC" 2>/dev/null)" ] || echo "$udc" >"$gadget/UDC" || { log 'FAIL gadget bind'; exit 1; }

@@ -56,3 +56,7 @@ icc_bwmon
 rog5_input_boost
 # RPMh sleep counters (/sys/kernel/debug/qcom_stats): DDR and CX collapse.
 qcom_stats
+# Bottom USB-C port stage B (usbbtmtc DT feature): the RT1715 TCPC on i2c13
+# (pulls in tcpci, tcpm). It binds nothing without the feature. Loaded after
+# the initramfs' ucsi_glink, so the side port stays typec port0.
+tcpci_rt1711h

@@ -10,14 +10,33 @@
 # re-enumerated ("couldn't allocate usb_device") until the xHCI was rebound
 # (2026-09-29, r182). Kernel patch 0105 (usb30_prim_gdsc in retention) fixed
 # the cause on r184; this hook stays as a safety net. Unbinding the xHCI
-# before suspend instead reset the phone during suspend entry (r182), so the
-# hook only acts after resume. A device unplugged while asleep costs a
-# harmless rebind.
+# before suspend instead reset the phone during suspend entry (r182; kernel
+# 0117 guards that dereference now), so the hook never unbinds before suspend.
+# A device unplugged while asleep costs a harmless rebind.
+#
+# It also keeps rog5-usb-reconnect (which unbinds and binds dwc3) away from
+# suspend: "pre" marks the suspend and waits for a reconnect run in progress
+# to finish (it holds the reconnect lock for its whole transaction); runs
+# that start later see the marker and exit. A run that is still busy after
+# $lock_wait s is stopped, and the side controller bound to dwc3 again if the
+# run left it unbound (only once it holds the lock; a hook cannot veto the
+# suspend, so a run that holds on is only logged). "post" does its recovery
+# under the same lock, then
+# clears the marker and, if a reconnect run was skipped meanwhile, starts one.
+# systemd-sleep gives each hook 90 s.
 set -u
-drv=${ROG5_USB_SLEEP_DRIVER:-/sys/bus/platform/drivers/xhci-hcd}
-list=${ROG5_USB_SLEEP_STATE:-/run/rog5-usb-sleep}
+sys=${ROG5_USB_SYS:-/sys}
+run=${ROG5_USB_RUN:-/run}
+kmsg=${ROG5_USB_KMSG:-/dev/kmsg}
+drv=${ROG5_USB_SLEEP_DRIVER:-$sys/bus/platform/drivers/xhci-hcd}
+list=${ROG5_USB_SLEEP_STATE:-$run/rog5-usb-sleep}
 settle=${ROG5_USB_SLEEP_SETTLE:-3}
-log() { printf 'rog5-usb-sleep: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
+lock_wait=${ROG5_USB_SLEEP_LOCK_WAIT:-50}
+lock=$run/rog5-usb-reconnect.lock
+suspending=$run/rog5-usb-suspending
+skipped=$run/rog5-usb-reconnect.skipped
+udc=a600000.usb
+log() { printf 'rog5-usb-sleep: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
 
 # Prints the attached (non-root-hub) devices of controller $1.
 devices() {
@@ -28,23 +47,57 @@ devices() {
 	done
 }
 
+# Binds the side controller to dwc3 if a stopped reconnect run left it
+# unbound (only possible between its unbind and bind).
+bind_side() {
+	[ -e "$sys/bus/platform/devices/$udc" ] || return 0
+	[ -e "$sys/bus/platform/devices/$udc/driver" ] && return 0
+	log "$udc left unbound by rog5-usb-reconnect; binding it"
+	echo "$udc" >"$sys/bus/platform/drivers/dwc3/bind" 2>/dev/null ||
+		log "WARN could not bind $udc"
+}
+
 case ${1-} in
 pre)
+	rm -f "$skipped"
+	: >"$suspending"
+	exec 9>"$lock"
+	if ! flock -w "$lock_wait" 9; then
+		log "rog5-usb-reconnect still running after ${lock_wait}s; stopping it"
+		# "post" replays the interrupted run.
+		: >"$skipped"
+		systemctl kill --signal=TERM rog5-usb-reconnect.service 2>/dev/null
+		# Never touch the controller without the lock. A hook cannot veto
+		# the suspend (systemd ignores its exit status); log loudly.
+		flock -w 10 9 || { log 'FAIL reconnect lock still held at suspend entry'; exit 1; }
+		bind_side
+	fi
 	: >"$list"
 	for c in "$drv"/xhci-hcd.*; do
 		[ -n "$(devices "$c")" ] && echo "${c##*/}" >>"$list"
 	done
 	;;
 post)
-	[ -s "$list" ] || exit 0
-	sleep "$settle"
-	while read -r name; do
-		[ -n "$(devices "$drv/$name")" ] && continue
-		log "$name lost its USB devices over suspend; rebinding"
-		echo "$name" >"$drv/unbind" 2>/dev/null
-		echo "$name" >"$drv/bind" || log "WARN could not rebind $name"
-	done <"$list"
-	rm -f "$list"
+	exec 9>"$lock"
+	# Without the lock: no recovery; the marker goes stale (the helper drops
+	# it once systemd-sleep has exited).
+	flock -w "$lock_wait" 9 || { log 'FAIL reconnect lock busy after resume'; exit 1; }
+	if [ -s "$list" ]; then
+		sleep "$settle"
+		while read -r name; do
+			[ -n "$(devices "$drv/$name")" ] && continue
+			log "$name lost its USB devices over suspend; rebinding"
+			echo "$name" >"$drv/unbind" 2>/dev/null
+			echo "$name" >"$drv/bind" || log "WARN could not rebind $name"
+		done <"$list"
+	fi
+	rm -f "$list" "$suspending"
+	exec 9>&-
+	# A plug or role change while the marker was set was ignored: look now.
+	if [ -e "$skipped" ]; then
+		rm -f "$skipped"
+		systemctl --no-block start rog5-usb-reconnect.service 2>/dev/null || true
+	fi
 	;;
 esac
 exit 0
