@@ -39,6 +39,10 @@ case $mic,$features, in 1,*,audio,*|0,*) ;; *) echo 'FAIL mic needs audio' >&2; 
 # instruction fetch, left behind by the ASUS wrapper) likewise; no kernel
 # dependency.
 case ,$features, in *,memx,*) memx=1; features=$(printf %s "$features" | sed 's/^memx$//; s/,memx$//; s/,memx,/,/') ;; *) memx=0 ;; esac
+# l11off (PM8350C LDO11, the stock modem antenna-switch rail the ASUS wrapper
+# leaves on, declared boot-on without a consumer so regulator late cleanup
+# turns it off 30 s after boot) likewise; no kernel dependency.
+case ,$features, in *,l11off,*) l11off=1; features=$(printf %s "$features" | sed 's/^l11off$//; s/,l11off$//; s/,l11off,/,/') ;; *) l11off=0 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -557,6 +561,33 @@ if [ "$memx" = 1 ]; then
 		[ "$(for n in $(fdtget -l "$work/composed.dtb" /reserved-memory); do
 			fdtget -tx "$work/composed.dtb" /reserved-memory/$n reg | cut -d ' ' -f 1; done | grep -vcx 0)" = 1 ] ||
 		{ echo 'FAIL memx composition' >&2; exit 1; }
+fi
+if [ "$l11off" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/l11off.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-antenna-rail-off.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/l11off.dtbo" "$work/l11off.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/l11off.dtb" "$work/l11off.dtbo"
+	mv "$work/l11off.dtb" "$work/composed.dtb"
+	vr=/soc@0/rsc@18200000/regulators-1
+	# PM8350C only; LDO11 boot-on (late cleanup's only way to learn the state)
+	# and never always-on; no voltage constraints (any would make the core
+	# send a voltage request at registration; min == max 2.85 V is not a PLDO
+	# step and would fail the whole regulator device), no initial mode, no
+	# consumer, no parent supply (as the other supply-less PM8350C rails
+	# here); LDO7 (the light sensor's rail) still undeclared.
+	[ "$(fdtget "$work/composed.dtb" $vr compatible)" = qcom,pm8350c-rpmh-regulators ] &&
+		[ "$(fdtget "$work/composed.dtb" $vr qcom,pmic-id)" = c ] &&
+		[ "$(fdtget "$work/composed.dtb" $vr/ldo11 regulator-name)" = rog5_l11c_antenna ] &&
+		! fdtget "$work/composed.dtb" $vr/ldo11 regulator-min-microvolt >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $vr/ldo11 regulator-max-microvolt >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $vr/ldo11 regulator-initial-mode >/dev/null 2>&1 &&
+		fdtget "$work/composed.dtb" $vr/ldo11 regulator-boot-on >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $vr/ldo11 regulator-always-on >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $vr/ldo11 phandle >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $vr vdd-l6-l9-l11-supply >/dev/null 2>&1 &&
+		[ -z "$(fdtget -l "$work/composed.dtb" $vr | grep -x ldo7)" ] ||
+		{ echo 'FAIL l11off composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }

@@ -510,6 +510,50 @@
       ]
     },
     {
+      "path": "scripts/device/test-idle-power-votes.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "cpp",
+        "dtc",
+        "fdtget",
+        "fdtput",
+        "fdtoverlay",
+        "sha256sum"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires the private V9 base DTB and the kernel r110 source",
+          "scope": "subcheck",
+          "reason": "The r9/r10 bytes come from the private V9 base and the kernel tree; the synthetic PM8350C fixture covers the overlay, so a skip proves nothing about the composed DTB.",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/v9-board.dtb (or ROG5_V9_BASE_DTB)",
+            "~/.local/state/rog5-kernel-7.2.7-build-r110/source (or ROG5_KERNEL_SOURCE)"
+          ],
+          "test_ids": [
+            "ProductionR10Test.test_r9_reproduced_and_r10_adds_only_ldo11"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/device/test-production-modprobe-loaders.py",
       "interpreter": "python3",
       "tiers": [

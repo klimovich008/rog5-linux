@@ -1,0 +1,513 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: dwc3: qcom-legacy: ROG5 usb-ddr vote follows the attached devices
+
+dwc3-qcom-legacy votes the full usb-ddr bandwidth (240/700 MB/s for a
+high-speed core, 1000/2500 for SuperSpeed) at probe, in every bucket, and
+drops it only in glue suspend. The ROG5 keeps both controllers runtime
+active on purpose (xHCI runtime resume lost state; the bottom port has
+power/control=on), so the two idle ports held two 240/700 MB/s votes for
+the whole uptime and DDR sat at 451 MHz with the panel off (92 % of an
+awake boot, r207). msm-5.4's dwc3-msm votes nothing while the controller
+is in LPM (nothing attached, or all devices suspended) and SVS (240/700) in
+HS host mode, so this matches stock for an empty port without needing
+runtime suspend.
+
+- A USB notifier (USB_DEVICE_ADD/REMOVE, registered before the core
+  populates the xHCI) tracks the non-hub devices below this glue's root
+  hubs (a reference each), counted once in the bucket of their speed at
+  ADD: a failed reset can change udev->speed before REMOVE. A device that
+  goes away without REMOVE (a generic_subclass driver whose own probe
+  failed after the generic ADD) is dropped at the next event once it is
+  NOTATTACHED. The xHCI platform device is a child of the core, which is a
+  child of the glue.
+- The usb-ddr vote is the full one (unchanged values) in the device role,
+  with a high/super-speed device attached, or before a role is known on a
+  peripheral/extcon core; 2/12 MB/s with only low/full-speed devices
+  (keyboards, mice, pads: 12 Mbit/s is 1.5 MB/s); and 1/1 kB/s with
+  nothing attached. The floor keeps the path's BCMs enabled at their
+  lowest level (msm-5.4 BUS_VOTE_MIN) because the running controller still
+  writes its event ring, e.g. for the next attach's port change.
+  Enumeration runs at the lower vote; the higher one follows
+  USB_DEVICE_ADD.
+- The role comes from the legacy pre_set_role hook (usb-role-switch
+  cores): DEVICE raises the vote before the gadget starts. Leaving DEVICE,
+  the gadget stops later (drd_work, or the pull-up for NONE), so the full
+  vote stays for 2 s (delayed work) before it follows the devices. A
+  host-only core (the ROG5 bottom port) and a role switch core with a
+  host default start in host.
+- icc_disable()/icc_enable() in glue suspend/resume and the vote changes
+  take the same lock, so a change during suspend is kept for resume. The
+  apps-usb path is unchanged.
+- dwc3_qcom_legacy.ddr_bw_follows_devices (default Y, writable at runtime)
+  set to N restores the fixed full vote at once, for A/B measurements.
+  Probe joins the instance list under the setter's lock, so a concurrent
+  change can't miss a controller.
+- Not counted: a device bound to a non-generic usb_device_driver (e.g.
+  usbip-host), which sends neither notification; it works at the lower
+  vote. Enumeration and the first interface-driver traffic also run at
+  the lower vote: ADD comes after set_configuration.
+- The 1 kB/s floor keeps the BCMs enabled but proves nothing about DMA
+  latency of a running xHCI: hardware qualification (attach/detach at the
+  floor, s2idle with the hub) is part of the trial. Reviewed read-only by
+  GPT-6.1-Sol; its findings (speed-change bucket, unpaired ADD, early drop
+  when leaving DEVICE, probe vs parameter race) are fixed.
+
+Nothing is runtime-suspended, unbound or reset: the controllers, xHCI and
+root hubs keep their current PM state, and s2idle is unchanged (the glue
+still disables both paths in suspend).
+
+--- a/drivers/usb/dwc3/dwc3-qcom-legacy.c
++++ b/drivers/usb/dwc3/dwc3-qcom-legacy.c
+@@ -19,9 +19,11 @@
+ #include <linux/phy/phy.h>
+ #include <linux/usb/of.h>
+ #include <linux/reset.h>
++#include <linux/slab.h>
+ #include <linux/iopoll.h>
+ #include <linux/usb/hcd.h>
+ #include <linux/usb.h>
++#include <linux/workqueue.h>
+ #include "core.h"
+ 
+ /* USB QSCRATCH Hardware registers */
+@@ -52,6 +54,35 @@
+ #define APPS_USB_AVG_BW 0
+ #define APPS_USB_PEAK_BW MBps_to_icc(40)
+ 
++/*
++ * ROG5 usb-ddr levels below the full (HS/SS) vote: only low/full-speed
++ * devices attached (12 Mbit/s is 1.5 MB/s), or no device at all. The floor
++ * keeps the path's BCMs enabled at their lowest level (as msm-5.4's
++ * BUS_VOTE_MIN) because the running controller still writes its event ring,
++ * e.g. for the port change of the next attach.
++ */
++#define USB_MEMORY_AVG_FS_BW MBps_to_icc(2)
++#define USB_MEMORY_PEAK_FS_BW MBps_to_icc(12)
++#define USB_MEMORY_AVG_FLOOR_BW 1
++#define USB_MEMORY_PEAK_FLOOR_BW 1
++
++enum dwc3_qcom_bw_level {
++	DWC3_QCOM_BW_UNSET = -1,
++	DWC3_QCOM_BW_FLOOR,
++	DWC3_QCOM_BW_FS,
++	DWC3_QCOM_BW_FULL,
++};
++
++/* Leaving the device role: keep the full vote while the gadget stops. */
++#define DWC3_QCOM_BW_ROLE_HOLD	msecs_to_jiffies(2000)
++
++/* A counted device and the bucket it was counted in at USB_DEVICE_ADD. */
++struct dwc3_qcom_bw_dev {
++	struct list_head	node;
++	struct usb_device	*udev;
++	bool			slow;
++};
++
+ /* Qualcomm SoCs with multiport support has up to 4 ports */
+ #define DWC3_QCOM_MAX_PORTS	4
+ 
+@@ -94,6 +125,21 @@
+ 	bool			pm_suspended;
+ 	struct icc_path		*icc_path_ddr;
+ 	struct icc_path		*icc_path_apps;
++
++	/* usb-ddr vote that follows the attached devices, under bw_lock */
++	struct mutex		bw_lock;
++	struct notifier_block	usb_nb;
++	struct list_head	bw_node;
++	struct list_head	bw_devs;	/* struct dwc3_qcom_bw_dev */
++	struct delayed_work	bw_work;
++	unsigned int		bw_fast_devs;	/* high speed or faster */
++	unsigned int		bw_slow_devs;	/* low and full speed */
++	bool			bw_device_role;
++	bool			bw_role_hold;
++	bool			bw_role_known;
++	bool			bw_ss;
++	bool			bw_ready;
++	enum dwc3_qcom_bw_level	bw_level;
+ };
+ 
+ static inline void dwc3_qcom_setbits(void __iomem *base, u32 offset, u32 val)
+@@ -136,6 +182,248 @@
+ }
+ 
+ /*
++ * ROG5: the usb-ddr vote follows what the controller serves. The glue used to
++ * vote the full HS/SS bandwidth from probe to remove (icc_disable() only in
++ * glue suspend), and on the ROG5 both controllers stay runtime active (xHCI
++ * runtime resume loses state), so two idle ports held DDR at 451 MHz with the
++ * panel off. msm-5.4's dwc3-msm votes nothing in LPM (controller suspended,
++ * e.g. nothing attached) and SVS (240/700 MB/s) in HS host mode. Without LPM
++ * the vote here follows the devices below the root hubs instead: the full
++ * vote in the device role or with a high/super-speed device attached, a
++ * small one with only low/full-speed devices (keyboards, mice, controllers),
++ * and a floor with nothing attached. Hubs are not counted. Enumeration runs
++ * at the lower vote; the full vote comes with USB_DEVICE_ADD. Each device is
++ * counted once, in the bucket of its speed at USB_DEVICE_ADD (a failed reset
++ * can change udev->speed); one that goes away without USB_DEVICE_REMOVE (a
++ * generic_subclass driver whose own probe failed) is dropped at the next
++ * event. A device bound to a non-generic usb_device_driver (usbip-host) sends
++ * neither and runs at the lower vote. ddr_bw_follows_devices=0 restores the
++ * fixed full vote at once.
++ */
++static bool ddr_bw_follows_devices = true;
++static LIST_HEAD(dwc3_qcom_bw_list);
++static DEFINE_MUTEX(dwc3_qcom_bw_list_lock);
++
++static enum dwc3_qcom_bw_level dwc3_qcom_bw_need(struct dwc3_qcom *qcom)
++{
++	if (!READ_ONCE(ddr_bw_follows_devices) || qcom->bw_device_role ||
++	    qcom->bw_role_hold || qcom->bw_fast_devs)
++		return DWC3_QCOM_BW_FULL;
++	if (qcom->bw_slow_devs)
++		return DWC3_QCOM_BW_FS;
++	return DWC3_QCOM_BW_FLOOR;
++}
++
++/* Called with bw_lock held. */
++static void dwc3_qcom_bw_apply(struct dwc3_qcom *qcom)
++{
++	enum dwc3_qcom_bw_level level;
++	u32 avg, peak;
++	int ret;
++
++	if (!qcom->bw_ready)
++		return;
++
++	level = dwc3_qcom_bw_need(qcom);
++	if (level == qcom->bw_level)
++		return;
++
++	switch (level) {
++	case DWC3_QCOM_BW_FULL:
++		avg = qcom->bw_ss ? USB_MEMORY_AVG_SS_BW : USB_MEMORY_AVG_HS_BW;
++		peak = qcom->bw_ss ? USB_MEMORY_PEAK_SS_BW : USB_MEMORY_PEAK_HS_BW;
++		break;
++	case DWC3_QCOM_BW_FS:
++		avg = USB_MEMORY_AVG_FS_BW;
++		peak = USB_MEMORY_PEAK_FS_BW;
++		break;
++	default:
++		avg = USB_MEMORY_AVG_FLOOR_BW;
++		peak = USB_MEMORY_PEAK_FLOOR_BW;
++		break;
++	}
++
++	/* On failure the interconnect core keeps the previous vote. */
++	ret = icc_set_bw(qcom->icc_path_ddr, avg, peak);
++	if (ret) {
++		dev_warn(qcom->dev, "usb-ddr vote %u/%u kBps failed: %d\n",
++			 avg, peak, ret);
++		return;
++	}
++
++	dev_dbg(qcom->dev, "usb-ddr %u/%u kBps (device role %d, %u fast, %u slow devices)\n",
++		avg, peak, qcom->bw_device_role, qcom->bw_fast_devs,
++		qcom->bw_slow_devs);
++	qcom->bw_level = level;
++}
++
++static int ddr_bw_follows_devices_set(const char *val,
++				      const struct kernel_param *kp)
++{
++	struct dwc3_qcom *qcom;
++	int ret;
++
++	mutex_lock(&dwc3_qcom_bw_list_lock);
++	ret = param_set_bool(val, kp);
++	if (!ret) {
++		list_for_each_entry(qcom, &dwc3_qcom_bw_list, bw_node) {
++			mutex_lock(&qcom->bw_lock);
++			dwc3_qcom_bw_apply(qcom);
++			mutex_unlock(&qcom->bw_lock);
++		}
++	}
++	mutex_unlock(&dwc3_qcom_bw_list_lock);
++
++	return ret;
++}
++
++static const struct kernel_param_ops ddr_bw_follows_devices_ops = {
++	.set = ddr_bw_follows_devices_set,
++	.get = param_get_bool,
++};
++module_param_cb(ddr_bw_follows_devices, &ddr_bw_follows_devices_ops,
++		&ddr_bw_follows_devices, 0644);
++MODULE_PARM_DESC(ddr_bw_follows_devices,
++		 "Scale the usb-ddr vote with the attached devices (default Y; N: fixed full vote)");
++
++/* The xHCI platform device is a child of the dwc3 core, a child of the glue. */
++static bool dwc3_qcom_serves(struct dwc3_qcom *qcom, struct usb_device *udev)
++{
++	struct device *hcd_dev = udev->bus ? udev->bus->controller : NULL;
++
++	return udev->parent && hcd_dev && hcd_dev->parent &&
++	       hcd_dev->parent->parent == qcom->dev;
++}
++
++static void dwc3_qcom_bw_drop(struct dwc3_qcom *qcom, struct dwc3_qcom_bw_dev *d)
++{
++	unsigned int *count = d->slow ? &qcom->bw_slow_devs : &qcom->bw_fast_devs;
++
++	if (*count)
++		(*count)--;
++	list_del(&d->node);
++	usb_put_dev(d->udev);
++	kfree(d);
++}
++
++/* Called with bw_lock held: devices disconnected without USB_DEVICE_REMOVE. */
++static void dwc3_qcom_bw_prune(struct dwc3_qcom *qcom)
++{
++	struct dwc3_qcom_bw_dev *d, *tmp;
++
++	list_for_each_entry_safe(d, tmp, &qcom->bw_devs, node)
++		if (d->udev->state == USB_STATE_NOTATTACHED)
++			dwc3_qcom_bw_drop(qcom, d);
++}
++
++static struct dwc3_qcom_bw_dev *dwc3_qcom_bw_find(struct dwc3_qcom *qcom,
++						  struct usb_device *udev)
++{
++	struct dwc3_qcom_bw_dev *d;
++
++	list_for_each_entry(d, &qcom->bw_devs, node)
++		if (d->udev == udev)
++			return d;
++	return NULL;
++}
++
++static int dwc3_qcom_usb_notify(struct notifier_block *nb,
++				unsigned long action, void *data)
++{
++	struct dwc3_qcom *qcom = container_of(nb, struct dwc3_qcom, usb_nb);
++	struct usb_device *udev = data;
++	struct dwc3_qcom_bw_dev *d;
++
++	/* USB_BUS_ADD/REMOVE pass a struct usb_bus. */
++	if (action != USB_DEVICE_ADD && action != USB_DEVICE_REMOVE)
++		return NOTIFY_DONE;
++
++	if (!dwc3_qcom_serves(qcom, udev) ||
++	    udev->descriptor.bDeviceClass == USB_CLASS_HUB)
++		return NOTIFY_DONE;
++
++	mutex_lock(&qcom->bw_lock);
++	dwc3_qcom_bw_prune(qcom);
++	d = dwc3_qcom_bw_find(qcom, udev);
++	if (action == USB_DEVICE_REMOVE) {
++		if (d)
++			dwc3_qcom_bw_drop(qcom, d);
++	} else if (!d) {
++		d = kzalloc(sizeof(*d), GFP_KERNEL);
++		if (d) {
++			d->udev = usb_get_dev(udev);
++			d->slow = udev->speed == USB_SPEED_LOW ||
++				  udev->speed == USB_SPEED_FULL;
++			list_add_tail(&d->node, &qcom->bw_devs);
++			if (d->slow)
++				qcom->bw_slow_devs++;
++			else
++				qcom->bw_fast_devs++;
++		} else {
++			/* Not tracked: vote as if it were fast until then. */
++			qcom->bw_role_hold = true;
++			mod_delayed_work(system_wq, &qcom->bw_work,
++					 DWC3_QCOM_BW_ROLE_HOLD);
++		}
++	}
++	dwc3_qcom_bw_apply(qcom);
++	mutex_unlock(&qcom->bw_lock);
++
++	return NOTIFY_OK;
++}
++
++static void dwc3_qcom_bw_work(struct work_struct *work)
++{
++	struct dwc3_qcom *qcom = container_of(to_delayed_work(work),
++					      struct dwc3_qcom, bw_work);
++
++	mutex_lock(&qcom->bw_lock);
++	qcom->bw_role_hold = false;
++	dwc3_qcom_bw_prune(qcom);
++	dwc3_qcom_bw_apply(qcom);
++	mutex_unlock(&qcom->bw_lock);
++}
++
++static void dwc3_qcom_bw_register(struct dwc3_qcom *qcom)
++{
++	qcom->usb_nb.notifier_call = dwc3_qcom_usb_notify;
++	if (IS_REACHABLE(CONFIG_USB))
++		usb_register_notify(&qcom->usb_nb);
++}
++
++/* After the core (and with it the role switch and the xHCI) is gone. */
++static void dwc3_qcom_bw_unregister(struct dwc3_qcom *qcom)
++{
++	struct dwc3_qcom_bw_dev *d, *tmp;
++
++	if (IS_REACHABLE(CONFIG_USB))
++		usb_unregister_notify(&qcom->usb_nb);
++	cancel_delayed_work_sync(&qcom->bw_work);
++
++	mutex_lock(&qcom->bw_lock);
++	list_for_each_entry_safe(d, tmp, &qcom->bw_devs, node)
++		dwc3_qcom_bw_drop(qcom, d);
++	mutex_unlock(&qcom->bw_lock);
++}
++
++/* Role of a core no role has been set on yet (probe). */
++static bool dwc3_qcom_bw_default_device_role(struct dwc3_qcom *qcom)
++{
++	struct device *core = &qcom->dwc3->dev;
++
++	if (usb_get_dr_mode(core) == USB_DR_MODE_HOST)
++		return false;
++
++	/* dwc3_setup_role_switch() starts the core in its default mode. */
++	if (device_property_read_bool(core, "usb-role-switch") &&
++	    usb_get_role_switch_default_mode(core) == USB_DR_MODE_HOST)
++		return false;
++
++	/* Peripheral, or OTG driven by extcon: the full vote, as before. */
++	return true;
++}
++
++/*
+  * ROG5 side port (usb-role-switch core): the glue forces the session valid
+  * (the QSCRATCH VBUS override: UTMI_OTG_VBUS_VALID, SW_SESSVLD_SEL and the SS
+  * LANE0_PWR_PRESENT) at probe and never clears it, so the controller runs in
+@@ -161,6 +449,24 @@
+ 	bool on = !READ_ONCE(role_session_override) || role == USB_ROLE_DEVICE;
+ 	int ret;
+ 
++	/*
++	 * Full usb-ddr vote before the gadget starts. Leaving the device role,
++	 * the gadget stops later (drd_work, or the pull-up for NONE): keep the
++	 * full vote for DWC3_QCOM_BW_ROLE_HOLD, then follow the devices.
++	 */
++	mutex_lock(&qcom->bw_lock);
++	qcom->bw_role_known = true;
++	if (role == USB_ROLE_DEVICE) {
++		qcom->bw_device_role = true;
++		dwc3_qcom_bw_apply(qcom);
++	} else if (qcom->bw_device_role) {
++		qcom->bw_device_role = false;
++		qcom->bw_role_hold = true;
++		mod_delayed_work(system_wq, &qcom->bw_work,
++				 DWC3_QCOM_BW_ROLE_HOLD);
++	}
++	mutex_unlock(&qcom->bw_lock);
++
+ 	mutex_lock(&qcom->session_lock);
+ 	/* Nothing to do while the override is in its probe-time state. */
+ 	if (on && !qcom->vbus_override_cleared)
+@@ -325,7 +631,9 @@
+ 	}
+ 
+ 	max_speed = usb_get_maximum_speed(&qcom->dwc3->dev);
+-	if (max_speed >= USB_SPEED_SUPER || max_speed == USB_SPEED_UNKNOWN) {
++	qcom->bw_ss = max_speed >= USB_SPEED_SUPER ||
++		      max_speed == USB_SPEED_UNKNOWN;
++	if (qcom->bw_ss) {
+ 		ret = icc_set_bw(qcom->icc_path_ddr,
+ 				USB_MEMORY_AVG_SS_BW, USB_MEMORY_PEAK_SS_BW);
+ 	} else {
+@@ -512,7 +820,10 @@
+ 	for (i = qcom->num_clocks - 1; i >= 0; i--)
+ 		clk_disable_unprepare(qcom->clks[i]);
+ 
++	/* bw_lock: keep icc_disable() and a concurrent vote change ordered */
++	mutex_lock(&qcom->bw_lock);
+ 	ret = dwc3_qcom_interconnect_disable(qcom);
++	mutex_unlock(&qcom->bw_lock);
+ 	if (ret)
+ 		dev_warn(qcom->dev, "failed to disable interconnect: %d\n", ret);
+ 
+@@ -551,7 +862,9 @@
+ 		}
+ 	}
+ 
++	mutex_lock(&qcom->bw_lock);
+ 	ret = dwc3_qcom_interconnect_enable(qcom);
++	mutex_unlock(&qcom->bw_lock);
+ 	if (ret)
+ 		dev_warn(qcom->dev, "failed to enable interconnect: %d\n", ret);
+ 
+@@ -826,6 +1139,11 @@
+ 	platform_set_drvdata(pdev, qcom);
+ 	qcom->dev = &pdev->dev;
+ 	mutex_init(&qcom->session_lock);
++	mutex_init(&qcom->bw_lock);
++	INIT_LIST_HEAD(&qcom->bw_node);
++	INIT_LIST_HEAD(&qcom->bw_devs);
++	INIT_DELAYED_WORK(&qcom->bw_work, dwc3_qcom_bw_work);
++	qcom->bw_level = DWC3_QCOM_BW_UNSET;
+ 
+ 	qcom->resets = devm_reset_control_array_get_optional_exclusive(dev);
+ 	if (IS_ERR(qcom->resets)) {
+@@ -874,10 +1192,13 @@
+ 	if (ignore_pipe_clk)
+ 		dwc3_qcom_select_utmi_clk(qcom);
+ 
++	/* Before the core populates the xHCI: count every attached device. */
++	dwc3_qcom_bw_register(qcom);
++
+ 	ret = dwc3_qcom_of_register_core(pdev);
+ 	if (ret) {
+ 		dev_err(dev, "failed to register DWC3 Core, err=%d\n", ret);
+-		goto clk_disable;
++		goto unregister_usb_nb;
+ 	}
+ 
+ 	ret = dwc3_qcom_interconnect_init(qcom);
+@@ -912,6 +1233,22 @@
+ 	qcom->pm_ready = true;
+ 	mutex_unlock(&qcom->session_lock);
+ 
++	/*
++	 * interconnect_init() voted the full bandwidth; follow the devices.
++	 * The list lock (taken before bw_lock, as in the parameter setter)
++	 * keeps a concurrent ddr_bw_follows_devices change from missing us.
++	 */
++	mutex_lock(&dwc3_qcom_bw_list_lock);
++	mutex_lock(&qcom->bw_lock);
++	if (!qcom->bw_role_known)
++		qcom->bw_device_role = dwc3_qcom_bw_default_device_role(qcom);
++	qcom->bw_level = DWC3_QCOM_BW_FULL;
++	qcom->bw_ready = true;
++	dwc3_qcom_bw_apply(qcom);
++	mutex_unlock(&qcom->bw_lock);
++	list_add_tail(&qcom->bw_node, &dwc3_qcom_bw_list);
++	mutex_unlock(&dwc3_qcom_bw_list_lock);
++
+ 	return 0;
+ 
+ interconnect_exit:
+@@ -919,6 +1256,8 @@
+ depopulate:
+ 	of_platform_depopulate(&pdev->dev);
+ 	platform_device_put(qcom->dwc3);
++unregister_usb_nb:
++	dwc3_qcom_bw_unregister(qcom);
+ clk_disable:
+ 	for (i = qcom->num_clocks - 1; i >= 0; i--) {
+ 		clk_disable_unprepare(qcom->clks[i]);
+@@ -936,8 +1275,17 @@
+ 	struct device *dev = &pdev->dev;
+ 	int i;
+ 
++	mutex_lock(&dwc3_qcom_bw_list_lock);
++	list_del_init(&qcom->bw_node);
++	mutex_unlock(&dwc3_qcom_bw_list_lock);
++
+ 	of_platform_depopulate(&pdev->dev);
+ 	platform_device_put(qcom->dwc3);
++	dwc3_qcom_bw_unregister(qcom);
++
++	mutex_lock(&qcom->bw_lock);
++	qcom->bw_ready = false;
++	mutex_unlock(&qcom->bw_lock);
+ 
+ 	for (i = qcom->num_clocks - 1; i >= 0; i--) {
+ 		clk_disable_unprepare(qcom->clks[i]);

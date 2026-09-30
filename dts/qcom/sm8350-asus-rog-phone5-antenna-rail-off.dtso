@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/*
+ * Turn off PM8350C LDO11 (2.85 V), which the ASUS 5.4 wrapper leaves on.
+ * Compose feature l11off.
+ *
+ * Stock (lahaina-regulators.dtsi ldoc11, ZS673KS-EVB-overlay 2.85 V, HPM):
+ * the only consumer is vdd-3.0-antenna of qcom,ipa_fws (subsys-pil-tz, ASUS
+ * "AntennaSwap" with tlmm 83), the cellular front end's antenna switch. pil-tz
+ * enables it at probe and its antennaSwitch sysfs node turns it off and on,
+ * so off is a state stock uses. Cellular is out of scope and nothing in Linux
+ * uses the rail.
+ *
+ * Undeclared, qcom-rpmh-regulator never votes on it and the wrapper's APPS
+ * enable stays for the whole uptime, suspend included (stockcap-c1:
+ * pm8350c_l11 enabled at 2850000 uV). The driver starts with an unknown
+ * enable state, which regulator_late_cleanup() skips, so a plain declaration
+ * would change nothing. With regulator-boot-on and no consumer the core
+ * enables it at registration (the vote the wrapper already holds) and
+ * regulator_late_cleanup() disables it as unused 30 s after boot.
+ *
+ * No voltage constraints: any min/max makes the core apply a voltage at
+ * registration (apply_uV), a request the wrapper's 2.85 V vote does not need
+ * (2.85 V is not even a PLDO step, 1.504 V + n x 8 mV, so min == max would
+ * fail the whole PM8350C regulator device). Without them registration sends
+ * nothing; boot-on sends enable=1, late cleanup enable=0. No parent supply
+ * (vdd-l6-l9-l11), as for the other rails without one here.
+ *
+ * LDO7 (3.3 V, the light/proximity sensor's vcc_psensor) stays undeclared:
+ * the sensor is in use (sm8350-asus-rog-phone5-peripherals.dtso).
+ */
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+
+	fragment@0 {
+		target-path = "/soc@0/rsc@18200000/regulators-1";
+
+		__overlay__ {
+			ldo11 {
+				regulator-name = "rog5_l11c_antenna";
+				regulator-boot-on;
+			};
+		};
+	};
+};

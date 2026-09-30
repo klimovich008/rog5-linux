@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""rog5-idle-power-sample: awake idle power and DDR residency of the ROG5.
+
+Answers "what does an idle vote cost?" for the 0148 usb-ddr scaling and the
+DT r10 pm8350c L7/L11 change: input power (V x I of the online charger
+inputs, the phone in bypass or full so the battery reads ~0) and the DDR
+frequency residency (qcom_stats ddr_stats) over one window, plus the USB
+controllers' ebi votes, the pm8350c L7/L11 regulator state and the attached
+USB devices.
+
+  rog5-idle-power-sample [--label=L] [--seconds=300] [--interval=2]
+        one read-only window in the current state
+  rog5-idle-power-sample --ab=N [--settle=30] [--seconds=300]
+        N rounds of two windows, dwc3_qcom_legacy.ddr_bw_follows_devices
+        N then Y (the order alternates per round), restored on exit; the only
+        write, needs 0148
+
+Run it as root over SSH with the panel off, nothing else running and the
+same charger for every window. Reads only sysfs, debugfs qcom_stats/ddr_stats
+and debugfs interconnect_summary (no RPMh, display RSC or DP files).
+
+Environment (tests): ROG5_IPS_ROOT prefixes every absolute path,
+ROG5_IPS_NOSLEEP=1 (no real sleeping).
+"""
+import argparse
+import json
+import os
+import re
+import signal
+import sys
+import time
+
+ROOT = os.environ.get("ROG5_IPS_ROOT", "")
+PSY = ROOT + "/sys/class/power_supply"
+INPUTS = ("qcom-battmgr-usb", "qcom-battmgr-wls")
+BAT = PSY + "/qcom-battmgr-bat"
+DDR_STATS = ROOT + "/sys/kernel/debug/qcom_stats/ddr_stats"
+ICC = ROOT + "/sys/kernel/debug/interconnect/interconnect_summary"
+REGULATORS = ROOT + "/sys/class/regulator"
+USB_DEVICES = ROOT + "/sys/bus/usb/devices"
+PARAM = ROOT + "/sys/module/dwc3_qcom_legacy/parameters/ddr_bw_follows_devices"
+USB_GLUES = ("a6f8800.usb", "a8f8800.usb")
+RAILS = re.compile(r"l7c|l11c|ldoc7|ldoc11|pm8350c.*l(7|11)\b", re.I)
+TICKS = 19200000
+TERM_SIGNALS = {signal.SIGINT, signal.SIGTERM, signal.SIGHUP}
+DDR_ROW = re.compile(r"^DDR Freq (\d+)Mhz:.*\tcount:(\d+)\tDuration \(ticks\):(\d+)")
+
+
+def rd(path):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def num(path):
+    try:
+        return int(rd(path))
+    except (TypeError, ValueError):
+        return None
+
+
+def sleep(s):
+    if os.environ.get("ROG5_IPS_NOSLEEP") != "1":
+        time.sleep(s)
+
+
+def ddr_residency():
+    """{MHz: (count, ticks)} from ddr_stats, None when it can't be read.
+
+    The driver omits frequency rows whose count is still 0, but a readable
+    file always has its DDR LPM rows."""
+    text = rd(DDR_STATS)
+    if not text or not any(line.startswith("DDR ") for line in text.splitlines()):
+        return None
+    out = {}
+    for line in text.splitlines():
+        m = DDR_ROW.match(line)
+        if m:
+            out[int(m.group(1))] = (int(m.group(2)), int(m.group(3)))
+    return out
+
+
+def ddr_delta(before, after):
+    """[(MHz, entries, seconds)] of the window, highest time first; None if a
+    snapshot is missing or a counter went backwards (reset, bad read)."""
+    if before is None or after is None:
+        return None
+    rows = []
+    for mhz in sorted(set(before) | set(after)):
+        c0, t0 = before.get(mhz, (0, 0))
+        if mhz not in after:
+            return None
+        c1, t1 = after[mhz]
+        if c1 < c0 or t1 < t0:
+            return None
+        if c1 != c0 or t1 != t0:
+            rows.append((mhz, c1 - c0, (t1 - t0) / TICKS))
+    return sorted(rows, key=lambda r: -r[2])
+
+
+def input_power_w():
+    total, seen = 0.0, False
+    for name in INPUTS:
+        p = f"{PSY}/{name}"
+        if rd(p + "/online") != "1":
+            continue
+        v, i = num(p + "/voltage_now"), num(p + "/current_now")
+        if v is None or i is None:
+            continue
+        total += v * i / 1e12
+        seen = True
+    return total if seen else None
+
+
+def usb_votes():
+    """The USB glues' requests on ebi: {glue: 'avg/peak kBps'}."""
+    votes, node = {}, None
+    for line in (rd(ICC) or "").splitlines():
+        if line and not line.startswith(" "):
+            node = line.split()[0]
+            continue
+        f = line.split()
+        if node and node.startswith("ebi") and len(f) == 4 and f[0] in USB_GLUES:
+            votes[f[0]] = f"{f[2]}/{f[3]}"
+    return votes
+
+
+def rails():
+    out = {}
+    try:
+        names = sorted(os.listdir(REGULATORS))
+    except OSError:
+        return out
+    for r in names:
+        name = rd(f"{REGULATORS}/{r}/name") or ""
+        if RAILS.search(name):
+            out[name] = {"state": rd(f"{REGULATORS}/{r}/state"),
+                         "microvolts": num(f"{REGULATORS}/{r}/microvolts"),
+                         "users": num(f"{REGULATORS}/{r}/num_users")}
+    return out
+
+
+def usb_devices():
+    """Non-root-hub USB devices as 'bus-port vid:pid speed'."""
+    out = []
+    try:
+        names = sorted(os.listdir(USB_DEVICES))
+    except OSError:
+        return out
+    for d in names:
+        if ":" in d or d.startswith("usb"):
+            continue
+        p = f"{USB_DEVICES}/{d}"
+        out.append(f"{d} {rd(p + '/idVendor')}:{rd(p + '/idProduct')} {rd(p + '/speed')}")
+    return out
+
+
+def mean(xs):
+    xs = [x for x in xs if x is not None]
+    return sum(xs) / len(xs) if xs else None
+
+
+def window(label, seconds, interval):
+    """Samples every interval from start to start + seconds (both included)."""
+    nosleep = os.environ.get("ROG5_IPS_NOSLEEP") == "1"
+    n = max(1, int(seconds / interval)) + 1
+    d0, w, ma = ddr_residency(), [], []
+    t0 = time.monotonic()
+    for k in range(n):
+        w.append(input_power_w())
+        c = num(BAT + "/current_now")
+        ma.append(abs(c) / 1000 if c is not None else None)
+        if k + 1 < n and not nosleep:
+            time.sleep(max(0.0, t0 + (k + 1) * interval - time.monotonic()))
+    elapsed = time.monotonic() - t0
+    rows = ddr_delta(d0, ddr_residency())
+    total = sum(r[2] for r in rows) if rows else 0
+    return {"label": label, "n": n, "elapsed_s": round(elapsed, 1),
+            "valid": rows is not None, "input_w": mean(w), "battery_ma": mean(ma),
+            "ddr": None if rows is None else
+            [{"mhz": m, "entries": c, "s": round(s, 1),
+              "pct": round(100 * s / total, 1) if total else None} for m, c, s in rows],
+            "usb_ebi_votes": usb_votes(), "param": rd(PARAM), "rails": rails(),
+            "usb_devices": usb_devices()}
+
+
+def show(rec):
+    w = rec["input_w"]
+    if rec["ddr"] is None:
+        ddr = "INVALID (ddr_stats unreadable or reset)"
+    else:
+        ddr = ", ".join(f"{r['mhz']} MHz {r['pct']}%" for r in rec["ddr"][:3]) or "no ddr_stats change"
+    print(f"{rec['label']}: input {'NA' if w is None else f'{w:.3f} W'}, "
+          f"battery {rec['battery_ma'] if rec['battery_ma'] is None else round(rec['battery_ma'])} mA, "
+          f"DDR {ddr}; usb ebi {rec['usb_ebi_votes']} (param {rec['param']}); "
+          f"rails {rec['rails']}; usb {rec['usb_devices']}", flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--label", default="now")
+    ap.add_argument("--seconds", type=float, default=300)
+    ap.add_argument("--interval", type=float, default=2)
+    ap.add_argument("--ab", type=int, default=0, metavar="N")
+    ap.add_argument("--settle", type=float, default=30)
+    ap.add_argument("--json", metavar="FILE")
+    a = ap.parse_args()
+    if a.seconds <= 0 or a.interval <= 0 or a.ab < 0 or a.settle < 0:
+        ap.error("--seconds, --interval > 0; --ab, --settle >= 0")
+    if os.geteuid() != 0 and not ROOT:
+        sys.exit("run as root (debugfs)")
+    if not os.path.exists(DDR_STATS):
+        sys.exit(f"missing {DDR_STATS} (debugfs mounted? qcom_stats loaded?)")
+    recs, rc = [], 0
+    if a.ab == 0:
+        recs.append(window(a.label, a.seconds, a.interval))
+        show(recs[-1])
+    else:
+        orig = rd(PARAM)
+        if orig not in ("Y", "N"):
+            sys.exit(f"no {PARAM} (kernel without 0148)")
+
+        def on_term(*_):
+            raise KeyboardInterrupt
+
+        signal.signal(signal.SIGTERM, on_term)
+        signal.signal(signal.SIGHUP, on_term)
+        try:
+            for r in range(a.ab):
+                for value in (("N", "Y") if r % 2 == 0 else ("Y", "N")):
+                    with open(PARAM, "w") as f:
+                        f.write(value)
+                    sleep(a.settle)
+                    recs.append(window(f"usbbw={value} round {r + 1}", a.seconds, a.interval))
+                    show(recs[-1])
+        except KeyboardInterrupt:
+            print("stopped", flush=True)
+        finally:
+            # A second signal must not interrupt the restore.
+            signal.pthread_sigmask(signal.SIG_BLOCK, TERM_SIGNALS)
+            try:
+                with open(PARAM, "w") as f:
+                    f.write(orig)
+            except OSError as e:
+                print(f"FAILED to restore ddr_bw_follows_devices={orig}: {e}", flush=True)
+            now = rd(PARAM)
+            print(f"restored ddr_bw_follows_devices={now}"
+                  + ("" if now == orig else f" (FAILED: wanted {orig})"), flush=True)
+            # Drop signals that arrived meanwhile: the run is over.
+            for sig in TERM_SIGNALS:
+                signal.signal(sig, signal.SIG_IGN)
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, TERM_SIGNALS)
+            rc = 0 if now == orig else 1
+        for value in ("N", "Y"):
+            ws = [x["input_w"] for x in recs if x["param"] == value and x["valid"]]
+            m = mean(ws)
+            print(f"mean input with {value}: {'NA' if m is None else f'{m:.3f} W'} ({len(ws)} windows)")
+    if a.json:
+        with open(a.json, "w") as f:
+            json.dump(recs, f, indent=1)
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())
