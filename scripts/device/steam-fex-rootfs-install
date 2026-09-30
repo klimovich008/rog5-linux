@@ -31,7 +31,7 @@ flock -n 9 || { echo 'steam-fex-rootfs-install: another install is running' >&2;
 # refused while it is held here. pgrep covers a Steam started before the
 # lock file existed (/run is empty after a boot).
 lock=${ROG5_FEX_LOCK:-/run/lock/rog5-fex-rootfs.lock}
-[ -e "$lock" ] || { : >"$lock"; chmod 644 "$lock"; }
+[ -e "$lock" ] || { mkdir -p "$(dirname "$lock")"; : >"$lock"; chmod 644 "$lock"; }
 exec 8<"$lock"
 flock -x -n 8 || { echo 'steam-fex-rootfs-install: quit Steam first' >&2; exit 1; }
 pgrep -f 'steamrtarm64/steam( |$)' >/dev/null && { echo 'steam-fex-rootfs-install: quit Steam first' >&2; exit 1; }
@@ -52,6 +52,9 @@ got=$(xxhsum -H3 "$cache/rootfs.sqsh" | awk '{print $1}')
 [ "${got#XXH3_}" = "$hash" ] || { echo "steam-fex-rootfs-install: XXH3 $got, expected $hash" >&2; exit 1; }
 rm -rf "$dest.new"; mkdir -p "$(dirname "$dest")"
 unsquashfs -q -n -d "$dest.new" "$cache/rootfs.sqsh"
+# The image stores its builder's uid (1000), which is the desktop user here:
+# the guest root is system software, so root owns it (as on SteamOS).
+chown -R -h 0:0 "$dest.new"
 [ -f "$dest.new/graphics_provider.json" ] || { echo "steam-fex-rootfs-install: no graphics_provider.json in the image" >&2; exit 1; }
 # The 8-bit-storage Turnip (steam-fex-turnip-8bit, packages/mesa-fex) goes
 # into the new root before it is published, so DXVK 3.x games never see the

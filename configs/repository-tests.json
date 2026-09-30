@@ -2731,6 +2731,115 @@
       "exact_source": false,
       "required_inputs": [],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-device-profile.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-device-profile",
+        "configs/device-profiles/reference.env",
+        "scripts/host/install-default-kernel.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-install-userspace.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-install-userspace",
+        "configs/rootfs/userspace.tsv"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-dtb-memory.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "dtc",
+        "fdtget",
+        "fdtput"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-dtb-memory"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-build-rootfs.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-build-rootfs",
+        "configs/rootfs/packages.txt",
+        "configs/rootfs/custom-packages.txt"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

@@ -1,0 +1,12 @@
+# Patched packages built from packages/<dir> with makepkg, in this order,
+# by scripts/host/rog5-build-rootfs (step "custom") or by hand on the phone
+# (as the phone user: makepkg <flags>, then pacman -U). Each "hold" name goes
+# into IgnorePkg in /etc/pacman.conf so pacman -Syu and rog5-update keep the
+# patched build. Columns (tab-separated): dir, packages to install, hold,
+# makepkg flags.
+# phosh's tag is pinned by b2sums; its signing key is in packages/phosh/keys.
+phoc	phoc	phoc	-f --nocheck
+phosh	phosh phosh-debug	phosh	-f --nocheck --skippgpcheck
+resources	resources	resources	-f
+gtk2	gtk2	gtk2	-f --nocheck
+mesa	vulkan-freedreno	vulkan-freedreno	-f --nocheck

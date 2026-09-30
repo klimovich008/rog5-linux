@@ -1,0 +1,186 @@
+#!/bin/sh
+# Install (or check) the ROG5 userspace files listed in configs/rootfs/userspace.tsv:
+# systemd units, udev rules, Phosh/GNOME/dconf/polkit settings and the
+# rog5-* helpers. Runs as root, either on the phone or on a root filesystem
+# being built (--root DIR, used by scripts/host/rog5-build-rootfs).
+#
+#   rog5-install-userspace [--root DIR] [--repo DIR] [--user NAME] [--force] [--no-enable]
+#   rog5-install-userspace --check [--root DIR] [--repo DIR] [--user NAME]
+#
+# --check changes nothing: it prints one line per entry (ok, differs,
+# missing, local-edit for a kept conf file) and exits 1 when a "file" entry
+# differs or is missing. "conf" entries are installed only when absent, so
+# local edits (e.g. perf_on_power=always in /etc/rog5/perf-mode) survive;
+# --force replaces them too. Units are enabled with systemctl --root, which
+# needs no running systemd. The phone user (default: phone) must exist for
+# user-file entries; they are skipped with a warning otherwise.
+set -eu
+
+root=/
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." 2>/dev/null && pwd || true)
+user=${ROG5_USER:-phone}
+mode=install
+force=0
+enable=1
+while [ "$#" -gt 0 ]; do
+	case $1 in
+		--root) root=${2:?--root needs a directory}; shift 2 ;;
+		--repo) repo=${2:?--repo needs a directory}; shift 2 ;;
+		--user) user=${2:?--user needs a name}; shift 2 ;;
+		--force) force=1; shift ;;
+		--no-enable) enable=0; shift ;;
+		--check) mode=check; shift ;;
+		-h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+		*) echo "rog5-install-userspace: unknown argument $1" >&2; exit 2 ;;
+	esac
+done
+manifest=$repo/configs/rootfs/userspace.tsv
+[ -f "$manifest" ] || { echo "rog5-install-userspace: no manifest at $manifest (use --repo)" >&2; exit 2; }
+[ -d "$root" ] || { echo "rog5-install-userspace: $root is not a directory" >&2; exit 2; }
+root=$(CDPATH='' cd -- "$root" && pwd)
+[ "$mode" = check ] || [ "$(id -u)" -eq 0 ] || { echo 'rog5-install-userspace: run as root' >&2; exit 1; }
+case $user in ''|*[!a-z0-9_-]*) echo "rog5-install-userspace: bad user name $user" >&2; exit 2 ;; esac
+
+target_path() { printf '%s%s\n' "${root%/}" "$1"; }
+same() { [ -f "$2" ] && cmp -s "$1" "$2"; }
+
+user_home() {
+	# The user's home from the target's own passwd (not the host's).
+	awk -F: -v u="$user" '$1 == u { print $6; found=1 } END { exit !found }' \
+		"$(target_path /etc/passwd)" 2>/dev/null
+}
+user_ids() {
+	awk -F: -v u="$user" '$1 == u { print $3 ":" $4; found=1 } END { exit !found }' \
+		"$(target_path /etc/passwd)" 2>/dev/null
+}
+
+bad=0
+report() { printf '%-10s %s\n' "$1" "$2"; }
+
+# System files: root-owned directories, a mktemp name beside the target,
+# then an atomic rename.
+install_file() {
+	src=$1 dst=$2 perm=$3
+	install -d -m 0755 "$(dirname "$dst")"
+	tmp=$(mktemp "$dst.XXXXXX")
+	cp "$src" "$tmp"
+	chmod "$perm" "$tmp"
+	chown 0:0 "$tmp"
+	mv -f "$tmp" "$dst"
+}
+
+# Files in the user's home, which the user controls: never follow a link
+# there as root. On the running system the copy is made by the user
+# (runuser); in a staged root (--root) every path component below the home
+# must be a real directory, and the file is written through a mktemp name.
+install_user_file() {
+	src=$1 home=$2 rel=$3 perm=$4 ids=$5
+	if [ "$root" = / ] && command -v runuser >/dev/null; then
+		runuser -u "$user" -- sh -c '
+			set -eu
+			dst=$1/$2; umask 022
+			mkdir -p "$(dirname "$dst")"
+			tmp=$(mktemp "$dst.XXXXXX")
+			cat >"$tmp"; chmod "$3" "$tmp"; mv -f "$tmp" "$dst"
+		' sh "$home" "$rel" "$perm" <"$src"
+		return
+	fi
+	dir=$(target_path "$home")
+	[ -d "$dir" ] && [ ! -L "$dir" ] || { echo "rog5-install-userspace: $dir is not a directory" >&2; exit 1; }
+	old_ifs=$IFS; IFS=/
+	# shellcheck disable=SC2086
+	set -- $(dirname "$rel")
+	IFS=$old_ifs
+	for part in "$@"; do
+		[ "$part" != . ] || continue
+		dir=$dir/$part
+		[ ! -L "$dir" ] || { echo "rog5-install-userspace: refusing symlink $dir" >&2; exit 1; }
+		[ -d "$dir" ] || { install -d -m 0755 "$dir"; chown "$ids" "$dir"; }
+	done
+	dst=$dir/$(basename "$rel")
+	[ ! -L "$dst" ] || { echo "rog5-install-userspace: refusing symlink $dst" >&2; exit 1; }
+	tmp=$(mktemp "$dst.XXXXXX")
+	cp "$src" "$tmp"
+	chmod "$perm" "$tmp"
+	chown "$ids" "$tmp"
+	mv -f "$tmp" "$dst"
+}
+
+tab=$(printf '\t')
+# Collapse runs of tabs so columns can be aligned in the manifest. mktemp:
+# never a predictable name in a shared /tmp when running as root.
+rows=$(mktemp)
+trap 'rm -f "$rows"' EXIT
+sed -e 's/#.*//' -e '/^[[:space:]]*$/d' -e "s/$tab$tab*/$tab/g" "$manifest" >"$rows"
+while IFS="$tab" read -r kind a b c; do
+	case $kind in
+	file|conf)
+		src=$repo/$a; dst=$(target_path "$b")
+		[ -f "$src" ] || { echo "rog5-install-userspace: missing source $a" >&2; exit 1; }
+		if [ "$mode" = check ]; then
+			if same "$src" "$dst"; then report ok "$b"
+			elif [ ! -e "$dst" ]; then report missing "$b"; bad=1
+			elif [ "$kind" = conf ]; then report local-edit "$b"
+			else report differs "$b"; bad=1
+			fi
+			continue
+		fi
+		if [ "$kind" = conf ] && [ -e "$dst" ] && [ "$force" -eq 0 ]; then
+			same "$src" "$dst" || report kept "$b (local edit; --force replaces it)"
+			continue
+		fi
+		same "$src" "$dst" && [ "$(stat -c %a "$dst")" = "${c#0}" ] || install_file "$src" "$dst" "$c"
+		;;
+	user-file)
+		home=$(user_home) || { report skipped "~$user/$b (no user $user)"; continue; }
+		src=$repo/$a; dst=$(target_path "$home/$b")
+		if [ "$mode" = check ]; then
+			if same "$src" "$dst"; then report ok "~$user/$b"; else report differs "~$user/$b"; bad=1; fi
+			continue
+		fi
+		install_user_file "$src" "$home" "$b" "$c" "$(user_ids)"
+		;;
+	build)
+		src=$repo/$a; dst=$(target_path "$b")
+		if [ "$mode" = check ]; then
+			if [ -x "$dst" ]; then report ok "$b (built)"; else report missing "$b (build: $a)"; bad=1; fi
+			continue
+		fi
+		if [ "$root" != / ]; then
+			# Cross-built roots compile inside the target (the builder runs this
+			# script there); a host compiler would produce a host binary.
+			report deferred "$b (compile inside the target)"
+			continue
+		fi
+		if ! command -v cc >/dev/null || ! pkg-config --exists libdrm 2>/dev/null; then
+			report skipped "$b (needs cc and libdrm)"
+			continue
+		fi
+		install -d -m 0755 "$(dirname "$dst")"
+		# shellcheck disable=SC2046
+		cc -O2 -Wall -o "$dst.rog5-new.$$" "$src" $(pkg-config --cflags --libs libdrm)
+		chmod "$c" "$dst.rog5-new.$$"
+		mv -f "$dst.rog5-new.$$" "$dst"
+		;;
+	enable)
+		[ "$mode" = install ] && [ "$enable" -eq 1 ] || continue
+		case $a in
+			system) systemctl --root="$root" enable "$b" >/dev/null 2>&1 || report warning "could not enable $b" ;;
+			user) systemctl --root="$root" --global enable "$b" >/dev/null 2>&1 || report warning "could not enable user unit $b" ;;
+			*) echo "rog5-install-userspace: bad enable scope $a" >&2; exit 1 ;;
+		esac
+		;;
+	*)
+		echo "rog5-install-userspace: unknown manifest entry '$kind'" >&2
+		exit 1
+		;;
+	esac
+done <"$rows"
+
+if [ "$mode" = install ]; then
+	# dconf defaults take effect only after compiling the local database.
+	if command -v dconf >/dev/null && [ "$root" = / ]; then dconf update || true; fi
+	[ "$root" = / ] && systemctl daemon-reload 2>/dev/null || true
+	echo 'rog5-install-userspace: done'
+fi
+exit "$bad"

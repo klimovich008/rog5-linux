@@ -83,12 +83,18 @@ cat >"$b/pgrep" <<EOF
 #!/bin/sh
 [ -e $t/steam-running ]
 EOF
+# The guest root is re-owned by root after unpacking; record the call.
+cat >"$b/chown" <<EOF
+#!/bin/sh
+echo "\$*" >>$t/chown.log
+EOF
 chmod +x "$b"/*
 root=$t/guestos/fex-mesa cache=$t/cache
 run() { PATH=$b:$PATH ROG5_FEX_ROOT=$root ROG5_FEX_CACHE=$cache sh "$here/steam-fex-rootfs-install" >/dev/null 2>"$t/err"; }
 
 run || fail "fex: fresh install failed: $(cat "$t/err")"
 [ "$(cat "$root/marker")" = new ] || fail "fex: fresh install has no root"
+[ "$(head -n 1 "$t/chown.log")" = "-R -h 0:0 $root.new" ] || fail "fex: the new root was not re-owned by root"
 
 echo old >"$root/marker"
 run || fail "fex: replace failed: $(cat "$t/err")"

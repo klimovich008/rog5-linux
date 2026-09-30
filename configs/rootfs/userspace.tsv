@@ -1,0 +1,133 @@
+# ROG5 userspace install manifest, read by scripts/device/rog5-install-userspace.
+# Paths match the reference phone (checked read-only against it on 2026-09-30).
+# Columns are separated by one or more tabs:
+#   file   SOURCE  TARGET  MODE   always installed (the repository owns it)
+#   conf   SOURCE  TARGET  MODE   installed only when TARGET is absent (a local
+#                                 edit survives; --force replaces it)
+#   build  SOURCE  TARGET  MODE   C helper compiled with cc (pkg-config libdrm)
+#   enable system|user UNIT       enabled with systemctl --root
+#   user-file SOURCE  RELATIVE  MODE   into the phone user's home, owned by it
+# SOURCE is relative to the repository root. The boot bundle, not this list,
+# provides the platform, Wi-Fi, update and trial units (they live in /run).
+
+# Hostname and the Bluetooth/GNOME device name
+conf	configs/hostname/hostname	/etc/hostname	0644
+conf	configs/hostname/machine-info	/etc/machine-info	0644
+
+# Phone shell (Phosh) and GNOME desktop mode
+file	configs/systemd/rog5-phosh.service	/etc/systemd/system/rog5-phosh.service	0644
+file	configs/systemd/rog5-session-boost.service	/etc/systemd/system/rog5-session-boost.service	0644
+file	configs/systemd/rog5-gnome.service	/etc/systemd/system/rog5-gnome.service	0644
+file	configs/systemd/rog5-desktop-mode.service	/etc/systemd/system/rog5-desktop-mode.service	0644
+file	configs/systemd/rog5-desktop-mode-reload.path	/etc/systemd/system/rog5-desktop-mode-reload.path	0644
+file	configs/systemd/rog5-desktop-mode-reload.service	/etc/systemd/system/rog5-desktop-mode-reload.service	0644
+file	configs/systemd/rog5-touchpad.service	/etc/systemd/system/rog5-touchpad.service	0644
+file	configs/phosh/phoc.ini	/etc/phosh/phoc.ini	0644
+file	configs/dconf/profile/user	/etc/dconf/profile/user	0644
+file	configs/dconf/db/local.d/00-rog5-phosh	/etc/dconf/db/local.d/00-rog5-phosh	0644
+file	configs/polkit/60-rog5-desktop-mode.rules	/etc/polkit-1/rules.d/60-rog5-desktop-mode.rules	0644
+file	configs/polkit/10-rog5-udisks-removable-only.rules	/etc/polkit-1/rules.d/10-rog5-udisks-removable-only.rules	0644
+file	configs/applications/rog5-desktop-mode.desktop	/usr/local/share/applications/rog5-desktop-mode.desktop	0644
+file	configs/applications/rog5-phone-mode.desktop	/usr/local/share/applications/rog5-phone-mode.desktop	0644
+file	scripts/device/rog5-desktop-mode	/usr/local/libexec/rog5-desktop-mode	0755
+file	scripts/device/rog5-touchpad	/usr/local/libexec/rog5-touchpad	0755
+file	scripts/device/rog5-session-boost	/usr/local/sbin/rog5-session-boost	0755
+file	scripts/device/rog5-mobile-apps	/usr/local/sbin/rog5-mobile-apps	0755
+build	tools/rog5-kms-reset.c	/usr/local/libexec/rog5-kms-reset	0755
+user-file	configs/environment.d/60-rog5-mutter.conf	.config/environment.d/60-rog5-mutter.conf	0644
+
+# Remote desktop (headless Sway and the wayvnc phone mirror, loopback only)
+file	configs/rog5-desktop/sway-base.conf	/etc/rog5-desktop/sway-base.conf	0644
+file	configs/rog5-desktop/sway.conf	/etc/rog5-desktop/sway.conf	0644
+file	configs/systemd-user/rog5-desktop.service	/etc/systemd/user/rog5-desktop.service	0644
+file	configs/systemd-user/rog5-wayvnc-phone.service	/etc/systemd/user/rog5-wayvnc-phone.service	0644
+file	scripts/device/rog5-desktop	/usr/local/bin/rog5-desktop	0755
+
+# Power: sleep policy, charge limit and bypass, performance mode, bad-memory retirement
+file	configs/systemd/rog5-sleep-policy.service	/etc/systemd/system/rog5-sleep-policy.service	0644
+file	scripts/device/rog5-sleep-policy	/usr/local/sbin/rog5-sleep-policy	0755
+file	configs/systemd/rog5-charge-policy.service	/etc/systemd/system/rog5-charge-policy.service	0644
+file	scripts/device/rog5-charge-policy	/usr/local/sbin/rog5-charge-policy	0755
+conf	configs/rog5/charge-policy	/etc/rog5/charge-policy	0644
+file	configs/systemd/rog5-perf-mode.service	/etc/systemd/system/rog5-perf-mode.service	0644
+file	scripts/device/rog5-perf-mode	/usr/local/sbin/rog5-perf-mode	0755
+conf	configs/rog5/perf-mode	/etc/rog5/perf-mode	0644
+file	configs/udev/92-rog5-perf-mode.rules	/etc/udev/rules.d/92-rog5-perf-mode.rules	0644
+file	configs/systemd/rog5-sea-retire.service	/etc/systemd/system/rog5-sea-retire.service	0644
+file	scripts/device/rog5-sea-retire	/usr/local/sbin/rog5-sea-retire	0755
+file	packaging/arch/rog5-server-inhibit.service	/etc/systemd/system/rog5-server-inhibit.service	0644
+file	configs/memory/60-rog5-memory.conf	/etc/sysctl.d/60-rog5-memory.conf	0644
+file	configs/memory/rog5-mglru.conf	/etc/tmpfiles.d/rog5-mglru.conf	0644
+file	configs/memory/rog5-thp.conf	/etc/tmpfiles.d/rog5-thp.conf	0644
+file	configs/memory/zram-generator.conf	/etc/systemd/zram-generator.conf	0644
+file	configs/journald/50-rog5-journal-size.conf	/etc/systemd/journald.conf.d/50-rog5-journal-size.conf	0644
+
+# USB: module autoload, replug recovery, runtime PM, bottom port, storage
+file	configs/systemd/rog5-usb-modalias.service	/etc/systemd/system/rog5-usb-modalias.service	0644
+file	configs/udev/80-rog5-usb-modalias.rules	/etc/udev/rules.d/80-rog5-usb-modalias.rules	0644
+file	configs/systemd/rog5-usb-reconnect.service	/etc/systemd/system/rog5-usb-reconnect.service	0644
+file	configs/udev/90-rog5-usb-reconnect.rules	/etc/udev/rules.d/90-rog5-usb-reconnect.rules	0644
+file	scripts/device/rog5-usb-reconnect	/usr/local/sbin/rog5-usb-reconnect	0755
+file	configs/udev/91-rog5-usb-runtime-pm.rules	/etc/udev/rules.d/91-rog5-usb-runtime-pm.rules	0644
+file	configs/udev/93-rog5-usb-bottom.rules	/etc/udev/rules.d/93-rog5-usb-bottom.rules	0644
+file	scripts/device/rog5-usb-bottom	/usr/local/sbin/rog5-usb-bottom	0755
+file	scripts/device/rog5-usb-sleep	/usr/lib/systemd/system-sleep/rog5-usb-sleep	0755
+file	configs/systemd/rog5-usb-storage@.service	/etc/systemd/system/rog5-usb-storage@.service	0644
+file	configs/udev/94-rog5-usb-storage.rules	/etc/udev/rules.d/94-rog5-usb-storage.rules	0644
+file	scripts/device/rog5-usb-storage	/usr/local/sbin/rog5-usb-storage	0755
+conf	configs/rog5/usb-storage	/etc/rog5/usb-storage	0644
+
+# Audio, sensors, graphics
+file	configs/systemd/rog5-audio-route.service	/etc/systemd/system/rog5-audio-route.service	0644
+file	configs/udev/91-rog5-audio-route.rules	/etc/udev/rules.d/91-rog5-audio-route.rules	0644
+file	configs/udev/89-rog5-alsa-state.rules	/etc/udev/rules.d/89-rog5-alsa-state.rules	0644
+file	configs/wireplumber/50-rog5-speakers.conf	/etc/wireplumber/wireplumber.conf.d/50-rog5-speakers.conf	0644
+file	configs/udev/81-rog5-proximity.rules	/etc/udev/rules.d/81-rog5-proximity.rules	0644
+file	configs/udev/81-rog5-ssc-accel.rules	/etc/udev/rules.d/81-rog5-ssc-accel.rules	0644
+file	configs/drirc/drirc	/etc/drirc	0644
+
+# Network, firewall, hotspot, SSH, health endpoint
+file	configs/NetworkManager/conf.d/60-rog5-stable-mac.conf	/etc/NetworkManager/conf.d/60-rog5-stable-mac.conf	0644
+file	configs/firewall/rog5-firewall.nft	/etc/rog5/firewall.nft	0644
+file	configs/systemd/rog5-firewall.service	/etc/systemd/system/rog5-firewall.service	0644
+file	configs/systemd/rog5-hotspot.service	/etc/systemd/system/rog5-hotspot.service	0644
+file	scripts/device/rog5-hotspot	/usr/local/bin/rog5-hotspot	0755
+file	scripts/device/rog5-wifi-networkmanager.sh	/usr/local/sbin/rog5-wifi-networkmanager	0755
+file	configs/systemd/rog5-early-sshd.service.d/50-oom-continue.conf	/etc/systemd/system/rog5-early-sshd.service.d/50-oom-continue.conf	0644
+file	configs/systemd/rog5-tailscaled.service.d/60-slow-retry.conf	/etc/systemd/system/rog5-tailscaled.service.d/60-slow-retry.conf	0644
+file	configs/systemd/tailscaled.service.d/60-rog5-fallback.conf	/etc/systemd/system/tailscaled.service.d/60-rog5-fallback.conf	0644
+file	packaging/arch/20-rog5-sshd-keepalive.conf	/etc/ssh/sshd_config.d/20-rog5-sshd-keepalive.conf	0644
+file	packaging/arch/rog5-healthd.service	/etc/systemd/system/rog5-healthd.service	0644
+file	scripts/device/rog5-healthd.py	/usr/local/libexec/rog5-healthd	0755
+
+# Steam (native arm64 client, FEX guest root, 8-bit Turnip for the guest)
+file	scripts/device/steam-arm64	/usr/local/bin/steam-arm64	0755
+file	scripts/device/steam-arm64-drag.c	/usr/local/bin/steam-arm64-drag.c	0644
+file	scripts/device/steam-arm64-install	/usr/local/bin/steam-arm64-install	0755
+file	scripts/device/steam-fex-rootfs-install	/usr/local/bin/steam-fex-rootfs-install	0755
+file	scripts/device/steam-fex-turnip-8bit	/usr/local/sbin/steam-fex-turnip-8bit	0755
+
+# Measurement helpers (optional, read-mostly)
+file	scripts/device/rog5-standby-measure	/usr/local/sbin/rog5-standby-measure	0755
+file	scripts/device/rog5-standby-test	/usr/local/sbin/rog5-standby-test	0755
+file	scripts/device/rog5-dp-power-measure	/usr/local/sbin/rog5-dp-power-measure	0755
+
+# Services enabled on the reference phone (tailscaled is optional: enable it
+# yourself after `pacman -S tailscale`; rog5-healthd serves :8787, which the
+# firewall only admits on USB and Tailscale)
+enable	system	NetworkManager.service
+enable	system	bluetooth.service
+enable	system	systemd-resolved.service
+enable	system	systemd-timesyncd.service
+enable	system	rog5-phosh.service
+enable	system	rog5-session-boost.service
+enable	system	rog5-desktop-mode.service
+enable	system	rog5-sleep-policy.service
+enable	system	rog5-charge-policy.service
+enable	system	rog5-perf-mode.service
+enable	system	rog5-sea-retire.service
+enable	system	rog5-server-inhibit.service
+enable	system	rog5-usb-modalias.service
+enable	system	rog5-firewall.service
+enable	system	rog5-healthd.service
+enable	user	rog5-wayvnc-phone.service

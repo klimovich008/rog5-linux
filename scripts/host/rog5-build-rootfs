@@ -1,0 +1,517 @@
+#!/usr/bin/env python3
+"""Build the ROG5 root filesystem (the p24 arch_root_a image) from Arch Linux ARM.
+
+Runs on any Linux PC as an ordinary user: the aarch64 root is assembled in a
+user namespace (unshare --map-auto --map-root-user + chroot). On an x86_64
+PC the kernel must run aarch64 binaries through binfmt_misc with
+qemu-aarch64-static and the F (fix-binary) flag, as Arch's qemu-user-static
+-binfmt and Debian's qemu-user-static + binfmt-support set it up.
+
+    rog5-build-rootfs --work DIR --ssh-key ~/.ssh/id_ed25519.pub [--steps ...]
+
+Steps (each is recorded in DIR/steps.done and skipped when repeated; run
+--steps NAME to redo one):
+
+  fetch      ArchLinuxARM-aarch64-latest.tar.gz + .sig, verified with the
+             Arch Linux ARM build key (68B3537F...2BDBE6A6)
+  extract    unpack into DIR/root
+  base       pacman keyring, -Syu, drop linux-aarch64/linux-firmware (the
+             kernel comes from the signed boot bundle), install
+             configs/rootfs/packages.txt
+  custom     build packages/* listed in configs/rootfs/custom-packages.txt
+             with makepkg (slow under emulation) and hold them in IgnorePkg
+  accounts   phone user (uid 1000), root key-only SSH (your --ssh-key), the
+             pinned sshd drop-in, hostname rog5
+  userspace  scripts/device/rog5-install-userspace inside the root (units,
+             rules, settings, helpers; compiles rog5-kms-reset)
+  finalize   no host keys, empty machine-id, empty pacman keyring (the boot
+             keeps it on /persist), clean caches, /etc/rog5/build
+  seal       .rog5-source-seal + .rog5-persistent-seal (persistent-root-tool)
+  boot       the first signed bundles and selector in /boot/rog5-linux, which
+             the slot-B loader reads: --bundle DIR alone writes a v1 selector;
+             with --descriptor and --fallback-bundle DIR a v2 try-once
+             selector (primary + fallback), as install-default-kernel.py
+             expects later. Skipped without --bundle.
+  image      DIR/arch_root_a.ext4 (ext4 ROG5_ARCH_A, 32 GiB sparse) and
+             DIR/root-identity.env, the root's boot-critical identities for
+             the device profile (scripts/host/rog5-device-profile)
+
+The phone user's password (the Phosh unlock PIN) is not set here unless
+--phone-password-hash-file gives a crypt(3) hash (openssl passwd -6); set
+it at the first SSH login with `passwd phone` otherwise.
+Nothing here touches a phone or a block device.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import os
+import platform
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import textwrap
+import uuid
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+TARBALL = 'ArchLinuxARM-aarch64-latest.tar.gz'
+MIRROR = os.environ.get('ROG5_ALARM_MIRROR', 'http://os.archlinuxarm.org/os')
+ALARM_KEY = '68B3537F39A313B3E574D06777193F152BDBE6A6'
+KEYSERVER = os.environ.get('ROG5_KEYSERVER', 'hkps://keyserver.ubuntu.com')
+STEPS = ('fetch', 'extract', 'base', 'custom', 'accounts', 'userspace',
+         'finalize', 'seal', 'boot', 'image')
+BUNDLE_FILES = ('Image', 'board.dtb', 'initramfs.cpio.gz', 'manifest', 'manifest.sig')
+# p24 arch_root_a on the reference phone: 67108824 sectors of 512 bytes.
+DEFAULT_IMAGE_BYTES = 34359717888
+PHONE_USER = 'phone'
+PHONE_GROUPS = 'wheel,video,render,audio,input'
+SSHD_DROPIN = 'packaging/arch/10-rog5-sshd-v2.conf'
+REPO_IN_ROOT = '/run/rog5-repo'
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f'rog5-build-rootfs: FAIL {message}')
+
+
+def log(message: str) -> None:
+    print(f'rog5-build-rootfs: {message}', flush=True)
+
+
+def run(argv, **kwargs):
+    log('$ ' + ' '.join(shlex.quote(str(a)) for a in argv))
+    kwargs.setdefault('check', True)
+    return subprocess.run([str(a) for a in argv], **kwargs)
+
+
+def emulated() -> bool:
+    return platform.machine() not in ('aarch64', 'arm64')
+
+
+# One shell program enters the root: a private mount namespace in which we
+# are uid 0 (our uid maps to 0, the subordinate range to 1..65535), a
+# minimal /dev, proc, read-only sysfs, tmpfs /tmp and /run, the host's DNS
+# bound over /etc/resolv.conf and the repository bound read-only.
+ENTER = r'''
+set -eu
+root=$1; repo=$2; shift 2
+mount --bind "$root" "$root"
+mount -t tmpfs -o mode=755 tmpfs "$root/dev"
+for n in null zero full random urandom tty; do : >"$root/dev/$n"; mount --bind /dev/$n "$root/dev/$n"; done
+mkdir -p "$root/dev/pts" "$root/dev/shm"; ln -s /proc/self/fd "$root/dev/fd"
+ln -s /proc/self/fd/0 "$root/dev/stdin"; ln -s /proc/self/fd/1 "$root/dev/stdout"; ln -s /proc/self/fd/2 "$root/dev/stderr"
+mount -t proc proc "$root/proc"
+mount --rbind /sys "$root/sys"; mount -o remount,bind,ro "$root/sys" 2>/dev/null || true
+mount -t tmpfs tmpfs "$root/tmp"
+mount -t tmpfs tmpfs "$root/run"
+mkdir -p "$root/run/rog5-repo"; mount --bind "$repo" "$root/run/rog5-repo"; mount -o remount,bind,ro "$root/run/rog5-repo"
+if [ -f "$root/etc/resolv.conf" ] && [ ! -L "$root/etc/resolv.conf" ]; then
+	mount --bind /etc/resolv.conf "$root/etc/resolv.conf"
+elif [ -L "$root/etc/resolv.conf" ]; then
+	cp -L /etc/resolv.conf "$root/run/rog5-resolv.conf"
+	t=$(readlink "$root/etc/resolv.conf"); case $t in /*) ;; *) t=/etc/$t ;; esac
+	mkdir -p "$root$(dirname "$t")"; : >"$root$t"; mount --bind "$root/run/rog5-resolv.conf" "$root$t"
+fi
+exec chroot "$root" /usr/bin/env -i HOME=/root TERM=dumb LANG=C.UTF-8 \
+	PATH=/usr/local/sbin:/usr/local/bin:/usr/bin "$@"
+'''
+
+
+class Builder:
+    def __init__(self, args):
+        self.args = args
+        self.work = Path(args.work).resolve()
+        self.root = self.work / 'root'
+        self.downloads = self.work / 'downloads'
+        self.done_file = self.work / 'steps.done'
+        self.pacman_extra = ['--disable-sandbox'] if emulated() else []
+
+    # -- helpers ---------------------------------------------------------
+    def userns(self, argv, **kwargs):
+        return run(['unshare', '--map-auto', '--map-root-user', '--'] + list(argv), **kwargs)
+
+    def chroot(self, script: str, **kwargs):
+        """Run a shell script inside the target root."""
+        return self.userns(['unshare', '-m', '-p', '-f', '--kill-child', 'sh', '-c', ENTER, 'enter',
+                            self.root, REPO, '/bin/sh', '-euc', script], **kwargs)
+
+    def done(self) -> set[str]:
+        return set(self.done_file.read_text().split()) if self.done_file.exists() else set()
+
+    def mark(self, step: str) -> None:
+        steps = self.done() | {step}
+        self.done_file.write_text('\n'.join(s for s in STEPS if s in steps) + '\n')
+
+    # -- steps -----------------------------------------------------------
+    def step_fetch(self):
+        self.downloads.mkdir(parents=True, exist_ok=True)
+        tarball = self.downloads / TARBALL
+        if self.args.tarball:
+            shutil.copyfile(self.args.tarball, tarball)
+            shutil.copyfile(self.args.tarball_sig, str(tarball) + '.sig')
+        else:
+            for name in (TARBALL + '.sig', TARBALL):
+                run(['curl', '-fL', '--retry', '3', '-o', self.downloads / name, f'{MIRROR}/{name}'])
+        gnupg = self.work / 'gnupg'
+        gnupg.mkdir(mode=0o700, exist_ok=True)
+        if self.args.alarm_key:
+            run(['gpg', '--homedir', gnupg, '--import', self.args.alarm_key])
+        else:
+            run(['gpg', '--homedir', gnupg, '--keyserver', KEYSERVER, '--recv-keys', ALARM_KEY])
+        status = subprocess.run(['gpg', '--homedir', str(gnupg), '--status-fd', '1', '--verify',
+                                 str(tarball) + '.sig', str(tarball)],
+                                capture_output=True, text=True)
+        # VALIDSIG <signing key> ... <primary key>: accept a subkey of the build key.
+        if not re.search(rf'^\[GNUPG:\] VALIDSIG [0-9A-F]{{40}} .* {ALARM_KEY}$', status.stdout, re.M):
+            fail(f'{TARBALL} is not signed by the Arch Linux ARM build key {ALARM_KEY}')
+        digest = hashlib.sha256(tarball.read_bytes()).hexdigest()
+        (self.work / 'source.env').write_text(
+            f'source_archive_size={tarball.stat().st_size}\nsource_archive_sha256={digest}\n')
+        log(f'verified {TARBALL} sha256={digest}')
+
+    def step_extract(self):
+        if self.root.exists():
+            self.userns(['rm', '-rf', '--one-file-system', self.root])
+        self.root.mkdir()
+        self.userns(['bsdtar', '-xpf', self.downloads / TARBALL, '-C', self.root])
+
+    def step_base(self):
+        pkgs = [line.split('#')[0].strip() for line in (REPO / 'configs/rootfs/packages.txt').read_text().splitlines()]
+        pkgs = [p for p in pkgs if p]
+        extra = ' '.join(self.pacman_extra)
+        self.chroot(textwrap.dedent(f'''
+            [ -s /etc/pacman.d/gnupg/pubring.gpg ] || pacman-key --init
+            pacman-key --populate archlinuxarm
+            pacman -Syu --noconfirm {extra}
+            for p in linux-aarch64 linux-firmware; do
+                ! pacman -Q "$p" >/dev/null 2>&1 || pacman -Rns --noconfirm {extra} "$p"
+            done
+            pacman -S --needed --noconfirm {extra} {' '.join(pkgs)}
+        '''))
+
+    def step_custom(self):
+        skip = set(self.args.skip_custom.split(',')) if self.args.skip_custom else set()
+        rows = []
+        for line in (REPO / 'configs/rootfs/custom-packages.txt').read_text().splitlines():
+            line = line.split('#')[0].rstrip()
+            if not line:
+                continue
+            cols = [c for c in line.split('\t') if c]
+            if len(cols) != 4:
+                fail(f'bad custom-packages row: {line!r}')
+            rows.append(cols)
+        extra = ' '.join(self.pacman_extra)
+        holds = []
+        for directory, installs, hold, flags in rows:
+            if directory in skip:
+                log(f'custom: skipping {directory} (--skip-custom)')
+                continue
+            holds.append(hold)
+            # makedepends/depends come from the PKGBUILD itself (bash array
+            # syntax), installed as root; makepkg then runs as a build user.
+            self.chroot(textwrap.dedent(f'''
+                pacman -S --needed --noconfirm {extra} base-devel
+                id rog5build >/dev/null 2>&1 || useradd -m -U rog5build
+                rm -rf /home/rog5build/{directory}
+                cp -r {REPO_IN_ROOT}/packages/{directory} /home/rog5build/{directory}
+                chown -R rog5build:rog5build /home/rog5build/{directory}
+                deps=$(cd /home/rog5build/{directory} && bash -c 'source ./PKGBUILD >/dev/null 2>&1; printf "%s\\n" "${{makedepends[@]}}" "${{depends[@]}}"' | sed 's/[<>=].*//' | sort -u | tr '\\n' ' ')
+                pacman -S --needed --noconfirm --asdeps {extra} $deps
+                cd /home/rog5build/{directory}
+                runuser -u rog5build -- env HOME=/home/rog5build MAKEFLAGS=-j{os.cpu_count() or 2} makepkg {flags}
+                pkgs=
+                for name in {installs}; do
+                    # name-pkgver-pkgrel-arch.pkg.tar.*: exactly three fields after the name
+                    f=$(ls -1 | grep -E "^$name-[^-]+-[^-]+-[^-]+[.]pkg[.]tar[.][a-z0-9]+$" | tail -n 1)
+                    [ -n "$f" ] || {{ echo "no package file for $name" >&2; exit 1; }}
+                    pkgs="$pkgs $f"
+                done
+                pacman -U --noconfirm {extra} $pkgs
+                mkdir -p /var/cache/rog5-custom-packages && cp $pkgs /var/cache/rog5-custom-packages/
+            '''))
+        if holds:
+            self.chroot(textwrap.dedent(f'''
+                current=$(sed -n 's/^IgnorePkg *= *//p' /etc/pacman.conf | head -n 1)
+                all=$(printf '%s\\n' $current {' '.join(holds)} | sort -u | tr '\\n' ' ')
+                if grep -q '^IgnorePkg' /etc/pacman.conf; then
+                    sed -i "s/^IgnorePkg.*/IgnorePkg   = $all/" /etc/pacman.conf
+                else
+                    sed -i "s/^#IgnorePkg.*/IgnorePkg   = $all/" /etc/pacman.conf
+                fi
+                grep '^IgnorePkg' /etc/pacman.conf
+                ! id rog5build >/dev/null 2>&1 || userdel -r rog5build
+            '''))
+
+    def step_accounts(self):
+        key = Path(self.args.ssh_key).read_text().strip().splitlines()
+        if len(key) != 1 or not re.match(r'^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) [A-Za-z0-9+/=]+( .*)?$', key[0]):
+            fail('--ssh-key must hold exactly one public key line (ssh-ed25519, ecdsa-sha2-nistp256 or ssh-rsa)')
+        if 'PRIVATE KEY' in key[0]:
+            fail('--ssh-key looks like a private key')
+        # The production init pins authorized_keys by size and hash; a key
+        # comment would only leak the PC's user@host into the image.
+        key_type, blob = key[0].split()[:2]
+        authorized = f'{key_type} {blob}\n'
+        password_hash = ''
+        if self.args.phone_password_hash_file:
+            password_hash = Path(self.args.phone_password_hash_file).read_text().strip()
+            if not re.fullmatch(r'\$(6|y|5)\$[^:\s]+', password_hash):
+                fail('--phone-password-hash-file must hold one crypt(3) hash ($6$, $y$ or $5$)')
+        (self.work / 'authorized_keys.tmp').write_text(authorized)
+        self.chroot(textwrap.dedent(f'''
+            ! id alarm >/dev/null 2>&1 || userdel -r alarm
+            id {PHONE_USER} >/dev/null 2>&1 || useradd -m -u 1000 -U -G {PHONE_GROUPS} -s /bin/bash {PHONE_USER}
+            usermod -L root
+            install -d -m 0700 /root/.ssh
+            install -m 0600 /dev/null /root/.ssh/authorized_keys
+            printf '%s' {shlex.quote(authorized)} >/root/.ssh/authorized_keys
+            install -d -m 0755 /etc/ssh/sshd_config.d
+            install -m 0644 {REPO_IN_ROOT}/{SSHD_DROPIN} /etc/ssh/sshd_config.d/10-rog5-server.conf
+            systemctl enable sshd.service >/dev/null
+            systemctl disable systemd-networkd.service systemd-networkd.socket >/dev/null 2>&1 || true
+            systemctl set-default multi-user.target >/dev/null
+        '''))
+        (self.work / 'authorized_keys.tmp').unlink()
+        if password_hash:
+            self.chroot(f"printf '%s:%s\\n' {PHONE_USER} {shlex.quote(password_hash)} | chpasswd -e")
+
+    def step_userspace(self):
+        self.chroot(textwrap.dedent(f'''
+            {REPO_IN_ROOT}/scripts/device/rog5-install-userspace --repo {REPO_IN_ROOT} --user {PHONE_USER}
+            ! command -v dconf >/dev/null || dconf update
+        '''))
+
+    def step_finalize(self):
+        commit = subprocess.run(['git', '-C', str(REPO), 'rev-parse', 'HEAD'],
+                                capture_output=True, text=True).stdout.strip() or 'unknown'
+        dirty = subprocess.run(['git', '-C', str(REPO), 'status', '--porcelain', '--untracked-files=no'],
+                               capture_output=True, text=True).stdout.strip()
+        source = dict(line.split('=', 1) for line in (self.work / 'source.env').read_text().split())
+        self.chroot(textwrap.dedent(f'''
+            gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true
+            if [ -d /etc/pacman.d/gnupg ]; then find /etc/pacman.d/gnupg -depth -mindepth 1 -delete; fi
+            install -d -m 0755 /etc/pacman.d/gnupg
+            rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id /var/cache/ldconfig/aux-cache
+            : >/etc/machine-id
+            pacman -Scc --noconfirm >/dev/null 2>&1 || true
+            rm -rf /var/cache/pacman/pkg/* /var/lib/pacman/sync/* /root/.cache /tmp/* 2>/dev/null || true
+            : >/var/log/pacman.log
+            install -d -m 0755 /etc/rog5
+            printf '%s\\n' profile=rog5-rootfs-v1 project_commit={commit}{'-dirty' if dirty else ''} \\
+                source_archive_sha256={source['source_archive_sha256']} kernel_release=bundle \\
+                "authorized_key_fingerprint=$(ssh-keygen -E sha256 -lf /root/.ssh/authorized_keys | cut -d ' ' -f 2)" \\
+                >/etc/rog5/build
+            pacman -Q | LC_ALL=C sort >/etc/rog5/packages.txt
+            grep -v '^#' {REPO_IN_ROOT}/configs/rootfs/packages.txt | sed '/^$/d' >/etc/rog5/packages.requested.txt
+            # What the production init and attestor demand of the lower root:
+            ldconfig
+            rm -f /etc/.updated /var/.updated
+            fail() {{ echo "rog5-build-rootfs: lower root check failed: $*" >&2; exit 1; }}
+            grep -Eq '^root:![^:]*:[0-9]+:{{6}}$' /etc/shadow || fail 'root must be locked (root:!...) with empty aging fields'
+            [ "$(stat -c '%u:%g:%a:%h' /etc/shadow)" = 0:0:600:1 ] || fail '/etc/shadow must be 0:0 600, one link'
+            [ "$(readlink /usr/bin/init)" = ../lib/systemd/systemd ] || fail '/sbin/init must lead to systemd'
+            [ "$(sha256sum </etc/ssh/sshd_config.d/10-rog5-server.conf | cut -c1-64)" = \
+                c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693 ] || fail 'sshd drop-in changed'
+            [ "$(stat -c '%u:%g:%a' /root/.ssh/authorized_keys)" = 0:0:600 ] || fail 'authorized_keys mode'
+            [ "$(grep -c . /root/.ssh/authorized_keys)" = 1 ] || fail 'authorized_keys must hold one key'
+            for key in /etc/ssh/ssh_host_*; do [ ! -e "$key" ] || fail "host key $key must not be in the image"; done
+            [ -z "$(ls -A /etc/pacman.d/gnupg)" ] || fail 'pacman keyring must be empty (the boot keeps it on /persist)'
+            [ ! -s /etc/machine-id ] || fail 'machine-id must be empty'
+        '''))
+
+    def step_seal(self):
+        tool = REPO / 'scripts/host/persistent-root-tool.py'
+        source = dict(line.split('=', 1) for line in (self.work / 'source.env').read_text().split())
+        header = ('seal_format=rog5-persistent-root-v1\ngeneration=arch-a\n'
+                  f'source_archive_size={source["source_archive_size"]}\n'
+                  f'source_archive_sha256={source["source_archive_sha256"]}\n'
+                  'promotion_state=UNBOOTED\n')
+        # The tree hash covers directory metadata (size, mtime, links), so
+        # everything that changes the root or /boot directories happens
+        # before the persistent seal is hashed: /boot/rog5-linux (left out of
+        # the seal; the boot step fills it) is created first, the source seal
+        # describes the tree as built, and the persistent seal is an empty
+        # placeholder while it is hashed and then written in place.
+        script = textwrap.dedent(f'''
+            set -eu
+            root={shlex.quote(str(self.root))}
+            rm -f "$root/.rog5-persistent-seal" "$root/.rog5-source-seal"
+            install -d -o root -g root -m 0755 "$root/boot" "$root/boot/rog5-linux"
+            tree=$(python3 {shlex.quote(str(tool))} seal "$root")
+            printf '%s%s\\n' {shlex.quote(header)} "$tree" >"$root/.rog5-source-seal"
+            chmod 0444 "$root/.rog5-source-seal"
+            : >"$root/.rog5-persistent-seal"
+            tree=$(python3 {shlex.quote(str(tool))} seal "$root")
+            printf '%s%s\\n' {shlex.quote(header)} "$tree" >"$root/.rog5-persistent-seal"
+            chmod 0444 "$root/.rog5-persistent-seal"
+            python3 {shlex.quote(str(tool))} verify "$root" "$root/.rog5-persistent-seal"
+        ''')
+        self.userns(['sh', '-c', script])
+
+    def step_boot(self):
+        if not self.args.bundle:
+            log('boot: no --bundle; the image gets no bundles or selector')
+            return
+        bundles = [Path(self.args.bundle)]
+        if self.args.fallback_bundle:
+            bundles.append(Path(self.args.fallback_bundle))
+        for bundle in bundles:
+            names = sorted(p.name for p in bundle.iterdir())
+            if names != sorted(BUNDLE_FILES):
+                fail(f'{bundle} must hold exactly {", ".join(BUNDLE_FILES)}')
+            if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,63}', bundle.name) or '..' in bundle.name:
+                fail(f'bad bundle name {bundle.name}')
+        manifest = (bundles[0] / 'manifest').read_bytes()
+        if self.args.fallback_bundle:
+            if not self.args.descriptor:
+                fail('--fallback-bundle needs the primary bundle\'s --descriptor (v2 try-once selector)')
+            spec = importlib.util.spec_from_file_location(
+                'rog5_selector', REPO / 'scripts/host/build-persistent-wifi-selector.py')
+            selector_tool = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(selector_tool)
+            fallback_manifest = (bundles[1] / 'manifest').read_bytes()
+            selector, _ = selector_tool.generate(
+                Path(self.args.descriptor).read_bytes(), manifest, fallback_manifest,
+                bundles[1].name, hashlib.sha256(fallback_manifest).hexdigest())
+        else:
+            selector = ('format=rog5-slotb-selector-v1\n'
+                        f'bundle={bundles[0].name}\n'
+                        f'manifest_sha256={hashlib.sha256(manifest).hexdigest()}\n').encode()
+        staging = self.work / 'boot-staging'
+        if staging.exists():
+            shutil.rmtree(staging)
+        (staging / 'bundles').mkdir(parents=True)
+        for bundle in bundles:
+            shutil.copytree(bundle, staging / 'bundles' / bundle.name)
+        (staging / 'selector').write_bytes(selector)
+        # Owners and modes as install-default-kernel-on-target.sh leaves them:
+        # bundles 0700 root, files 0400, selector 0600.
+        # Only the contents of /boot/rog5-linux change (the seal step made the
+        # directory), so the sealed tree, /boot included, stays as sealed.
+        script = textwrap.dedent('''
+            set -eu
+            root=$1 staging=$2
+            linux=$root/boot/rog5-linux
+            [ -d "$linux" ] && [ ! -L "$linux" ] || { echo 'run the seal step first' >&2; exit 1; }
+            find "$linux" -mindepth 1 -delete
+            install -d -o root -g root -m 0700 "$linux/bundles"
+            for dir in "$staging"/bundles/*; do
+                name=${dir##*/}
+                install -d -o root -g root -m 0700 "$linux/bundles/$name"
+                for f in "$dir"/*; do install -o root -g root -m 0400 "$f" "$linux/bundles/$name/"; done
+            done
+            install -o root -g root -m 0600 "$staging/selector" "$linux/selector"
+        ''')
+        self.userns(['sh', '-c', script, 'boot', self.root, staging])
+        shutil.rmtree(staging)
+        seal = self.root / '.rog5-persistent-seal'
+        if self.userns(['test', '-e', seal], check=False).returncode == 0:
+            self.userns([sys.executable, REPO / 'scripts/host/persistent-root-tool.py', 'verify', self.root, seal])
+        log(f'boot: selector {selector.decode().splitlines()[0]} for {", ".join(b.name for b in bundles)}')
+
+    def step_image(self):
+        image = self.work / 'arch_root_a.ext4'
+        # One UUID per work directory: bundles built for this root (their
+        # attestor pins it through the device profile) stay valid when the
+        # image is rebuilt, e.g. by --steps boot,image. --fs-uuid replaces it.
+        uuid_file = self.work / 'fs-uuid'
+        if self.args.fs_uuid:
+            uuid_file.write_text(self.args.fs_uuid + '\n')
+        elif not uuid_file.exists():
+            uuid_file.write_text(str(uuid.uuid4()) + '\n')
+        fs_uuid = uuid_file.read_text().strip()
+        if image.exists():
+            image.unlink()
+        with open(image, 'wb') as f:
+            f.truncate(self.args.image_bytes)
+        # mkfs.ext4 -d copies the tree with owners, modes, times and xattrs as
+        # seen inside the user namespace (root-owned files stay uid 0).
+        self.userns(['mkfs.ext4', '-q', '-F', '-m', '1', '-L', 'ROG5_ARCH_A', '-U', fs_uuid,
+                     '-E', 'lazy_itable_init=0,lazy_journal_init=0', '-d', self.root, image])
+        run(['e2fsck', '-fn', image], stdout=subprocess.DEVNULL)
+        self.write_identity(fs_uuid)
+        log(f'image: {image} ({self.args.image_bytes} bytes, UUID {fs_uuid})')
+
+    def write_identity(self, fs_uuid: str):
+        """Every value of this root that the production init pins."""
+        def entry(path: str):
+            p = self.root / path.lstrip('/')
+            data = self.userns(['cat', p], capture_output=True).stdout
+            return len(data), hashlib.sha256(data).hexdigest()
+        seal = (self.root / '.rog5-persistent-seal')
+        fields = dict(line.split('=', 1) for line in self.userns(['cat', seal], capture_output=True).stdout.decode().split())
+        values = {'ROG5_ROOT_FS_UUID': fs_uuid, 'ROG5_ROOT_IMAGE_BYTES': str(self.args.image_bytes)}
+        for key, path in (('SEAL', '/.rog5-persistent-seal'), ('SOURCE_SEAL', '/.rog5-source-seal'),
+                          ('SYSTEMD', '/usr/lib/systemd/systemd'), ('SSHD', '/usr/bin/sshd'),
+                          ('SSH_KEYGEN', '/usr/bin/ssh-keygen'),
+                          ('SSHDGENKEYS', '/usr/lib/systemd/system/sshdgenkeys.service'),
+                          ('AUTHORIZED_KEYS', '/root/.ssh/authorized_keys'),
+                          ('LD_CACHE', '/etc/ld.so.cache'),
+                          ('SSHD_DROPIN', '/etc/ssh/sshd_config.d/10-rog5-server.conf')):
+            size, digest = entry(path)
+            values[f'ROG5_ROOT_{key}_BYTES'] = str(size)
+            values[f'ROG5_ROOT_{key}_SHA256'] = digest
+        values['ROG5_ROOT_TREE_SHA256'] = fields['tree_sha256']
+        values['ROG5_ROOT_TREE_ENTRIES'] = fields['tree_entries']
+        values['ROG5_ROOT_SOURCE_ARCHIVE_SIZE'] = fields['source_archive_size']
+        values['ROG5_ROOT_SOURCE_ARCHIVE_SHA256'] = fields['source_archive_sha256']
+        text = '# Written by scripts/host/rog5-build-rootfs; input to rog5-device-profile.\n'
+        text += ''.join(f'{k}={v}\n' for k, v in values.items())
+        (self.work / 'root-identity.env').write_text(text)
+        log(f'identity: {self.work / "root-identity.env"}')
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--work', required=True, help='work directory (about 20 GB free; not tmpfs)')
+    parser.add_argument('--ssh-key', help='your SSH public key for root (required from step accounts on)')
+    parser.add_argument('--steps', help=f'comma-separated subset of {",".join(STEPS)} (default: all not yet done)')
+    parser.add_argument('--tarball', help='use this ArchLinuxARM-aarch64 tarball instead of downloading it')
+    parser.add_argument('--tarball-sig', help='its detached signature (with --tarball)')
+    parser.add_argument('--alarm-key', help='file with the Arch Linux ARM build key instead of a keyserver fetch')
+    parser.add_argument('--skip-custom', default='', help='comma-separated packages/ dirs not to build (e.g. mesa,resources)')
+    parser.add_argument('--phone-password-hash-file', help='crypt(3) hash for the phone user (openssl passwd -6)')
+    parser.add_argument('--image-bytes', type=int, default=DEFAULT_IMAGE_BYTES,
+                        help='image size; must equal your p24 size (default %(default)s)')
+    parser.add_argument('--fs-uuid', help='ext4 UUID of the image (default: random once, kept in WORK/fs-uuid)')
+    parser.add_argument('--bundle', help='step boot: packaged bundles/<name> directory to boot first')
+    parser.add_argument('--descriptor', help='step boot: the trial descriptor built into --bundle (v2 selector)')
+    parser.add_argument('--fallback-bundle', help='step boot: packaged fallback bundles/<name> directory')
+    args = parser.parse_args()
+    if args.tarball and not args.tarball_sig:
+        fail('--tarball needs --tarball-sig')
+    if args.image_bytes % 4096:
+        fail('--image-bytes must be a multiple of 4096')
+    if args.fs_uuid and not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', args.fs_uuid):
+        fail('--fs-uuid must be a lowercase UUID')
+    for tool in ('unshare', 'chroot', 'bsdtar', 'gpg', 'curl', 'mkfs.ext4', 'e2fsck'):
+        if not shutil.which(tool):
+            fail(f'{tool} is required on the PC')
+    if emulated():
+        binfmt = Path('/proc/sys/fs/binfmt_misc/qemu-aarch64')
+        flags = ''
+        if binfmt.exists():
+            flags = next((l.split(':', 1)[1] for l in binfmt.read_text().splitlines() if l.startswith('flags:')), '')
+        if 'F' not in flags:
+            fail('aarch64 emulation needs binfmt_misc qemu-aarch64 with the F flag '
+                 '(qemu-user-static and its binfmt configuration)')
+    builder = Builder(args)
+    builder.work.mkdir(parents=True, exist_ok=True)
+    wanted = args.steps.split(',') if args.steps else [s for s in STEPS if s not in builder.done()]
+    for step in wanted:
+        if step not in STEPS:
+            fail(f'unknown step {step}')
+        if step in ('accounts',) and not args.ssh_key:
+            fail('step accounts needs --ssh-key')
+        log(f'--- step {step}')
+        getattr(builder, f'step_{step}')()
+        builder.mark(step)
+    log('done')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
