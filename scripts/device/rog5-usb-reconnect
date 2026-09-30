@@ -38,6 +38,11 @@ host_wait_s=${ROG5_USB_HOST_WAIT:-4}
 # one second later still gave -71 at full speed, 10 s later enumerated a
 # USB-C KVM hub at once (2026-09-30).
 host_settle_s=${ROG5_USB_HOST_SETTLE:-8}
+# Retries after a re-initialisation that enumerated nothing (count reset by
+# a success or by leaving host mode); each waits out the 30 s rate limit.
+retries=/run/rog5-usb-reconnect.retries
+max_retries=${ROG5_USB_HOST_RETRIES:-3}
+retry_s=${ROG5_USB_HOST_RETRY_S:-35}
 
 log() { printf 'rog5-usb-reconnect: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
 state() { cat "/sys/class/udc/$udc/state" 2>/dev/null; }
@@ -76,7 +81,7 @@ if host_mode; then
 	# re-init itself changes the role twice and starts this service again.
 	waited=0
 	while [ "$waited" -lt "$host_wait_s" ]; do
-		enumerated && exit 0
+		enumerated && { rm -f "$retries"; exit 0; }
 		host_mode || exit 0
 		sleep 1
 		waited=$((waited + 1))
@@ -95,13 +100,25 @@ if host_mode; then
 	echo host >"$role" || { log 'FAIL set host role'; exit 1; }
 	waited=0
 	while [ "$waited" -lt 10 ]; do
-		enumerated && { log 'PASS device enumerated after re-initialisation'; exit 0; }
+		enumerated && { log 'PASS device enumerated after re-initialisation'; rm -f "$retries"; exit 0; }
 		sleep 1
 		waited=$((waited + 1))
 	done
-	log 'host mode: nothing enumerated after re-initialisation'
+	# At boot the monitor's USB can come up only after this attempt (then
+	# -71 at 54 s with nothing left to start this service, 2026-09-30):
+	# try again later, a few times, while the port stays in host mode.
+	n=$(cat "$retries" 2>/dev/null || echo 0)
+	if [ "$n" -lt "$max_retries" ]; then
+		echo $((n + 1)) >"$retries"
+		log "host mode: nothing enumerated after re-initialisation; retry $((n + 1))/$max_retries in ${retry_s}s"
+		systemd-run --quiet --on-active="$retry_s" --unit="rog5-usb-reconnect-retry-$((n + 1))" \
+			/usr/bin/systemctl --no-block start rog5-usb-reconnect.service || true
+	else
+		log 'host mode: nothing enumerated after re-initialisation'
+	fi
 	exit 0
 fi
+rm -f "$retries"
 
 [ "$(cat "$supply/online" 2>/dev/null)" = 1 ] || exit 0
 case $(cat "$supply/usb_type" 2>/dev/null) in
