@@ -43,10 +43,10 @@ the training-only msm.dp_max_rate). eDP sinks are left alone.
 +MODULE_PARM_DESC(dp_max_lanes, "ROG5: cap external DP lanes (1, 2, 4; 0 = no cap), applied at the next plug-in");
 +
 +/*
-  * ROG5: fills the caller's link_info (msm_dp_panel_read_sink_caps() publishes
-  * it in one step once every cap is applied: hpd_irq reruns this while a
-  * stream is up, and mode_valid/atomic_enable read link_info without a lock).
-@@ -197,6 +218,15 @@
+  * ROG5: fills the caller's link_info; msm_dp_panel_read_sink_caps() publishes
+  * it once every cap is applied (callers hold plugged_lock, like the readers:
+  * mode_valid, atomic_enable, irq_hpd), so no reader sees a cleared or
+@@ -198,6 +219,15 @@
  		/* Limit link rate from LTTPR capabilities, if any */
  		if (max_lttpr_rate && max_lttpr_rate < link_info->rate)
  			link_info->rate = max_lttpr_rate;
@@ -62,7 +62,7 @@ the training-only msm.dp_max_rate). eDP sinks are left alone.
  	}
  
  	link_info->num_lanes = drm_dp_max_lane_count(dpcd);
-@@ -218,6 +248,15 @@
+@@ -219,6 +249,15 @@
  		link_info->num_lanes = phy_lanes;
  	}
  

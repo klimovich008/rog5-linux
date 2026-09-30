@@ -23,10 +23,11 @@ lanes than the applied mode drives and any DP power on in USB3-only mode. A
 DP mode deferred because DP was powered is applied at the next first PHY
 init (qmp_combo_com_init() from zero users), where no PHY user or AUX
 transfer is active, instead of forcing a common restart under a live AUX
-channel. A USB3-only request is also deferred while the DP PHY is
-initialised (a DP sink session in msm), so a late USB state from UCSI's
-typec_set_mode() between the DP notification and the stream enable cannot
-take the lanes away; the side port's USB3 PHY is unused. power_on() returns
+channel. A USB3-only request is ignored while the DP PHY is powered or
+initialised (a DP sink session in msm), before it is recorded, so a late USB
+state from UCSI's typec_set_mode() can neither take the lanes away before
+the stream starts nor erase a deferred C<->D change; the side port's USB3
+PHY is unused. power_on() returns
 the serdes/PLL errors with the DP PHY powered down again, and configure/
 power_on accept only 1, 2 or 4 lanes.
 
@@ -36,8 +37,9 @@ now tracks whether the common block is enabled. Register accesses (DP power
 on/off, voltage configure, calibrate, USB power off, runtime PM) are skipped
 or refused while it is off, com_exit() does not disable twice, the next
 non-forced init re-enables it, the restart paths return the error before
-touching registers, and a forced init failure no longer decrements
-init_count.
+touching registers, a mux or orientation callback with an unchanged value
+retries the restart while the block is off (checked under phy_mutex), and a
+forced init failure no longer decrements init_count.
 
 The mux path also powered the USB3 PHY on entering a USB3 mode even with no
 USB controller using it (the side dwc3 is USB2-only): only do that while a
@@ -330,15 +332,26 @@ consumer has it initialised (tracked under phy_mutex).
  		dev_vdbg(dev, "PHY not initialized, bailing out\n");
  		return 0;
  	}
-@@ -4407,6 +4539,7 @@
+@@ -4407,19 +4539,35 @@
  {
  	struct qmp_combo *qmp = typec_switch_get_drvdata(sw);
  	const struct qmp_phy_cfg *cfg = qmp->cfg;
+-
+-	if (orientation == qmp->orientation || orientation == TYPEC_ORIENTATION_NONE)
+-		return 0;
 +	int ret;
  
- 	if (orientation == qmp->orientation || orientation == TYPEC_ORIENTATION_NONE)
- 		return 0;
-@@ -4415,11 +4548,19 @@
+ 	mutex_lock(&qmp->phy_mutex);
++	/*
++	 * ROG5: an unchanged orientation still retries a restart that failed
++	 * (common block off while in use); checked under phy_mutex.
++	 */
++	if (orientation == TYPEC_ORIENTATION_NONE ||
++	    (orientation == qmp->orientation &&
++	     (!qmp->init_count || qmp->com_on))) {
++		mutex_unlock(&qmp->phy_mutex);
++		return 0;
++	}
  	qmp->orientation = orientation;
  
  	if (qmp->init_count) {
@@ -362,7 +375,7 @@ consumer has it initialised (tracked under phy_mutex).
  		if (qmp->usb_init_count)
  			qmp_combo_usb_power_on(qmp->usb_phy);
  		if (qmp->dp_init_count)
-@@ -4436,6 +4577,7 @@
+@@ -4436,6 +4584,7 @@
  	const struct qmp_phy_cfg *cfg = qmp->cfg;
  	enum qmpphy_mode new_mode;
  	unsigned int svid;
@@ -370,10 +383,26 @@ consumer has it initialised (tracked under phy_mutex).
  
  	guard(mutex)(&qmp->phy_mutex);
  
-@@ -4466,13 +4608,35 @@
+@@ -4466,13 +4615,41 @@
  		new_mode = QMPPHY_MODE_USB3_ONLY;
  	}
  
+-	if (new_mode == qmp->qmpphy_mode) {
++	/*
++	 * ROG5: keep the DP routing (and a DP request still pending) for a
++	 * USB3-only request (SAFE/USB, also from UCSI's typec_set_mode())
++	 * while DP is powered or initialised (a DP sink session in msm): a late
++	 * USB state must neither take the lanes away before the stream starts
++	 * nor erase a deferred C<->D change. The next DP request decides; the
++	 * side port's USB3 PHY is unused anyway.
++	 */
++	if (new_mode == QMPPHY_MODE_USB3_ONLY && qmp->com_on &&
++	    qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY &&
++	    (qmp->dp_powered_on || qmp->dp_init_count)) {
++		dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
++		return 0;
++	}
++
 +	/*
 +	 * ROG5: the lane count of the new assignment applies at once: msm
 +	 * reads it (PHY bus width) at the next HPD, and configure/power_on
@@ -382,33 +411,24 @@ consumer has it initialised (tracked under phy_mutex).
 +	qmp->req_mode = new_mode;
 +	qmp_combo_dp_publish_lanes(qmp);
 +
- 	if (new_mode == qmp->qmpphy_mode) {
++	/* ROG5: an unchanged mode still retries a restart that failed */
++	if (new_mode == qmp->qmpphy_mode &&
++	    (!qmp->init_count || qmp->com_on)) {
  		dev_dbg(qmp->dev, "typec_mux_set: same qmpphy mode, bail out\n");
  		return 0;
  	}
  
 -	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY && qmp->dp_powered_on) {
 -		dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
-+	/*
-+	 * ROG5: also keep the DP routing for a USB3-only request (SAFE/USB,
-+	 * also from UCSI's typec_set_mode()) while DP is initialised (a DP
-+	 * sink session in msm): a late USB state between the DP notification
-+	 * and the stream enable must not take the lanes away. The next DP
-+	 * request decides; the side port's USB3 PHY is unused anyway.
-+	 */
-+	if (qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY &&
-+	    (qmp->dp_powered_on ||
-+	     (new_mode == QMPPHY_MODE_USB3_ONLY && qmp->dp_init_count))) {
-+		/* ROG5: qmp_combo_com_init() applies a DP mode at the next PHY init */
-+		if (new_mode != QMPPHY_MODE_USB3_ONLY)
-+			dev_info(qmp->dev, "DP PHY in use: qmpphy mode %d -> %d deferred to the next PHY init\n",
-+				 qmp->qmpphy_mode, new_mode);
-+		else
-+			dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
++	/* ROG5: qmp_combo_com_init() applies a DP mode at the next PHY init */
++	if (qmp->com_on && qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY &&
++	    qmp->dp_powered_on) {
++		dev_info(qmp->dev, "DP PHY in use: qmpphy mode %d -> %d deferred to the next PHY init\n",
++			 qmp->qmpphy_mode, new_mode);
  		return 0;
  	}
  
-@@ -4480,25 +4644,39 @@
+@@ -4480,25 +4657,39 @@
  		qmp->qmpphy_mode, new_mode);
  
  	qmp->qmpphy_mode = new_mode;
@@ -455,7 +475,7 @@ consumer has it initialised (tracked under phy_mutex).
  			qmp_combo_usb_power_on(qmp->usb_phy);
  			if (!qmp->usb_init_count)
  				qmp->usb_init_count++;
-@@ -4874,6 +5052,7 @@
+@@ -4874,6 +5065,7 @@
  		goto err_node_put;
  
  	qmp->qmpphy_mode = QMPPHY_MODE_USB3DP;
@@ -463,7 +483,7 @@ consumer has it initialised (tracked under phy_mutex).
  
  	if (of_property_present(dev->of_node, "mode-switch") ||
  	    of_property_present(dev->of_node, "orientation-switch")) {
-@@ -4907,6 +5086,7 @@
+@@ -4907,6 +5099,7 @@
  		} else {
  			dev_warn(dev, "unable to determine orientation & mode from data-lanes");
  		}
@@ -471,7 +491,7 @@ consumer has it initialised (tracked under phy_mutex).
  	}
  
  	ret = drm_aux_bridge_register(dev);
-@@ -4946,6 +5126,11 @@
+@@ -4946,6 +5139,11 @@
  
  	phy_set_drvdata(qmp->dp_phy, qmp);
  

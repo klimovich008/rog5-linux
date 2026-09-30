@@ -10,10 +10,12 @@ routes; 0 = not reported, no limit), as stock msm-5.4 limits multi-function
 The sink's link_info was never cleared: the rate is only derived while it is
 0, so a previous sink's rate (a converter capped at HBR by 0110) survived an
 unplug and replug of another sink. Build it from zero in a local struct for
-every capability read, apply the 0110 converter cap, then publish it in one
-step: hpd_irq reruns the read while a stream is up, and mode_valid and
-atomic_enable read link_info without a lock, so they must never see a
-cleared or not yet capped copy.
+every capability read, apply the 0110 converter cap, then publish it. The
+struct copy is not atomic, and hpd_irq reruns the read while a stream is up,
+so the readers take plugged_lock like the writers (plug/unplug/detect
+already do): irq_hpd handling, mode_valid, and atomic_enable after the eDP
+plug handler. None of these holders take modeset locks, so the order
+modeset locks -> plugged_lock stays the only one.
 
 phy_configure()/phy_power_on() results were ignored (also for the voltage
 updates during training). Return them, and power the PHY off only when it was
@@ -226,7 +228,21 @@ link clocks are off for the same reason.
  irqreturn_t msm_dp_ctrl_isr(struct msm_dp_ctrl *msm_dp_ctrl)
 --- a/drivers/gpu/drm/msm/dp/dp_display.c
 +++ b/drivers/gpu/drm/msm/dp/dp_display.c
-@@ -556,6 +556,8 @@
+@@ -493,6 +493,13 @@
+ 	u32 sink_request;
+ 	int rc = 0;
+ 
++	/*
++	 * ROG5: serialise with plug/unplug, mode validation and link enable:
++	 * a DS_PORT_STATUS_CHANGED rereads the sink's link_info, and sink
++	 * requests retrain the link.
++	 */
++	guard(mutex)(&dp->plugged_lock);
++
+ 	/* irq_hpd can happen at either connected or disconnected state */
+ 	drm_dbg_dp(dp->drm_dev, "Before, type=%d, sink_count=%d\n",
+ 			dp->msm_dp_display.connector_type,
+@@ -556,6 +563,8 @@
  		goto error_link;
  	}
  
@@ -235,6 +251,35 @@ link clocks are off for the same reason.
  	dp->panel = msm_dp_panel_get(dev, dp->aux, dp->link, dp->link_base, dp->p0_base);
  	if (IS_ERR(dp->panel)) {
  		rc = PTR_ERR(dp->panel);
+@@ -791,6 +800,14 @@
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 	link_info = &msm_dp_display->panel->link_info;
+ 
++	/*
++	 * ROG5: link_info (lanes, rate) is rewritten at every capability read
++	 * under plugged_lock; never validate against a half-updated copy.
++	 * Called with mode_config.mutex/modeset locks held; no plugged_lock
++	 * holder takes those.
++	 */
++	guard(mutex)(&msm_dp_display->plugged_lock);
++
+ 	is_yuv_420 = drm_mode_is_420_only(&dp->connector->display_info, mode);
+ 
+ 	/*
+@@ -1473,6 +1490,13 @@
+ 		return;
+ 	}
+ 
++	/*
++	 * ROG5: the link enable reads the sink's link_info (bpp, lanes, rate)
++	 * and trains the link: serialise with capability rereads and sink
++	 * requests (hpd/irq_hpd). After the eDP plug handler, which takes it.
++	 */
++	guard(mutex)(&msm_dp_display->plugged_lock);
++
+ 	if (msm_dp_display->link->sink_count == 0)
+ 		return;
+ 
 --- a/drivers/gpu/drm/msm/dp/dp_link.h
 +++ b/drivers/gpu/drm/msm/dp/dp_link.h
 @@ -64,7 +64,12 @@
@@ -260,15 +305,16 @@ link clocks are off for the same reason.
  #include <linux/types.h>
  #include <asm/byteorder.h>
  
-@@ -86,11 +87,16 @@
+@@ -86,11 +87,17 @@
  	}
  }
  
 -static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel)
 +/*
-+ * ROG5: fills the caller's link_info (msm_dp_panel_read_sink_caps() publishes
-+ * it in one step once every cap is applied: hpd_irq reruns this while a
-+ * stream is up, and mode_valid/atomic_enable read link_info without a lock).
++ * ROG5: fills the caller's link_info; msm_dp_panel_read_sink_caps() publishes
++ * it once every cap is applied (callers hold plugged_lock, like the readers:
++ * mode_valid, atomic_enable, irq_hpd), so no reader sees a cleared or
++ * uncapped copy.
 + */
 +static int msm_dp_panel_read_dpcd(struct msm_dp_panel *msm_dp_panel,
 +				  struct msm_dp_link_info *link_info)
@@ -280,7 +326,7 @@ link clocks are off for the same reason.
  	struct msm_dp_link *link;
  	u8 *dpcd, major, minor;
  
-@@ -101,7 +107,12 @@
+@@ -101,7 +108,12 @@
  		return rc;
  
  	msm_dp_panel->vsc_sdp_supported = drm_dp_vsc_sdp_supported(panel->aux, dpcd);
@@ -294,7 +340,7 @@ link clocks are off for the same reason.
  	link_info->revision = dpcd[DP_DPCD_REV];
  	major = (link_info->revision >> 4) & 0x0f;
  	minor = link_info->revision & 0x0f;
-@@ -194,6 +205,19 @@
+@@ -194,6 +206,19 @@
  	if (link_info->num_lanes > link->max_dp_lanes)
  		link_info->num_lanes = link->max_dp_lanes;
  
@@ -314,7 +360,7 @@ link clocks are off for the same reason.
  	/* Limit data lanes from LTTPR capabilities, if any */
  	if (max_lttpr_lanes && max_lttpr_lanes < link_info->num_lanes)
  		link_info->num_lanes = max_lttpr_lanes;
-@@ -227,9 +251,9 @@
+@@ -227,9 +252,9 @@
  module_param_named(dp_pcon_max_rate, msm_dp_pcon_max_rate, uint, 0644);
  MODULE_PARM_DESC(dp_pcon_max_rate, "cap the link rate (kHz) behind a DP-to-HDMI/DVI converter, 0 = no cap");
  
@@ -326,7 +372,7 @@ link clocks are off for the same reason.
  	const u8 *dpcd = msm_dp_panel->dpcd;
  	int i;
  
-@@ -322,6 +346,7 @@
+@@ -322,6 +347,7 @@
  	int rc, bw_code;
  	int count;
  	struct msm_dp_panel_private *panel;
@@ -334,7 +380,7 @@ link clocks are off for the same reason.
  
  	if (!msm_dp_panel || !connector) {
  		DRM_ERROR("invalid input\n");
-@@ -330,18 +355,18 @@
+@@ -330,18 +356,18 @@
  
  	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
  
@@ -358,14 +404,14 @@ link clocks are off for the same reason.
  		return -EINVAL;
  	}
  
-@@ -358,7 +383,10 @@
+@@ -358,7 +384,10 @@
  	if (rc)
  		return rc;
  
 -	msm_dp_panel_cap_pcon_rate(msm_dp_panel);
 +	msm_dp_panel_cap_pcon_rate(msm_dp_panel, &link_info);
 +
-+	/* ROG5: publish the sink's link limits in one step, caps applied */
++	/* ROG5: publish the sink's link limits, caps applied (plugged_lock held) */
 +	msm_dp_panel->link_info = link_info;
  
  	drm_edid_free(msm_dp_panel->drm_edid);
