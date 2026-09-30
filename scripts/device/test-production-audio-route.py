@@ -125,7 +125,7 @@ class FakeMixer:
         return 0
 
 
-class Amp(unittest.TestCase):
+class AmpBase(unittest.TestCase):
     def setUp(self):
         self.route = load_route()
         self.logs = []
@@ -161,6 +161,8 @@ class Amp(unittest.TestCase):
         return self.route.route_amp(mixer, 'RCV', 'rcv', 'ASP_RX1', dict(self.on, **(config or {})),
                                     self.calibration if calibration is None else calibration)
 
+
+class Amp(AmpBase):
     def test_protection_path(self):
         mixer = FakeMixer(cal={'RCV': 8996})
         self.assertIsNone(self.run_amp(mixer))
@@ -174,7 +176,8 @@ class Amp(unittest.TestCase):
         # inputs and firmware before the preload, DACPCM last
         self.assertLess(names.index('RCV DSP_RX7 Source'), names.index('RCV DSP1 Preload Switch'))
         self.assertLess(names.index('RCV DSP1 Firmware'), names.index('RCV DSP1 Preload Switch'))
-        self.assertEqual(names[-1], 'RCV DACPCM Source')
+        # DACPCM, then (only now) the full level
+        self.assertEqual(mixer.writes[-2:], [('RCV DACPCM Source', 'DSP_TX1'), ('RCV Digital PCM Volume', '409')])
         self.assertNotIn('RCV DSP1 Protection cd CSPL_COMMAND', names)
         # stock never hibernated this firmware: the amplifier stays awake
         self.assertEqual(self.pm['/sys/fake/RCV'], 'on')
@@ -207,7 +210,8 @@ class Amp(unittest.TestCase):
         mixer.set('RCV DSP1 Preload Switch', '1')
         mixer.writes.clear()
         self.assertIsNone(self.run_amp(mixer, config={'amps': ''}))
-        self.assertEqual(mixer.writes, [('RCV DACPCM Source', 'ASP_RX1'), ('RCV DSP1 Preload Switch', '0')])
+        self.assertEqual(mixer.writes, [('RCV Digital PCM Volume', '361'), ('RCV DACPCM Source', 'ASP_RX1'),
+                                        ('RCV DSP1 Preload Switch', '0')])
         self.assertEqual(self.pm['/sys/fake/RCV'], 'auto')
 
     def test_core_kept_running_by_another_path_is_reported(self):
@@ -270,6 +274,67 @@ class Amp(unittest.TestCase):
         self.assertEqual(params[:4], (68).to_bytes(4, 'big'))
         self.assertEqual(mixer.params['RCV DSP1 Protection cd CSPL_COMMAND'], (8).to_bytes(4, 'big'))
         self.assertEqual(mixer.values['RCV DACPCM Source'], 'DSP_TX1')
+
+
+class NoDspMixer(FakeMixer):
+    """A kernel without the protection support (e.g. the r69 fallback): the
+    amplifier has no DSP1 or DSP_RXn controls."""
+
+    def set(self, name, value):
+        if ' DSP' in name:
+            self.writes.append((name, value))
+            return -2
+        return super().set(name, value)
+
+    def get_int(self, name):
+        return None if ' DSP' in name else super().get_int(name)
+
+
+class Level(AmpBase):
+    """0 dB only behind a verified protection DSP, -12 dB on every direct path."""
+
+    def volumes(self, mixer):
+        return [value for name, value in mixer.writes if name == 'RCV Digital PCM Volume']
+
+    def test_route_starts_every_amplifier_at_the_direct_level(self):
+        levels = {name: value for name, value in self.route.ROUTE if name.endswith('Digital PCM Volume')}
+        self.assertEqual(levels, {'SPK Digital PCM Volume': '361', 'RCV Digital PCM Volume': '361'})
+        self.assertNotIn('409', [value for name, value in self.route.ROUTE])
+
+    def test_kernel_without_protection_controls_stays_at_minus_12_db(self):
+        mixer = NoDspMixer(cal={'RCV': 8996})
+        mixer.values['RCV Digital PCM Volume'] = '409'  # e.g. restored by alsactl
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(mixer.values['RCV DACPCM Source'], 'ASP_RX1')
+        self.assertEqual(mixer.values['RCV Digital PCM Volume'], '361')
+        self.assertNotIn('409', self.volumes(mixer))
+        self.assertTrue(any('FAIL RCV speaker protection' in line for line in self.logs))
+
+    def test_every_failed_start_lowers_the_level_before_the_direct_path(self):
+        for mixer in (FakeMixer(cal={'RCV': 8996}, state=1), FakeMixer(cal={'RCV': 8392}),
+                      FakeMixer(cal={'RCV': 8996}, boots=False)):
+            mixer.values['RCV Digital PCM Volume'] = '409'  # left by an earlier protected run
+            self.assertIsNone(self.run_amp(mixer))
+            self.assertNotIn('409', self.volumes(mixer))
+            self.assertEqual(mixer.values['RCV Digital PCM Volume'], '361')
+            names = [name for name, value in mixer.writes]
+            self.assertLess(names.index('RCV Digital PCM Volume'), names.index('RCV DACPCM Source'))
+
+    def test_disabled_or_missing_firmware_is_direct_at_minus_12_db(self):
+        mixer = FakeMixer(cal={'RCV': 8996})
+        self.assertIsNone(self.run_amp(mixer, config={'amps': ''}))
+        self.assertEqual(self.volumes(mixer), ['361'])
+        (Path(self.route.FIRMWARE_DIR)/'cs35l45-rcv-dsp1-spk-prot.wmfw').unlink()
+        mixer = FakeMixer(cal={'RCV': 8996})
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(self.volumes(mixer), ['361'])
+
+    def test_protected_amplifier_gets_0_db_after_dacpcm(self):
+        mixer = FakeMixer(cal={'RCV': 8996})
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(self.volumes(mixer), ['409'])
+        names = [name for name, value in mixer.writes]
+        self.assertLess(names.index('RCV DACPCM Source'), names.index('RCV Digital PCM Volume'))
 
 
 if __name__ == '__main__':

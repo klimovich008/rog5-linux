@@ -8,8 +8,13 @@ amplifier.
   MultiMedia1 (card 0, device 0) -> SENARY MI2S -> CS35L45 x2
   left (ASP_RX1) -> the top amplifier (RCV), right (ASP_RX2) -> the bottom (SPK),
   as on stock: in landscape with the side port down the top edge is on the left
-Both amplifiers run in speaker mode at 0 dB digital (409; 0.25 dB steps) and
-19 dBV analog (3, the highest step, as stock). DAPM powers the amplifiers only
+Both amplifiers run in speaker mode at 19 dBV analog (3, the highest step, as
+stock and the driver default). The digital level depends on the path: 0 dB
+(409; 0.25 dB steps) only on an amplifier whose protection DSP was started and
+verified (below), else -12 dB (361, the level of the kernels before the
+protection work, e.g. the r69 fallback). The route first sets -12 dB, raises an
+amplifier to 0 dB only after DACPCM Source = DSP_TX1, and lowers it again
+before any switch back to the direct path. DAPM powers the amplifiers only
 while a stream runs.
 
 Speaker protection: when install-rog5-speaker-firmware has installed the
@@ -28,9 +33,9 @@ The amplifier then stays runtime-active, so its DSP pauses between streams as
 on stock instead of hibernating (hibernate=1 allows the driver's hibernation).
 Any failure puts that amplifier back on the direct path (DACPCM = ASP_RX, DSP
 stopped).
-Without the firmware or with the amplifier disabled it plays ASP_RX straight
-to the DAC (no protection): long full-volume playback can overheat the
-speakers then.
+Without the firmware, with the amplifier disabled, on a kernel without the
+protection support (no DSP controls) or after a failed start, it plays ASP_RX
+straight to the DAC (no protection) at -12 dB.
 
 With the mic DTB feature, the built-in microphones record on PCM 3
 (MultiMedia3 <- VA_CODEC_DMA_TX_0): DMIC0 (stock "dmic1", handset) left,
@@ -52,14 +57,18 @@ import time
 
 CARD_NAME = 'ASUS-ROG-Phone-5'
 CARD_ID = 'ASUSROGPhone5'
+# Digital PCM Volume: 0 dB only behind a verified protection DSP; -12 dB on the
+# direct path (unprotected speakers, e.g. a fallback kernel without 0121-0124).
+PROTECTED_VOLUME = '409'
+DIRECT_VOLUME = '361'
 ROUTE = (
     ('SEN_MI2S_RX Audio Mixer MultiMedia1', '1'),
     ('SPK Amplifier Mode', 'SPK'),
     ('RCV Amplifier Mode', 'SPK'),
     ('SPK Analog PCM Volume', '3'),
     ('RCV Analog PCM Volume', '3'),
-    ('SPK Digital PCM Volume', '409'),
-    ('RCV Digital PCM Volume', '409'),
+    ('SPK Digital PCM Volume', DIRECT_VOLUME),
+    ('RCV Digital PCM Volume', DIRECT_VOLUME),
     ('SPK AMP Enable Switch', '1'),
     ('RCV AMP Enable Switch', '1'),
 )
@@ -441,19 +450,27 @@ def route_amp(mixer, prefix, part, direct, config, calibration):
             if mixer.set(f'{prefix} DACPCM Source', 'DSP_TX1') >= 0:
                 if config.get('hibernate', '0') == '1':
                     runtime_control(device, 'auto')
+                # Full level only now that the DSP protects this speaker.
+                if mixer.set(f'{prefix} Digital PCM Volume', PROTECTED_VOLUME) < 0:
+                    log(f'{prefix} protected, but Digital PCM Volume stays {DIRECT_VOLUME}')
                 return None
             reason = 'could not set DACPCM Source'
         log(f'FAIL {prefix} speaker protection: {reason}; direct path')
         reason = None
-    # Direct path first, then stop a DSP left from an earlier run or failure
-    # (awake: a hibernating DSP is woken by the stop anyway).
+    # The unprotected level before the direct path (an earlier run may have
+    # left 0 dB behind a DSP), then stop a DSP left from an earlier run or
+    # failure (awake: a hibernating DSP is woken by the stop anyway).
     failure = None
+    if mixer.set(f'{prefix} Digital PCM Volume', DIRECT_VOLUME) < 0:
+        failure = f'{prefix} Digital PCM Volume'
     if mixer.set(f'{prefix} DACPCM Source', direct) < 0:
-        failure = f'{prefix} DACPCM Source'
+        failure = failure or f'{prefix} DACPCM Source'
     if mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1:
         runtime_control(device, 'on')
         mixer.set(f'{prefix} DSP1 Preload Switch', '0')
-    if mixer.get_int(f'{prefix} DSP1 Preload Switch') != 0 or core_running(mixer, prefix):
+    # No Preload control at all: a kernel without DSP support, nothing runs.
+    if mixer.get_int(f'{prefix} DSP1 Preload Switch') not in (0, None) or \
+            core_running(mixer, prefix):
         failure = failure or f'{prefix} DSP stop (still running, DACPCM {direct})'
     if runtime_control(device) == 'on':
         runtime_control(device, 'auto')
