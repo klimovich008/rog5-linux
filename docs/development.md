@@ -240,6 +240,21 @@ for one boot. That boot stays pending, the next one boots the fallback, and
 you then unmask and install a fresh default (tested 2026-09-26 with the
 safe-r2 fallback, which came up with Wi-Fi).
 
+A fallback bundle keeps a well-tested kernel but must carry the current
+init, since both bundles boot the same upper and its update snapshots (see
+rog5-update below). Build its ramdisk like a default one without
+`PRODUCTION_TRIAL_DESCRIPTOR`, from the current source, with that kernel's
+module package. `configs/production/boot-modules.list` must name only
+modules that kernel has: the build fails otherwise (for r69, drop
+`tcpci_rt1711h`, which 0144 kernels load; `production-7.2.7-safe-r8` takes
+the list from 4980520d). A DTB change for the fallback goes on top of its
+own DTB (safe-r8: `platform-usbbtm-dtb-r2` + the memx overlay, a dts diff of
+exactly that node). The installer puts a fallback on p24 only together with
+a new primary (`--fallback-bundle-dir` next to `--bundle-dir` and a fresh
+descriptor). safe-r7 and older predate the v2 seal: on a v2 `pending`
+record they write `restore-refused`, drop `pending`/`attempt` and boot the
+updated upper, and a `restoring-v2` journal fails their overlay stage.
+
 ### Unattended package updates (rog5-update)
 
 pacman owns only userspace. Kernel, modules and firmware come from the
