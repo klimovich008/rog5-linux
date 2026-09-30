@@ -28,6 +28,11 @@ training returns with them off, and the cleanup that follows would stall the
 bus on an unclocked access. Sink requests (hpd_irq) are ignored while the
 link clocks are off for the same reason.
 
+Not covered (inherited, not reached on the ROG5 where HPD comes from the
+pmic_glink altmode, not from native HPD pulses): atomic_disable/
+post_disable do not take plugged_lock, so native IRQ_HPD link maintenance
+could still race the link teardown.
+
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
 @@ -140,6 +140,8 @@

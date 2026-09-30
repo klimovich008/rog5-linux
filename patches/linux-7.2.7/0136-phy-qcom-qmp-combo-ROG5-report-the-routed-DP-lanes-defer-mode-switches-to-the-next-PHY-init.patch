@@ -396,7 +396,7 @@ consumer has it initialised (tracked under phy_mutex).
 +	 * nor erase a deferred C<->D change. The next DP request decides; the
 +	 * side port's USB3 PHY is unused anyway.
 +	 */
-+	if (new_mode == QMPPHY_MODE_USB3_ONLY && qmp->com_on &&
++	if (new_mode == QMPPHY_MODE_USB3_ONLY &&
 +	    qmp->qmpphy_mode != QMPPHY_MODE_USB3_ONLY &&
 +	    (qmp->dp_powered_on || qmp->dp_init_count)) {
 +		dev_dbg(qmp->dev, "typec_mux_set: DP PHY is still in use, delaying switch\n");
