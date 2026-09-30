@@ -18,10 +18,23 @@
 # host mode.
 #
 # Run by rog5-usb-reconnect.service, which udev starts on every change of the
-# qcom-battmgr-usb power supply and of the side port's role switch. On a
-# data-capable attach (SDP/CDP) it waits for the host to configure the gadget
-# and re-initialises the controller only if that does not happen. A charger
-# (DCP) or an already configured link is left alone.
+# qcom-battmgr-usb power supply, of the side port's role switch and of the
+# DRM connectors (DisplayPort hotplug). On a data-capable attach (SDP/CDP) it
+# waits for the host to configure the gadget and re-initialises the
+# controller only if that does not happen. A charger (DCP) or an already
+# configured link is left alone.
+#
+# Events during a run: the service is a oneshot, so a start requested while
+# it runs is merged into the running job and no new run follows. udev touches
+# $pending before starting it for supply and DRM events; a run clears it
+# when it begins and, if such an event arrived meanwhile, schedules one more
+# run when it ends (at most $max_replays in a row). Role-switch events get no
+# marker (the re-init and the role writes below cause them); instead a run
+# follows a mode change it sees while waiting (device -> host or back)
+# itself. On 2026-09-30 19:00 a USB-C monitor (DP alt mode + USB2 hub) came
+# up as SDP: the run waiting for the gadget saw host mode, exited, and the
+# role-switch event had been merged into it, so the hub stayed dark until a
+# manual start.
 #
 # Suspend interlock (with the rog5-usb-sleep hook): one reconnect transaction
 # holds $lock from start to end. The sleep hook's "pre" creates $suspending
@@ -39,6 +52,9 @@ kmsg=${ROG5_USB_KMSG:-/dev/kmsg}
 lock=$run/rog5-usb-reconnect.lock
 suspending=$run/rog5-usb-suspending
 skipped=$run/rog5-usb-reconnect.skipped
+pending=$run/rog5-usb-reconnect.pending
+replays=$run/rog5-usb-reconnect.replays
+max_replays=3
 log() { printf 'rog5-usb-reconnect: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
 
 # One run at a time: the re-init changes the role and udev starts this
@@ -56,6 +72,8 @@ suspend_in_progress() {
 	rm -f "$suspending"
 	return 1
 }
+# Every event up to now is handled by this run.
+rm -f "$pending"
 suspend_in_progress && { log 'suspend in progress; not touching the controller'; exit 0; }
 
 udc=a600000.usb
@@ -76,6 +94,26 @@ host_settle_s=${ROG5_USB_HOST_SETTLE:-8}
 retries=$run/rog5-usb-reconnect.retries
 max_retries=${ROG5_USB_HOST_RETRIES:-3}
 retry_s=${ROG5_USB_HOST_RETRY_S:-35}
+# After the last retry the helper gives up on this attach (an empty OTG
+# adapter or a DP-only cable must not cycle the controller on every supply
+# event) and records whether a DP sink was connected then. A later run acts
+# again only once a DP sink has connected since: a monitor's USB hub can
+# attach only after DP alt mode entry and HPD (19:00 above, and r202). Cleared
+# by a success or by leaving host mode.
+gaveup=$run/rog5-usb-reconnect.gaveup
+# DP discovery kick. After a boot with the MSI monitor attached (r206) the
+# ADSP reported only "pin_assignment=0 hpd=0" and never entered DP alt mode;
+# a data-role request through UCSI made it redo discovery: DP pin
+# assignment 1.8 s later, HPD 3.5 s later, 4 lanes. Only "device" sends a
+# command (UCSI SET_UOR, which the monitor rejects: the write fails and the
+# port stays host); "host" on a host port returns without one
+# (ucsi_dr_swap). So a host port with a PD partner that powers the phone,
+# nothing enumerated and no DP sink after $dp_wait_s gets this request, at
+# most $max_kicks times per attach ($kicks, cleared when the port leaves
+# host mode). A partner that accepts the swap is switched back to host.
+kicks=$run/rog5-usb-reconnect.kicks
+max_kicks=${ROG5_USB_DP_KICKS:-2}
+dp_wait_s=${ROG5_USB_DP_WAIT:-10}
 
 # The USB-link Tailscale (rog5-tailscaled) skips itself while usb0 is down.
 start_usb_tailscale() { systemctl --no-block start rog5-tailscaled.service 2>/dev/null || true; }
@@ -103,6 +141,12 @@ dp_attached() {
 	done
 	return 1
 }
+dp_state() { if dp_attached; then echo dp; else echo nodp; fi; }
+# A PD partner that supplies power to the phone (monitor, dock).
+pd_source_partner() {
+	[ "$(cat "${typec_role%/data_role}-partner/supports_usb_power_delivery" 2>/dev/null)" = yes ] &&
+		grep -qs '\[sink\]' "${typec_role%/data_role}/power_role"
+}
 
 # The controller must end every run bound to dwc3: a run that stops between
 # unbind and bind (write error, SIGTERM from the sleep hook) binds it again.
@@ -114,7 +158,27 @@ restore_binding() {
 		log "FAIL could not bind $udc again"
 	unbound=0
 }
-trap 'restore_binding' EXIT
+# An event that arrived during this run was merged into it: look again once
+# it has ended (during a suspend, "post" does).
+# Replays in a row are counted ($replays, cleared by a run without one) so
+# that events this helper might cause itself cannot keep it cycling.
+replay_pending() {
+	[ -e "$pending" ] || { rm -f "$replays"; return 0; }
+	rm -f "$pending"
+	if [ -e "$suspending" ] && pgrep -x systemd-sleep >/dev/null 2>&1; then
+		: >"$skipped"
+		return 0
+	fi
+	r=$(cat "$replays" 2>/dev/null || echo 0)
+	case $r in ''|*[!0-9]*) r=0 ;; esac
+	if [ "$r" -ge "$max_replays" ]; then
+		log "events keep arriving during runs; not replaying after $r replays"
+		rm -f "$replays"
+		return 0
+	fi
+	schedule_run 2 'event during the run' && echo $((r + 1)) >"$replays"
+}
+trap 'restore_binding; replay_pending' EXIT
 trap 'exit 1' HUP INT TERM
 
 reinit() {
@@ -133,8 +197,11 @@ reinit() {
 # Look again later from a fresh run (this run holds the lock, so events
 # that arrive now are dropped). Unique unit names, collected after use: a
 # fixed name still loaded from an earlier retry made systemd-run fail.
+sched_n=0
 schedule_run() { # delay-seconds reason
-	name=rog5-usb-reconnect-retry-$(cut -d. -f1 /proc/uptime)-$$
+	# A retry and the EXIT replay can be scheduled in the same second.
+	sched_n=$((sched_n + 1))
+	name=rog5-usb-reconnect-retry-$(cut -d. -f1 /proc/uptime)-$$-$sched_n
 	systemd-run --quiet --collect --timer-property=RemainAfterElapse=no \
 		--on-active="$1" --unit="$name" \
 		/usr/bin/systemctl --no-block start rog5-usb-reconnect.service 2>/dev/null && return 0
@@ -142,20 +209,102 @@ schedule_run() { # delay-seconds reason
 	return 1
 }
 
-if host_mode; then
-	# The gadget is not in use. Re-initialise at most once per 30 s: the
-	# re-init itself changes the role twice and starts this service again.
-	waited=0
-	while [ "$waited" -lt "$host_wait_s" ]; do
-		enumerated && { rm -f "$retries"; exit 0; }
-		host_mode || exit 0
+# Returns 1 when the port left host mode (the caller looks again); exits
+# when a device enumerates; returns 0 otherwise (the re-init follows).
+dp_kick() {
+	pd_source_partner || return 0
+	# Give the ADSP up to $dp_wait_s from the start of this run.
+	waited=$host_wait_s
+	while [ "$waited" -lt "$dp_wait_s" ]; do
+		dp_attached && return 0
+		enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+		host_mode || return 1
 		sleep 1
 		waited=$((waited + 1))
 	done
+	# Everything may have changed during the last second.
+	dp_attached && return 0
+	enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+	typec_host && pd_source_partner || { host_mode && return 0; return 1; }
+	k=$(cat "$kicks" 2>/dev/null || echo 0)
+	case $k in ''|*[!0-9]*) k=0 ;; esac
+	[ "$k" -lt "$max_kicks" ] || return 0
+	suspend_in_progress && { log 'suspend in progress; no DP kick'; exit 0; }
+	echo $((k + 1)) >"$kicks"
+	# The write blocks (uninterruptibly) for the UCSI command (10 s at
+	# most) and the swap wait (5 s); a command timeout also resets the PPM.
+	# That fits the sleep hook's 50 s wait for this run in practice; a
+	# suspend that comes in on a hung PPM is only logged by the hook.
+	log "PD partner without DP after ${dp_wait_s}s; UCSI data-role request to restart discovery (kick $((k + 1))/$max_kicks)"
+	echo device >"$typec_role" 2>/dev/null
+	sleep 1
+	if grep -qs '\[device\]' "$typec_role"; then
+		log 'partner accepted the data-role swap; switching back to host'
+		echo host >"$typec_role" 2>/dev/null || log 'FAIL data-role swap back to host'
+		sleep 1
+	fi
+	waited=0
+	while [ "$waited" -lt "$dp_wait_s" ]; do
+		if dp_attached; then
+			log "DP sink up ${waited}s after the kick"
+			# The monitor's hub attaches after HPD (it may even
+			# enumerate on its own).
+			sleep 2
+			enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+			host_mode || return 1
+			return 0
+		fi
+		enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+		sleep 1
+		waited=$((waited + 1))
+	done
+	log "no DP sink ${dp_wait_s}s after the kick"
+	host_mode || return 1
+	return 0
+}
+
+# Host mode: the gadget is not in use. Returns only when the port left host
+# mode while waiting (the caller looks again); every other path exits.
+host_run() {
+	# Re-initialise at most once per 30 s: the re-init itself changes the
+	# role twice and starts this service again.
+	waited=0
+	while [ "$waited" -lt "$host_wait_s" ]; do
+		enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
+		host_mode || return 0
+		sleep 1
+		waited=$((waited + 1))
+	done
+	dp_now=$(dp_state)
 	now=$(cut -d. -f1 /proc/uptime)
 	last=$(cat "$stamp" 2>/dev/null || echo -100)
-	[ $((now - last)) -ge 30 ] || exit 0
+	if [ $((now - last)) -lt 30 ]; then
+		# A DP sink that connected just after the helper gave up: look
+		# again once the rate limit has passed. A disconnect is recorded
+		# (so that the next connect re-arms).
+		if [ -e "$gaveup" ]; then
+			if [ "$dp_now" = nodp ]; then
+				echo nodp >"$gaveup"
+			elif [ "$(cat "$gaveup" 2>/dev/null)" != dp ]; then
+				schedule_run $((31 - (now - last))) 'DP sink connected after giving up'
+			fi
+		fi
+		exit 0
+	fi
+	if [ -e "$gaveup" ]; then
+		if [ "$dp_now" = dp ] && [ "$(cat "$gaveup" 2>/dev/null)" != dp ]; then
+			log "DP sink connected since the last attempt; trying $udc again"
+			rm -f "$gaveup" "$retries"
+		else
+			echo "$dp_now" >"$gaveup"
+			exit 0
+		fi
+	fi
 	suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
+	dp_kick || return 0
+	# dp_kick waits: a suspend may have begun meanwhile.
+	suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
+	now=$(cut -d. -f1 /proc/uptime)
 	echo "$now" >"$stamp"
 	log "host mode, nothing enumerated after ${host_wait_s}s; re-initialising $udc"
 	reinit || exit 1
@@ -172,7 +321,7 @@ if host_mode; then
 	device)
 		if ! typec_host; then
 			log 'partner is no longer a USB device after the settle; not switching to host'
-			rm -f "$retries"
+			rm -f "$retries" "$gaveup"
 			schedule_run 2 'after the settle'
 			exit 0
 		fi
@@ -182,13 +331,13 @@ if host_mode; then
 		log 'UCSI switched back to host during the settle' ;;
 	*)
 		log "role changed to '$now_role' during the settle; not switching to host"
-		rm -f "$retries"
+		rm -f "$retries" "$gaveup"
 		schedule_run 2 'after the settle'
 		exit 0 ;;
 	esac
 	waited=0
 	while [ "$waited" -lt 10 ]; do
-		enumerated && { log 'PASS device enumerated after re-initialisation'; rm -f "$retries"; exit 0; }
+		enumerated && { log 'PASS device enumerated after re-initialisation'; rm -f "$retries" "$gaveup"; exit 0; }
 		sleep 1
 		waited=$((waited + 1))
 	done
@@ -203,35 +352,52 @@ if host_mode; then
 			echo $((n + 1)) >"$retries"
 		fi
 	else
-		log 'host mode: nothing enumerated after re-initialisation'
+		log "host mode: nothing enumerated after re-initialisation; giving up until a DP sink connects or the port leaves host mode ($dp_now)"
 		rm -f "$retries"
+		echo "$dp_now" >"$gaveup"
 	fi
 	exit 0
-fi
-rm -f "$retries"
+}
 
-[ "$(cat "$supply/online" 2>/dev/null)" = 1 ] || exit 0
-case $(cat "$supply/usb_type" 2>/dev/null) in
-*'[SDP]'*|*'[CDP]'*) ;;
-*) exit 0 ;;
-esac
-waited=0
-while [ "$waited" -lt "$wait_s" ]; do
-	[ "$(state)" = configured ] && { start_usb_tailscale; exit 0; }
-	host_mode && exit 0
-	sleep 1
-	waited=$((waited + 1))
+# Device mode. Returns only when the port switched to host mode while
+# waiting for the gadget (the caller looks again); every other path exits.
+device_run() {
+	rm -f "$retries" "$gaveup" "$kicks"
+
+	[ "$(cat "$supply/online" 2>/dev/null)" = 1 ] || exit 0
+	case $(cat "$supply/usb_type" 2>/dev/null) in
+	*'[SDP]'*|*'[CDP]'*) ;;
+	*) exit 0 ;;
+	esac
+	waited=0
+	while [ "$waited" -lt "$wait_s" ]; do
+		[ "$(state)" = configured ] && { start_usb_tailscale; exit 0; }
+		host_mode && return 0
+		sleep 1
+		waited=$((waited + 1))
+	done
+	suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
+	log "gadget still $(state) ${wait_s}s after attach; re-initialising $udc"
+	reinit || exit 1
+	[ -n "$(cat "$gadget/UDC" 2>/dev/null)" ] || echo "$udc" >"$gadget/UDC" || { log 'FAIL gadget bind'; exit 1; }
+	ip link set usb0 up 2>/dev/null
+	waited=0
+	while [ "$waited" -lt 10 ]; do
+		[ "$(state)" = configured ] && { log "PASS gadget configured after re-initialisation"; start_usb_tailscale; exit 0; }
+		host_mode && return 0
+		sleep 1
+		waited=$((waited + 1))
+	done
+	log "gadget $(state) after re-initialisation"
+	exit 1
+}
+
+# A USB-C monitor reports SDP first and switches the port to host a second
+# later: follow such a change within this run, at most twice (the role
+# changes are events too, so a port that keeps flapping gets a replayed run).
+for pass in 1 2 3; do
+	if host_mode; then host_run; else device_run; fi
+	[ "$pass" = 3 ] || log 'port mode changed while waiting; looking again'
 done
-suspend_in_progress && { log 'suspend in progress; no re-init'; exit 0; }
-log "gadget still $(state) ${wait_s}s after attach; re-initialising $udc"
-reinit || exit 1
-[ -n "$(cat "$gadget/UDC" 2>/dev/null)" ] || echo "$udc" >"$gadget/UDC" || { log 'FAIL gadget bind'; exit 1; }
-ip link set usb0 up 2>/dev/null
-waited=0
-while [ "$waited" -lt 10 ]; do
-	[ "$(state)" = configured ] && { log "PASS gadget configured after re-initialisation"; start_usb_tailscale; exit 0; }
-	sleep 1
-	waited=$((waited + 1))
-done
-log "gadget $(state) after re-initialisation"
-exit 1
+log 'port mode keeps changing; leaving it to the next event'
+exit 0

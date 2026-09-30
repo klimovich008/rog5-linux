@@ -1,5 +1,17 @@
 # The battery manager reports every USB attach/detach as a change of the
 # qcom-battmgr-usb power supply; check the gadget after each one. A switch of
 # the side port's role (UCSI: hub or OTG adapter attached) checks host mode.
-SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
+# A DRM hotplug (DisplayPort HPD from pmic_glink altmode) checks host mode
+# again: a USB-C monitor's hub can attach only after DP alt mode entry. A
+# side-port partner attach (port0-partner "add", also at boot via coldplug,
+# when no supply or role change event may follow) starts a run too: it can
+# kick DP discovery when the ADSP did not enter DP alt mode.
+# A start requested while a run is active is merged into that run. For
+# supply, DRM and partner events the pending marker comes first, and the run
+# schedules one more run when it ends. Role events get no marker: the
+# helper's own re-init and role writes cause them, and a run follows a role
+# change it sees while waiting by itself.
+SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb", ACTION=="change", RUN+="/usr/bin/touch /run/rog5-usb-reconnect.pending", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
 SUBSYSTEM=="usb_role", KERNEL=="a600000.usb-role-switch", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", ACTION=="change", ENV{HOTPLUG}=="1", RUN+="/usr/bin/touch /run/rog5-usb-reconnect.pending", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"
+SUBSYSTEM=="typec", KERNEL=="port0-partner", ACTION=="add", RUN+="/usr/bin/touch /run/rog5-usb-reconnect.pending", RUN+="/usr/bin/systemctl --no-block start rog5-usb-reconnect.service"

@@ -1,8 +1,12 @@
 [Unit]
 Description=Re-enumerate the USB gadget after the cable is plugged back in
-# Started by /etc/udev/rules.d/90-rog5-usb-reconnect.rules on USB supply changes.
+# Started by /etc/udev/rules.d/90-rog5-usb-reconnect.rules on USB supply,
+# side-port role and DRM (DP hotplug) changes and on a Type-C partner attach
+# (also replayed by the udev coldplug at boot).
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/rog5-usb-reconnect
-TimeoutStartSec=60
+# Longest run: a device-mode wait, then host mode with the DP wait, a DP
+# kick, the re-init, the settle and the enumeration wait (~60 s).
+TimeoutStartSec=90
