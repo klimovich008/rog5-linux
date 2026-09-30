@@ -1,0 +1,14 @@
+[Unit]
+Description=ROG5: soft-offline DDR blocks that abort on instruction fetch (rog5-sea)
+# Fallback for pages outside the memx DT reservation; see
+# scripts/device/rog5-sea-retire.
+After=systemd-journald.service
+
+[Service]
+ExecStart=/usr/local/sbin/rog5-sea-retire
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

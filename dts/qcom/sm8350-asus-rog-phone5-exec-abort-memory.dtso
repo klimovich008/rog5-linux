@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/*
+ * Keep Linux off the DDR that raises a synchronous external abort on EL0
+ * instruction fetch (ESR 0x82000010, FSC 0x10) while data reads and writes of
+ * the same pages work. Compose feature memx.
+ *
+ * Faults logged by kernel patch 0116 (rog5-sea), all user code executing
+ * from these physical pages:
+ *   r201 boot: pfn 0x34b635 (FEX, twice), 0x34bed0 (wine explorer.exe)
+ *   r202 boot: pfn 0x34bc8d, 0x34bc91 (Dota 2 under FEX)
+ * i.e. the 4 MiB-aligned blocks 0x34b400000 and 0x34bc00000, the same range
+ * on two boots. Soft-offlining 0x34b000-0x34cfff migrated 7672 pages without
+ * a data abort, so the pages are readable and writable at stage 2, only not
+ * executable.
+ *
+ * Not a stock carveout: every static and dynamic (alloc-ranges)
+ * reserved-memory region of the stock lahaina DT and the dtbo overlays lies
+ * below 4 GiB. The likely owner is the ASUS 5.4 wrapper that kexecs us: its
+ * built-in qtee_shmbridge takes a 4 MiB default bridge from the page
+ * allocator (order 10, so 4 MiB aligned) at 0.67 s and registers it with TZ
+ * with HLOS permissions R|W only (no X); the wrapper never deregisters it
+ * before kexec, and qseecom/tz_log/smcinvoke can register more such bridges.
+ * The wrapper on boot_b is the same image every boot and allocates the bridge
+ * before it reads any bundle, which fits the stable address.
+ *
+ * The reservation takes 64 MiB, 0x34a000000-0x34dffffff: 20 MiB below and
+ * 32 MiB above the two faulting blocks, several 4 MiB bridge-sized units on
+ * each side for boot-to-boot drift of the wrapper's early allocations
+ * (0.5 % of the RAM). no-map also keeps the pages out of the linear map, so
+ * nothing of ours sits where TZ may still write through an old bridge. A
+ * fault outside it is still logged by rog5-sea and retired at run time by
+ * rog5-sea-retire.service.
+ */
+&reserved_memory {
+	memory@34a000000 {
+		reg = <0x3 0x4a000000 0x0 0x04000000>;
+		no-map;
+	};
+};

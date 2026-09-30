@@ -1,0 +1,65 @@
+#!/bin/sh
+# Retire DDR that aborts on instruction fetch, at run time.
+#
+# Kernel patch 0116 logs every user-mode synchronous external abort as
+#   rog5-sea: comm[pid] cpuN ifetch pc .. far .. esr .. fsc 0x10 pfn 0x.. ...
+# The pages seen so far (0x34b400000 and 0x34bc00000, 4 MiB blocks the ASUS
+# wrapper leaves registered with TZ as read/write-only) are reserved in the
+# DT (compose feature memx). This daemon covers a block outside that
+# reservation: for each instruction-fetch abort (FSC 0x10) with a known PFN
+# it soft-offlines the whole 4 MiB-aligned block around it (1024 pages, the
+# wrapper's bridge granule), once per block and at most ROG5_SEA_MAX_BLOCKS
+# (default 8) blocks per boot. soft_offline_page migrates the contents and
+# never hands the page out again; kernel-owned pages simply stay. The task
+# that faulted has already had its SIGBUS: this only stops the next one.
+#
+# Runs as rog5-sea-retire.service (follows the kernel log of this boot from
+# its start). --stdin reads log lines from standard input instead (tests).
+set -eu
+
+sysfs=${ROG5_SEA_SOFT_OFFLINE:-/sys/devices/system/memory/soft_offline_page}
+run=${ROG5_SEA_RUN:-/run/rog5-sea-retire}
+kmsg=${ROG5_SEA_KMSG:-/dev/kmsg}
+max_blocks=${ROG5_SEA_MAX_BLOCKS:-8}
+
+log() { printf 'rog5-sea-retire: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
+
+retire_block() {
+	pfn=$(($1))
+	block=$((pfn & ~0x3ff))
+	name=$(printf '%x' "$block")
+	[ ! -e "$run/$name" ] || return 0
+	done_blocks=$(find "$run" -mindepth 1 -maxdepth 1 -type f | wc -l)
+	if [ "$done_blocks" -ge "$max_blocks" ]; then
+		log "pfn $1: budget of $max_blocks blocks used, not retiring block 0x$name"
+		: >"$run/$name"
+		return 0
+	fi
+	: >"$run/$name"
+	ok=0 failed=0 p=$block
+	while [ "$p" -lt $((block + 1024)) ]; do
+		if printf '0x%x000\n' "$p" 2>/dev/null >>"$sysfs"; then
+			ok=$((ok + 1))
+		else
+			failed=$((failed + 1))
+		fi
+		p=$((p + 1))
+	done
+	log "pfn $1: soft-offlined block 0x$name-0x$(printf '%x' $((block + 1023))) ($ok retired, $failed not movable)"
+}
+
+watch() {
+	while IFS= read -r line; do
+		case $line in *'rog5-sea: '*' ifetch '*' fsc 0x10 pfn 0x'*) ;; *) continue ;; esac
+		pfn=$(printf '%s\n' "$line" | sed -n 's/.* fsc 0x10 pfn \(0x[0-9a-f][0-9a-f]*\)\( .*\)*$/\1/p')
+		case $pfn in ''|0x0) continue ;; esac
+		retire_block "$pfn"
+	done
+}
+
+mkdir -p "$run"
+if [ "${1:-}" = --stdin ]; then
+	watch
+else
+	journalctl -k -b -f -n all -o cat | watch
+fi

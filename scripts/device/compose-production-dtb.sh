@@ -34,6 +34,10 @@ case $usbbtmtc$usbbtm in 10) echo 'FAIL usbbtmtc needs usbbtm' >&2; exit 1 ;; es
 # with patch 0083 (the VA macro drops its LPASS core votes when idle).
 case ,$features, in *,mic,*) mic=1; features=$(printf %s "$features" | sed 's/^mic$//; s/,mic$//; s/,mic,/,/') ;; *) mic=0 ;; esac
 case $mic,$features, in 1,*,audio,*|0,*) ;; *) echo 'FAIL mic needs audio' >&2; exit 1 ;; esac
+# memx (no-map reservation of the DDR at 0x34a000000 whose pages abort on
+# instruction fetch, left behind by the ASUS wrapper) likewise; no kernel
+# dependency.
+case ,$features, in *,memx,*) memx=1; features=$(printf %s "$features" | sed 's/^memx$//; s/,memx$//; s/,memx,/,/') ;; *) memx=0 ;; esac
 case $features in ''|touch|touch,bluetooth|touch,bluetooth,cpuidle|touch,bluetooth,cpuidle,gpubw|touch,bluetooth,cpuidle,gpubw,bwmon|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc|touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp) ;; *) echo 'FAIL unknown feature' >&2; exit 1 ;; esac
 feature=${features%%,*}
 expected_r2=08d41d4dbb7e16984d0b45f776a9654e38ba9c9553fa1f3a315a0882a9850b66
@@ -529,6 +533,27 @@ if [ "$usbbtmtc" = 1 ]; then
 		[ "$(fdtget "$work/composed.dtb" /soc@0/dma-controller@a00000 status)" = disabled ] &&
 		! fdtget -l "$work/composed.dtb" /rog5-btm-vbus-output >/dev/null 2>&1 ||
 		{ echo 'FAIL usbbtmtc composition' >&2; exit 1; }
+fi
+if [ "$memx" = 1 ]; then
+	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+		-I "$source/scripts/dtc/include-prefixes" \
+		-o "$work/memx.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-exec-abort-memory.dtso"
+	dtc -@ -q -I dts -O dtb -o "$work/memx.dtbo" "$work/memx.pp"
+	fdtoverlay -i "$work/composed.dtb" -o "$work/memx.dtb" "$work/memx.dtbo"
+	mv "$work/memx.dtb" "$work/composed.dtb"
+	mx=/reserved-memory/memory@34a000000
+	# 64 MiB no-map inside the 0x200000000 + 6 GiB bank of /memory, and the
+	# only reservation above 4 GiB (nothing else to overlap).
+	[ "$(fdtget "$work/composed.dtb" /reserved-memory '#address-cells')" = 2 ] &&
+		[ "$(fdtget "$work/composed.dtb" /reserved-memory '#size-cells')" = 2 ] &&
+		[ "$(fdtget -tx "$work/composed.dtb" $mx reg)" = '3 4a000000 0 4000000' ] &&
+		fdtget "$work/composed.dtb" $mx no-map >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $mx reusable >/dev/null 2>&1 &&
+		! fdtget "$work/composed.dtb" $mx compatible >/dev/null 2>&1 &&
+		fdtget -tx "$work/composed.dtb" /memory reg | grep -q '^0 80000000 0 37100000 2 0 1 80000000 ' &&
+		[ "$(for n in $(fdtget -l "$work/composed.dtb" /reserved-memory); do
+			fdtget -tx "$work/composed.dtb" /reserved-memory/$n reg | cut -d ' ' -f 1; done | grep -vcx 0)" = 1 ] ||
+		{ echo 'FAIL memx composition' >&2; exit 1; }
 fi
 rtc=/soc@0/spmi@c440000/pmic@0/rtc@6100
 [ "$(fdtget "$work/composed.dtb" "$rtc" status)" = okay ] || { echo 'FAIL RTC not enabled' >&2; exit 1; }
