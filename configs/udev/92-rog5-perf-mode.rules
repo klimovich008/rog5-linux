@@ -1,0 +1,5 @@
+# Re-evaluate the saved performance mode ("auto" follows charger + DP) when
+# the charger or an external display comes or goes. Only these two sources:
+# battery uevents are frequent and must not spawn work.
+SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb|qcom-battmgr-wls|ucsi-source-psy-*", ACTION=="change", RUN+="/usr/bin/systemctl --no-block start rog5-perf-mode.service"
+SUBSYSTEM=="drm", ACTION=="change", ENV{HOTPLUG}=="1", RUN+="/usr/bin/systemctl --no-block start rog5-perf-mode.service"

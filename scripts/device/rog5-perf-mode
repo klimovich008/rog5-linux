@@ -8,16 +8,23 @@
 #                (X Mode): the GPU holds 840 MHz under sustained load
 #                (Geekbench 6 Vulkan 4670 -> 5405, case up to ~49 C,
 #                test-results/2026-09-29-gpu-performance.md)
+#   auto         performance while external power is online and an external
+#                display is connected (desktop mode on a dock: the phone lies
+#                on a desk), normal otherwise (in the hand, on battery).
+#                Re-evaluated by 92-rog5-perf-mode.rules on charger and DP
+#                hotplug events.
 #
 # The 65 C critical trip (orderly shutdown) and the CPU/GPU junction trips
 # (90-110 C) are never changed. The choice persists in $state and is applied
 # at boot by rog5-perf-mode.service ("apply").
 #
-#   rog5-perf-mode [status|normal|performance|apply]
+#   rog5-perf-mode [status|normal|performance|auto|apply]
 set -eu
 state=${ROG5_PERF_MODE_STATE:-/var/lib/rog5/perf-mode}
 zones=${ROG5_PERF_MODE_ZONES:-/sys/class/thermal}
 lock=${ROG5_PERF_MODE_LOCK:-/run/rog5-perf-mode.lock}
+supplies=${ROG5_PERF_MODE_SUPPLIES:-/sys/class/power_supply}
+drm=${ROG5_PERF_MODE_DRM:-/sys/class/drm}
 
 # One change at a time: two concurrent runs could interleave their trip
 # writes and leave the trips crossed (review 2026-09-29).
@@ -63,9 +70,24 @@ mode_of() {
 	echo "${m:-normal}"
 }
 
+# auto: performance on external power with an external display connected.
+auto_mode() {
+	ac=0 dp=0
+	for s in "$supplies"/*; do
+		case $(cat "$s/type" 2>/dev/null) in
+		USB*|Mains|Wireless) [ "$(cat "$s/online" 2>/dev/null)" = 1 ] && ac=1 ;;
+		esac
+	done
+	for c in "$drm"/card*-DP-*; do
+		[ "$(cat "$c/status" 2>/dev/null)" = connected ] && dp=1
+	done
+	if [ "$ac" = 1 ] && [ "$dp" = 1 ]; then echo performance; else echo normal; fi
+}
+
 apply() {
 	z=$(skin_zone) || { echo 'rog5-perf-mode: no skin-thermal zone' >&2; exit 1; }
 	case $1 in
+	auto) apply "$(auto_mode)"; return ;;
 	normal) set_trips "$z" 42000 46000 ;;
 	performance) set_trips "$z" 56000 57000 ;;
 	*) echo "rog5-perf-mode: unknown mode $1" >&2; exit 2 ;;
@@ -76,10 +98,10 @@ cmd=${1:-status}
 case $cmd in
 status)
 	z=$(skin_zone) || { echo 'no skin-thermal zone'; exit 1; }
-	echo "mode: $(mode_of "$z") (saved: $(cat "$state" 2>/dev/null || echo normal))"
+	echo "mode: $(mode_of "$z") (saved: $(cat "$state" 2>/dev/null || echo normal)$( [ "$(cat "$state" 2>/dev/null)" = auto ] && echo ", auto picks $(auto_mode)"))"
 	echo "skin: $(($(cat "$z/temp") / 1000)) C"
 	;;
-normal | performance)
+normal | performance | auto)
 	serialize
 	apply "$cmd"
 	mkdir -p "$(dirname "$state")"
@@ -93,7 +115,7 @@ apply)
 	echo "mode: $m"
 	;;
 *)
-	echo 'usage: rog5-perf-mode [status|normal|performance|apply]' >&2
+	echo 'usage: rog5-perf-mode [status|normal|performance|auto|apply]' >&2
 	exit 2
 	;;
 esac

@@ -18,6 +18,17 @@ check() { got="$(cat ${m}0_temp) $(cat ${m}1_temp) $(cat ${m}2_temp)"; [ "$got" 
 "$here/rog5-perf-mode" status | grep -q 'mode: performance' || { echo 'FAIL status perf'; exit 1; }
 "$here/rog5-perf-mode" normal >/dev/null; check '65000 46000 42000' 'normal'
 echo performance >$t/state/perf-mode; "$here/rog5-perf-mode" apply >/dev/null; check '65000 57000 56000' 'apply'
+# auto: performance only with external power and a connected DP connector
+export ROG5_PERF_MODE_SUPPLIES=$t/ps ROG5_PERF_MODE_DRM=$t/drm
+mkdir -p $t/ps/usb $t/ps/bat $t/drm/card0-DP-1
+echo USB >$t/ps/usb/type; echo 0 >$t/ps/usb/online; echo Battery >$t/ps/bat/type
+echo disconnected >$t/drm/card0-DP-1/status
+"$here/rog5-perf-mode" auto >/dev/null; check '65000 46000 42000' 'auto battery'
+echo 1 >$t/ps/usb/online; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'auto ac without display'
+echo connected >$t/drm/card0-DP-1/status; "$here/rog5-perf-mode" apply >/dev/null; check '65000 57000 56000' 'auto desktop on ac'
+"$here/rog5-perf-mode" status | grep -q 'auto picks performance' || { echo 'FAIL status auto'; exit 1; }
+echo 0 >$t/ps/usb/online; "$here/rog5-perf-mode" apply >/dev/null; check '65000 46000 42000' 'auto unplugged'
+"$here/rog5-perf-mode" normal >/dev/null
 if "$here/rog5-perf-mode" turbo 2>/dev/null; then echo 'FAIL unknown mode accepted'; exit 1; fi
 # concurrent changes never leave the trips crossed
 for i in 1 2 3 4 5 6 7 8; do "$here/rog5-perf-mode" performance >/dev/null & "$here/rog5-perf-mode" normal >/dev/null & done; wait
