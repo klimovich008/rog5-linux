@@ -380,6 +380,7 @@ order. Subdirectories hold multi-file results.
 - [2026-09-27-display-gpu-investigation.md](2026-09-27-display-gpu-investigation.md): ROG Phone 5 (SM8350 / A660 / AMS678) — display and GPU investigation, 2026-09-27
 - [2026-09-27-phosh-suspend.md](2026-09-27-phosh-suspend.md): 2026-09-27: Phosh session, working suspend/wake, rotation
 - [2026-09-27-remote-desktop-and-wake.md](2026-09-27-remote-desktop-and-wake.md): 2026-09-27: remote desktop, AI automation, wake on connection
+- [2026-09-30-charge-policy-bypass.md](2026-09-30-charge-policy-bypass.md): 2026-09-30: bypass (direct power) charging on r204, stock bypass protocol, PD contract, rog5-charge-policy
 - [2026-09-28-battmgr-charge-limit-0082.md](2026-09-28-battmgr-charge-limit-0082.md): 2026-09-28: qcom_battmgr ROG5 charge limit and bypass (patch 0082)
 - [2026-09-28-bottom-usb-port.md](2026-09-28-bottom-usb-port.md): Bottom USB-C port, stage A (USB 2.0 host), 2026-09-28
 - [2026-09-28-haven-watchdog-0088.md](2026-09-28-haven-watchdog-0088.md): Haven hypervisor watchdog (patch 0088), 2026-09-28

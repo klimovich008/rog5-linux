@@ -25,8 +25,9 @@ discharge_s=120
 backoff_s=900
 
 # 1: above end+3 % on external power, run from the battery down to end
-# (USB input suspended). Leave at 0 until rog5-sleep-policy treats
-# force-discharge as external power, or it suspends the phone meanwhile.
+# (USB input suspended; floor 50 %), e.g. after a full charge. Meanwhile
+# qcom-battmgr-usb reads offline: rog5-sleep-policy (10cc4116 and later)
+# still counts it as external power, rog5-perf-mode auto does not.
 drain=0
 
 # Longest "rog5-charge-policy full" override, in hours.

@@ -4,10 +4,10 @@
 #
 # Kernel side (patch 0082, qcom-battmgr-bat): charge_behaviour inhibit-charge
 # sends the ASUS OEM SET_CHG_LIMIT_MODE2 {BYPASS, 1}: the ADSP charger runs
-# the system from VBUS and the cells rest (measured on r144 and r204: battery
-# current 0 with the adapter carrying the load). charge_control_end_threshold
-# makes the kernel pause the same way once the capacity reaches END and
-# resume at or below START. force-discharge suspends USB input (the phone
+# the system from VBUS and the cells rest (r144 at 99 %: 0 mA in
+# inhibit-charge against +94..151 mA charging in auto, USB still online).
+# charge_control_end_threshold makes the kernel pause the same way once the
+# capacity reaches END and resume at or below START. force-discharge suspends USB input (the phone
 # runs from the battery and qcom-battmgr-usb reports online 0).
 #
 # This daemon keeps those knobs set from /etc/rog5/charge-policy (key=value,
@@ -51,13 +51,13 @@
 # set without its own drain decision, and a new boot always starts in auto
 # (the kernel keeps these values in memory only).
 #
-# Drain: while USB input is suspended, anything that reads
-# qcom-battmgr-usb/online sees the charger as gone: rog5-perf-mode auto, the
-# desktop, and rog5-sleep-policy, which suspended the phone 60 s after the
-# screen went off during a force-discharge test (2026-09-30). Enable drain
-# only once the sleep policy counts force-discharge as external power, or
-# with /etc/rog5/sleep-mode "reachable". The drain stops when the Type-C
-# partner disappears.
+# Drain: while USB input is suspended, qcom-battmgr-usb/online reads 0 with
+# the charger attached. rog5-sleep-policy counts a non-auto charge_behaviour
+# with a Type-C sink partner as external power since 10cc4116 (before it, a
+# force-discharge test suspended the phone 60 s after the screen went off,
+# 2026-09-30), but rog5-perf-mode auto, the desktop and rog5-usb-reconnect
+# still see an unplug. Hence drain=0 by default. The drain stops when the
+# Type-C partner disappears.
 set -u
 bat=${ROG5_CHG_BAT:-/sys/class/power_supply/qcom-battmgr-bat}
 usb=${ROG5_CHG_USB:-/sys/class/power_supply/qcom-battmgr-usb}
