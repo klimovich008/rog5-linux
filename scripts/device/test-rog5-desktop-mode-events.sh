@@ -25,20 +25,27 @@ systemctl() {
 	"start rog5-phosh.service") put P active; put SESS "$(( $(st SESS) + 1 ))"; put LOCK yes ;;
 	"start --no-block rog5-gnome.service") put G activating; put P inactive ;;
 	"list-jobs --no-legend") st JOBS ;;
+	"show -p MainPID --value rog5-phosh.service")
+		# rog5-phosh's main process leads the current phone session
+		if [ "$(st P)" = active ]; then echo "${PHOSH_PID:-100$(st SESS)}"; else echo 0; fi ;;
 	esac
 }
 loginctl() {
 	local n
 	case "$*" in
-	list-sessions*) echo "$(st SESS) 1000 phone seat0 tty7"; echo "99 0 root - -" ;;
+	list-sessions*) [ -z "$(st EXTRA)" ] || echo "$(st EXTRA) 1000 phone seat0 tty7"
+		echo "$(st SESS) 1000 phone seat0 tty7"; echo "99 0 root - -" ;;
 	*" 99 -p Service"*) echo sshd ;;
 	*"-p Service"*) echo phosh ;;
+	*"-p Leader --value") echo "100$2" ;;
 	*"-p State"*) echo active ;;
 	*"-p LockedHint -p IdleHint") echo "IdleHint=$(st IDLE)"; echo "LockedHint=$(st LOCK)" ;;
 	*"-p Id") [ "$2" = "$(st SESS)" ] || return 1; echo "$2" ;;
 	*"-p LockedHint --value")
 		n=$(( $(st NREAD) + 1 )); put NREAD "$n"
 		# LOCK_AT: the phone locks on this LockedHint read (race tests)
+		# FAIL_AT: this LockedHint read fails (logind busy, bus error)
+		[ "$n" != "$(st FAIL_AT)" ] || return 1
 		if [ -n "$(st LOCK_AT)" ] && [ "$n" -ge "$(st LOCK_AT)" ]; then echo yes; else st LOCK; fi ;;
 	esac
 }
@@ -46,15 +53,17 @@ T=1000
 now_cs() { now=$((T * 100)); }
 
 reset() {       # G P dp mode
-	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/run/*
+	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/*
 	put G "$1"; put P "$2"; put status "$3"; put mode "$4"
 	put SESS 2; put LOCK no; put IDLE no; put JOBS ""
 	auto_done=0 nosess_since= dp_state= dp_since=0 sess_cache= seen_locked= EV=
+	lock_sess= locked_at=0 lock_ready= unlock_ok= PHOSH_PID=
 	T=1000
 }
 called() { grep -qxF "systemctl $1" "$t/calls" 2>/dev/null; }
 started_gnome() { called "start --no-block rog5-gnome.service"; }
-unlock_cycle() { put LOCK yes; check; put LOCK no; }
+# lock, confirm the lock LOCKED_MIN later, unlock (T advances by 2 s)
+unlock_cycle() { put LOCK yes; check; T=$((T + 2)); check; put LOCK no; }
 
 # --- idle is not counted twice ----------------------------------------------
 reset active inactive connected auto
@@ -94,7 +103,7 @@ pass "mode=off cancels an activating GNOME"
 reset active inactive connected auto
 check
 [ "$auto_done" = 1 ] && [ -e "$t/run/auto-done" ] || fail "manual GNOME start did not set the latch"
-put G inactive; put P active; put SESS 3; put LOCK yes; T=1100; check
+put G inactive; put P active; put SESS 3; put LOCK yes; T=1100; check; T=1102; check
 put LOCK no; T=1200; check
 started_gnome && fail "auto start after Phone mode without a replug"
 put status disconnected; T=1201; check; T=1222; check
@@ -117,9 +126,9 @@ started_gnome || fail "no start after ON_AFTER of stable connection"
 pass "locked -> unlocked + ON_AFTER stable connection starts GNOME; a bounce restarts the debounce"
 
 reset inactive active connected auto
-put LOCK yes; check; put LOCK no; put LOCK_AT 2; T=1100; check
+put LOCK yes; check; T=1002; check; put LOCK no; put LOCK_AT 4; T=1100; check
 started_gnome && fail "locked between the check and the start, GNOME started anyway"
-pass "LockedHint is re-read right before the start (race closed)"
+pass "a relock seen by the re-read right before the start stops it"
 
 reset inactive active connected auto
 unlock_cycle; T=1100
@@ -135,8 +144,8 @@ reset inactive active connected auto
 check
 handle_event "L 2 yes"      # the lock was over before the state was read
 T=1100; check
-started_gnome || fail "a lock seen only as a logind signal did not count"
-pass "a LockedHint=yes signal counts even if missed by the state read"
+started_gnome && fail "a lock seen only as a logind signal (never confirmed) counted"
+pass "a lock seen only as a signal, never confirmed by a read, does not count"
 
 reset inactive active connected auto
 check; handle_event "L 99 yes"; put SESS 99; T=1100; check
@@ -149,6 +158,72 @@ started_gnome && fail "manual mode switched automatically"
 printf manual >"$t/mode"; T=1200; check
 started_gnome && fail "a mode file without a newline was read as auto"
 pass "manual mode never switches automatically"
+
+# --- regression 2026-09-30 11:34 (r200 boot): locked at boot, USB/DP rebind --
+# Replay of the boot: Phosh session 2 starts with LockedHint=no, phosh 0002
+# publishes the lock, the reconnect helper's rebind sends drm uevents, logind
+# adds/removes sessions, a reload arrives. Nobody unlocks: GNOME must not start.
+reset inactive active connected auto
+check                                   # fresh session, LockedHint=no
+T=1001; put LOCK yes; handle_event "L 2 yes"; check
+for i in 1 2 3 4 5 6 7 8 9 10; do T=$((1001 + i)); handle_event D; handle_event S; handle_event E; check; done
+handle_event M; T=1030; check; T=1100; check; T=1500; check
+handle_event "L 7 no"; handle_event "L 99 no"; T=1501; check   # other sessions' unlocks
+started_gnome && fail "r200 replay: GNOME started from a locked phone"
+pass "r200 boot replay (locked, rebind uevents, session churn, reload, other sessions' unlocks): no GNOME"
+
+# a shell that publishes yes and then a wrong "no" right away (startup bug):
+# the flip is ignored until the session is locked again
+reset inactive active connected auto
+check
+T=1001; handle_event "L 2 yes"; handle_event "L 2 no"; put LOCK no
+T=1100; check; T=1200; check
+started_gnome && fail "a yes->no flip faster than LOCKED_MIN started GNOME"
+T=1300; put LOCK yes; handle_event "L 2 yes"; check; T=1302; check
+T=1310; put LOCK no; handle_event "L 2 no"; check
+started_gnome || fail "a real lock/unlock after an ignored flip did not start GNOME"
+pass "an unlock faster than LOCKED_MIN after the lock is ignored; a real one later counts"
+
+# only one unlock per lock period: after a start and a hand-back, the new
+# Phosh session must be locked and unlocked again
+reset inactive active connected auto
+unlock_cycle; T=1010; check
+started_gnome || fail "setup: no start"
+rm -f "$t/calls"; put G inactive; put P active; put SESS 3; put LOCK no; latch 0
+T=1100; handle_event "L 2 no"; check; T=1200; check
+started_gnome && fail "an old session's unlock vouched for the new session"
+pass "an unlock is not reused for a later session"
+
+# the session must be rog5-phosh's (its leader is the unit's main process):
+# GNOME's session has Service=phosh too
+reset inactive active connected auto
+PHOSH_PID=4242; unlock_cycle; T=1100; check
+started_gnome && fail "an unlock of a session that is not rog5-phosh's started GNOME"
+PHOSH_PID=
+pass "only rog5-phosh's own session can authorise a start"
+
+# another Service=phosh session listed first (e.g. GNOME's, not closing yet)
+# must not hide rog5-phosh's own session: its unlock still counts
+reset inactive active connected auto
+put EXTRA 5
+unlock_cycle; T=1100; check
+started_gnome || fail "a second Service=phosh session hid rog5-phosh's session"
+rm -f "$t/EXTRA"
+pass "rog5-phosh's session is found by its leader even with another phosh session listed first"
+
+# an unreadable final re-read drops the lock history (no invented lock)
+reset inactive active connected auto
+unlock_cycle; put FAIL_AT 4; T=1100; check
+started_gnome && fail "started although the final re-read failed"
+T=1200; check; T=1300; check
+started_gnome && fail "a failed re-read left an unlock that counted later"
+pass "a failed lock-state read drops the history; the next start needs a new lock"
+
+# a removed session forgets its history (the id must not carry it)
+reset inactive active connected auto
+unlock_cycle; handle_event "Q 2"; T=1100; check
+started_gnome && fail "the history of a removed session id counted"
+pass "a removed session forgets its lock history"
 
 # --- no session ----------------------------------------------------------------
 reset inactive failed connected auto
@@ -168,12 +243,15 @@ The name org.freedesktop.login1 is owned by :1.5
 /org/freedesktop/login1/session/_312: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'LockedHint': <false>}, @as [])
 /org/freedesktop/login1/session/c1: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'IdleHint': <true>, 'IdleSinceHint': <uint64 1790737432357959>, 'IdleSinceHintMonotonic': <uint64 5000000>}, @as [])
 /org/freedesktop/login1: org.freedesktop.login1.Manager.SessionNew ('8', objectpath '/org/freedesktop/login1/session/_38')
+/org/freedesktop/login1: org.freedesktop.login1.Manager.SessionRemoved ('7', objectpath '/org/freedesktop/login1/session/_37')
 /org/freedesktop/login1/user/_1000: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.User', {'Display': <('7', objectpath '/org/freedesktop/login1/session/_37')>}, @as [])
 EOF
 )
-exp=$(printf '%s\n' "R logind" "L 7 yes" "L 12 no" "E" "S")
+exp=$(printf '%s\n' "R logind" "L 7 yes" "L 12 no" "E" "S" "Q 7")
 [ "$out" = "$exp" ] || fail "logind parser: got [$out]"
 handle_event "X gdbus monitor" 2>/dev/null && fail "a dead event source was not fatal"
+[ "$(echo "The name org.freedesktop.login1 does not have an owner" | awk "$LOGIND_AWK")" = "X logind lost its bus name" ] ||
+	fail "logind losing its name is not fatal"
 pass "logind signal parser and dead-source handling"
 
 # --- the real loop with fake tools ----------------------------------------------
@@ -193,7 +271,7 @@ EOF
 cat >"$b/gdbus" <<EOF
 #!/bin/sh
 echo 'The name org.freedesktop.login1 is owned by :1.5'
-sleep 1; echo 'no' >"$t/LOCK"
+sleep 3; echo 'no' >"$t/LOCK"
 echo "/org/freedesktop/login1/session/_32: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'LockedHint': <false>}, @as [])"
 exec sleep 60
 EOF
@@ -205,12 +283,37 @@ PATH=$b:$PATH ROG5_DM_LIB= timeout 20 bash "$here/rog5-desktop-mode" >"$t/out" 2
 pid=$!
 for _ in $(seq 1 40); do started_gnome && break; sleep 0.5; done
 started_gnome || { cat "$t/out"; fail "event loop: no GNOME start after the unlock signal"; }
-grep -q "phone unlocked -> GNOME" "$t/out" || fail "event loop: no log line"
+grep -q "phone unlocked (session 2) -> GNOME" "$t/out" || fail "event loop: no log line"
 put mode off; kill -USR1 "$pid"
 for _ in $(seq 1 20); do called "stop rog5-gnome.service" && break; sleep 0.5; done
 called "stop rog5-gnome.service" || { cat "$t/out"; fail "event loop: reload (mode off) not handled"; }
 kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 pass "event loop: unlock signal -> GNOME after ON_AFTER; reload -> mode off -> Phosh"
+
+# real loop, r200-like boot: fresh session, lock published, a flip to "no"
+# right after it, uevents from a rebind, nobody unlocks: no GNOME in 10 s
+reset inactive active connected auto
+cat >"$b/udevadm" <<'EOF'
+#!/bin/sh
+echo 'UDEV - the event which udev sends out after rule processing'
+for i in 1 2 3 4 5; do sleep 0.3; echo 'UDEV  [45.0] change   /devices/platform/soc@0/ae00000.display-subsystem/drm/card1 (drm)'; done
+exec sleep 60
+EOF
+cat >"$b/gdbus" <<EOF
+#!/bin/sh
+echo 'The name org.freedesktop.login1 is owned by :1.5'
+sleep 1; echo yes >"$t/LOCK"
+echo "/org/freedesktop/login1/session/_32: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'LockedHint': <true>}, @as [])"
+echo no >"$t/LOCK"
+echo "/org/freedesktop/login1/session/_32: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'LockedHint': <false>}, @as [])"
+exec sleep 60
+EOF
+chmod +x "$b/udevadm" "$b/gdbus"
+PATH=$b:$PATH ROG5_DM_LIB= timeout 10 bash "$here/rog5-desktop-mode" >"$t/out" 2>&1; rc=$?
+[ "$rc" = 124 ] || { cat "$t/out"; fail "event loop ended early: rc $rc"; }
+started_gnome && { cat "$t/out"; fail "event loop: GNOME started after a yes->no flip nobody made"; }
+grep -q "ignored, needs a new lock" "$t/out" || { cat "$t/out"; fail "event loop: the flip was not reported"; }
+pass "event loop: a published lock followed at once by a stale unlock does not start GNOME"
 
 # a dead event source ends the switcher (systemd restarts it) at once
 cat >"$b/gdbus" <<'EOF'

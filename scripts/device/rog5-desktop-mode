@@ -24,8 +24,18 @@
 # started without the PIN on every boot with the monitor attached
 # (2026-09-29/30). Phosh 0.57 sends its startup lock to logind only with
 # phosh 0002 (screen-saver-manager: sync LockedHint); without it the first
-# auto-switch waits for one lock/unlock. LockedHint is read again directly
-# before GNOME is started, after every queued event has been handled.
+# auto-switch waits for one lock/unlock. Fail closed on top of that:
+#   - the lock must be confirmed: LockedHint read "yes" again at least
+#     LOCKED_MIN seconds after the lock was first seen (a PIN entry takes
+#     longer), so a quick yes -> no flip (a shell publishing a wrong state,
+#     queued signals) never counts and needs a fresh lock;
+#   - one unlock per lock period, and the session must be the one whose
+#     leader is rog5-phosh.service's main process (GNOME's session has
+#     Service=phosh too); a removed session forgets its history;
+#   - an unreadable lock state drops everything seen so far;
+#   - LockedHint is read again directly before GNOME is started, after every
+#     queued event has been handled.
+# Every lock and unlock the switcher acts on is logged with its session.
 #
 # The automatic switch happens once per plug-in (also after a "Desktop mode"
 # start by hand): after "Phone mode" the phone stays in Phosh until the
@@ -46,7 +56,9 @@ ON_AFTER=6        # seconds of stable connection before switching automatically
 NOSESS_AFTER=10   # seconds with neither session running or queued
 TRANSIT=2         # re-check interval while a switch is in progress
 SAFETY=60         # re-check interval without events
+LOCKED_MIN=2      # a lock counts once it still reads "yes" this long after
 auto_done=0 nosess_since= dp_state= dp_since=0 now=0 wait_s=$SAFETY EV=
+lock_sess= locked_at=0 lock_ready= unlock_ok=
 sess_cache= seen_locked=
 
 # Records the Phosh session's lock state; call on every check while Phosh runs.
@@ -57,7 +69,7 @@ track_phosh_lock() {
 		[ "$(loginctl show-session "$sess_cache" -p State --value 2>/dev/null)" != closing ] &&
 		loginctl show-session "$sess_cache" -p Id >/dev/null 2>&1 || sess_cache=$(phone_session)
 	[ -n "$sess_cache" ] || { lock_state=unknown; return; }
-	lock_state=$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null)
+	lock_state=$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null) || lock_state=unknown
 	[ "$lock_state" = yes ] && seen_locked=$sess_cache
 }
 
@@ -85,6 +97,60 @@ now_cs() {              # boot time in centiseconds (counts suspend; no fork)
 	local up
 	read -r up _ </proc/uptime
 	now=$(( ${up%.*} * 100 + 10#${up#*.} ))
+}
+
+forget_locks() {        # fail closed: nothing seen so far counts
+	[ -n "$lock_sess$unlock_ok$seen_locked" ] &&
+		echo "rog5-desktop-mode: lock history dropped ($1)" >&2
+	lock_sess= lock_ready= unlock_ok= seen_locked=
+	return 0
+}
+
+# Session $1 read or signalled "locked". A lock period starts at the first
+# "yes" (or the first after an accepted unlock); it is confirmed by a "yes"
+# read LOCKED_MIN seconds later ($2 = confirm: a state read, not a signal).
+note_lock() {
+	if [ "$lock_sess" != "$1" ] || [ "$unlock_ok" = "$1" ]; then
+		lock_sess=$1 locked_at=$now lock_ready= unlock_ok=
+		echo "rog5-desktop-mode: session $1 locked"
+	fi
+	if [ "${2:-}" = confirm ] && [ "$lock_ready" != "$1" ]; then
+		if [ $((now - locked_at)) -ge $((LOCKED_MIN * 100)) ]; then
+			lock_ready=$1
+		else
+			set_wait "$LOCKED_MIN"
+		fi
+	fi
+	return 0
+}
+
+# Session $1 reads unlocked: accepted once per confirmed lock period;
+# an unlock of an unconfirmed lock is ignored and needs a new lock.
+note_unlock() {
+	[ "$lock_sess" = "$1" ] && [ "$unlock_ok" != "$1" ] || return 0
+	if [ "$lock_ready" = "$1" ]; then
+		unlock_ok=$1
+		echo "rog5-desktop-mode: session $1 unlocked"
+	else
+		echo "rog5-desktop-mode: session $1 unlocked before its lock was confirmed: ignored, needs a new lock" >&2
+		lock_sess= lock_ready= unlock_ok=
+	fi
+	return 0
+}
+
+phosh_leader() {        # true if session $1 is rog5-phosh.service's session
+	local pid leader
+	[ -n "${1:-}" ] || return 1
+	pid=$(systemctl show -p MainPID --value rog5-phosh.service 2>/dev/null) || return 1
+	leader=$(loginctl show-session "$1" -p Leader --value 2>/dev/null) || return 1
+	[ -n "$pid" ] && [ "$pid" != 0 ] && [ "$pid" = "$leader" ]
+}
+
+phosh_session() {       # the phone session led by rog5-phosh.service
+	local s
+	for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 == "phone" {print $1}'); do
+		phosh_leader "$s" && { echo "$s"; return; }
+	done
 }
 
 latch() {
@@ -170,16 +236,31 @@ check() {
 	lock_state=unknown
 	if [ "$phosh" = active ]; then
 		nosess_since=
+		[ -n "$sess_cache" ] && phosh_leader "$sess_cache" || sess_cache=$(phosh_session)
 		track_phosh_lock
-		[ "$mode" = auto ] && [ "$auto_done" = 0 ] && [ "$dp_state" = connected ] && phosh_unlocked || return
+		phosh_leader "$sess_cache" || lock_state=unknown
+		case $lock_state in
+		yes) note_lock "$sess_cache" confirm ;;
+		no) note_unlock "$sess_cache" ;;
+		*) forget_locks "lock state of session ${sess_cache:--} unreadable" ;;
+		esac
+		[ "$mode" = auto ] && [ "$auto_done" = 0 ] && [ "$dp_state" = connected ] &&
+			phosh_unlocked && [ "$unlock_ok" = "$sess_cache" ] || return
 		if [ "$(remaining "$ON_AFTER")" -gt 0 ]; then
 			set_wait "$(remaining "$ON_AFTER")"; return
 		fi
 		# A lock that is already queued must be seen first; then ask logind
 		# again right before the switch.
 		pending_events && { set_wait 1; return; }
-		[ "$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null)" = no ] || return
-		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
+		phosh_leader "$sess_cache" ||
+			{ forget_locks "session $sess_cache is not rog5-phosh's"; return; }
+		locked=$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null) || locked=
+		case $locked in
+		no) ;;
+		yes) note_lock "$sess_cache"; return ;;
+		*) forget_locks "lock state of session $sess_cache unreadable"; return ;;
+		esac
+		echo "rog5-desktop-mode: display connected, phone unlocked (session $sess_cache) -> GNOME"
 		latch 1
 		systemctl start --no-block rog5-gnome.service
 		set_wait "$TRANSIT"
@@ -204,17 +285,26 @@ check() {
 	fi
 }
 
-# One event line: D (drm uevent), L <session> yes|no (LockedHint), E/S (other
-# logind session changes), M (mode file / reload), R <source> (monitor ready),
-# X <source> (a monitor died).
+# One event line: D (drm uevent), L <session> yes|no (LockedHint), Q <session>
+# (session removed), E/S (other logind session changes), M (mode file /
+# reload), R <source> (monitor ready), X <source> (a monitor died).
 handle_event() {
 	case $1 in
 	D*) now_cs; read_dp event ;;
 	"L "*" yes")
 		set -- $1
 		# the lock itself, even if it is already over when the state is read
-		[ "$(loginctl show-session "$2" -p Service --value 2>/dev/null)" = phosh ] &&
-			seen_locked=$2 ;;
+		[ "$(loginctl show-session "$2" -p Service --value 2>/dev/null)" = phosh ] || return 0
+		seen_locked=$2
+		now_cs; note_lock "$2" ;;
+	"L "*" no")
+		set -- $1
+		now_cs; note_unlock "$2" ;;
+	"Q "*)  # session removed: its id must not carry history
+		set -- $1
+		[ "$2" = "$lock_sess" ] || [ "$2" = "$seen_locked" ] || [ "$2" = "$unlock_ok" ] &&
+			forget_locks "session $2 removed"
+		[ "$2" != "$sess_cache" ] || sess_cache= ;;
 	X*) echo "rog5-desktop-mode: event source ${1#X } ended" >&2; return 1 ;;
 	esac
 	return 0
@@ -235,6 +325,7 @@ function unesc(s,  out, i, c, hex, n) {    # sd_bus object path label -> id
 	}
 	return out
 }
+/ does not have an owner/ { print "X logind lost its bus name"; fflush(); next }
 / is owned by / { print "R logind"; fflush(); next }
 /\.PropertiesChanged / && /login1\.Session/ {
 	p = $1; sub(/:$/, "", p); sub(/.*\//, "", p)
@@ -243,6 +334,10 @@ function unesc(s,  out, i, c, hex, n) {    # sd_bus object path label -> id
 	else
 		print "E"
 	fflush(); next
+}
+/\.SessionRemoved \(\047/ {
+	id = $0; sub(/.*SessionRemoved \(\047/, "", id); sub(/\047.*/, "", id)
+	print "Q", id; fflush(); next
 }
 /\.(SessionNew|SessionRemoved|PrepareForSleep) / { print "S"; fflush() }
 '
