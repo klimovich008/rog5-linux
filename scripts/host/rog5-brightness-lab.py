@@ -23,8 +23,18 @@ import argparse, datetime, html, json, os, shlex, subprocess, sys, threading, we
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-KEY = '/home/deck/.local/state/rog5-v13-live-inputs-20260823-r1/deployment-ssh-key'
-KNOWN = '/home/deck/.local/state/rog5-native-root-release-v6-20260829-r1/v7-stable-known-hosts'
+# The same SSH identity production-ram-trial.py uses: $ROG5_SSH_KEY and
+# $ROG5_KNOWN_HOSTS, else ~/.config/rog5/{ssh-key,known_hosts}, else the
+# reference PC's files.
+def _host_file(variable, name, reference):
+    if os.environ.get(variable):
+        return os.environ[variable]
+    configured = Path.home()/'.config/rog5'/name
+    return str(configured) if configured.exists() else str(Path.home()/'.local/state'/reference)
+
+
+KEY = _host_file('ROG5_SSH_KEY', 'ssh-key', 'rog5-v13-live-inputs-20260823-r1/deployment-ssh-key')
+KNOWN = _host_file('ROG5_KNOWN_HOSTS', 'known_hosts', 'rog5-native-root-release-v6-20260829-r1/v7-stable-known-hosts')
 BL = '/sys/class/backlight/ae94000.dsi.0'
 PARAMS = {'dma_fifo_ctrl': '/sys/module/msm/parameters/dma_fifo_ctrl',
           'bl_hs': '/sys/module/panel_asus_rog5_ams678/parameters/bl_hs'}
