@@ -33,7 +33,7 @@ source=(
 )
 b2sums=('ddfd0cd92fd49df2227c2deb3b180ef3ea7ec0b921536c7a3aedf17aec680214114e00f406fefdc28dbbf0bee00d5b6d8191e6d84e830f7d3e76a75c6d41f84f'
         'SKIP'
-        'e3d53e76c4c4aa638161f26e063640924b34fa70d6f3174916686ea5fe981d513f51ee6d977f85cbb3eb0dcfb2827f7beefb6bea2044d8f58c336668d6b39b33')
+        '13ef2904e295ddf9cba5b68cf3591d7a2d6b2cc445549ff72273cf12f961a6c03328050f8c914dffb96e7618911fcc1eef8174859537d03fe33eb431fd625eaf')
 
 prepare() {
   ln -s "$srcdir/gvdb" "$pkgname/subprojects/gvdb"

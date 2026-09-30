@@ -1,20 +1,46 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ROG5 build <klimovich008@gmail.com>
 Date: Wed, 30 Sep 2026 04:05:00 +0200
-Subject: [PATCH] layer-shell-effects: Handle inert layer surfaces in
- get_alpha_layer_surface
+Subject: [PATCH] layer-shell-effects: Handle inert layer surfaces
 
 When an output goes away phoc destroys its layer surfaces; a client request
 already in flight for such a surface (Phosh asks for an alpha surface right
 after DP-1 turned off) then resolves wlr_layer_surface_v1_from_resource() to
 NULL, and handle_get_alpha_layer_surface() dereferenced it (SIGSEGV at
 phoc+0x4446c, 2026-09-29 12:40:32 and 2026-09-30 00:27:37, both 0.1-0.7 s
-after DP-1 was disabled). Hand out an inert alpha surface instead; set_alpha
-and destroy already cope with layer_surface == NULL.
+after DP-1 was disabled). Hand out inert alpha, draggable and stacked surfaces
+instead (the latter two dereferenced wlr_layer_surface->surface the same
+way); their requests and destroy paths already cope with layer_surface ==
+NULL.
 ---
---- a/src/layer-shell-effects.c	2026-09-30 03:26:23.170598996 +0200
-+++ b/src/layer-shell-effects.c	2026-09-30 03:26:23.187803569 +0200
-@@ -819,6 +819,30 @@
+--- a/src/layer-shell-effects.c
++++ b/src/layer-shell-effects.c
+@@ -758,8 +758,9 @@
+   self = phoc_layer_shell_effects_from_resource (layer_shell_effects_resource);
+   g_assert (PHOC_IS_LAYER_SHELL_EFFECTS (self));
+   wlr_layer_surface = wlr_layer_surface_v1_from_resource (layer_surface_resource);
+-  wlr_surface = wlr_layer_surface->surface;
+-  g_assert (wlr_surface);
++  /* NULL when the layer surface is inert (destroyed with its output) */
++  wlr_surface = wlr_layer_surface ? wlr_layer_surface->surface : NULL;
++  g_assert (!wlr_layer_surface || wlr_surface);
+ 
+   drag_surface = g_new0 (PhocDraggableLayerSurface, 1);
+ 
+@@ -781,6 +782,12 @@
+                                   drag_surface,
+                                   draggable_layer_surface_handle_resource_destroy);
+ 
++  if (wlr_layer_surface == NULL) {
++    /* Inert: layer_surface stays NULL, which the requests and destroy handle */
++    self->drag_surfaces = g_slist_prepend (self->drag_surfaces, g_steal_pointer (&drag_surface));
++    return;
++  }
++
+   if (!wlr_layer_surface->data) {
+     wl_resource_post_error (layer_shell_effects_resource,
+                             ZPHOC_LAYER_SHELL_EFFECTS_V1_ERROR_BAD_SURFACE,
+@@ -819,6 +826,30 @@
    self = phoc_layer_shell_effects_from_resource (layer_shell_effects_resource);
    g_assert (PHOC_IS_LAYER_SHELL_EFFECTS (self));
    wlr_layer_surface = wlr_layer_surface_v1_from_resource (layer_surface_resource);
@@ -45,3 +71,31 @@ and destroy already cope with layer_surface == NULL.
    wlr_surface = wlr_layer_surface->surface;
    g_assert (wlr_surface);
  
+@@ -880,10 +911,11 @@
+   self = phoc_layer_shell_effects_from_resource (layer_shell_effects_resource);
+   g_assert (PHOC_IS_LAYER_SHELL_EFFECTS (self));
+   wlr_layer_surface = wlr_layer_surface_v1_from_resource (layer_surface_resource);
+-  wlr_surface = wlr_layer_surface->surface;
+-  g_assert (wlr_surface);
++  /* NULL when the layer surface is inert (destroyed with its output) */
++  wlr_surface = wlr_layer_surface ? wlr_layer_surface->surface : NULL;
++  g_assert (!wlr_layer_surface || wlr_surface);
+ 
+-  if (!wlr_layer_surface->data) {
++  if (wlr_layer_surface && !wlr_layer_surface->data) {
+     wl_resource_post_error (layer_shell_effects_resource,
+                             ZPHOC_LAYER_SHELL_EFFECTS_V1_ERROR_BAD_SURFACE,
+                             "Layer surface not yet committed");
+@@ -910,6 +942,12 @@
+                                   stacked_surface,
+                                   stacked_layer_surface_handle_resource_destroy);
+ 
++  if (wlr_layer_surface == NULL) {
++    /* Inert: layer_surface stays NULL, which the requests and destroy handle */
++    self->stacked_surfaces = g_slist_prepend (self->stacked_surfaces, g_steal_pointer (&stacked_surface));
++    return;
++  }
++
+   g_assert (PHOC_IS_LAYER_SURFACE (wlr_layer_surface->data));
+ 
+   stacked_surface->layer_surface = PHOC_LAYER_SURFACE (wlr_layer_surface->data);
