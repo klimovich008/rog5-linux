@@ -1,0 +1,7 @@
+# VCNL36866 proximity (rog5_vcnl36866, IIO): iio-sensor-proxy ignores a
+# proximity sensor without PROXIMITY_NEAR_LEVEL ("Found proximity sensor but
+# no PROXIMITY_NEAR_LEVEL udev property"), so Phosh never blanked on the ear.
+# This unit's factory calibration (factory partition, psensor_*.nv, read-only
+# 2026-09-30): inf 97, 5 cm 145, 3 cm 239, 1 cm 4095; in_proximity_raw read 98
+# uncovered. Near = above the 3 cm value, as the stock driver's high threshold.
+SUBSYSTEM=="iio", ATTR{name}=="vcnl36866", ENV{PROXIMITY_NEAR_LEVEL}="239"

@@ -6,8 +6,8 @@ profile, so nothing else sets it up: without this, playback reaches no amplifier
   MultiMedia1 (card 0, device 0) -> SENARY MI2S -> CS35L45 x2
   left (ASP_RX1) -> the top amplifier (RCV), right (ASP_RX2) -> the bottom (SPK),
   as on stock: in landscape with the side port down the top edge is on the left
-Both amplifiers run in speaker mode at 0 dB digital (409, full scale without
-clipping; 0.25 dB steps). The speaker-protection DSP firmware is not loaded:
+Both amplifiers run in speaker mode at 0 dB digital (409; 0.25 dB steps) and
+19 dBV analog (3, the highest step, as stock). The speaker-protection DSP firmware is not loaded:
 -12 dB and then -6 dB were too quiet for the user (2026-09-30), who asked for
 full power; long full-volume playback can overheat the speakers until the
 protection firmware runs. DAPM powers the amplifiers only while a stream runs.
@@ -28,6 +28,8 @@ ROUTE = (
     ('RCV Amplifier Mode', 'SPK'),
     ('SPK DACPCM Source', 'ASP_RX2'),
     ('RCV DACPCM Source', 'ASP_RX1'),
+    ('SPK Analog PCM Volume', '3'),
+    ('RCV Analog PCM Volume', '3'),
     ('SPK Digital PCM Volume', '409'),
     ('RCV Digital PCM Volume', '409'),
     ('SPK AMP Enable Switch', '1'),

@@ -1,0 +1,8 @@
+# Route the ROG5 sound card (speakers, microphones) after ALSA restored its
+# saved mixer state. 90-alsa-restore.rules runs "alsactl restore" while udev
+# processes this event; SYSTEMD_WANTS only takes effect after that, so the
+# route always wins. Before, rog5-audio.service routed at 70.288 s and alsactl
+# restored the previous shutdown's state at 70.334 s (and alsa-restore.service
+# again at 70.345 s): on 2026-09-30 the card came up at -12 dB (361) although
+# the route sets 0 dB (409).
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", ATTRS{id}=="ASUSROGPhone5", TAG+="systemd", ENV{SYSTEMD_WANTS}+="rog5-audio-route.service"

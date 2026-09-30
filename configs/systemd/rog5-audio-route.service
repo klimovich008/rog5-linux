@@ -1,0 +1,21 @@
+# /etc/systemd/system/rog5-audio-route.service
+[Unit]
+Description=Route the ROG5 sound card after ALSA restored its state
+# Pulled in by 91-rog5-audio-route.rules when the card's control device
+# appears, i.e. after "alsactl restore" of that udev event; also ordered after
+# alsa-restore.service, which restores again. rog5-audio.service's own route
+# (ExecStartPost, in the ramdisk) ran before both and was overwritten by the
+# previous shutdown's mixer state (2026-09-30: -12 dB instead of 0 dB).
+After=alsa-restore.service sound.target
+ConditionPathExists=/run/rog5-platform/audio-route
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/audio-route
+# The Phosh session's PipeWire (user "phone") starts long before the audio
+# stack (~50 s); WirePlumber probed the card before the MultiMedia1 backend
+# was routed, the PCM open failed and only "Dummy Output" was left
+# (2026-09-27). Re-probe once the route is in place (no-op without it running).
+ExecStartPost=-/usr/bin/systemctl --user -M phone@ try-restart wireplumber.service
