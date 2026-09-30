@@ -1326,13 +1326,13 @@
     },
     {
       "path": "drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c",
-      "sha256": "064c3f47e10375e50f7b158e701a9d529ffb6808915e7de267258173b4692ab9",
+      "sha256": "faec750b980e858fd88a91d13bf574865c0d5c498140841ac631960b923ca6d5",
       "messages": {
         "Warning: drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c:58 function parameter 'mode_clk_rate' not described in 'dpu_core_perf_adjusted_mode_clk'": 2
       },
       "dependencies": [],
       "config_guards": {},
-      "reason": "Upstream f42acb367842 W=1 kernel-doc diagnostic (dpu_core_perf_adjusted_mode_clk documents @crtc_clk_rate); the file is patched by 0072 (command-mode core clock scale) 0099 (video-mode core clock floor) and 0100 (video-mode bus vote floor), neither touching that comment; hash re-pinned to the patched file."
+      "reason": "Upstream f42acb367842 W=1 kernel-doc diagnostic (dpu_core_perf_adjusted_mode_clk documents @crtc_clk_rate); the file is patched by 0072 (command-mode core clock scale) 0099 (video-mode core clock floor), 0100 (video-mode bus vote floor) and 0133 (WRITE_ONCE of the requested core rate), none touching that comment; hash re-pinned to the patched file."
     },
     {
       "path": "drivers/gpu/drm/panthor/panthor_fw.c",
