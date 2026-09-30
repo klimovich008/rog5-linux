@@ -1,0 +1,12 @@
+# /etc/rog5/usb-storage: USB filesystems rog5-usb-storage mounts at boot and
+# on plug, with or without a login (94-rog5-usb-storage.rules,
+# rog5-usb-storage@.service). One per line:
+#   UUID=<uuid>|LABEL=<label>  MOUNTPOINT  [extra mount options]
+# MOUNTPOINT below /run/media/ (it exists only while mounted). Defaults:
+# nosuid,nodev,noatime. Mounting waits for the boot gate (rog5-p2-ready) and
+# rog5-persistent-state. After editing: rog5-usb-storage rescan.
+# A server unit that uses the disk: ConditionPathIsMountPoint=MOUNTPOINT.
+#
+# The ext4 drive on the bottom port that holds the Steam library, at the path
+# gvfs used, so the library path stays the same:
+LABEL=ROG5-USB /run/media/phone/ROG5-USB

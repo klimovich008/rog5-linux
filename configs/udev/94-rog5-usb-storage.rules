@@ -1,0 +1,12 @@
+# USB filesystems listed in /etc/rog5/usb-storage: mounted by
+# rog5-usb-storage@<kernel name>.service at boot or on plug, independent of
+# any login. UDISKS_AUTO=0 keeps the desktop's automount from racing it (the
+# volume still shows in the file manager). After 60-persistent-storage.rules,
+# which sets ID_BUS and ID_FS_*.
+ACTION=="remove", GOTO="rog5_usb_storage_end"
+SUBSYSTEM!="block", GOTO="rog5_usb_storage_end"
+ENV{ID_BUS}!="usb", GOTO="rog5_usb_storage_end"
+ENV{ID_FS_USAGE}!="filesystem", GOTO="rog5_usb_storage_end"
+IMPORT{program}="/usr/local/sbin/rog5-usb-storage udev-match"
+ENV{ROG5_USB_STORAGE}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="rog5-usb-storage@%k.service"
+LABEL="rog5_usb_storage_end"

@@ -1,0 +1,269 @@
+#!/bin/sh
+# rog5-usb-storage: mount configured USB filesystems for server use at boot
+# and on plug, with or without anyone logged in.
+#
+# /etc/rog5/usb-storage, one filesystem per line (# comments):
+#   SPEC MOUNTPOINT [OPTIONS]
+#   SPEC        UUID=<uuid> or LABEL=<label> (a label without spaces)
+#   MOUNTPOINT  absolute, below /run/media/ (tmpfs: the directory exists
+#               only while mounted)
+#   OPTIONS     extra mount options after the defaults nosuid,nodev,noatime
+# e.g.  LABEL=ROG5-USB /run/media/phone/ROG5-USB
+#
+# 94-rog5-usb-storage.rules runs "udev-match" for every USB filesystem; a
+# configured one gets UDISKS_AUTO=0 (no desktop automount racing us) and
+# pulls in rog5-usb-storage@<kernel name>.service, which runs "mount" and,
+# when the device goes away or the unit is stopped, "umount".
+#
+# Safety:
+#   - Never before the boot gate: rog5-p2-attest (rog5-p2-ready.service)
+#     fails the boot on any block-backed mount it does not expect, and
+#     rog5-persistent-state counts block mounts when it starts. The unit
+#     requires both to be active (Requisite, After, PartOf: a restart of
+#     rog5-persistent-state unmounts first) and this script requires the
+#     gate's PASS record and persistent-state's runtime record, both for
+#     this boot.
+#   - Only USB-attached block devices (the sysfs path is below a usbN bus),
+#     never the UFS.
+#   - The mountpoint lives on /run (tmpfs), is created right before the
+#     mount (root-owned 0755, no symlinked component, must be empty and
+#     unmounted) and removed after the unmount, like udisks does: while the
+#     disk is absent the path does not exist, so a Steam library or a
+#     service finds its data missing instead of filling an empty directory
+#     (root could recreate it; a server unit should carry
+#     ConditionPathIsMountPoint=MOUNTPOINT).
+#   - One mount or unmount at a time (flock), so two disks with the same
+#     label cannot stack on one mountpoint.
+#   - ext2/3/4 get "e2fsck -p" first; a filesystem it cannot repair
+#     unattended is left unmounted.
+#
+#   rog5-usb-storage udev-match     (udev IMPORT) print properties for a match
+#   rog5-usb-storage mount NAME     mount /dev/NAME if configured
+#   rog5-usb-storage umount NAME    unmount what "mount NAME" mounted
+#   rog5-usb-storage rescan         start the unit for every attached
+#                                   configured filesystem (after editing the
+#                                   config; udev only pulls units in when a
+#                                   device first appears)
+#   rog5-usb-storage status         configured entries and their mounts
+set -u
+conf=${ROG5_USB_STORAGE_CONF:-/etc/rog5/usb-storage}
+sys=${ROG5_USB_STORAGE_SYS:-/sys}
+devdir=${ROG5_USB_STORAGE_DEV:-/dev}
+root=${ROG5_USB_STORAGE_ROOT-}
+p2=${ROG5_USB_STORAGE_P2:-/run/rog5-p2-ready}
+pstate=${ROG5_USB_STORAGE_PSTATE:-/run/rog5-persistent-state.runtime}
+boot_id_file=${ROG5_USB_STORAGE_BOOT_ID:-/proc/sys/kernel/random/boot_id}
+mountinfo=${ROG5_USB_STORAGE_MOUNTINFO:-/proc/self/mountinfo}
+state=${ROG5_USB_STORAGE_STATE:-/run/rog5-usb-storage}
+kmsg=${ROG5_USB_STORAGE_KMSG:-/dev/kmsg}
+owner=${ROG5_USB_STORAGE_OWNER:-0:0}
+fake_dev=${ROG5_USB_STORAGE_FAKE_DEV:-0}
+defaults=nosuid,nodev,noatime
+
+log() {
+	printf 'rog5-usb-storage: %s\n' "$*" >"$kmsg" 2>/dev/null || true
+	printf '%s\n' "$*" >&2
+}
+fail() { log "FAIL $*"; exit 1; }
+
+# Prints "SPEC MOUNTPOINT OPTIONS" for each valid config line.
+entries() {
+	[ -r "$conf" ] || return 0
+	while read -r spec mp opts extra; do
+		case $spec in '' | '#'*) continue ;; esac
+		ok=1
+		case $spec in UUID=?* | LABEL=?*) ;; *) ok=0 ;; esac
+		case $spec in *[!A-Za-z0-9=._:+-]*) ok=0 ;; esac
+		case $mp in /run/media/?*) ;; *) ok=0 ;; esac
+		case $mp in *[!A-Za-z0-9/._@+-]* | *//* | */. | */./* | */.. | */../* | */) ok=0 ;; esac
+		case ${opts-} in *[!A-Za-z0-9,=._-]*) ok=0 ;; esac
+		[ -z "${extra-}" ] || ok=0
+		if [ "$ok" = 1 ]; then
+			printf '%s %s %s\n' "$spec" "$mp" "${opts:+$defaults,$opts}"
+		else
+			log "WARN ignoring config line: $spec $mp ${opts-} ${extra-}"
+		fi
+	done <"$conf"
+}
+
+# The config entry for a UUID and label ("MOUNTPOINT OPTIONS"), or failure.
+lookup() { # uuid label
+	entries | while read -r spec mp opts; do
+		case $spec in
+		UUID=*) [ -n "$1" ] && [ "${spec#UUID=}" = "$1" ] || continue ;;
+		LABEL=*) [ -n "$2" ] && [ "${spec#LABEL=}" = "$2" ] || continue ;;
+		esac
+		echo "$mp ${opts:-$defaults}"
+		exit 0
+	done
+}
+
+# Mount targets of MAJ:MIN in mountinfo (octal escapes left as they are).
+mounts_of() { awk -v d="$1" '$3 == d { print $5 }' "$mountinfo" 2>/dev/null; }
+is_mountpoint() { awk -v p="$1" '$5 == p { f = 1 } END { exit !f }' "$mountinfo" 2>/dev/null; }
+
+# /dev/NAME must be a USB-attached block device; sets $dev and $majmin.
+resolve() {
+	name=$1
+	case $name in '' | *[!A-Za-z0-9_-]*) fail "bad device name '$name'" ;; esac
+	node=$sys/class/block/$name
+	[ -e "$node/dev" ] || fail "$name: no such block device"
+	case $(readlink -f "$node") in */usb[0-9]*/*) ;; *) fail "$name: not a USB-attached device" ;; esac
+	majmin=$(cat "$node/dev") || fail "$name: unreadable sysfs"
+	dev=$devdir/$name
+	[ -b "$dev" ] || [ "$fake_dev" = 1 ] || fail "$dev: not a block device"
+}
+
+# The boot gates: rog5-p2-ready's PASS record and rog5-persistent-state's
+# runtime record, both for this boot.
+gate_passed() {
+	bid=$(cat "$boot_id_file" 2>/dev/null) && [ -n "$bid" ] &&
+		[ -f "$p2" ] && [ ! -L "$p2" ] && grep -Fxq status=PASS "$p2" &&
+		grep -Fxq "attested_boot_id=$bid" "$p2" &&
+		[ -f "$pstate" ] && [ ! -L "$pstate" ] && grep -Fxq "boot_id=$bid" "$pstate"
+}
+
+# Creates missing parents below /run/media: /run/media/USER like udisks
+# (0750 plus a read/search ACL for USER), others 0755.
+make_parents() { # mountpoint
+	[ -d "$root${1%/*}" ] && return 0
+	make_parents "${1%/*}" || return 1
+	parent=${1%/*}
+	case $parent in
+	/run/media/*/* | /run/media) mkdir -m 0755 "$root$parent" ;;
+	/run/media/*)
+		user=${parent#/run/media/}
+		if id -u "$user" >/dev/null 2>&1 && command -v setfacl >/dev/null 2>&1; then
+			mkdir -m 0750 "$root$parent" && setfacl -m "u:$user:rx" "$root$parent"
+		else
+			mkdir -m 0755 "$root$parent"
+		fi
+		;;
+	*) mkdir -m 0755 "$root$parent" ;;
+	esac
+}
+
+do_mount() {
+	resolve "$1"
+	gate_passed || fail "the boot gate (rog5-p2-ready) has not passed in this boot; not mounting $dev"
+	# One probe of the filesystem itself (no cache).
+	info=$(blkid -p -o export "$dev" 2>/dev/null) || fail "$dev: no filesystem found"
+	uuid=$(printf '%s\n' "$info" | sed -n 's/^UUID=//p')
+	label=$(printf '%s\n' "$info" | sed -n 's/^LABEL=//p')
+	fstype=$(printf '%s\n' "$info" | sed -n 's/^TYPE=//p')
+	hit=$(lookup "$uuid" "$label")
+	[ -n "$hit" ] || { log "$dev (UUID=$uuid LABEL=$label) is not configured"; exit 0; }
+	mp=${hit%% *} opts=${hit#* }
+	case $fstype in '' | *[!a-z0-9]*) fail "$dev: unsupported filesystem type '$fstype'" ;; esac
+
+	lock
+	cur=$(mounts_of "$majmin")
+	if [ -n "$cur" ]; then
+		if printf '%s\n' "$cur" | grep -Fxq "$root$mp"; then
+			log "$dev already mounted at $mp"
+		else
+			log "WARN $dev is already mounted elsewhere ($(echo $cur)); leaving it"
+		fi
+		exit 0
+	fi
+
+	target=$root$mp
+	! is_mountpoint "$target" || fail "$mp is already a mountpoint of another filesystem"
+	case $fstype in
+	ext2 | ext3 | ext4)
+		e2fsck -p "$dev" >/dev/null 2>&1; rc=$?
+		case $rc in
+		0) ;;
+		1) log "e2fsck repaired $dev" ;;
+		*) fail "e2fsck -p $dev exited $rc; check it by hand (e2fsck -f $dev) before mounting" ;;
+		esac
+		;;
+	esac
+
+	# The mountpoint, right before the mount.
+	if [ -e "$target" ] || [ -L "$target" ]; then
+		[ -d "$target" ] && [ ! -L "$target" ] || fail "$mp exists and is not a directory"
+		[ -z "$(ls -A "$target" 2>/dev/null)" ] || fail "$mp is not empty; not hiding its files (move them away first)"
+	else
+		make_parents "$mp" && mkdir -m 0755 "$target" || fail "cannot create $mp"
+	fi
+	# No symlinked component: mountinfo must show the recorded path.
+	[ "$(readlink -f "$target")" = "$(readlink -f "$root")$mp" ] || fail "$mp has a symlinked component"
+	chown "$owner" "$target" && chmod 0755 "$target" || fail "cannot make $mp root-owned"
+	# Record first, so an unmount always finds what to undo.
+	printf '%s %s\n' "$majmin" "$mp" >"$state/$1" || fail "cannot record the mount in $state"
+	if ! mount -t "$fstype" -o "$opts" "$dev" "$target"; then
+		rm -f "$state/$1"; rmdir "$target" 2>/dev/null
+		fail "mount $dev on $mp failed"
+	fi
+	log "mounted $dev ($fstype, UUID=$uuid LABEL=$label) on $mp ($opts)"
+}
+
+# One mount/unmount at a time.
+lock() {
+	mkdir -p "$state" || fail "cannot create $state"
+	exec 9>"$state/lock" && flock -w 1800 9 || fail 'another mount is still running'
+}
+
+do_umount() {
+	name=$1
+	case $name in '' | *[!A-Za-z0-9_-]*) fail "bad device name '$name'" ;; esac
+	lock
+	rec=$(cat "$state/$name" 2>/dev/null) || { log "$name: nothing mounted by rog5-usb-storage"; exit 0; }
+	majmin=${rec%% *} mp=${rec#* }
+	target=$root$mp
+	rc=0
+	if mounts_of "$majmin" | grep -Fxq "$target"; then
+		if [ -e "$sys/class/block/$name/dev" ]; then
+			# Still attached: a clean unmount, or fail and keep it mounted.
+			sync
+			umount "$target" || fail "$mp is busy; close what uses it (fuser -vm $mp) and stop again"
+		else
+			# Gone already: detach what is left.
+			umount "$target" 2>/dev/null || umount -l "$target" || rc=1
+			log "WARN $name was removed while mounted on $mp"
+		fi
+	fi
+	rm -f "$state/$name"
+	is_mountpoint "$target" || rmdir "$target" 2>/dev/null
+	[ "$rc" = 0 ] || fail "could not unmount $mp"
+	log "unmounted $mp"
+}
+
+# udev IMPORT{program}: ID_FS_UUID / ID_FS_LABEL come from the environment.
+udev_match() {
+	[ -n "$(lookup "${ID_FS_UUID-}" "${ID_FS_LABEL-}" 2>/dev/null)" ] || return 0
+	echo ROG5_USB_STORAGE=1
+	echo UDISKS_AUTO=0
+}
+
+# Starts the unit for each attached USB filesystem that is configured.
+rescan() {
+	for node in "$sys"/class/block/*; do
+		[ -e "$node/dev" ] || continue
+		case $(readlink -f "$node") in */usb[0-9]*/*) ;; *) continue ;; esac
+		info=$(blkid -p -o export "$devdir/${node##*/}" 2>/dev/null) || continue
+		[ -n "$(lookup "$(printf '%s\n' "$info" | sed -n 's/^UUID=//p')" \
+			"$(printf '%s\n' "$info" | sed -n 's/^LABEL=//p')")" ] || continue
+		echo "starting rog5-usb-storage@${node##*/}.service"
+		systemctl start "rog5-usb-storage@${node##*/}.service" || rc=1
+	done
+	return "${rc:-0}"
+}
+
+status() {
+	[ -r "$conf" ] || { echo "no $conf"; return 0; }
+	entries | while read -r spec mp opts; do
+		if is_mountpoint "$root$mp"; then m=mounted; else m='not mounted'; fi
+		echo "$spec $mp: $m"
+	done
+}
+
+case ${1:-} in
+udev-match) udev_match ;;
+mount) [ $# -eq 2 ] || fail 'usage: mount NAME'; do_mount "$2" ;;
+umount) [ $# -eq 2 ] || fail 'usage: umount NAME'; do_umount "$2" ;;
+rescan) rescan ;;
+status) status ;;
+*) sed -n '2,47p' "$0" >&2; exit 2 ;;
+esac

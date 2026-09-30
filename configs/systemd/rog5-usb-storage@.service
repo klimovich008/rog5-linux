@@ -1,0 +1,25 @@
+[Unit]
+Description=Mount the configured USB filesystem on %I (/etc/rog5/usb-storage)
+Documentation=file:///usr/local/sbin/rog5-usb-storage
+# Started by 94-rog5-usb-storage.rules when a configured filesystem appears
+# (boot or plug) and stopped when the device goes away.
+BindsTo=dev-%i.device
+After=dev-%i.device
+# rog5-p2-attest (rog5-p2-ready.service) fails the boot on any block-backed
+# mount it does not expect, and rog5-persistent-state counts block mounts when
+# it starts: never mount before both. Requisite: never start them from here
+# (a failed or missing gate means no mount); the script also requires their
+# records for this boot. PartOf: stopping or restarting
+# rog5-persistent-state unmounts first; the reverse order at shutdown
+# unmounts before it stops.
+Requisite=rog5-p2-ready.service rog5-persistent-state.service
+After=rog5-p2-ready.service rog5-persistent-state.service
+PartOf=rog5-persistent-state.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rog5-usb-storage mount %I
+ExecStop=/usr/local/sbin/rog5-usb-storage umount %I
+# e2fsck -p of a large filesystem after an unclean unplug.
+TimeoutStartSec=30min
