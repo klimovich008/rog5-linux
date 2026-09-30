@@ -29,9 +29,13 @@
 # "not in use" means: "suspend" (default) suspends as above; "reachable"
 # never suspends on battery, so the phone stays reachable over the network
 # at a higher standby current.
-# Wi-Fi power save (802.11 PS) is switched on while the screen is off and no
-# remote client is connected, and off otherwise: it adds ~70 ms average
-# latency (AP buffering), but no longer stalled TCP on r127 (2026-09-27).
+# Wi-Fi power save (802.11 PS) is switched off at once when the panel or an
+# external display is lit or a remote client connects, and on again only
+# after ROG5_SLEEP_WIFI_PS_HOLD seconds (default 60) with none of them: it
+# adds ~70 ms average latency (AP buffering), but no longer stalled TCP on
+# r127 (2026-09-27). Without the hold every short SSH command toggled it
+# twice (84 toggles and log lines per hour, 2026-09-30), and desktop mode
+# (panel off, monitor lit) counted as "screen off".
 # Wake-on-WLAN (opt-in): with ROG5_SLEEP_WAKE_PORTS set, e.g.
 # "tcp:22 udp:41641", WoWLAN is armed before each suspend (magic packet plus
 # one IPv4 destination-port pattern per entry). It is OFF by default: on this
@@ -62,6 +66,7 @@ wake_irq=${ROG5_SLEEP_WAKE_IRQ:-/sys/power/pm_wakeup_irq}
 wake_ports=${ROG5_SLEEP_WAKE_PORTS-}
 mode_file=${ROG5_SLEEP_MODE_FILE:-/etc/rog5/sleep-mode}
 wifi_ps=${ROG5_SLEEP_WIFI_PS:-1}
+wifi_ps_hold=${ROG5_SLEEP_WIFI_PS_HOLD:-60}
 ext_displays=${ROG5_SLEEP_EXT_DISPLAYS:-/sys/class/drm/card*-DP-*}
 
 # The configured mode: suspend or reachable.
@@ -91,21 +96,32 @@ now() { cut -d. -f1 /proc/uptime; }
 awake_reason() {
 	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return; }
 	[ "$(cat "$dpms" 2>/dev/null)" = Off ] || { echo screen-on; return; }
-	# Desktop mode: the panel is off while GNOME drives an external display
-	# (on battery this suspended a desktop in use 60 s after the monitor's
-	# power went away). A blanked external display (DPMS Off) does not count.
-	for c in $ext_displays; do
-		[ "$(cat "$c/enabled" 2>/dev/null)" = enabled ] &&
-			[ "$(cat "$c/dpms" 2>/dev/null)" = On ] && { echo external-display; return; }
-	done
+	ext_display_lit && { echo external-display; return; }
 	[ -e "$stay" ] && { echo stay-awake-file; return; }
 	# Root hubs are usbN; anything attached below them is N-port[.port...].
 	if [ "$usb_device_blocks" = 1 ] && ls "$usb_devices" 2>/dev/null | grep -q '^[0-9]*-[0-9.]*$'; then
 		echo usb-device; return
 	fi
-	if [ "$ssh_blocks" = 1 ] && [ -n "$(remote_clients)" ]; then
+	if [ "$ssh_blocks" = 1 ] && [ -n "$(clients)" ]; then
 		echo remote-client; return
 	fi
+}
+
+# Desktop mode: the panel is off while GNOME drives an external display
+# (on battery this suspended a desktop in use 60 s after the monitor's
+# power went away). A blanked external display (DPMS Off) does not count.
+ext_display_lit() {
+	for c in $ext_displays; do
+		[ "$(cat "$c/enabled" 2>/dev/null)" = enabled ] &&
+			[ "$(cat "$c/dpms" 2>/dev/null)" = On ] && return 0
+	done
+	return 1
+}
+
+# remote_clients, computed at most once per poll by the loop.
+clients_known=0 clients_val=
+clients() {
+	if [ "$clients_known" = 1 ]; then printf '%s' "$clients_val"; else remote_clients; fi
 }
 
 # Established inbound TCP connections from outside: the local port is a
@@ -212,13 +228,22 @@ fi
 
 mkdir -p "$state"
 [ ! -w "$mem_sleep" ] || echo s2idle >"$mem_sleep" 2>/dev/null || log 'WARN could not select s2idle'
-off_since=0
+off_since=0 ps_idle_since=
 log "started: idle ${idle_s}s, awake after wake ${awake_s}s"
 while :; do
+	# One look at the connections per poll, and only when nothing is lit
+	# (otherwise neither decision needs it).
+	clients_known=0 clients_val=
+	if [ "$(cat "$dpms" 2>/dev/null)" = Off ] && ! ext_display_lit; then
+		clients_val=$(remote_clients) clients_known=1
+	fi
 	reason=$(awake_reason)
-	if [ "$(cat "$dpms" 2>/dev/null)" = Off ] && [ -z "$(remote_clients)" ]; then
-		set_wifi_ps on
+	if [ "$clients_known" = 1 ] && [ -z "$clients_val" ]; then
+		t=$(now)
+		[ -n "$ps_idle_since" ] || ps_idle_since=$t
+		[ $((t - ps_idle_since)) -lt "$wifi_ps_hold" ] || set_wifi_ps on
 	else
+		ps_idle_since=
 		set_wifi_ps off
 	fi
 	[ -n "$reason" ] || [ "$(sleep_mode)" != reachable ] || reason=reachable-mode

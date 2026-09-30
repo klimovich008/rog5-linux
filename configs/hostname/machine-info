@@ -1,0 +1,4 @@
+# /etc/machine-info (machine-info(5)): the name BlueZ and GNOME Settings show.
+# Apply on an installed phone with: hostnamectl --pretty hostname "ROG Phone 5"
+PRETTY_HOSTNAME="ROG Phone 5"
+CHASSIS=handset

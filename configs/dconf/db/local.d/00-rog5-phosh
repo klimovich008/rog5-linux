@@ -12,6 +12,9 @@ idle-delay=uint32 60
 color-scheme='prefer-dark'
 # 24-hour clock (the region formats come from LC_* = pl_PL.UTF-8).
 clock-format='24h'
+# Battery percentage next to the icon in the top bar (Phosh and GNOME Shell
+# both read this key; the default hid it).
+show-battery-percentage=true
 
 [sm/puri/phosh]
 favorites=['org.gnome.Console.desktop', 'org.gnome.Nautilus.desktop', 'firefox.desktop']
@@ -41,3 +44,9 @@ color-shading-type='solid'
 # Files: a single tap opens (double tap was needed on the touchscreen).
 [org/gnome/nautilus/preferences]
 click-policy='single'
+
+# GNOME Software (Flatpak only here) downloaded updates in the background by
+# default: the busiest background process at idle (~150 MB, 2026-09-30).
+# Updates are still listed on the Updates page and installed from there.
+[org/gnome/software]
+download-updates=false

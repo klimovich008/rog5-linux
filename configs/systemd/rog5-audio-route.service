@@ -18,4 +18,12 @@ ExecStart=/run/rog5-platform/audio-route
 # stack (~50 s); WirePlumber probed the card before the MultiMedia1 backend
 # was routed, the PCM open failed and only "Dummy Output" was left
 # (2026-09-27). Re-probe once the route is in place (no-op without it running).
+# Before that, drop a saved default output of "auto_null": WirePlumber keeps
+# the outputs a client once chose as default in its state file and re-applies
+# them at every start. pipewire-pulse's Dummy Output (auto_null) is the only
+# sink until this route exists, so it had been saved as the default at some
+# point, and "wpctl status" kept showing it (2026-09-29/30). The real sink
+# wins whenever it exists, but a stale dummy default is a trap if both ever
+# coexist. Only that entry list is removed, and only when auto_null is on top.
+ExecStartPost=-/bin/sh -c 'f=/home/phone/.local/state/wireplumber/default-nodes; grep -qx default.configured.audio.sink=auto_null "$$f" && setpriv --reuid=phone --regid=phone --init-groups sed -i /^default.configured.audio.sink/d "$$f"'
 ExecStartPost=-/usr/bin/systemctl --user -M phone@ try-restart wireplumber.service

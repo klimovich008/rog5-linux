@@ -1,5 +1,5 @@
 #!/bin/sh
-# Mock test of the proposed lock tracking in rog5-desktop-mode.new.
+# Mock test of the lock tracking in rog5-desktop-mode (fails closed).
 set -u
 here=$(dirname "$0")
 sed -n '/^sess_cache= seen_locked=/,/^to_phosh()/p' "$here/rog5-desktop-mode" | sed '$d' >/tmp/ldm.$$

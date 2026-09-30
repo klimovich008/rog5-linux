@@ -1,6 +1,9 @@
 # ROG5 virtual desktop (headless sway, 1920x1080, VNC on 127.0.0.1:5901).
-# Runs from the "phone" user's manager (lingering is enabled), so it is up
-# from boot, whether or not Phosh is unlocked or the screen is on. GLES on
+# Runs from the "phone" user's manager (lingering is enabled), independent of
+# Phosh and of the screen. Started on demand ("rog5-desktop start", or any
+# desktop command of rog5-desktop), not at boot: always on it kept sway,
+# swaybar and wayvnc resident (~86 MB PSS) and woke for nothing
+# (2026-09-30). "rog5-desktop stop" ends it. GLES on
 # the Adreno render node: without WLR_RENDER_DRM_DEVICE the headless backend
 # picked no usable device and wayvnc found no buffer format, so the desktop
 # ran on pixman and its clients on llvmpipe (glmark2 ~120 vs ~640 on FD660).
@@ -11,8 +14,9 @@ Description=ROG5 virtual desktop (headless sway, VNC 127.0.0.1:5901)
 UnsetEnvironment=WAYLAND_DISPLAY DISPLAY
 Environment=WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=gles2 WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 SWAYSOCK=%t/rog5-desktop-sway.sock XDG_CURRENT_DESKTOP=sway XDG_SESSION_TYPE=wayland LANG=C.UTF-8
 ExecStart=/usr/bin/sway --config /etc/rog5-desktop/sway.conf
+# the display name is published by sway.conf; a stale one sent commands nowhere
+ExecStopPost=/usr/bin/rm -f %t/rog5-desktop.display
 Restart=on-failure
 RestartSec=5
-
-[Install]
-WantedBy=default.target
+# No [Install]: on demand only. On an installed phone run once
+#   systemctl --user -M phone@ disable --now rog5-desktop.service

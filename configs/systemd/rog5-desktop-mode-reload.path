@@ -1,0 +1,9 @@
+# Wakes rog5-desktop-mode when /var/lib/rog5/desktop-mode is written
+# (auto/manual/off take effect at once; the switcher no longer polls).
+[Unit]
+Description=Watch the ROG5 desktop mode setting
+PartOf=rog5-desktop-mode.service
+
+[Path]
+PathChanged=/var/lib/rog5/desktop-mode
+Unit=rog5-desktop-mode-reload.service

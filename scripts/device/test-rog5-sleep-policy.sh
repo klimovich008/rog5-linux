@@ -36,4 +36,32 @@ calls=$(wc -l <$t/calls); ok=$(cat $t/stats/success)
 [ "$calls" -ge 2 ] || { echo "FAIL loop suspended $calls times"; exit 1; }
 [ "$calls" -le "$ok" ] || [ "$calls" -eq $((ok + 1)) ] || { echo "FAIL $calls suspend calls for $ok kernel suspends"; exit 1; }
 [ "$calls" -le 3 ] || { echo "FAIL did not wait for the kernel: $calls calls in 9 s"; exit 1; }
+
+# Wi-Fi power save: off at once for a client, on again only after the hold;
+# a burst of short SSH connections must not toggle it each time. Fake iw/ip/ss.
+b=$t/bin; mkdir -p $b $t/ps-state
+cat >$b/iw <<EOS
+#!/bin/sh
+case "\$*" in "dev") echo "phy#0"; echo "	Interface wlan0" ;; *"set power_save"*) echo "\$5" >>$t/ps ;; esac
+EOS
+cat >$b/ip <<'EOS'
+#!/bin/sh
+echo "1: x inet 192.0.2.10/24 brd 192.0.2.255 scope global x"
+EOS
+cat >$b/ss <<EOS
+#!/bin/sh
+case "\$*" in
+*-Htln*) echo "LISTEN 0 128 0.0.0.0:22 0.0.0.0:*" ;;
+*established*) [ -e $t/client ] && echo "0 0 192.0.2.10:22 192.0.2.99:50000" ;;
+esac
+exit 0
+EOS
+chmod +x $b/*
+rm -f $t/stay; echo 0 >$t/usb; echo Off >$t/dpms
+PATH=$b:$PATH ROG5_SLEEP_WIFI_PS=1 ROG5_SLEEP_WIFI_PS_HOLD=3 ROG5_SLEEP_MODE=reachable ROG5_SLEEP_POLL=1 \
+ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep "$here/rog5-sleep-policy" & pid=$!
+sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { kill $pid; echo "FAIL power save not on after the hold"; exit 1; }
+for i in 1 2 3; do : >$t/client; sleep 1.2; rm -f $t/client; sleep 1.2; done
+sleep 5; kill $pid; wait $pid 2>/dev/null || true
+[ "$(tr '\n' ' ' <$t/ps)" = "on off on " ] || { echo "FAIL power save toggles: $(tr '\n' ' ' <$t/ps)"; exit 1; }
 echo PASS rog5-sleep-policy

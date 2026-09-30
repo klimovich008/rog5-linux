@@ -1,36 +1,55 @@
-#!/bin/sh
+#!/bin/bash
 # ROG5 desktop mode switcher (runs as root).
 #
 # Switches to the GNOME desktop (rog5-gnome) when an external display is
 # connected and the phone is unlocked, and returns to Phosh when the display
-# is unplugged, GNOME idles for IDLE_SECS, GNOME locks, or the mode file says
-# off; and makes sure a session runs.
+# is unplugged, GNOME goes idle, GNOME locks, or the mode file says off; and
+# makes sure a session runs.
+#
+# Event driven: it sleeps in one blocking read on a private pipe fed by
+#   - udevadm monitor (drm uevents: DP hotplug),
+#   - gdbus monitor of logind (LockedHint/IdleHint changes, sessions
+#     added/removed: Phosh and GNOME each open a logind session),
+#   - SIGUSR1 (systemctl reload, from rog5-desktop-mode-reload.path when the
+#     mode file changes),
+# and re-checks the state only then, at debounce deadlines, every 2 s while a
+# switch is in progress, and every SAFETY seconds as a safety net. The former
+# 3 s poll cost 1.6 % of a core with nothing attached (2026-09-30).
 #
 # GNOME has no lock screen here, so it is started automatically only after
-# this loop has seen the running Phosh session locked (logind LockedHint=yes)
-# and then unlocked (LockedHint=no). Phosh's org.gnome.ScreenSaver.GetActive
-# is NOT a lock state: it is true only while the panel is blanked, so a lit
-# lock screen answered "b false" and GNOME started without the PIN on every
-# boot with the monitor attached (2026-09-29/30). Phosh 0.57 also sends its
-# startup lock to logind only with phosh 0002 (screen-saver-manager: sync
-# LockedHint); without it the first auto-switch waits for one lock/unlock.
-# A locked phone waits for its PIN. The automatic switch happens once per plug-in: after "Phone mode" the
-# phone stays in Phosh until the display is replugged; after an idle or lock
-# hand-back the next unlock returns to the desktop.
+# this switcher has seen the running Phosh session locked (logind
+# LockedHint=yes) and then unlocked (LockedHint=no). Phosh's
+# org.gnome.ScreenSaver.GetActive is NOT a lock state: it is true only while
+# the panel is blanked, so a lit lock screen answered "b false" and GNOME
+# started without the PIN on every boot with the monitor attached
+# (2026-09-29/30). Phosh 0.57 sends its startup lock to logind only with
+# phosh 0002 (screen-saver-manager: sync LockedHint); without it the first
+# auto-switch waits for one lock/unlock. LockedHint is read again directly
+# before GNOME is started, after every queued event has been handled.
+#
+# The automatic switch happens once per plug-in (also after a "Desktop mode"
+# start by hand): after "Phone mode" the phone stays in Phosh until the
+# display has been unplugged for OFF_AFTER seconds; after an idle or lock
+# hand-back the next unlock returns to the desktop. GNOME's idle time is its
+# own idle-delay (600 s, set by rog5-gnome.service): logind's IdleHint turns
+# yes after it, and the switcher hands back at once.
 # /var/lib/rog5/desktop-mode holds auto (default: switch automatically),
 # manual (only the "Desktop mode" launcher) or off.
 set -u
-STATUS=/sys/class/drm/card1-DP-1/status
-MODE_FILE=/var/lib/rog5/desktop-mode
+STATUS=${ROG5_DM_STATUS:-/sys/class/drm/card1-DP-1/status}
+MODE_FILE=${ROG5_DM_MODE_FILE:-/var/lib/rog5/desktop-mode}
+RUN_DIR=${ROG5_DM_RUN_DIR:-/run/rog5-desktop-mode}
+LATCH=$RUN_DIR/auto-done   # once-per-plug latch, kept across switcher restarts
 OFF_AFTER=21      # seconds of stable disconnection before switching back
                   # (4 s turned an HPD bounce into a session kill, 00:26-00:27)
 ON_AFTER=6        # seconds of stable connection before switching automatically
-IDLE_SECS=600     # GNOME idle time before handing back to the lock screen
-POLL=3            # seconds between checks; counters below are in seconds
-up=0 down=0 idle=0 tick=0 nosess=0 auto_done=0
+NOSESS_AFTER=10   # seconds with neither session running or queued
+TRANSIT=2         # re-check interval while a switch is in progress
+SAFETY=60         # re-check interval without events
+auto_done=0 nosess_since= dp_state= dp_since=0 now=0 wait_s=$SAFETY EV=
 sess_cache= seen_locked=
 
-# Records the Phosh session's lock state; call on every poll while Phosh runs.
+# Records the Phosh session's lock state; call on every check while Phosh runs.
 # Fails closed: "unlocked" needs a locked -> unlocked transition of the same
 # logind session, so a fresh session (LockedHint defaults to no) never counts.
 track_phosh_lock() {
@@ -57,74 +76,221 @@ phone_session() {       # id of the phone user's graphical (phosh PAM) session
 
 to_phosh() {
 	echo "rog5-desktop-mode: $1 -> Phosh"
+	# stop also cancels a GNOME start that is still activating
 	systemctl stop rog5-gnome.service
 	systemctl start rog5-phosh.service
 }
 
-while :; do
-	sleep "$POLL"
-	mode=$(cat "$MODE_FILE" 2>/dev/null || echo auto)
-	if [ "$(cat "$STATUS" 2>/dev/null)" = connected ]; then
-		up=$((up + POLL)) down=0
-	else
-		down=$((down + POLL)) up=0
+now_cs() {              # boot time in centiseconds (counts suspend; no fork)
+	local up
+	read -r up _ </proc/uptime
+	now=$(( ${up%.*} * 100 + 10#${up#*.} ))
+}
+
+latch() {
+	[ "$auto_done" = "$1" ] && return
+	auto_done=$1
+	if [ "$1" = 1 ]; then : >"$LATCH"; else rm -f "$LATCH"; fi 2>/dev/null
+}
+
+set_wait() {            # wake up after at most $1 seconds
+	local s=$1
+	[ "$s" -ge 1 ] || s=1
+	[ "$s" -lt "$wait_s" ] && wait_s=$s
+	return 0
+}
+
+remaining() {           # whole seconds (rounded up) until $1 s after dp_since
+	echo $(( ($1 * 100 - (now - dp_since) + 99) / 100 ))
+}
+
+# DP status; any drm uevent ($1 = event) restarts the debounce, so a bounce
+# that ends in the same state as before still counts as a change.
+read_dp() {
+	local s=
+	# read fails at EOF without a newline but still sets s
+	{ read -r s <"$STATUS"; } 2>/dev/null
+	[ "$s" = connected ] || s=disconnected
+	if [ "$s" != "$dp_state" ] || [ "${1:-}" = event ]; then
+		dp_state=$s dp_since=$now
 	fi
-	tick=$((tick + 1))
-	if systemctl -q is-active rog5-gnome.service; then
-		# idle is checked every other poll (loginctl is not free on a phone)
-		if [ $((tick % 2)) -eq 0 ]; then
-			sess=$(phone_session)
-			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p LockedHint --value)" = yes ]; then
-				# GNOME's own lock needs GDM: hand over to the Phosh lock screen
-				to_phosh "GNOME locked"
-				auto_done=0
-				continue
-			fi
-			if [ -n "$sess" ] && [ "$(loginctl show-session "$sess" -p IdleHint --value)" = yes ]; then
-				idle=$((idle + 2 * POLL))
-			else
-				idle=0
-			fi
-		fi
+}
+
+pending_events() {      # true if the event pipe holds unread input
+	[ -n "$EV" ] && read -r -t 0 -u "$EV" 2>/dev/null
+}
+
+check() {
+	local mode gnome phosh sess kv locked idle
+	now_cs
+	wait_s=$SAFETY
+	mode=
+	{ read -r mode <"$MODE_FILE"; } 2>/dev/null   # "printf manual >" has no newline
+	[ -n "$mode" ] || mode=auto
+	read_dp
+	set -- $(systemctl is-active rog5-gnome.service rog5-phosh.service 2>/dev/null)
+	gnome=${1:-unknown} phosh=${2:-unknown}
+	case $gnome in
+	active|activating|reloading)
+		# covers "Desktop mode" by hand: no automatic restart after "Phone mode"
+		latch 1
+		nosess_since=
 		if [ "$mode" = off ]; then
-			to_phosh "desktop mode off"
-		elif [ "$down" -ge "$OFF_AFTER" ]; then
-			to_phosh "display unplugged"
-		elif [ "$idle" -ge "$IDLE_SECS" ]; then
-			to_phosh "GNOME idle ${IDLE_SECS}s"
-			auto_done=0
+			to_phosh "desktop mode off"; set_wait "$TRANSIT"; return
 		fi
-		continue
+		if [ "$dp_state" != connected ]; then
+			if [ "$(remaining "$OFF_AFTER")" -le 0 ]; then
+				to_phosh "display unplugged"; set_wait "$TRANSIT"; return
+			fi
+			set_wait "$(remaining "$OFF_AFTER")"
+		fi
+		[ "$gnome" = active ] || { set_wait "$TRANSIT"; return; }
+		sess=$(phone_session)
+		[ -n "$sess" ] || { set_wait "$TRANSIT"; return; }
+		locked= idle=
+		while IFS= read -r kv; do
+			case $kv in
+			LockedHint=*) locked=${kv#*=} ;;
+			IdleHint=*) idle=${kv#*=} ;;
+			esac
+		done < <(loginctl show-session "$sess" -p LockedHint -p IdleHint 2>/dev/null)
+		if [ "$locked" = yes ]; then
+			# GNOME's own lock needs GDM: hand over to the Phosh lock screen
+			to_phosh "GNOME locked"; latch 0; set_wait "$TRANSIT"
+		elif [ "$idle" = yes ]; then
+			to_phosh "GNOME idle"; latch 0; set_wait "$TRANSIT"
+		fi
+		return ;;
+	deactivating)
+		set_wait "$TRANSIT"; return ;;
+	esac
+	if [ "$dp_state" != connected ] && [ "$auto_done" = 1 ]; then
+		if [ "$(remaining "$OFF_AFTER")" -le 0 ]; then latch 0; else set_wait "$(remaining "$OFF_AFTER")"; fi
 	fi
-	idle=0
-	[ "$down" -ge "$OFF_AFTER" ] && auto_done=0
 	lock_state=unknown
-	systemctl -q is-active rog5-phosh.service && track_phosh_lock
-	if [ "$mode" = auto ] && [ "$auto_done" = 0 ] && [ "$up" -ge "$ON_AFTER" ] &&
-		systemctl -q is-active rog5-phosh.service && phosh_unlocked; then
+	if [ "$phosh" = active ]; then
+		nosess_since=
+		track_phosh_lock
+		[ "$mode" = auto ] && [ "$auto_done" = 0 ] && [ "$dp_state" = connected ] && phosh_unlocked || return
+		if [ "$(remaining "$ON_AFTER")" -gt 0 ]; then
+			set_wait "$(remaining "$ON_AFTER")"; return
+		fi
+		# A lock that is already queued must be seen first; then ask logind
+		# again right before the switch.
+		pending_events && { set_wait 1; return; }
+		[ "$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null)" = no ] || return
 		echo "rog5-desktop-mode: display connected, phone unlocked -> GNOME"
-		auto_done=1
+		latch 1
 		systemctl start --no-block rog5-gnome.service
-		continue
+		set_wait "$TRANSIT"
+		return
 	fi
 	# A switch in progress (Phosh stopping before GNOME starts, queued jobs)
 	# is not "no session": only act when nothing runs or is queued for a
 	# while, e.g. after a failed GNOME start. Acting early cancelled the
 	# "Desktop mode" launcher's GNOME start (14:16).
-	states=,$(systemctl is-active rog5-phosh.service rog5-gnome.service 2>/dev/null | paste -sd,),
-	case $states in
-	*,active,*|*,activating,*|*,deactivating,*|*,reloading,*) nosess=0 ;;
-	*)
-		if systemctl list-jobs --no-legend 2>/dev/null | grep -qE "rog5-(phosh|gnome)"; then
-			nosess=0
-		else
-			nosess=$((nosess + POLL))
-		fi ;;
+	set_wait "$TRANSIT"
+	case $phosh in
+	activating|deactivating|reloading) nosess_since=; return ;;
 	esac
-	if [ "$nosess" -ge 10 ]; then
+	if systemctl list-jobs --no-legend 2>/dev/null | grep -qE "rog5-(phosh|gnome)"; then
+		nosess_since=; return
+	fi
+	[ -n "$nosess_since" ] || nosess_since=$now
+	if [ $(( (now - nosess_since) / 100 )) -ge "$NOSESS_AFTER" ]; then
 		# never leave the phone without its lock screen
 		to_phosh "no session"
-		nosess=0
+		nosess_since=
 	fi
-	continue
-done
+}
+
+# One event line: D (drm uevent), L <session> yes|no (LockedHint), E/S (other
+# logind session changes), M (mode file / reload), R <source> (monitor ready),
+# X <source> (a monitor died).
+handle_event() {
+	case $1 in
+	D*) now_cs; read_dp event ;;
+	"L "*" yes")
+		set -- $1
+		# the lock itself, even if it is already over when the state is read
+		[ "$(loginctl show-session "$2" -p Service --value 2>/dev/null)" = phosh ] &&
+			seen_locked=$2 ;;
+	X*) echo "rog5-desktop-mode: event source ${1#X } ended" >&2; return 1 ;;
+	esac
+	return 0
+}
+
+LOGIND_AWK='
+function unesc(s,  out, i, c, hex, n) {    # sd_bus object path label -> id
+	hex = "0123456789abcdef"; out = ""
+	for (i = 1; i <= length(s); i++) {
+		c = substr(s, i, 1)
+		if (c == "_" && i + 2 <= length(s)) {
+			n = (index(hex, tolower(substr(s, i + 1, 1))) - 1) * 16
+			n += index(hex, tolower(substr(s, i + 2, 1))) - 1
+			out = out sprintf("%c", n)
+			i += 2
+		} else
+			out = out c
+	}
+	return out
+}
+/ is owned by / { print "R logind"; fflush(); next }
+/\.PropertiesChanged / && /login1\.Session/ {
+	p = $1; sub(/:$/, "", p); sub(/.*\//, "", p)
+	if (match($0, /.LockedHint.: <(true|false)>/))
+		print "L", unesc(p), (substr($0, RSTART, RLENGTH) ~ /true/ ? "yes" : "no")
+	else
+		print "E"
+	fflush(); next
+}
+/\.(SessionNew|SessionRemoved|PrepareForSleep) / { print "S"; fflush() }
+'
+
+start_sources() {
+	# awk in the foreground: if either end dies, "X" follows at once (a
+	# pipeline would wait for the monitor's next write)
+	{ awk '/^UDEV - / { print "R udev"; fflush(); next }
+	       /^UDEV / { print "D"; fflush() }' \
+		< <(stdbuf -oL udevadm monitor --udev --subsystem-match=drm 2>/dev/null)
+	  echo "X udevadm monitor"; } >&"$EV" &
+	{ awk "$LOGIND_AWK" \
+		< <(stdbuf -oL gdbus monitor --system --dest org.freedesktop.login1 2>/dev/null)
+	  echo "X gdbus monitor"; } >&"$EV" &
+}
+
+main() {
+	local ev ready=0 fifo batch
+	# Non-blocking: the main shell is the only reader, so a blocking write
+	# into a full pipe would hang it for good. A full pipe already wakes it.
+	trap '[ -n "$EV" ] && printf "M\n" | dd of=/proc/self/fd/"$EV" oflag=nonblock status=none 2>/dev/null' USR1
+	mkdir -p "$RUN_DIR"
+	fifo=$RUN_DIR/events.$$
+	rm -f "$fifo"
+	mkfifo -m 600 "$fifo" || exit 1
+	# read-write: never EOF; the sources block only while the pipe is full
+	exec {EV}<>"$fifo"
+	rm -f "$fifo"
+	[ -e "$LATCH" ] && auto_done=1
+	start_sources
+	# listen before the first look, so no change falls between the two
+	while [ "$ready" -lt 2 ] && IFS= read -r -t 5 -u "$EV" ev; do
+		case $ev in R*) ready=$((ready + 1)) ;; *) handle_event "$ev" || exit 1 ;; esac
+	done
+	[ "$ready" -ge 2 ] || echo "rog5-desktop-mode: event sources not confirmed ready" >&2
+	while :; do
+		check
+		IFS= read -r -t "$wait_s" -u "$EV" ev || continue
+		handle_event "$ev" || exit 1
+		# handle what is already queued (bounded, so a busy source cannot
+		# starve check()), then check once; check() starts no GNOME while
+		# input is still queued
+		batch=0
+		while [ "$batch" -lt 64 ] && pending_events && IFS= read -r -u "$EV" ev; do
+			batch=$((batch + 1))
+			handle_event "$ev" || exit 1
+		done
+	done
+}
+
+[ -n "${ROG5_DM_LIB:-}" ] || main

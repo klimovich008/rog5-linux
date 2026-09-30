@@ -1,0 +1,6 @@
+[Unit]
+Description=Tell rog5-desktop-mode that its setting changed
+
+[Service]
+Type=oneshot
+ExecStart=-/usr/bin/systemctl try-reload-or-restart rog5-desktop-mode.service

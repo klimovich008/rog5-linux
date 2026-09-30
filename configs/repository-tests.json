@@ -2326,6 +2326,77 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-rog5-desktop-mode-lock.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-desktop-mode-events.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash",
+        "awk",
+        "mkfifo",
+        "timeout"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-steam-scripts.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "python3",
+        "flock"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-rog5-perf-mode.sh",
       "interpreter": "sh",
       "tiers": [

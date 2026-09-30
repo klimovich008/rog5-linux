@@ -2,11 +2,13 @@
 # ROG5 remote and automation helper for the two graphical targets:
 #   desktop  the headless sway virtual desktop (rog5-desktop.service,
 #            1920x1080, VNC on 127.0.0.1:5901); it doesn't depend on the
-#            phone screen
+#            phone screen. Started on demand: "start" (e.g. before a VNC
+#            session), or by any desktop command below; "stop" ends it
 #   phone    the Phosh session on the panel (VNC mirror on 127.0.0.1:5900,
 #            rog5-wayvnc-phone.service); it only renders while the panel is on
 #
 #   rog5-desktop status
+#   rog5-desktop start | stop                 start/stop the virtual desktop
 #   rog5-desktop [--phone] screenshot FILE    PNG of the desktop (or the phone screen)
 #   rog5-desktop [--phone] type TEXT...       type into the focused window
 #   rog5-desktop [--phone] key KEY...         keys such as Return, Escape, ctrl+l, super+Return
@@ -37,8 +39,23 @@ display() {
 	if [ "$target" = phone ]; then echo wayland-0
 	else cat "$rt/rog5-desktop.display" 2>/dev/null || { echo 'rog5-desktop: the virtual desktop is not running' >&2; exit 1; }; fi
 }
-wl() { as_user WAYLAND_DISPLAY="$(display)" "$@"; }
-sway() { as_user SWAYSOCK="$rt/rog5-desktop-sway.sock" swaymsg "$@"; }
+usys() { # the phone user's systemd manager
+	if [ "$(id -u)" = "$uid" ]; then systemctl --user "$@"
+	else systemctl --user -M "$user@" "$@"; fi
+}
+# Starts the virtual desktop if needed and waits for its Wayland display.
+ensure_desktop() {
+	[ "$target" = desktop ] || return 0
+	usys -q is-active rog5-desktop.service && [ -s "$rt/rog5-desktop.display" ] && return 0
+	usys start rog5-desktop.service || { echo 'rog5-desktop: could not start the virtual desktop' >&2; exit 1; }
+	n=0
+	until [ -s "$rt/rog5-desktop.display" ] && [ -S "$rt/rog5-desktop-sway.sock" ]; do
+		[ "$n" -lt 150 ] || { echo 'rog5-desktop: the virtual desktop did not come up' >&2; exit 1; }
+		sleep 0.1; n=$((n + 1))
+	done
+}
+wl() { ensure_desktop; as_user WAYLAND_DISPLAY="$(display)" "$@"; }
+sway() { ensure_desktop; as_user SWAYSOCK="$rt/rog5-desktop-sway.sock" swaymsg "$@"; }
 button() { case ${1:-left} in left) echo button1 ;; right) echo button3 ;; middle) echo button2 ;; *) echo "bad button: $1" >&2; exit 2 ;; esac; }
 
 key() { # wtype arguments for a key spec such as ctrl+shift+t
@@ -55,12 +72,15 @@ cmd=${1:-status}
 case $cmd in
 status)
 	printf 'desktop: %s (display %s, VNC 127.0.0.1:5901)\n' \
-		"$(systemctl --user -M "$user@" is-active rog5-desktop.service 2>/dev/null || true)" \
+		"$(usys is-active rog5-desktop.service 2>/dev/null || true)" \
 		"$(cat "$rt/rog5-desktop.display" 2>/dev/null || echo -)"
 	printf 'phone:   screen %s, VNC mirror %s (127.0.0.1:5900)\n' \
 		"$(cat /sys/class/drm/card1-DSI-1/dpms 2>/dev/null || echo unknown)" \
-		"$(systemctl --user -M "$user@" is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
+		"$(usys is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
 	;;
+start) target=desktop; ensure_desktop
+	echo "desktop: running (VNC 127.0.0.1:5901)" ;;
+stop) usys stop rog5-desktop.service ;;
 screenshot) [ $# -eq 1 ] || { echo 'usage: screenshot FILE' >&2; exit 2; }
 	wl grim - >"$1" ;;
 type) wl wtype -s 150 -- "$*" ;;
@@ -97,5 +117,5 @@ fcntl.ioctl(fd, 0x5502)           # UI_DEV_DESTROY
 os.close(fd)
 PY
 	;;
-*) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+*) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

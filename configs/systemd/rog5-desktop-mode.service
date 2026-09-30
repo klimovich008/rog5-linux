@@ -1,9 +1,17 @@
 [Unit]
 Description=ROG5 desktop mode: GNOME on an external display, Phosh otherwise
-After=rog5-phosh.service
+After=rog5-phosh.service systemd-logind.service systemd-udevd.service dbus.service
+# re-reads /var/lib/rog5/desktop-mode on reload (the .path unit sends it)
+Wants=rog5-desktop-mode-reload.path
 
 [Service]
 ExecStart=/usr/local/libexec/rog5-desktop-mode
+# SIGUSR1: re-check now (mode file changed)
+ExecReload=/bin/kill -USR1 $MAINPID
+# the once-per-plug latch survives a restart of the switcher
+RuntimeDirectory=rog5-desktop-mode
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=restart
 Restart=always
 RestartSec=5
 

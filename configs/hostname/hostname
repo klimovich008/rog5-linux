@@ -1,0 +1,5 @@
+# /etc/hostname (hostname(5); lines starting with # are ignored).
+# The Arch ARM image's "alarm" showed up on the router (DHCP), in the
+# Bluetooth name, in prompts and in the journal; Tailscale already calls the
+# phone "rog5". Apply on an installed phone with: hostnamectl hostname rog5
+rog5

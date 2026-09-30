@@ -9,13 +9,32 @@
 # graphics_provider.json. This downloads the image named in FEX's
 # RootFS_links.json, checks its XXH3 hash from the same list, and unpacks it.
 #
+# The new root is unpacked beside the old one and swapped in with one
+# rename(RENAME_EXCHANGE) (mv --exchange), so a working root is in place at
+# every moment; the old one is removed afterwards. Without exchange support
+# two renames are used, and an interrupted run is repaired by the next one.
+# One run at a time (flock), and not while Steam runs (games keep files of
+# the old root open; steam-arm64 holds a shared lock).
+#
 #   steam-fex-rootfs-install          (as root; needs squashfs-tools, xxhash)
 set -eu
 [ "$(id -u)" = 0 ] || { echo 'steam-fex-rootfs-install: run as root' >&2; exit 1; }
-dest=/usr/share/guestos/fex-mesa
-cache=/var/cache/rog5-fex
+dest=${ROG5_FEX_ROOT:-/usr/share/guestos/fex-mesa}
+cache=${ROG5_FEX_CACHE:-/var/cache/rog5-fex}
 entry='ArchLinux (SquashFS)'
 mkdir -p "$cache"
+exec 9>"$cache/install.lock"
+flock -n 9 || { echo 'steam-fex-rootfs-install: another install is running' >&2; exit 1; }
+# steam-arm64 holds this lock shared while Steam runs; new Steam starts are
+# refused while it is held here. pgrep covers a Steam started before the
+# lock file existed (/run is empty after a boot).
+lock=${ROG5_FEX_LOCK:-/run/lock/rog5-fex-rootfs.lock}
+[ -e "$lock" ] || { : >"$lock"; chmod 644 "$lock"; }
+exec 8<"$lock"
+flock -x -n 8 || { echo 'steam-fex-rootfs-install: quit Steam first' >&2; exit 1; }
+pgrep -f 'steamrtarm64/steam( |$)' >/dev/null && { echo 'steam-fex-rootfs-install: quit Steam first' >&2; exit 1; }
+# a run interrupted between the two fallback renames left only $dest.old
+if [ ! -e "$dest" ] && [ -d "$dest.old" ]; then mv -T "$dest.old" "$dest"; fi
 curl -fsSL --max-time 60 https://rootfs.fex-emu.gg/RootFS_links.json -o "$cache/links.json"
 set -- $(python3 - "$cache/links.json" "$entry" <<'PY'
 import json, sys
@@ -32,6 +51,14 @@ got=$(xxhsum -H3 "$cache/rootfs.sqsh" | awk '{print $1}')
 rm -rf "$dest.new"; mkdir -p "$(dirname "$dest")"
 unsquashfs -q -n -d "$dest.new" "$cache/rootfs.sqsh"
 [ -f "$dest.new/graphics_provider.json" ] || { echo "steam-fex-rootfs-install: no graphics_provider.json in the image" >&2; exit 1; }
-rm -rf "$dest"; mv "$dest.new" "$dest"
+if [ ! -e "$dest" ]; then
+	mv -T "$dest.new" "$dest"
+elif ! mv -T --exchange "$dest.new" "$dest" 2>/dev/null; then
+	# no RENAME_EXCHANGE (old coreutils or filesystem): two renames
+	rm -rf "$dest.old"
+	mv -T "$dest" "$dest.old"
+	mv -T "$dest.new" "$dest" || { mv -T "$dest.old" "$dest"; exit 1; }
+fi
+rm -rf "$dest.new" "$dest.old"          # the previous root
 rm -f "$cache/rootfs.sqsh"
 echo "installed: $dest ($url)"
