@@ -13,6 +13,7 @@
 #
 #   steam-arm64-install [--beta]     (run as the desktop user, not root)
 set -eu
+pgrep -u "$(id -u)" -f 'steamrtarm64/steam( |$)' >/dev/null && { echo 'steam-arm64-install: quit Steam first' >&2; exit 1; }
 [ "$(id -u)" != 0 ] || { echo 'steam-arm64-install: run as the desktop user, not root' >&2; exit 1; }
 manifest=steam_client_linuxarm64
 [ "${1-}" = --beta ] && manifest=steam_client_publicbeta_linuxarm64
@@ -36,6 +37,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
             os.makedirs(path, exist_ok=True)
             continue
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        # A symlinked directory from an earlier entry must not lead outside.
+        if os.path.commonpath([root, os.path.realpath(os.path.dirname(path))]) != root:
+            sys.exit(f"steam-arm64-install: {name} escapes {root} through a symlink")
         if os.path.lexists(path) and not os.path.isdir(path):
             os.unlink(path)
         if stat.S_ISLNK(info.external_attr >> 16):
@@ -62,7 +66,7 @@ while read -r file sha; do
 	echo "downloading $file"
 	curl -fsSL --max-time 900 "$cdn/$file" -o "$tmp/pkg.zip"
 	echo "$sha  $tmp/pkg.zip" | sha256sum -c --quiet || { echo "steam-arm64-install: SHA-256 mismatch for $file" >&2; exit 1; }
-	unzip -o -qq "$tmp/pkg.zip" -d "$root"
+	unzip_steam "$tmp/pkg.zip" "$root"
 	rm -f "$tmp/pkg.zip"
 done
 # Valve's zips carry no usable permissions: mark ELF programs and #! scripts
