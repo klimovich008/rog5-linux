@@ -1,0 +1,87 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] arm64: mm: ROG5: log user-mode synchronous external aborts with the PFN (optional retire)
+
+Exec-only SIGBUS/BUS_OBJERR (FSC 0x10 on EL0 instruction fetch) was seen on
+r193. Log comm/pid/cpu/pc/far/esr and the physical page behind the fault so
+the next occurrence names the PFN; rog5_sea.retire=1 soft-offlines an order-0
+LRU page that took an instruction SEA and retries (budget 16 per boot).
+Compile-checked with the r98 clang 20 flags (no warnings); not booted.
+---
+--- a/arch/arm64/mm/fault.c	2026-09-30 03:33:22.714232631 +0200
++++ b/arch/arm64/mm/fault.c	2026-09-30 03:33:59.815608964 +0200
+@@ -47,6 +47,66 @@
+ #include <asm/traps.h>
+ #include <asm/virt.h>
+ 
++/*
++ * ROG5: log every user-mode synchronous external abort with the physical
++ * page behind the faulting address. On this phone (Linux at EL1 under the
++ * Qualcomm hypervisor, booted by kexec from the ASUS 5.4 wrapper) exec-only
++ * SIGBUS/BUS_OBJERR was seen on specific pages whose data reads succeed.
++ * rog5_sea.retire=1 additionally soft-offlines an order-0 LRU page that took
++ * an instruction SEA and lets the task retry (at most 16 times per boot).
++ */
++#undef MODULE_PARAM_PREFIX
++#define MODULE_PARAM_PREFIX "rog5_sea."
++#include <linux/moduleparam.h>
++
++static bool rog5_sea_retire;
++module_param_named(retire, rog5_sea_retire, bool, 0644);
++MODULE_PARM_DESC(retire, "soft-offline user pages that take an instruction SEA and retry");
++static atomic_t rog5_sea_budget = ATOMIC_INIT(16);
++
++/* Returns true when the page was retired and the fault should be retried. */
++static bool rog5_sea_user(unsigned long far, unsigned long esr,
++			  struct pt_regs *regs)
++{
++	unsigned long addr = untagged_addr(far);
++	bool iabt = ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_LOW;
++	struct page *page = NULL;
++	unsigned long pfn = 0;
++	unsigned int order = 0;
++	bool anon = false, lru = false;
++	int ret = -EAGAIN;
++
++	if ((esr & ESR_ELx_FnV) || !current->mm ||
++	    get_user_pages_fast_only(addr & PAGE_MASK, 1, 0, &page) != 1)
++		page = NULL;
++	if (page) {
++		struct folio *folio = page_folio(page);
++
++		pfn = page_to_pfn(page);
++		order = folio_order(folio);
++		anon = folio_test_anon(folio);
++		lru = folio_test_lru(folio);
++		put_page(page);
++	}
++	pr_err("rog5-sea: %s[%d] cpu%d %s pc %llx far %lx esr %lx fsc %#lx pfn %#lx order %u %s%s\n",
++	       current->comm, task_pid_nr(current), raw_smp_processor_id(),
++	       iabt ? "ifetch" : "data", regs->pc, far, esr,
++	       esr & ESR_ELx_FSC, pfn, order, !page ? "no-page" : anon ? "anon" : "file",
++	       lru ? " lru" : "");
++
++	if (!rog5_sea_retire || !page || !iabt || order ||
++	    (esr & ESR_ELx_FSC) != ESR_ELx_FSC_EXTABT || addr != regs->pc)
++		return false;
++	if (atomic_dec_if_positive(&rog5_sea_budget) < 0)
++		return false;
++#ifdef CONFIG_MEMORY_FAILURE
++	ret = soft_offline_page(pfn, 0);
++#endif
++	pr_err("rog5-sea: soft_offline pfn %#lx -> %d%s\n", pfn, ret,
++	       ret ? "" : ", retrying");
++	return ret == 0;
++}
++
+ struct fault_info {
+ 	int	(*fn)(unsigned long far, unsigned long esr,
+ 		      struct pt_regs *regs);
+@@ -893,6 +953,8 @@
+ 		siaddr  = untagged_addr(far);
+ 	}
+ 	add_taint(TAINT_MACHINE_CHECK, LOCKDEP_STILL_OK);
++	if (user_mode(regs) && rog5_sea_user(far, esr, regs))
++		return 0;
+ 	arm64_notify_die(inf->name, regs, inf->sig, inf->code, siaddr, esr);
+ 
+ 	return 0;
