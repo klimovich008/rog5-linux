@@ -12,9 +12,18 @@ lock; the GMU receives it with the HFI perf table at its next resume
 ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
 840 MHz uses 416 (TURBO_L1) by default.
 
---- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-09-29 15:40:41.410641672 +0200
-+++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-09-29 15:40:41.432186325 +0200
-@@ -1702,6 +1702,35 @@
+Lifetime: the setter reaches the GMU through rog5_gmu, published at the
+end of a successful a6xx_gmu_init() and cleared at the start of
+a6xx_gmu_remove() (which a6xx_destroy() runs before freeing a6xx_gpu, also
+after a failed init), both under the static rog5_gmu_uv_lock that the
+setter holds while it uses the GMU. A write therefore sees a live GMU or
+NULL; with NULL it only stores the string for the next init.
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index 71ee1e5..5c20391 100644
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1702,6 +1702,45 @@ static unsigned int a6xx_gmu_get_arc_level(struct device *dev,
  	return val;
  }
  
@@ -26,6 +35,16 @@ ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
 + * perf table). Not persistent: empty after every boot. Raising is refused.
 + */
 +static char rog5_gpu_corner_offsets[256];
++/*
++ * rog5_gmu is the GMU the setter rebuilds votes for. It is published at the
++ * end of a successful a6xx_gmu_init() and cleared at the start of
++ * a6xx_gmu_remove(), both under rog5_gmu_uv_lock. The lock is static, so it
++ * outlives the GMU: the setter holds it while it uses the GMU and sees
++ * either a live GMU or NULL (then it only stores the string for the next
++ * init). It also covers the string between the setter and the vote
++ * builder (sysfs get/set are serialised by the module parameter lock).
++ * Order: rog5_gmu_uv_lock before gmu->lock.
++ */
 +static struct a6xx_gmu *rog5_gmu;
 +static DEFINE_MUTEX(rog5_gmu_uv_lock);
 +
@@ -50,7 +69,7 @@ ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
  static int a6xx_gmu_rpmh_arc_votes_init(struct device *dev, u32 *votes,
  		unsigned long *freqs, int freqs_count,
  		const char *pri_id, const char *sec_id)
-@@ -1753,6 +1782,18 @@
+@@ -1753,6 +1792,18 @@ static int a6xx_gmu_rpmh_arc_votes_init(struct device *dev, u32 *votes,
  			return -EINVAL;
  		}
  
@@ -69,7 +88,7 @@ ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
  		/*
  		 * Look for a level in in the secondary list that matches. If
  		 * nothing fits, use the maximum non zero vote
-@@ -1834,6 +1875,47 @@
+@@ -1834,6 +1885,47 @@ static int a6xx_gmu_rpmh_dep_votes_init(struct device *dev, u32 *votes,
   * and BCM parameters to build the votes.
   */
  
@@ -117,12 +136,41 @@ ROG5 cmd-db gfx.lvl list is 0,64,80,128,144,192,224,256,320,384,416,432;
  static int a6xx_gmu_rpmh_votes_init(struct a6xx_gmu *gmu)
  {
  	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
-@@ -1851,6 +1933,8 @@
+@@ -1851,9 +1943,11 @@ static int a6xx_gmu_rpmh_votes_init(struct a6xx_gmu *gmu)
  	/* If GMxC is present, prefer that as secondary rail for GX votes */
  	sec_id = IS_ERR_OR_NULL(gmxc) ? "mx.lvl" : "gmxc.lvl";
  
-+	rog5_gmu = gmu;
-+
- 	/* Build the GX votes */
+-	/* Build the GX votes */
++	/* Build the GX votes (rog5_gmu_uv_lock: gpu_corner_offsets string) */
++	mutex_lock(&rog5_gmu_uv_lock);
  	ret = a6xx_gmu_rpmh_arc_votes_init(&gpu->pdev->dev, gmu->gx_arc_votes,
  		gmu->gpu_freqs, gmu->nr_gpu_freqs, "gfx.lvl", sec_id);
++	mutex_unlock(&rog5_gmu_uv_lock);
+ 
+ 	/* Build the CX votes */
+ 	ret |= a6xx_gmu_rpmh_arc_votes_init(gmu->dev, gmu->cx_arc_votes,
+@@ -2113,6 +2207,12 @@ void a6xx_gmu_remove(struct a6xx_gpu *a6xx_gpu)
+ 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+ 	struct a6xx_gmu *gmu = &a6xx_gpu->gmu;
+ 
++	/* Before anything is torn down; also after a failed init */
++	mutex_lock(&rog5_gmu_uv_lock);
++	if (rog5_gmu == gmu)
++		rog5_gmu = NULL;
++	mutex_unlock(&rog5_gmu_uv_lock);
++
+ 	mutex_lock(&gmu->lock);
+ 	if (!gmu->initialized) {
+ 		mutex_unlock(&gmu->lock);
+@@ -2467,6 +2567,11 @@ int a6xx_gmu_init(struct a6xx_gpu *a6xx_gpu, struct device_node *node)
+ 
+ 	gmu->initialized = true;
+ 
++	/* Last step: no failure path runs after publication */
++	mutex_lock(&rog5_gmu_uv_lock);
++	rog5_gmu = gmu;
++	mutex_unlock(&rog5_gmu_uv_lock);
++
+ 	return 0;
+ 
+ detach_gxpd:
