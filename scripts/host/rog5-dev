@@ -10,6 +10,8 @@ case $action in
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
   check-target) exec python3 "$repo/scripts/host/run-sealed-busybox.py" "$@" ;;
+  make-bundle) exec python3 "$repo/scripts/host/rog5-make-bundle.py" "$@" ;;
+  bundles) exec python3 "$repo/scripts/host/rog5-bundle-registry.py" "$@" ;;
   build-initramfs) exec python3 "$repo/scripts/device/build-native-wifi-boot-initramfs.py" "$@" ;;
   help|--help|-h)
     printf '%s\n' 'rog5-dev test [active|probe|ci|nightly]' \
@@ -17,6 +19,8 @@ case $action in
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \
       'rog5-dev check-target --release RELEASE ARCHIVE -- APPLET [ARGS...]' \
+      'rog5-dev make-bundle --role main|safe --kernel kNNN --dtb dN [--plan]' \
+      'rog5-dev bundles check|render|set|describe|add-dtb' \
       'Trial/release: see docs/development.md; this tool grants no boot authority.' ;;
   *) printf 'unknown action: %s\n' "$action" >&2; exit 2 ;;
 esac

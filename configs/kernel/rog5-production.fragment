@@ -1,5 +1,5 @@
 # Source-build qualification only. No boot, signing or installation authority.
-CONFIG_LOCALVERSION="-rog5-production"
+# The release suffix -rog5-kNNN (LOCALVERSION) is added by the builder from its --label.
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_MODULES=y
 CONFIG_DRM_MSM=m

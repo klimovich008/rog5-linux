@@ -60,6 +60,8 @@ scripts/host/rog5-dev select --development BASE HEAD
 scripts/host/rog5-dev build-initramfs --help
 scripts/host/rog5-dev package --help
 scripts/host/rog5-dev check-target --help
+scripts/host/rog5-dev make-bundle --help
+scripts/host/rog5-dev bundles check
 ```
 
 - Documentation: link/context checks and active tier.
@@ -158,10 +160,12 @@ one RAM trial:
    set reproduces the work tree on a fresh extract.
 3. Build with the dtschema environment on PATH:
    `~/.local/state/rog5-host-tools/dtschema-2026.6/bin/python3 scripts/host/build-rog5-production-kernel.py
-   --config <new policy> --linux-git ~/.local/state/rog5-linux-stable-git --output <new dir>
-   --jobs 6 --ccache ~/.local/state/rog5-host-tools/ccache-4.14/ccache`. Run
-   `--prepare-only` first: in under a minute it shows whether the patches
-   apply and the merged config still meets the policy.
+   --config <new policy> --linux-git ~/.local/state/rog5-linux-stable-git
+   --output ~/.local/state/rog5-kernel-<version>-build-rNNN --jobs 6 --ccache
+   ~/.local/state/rog5-host-tools/ccache-4.14/ccache`. The output name makes
+   this build kNNN and `uname -r` `<version>-rog5-kNNN` (see "Bundle names and
+   the bundle tool"). Run `--prepare-only` first: in under a minute it shows
+   whether the patches apply and the merged config still meets the policy.
    A new base prints upstream W=1 diagnostics that the old hash-pinned warning
    policy cannot match, so the build ends FAIL with only those left. Run
    `draft-warning-policy.py --build <build> --build-policy <new policy> --previous
@@ -173,13 +177,14 @@ one RAM trial:
    --build <build> --policy <that file> --output <new json>`. 7.2.7: 7 of 21
    reviewed files and both initializer pins carried over; 317 messages in 28
    upstream files were drafted; the checker reports PASS.
-4. Add the new `X.Y.Z-rog5-production` to `production_release()` in
-   `build-persistent-root-standalone-initramfs.sh`, an exact allowlist so no
-   other release name gets through.
+4. Add the new base's `X.Y.Z-rog5-k[1-9]` ... `k[1-9][0-9][0-9][0-9]` patterns
+   to `production_release()` in `build-persistent-root-standalone-initramfs.sh`,
+   an exact allowlist so no other release name (and no unlabelled k0 build)
+   gets through.
    `package-production-modules.py --build <build> --output <new dir>` builds the
    64-module ramdisk package, including the `tools/` externals, from that build.
-5. Then the ramdisk, signed package and RAM trial as in the production trial
-   flow. After a PASS, create a new `rog5-kdev` dev tree from the build for the
+5. Then `rog5-make-bundle.py` (ramdisk, signed package) and the RAM trial as
+   in the production trial flow. After a PASS, create a new `rog5-kdev` dev tree from the build for the
    fast module loop.
 
 Measured on 2026-09-23 (7.1.4 → 7.2.7): 15 of 17 patches applied
@@ -189,23 +194,102 @@ reproduced the manual result byte for byte. The host tools are pinned under
 3.12.14 (release SHA256SUMS) and the dtschema 2026.6 environment. The old
 dtschema venv died with the removed Codex runtime.
 
+### Bundle names and the bundle tool
+
+Every signed bundle comes from one command, run from this repository. It
+builds from a clean `git archive` of HEAD, so commit first: uncommitted
+changes are not in the bundle (the tool says so).
+
+```sh
+scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9        # next default
+scripts/host/rog5-make-bundle.py --role safe --kernel k69 --dtb d3 \
+    --boot-modules-from 4980520d                                            # the safe-r8 recipe
+scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # name and inputs only
+```
+
+- **Kernel builds** are `kNNN`: the builder output
+  `~/.local/state/rog5-kernel-7.2.7-build-rNNN` is kNNN. From k111 on,
+  `uname -r` is `7.2.7-rog5-kNNN`: the build policy's `release_localversion`
+  with the label from the output name or `--label`. Any other output name
+  gives k0, which the production ramdisk builder refuses. k110 and older
+  report `7.2.7-rog5-production`.
+- **DTBs** are `dN` in `configs/production/dtbs.json` (path, sha256, compose
+  features, base, needed patches). A `features` file with the same id and
+  hash sits next to each `board.dtb`. d2/d3 (fallback line) and d7-d9
+  (default line) keep the rN of their directory. Register a new composition
+  with `scripts/host/rog5-bundle-registry.py add-dtb --dtb <state>/<dir>/board.dtb
+  --features <list> --base d9`; it takes the next free id, from d10.
+- **Bundles** are `<role>-k<kernel>-d<dtb>-<YYMMDD><letter>`, for example
+  `main-k111-d9-261001a`. `main` is built with a fresh try-once descriptor,
+  `safe` (a fallback) without one. The letter is the first free one of the
+  day. A failed attempt burns its name, so a trial id is never reused.
+  Bundles made before 2026-10-01 keep their names (`production-7.2.7-r208`,
+  `production-7.2.7-safe-r8`). RAM trials boot the main bundle's own
+  wrapper, so there is no trial role. The names pass the loader's
+  `valid_bundle_name` (`^[a-z0-9][a-z0-9._-]{0,63}$`, no `..`).
+- **Steps.** The kernel build must be PASS, its Image must match
+  `result.json` and a labelled build must report its label. The DTB must match
+  its hash and features file. A module package the tool made
+  (`modules-kNNN`, with a digest of the packager, the module selection and
+  the `tools/` sources of the external modules) is reused only while that
+  digest matches the snapshot; otherwise a new one is packaged from the
+  snapshot (`--fresh-modules` forces that). A legacy `modules-7.2.7-rNNN`
+  is used only when the build's objects are gone (k69), and the registry
+  notes it. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
+  `ROG5_*` or `PYTHON*` variables. The ramdisk is built with the pinned inputs of
+  `configs/production/bundle-inputs.json` and must carry exactly the new
+  descriptor (main) or none (safe), plus the current init. Then
+  `package-production-ram-trial.py` signs and wraps it. The signing key path
+  comes from bundle-inputs.json, `$ROG5_SIGNING_KEY` or `--private-key`;
+  only the packager reads the key. A pruned kernel build (objects deleted,
+  like k69) takes its Image from a registered bundle with the same hash.
+  `--boot-modules-from REV` (safe only) takes `boot-modules.list` from an
+  older commit, for a kernel that lacks newer modules.
+- **Outputs** in `~/.local/state/rog5-production-boot-20260923`:
+  `trial-<name>/descriptor`, `ramdisk-<name>/`, `package-<name>/` (with
+  `make-bundle.json`, the full input record) and `bundle-work-<name>/` (step
+  logs). Measured on 2026-09-30: about 2 minutes for a main bundle with a new
+  module package. The k110 module package and the ramdisk member lists came
+  out identical to r208's and safe-r8's, and a copy of the r110 modules
+  relabelled 7.2.7-rog5-k111 built a ramdisk with only that tree
+  (`test-standalone-production-tree.py`, private inputs).
+- **Registry.** The tool appends the bundle (status `built`) and any new
+  kernel to `configs/production/bundles.json` and renders
+  [bundles.md](bundles.md). Record each outcome with
+  `rog5-bundle-registry.py set <name> --status installed-main|installed-fallback|retired|ram-trial-fail|...
+  --healthy yes|no --installed '<date time>'`. Marking a bundle installed
+  retires the previous one of that role. Commit both files.
+  `rog5-bundle-registry.py describe k111 '<changes>'` fills a kernel's
+  change note. `test-rog5-make-bundle.py` fails when bundles.md is stale.
+- **Releases and modules.** Every bundle carries its own modules. The
+  ramdisk holds that kernel's depmod tree and publishes it at
+  `/run/rog5-modules/lib/modules/<release>`. The root filesystem has no tree
+  for any production release (only an old 7.1.4 directory), and the init
+  compares `uname -r` with the release its ramdisk was built for. So a k111
+  default next to a k69 fallback needs nothing from the root, and installing
+  a k111 bundle from a k110 system or from the fallback works as before.
+  `install-default-kernel.py` only logs the running release. `rog5-dev module
+  deliver` still needs a kdev tree from the running kernel's build; its
+  release check now also tells builds apart.
+
 ### Making a production kernel the default
 
 The slot-B loader boots the selector's primary bundle while the p23 try-once
 record (`/rog5/boot/wifi-trial-state`) is absent or healthy, and re-arms it
 to pending on each primary boot. A boot that does not mark itself healthy
 sends the next boot to the selector's fallback, currently
-`production-7.2.7-safe-r7` since r188 (kernel build r69, DTB
-platform-usbbtm-dtb-r2, no trial descriptor; the `bundles` entry of
-`docs/status/components.json` names the installed pair). Older fallbacks, down to V11, stay on p24 for a manual
+`production-7.2.7-safe-r8` since r205 (k69 + d3, no trial descriptor;
+[bundles.md](bundles.md) and the `bundles` entry of
+`docs/status/components.json` name the installed pair). Older fallbacks, down to V11, stay on p24 for a manual
 rollback. The production ramdisk commits itself when it is built with a
 trial descriptor:
 
-1. Write a fresh descriptor (never reuse a trial id or bundle name):
-   `format=rog5-persistent-wifi-health-v1`, `trial_id=<64 random hex>`,
-   `primary_bundle=<new bundle>`, `mode=try-once`. Build the ramdisk with
+1. `rog5-make-bundle.py --role main --kernel kNNN --dtb dN` writes a fresh
+   descriptor (`format=rog5-persistent-wifi-health-v1`, `trial_id=<64 random
+   hex>`, `primary_bundle=<new bundle>`, `mode=try-once`; never reuse a trial
+   id or bundle name), builds the ramdisk with
    `PRODUCTION_TRIAL_DESCRIPTOR=<file> PRODUCTION_TRIAL_DESCRIPTOR_SHA256=<sha>`
-   and package it with `--bundle <new bundle>`.
+   and packages it with `--bundle <new bundle>`.
 2. RAM-trial that wrapper. `rog5-production-trial-commit.service` must log
    `rog5-production-trial: SKIP …` (the record belongs to another trial) and
    leave the record unchanged.
@@ -234,9 +318,11 @@ trial descriptor:
    it.
 4. Reboot normally. The first boot writes a pending record and boots the
    bundle, and the unit logs `PASS <bundle> committed healthy`. The next
-   reboot must land on the same bundle. Persistent boots answer SSH on
-   `10.77.0.2` (the RAM-trial address is `169.254.77.2`), about 60 s after
-   the reboot. 7.2.7 (`production-7.2.7-r3`) became the default this way on
+   reboot must land on the same bundle. Record it:
+   `rog5-bundle-registry.py set <bundle> --status installed-main --healthy yes
+   --installed '<date time>'` (and `installed-fallback` for a new fallback).
+   Persistent boots answer SSH on `10.77.0.2` (the RAM-trial address is
+   `169.254.77.2`), about 60 s after the reboot. 7.2.7 (`production-7.2.7-r3`) became the default this way on
    2026-09-23.
 
 Going back is a selector change: `selector.rollback-<bundle>` is the
@@ -249,14 +335,14 @@ safe-r2 fallback, which came up with Wi-Fi).
 
 A fallback bundle keeps a well-tested kernel but must carry the current
 init, since both bundles boot the same upper and its update snapshots (see
-rog5-update below). Build its ramdisk like a default one without
-`PRODUCTION_TRIAL_DESCRIPTOR`, from the current source, with that kernel's
-module package. `configs/production/boot-modules.list` must name only
-modules that kernel has: the build fails otherwise (for r69, drop
-`tcpci_rt1711h`, which 0144 kernels load; `production-7.2.7-safe-r8` takes
-the list from 4980520d). A DTB change for the fallback goes on top of its
-own DTB (safe-r8: `platform-usbbtm-dtb-r2` + the memx overlay, a dts diff of
-exactly that node). The installer puts a fallback on p24 only together with
+rog5-update below). `rog5-make-bundle.py --role safe` builds its ramdisk like
+a default one without `PRODUCTION_TRIAL_DESCRIPTOR`, from the current source,
+with that kernel's module package. `configs/production/boot-modules.list`
+must name only modules that kernel has: the build fails otherwise (k69 lacks
+`tcpci_rt1711h`, which 0144 kernels load, so `--boot-modules-from 4980520d`
+takes the list safe-r8 used). A DTB change for the fallback goes on top of
+its own DTB (d3 = d2 `platform-usbbtm-dtb-r2` + the memx overlay, a dts diff
+of exactly that node); register it with `add-dtb`. The installer puts a fallback on p24 only together with
 a new primary (`--fallback-bundle-dir` next to `--bundle-dir` and a fresh
 descriptor). safe-r7 and older predate the v2 seal: on a v2 `pending`
 record they write `restore-refused`, drop `pending`/`attempt` and boot the

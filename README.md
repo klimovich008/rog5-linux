@@ -92,6 +92,13 @@ GNOME desktop mode on an external monitor, driven by the phone:
 
 The signing key is kept outside the repository.
 
+Bundles are named `<role>-k<kernel>-d<dtb>-<YYMMDD><letter>` (for example
+`main-k111-d9-261001a`): role `main` (the try-once default) or `safe` (the
+fallback), kernel build `kNNN` (from k111 on also in `uname -r`, e.g.
+`7.2.7-rog5-k111`) and DTB `dN`. `scripts/host/rog5-make-bundle.py` builds
+one; [docs/bundles.md](docs/bundles.md) lists every bundle, kernel build and
+DTB with its state.
+
 ## Repository layout
 
 | Path | Purpose |

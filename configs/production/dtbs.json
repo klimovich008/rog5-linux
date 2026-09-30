@@ -1,0 +1,52 @@
+{
+  "format": "rog5-dtb-registry-v1",
+  "comment": "Board DTBs that bundles use, by stable id dN. Paths are relative to root; each DTB directory also holds a 'features' file with the same id, sha256 and features. d2/d3 (fallback line) and d7-d9 (default line) keep the rN of their directory; new DTBs take the next free number from d10 (scripts/host/rog5-bundle-registry.py add-dtb). docs/bundles.md is generated from this file and bundles.json.",
+  "root": "~/.local/state/rog5-production-boot-20260923",
+  "dtbs": {
+    "d2": {
+      "path": "platform-usbbtm-dtb-r2/board.dtb",
+      "sha256": "bafe0488127806cd019510b51de5c698c16dadf29ae88e8aeb15b7ad88011a13",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,mic,usbbtm",
+      "base": null,
+      "created": "2026-09-28",
+      "kernel_requires": "0089 (bottom-port 5 V regulator)",
+      "notes": "Bottom USB-C stage A (5 V by hand); no cpucap, no SBU mux; the r160 default and the safe-r6/safe-r7 fallback DTB."
+    },
+    "d3": {
+      "path": "platform-usbbtm-memx-dtb-r3/board.dtb",
+      "sha256": "bb4668b4ec2552a697521d17832aade44c71e876d35411510f4c2449be951513",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,mic,usbbtm,memx",
+      "base": "d2",
+      "created": "2026-09-30",
+      "kernel_requires": "0089",
+      "notes": "d2 plus only the memx node (fdtoverlay; the dts diff is exactly memory@34a000000, kept as dts-vs-platform-usbbtm-dtb-r2.diff). Fallback DTB of safe-r8."
+    },
+    "d7": {
+      "path": "platform-cpucap-dp-sbumux-dtb-r7/board.dtb",
+      "sha256": "99bcf5f88b153accc12a430b8e701edd71d9cf01f893221486eb39a833413c36",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic",
+      "base": null,
+      "created": "2026-09-30",
+      "kernel_requires": "0089, 0121-0124 (cs35l45 dsp-part-name)",
+      "notes": "2-lane DP through the SBU mux, HBR2 link cap, MultiMedia1/2 playback-only, speaker DSP part names. Feature list read back from the DTB (not recorded at build time)."
+    },
+    "d8": {
+      "path": "platform-cpucap-dp4-btmtc-dtb-r8/board.dtb",
+      "sha256": "3630cb6f99778e375f1594fa9041d07c2d616e441021e752de4da30b14c2cce3",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc",
+      "base": "d7",
+      "created": "2026-09-30",
+      "kernel_requires": "0136-0139 (4-lane DP); usbbtmtc needs 0144 and 0146",
+      "notes": "4-lane DP on the side port; bottom USB-C stage B (RT1715 + TCPM, source-only 5 V). With k105 (no 0144) the RT1715 ALERT never fired."
+    },
+    "d9": {
+      "path": "platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb",
+      "sha256": "4a919c152c678d27b9e0f7fe0d337f63384069227acf4167ad7f176a66168d39",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc,memx",
+      "base": "d8",
+      "created": "2026-09-30",
+      "kernel_requires": "0136-0139, 0144, 0146",
+      "notes": "d8 plus memx (no-map 64 MiB at 0x34a000000, the DDR that aborts on instruction fetch). Default DTB since r204."
+    }
+  }
+}

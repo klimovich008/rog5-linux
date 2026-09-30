@@ -205,6 +205,51 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-rog5-make-bundle.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git",
+        "tar",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-make-bundle.py",
+        "scripts/host/rog5-bundle-registry.py",
+        "configs/production/bundles.json",
+        "configs/production/dtbs.json",
+        "docs/bundles.md"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "private DTB directory not present",
+          "scope": "subcheck",
+          "reason": "The registered board.dtb files and their features files live in the private production state directory; the fixture covers the checks, so a skip proves nothing about the real DTBs.",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/<dtb dir>/board.dtb and features"
+          ],
+          "test_ids": [
+            "Registries.test_private_dtb_files_match_the_registry_when_present"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/host/test-install-default-kernel.py",
       "interpreter": "python3",
       "tiers": [
@@ -1214,6 +1259,20 @@
             "Builds.test_platform_kit_is_always_installed",
             "Builds.test_wifi_kit_is_installed_only_when_pinned",
             "Builds.test_update_kit_is_installed_only_on_request_with_exact_modes"
+          ]
+        },
+        {
+          "id": "optional-2",
+          "kind": "unittest",
+          "message": "labelled-release ramdisk build needs the private V9 base archive and the r110 module package",
+          "scope": "subcheck",
+          "reason": "Relabels the private r110 module package to 7.2.7-rog5-k111 and builds the real production ramdisk from it; the release allowlist itself stays mandatory in test-standalone-rescue-composition.py.",
+          "inputs": [
+            "ROG5_TEST_STANDALONE_BASE",
+            "ROG5_TEST_LABEL_SOURCE_PACKAGE"
+          ],
+          "test_ids": [
+            "LabelledRelease.test_labelled_release_builds_one_tree_and_a_wrong_label_is_refused"
           ]
         }
       ]

@@ -237,5 +237,67 @@ class Builds(unittest.TestCase):
             self.assertFalse(output.exists())
 
 
+LABEL_SOURCE = Path(os.environ.get(
+    'ROG5_TEST_LABEL_SOURCE_PACKAGE',
+    STATE/'rog5-production-boot-20260923/modules-7.2.7-r110/module-root-complete.tar.gz'))
+LABELLED = '7.2.7-rog5-k111'
+
+
+def relabel(package, root, release):
+    """A copy of a 7.2.7-rog5-production module package for RELEASE, as a
+    kNNN-labelled build would package it: the tree renamed, each vermagic
+    rewritten in place (NUL padded, so modinfo reads the new value) and depmod
+    rerun. Packed with the real packager's pack()."""
+    import importlib.util
+    tree = root/'tree'
+    with tarfile.open(package) as source:
+        source.extractall(tree, filter='tar')
+    modules = tree/'lib/modules'
+    (modules/RELEASE).rename(modules/release)
+    old, new = RELEASE.encode(), release.encode()
+    for ko in (modules/release).rglob('*.ko'):
+        data = ko.read_bytes()
+        start = data.index(b'vermagic='+old+b' ')
+        end = data.index(b'\0', start)
+        entry = data[start:end].replace(old, new)
+        ko.write_bytes(data[:start]+entry+b'\0'*(end-start-len(entry))+data[end:])
+    subprocess.run(['depmod', '-a', '-b', str(tree), release], check=True, capture_output=True)
+    spec = importlib.util.spec_from_file_location('packager', REPO/'scripts/host/package-production-modules.py')
+    packager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(packager)
+    out = root/'labelled.tar.gz'
+    packager.pack(tree, out)
+    return out
+
+
+@unittest.skipUnless(BASE.is_file() and LABEL_SOURCE.is_file(),
+                     'labelled-release ramdisk build needs the private V9 base archive and the r110 module package')
+class LabelledRelease(unittest.TestCase):
+    """From k111 on uname -r is 7.2.7-rog5-kNNN: the ramdisk carries exactly
+    that release's tree, and the init expects exactly that release."""
+    def test_labelled_release_builds_one_tree_and_a_wrong_label_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            package = relabel(LABEL_SOURCE, tmp, LABELLED)
+            descriptor = tmp/'descriptor'
+            descriptor.write_bytes(DESCRIPTOR)
+            output = tmp/'labelled.cpio.gz'
+            result = build(BASE, output, package, sha(package), release=LABELLED, env_extra=dict(
+                PRODUCTION_TRIAL_DESCRIPTOR=str(descriptor), PRODUCTION_TRIAL_DESCRIPTOR_SHA256=sha(descriptor)))
+            self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+            listing = subprocess.run(f'gzip -dc {output} | cpio -t --quiet', shell=True,
+                                     capture_output=True, text=True, check=True).stdout.splitlines()
+            trees = {name.split('/')[2] for name in listing if name.startswith('lib/modules/') and name.count('/') >= 2}
+            self.assertEqual(trees, {LABELLED})
+            self.assertIn('lib/modules/'+LABELLED+'/modules.dep', listing)
+            init = subprocess.run(f'gzip -dc {output} | cpio -i --to-stdout --quiet init', shell=True,
+                                  capture_output=True, check=True).stdout
+            self.assertIn(b'\nexpected_kernel_release='+LABELLED.encode()+b'\n', init)
+            # The modules of k111 never go into a ramdisk for another release.
+            wrong = build(BASE, tmp/'wrong.cpio.gz', package, sha(package), release='7.2.7-rog5-k112')
+            self.assertNotEqual(wrong.returncode, 0)
+            self.assertFalse((tmp/'wrong.cpio.gz').exists())
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

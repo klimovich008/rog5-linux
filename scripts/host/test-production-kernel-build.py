@@ -77,6 +77,37 @@ class BoardBuild(unittest.TestCase):
             with self.assertRaises(ValueError):B.compiled_release(objects)
             header.unlink()
             with self.assertRaises(OSError):B.compiled_release(objects)
+    def test_release_label_from_output_or_argument(self):
+        self.assertEqual(B.release_label(Path('/s/rog5-kernel-7.2.7-build-r111')),'k111')
+        self.assertEqual(B.release_label(Path('/s/rog5-kernel-7.2.7-build-r111'),'k111'),'k111')
+        self.assertEqual(B.release_label(Path('/w/build/board-production')),'k0')
+        self.assertEqual(B.release_label(Path('/w/scratch'),'k7'),'k7')
+        for output,label in (('/s/x-build-r111','k112'),('/s/x','k0'),('/s/x','k01'),('/s/x','111'),('/s/x','k12345'),('/s/x','k1\n')):
+            with self.subTest(label=label),self.assertRaises(ValueError):B.release_label(Path(output),label)
+    def test_policy_release_carries_the_label(self):
+        policy=json.loads(B.CONFIG.read_text())
+        self.assertNotIn('CONFIG_LOCALVERSION',policy['required'])
+        self.assertEqual(policy['required']['CONFIG_LOCALVERSION_AUTO'],'n')
+        fragments=''.join((B.REPO/f).read_text() for f in policy['fragments'])
+        self.assertNotRegex(fragments,r'(?m)^CONFIG_LOCALVERSION=')
+        labelled,localversion=B.labelled_policy(policy,'k111')
+        self.assertEqual(localversion,'-rog5-k111')
+        self.assertEqual(labelled['required']['CONFIG_LOCALVERSION'],'"-rog5-k111"')
+        self.assertNotIn('CONFIG_LOCALVERSION',policy['required'])
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'.config'
+            valid=''.join(k+'='+v+'\n' for k,v in labelled['required'].items())
+            p.write_text(valid);B.check_config(p,labelled)
+            p.write_text(valid.replace('"-rog5-k111"','"-rog5-k110"'))
+            with self.assertRaises(ValueError):B.check_config(p,labelled)
+        self.assertEqual(B.labelled_release('7.2.7-rog5-k111','-rog5-k111'),'7.2.7-rog5-k111')
+        for release in ('7.2.7-rog5-production','7.2.7-rog5-k1111','7.2.7-rog5-k111-dirty','x7.2.7-rog5-k111'):
+            with self.subTest(release=release),self.assertRaises(ValueError):B.labelled_release(release,'-rog5-k111')
+        pinned=dict(policy,required=dict(policy['required'],CONFIG_LOCALVERSION='"-rog5-production"'))
+        with self.assertRaises(ValueError):B.labelled_policy(pinned,'k111')
+        legacy={k:v for k,v in pinned.items() if k!='release_localversion'}
+        self.assertEqual(B.labelled_policy(legacy,'k111'),(legacy,None))
+        self.assertEqual(B.labelled_release('7.2.7-rog5-production',None),'7.2.7-rog5-production')
     def test_changed_or_deleted_frozen_input_fails(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);source=root/'input';source.write_text('original')

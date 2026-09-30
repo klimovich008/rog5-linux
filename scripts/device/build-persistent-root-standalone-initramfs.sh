@@ -67,9 +67,13 @@ case $production_update in 0|1) ;; *)
 esac
 # Exact production releases with a build policy in configs/kernel; an upgrade
 # adds its release here. case matches the whole string (no newline tricks).
+# Builds from k111 on carry their label (7.2.7-rog5-k111, k1 to k9999); k0 is
+# an unlabelled scratch/CI build and is refused.
 production_release() {
 	case $1 in
 		7.1.4-rog5-production|7.2.7-rog5-production) return 0 ;;
+		7.2.7-rog5-k[1-9]|7.2.7-rog5-k[1-9][0-9]) return 0 ;;
+		7.2.7-rog5-k[1-9][0-9][0-9]|7.2.7-rog5-k[1-9][0-9][0-9][0-9]) return 0 ;;
 		*) return 1 ;;
 	esac
 }

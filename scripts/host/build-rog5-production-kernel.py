@@ -48,6 +48,46 @@ def compiled_release(objects):
     return release
 
 
+LABEL = re.compile(r'k[1-9][0-9]{0,3}')
+
+
+def release_label(output, label=None):
+    """The build's kNNN label: --label, else the rNNN of an output named
+    *-build-rNNN, else k0 (unlabelled scratch/CI build, which the production
+    ramdisk builder refuses)."""
+    number = re.search(r'-build-r([1-9][0-9]{0,3})$', Path(output).name)
+    if label is None:
+        return 'k'+number[1] if number else 'k0'
+    if not LABEL.fullmatch(label):
+        raise ValueError('--label must be kNNN (k1 to k9999)')
+    if number and label != 'k'+number[1]:
+        raise ValueError('--label '+label+' does not match the output build-r'+number[1])
+    return label
+
+
+def labelled_policy(policy, label):
+    """(policy with CONFIG_LOCALVERSION required, localversion) for this label.
+    uname -r becomes <version>-rog5-kNNN, so each kernel build is visible on
+    the phone and its modules can never be mistaken for another build's."""
+    template = policy.get('release_localversion')
+    if template is None:
+        return policy, None
+    if 'CONFIG_LOCALVERSION' in policy['required']:
+        raise ValueError('policy pins CONFIG_LOCALVERSION and release_localversion')
+    localversion = template.format(label=label)
+    if not re.fullmatch(r'-[a-z0-9][a-z0-9-]{0,30}', localversion):
+        raise ValueError('invalid release_localversion '+localversion)
+    labelled = json.loads(json.dumps(policy))
+    labelled['required']['CONFIG_LOCALVERSION'] = '"'+localversion+'"'
+    return labelled, localversion
+
+
+def labelled_release(release, localversion):
+    if localversion is not None and not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+'+re.escape(localversion), release):
+        raise ValueError('compiled release '+release+' does not end in '+localversion)
+    return release
+
+
 def series(root=PATCHES):
     groups = {}
     for role in ('production', 'diagnostic'):
@@ -123,6 +163,8 @@ def main():
     parser.add_argument('--firmware-root', type=Path)
     parser.add_argument('--base-archive', type=Path, help='reuse only the exact hash-pinned immutable-base tar')
     parser.add_argument('--prepare-only', action='store_true', help='apply/resolve config only; compile remains NOT RUN')
+    parser.add_argument('--label', help='kernel build label kNNN (default: the rNNN of an output named *-build-rNNN); '
+                        'uname -r becomes <version>-rog5-kNNN')
     args = parser.parse_args()
     if not 1 <= args.jobs <= (os.cpu_count() or 1): parser.error('--jobs must be between 1 and the CPU count')
     if args.ccache and not (args.ccache.is_file() and os.access(args.ccache, os.X_OK)): parser.error('--ccache must be an executable')
@@ -132,6 +174,8 @@ def main():
         parser.error('schema tools not on PATH: '+', '.join(missing_tools)
                      + ' (put ~/.local/state/rog5-host-tools/dtschema-2026.6/bin first in PATH)')
     output = args.output.resolve()
+    try: label = release_label(output, args.label)
+    except ValueError as error: parser.error(str(error))
     if output.exists(): parser.error('output must be new; never reuse an unknown build')
     output.mkdir(parents=True)
     started = time.monotonic()
@@ -179,6 +223,8 @@ def main():
         if process.returncode: raise RuntimeError(name+' failed; see '+str(output/(name+'.log')))
     try:
         config = args.config.resolve(); policy = json.loads(config.read_text())
+        checked_policy, localversion = labelled_policy(policy, label)
+        result['release_label'] = label
         patches = REPO/policy.get('patch_dir', 'patches/linux-7.2.7'); groups = series(patches)
         warning_policy_path = REPO/policy.get('warning_policy_file', str(WARNING_POLICY.relative_to(REPO)))
         result['repository'] = dict(commit=capture(['git','-C',str(REPO),'rev-parse','HEAD']),
@@ -240,9 +286,14 @@ def main():
             result['tools']['ccache']=dict(path=str(args.ccache.resolve()),sha256=digest(args.ccache),
                 version=subprocess.run([str(args.ccache),'--version'],capture_output=True,text=True).stdout.splitlines()[:1])
         run('defconfig', make+['defconfig'])
-        run('merge-config', [str(source/'scripts/kconfig/merge_config.sh'),'-m','-O',str(objects),str(objects/'.config')]+[str(REPO/p) for p in policy['fragments']])
+        fragments = [str(REPO/p) for p in policy['fragments']]
+        if localversion is not None:
+            # Last fragment: the per-build release suffix (policy release_localversion).
+            (output/'release-label.fragment').write_text('CONFIG_LOCALVERSION="'+localversion+'"\n')
+            fragments.append(str(output/'release-label.fragment'))
+        run('merge-config', [str(source/'scripts/kconfig/merge_config.sh'),'-m','-O',str(objects),str(objects/'.config')]+fragments)
         run('olddefconfig', make+['olddefconfig'])
-        check_config(objects/'.config',policy)
+        check_config(objects/'.config',checked_policy)
         result['config_sha256']=digest(objects/'.config')
         result['btf'] = dict(status='DISABLED', resolved_config_debug_info_btf='n', pahole='NOT REQUIRED: CONFIG_DEBUG_INFO_NONE=y')
         spec=importlib.util.spec_from_file_location('board_diagnostics',DIAGNOSTIC_SOURCE)
@@ -252,7 +303,7 @@ def main():
             result['status']='PREPARED'; result['compilation']='NOT RUN'
         else:
             run('kernel-build',make+['-j'+str(args.jobs),'W=1','Image','modules',*targets])
-            result['release']=compiled_release(objects)
+            result['release']=labelled_release(compiled_release(objects),localversion)
             result['outputs']={str(p.relative_to(output)):digest(p) for p in
                 [objects/'arch/arm64/boot/Image',objects/'Module.symvers',objects/'System.map',objects/'.config']+
                 [objects/'arch/arm64/boot/dts'/target for target in targets]}

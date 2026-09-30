@@ -1,0 +1,40 @@
+{
+  "format": "rog5-bundle-inputs-v1",
+  "comment": "Hash-pinned private inputs of every production bundle (scripts/host/rog5-make-bundle.py). Paths start with ~ (home) or {state} (state_dir). None of these files is in Git; the signing key is only passed to package-production-ram-trial.py, which checks it against the slot-B trust key.",
+  "state_dir": "~/.local/state/rog5-production-boot-20260923",
+  "kernel_builds": "~/.local/state",
+  "trust_key": {
+    "path": "{state}/trust-key.raw",
+    "sha256": "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
+  },
+  "signing_key": "~/.local/state/rog5-side-charge-v6-build-20260820-r1/recovery-signing-key.pem",
+  "ramdisk_base": {
+    "path": "~/.local/state/rog5-cpu-startup-20260908.kjE4IqCf/buttons-successor-unsigned-r2/target-a.cpio.gz",
+    "sha256": "5146e22fb147134bf8f079512dd51cdecd40d8e86818ab6a3d7bfe3bbf14f9b7"
+  },
+  "extra_firmware": {
+    "path": "{state}/display-firmware-r4",
+    "sums_sha256": "390cf505ab99d7931c291b15f7a0e945ed75f26390cc7825fd450a75edc5cef9"
+  },
+  "wifi_kit": {
+    "path": "{state}/wifi-kit-r2",
+    "sums_sha256": "1f8e921e37fe076378f971085c6654dabceb95c6b09d3a77979caf5d78fa1e4f"
+  },
+  "recovery_base": {
+    "path": "~/.local/state/rog5-haven-clean-ci-20260810/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz",
+    "sha256": "d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc"
+  },
+  "asus_template": {
+    "path": "~/.local/state/rog5-exact-fallback-rescue-20260905.MiSVJRzz/boot.img",
+    "sha256": "1636cf80a50ec0753a7cdb0ef1187898291b0988723f2dd5ddad011066aa1463"
+  },
+  "asus_kernel": {
+    "path": "~/.local/state/rog5-exact-fallback-rescue-20260905.MiSVJRzz/final-inspection/kernel",
+    "sha256": "838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783"
+  },
+  "ramdisk_env": {
+    "UFS_CONTAINMENT": "off",
+    "PERSISTENT_ROOT_OVERLAY": "1",
+    "PRODUCTION_UPDATE_KIT": "1"
+  }
+}
