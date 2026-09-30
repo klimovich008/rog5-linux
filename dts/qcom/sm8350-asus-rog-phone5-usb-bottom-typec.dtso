@@ -44,6 +44,10 @@
  *   marking for SPI 566 (stock requests the pin falling edge), and a level
  *   interrupt on an SPI marked edge never reaches the GIC (r202: ALERT held
  *   low with Rd attached, 0 interrupts, TCPM stuck in SRC_UNATTACHED).
+ * - No DRP toggling for a source-only port (tcpci refuses it), so the
+ *   RT1715 reports CC changes only; a device already plugged in at boot or
+ *   driver rebind needs kernel patch 0146 (TCPM reads CC once when the
+ *   port reset ends), otherwise it attaches only after a replug (r206).
  * The side port (UCSI, port0) is untouched; this port registers as port1
  * because tcpci_rt1711h loads from boot-modules after the initramfs' UCSI.
  */

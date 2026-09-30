@@ -1,0 +1,60 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] usb: typec: tcpm: source-only port without toggling: look at CC when the port reset ends
+
+A TCPC that cannot toggle for this port (tcpci_start_toggling() refuses
+anything but DRP) only reports CC *changes*, and _tcpm_cc_change() ignores
+changes in PORT_RESET and PORT_RESET_WAIT_OFF. SRC_UNATTACHED then just
+presents Rp again. A sink that is already attached when Rp goes on is seen
+by the TCPC during the reset (or its alert is cleared by tcpci_init()'s
+"clear all events" before the port starts) and never produces another
+event: the port stays unattached until the sink is replugged.
+
+ROG Phone 5 bottom port (RT1715, source-only, r206): booted and rebound
+with a USB stick attached, CC_STATUS showed Rd on CC1 (0x02), ALERT 0,
+TCPM in SRC_UNATTACHED with CC1 = open, no further CC event for minutes;
+replugging attached at once (SRC_READY, VBUS on). Earlier boots with the
+stick attached did attach, depending on when the alert landed.
+
+When a source-only port leaves PORT_RESET_WAIT_OFF for SRC_UNATTACHED
+without toggling, read CC once and feed it to _tcpm_cc_change() if a
+termination is present (SRC_ATTACH_WAIT debounces it as usual). Rp has
+been on since PORT_RESET (>= PD_T_ERROR_RECOVERY), so CC_STATUS has
+settled. Limited to that transition: a sink that fails later (e.g. VBUS
+does not come up and SRC_ATTACHED times out) is not retried in a loop.
+
+--- a/drivers/usb/typec/tcpm/tcpm.c
++++ b/drivers/usb/typec/tcpm/tcpm.c
+@@ -5173,6 +5173,9 @@
+ 	port->negotiated_rev_prime = port->negotiated_rev;
+ }
+ 
++static void _tcpm_cc_change(struct tcpm_port *port, enum typec_cc_status cc1,
++			    enum typec_cc_status cc2);
++
+ static void run_state_machine(struct tcpm_port *port)
+ {
+ 	int ret;
+@@ -5211,6 +5214,23 @@
+ 		tcpm_set_cc(port, tcpm_rp_cc(port));
+ 		if (port->port_type == TYPEC_PORT_DRP)
+ 			tcpm_set_state(port, SNK_UNATTACHED, PD_T_DRP_SNK);
++		/*
++		 * Without toggling, the TCPC only reports CC changes, and CC
++		 * changes during PORT_RESET are ignored. A sink attached
++		 * before Rp went on (boot, driver rebind, error recovery)
++		 * then never attaches until it is replugged: look at CC once
++		 * when the reset ends. Source-only ports only: ROLE_CONTROL
++		 * has been Rp throughout, so CC_STATUS is not a stale sink-
++		 * side reading.
++		 */
++		if (port->port_type == TYPEC_PORT_SRC &&
++		    port->prev_state == PORT_RESET_WAIT_OFF) {
++			enum typec_cc_status cc1, cc2;
++
++			if (!port->tcpc->get_cc(port->tcpc, &cc1, &cc2) &&
++			    (cc1 != TYPEC_CC_OPEN || cc2 != TYPEC_CC_OPEN))
++				_tcpm_cc_change(port, cc1, cc2);
++		}
+ 		break;
+ 	case SRC_ATTACH_WAIT:
+ 		if (tcpm_port_is_debug_source(port))

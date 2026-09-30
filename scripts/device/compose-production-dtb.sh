@@ -23,8 +23,9 @@ case ,$features, in *,cpucap,*) cpucap=1; features=$(printf %s "$features" | sed
 # usbbtmtc (bottom port stage B: the RT1715 Type-C controller on i2c13 switches
 # the 5 V as a source-only port instead of rog5-usb-bottom) likewise; needs
 # usbbtm, tcpci_rt1711h in boot-modules, a kernel with 0144 (PDC SPI
-# edge/level config: the level-low ALERT never fires without it), and enables
-# QUP wrapper 1 at boot.
+# edge/level config: the level-low ALERT never fires without it) and 0146
+# (TCPM looks at CC after the port reset: a device plugged in at boot), and
+# enables QUP wrapper 1 at boot.
 case ,$features, in *,usbbtmtc,*) usbbtmtc=1; features=$(printf %s "$features" | sed 's/^usbbtmtc$//; s/,usbbtmtc$//; s/,usbbtmtc,/,/') ;; *) usbbtmtc=0 ;; esac
 # usbbtm (bottom USB-C port as a USB 2.0 host, 5 V by hand) likewise; needs a
 # kernel with 0089 and CONFIG_REGULATOR_USERSPACE_CONSUMER=y.
@@ -500,6 +501,8 @@ if [ "$usbbtmtc" = 1 ]; then
 	# stock's edge marking and the interrupt never fires.
 	grep -q pdc_spi_cfg_set_type "$source/drivers/irqchip/qcom-pdc.c" ||
 		{ echo 'FAIL usbbtmtc: kernel source lacks 0144 (PDC SPI edge/level config)' >&2; exit 1; }
+	grep -q 'port->prev_state == PORT_RESET_WAIT_OFF' "$source/drivers/usb/typec/tcpm/tcpm.c" ||
+		{ echo 'FAIL usbbtmtc: kernel source lacks 0146 (TCPM looks at CC after the port reset)' >&2; exit 1; }
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
 		-o "$work/usbbtmtc.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-usb-bottom-typec.dtso"
