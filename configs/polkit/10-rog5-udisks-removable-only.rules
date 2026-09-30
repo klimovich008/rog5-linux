@@ -1,24 +1,27 @@
 // ROG5: udisks may act only on removable drives (USB sticks and disks on the
-// bottom port or a hub). The internal UFS holds the Linux root and the
-// bootloader/firmware LUNs; refuse every udisks action on it (mount, unmount,
-// format, partition, power-off, loop over a device, ...) for every non-root
-// caller, whatever its session or group. Root does not go through polkit.
-// udisks passes the drive's properties as details. Actions without a drive
-// are refused too when they can reach the UFS: RAID creation (the manager
-// passes only member devices, no drive) and loop devices whose backing file
-// lives on the UFS userdata (the root overlay and server-state images). A
-// loop device over a user's own image file is left to the default rules.
-function rog5UfsLoop(device) {
+// bottom port or a hub) and on loop devices over the user's own image files.
+// The internal UFS holds the Linux root and the bootloader/firmware LUNs;
+// refuse every udisks action on it (mount, unmount, format, partition,
+// power-off, ...) for every non-root caller, whatever its session or group.
+// Root does not go through polkit.
+//
+// udisks passes the drive's properties as details. A loop device has no Drive
+// object and udisks falls back to the device path for the "drive" detail
+// (udisksdaemonutil.c), so loops are decided by their backing file first: the
+// UFS images under /.rog5/ (root overlay, server state) are refused, a loop
+// over any other file (an ISO opened in Files) gets the default rules, and a
+// loop whose backing file can't be read is refused. Actions without device
+// details that can reach the UFS are refused outright: RAID creation (only
+// member paths), LVM, and cancelling another user's (root's) job.
+function rog5LoopBacking(device) {
 	var m = /^\/dev\/(loop[0-9]+)(p[0-9]+)?$/.exec(device || "");
 	if (!m)
-		return false;
+		return "";
 	try {
-		var f = polkit.spawn(["/usr/bin/cat",
-				      "/sys/block/" + m[1] + "/loop/backing_file"]);
-		return f.indexOf("/.rog5/") == 0;
+		return polkit.spawn(["/usr/bin/cat",
+				     "/sys/block/" + m[1] + "/loop/backing_file"]).trim();
 	} catch (e) {
-		// Not attached (no backing_file): nothing on the UFS behind it.
-		return false;
+		return null;
 	}
 }
 
@@ -26,12 +29,16 @@ polkit.addRule(function(action, subject) {
 	if (action.id.indexOf("org.freedesktop.udisks2.") != 0)
 		return polkit.Result.NOT_HANDLED;
 	if (action.id == "org.freedesktop.udisks2.manage-md-raid" ||
+	    action.id == "org.freedesktop.udisks2.cancel-job-other-user" ||
 	    action.id.indexOf("org.freedesktop.udisks2.lvm2.") == 0)
 		return polkit.Result.NO;
+	var backing = rog5LoopBacking(action.lookup("device"));
+	if (backing === null || (backing && backing.indexOf("/.rog5/") == 0))
+		return polkit.Result.NO;
+	if (backing)
+		return polkit.Result.NOT_HANDLED;
 	if (action.lookup("drive") &&
 	    action.lookup("drive.removable") != "true")
-		return polkit.Result.NO;
-	if (rog5UfsLoop(action.lookup("device")))
 		return polkit.Result.NO;
 	return polkit.Result.NOT_HANDLED;
 });

@@ -136,3 +136,19 @@ condensed findings are here.
   failing state raise bandwidth vs clock separately; candidate fix: port stock's
   60 Hz QoS tables, then drop the GNOME pin. 0101's commit text is wrong (INTF
   timing starts after the CTL flush).
+
+## Sol standby and USB re-reviews (05:20-06:00)
+
+- `2026-10-01-gpt-6.1-sol-standby.md`: leading suspects ADSP firmware sleep
+  policy (charger PD, no island mode in mainline) and the SLPI sleep set; no
+  single MC/SH/ACV voter proven. Stock's `ddr: ddr_log` AOP control is the one
+  untested QMP difference. The boot-time bisects stay the plan.
+- `2026-10-01-gpt-6.1-sol-usb-review.md`: agrees with 0117 (mechanism; "confirmed
+  cause" too strong without an oops record), p2 (femto HOST_SS checks), p4;
+  p3 (usbcore retry) to revise before adoption; p7 incomplete. Storage
+  correction applied: udisks falls back to the device path for the `drive`
+  detail, so the first rule already refused **all** loops, including a user's
+  ISO; the rule now decides loops by backing file first (UFS images refused,
+  unreadable backing refused, other loops default rules) and also refuses
+  `cancel-job-other-user`. Checked with pkcheck: UFS loops/partition refused,
+  a user image loop and a USB stick allowed.
