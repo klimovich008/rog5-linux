@@ -3,8 +3,8 @@
 #
 # Valve publishes the ARM64 client on its own update CDN
 # (client-update.steamstatic.com/steam_client_linuxarm64, and _publicbeta_
-# for the beta). This downloads the client bootstrap package from that
-# manifest, checks its SHA-256 against the manifest, unpacks it into
+# for the beta). This downloads every package of that manifest, checks
+# each SHA-256 against it, unpacks them into
 # ~/.local/share/Steam and adds a "Steam" launcher (steam-arm64, which
 # restarts the client after its self-update). The phone kernel uses 4 KiB
 # pages, so no muvm VM is needed (Asahi needs it for 16 KiB pages). x86
