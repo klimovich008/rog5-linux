@@ -1,5 +1,6 @@
 #!/bin/sh
-# Offline tests of steam-arm64 (environment given to the client) and
+# Offline tests of steam-arm64 (environment given to the client, browser
+# composer in registry.vdf) and
 # steam-fex-rootfs-install (publication never leaves no root; one run at a
 # time), with fake tools on PATH.
 set -eu
@@ -26,6 +27,85 @@ rm -f "$t/runs" "$t/env"
 HOME=$t/home STEAMROOT=$s env -u LD_LIBRARY_PATH sh "$here/steam-arm64" 2>/dev/null
 [ "$(sed -n 1p "$t/env")" = "$s/steamrtarm64||-noverifyfiles" ] || fail "steam-arm64: empty caller path: $(sed -n 1p "$t/env")"
 echo "PASS steam-arm64: steamrtarm64 only for the client, SYSTEM_LD_LIBRARY_PATH = caller's"
+
+# --- steam-arm64: browser composer in registry.vdf ----------------------------
+reg=$t/home/.steam/registry.vdf
+key='"OverrideBrowserComposerMode"'
+launch() { rm -f "$t/runs"; HOME=$t/home STEAMROOT=$s sh "$here/steam-arm64" 2>"$t/err" || fail "steam-arm64 failed: $(cat "$t/err")"; }
+# written by the runs above (no registry.vdf yet): a new file with the value
+grep -q "^$(printf '\t\t\t\t\t')$key$(printf '\t\t')\"2\"\$" "$reg" || fail "composer: new registry.vdf: $(cat "$reg")"
+T=$(printf '\t')
+cat >"$reg" <<EOF
+"Registry"
+{
+${T}"HKLM"
+${T}{
+${T}${T}"Software"
+${T}${T}{
+${T}${T}${T}"Valve"
+${T}${T}${T}{
+${T}${T}${T}${T}"Steam"
+${T}${T}${T}${T}{
+${T}${T}${T}${T}${T}"OverrideBrowserComposerMode"${T}${T}"9"
+${T}${T}${T}${T}}
+${T}${T}${T}}
+${T}${T}}
+${T}}
+${T}"HKCU"
+${T}{
+${T}${T}"Software"
+${T}${T}{
+${T}${T}${T}"Valve"
+${T}${T}${T}{
+${T}${T}${T}${T}"Steam"
+${T}${T}${T}${T}{
+${T}${T}${T}${T}${T}"language"${T}${T}"english"
+${T}${T}${T}${T}${T}"Sub"
+${T}${T}${T}${T}${T}{
+${T}${T}${T}${T}${T}${T}"OverrideBrowserComposerMode"${T}${T}"8"
+${T}${T}${T}${T}${T}}
+${T}${T}${T}${T}}
+${T}${T}${T}${T}"Steamsteamglobal"
+${T}${T}${T}${T}{
+${T}${T}${T}${T}${T}"language"${T}${T}"english"
+${T}${T}${T}${T}}
+${T}${T}${T}}
+${T}${T}}
+${T}}
+}
+EOF
+cp "$reg" "$t/reg.orig"
+launch
+[ "$(diff "$t/reg.orig" "$reg" | grep -c '^[<>]')" = 1 ] &&
+	diff "$t/reg.orig" "$reg" | grep -q "^> ${T}${T}${T}${T}${T}$key${T}${T}\"2\"\$" ||
+	fail "composer: insert into HKCU/Software/Valve/Steam: $(diff "$t/reg.orig" "$reg")"
+[ "$(grep -A2 "^${T}${T}${T}${T}${T}}\$" "$reg" | sed -n 2,3p)" = "${T}${T}${T}${T}${T}$key${T}${T}\"2\"
+${T}${T}${T}${T}}" ] || fail "composer: key not added where the Steam block closes: $(cat "$reg")"
+sed -i "s/^${T}${T}${T}${T}${T}$key${T}${T}\"2\"\$/${T}${T}${T}${T}${T}\"overridebrowsercomposermode\"${T}${T}\"1\"/" "$reg"
+cp "$reg" "$t/reg.one"
+launch
+[ "$(grep -c "\"2\"" "$reg")" = 1 ] && ! grep -q '"overridebrowsercomposermode"' "$reg" &&
+	[ "$(diff "$t/reg.one" "$reg" | grep -c '^[<>]')" = 2 ] || fail "composer: replace existing value: $(diff "$t/reg.one" "$reg")"
+cp "$reg" "$t/reg.two"
+launch
+cmp -s "$t/reg.two" "$reg" || fail "composer: rewrote an up-to-date registry.vdf"
+ROG5_STEAM_COMPOSER=keep HOME=$t/home STEAMROOT=$s sh "$here/steam-arm64" 2>/dev/null
+ROG5_STEAM_COMPOSER=1 HOME=$t/home STEAMROOT=$s sh "$here/steam-arm64" 2>/dev/null
+grep -q "$key${T}${T}\"1\"" "$reg" || fail "composer: ROG5_STEAM_COMPOSER=1 not written"
+cp "$reg" "$t/reg.keep"
+ROG5_STEAM_COMPOSER=keep HOME=$t/home STEAMROOT=$s sh "$here/steam-arm64" 2>/dev/null
+cmp -s "$t/reg.keep" "$reg" || fail "composer: ROG5_STEAM_COMPOSER=keep changed registry.vdf"
+# a running client owns registry.vdf (it writes it back on exit)
+cp "$(command -v sleep)" "$t/steam"; "$t/steam" 30 & spid=$!
+echo "$spid" >"$t/home/.steam/steam.pid"
+launch
+kill "$spid"; wait "$spid" 2>/dev/null || true; rm -f "$t/home/.steam/steam.pid"
+cmp -s "$t/reg.keep" "$reg" || fail "composer: registry.vdf changed while Steam runs"
+printf '"Registry"\n{\n}\n' >"$reg"
+launch
+grep -q 'browser composer not set' "$t/err" && [ "$(cat "$reg")" = "$(printf '"Registry"\n{\n}')" ] && [ ! -e "$reg.rog5" ] ||
+	fail "composer: registry.vdf without HKCU: $(cat "$t/err") / $(cat "$reg")"
+echo "PASS steam-arm64: OverrideBrowserComposerMode (new, insert, replace, unchanged, keep, Steam running, no HKCU)"
 
 # --- steam-fex-rootfs-install -------------------------------------------------
 b=$t/bin; mkdir -p "$b"
