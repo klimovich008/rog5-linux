@@ -38,6 +38,12 @@
  *   broke the Wi-Fi firmware load by taking an SMMU context bank ahead of
  *   PCIe (before 0064); wrapper 1 has its own stream (0x43) and must be
  *   checked the same way (Wi-Fi up after boot) in the first trial.
+ * - ALERT is level low (tcpci_rt1711h requests IRQF_TRIGGER_LOW anyway):
+ *   tlmm 118 -> PDC pin 116 -> GIC SPI 566. Needs kernel patch 0144: the
+ *   PDC's SPI edge/level register (reg[1], 0x17c000f0) keeps stock's edge
+ *   marking for SPI 566 (stock requests the pin falling edge), and a level
+ *   interrupt on an SPI marked edge never reaches the GIC (r202: ALERT held
+ *   low with Rd attached, 0 interrupts, TCPM stuck in SRC_UNATTACHED).
  * The side port (UCSI, port0) is untouched; this port registers as port1
  * because tcpci_rt1711h loads from boot-modules after the initramfs' UCSI.
  */

@@ -22,7 +22,9 @@ case ,$features, in *,acd,*) acd=1; features=$(printf %s "$features" | sed 's/^a
 case ,$features, in *,cpucap,*) cpucap=1; features=$(printf %s "$features" | sed 's/^cpucap$//; s/,cpucap$//; s/,cpucap,/,/') ;; *) cpucap=0 ;; esac
 # usbbtmtc (bottom port stage B: the RT1715 Type-C controller on i2c13 switches
 # the 5 V as a source-only port instead of rog5-usb-bottom) likewise; needs
-# usbbtm, tcpci_rt1711h in boot-modules, and enables QUP wrapper 1 at boot.
+# usbbtm, tcpci_rt1711h in boot-modules, a kernel with 0144 (PDC SPI
+# edge/level config: the level-low ALERT never fires without it), and enables
+# QUP wrapper 1 at boot.
 case ,$features, in *,usbbtmtc,*) usbbtmtc=1; features=$(printf %s "$features" | sed 's/^usbbtmtc$//; s/,usbbtmtc$//; s/,usbbtmtc,/,/') ;; *) usbbtmtc=0 ;; esac
 # usbbtm (bottom USB-C port as a USB 2.0 host, 5 V by hand) likewise; needs a
 # kernel with 0089 and CONFIG_REGULATOR_USERSPACE_CONSUMER=y.
@@ -490,6 +492,10 @@ fi
 if [ "$usbbtmtc" = 1 ]; then
 	grep -q '"richtek,rt1715"' "$source/drivers/usb/typec/tcpm/tcpci_rt1711h.c" ||
 		{ echo 'FAIL usbbtmtc: kernel source lacks the RT1715 TCPC driver' >&2; exit 1; }
+	# ALERT is a level-low PDC GPIO (SPI 566); without 0144 the SPI keeps
+	# stock's edge marking and the interrupt never fires.
+	grep -q pdc_spi_cfg_set_type "$source/drivers/irqchip/qcom-pdc.c" ||
+		{ echo 'FAIL usbbtmtc: kernel source lacks 0144 (PDC SPI edge/level config)' >&2; exit 1; }
 	cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 		-I "$source/scripts/dtc/include-prefixes" \
 		-o "$work/usbbtmtc.pp" "$repo/dts/qcom/sm8350-asus-rog-phone5-usb-bottom-typec.dtso"
@@ -513,6 +519,9 @@ if [ "$usbbtmtc" = 1 ]; then
 			"$(fdtget "$work/composed.dtb" /regulator-rog5-btm-vbus phandle)" ] &&
 		[ "$(fdtget "$work/composed.dtb" $tc interrupts-extended)" = \
 			"$(fdtget "$work/composed.dtb" /soc@0/pinctrl@f100000 phandle) 118 8" ] &&
+		# 0144 programs the SPI edge/level bits through the PDC's reg[1].
+		[ "$(fdtget -tx "$work/composed.dtb" /soc@0/interrupt-controller@b220000 reg)" = \
+			'0 b220000 0 30000 0 17c000f0 0 60' ] &&
 		[ "$(fdtget "$work/composed.dtb" $tc/connector power-role)" = source ] &&
 		[ "$(fdtget "$work/composed.dtb" $tc/connector data-role)" = host ] &&
 		fdtget "$work/composed.dtb" $tc/connector pd-disable >/dev/null &&

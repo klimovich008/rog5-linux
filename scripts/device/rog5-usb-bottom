@@ -50,6 +50,11 @@ if [ ! -e "$V" ]; then
 		partner=none; [ -e "$port-partner" ] && partner=attached
 		echo "typec=${port##*/} power_role=$(cat "$port/power_role") data_role=$(cat "$port/data_role") partner=$partner"
 	fi
+	# RT1715 ALERT (tlmm 118, level low). 0 with a device plugged in: the
+	# interrupt never arrives (kernel without 0144), TCPM never sees the Rd.
+	irqs=$(awk '$NF == "2-004e" { n = 0; for (i = 2; i <= NF && $i ~ /^[0-9]+$/; i++) n += $i; print n; exit }' \
+		"${ROG5_USB_PROC:-/proc}/interrupts" 2>/dev/null) || irqs=
+	echo "alert_irqs=${irqs:-missing}"
 	for r in "$sys"/class/regulator/regulator.*; do
 		[ "$(cat "$r/name" 2>/dev/null)" = btm_vbus ] && echo "5V=$(cat "$r/state" 2>/dev/null)"
 	done

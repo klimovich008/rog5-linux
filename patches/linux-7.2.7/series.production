@@ -107,3 +107,4 @@
 0141-usb-dwc3-qcom-also-check-the-xHCI-root-hub-before-reading-the-port-speed.patch
 0142-usb-hub-optional-delayed-re-enumeration-of-root-ports-without-port-power-control.patch
 0143-usb-dwc3-qcom-legacy-ROG5-opt-in-VBUS-session-override-only-in-the-device-role.patch
+0144-irqchip-qcom-pdc-program-the-SPI-edge-level-config-register.patch

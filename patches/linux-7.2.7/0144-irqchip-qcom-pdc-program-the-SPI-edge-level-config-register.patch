@@ -1,0 +1,131 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] irqchip/qcom-pdc: program the SPI edge/level config register
+
+The PDC binding describes a second register region, "Edge or Level config
+register for SPI interrupts" (sm8350: 0x17c000f0, 0x60 bytes = one bit per
+GIC SPI 0..767, set = level, clear = edge), and sm8350.dtsi lists it, but
+the driver never used it. The downstream kernel (qcom-pdc.c
+spi_configure_type()) writes the bit in every set_type, and the register
+is not reset for Linux: it keeps what the previous owner left.
+
+On the ROG Phone 5 that broke the bottom port's RT1715 ALERT (tlmm 118 ->
+PDC pin 116 -> SPI 566). Stock requests it IRQF_TRIGGER_FALLING, so SPI 566
+was left marked edge; mainline tcpci_rt1711h requests IRQF_TRIGGER_LOW (PDC
+level low -> GIC level high). With the SPI marked edge the asserted level
+never became pending at the GIC: ALERT held low (CC_STATUS alert, Rd on
+CC1), PDC pin 116 enabled and configured level-low, the TLMM wake forward
+bit for gpio118 set, GICD enabled and level, yet GICD_ISPENDR stayed 0 and
+the interrupt count stayed 0, also across a fresh high->low transition.
+The other level PDC GPIOs in use (cs35l45 gpio90/gpio2, SPI 564/567) had
+their bit set, and a stale edge pin (PDC 102 / SPI 552, unused by Linux)
+shows the state is left over from stock.
+
+Map the region when DT has it and set or clear the bit for the parent SPI
+in set_type, like downstream; clear a phantom pending state when the bit
+changes, as for a PDC type change.
+
+--- a/drivers/irqchip/qcom-pdc.c
++++ b/drivers/irqchip/qcom-pdc.c
+@@ -58,6 +58,8 @@
+ static DEFINE_RAW_SPINLOCK(pdc_lock);
+ static void __iomem *pdc_base;
+ static void __iomem *pdc_prev_base;
++static void __iomem *pdc_spi_cfg_base;
++static resource_size_t pdc_spi_cfg_size;
+ static struct pdc_pin_region *pdc_region;
+ static int pdc_region_cnt;
+ static unsigned int pdc_version;
+@@ -183,6 +185,45 @@
+ 	PDC_EDGE_DUAL		= 0b111,
+ };
+ 
++/*
++ * The optional second register region (DT reg[1], "Edge or Level config
++ * register for SPI interrupts") holds one bit per GIC SPI behind the PDC:
++ * set for a level, clear for an edge interrupt. It is not reset by Linux
++ * and keeps whatever the previous owner programmed (the downstream kernel
++ * writes it in every set_type): a level interrupt whose SPI is still marked
++ * edge never reaches the GIC.
++ */
++static bool pdc_spi_cfg_set_type(struct irq_data *d, unsigned int type)
++{
++	irq_hw_number_t parent_hwirq;
++	unsigned long flags;
++	u32 spi, reg, old, val;
++
++	if (!pdc_spi_cfg_base || !d->parent_data)
++		return false;
++
++	parent_hwirq = d->parent_data->hwirq;
++	if (parent_hwirq < 32)
++		return false;
++
++	spi = parent_hwirq - 32;
++	reg = (spi / 32) * sizeof(u32);
++	if (reg + sizeof(u32) > pdc_spi_cfg_size)
++		return false;
++
++	raw_spin_lock_irqsave(&pdc_lock, flags);
++	old = readl_relaxed(pdc_spi_cfg_base + reg);
++	if (type & IRQ_TYPE_LEVEL_MASK)
++		val = old | BIT(spi % 32);
++	else
++		val = old & ~BIT(spi % 32);
++	if (val != old)
++		writel_relaxed(val, pdc_spi_cfg_base + reg);
++	raw_spin_unlock_irqrestore(&pdc_lock, flags);
++
++	return val != old;
++}
++
+ /**
+  * qcom_pdc_gic_set_type: Configure PDC for the interrupt
+  *
+@@ -198,6 +239,7 @@
+ {
+ 	enum pdc_irq_config_bits pdc_type;
+ 	enum pdc_irq_config_bits old_pdc_type;
++	bool spi_cfg_changed;
+ 	int ret;
+ 
+ 	switch (type) {
+@@ -228,6 +270,8 @@
+ 	pdc_type |= (old_pdc_type & ~IRQ_i_CFG_TYPE_MASK);
+ 	pdc_reg_write(IRQ_i_CFG, d->hwirq, pdc_type);
+ 
++	spi_cfg_changed = pdc_spi_cfg_set_type(d, type);
++
+ 	ret = irq_chip_set_type_parent(d, type);
+ 	if (ret)
+ 		return ret;
+@@ -241,7 +285,7 @@
+ 	 * Doing this works because we have IRQCHIP_SET_TYPE_MASKED so the
+ 	 * interrupt will be cleared before the rest of the system sees it.
+ 	 */
+-	if (old_pdc_type != pdc_type)
++	if (old_pdc_type != pdc_type || spi_cfg_changed)
+ 		irq_chip_set_parent_state(d, IRQCHIP_STATE_PENDING, false);
+ 
+ 	return 0;
+@@ -410,6 +454,13 @@
+ 
+ 	pdc_version = pdc_reg_read(PDC_VERSION_REG, 0);
+ 
++	if (!of_address_to_resource(node, 1, &res)) {
++		pdc_spi_cfg_size = resource_size(&res);
++		pdc_spi_cfg_base = ioremap(res.start, pdc_spi_cfg_size);
++		if (!pdc_spi_cfg_base)
++			pr_warn("%pOF: unable to map the SPI config registers\n", node);
++	}
++
+ 	parent_domain = irq_find_host(parent);
+ 	if (!parent_domain) {
+ 		pr_err("%pOF: unable to find PDC's parent domain\n", node);
+@@ -440,6 +491,7 @@
+ 
+ fail:
+ 	kfree(pdc_region);
++	iounmap(pdc_spi_cfg_base);
+ 	iounmap(pdc_base);
+ 	iounmap(pdc_prev_base);
+ 	return ret;

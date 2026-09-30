@@ -147,4 +147,24 @@ grep -q 'FAIL reconnect lock still held' "$t/kmsg" || fail 'held lock not report
 ! grep -q a600000.usb "$t/sys/bus/platform/drivers/dwc3/bind" || fail 'bound without the lock'
 kill $holder 2>/dev/null; wait $holder 2>/dev/null || true
 
-echo PASS rog5-usb-reconnect / rog5-usb-sleep
+# 12 rog5-usb-bottom status in stage B: Type-C port, 5 V and the RT1715
+# ALERT interrupt count summed over the CPUs; "on" is refused.
+reset
+b=$t/sys/devices/platform/soc@0/a8f8800.usb/a800000.usb/xhci-hcd.2.auto
+mkdir -p "$b/usb1" "$t/dt/soc@0/geniqup@ac0000/i2c@a94000/typec@4e" "$t/sys/class/typec/port1" \
+	"$t/sys/devices/a94000.i2c/i2c-2/2-004e" "$t/sys/class/regulator/regulator.40" "$t/proc"
+ln -s "$t/sys/devices/a94000.i2c/i2c-2/2-004e" "$t/sys/class/typec/port1/device"
+echo '[source]' >"$t/sys/class/typec/port1/power_role"; echo '[host]' >"$t/sys/class/typec/port1/data_role"
+echo btm_vbus >"$t/sys/class/regulator/regulator.40/name"; echo disabled >"$t/sys/class/regulator/regulator.40/state"
+printf '%s\n' '           CPU0       CPU1' \
+	' 188:        161          0  msmgpio  23 Edge      4-0038' \
+	' 195:          3          2  msmgpio 118 Level     2-004e' >"$t/proc/interrupts"
+out=$(ROG5_USB_DT=$t/dt ROG5_USB_PROC=$t/proc "$here/rog5-usb-bottom" status)
+echo "$out" | grep -qx 'typec=port1 power_role=\[source\] data_role=\[host\] partner=none' || fail "stage-B typec line: $out"
+echo "$out" | grep -qx '5V=disabled' || fail "stage-B 5V line: $out"
+echo "$out" | grep -qx 'alert_irqs=5' || fail "stage-B alert count: $out"
+: >"$t/proc/interrupts"
+ROG5_USB_DT=$t/dt ROG5_USB_PROC=$t/proc "$here/rog5-usb-bottom" status | grep -qx 'alert_irqs=missing' || fail 'no missing ALERT interrupt report'
+! ROG5_USB_DT=$t/dt "$here/rog5-usb-bottom" on 2>/dev/null || fail 'stage B accepted "on"'
+
+echo PASS rog5-usb-reconnect / rog5-usb-sleep / rog5-usb-bottom
