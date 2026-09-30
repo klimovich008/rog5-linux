@@ -160,6 +160,7 @@ prune_snapshots() {
 	for entry in "$snapshots"/* "$snapshots"/.[!.]*; do
 		[ -e "$entry" ] || [ -L "$entry" ] || continue
 		[ "${entry##*/}" = "$keep" ] && continue
+		[ ! -e "$entry/failed-upper" ] && [ ! -L "$entry/failed-upper" ] || continue
 		rm -rf -- "$entry" || return 1
 	done
 }
@@ -513,9 +514,7 @@ reboot_now() {
 	history "reboot: $*"
 	bb sync
 	systemctl reboot && exit "$reboot_status"
-	log 'systemctl reboot failed; forcing a reboot'
-	bb sync
-	bb reboot -f
+	log 'systemctl reboot refused or failed; leaving the pending action armed'
 	exit 1
 }
 
@@ -568,7 +567,9 @@ action_run() {
 			exit 0
 		fi
 		if [ "$action" = restore ]; then
-			[ "$reboot_policy" = never ] || reboot_now 0 "restore of update $id is armed"
+			if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
+				reboot_now 0 "restore of update $id is armed"
+			fi
 		elif [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
 			reboot_now 0 "verification boot of update $id"
 		fi
@@ -618,7 +619,8 @@ action_run() {
 	fi
 	used=$(du -sk "$upper" | cut -f 1)
 	kept=0
-	[ ! -d "$snapshots" ] || kept=$(du -sk "$snapshots" | cut -f 1)
+	# Failed roots are retained; conservatively count no existing
+	# snapshot as reclaimable space.
 	available=$(stat -f -c '%a %S' "$state" | awk '{ printf "%d", $1 * $2 / 1024 }')
 	[ $((available + kept)) -ge $((used + reserve_mib * 1024)) ] ||
 		fail "not enough space for a snapshot of upper (${used} KiB)"
@@ -659,7 +661,9 @@ action_run() {
 	[ "$upgraded" -eq 0 ] || problems=pacman
 	log "FAIL update $id: $problems; the next boot restores the snapshot"
 	history "update $id failed ($problems); restore armed"
-	[ "$reboot_policy" = never ] || reboot_now 1 "restore of update $id"
+	if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
+		reboot_now 1 "restore of update $id"
+	fi
 	exit 1
 }
 
@@ -696,7 +700,10 @@ action_commit() {
 		arm_pending "$id" restore || fail 'cannot arm the restore'
 		log "FAIL update $id booted but verify-root fails ($problems); restoring"
 		history "update $id failed after boot ($problems); restore armed"
-		[ "$reboot_policy" = never ] || reboot_now 1 "restore of update $id"
+		if [ "$reboot_policy" = now ] || { [ "$reboot_policy" = idle ] && system_idle; }; then
+			reboot_now 1 "restore of update $id"
+		fi
+		: >"$commit_failed"
 		exit 1
 	fi
 	write_record "$dir/last-result" format=rog5-update-result-v1 "update_id=$id" \

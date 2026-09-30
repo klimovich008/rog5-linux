@@ -609,6 +609,19 @@ class Run(Base):
         self.assertEqual(self.rollback(), 0)
         self.assertEqual(self.fields('last-result')['reason'], 'restore-requested')
 
+    def test_display_on_defers_the_restore_reboot(self):
+        # A failed update arms a restore; like a verification reboot, it waits
+        # for an idle phone (it used to reboot at once) and is retried by run.
+        self.write(self.sys/'class/backlight/panel/brightness', '120\n')
+        self.write(self.dir/'effect', f'#!/bin/sh\nprintf "root:\\$6\\$s\\$h:19000::::::\\n" >{self.root}/etc/shadow\n', 0o755)
+        self.write(self.dir/'new-installed', PLAN)
+        self.assertEqual(self.start(), 1)
+        self.assertEqual(self.fields('pending')['action'], 'restore')
+        self.assertEqual(self.reboots(), 0)
+        self.write(self.sys/'class/backlight/panel/brightness', '0\n')
+        self.assertEqual(self.updater('run'), 0, self.kmsg())
+        self.assertEqual(self.reboots(), 1)
+
     def test_a_failed_transaction_that_changed_packages_arms_a_restore(self):
         self.write(self.dir/'new-installed', 'openssh 10.1p1-1\nsystemd 261.3-1\n')
         self.write(self.dir/'su-rc', '1')
@@ -743,6 +756,17 @@ class Commit(Base):
         self.assertEqual(self.fields('pending')['action'], 'restore')
         self.assertEqual(self.rollback(BOOT2), 0)
         self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v0\n')
+
+    def test_commit_keeps_a_snapshot_that_holds_a_failed_root(self):
+        # A rollback keeps the replaced root (writes after the snapshot, e.g.
+        # /home) as snapshots/<id>/failed-upper; pruning must not delete it.
+        self.booted_update()
+        kept = self.state/'snapshots/20260101T000000Z-00000000/failed-upper/home/phone'
+        kept.mkdir(parents=True)
+        (kept/'new-data').write_text('user data\n')
+        self.ready()
+        self.assertEqual(self.updater('commit'), 0, self.kmsg())
+        self.assertEqual((kept/'new-data').read_text(), 'user data\n')
 
     def test_health_timeout_leaves_the_update_for_the_next_boot_to_restore(self):
         self.booted_update()
