@@ -61,6 +61,16 @@
       "source_commit": "56590f8fb72d",
       "source_dirty": true,
       "changes": "k109 + 0146 TCPM reads CC after the port reset (stick attached at boot), 0147 msm.dp_min_bpc=8, 0139 halved mode clock check by default"
+    },
+    "k111": {
+      "build": "rog5-kernel-7.2.7-build-r111",
+      "release": "7.2.7-rog5-k111",
+      "date": "2026-09-30",
+      "series": "113 patches, 0001-0148",
+      "image_sha256": "50307e07a1bfffcc82511b31e58862440af4ee0ce5a9bd41a82cbed9a190efac",
+      "source_commit": "dc610a1f2b71",
+      "source_dirty": true,
+      "changes": ""
     }
   },
   "bundles": [
@@ -219,10 +229,26 @@
       "package": "package-7.2.7-r208",
       "source_commit": null,
       "changes": "r207 content with a fresh descriptor, installed from the safe-r8 fallback",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-09-30 22:35",
       "notes": "Committed healthy 22:37."
+    },
+    {
+      "name": "main-k111-d10-261001a",
+      "role": "main",
+      "kernel": "k111",
+      "dtb": "d10",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k111",
+      "manifest_sha256": "412e64f8e0c7e5682c6f9172970bac53288f3fa746ef8f35991c0eacc8b4a780",
+      "package": "package-main-k111-d10-261001a",
+      "source_commit": "ed73c81f0786",
+      "changes": "0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111",
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 00:32",
+      "notes": "booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait"
     }
   ]
 }

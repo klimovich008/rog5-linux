@@ -11,13 +11,14 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `production-7.2.7-r208`, fallback `production-7.2.7-safe-r8`.
+Installed: default `main-k111-d10-261001a`, fallback `production-7.2.7-safe-r8`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `production-7.2.7-r208` | main | k110 | d9 | installed-main | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |
+| `main-k111-d10-261001a` | main | k111 | d10 | installed-main | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
+| `production-7.2.7-r208` | main | k110 | d9 | retired | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |
 | `production-7.2.7-r207` | main | k110 | d9 | retired | yes | 2026-09-30 20:51 | 0146 TCPM (stick attached at boot), 0147 dp_min_bpc, halved DP mode clock check by default | Rejected on purpose at 22:29 for the safe-r8 fallback rehearsal. |
 | `production-7.2.7-r206` | main | k109 | d9 | retired | yes | 2026-09-30 19:06 | 0145 DP link policy | The stage reported FAIL (p24 read-only remount: mount point busy) after the selector exchange; the bundle booted and committed healthy. Led to the never-unlink installer fix (cc090781). |
 | `production-7.2.7-r205` | main | k108 | d9 | retired | yes | 2026-09-30 18:18 | r204 kernel and DTB, newer init (audio route 0 dB only behind the protection DSP, charge policy); installed together with fallback safe-r8 |  |
@@ -32,6 +33,7 @@ Installed: default `production-7.2.7-r208`, fallback `production-7.2.7-safe-r8`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k111 | `rog5-kernel-7.2.7-build-r111` | `7.2.7-rog5-k111` | 113 patches, 0001-0148 | 2026-09-30 |  |
 | k110 | `rog5-kernel-7.2.7-build-r110` | `7.2.7-rog5-production` | 0001-0147 without 0128/0129 | 2026-09-30 | k109 + 0146 TCPM reads CC after the port reset (stick attached at boot), 0147 msm.dp_min_bpc=8, 0139 halved mode clock check by default |
 | k109 | `rog5-kernel-7.2.7-build-r109` | `7.2.7-rog5-production` | 0001-0145 without 0128/0129 | 2026-09-30 | k108 + 0145 DP link policy (lowest link rate that carries the mode) |
 | k108 | `rog5-kernel-7.2.7-build-r108` | `7.2.7-rog5-production` | 0001-0144 without 0128/0129 | 2026-09-30 | k105 + 0144 PDC SPI edge/level config (bottom USB-C stage B ALERT), DP 0136-0138 v4 review fixes |
@@ -45,6 +47,7 @@ Paths are under `~/.local/state/rog5-production-boot-20260923`; each directory h
 
 | DTB | Path | SHA-256 | Base | Features | Needs | Notes |
 |---|---|---|---|---|---|---|
+| d10 | `platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb` | `dda8b280` | d9 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup) |
 | d9 | `platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb` | `4a919c15` | d8 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx | 0136-0139, 0144, 0146 | d8 plus memx (no-map 64 MiB at 0x34a000000, the DDR that aborts on instruction fetch). Default DTB since r204. |
 | d8 | `platform-cpucap-dp4-btmtc-dtb-r8/board.dtb` | `3630cb6f` | d7 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc | 0136-0139 (4-lane DP); usbbtmtc needs 0144 and 0146 | 4-lane DP on the side port; bottom USB-C stage B (RT1715 + TCPM, source-only 5 V). With k105 (no 0144) the RT1715 ALERT never fired. |
 | d7 | `platform-cpucap-dp-sbumux-dtb-r7/board.dtb` | `99bcf5f8` |  | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic | 0089, 0121-0124 (cs35l45 dsp-part-name) | 2-lane DP through the SBU mux, HBR2 link cap, MultiMedia1/2 playback-only, speaker DSP part names. Feature list read back from the DTB (not recorded at build time). |
