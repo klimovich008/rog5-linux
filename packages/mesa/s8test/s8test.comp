@@ -1,0 +1,61 @@
+#version 460
+#extension GL_EXT_shader_8bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+layout(local_size_x = 64) in;
+
+layout(set = 0, binding = 0, std430) restrict readonly buffer InU { uint8_t d[]; } inu;   /* CAN_REORDER path */
+layout(set = 0, binding = 0, std430) buffer InS { int8_t d[]; } ins;                       /* plain path, signed */
+layout(set = 0, binding = 1, std430) buffer Out { uint d[]; } outb;
+layout(set = 0, binding = 2, std430) buffer Bytes { uint8_t d[]; } bytes;                  /* dynamic, offset 256 */
+layout(set = 0, binding = 3, std430) buffer Win { uint8_t d[]; } win;                      /* 13-byte range */
+layout(push_constant) uniform PC { uint mode, n, seed, skip; } pc;
+
+layout(set = 0, binding = 2, std430) buffer BytesW { uint d[]; } bytesw;               /* alias for the RMW control */
+uint8_t valfn(uint b) { return uint8_t((b * 2654435761u + pc.seed * 97u) >> 13); }
+
+void storeb(uint b, uint8_t v)
+{
+#ifdef RMW
+   /* negative control: a racy read-modify-write of the containing word */
+   uint w = bytesw.d[b / 4u];
+   uint sh = (b % 4u) * 8u;
+   bytesw.d[b / 4u] = (w & ~(0xffu << sh)) | (uint(v) << sh);
+#else
+   bytes.d[b] = v;
+#endif
+}
+
+void main()
+{
+   uint i = gl_GlobalInvocationID.x;
+   uint n = pc.n;
+   if (pc.mode == 0u) {
+      uint j = (i * 7u + pc.seed) % n;
+      outb.d[4u*i]      = uint(inu.d[i]);
+      outb.d[4u*i + 1u] = uint(int(ins.d[i]));
+      outb.d[4u*i + 2u] = uint(inu.d[j]) + 3u * uint(inu.d[(j + 1u) % n]);
+      outb.d[4u*i + 3u] = i < 32u ? uint(win.d[i]) : 0xdeadu;
+      return;
+   }
+   if (i < 64u)
+      win.d[i] = uint8_t(0xC0u ^ i);
+   if (pc.mode == 1u) {
+      /* adjacent lanes write adjacent bytes of the same words */
+      storeb(i, valfn(i));
+   } else if (pc.mode == 2u || pc.mode == 3u) {
+      /* the 4 bytes of a word come from 4 consecutive workgroups */
+      uint k = (i / 64u) % 4u;
+      uint w = (i / 256u) * 64u + (i % 64u);
+      uint b = 4u * w + k;
+      if (pc.mode == 3u || k != pc.skip)
+         storeb(b, valfn(b));
+   } else if (pc.mode == 4u) {
+      /* one invocation writes 4 consecutive bytes straddling a word boundary */
+      if (i < n / 4u) {
+         for (uint t = 1u; t <= 4u; t++) {
+            uint b = 4u * i + t;
+            if (b < n) storeb(b, valfn(b));
+         }
+      }
+   }
+}

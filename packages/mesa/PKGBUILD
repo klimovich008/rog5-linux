@@ -1,0 +1,127 @@
+# ROG5 rebuild of Arch Linux ARM's vulkan-freedreno 1:26.2.3-1 (split package
+# of extra/mesa) with 0001-tu-enable-storageBuffer8BitAccess-on-a6xx-gen4.patch,
+# so DXVK 3.x (Proton Experimental / Proton 11) accepts the Adreno 660.
+#
+# Only the Turnip Vulkan driver is built (-D vulkan-drivers=freedreno, no
+# gallium/GL/EGL/GBM/LLVM/layers); the package replaces vulkan-freedreno in
+# place and ships the same three files. The rest of mesa stays Arch's.
+# Build options otherwise follow Arch's mesa PKGBUILD (optimization 2,
+# b_ndebug, freedreno-kmds=msm,virtio, x11+wayland WSI). The tarball is pinned
+# by Arch's sha256 and a b2sum instead of the upstream .sig.
+#
+# Maintainer (Arch mesa): Laurent Carlier <lordheavym@gmail.com>
+# Maintainer (Arch mesa): Felix Yan <felixonmars@archlinux.org>
+# Maintainer (Arch mesa): Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+# ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
+pkgname=vulkan-freedreno
+pkgver=26.2.3
+_pkgver=${pkgver/[a-z]/-&}
+pkgrel=1.1
+epoch=1
+pkgdesc="Open-source Vulkan driver for Adreno GPUs (ROG5: 8-bit storage on A660)"
+url="https://www.mesa3d.org/"
+arch=(aarch64)
+license=("MIT AND BSD-3-Clause AND SGI-B-2.0")
+depends=(
+  expat
+  glibc
+  libdisplay-info
+  libdrm
+  libgcc
+  libstdc++
+  libx11
+  libxcb
+  libxshmfence
+  spirv-tools
+  systemd-libs
+  vulkan-icd-loader
+  vulkan-mesa-implicit-layers
+  wayland
+  xcb-util-keysyms
+  zlib
+  zstd
+)
+makedepends=(
+  glslang
+  libxrandr
+  meson
+  python-mako
+  python-packaging
+  python-yaml
+  wayland-protocols
+  xorgproto
+)
+optdepends=("vulkan-mesa-layers: additional vulkan layers")
+provides=(vulkan-driver)
+options=(!lto)
+source=(
+  "https://archive.mesa3d.org/mesa-$_pkgver.tar.xz"
+  0001-tu-enable-storageBuffer8BitAccess-on-a6xx-gen4.patch
+)
+sha256sums=('1628058a8d2c0615975de5a15ab7bbb9638c50000b5bed9456ff423ea034a81f'
+            '329c21eba7e614caa5eef4df581c665c786a289cb16b6d012aa2e5e4c45eea64')
+b2sums=('53e451060bdc0df6ea8f7b5d3a23563c4bf56613c0871a91c5f0570649fcfe35e0dc1c0fc7834642621fc0772d0614b6a60acf196e82d4b77132629307c4a82e'
+        '4f4b8b3fa3dd136f853227c035d0bfc95e1b0b99b87746964d2441f8561081b066e4284ef466d49e33a8b378c42926ffabee77242abd753b49efbdc82d0d9421')
+
+prepare() {
+  cd mesa-$_pkgver
+  patch -Np1 < ../0001-tu-enable-storageBuffer8BitAccess-on-a6xx-gen4.patch
+
+  # Same VERSION scheme as Arch (driver/cache identity), plus the ROG5 release.
+  echo "$_pkgver-arch$epoch.$pkgrel" >VERSION
+}
+
+build() {
+  # arch-meson sets --auto-features enabled, so everything this build does
+  # not need is switched off explicitly.
+  local meson_options=(
+    --optimization 2
+    -D b_ndebug=true
+    -D freedreno-kmds=msm,virtio
+    -D platforms=x11,wayland
+    -D vulkan-drivers=freedreno
+    -D vulkan-layers=
+    -D vulkan-manifest-per-architecture=false
+    -D gallium-drivers=
+    -D video-codecs=
+    -D tools=
+    -D build-tests=false
+    -D opengl=false
+    -D android-libbacktrace=disabled
+    -D android-libperfetto=disabled
+    -D egl=disabled
+    -D gallium-d3d12-graphics=disabled
+    -D gallium-d3d12-video=disabled
+    -D gallium-mediafoundation=disabled
+    -D gallium-va=disabled
+    -D gbm=disabled
+    -D gles1=disabled
+    -D gles2=disabled
+    -D glvnd=disabled
+    -D glx=disabled
+    -D intel-rt=disabled
+    -D libunwind=disabled
+    -D llvm=disabled
+    -D lmsensors=disabled
+    -D microsoft-clc=disabled
+    -D power8=disabled
+    -D shared-glapi=disabled
+    -D shared-llvm=disabled
+    -D valgrind=disabled
+  )
+
+  arch-meson mesa-$_pkgver build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir" --no-rebuild
+
+  # drirc files belong to the mesa package (identical content).
+  rm -r "$pkgdir/usr/share/drirc.d"
+  [[ -z $(find "$pkgdir" -type f ! -path '*/libvulkan_freedreno.so' \
+          ! -path '*/icd.d/freedreno_icd.json') ]] ||
+    { find "$pkgdir" -type f >&2; echo 'unexpected files in package' >&2; return 1; }
+
+  install -Dm644 mesa-$_pkgver/docs/license.rst -t "$pkgdir/usr/share/licenses/$pkgname"
+}

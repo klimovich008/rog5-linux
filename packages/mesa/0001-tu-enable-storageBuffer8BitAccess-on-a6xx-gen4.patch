@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 build <klimovich008@gmail.com>
+Date: Wed, 30 Sep 2026 14:30:00 +0200
+Subject: [PATCH] tu: enable storageBuffer8BitAccess on a6xx gen4 (A660)
+
+DXVK 3.x hard-requires storageBuffer8BitAccess. Turnip only exposes it on
+a7xx (storage_8bit), so DXVK >= 3.0 rejects the Adreno 660 with "Device does
+not support required feature 'storageBuffer8BitAccess'".
+
+The 8-bit SSBO path added for a7xx (MR 28254, 39124) is generic ir3/turnip
+code: every SSBO descriptor gets an extra R8_UINT buffer descriptor, and 8-bit
+loads/stores become scalar typed ldib/stib through it, which is the encoding
+of an imageBuffer load/store with an R8_UINT format. a6xx gen4 has has_isam_v
+and storage_16bit, which that path asserts, so it needs no other change.
+
+Tested on an Adreno 660 (ASUS ROG Phone 5): 8-bit loads (restrict/readonly
+and plain, signed and unsigned), concurrent byte stores to the same 32-bit
+words from adjacent lanes and from neighbouring workgroups, byte stores that
+must leave the other bytes of a word untouched, immediate offsets, dynamic
+offsets and robustBufferAccess2 bounds on a 13-byte range; a racy 32-bit
+read-modify-write control in the same test fails, the byte stores do not.
+dEQP-VK 8-bit storage groups: see packages/mesa/README.md.
+
+---
+--- a/src/freedreno/common/freedreno_devices.py
++++ b/src/freedreno/common/freedreno_devices.py
+@@ -233,6 +233,11 @@ a6xx_gen4 = GPUProps(
+         has_z24uint_s8uint = True,
+         tess_use_shared = True,
+         storage_16bit = True,
++        # 8-bit SSBO access uses the a7xx path: a dedicated R8_UINT buffer
++        # descriptor and typed ldib/stib, i.e. what an R8_UINT imageBuffer
++        # load/store does, which a6xx already supports. It needs has_isam_v
++        # (below) so that SSBOs need only two descriptors.
++        storage_8bit = True,
+         has_tex_filter_cubic = True,
+         has_separate_chroma_filter = True,
+         has_sample_locations = True,
