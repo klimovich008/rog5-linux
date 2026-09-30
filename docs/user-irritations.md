@@ -137,6 +137,7 @@ see. Each item says whether it needs a lab action to trigger.
 - **Fix:** the boot-time bisects already planned (SLPI off, ADSP variant, CDSP load). Effort **L**.
 - **Still open.** The bisect kit is ready (78214337: noslpi/noadsp/cdsp DTB variants, CDSP firmware fetch, `rog5-standby-bisect-measure`); the boots need the cable pulled (whats-left test 7). Sol's review: `reviews/2026-09-30-gpt-6.1-sol-standby.md`.
   (evening) `compose-standby-bisect-dtb.sh` still pins DTB r5; the variants must be rebuilt on DTB r9 (keeping memx; the no-ADSP variant also removes the bottom port's automatic 5 V) before test 7 (Sol evening review, item 6). Still ~79 mA with no CX/DDR collapse.
+  (late evening) Kit requalified on DTB r9 (baseline/noslpi/noadsp/cdsp; noadsp also disables the bottom port's 5 V chain, the VA macro and LPI pinctrl) and the measure script no longer depends on qcom_stats "apss", which mainline never fills; rpmhpd sync_state is complete at runtime, so it is not the blocker (`test-results/2026-09-30-standby-blockers-r9.md`).
 
 ### 9. External monitor: 1080p only, and hot while in use
 - **User sees:** a 4K or 32:9 monitor runs at 1920x1080@60 only. In desktop mode the phone gets warm even when idle.

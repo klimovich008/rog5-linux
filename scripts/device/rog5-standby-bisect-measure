@@ -23,7 +23,16 @@
 #                    runtime; val 0 only turns AOP DDR logging off. val 1 is
 #                    never sent.
 #
+# APSS sleep: qcom_stats "apss" is SMEM item 631, which only the downstream
+# kernel's rpmh_master_stat.c fills (from its LPM driver); under mainline it is
+# never allocated and reads empty. The trial is judged by the time
+# timekeeping stayed frozen in s2idle (boot clock minus monotonic clock, both
+# before and after) and by the s2idle requests of the cluster's deepest genpd
+# state (cluster-sleep-1, APSS off with the RSC sleep handshake). Both are the
+# software view: hardware collapse shows only in the RPMh/DDR counters.
+#
 # Reads only: /sys/kernel/debug/qcom_stats/* (AOP message RAM and SMEM),
+# /proc/uptime, /proc/timer_list ("now at"), the cluster genpd idle_states,
 # power_supply attributes, suspend_stats, wakeup_sources, /proc/interrupts,
 # remoteproc state, and rog5-sleep-blockers/vx and vx_raw when that module is
 # loaded (AOP message RAM reads). It never reads rog5-sleep-blockers/votes
@@ -72,7 +81,29 @@ trap 'exit 130' INT TERM HUP
 
 [ -d "$stats" ] || { log 'FAIL no qcom_stats (load qcom_stats)'; exit 1; }
 rd() { v=; read -r v <"$1" 2>/dev/null || v=; printf '%s' "${v:-NA}"; }
-boot() { cut -d ' ' -f 1 /proc/uptime; }
+uptime_file=${ROG5_BISECT_UPTIME:-/proc/uptime}
+timer_list=${ROG5_BISECT_TIMER_LIST:-/proc/timer_list}
+cluster=${ROG5_BISECT_CLUSTER:-/sys/kernel/debug/pm_genpd/power-domain-cpu-cluster0/idle_states}
+boot() { cut -d ' ' -f 1 "$uptime_file"; }
+# Seconds timekeeping has been frozen since boot: boot clock (/proc/uptime)
+# minus the monotonic clock (/proc/timer_list "now at N nsecs"), 10 ms steps.
+# Awake it is about 0 and may read slightly negative (uptime is rounded down
+# and read first); only the before/after difference is used.
+frozen() {
+	b=$(boot) m=$(sed -n 's/^now at \([0-9]*\) nsecs$/\1/p' "$timer_list" | head -n 1)
+	case $b in ''|.*|*.*.*|*[!0-9.]*) echo NA; return ;; esac
+	case $m in ''|*[!0-9]*) echo NA; return ;; esac
+	awk -v b="$b" -v m="$m" 'BEGIN { printf "%.2f\n", b - m / 1e9 }'
+}
+# usage, rejected and s2idle counts of the cluster's deepest idle state (the
+# last row). genpd counts an s2idle request before PSCI runs; a refused PSCI
+# call moves one usage to rejected but leaves the s2idle count: software
+# evidence of APSS-off requests, not of hardware residency.
+cluster_counts() {
+	awk 'NR > 1 && $1 ~ /^S[0-9]+$/ { u = $3; r = $4; v = $7 }
+		END { if (u ~ /^[0-9]+$/ && r ~ /^[0-9]+$/ && v ~ /^[0-9]+$/) print u, r, v; else print "NA NA NA" }' \
+		"$cluster" 2>/dev/null || echo 'NA NA NA'
+}
 
 # -- preconditions: rog5-sleep-policy held off, s2idle, display off, on battery
 [ -e "$stay" ] || {
@@ -81,7 +112,7 @@ boot() { cut -d ' ' -f 1 /proc/uptime; }
 }
 case " $(rd "${ROG5_BISECT_MEM_SLEEP:-/sys/power/mem_sleep}") " in *' [s2idle] '*) ;; *) log 'FAIL s2idle is not the selected mem_sleep'; exit 1 ;; esac
 [ "$(rd "$dpms")" = Off ] || { log "FAIL the phone panel is not off (dpms $(rd "$dpms"))"; exit 1; }
-for c in /sys/class/drm/card*-DP-*; do
+for c in ${ROG5_BISECT_DRM:-/sys/class/drm}/card*-DP-*; do
 	[ "$(rd "$c/enabled")" != enabled ] || { log "FAIL external display ${c##*/} is enabled"; exit 1; }
 done
 if [ "$battmgr" = 1 ]; then
@@ -175,11 +206,13 @@ snap() {
 		cat "$vxdir/vx_raw" >"$dir/vx_raw.$1" 2>&1
 	fi
 	[ "$battmgr" = 0 ] || battery >"$dir/battery.$1"
+	printf '%s %s\n' "$(frozen)" "$(cluster_counts)" >"$dir/apss.$1"
 }
 
 {
 	echo "kernel=$(uname -r)"
-	echo "bisect_dtb=$(tr -d '\000' 2>/dev/null </proc/device-tree/rog5,standby-bisect || echo none)"
+	echo "bisect_dtb=$(tr -d '\000' 2>/dev/null <"${ROG5_BISECT_DT:-/proc/device-tree}/rog5,standby-bisect" || echo none)"
+	echo "bisect_base=$(tr -d '\000' 2>/dev/null <"${ROG5_BISECT_DT:-/proc/device-tree}/rog5,standby-bisect-base" || echo none)"
 	echo "cmdline=$(cat /proc/cmdline)"
 	echo "secs=$secs battmgr=$battmgr arm_vx=$arm_vx ddr_log_off=$ddr_log_off"
 	echo "mem_sleep=$(rd /sys/power/mem_sleep)"
@@ -187,7 +220,7 @@ snap() {
 } >"$dir/meta.env"
 # Providers still holding their boot votes (sync_state not reached, e.g. a
 # consumer that never probes) would keep CX/DDR up and confound the trial.
-find /sys/devices -maxdepth 6 -name state_synced 2>/dev/null | while read -r f; do
+find "${ROG5_BISECT_SYSDEV:-/sys/devices}" -maxdepth 8 -name state_synced 2>/dev/null | while read -r f; do
 	[ "$(rd "$f")" = 1 ] || echo "${f%/state_synced}"
 done >"$dir/unsynced"
 log "result directory $dir"
@@ -225,9 +258,15 @@ awake_after=NA
 # -- summary
 s1=$(rd "$succ_file")
 case $s1 in ''|*[!0-9]*) log 'FAIL suspend counter unavailable'; exit 1 ;; esac
-set -- $(qdelta apss); apss_n=$1 apss_s=$2
+# APSS: seconds timekeeping stayed frozen; s2idle requests and PSCI refusals
+# of cluster-sleep-1 (the refusals include awake idle in the window).
+set -- $(cat "$dir/apss.before") $(cat "$dir/apss.after")
+apss_s=$(awk -v a="$1" -v b="$5" 'BEGIN { if (a ~ /^-?[0-9]+[.][0-9]+$/ && b ~ /^-?[0-9]+[.][0-9]+$/) printf "%.1f", b - a; else print "NA" }')
+apss_n=NA apss_rej=NA
+case $4$8 in *[!0-9]*|'') ;; *) apss_n=$(($8 - $4)) ;; esac
+case $3$7 in *[!0-9]*|'') ;; *) apss_rej=$(($7 - $3)) ;; esac
 {
-	echo "ROG5 standby bisect: $(sed -n 's/^bisect_dtb=//p' "$dir/meta.env"), kernel $(uname -r), $(date -u +%FT%TZ)"
+	echo "ROG5 standby bisect: $(sed -n 's/^bisect_dtb=//p' "$dir/meta.env") on $(sed -n 's/^bisect_base=//p' "$dir/meta.env"), kernel $(uname -r), $(date -u +%FT%TZ)"
 	echo "suspends: $s0 -> $s1 (window $(awk -v a="$b0" -v b="$b1" 'BEGIN { printf "%.0f", b - a }') s boot clock)"
 	echo "wake: $(rd /sys/power/pm_wakeup_irq) ($(grep -h -m1 -E 'PM: suspend exit|Triggering wakeup|wakeup from' "$dir/kmsg" 2>/dev/null | cut -c1-120))"
 	echo
@@ -270,7 +309,10 @@ set -- $(qdelta apss); apss_n=$1 apss_s=$2
 	lpm_s=${lpm#* } lpm=${lpm% *}
 	set -- $(qdelta ddr); ddr_count=$1 ddr_s=$2
 	set -- $(qdelta cxsd); cx_count=$1 cx_s=$2
-	echo "APSS asleep: +$apss_n entries, $apss_s s (must cover most of the $secs s)"
+	echo "APSS asleep: timekeeping frozen $apss_s s (must cover most of the $secs s), cluster-sleep-1 s2idle requests +$apss_n, PSCI refusals +$apss_rej (software view; the RPMh counters above are the hardware view)"
+	# Awake idle in the few seconds around the suspend also counts refusals.
+	[ "$apss_rej" = NA ] || [ "$apss_n" = NA ] || [ "$apss_rej" -lt "$apss_n" ] ||
+		echo "WARN PSCI refused cluster-sleep-1 +$apss_rej times against +$apss_n s2idle requests: check the RPMh counters before trusting this trial"
 	if [ -s "$dir/unsynced" ]; then
 		echo "WARN providers without sync_state (boot votes kept; trial confounded):"
 		sed 's/^/  /' "$dir/unsynced"
@@ -278,9 +320,13 @@ set -- $(qdelta apss); apss_n=$1 apss_s=$2
 	if [ "$((s1 - s0))" -ne 1 ]; then
 		echo "VERDICT invalid: expected exactly one successful suspend (got $((s1 - s0)))"
 	elif [ "$apss_s" = NA ] || awk -v a="$apss_s" -v s="$secs" 'BEGIN { exit !(a < 0.8 * s) }'; then
-		echo "VERDICT invalid: APSS asleep only $apss_s s of $secs s (early wake?)"
-	elif [ "$ddr_count" -gt 0 ] || [ "$lpm" -gt 0 ]; then
-		echo "VERDICT POSITIVE (preliminary; repeat against a matched baseline): qcom_stats ddr +$ddr_count ($ddr_s s), ddr_stats LPM +$lpm ($lpm_s s); cxsd +$cx_count ($cx_s s)"
+		echo "VERDICT invalid: timekeeping frozen only $apss_s s of $secs s (early wake?)"
+	elif [ "$apss_n" = NA ] || [ "$apss_n" -lt 1 ]; then
+		echo "VERDICT invalid: the cluster never requested its APSS-off state in s2idle (+$apss_n)"
+	elif [ "$ddr_count" -gt 0 ] && [ "$lpm" -gt 0 ] && [ "$cx_count" -gt 0 ]; then
+		echo "VERDICT POSITIVE (repeat against a matched baseline): qcom_stats ddr +$ddr_count ($ddr_s s), ddr_stats LPM +$lpm ($lpm_s s), cxsd +$cx_count ($cx_s s)"
+	elif [ "$ddr_count" -gt 0 ] || [ "$lpm" -gt 0 ] || [ "$cx_count" -gt 0 ]; then
+		echo "VERDICT PARTIAL (not corroborated by all three counters): qcom_stats ddr +$ddr_count ($ddr_s s), ddr_stats LPM +$lpm ($lpm_s s), cxsd +$cx_count ($cx_s s)"
 	else
 		echo "VERDICT negative: no DDR LPM (qcom_stats ddr +$ddr_count, ddr_stats LPM +$lpm), cxsd +$cx_count"
 	fi

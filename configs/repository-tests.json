@@ -456,6 +456,60 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-standby-bisect.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "dtc",
+        "fdtget",
+        "fdtput",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires the private production DTB r9",
+          "scope": "subcheck",
+          "reason": "The real r9 bytes are private build output; the synthetic r9-shaped fixture covers the composition logic, so a skip proves nothing about the installed DTB.",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb (or ROG5_BISECT_R9_DTB)"
+          ],
+          "test_ids": [
+            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
+          ]
+        },
+        {
+          "id": "optional-2",
+          "kind": "unittest",
+          "message": "requires python libfdt",
+          "scope": "subcheck",
+          "reason": "The dangling-reference walk over the real r9 tree needs the libfdt Python binding.",
+          "inputs": [
+            "python libfdt module"
+          ],
+          "test_ids": [
+            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/device/test-production-modprobe-loaders.py",
       "interpreter": "python3",
       "tiers": [
