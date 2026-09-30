@@ -1,0 +1,179 @@
+#!/bin/sh
+# Put the 8-bit-storage Turnip (packages/mesa-fex) into FEX's x86 guest root,
+# or take it out again.
+#
+# Steam's FEX tool runs x86 Proton with the guest root's own x86 Mesa
+# (/usr/share/guestos/fex-mesa, from steam-fex-rootfs-install), not the
+# phone's aarch64 driver: FEX's Vulkan thunks are off unless a game sets
+# ThunksDB_Vulkan, and there is no 32-bit Vulkan thunk at all. That Turnip
+# (Mesa 26.2.0) lacks storageBuffer8BitAccess on the A660, so DXVK 3.x
+# (Proton Experimental) finds no adapter. This replaces the guest's
+# usr/lib/libvulkan_freedreno.so (x86_64) and usr/lib32/libvulkan_freedreno.so
+# (i686) with the same Mesa 26.2.0 plus the one-line patch.
+#
+#   steam-fex-turnip-8bit install DIR [--force]   DIR = packages/mesa-fex/build.sh output
+#   steam-fex-turnip-8bit restore                 put the guest root's own drivers back
+#   steam-fex-turnip-8bit status
+#   steam-fex-turnip-8bit reapply                 (steam-fex-rootfs-install, on a new root)
+#
+# As root, with Steam closed (the lock steam-arm64 holds shared is taken
+# exclusively, like steam-fex-rootfs-install). install copies DIR's payload
+# to $state/payload (checked against DIR/SHA256SUMS), backs up each original
+# under $state/orig/ (named by its SHA-256, outside the guest root), writes the
+# new file beside the old one, checks its SHA-256 and rename()s it over the
+# original, so each driver is either the old or the new file at every moment.
+# Only a root whose drivers are the ones the payload was built for
+# (DIR/BASE.SHA256SUMS, FEX's ArchLinux 2026-08-11 image) is changed, unless
+# --force. While $state/enabled exists, steam-fex-rootfs-install reapplies the
+# payload to a newly downloaded root before it goes live (or warns when that
+# root has a different Mesa).
+set -eu
+me=steam-fex-turnip-8bit
+root=${ROG5_FEX_ROOT:-/usr/share/guestos/fex-mesa}
+state=${ROG5_FEX_TURNIP_STATE:-/var/lib/rog5-fex-turnip}
+cache=${ROG5_FEX_CACHE:-/var/cache/rog5-fex}
+lock=${ROG5_FEX_LOCK:-/run/lock/rog5-fex-rootfs.lock}
+libs='usr/lib/libvulkan_freedreno.so usr/lib32/libvulkan_freedreno.so'
+die() { echo "$me: $*" >&2; exit 1; }
+sha() { sha256sum "$1" | cut -d' ' -f1; }
+# expected SHA-256 of $2 (a path in $libs) in the SHA256SUMS-style file $1
+want() { awk -v p="$2" '$2 == p { print $1 }' "$1"; }
+
+take_locks() {
+	[ "${ROG5_FEX_TURNIP_LOCKED-}" = 1 ] && return 0   # caller (steam-fex-rootfs-install) holds them
+	mkdir -p "$cache"
+	exec 9>"$cache/install.lock"
+	flock -n 9 || die 'steam-fex-rootfs-install or another run is active'
+	[ -e "$lock" ] || { : >"$lock"; chmod 644 "$lock"; }
+	exec 8<"$lock"
+	flock -x -n 8 || die 'quit Steam first'
+	if pgrep -f 'steamrtarm64/steam( |$)' >/dev/null; then die 'quit Steam first'; fi
+}
+
+# replace $root/$1 by $2 (expected SHA-256 $3) atomically, keeping owner and mode
+put() {
+	dst=$root/$1 tmp=$root/$1.rog5-new
+	rm -f "$tmp"
+	cp "$2" "$tmp"
+	chown --reference="$dst" "$tmp" 2>/dev/null || true
+	chmod --reference="$dst" "$tmp"
+	sync "$tmp"
+	[ "$(sha "$tmp")" = "$3" ] || { rm -f "$tmp"; die "$1: copy does not match its SHA-256"; }
+	mv -f "$tmp" "$dst"
+	sync "$(dirname "$dst")"
+	[ "$(sha "$dst")" = "$3" ] || die "$1: SHA-256 changed after the rename"
+}
+
+# apply $state/payload to $root; $1 = 1 to accept an unknown original
+apply() {
+	force=$1 p=$state/payload
+	[ -f "$p/SHA256SUMS" ] && [ -f "$p/BASE.SHA256SUMS" ] || die "no payload in $p (run install first)"
+	(cd "$p" && sha256sum -c --quiet SHA256SUMS) || die "payload in $p does not match its SHA256SUMS"
+	[ -f "$root/graphics_provider.json" ] || die "$root is not a FEX guest root"
+	# decide for both files before touching either
+	todo=
+	for f in $libs; do
+		[ -f "$root/$f" ] || die "no $root/$f"
+		cur=$(sha "$root/$f") new=$(want "$p/SHA256SUMS" "$f") base=$(want "$p/BASE.SHA256SUMS" "$f")
+		if [ "$cur" = "$new" ]; then
+			echo "$f: already the 8-bit build"
+		elif [ "$cur" = "$base" ] || [ "$force" = 1 ]; then
+			[ "$cur" = "$base" ] || echo "$me: warning: $f is not the driver this build replaces ($cur); replacing it anyway (--force)" >&2
+			todo="$todo $f"
+		else
+			die "$f in $root is not the Mesa 26.2.0 driver this build was made for ($cur); rebuild packages/mesa-fex for that Mesa, or use --force"
+		fi
+	done
+	mkdir -p "$state/orig"
+	rm -f "$state/applied.part"
+	for f in $todo; do
+		cur=$(sha "$root/$f") a=${f#usr/}; a=${a%%/*}
+		b=$state/orig/$a-$cur.so
+		if [ ! -f "$b" ] || [ "$(sha "$b")" != "$cur" ]; then
+			cp "$root/$f" "$b.part"; sync "$b.part"; mv -f "$b.part" "$b"
+		fi
+		[ "$(sha "$b")" = "$cur" ] || die "backup $b does not match"
+		echo "$f $cur" >>"$state/applied.part"
+	done
+	for f in $todo; do
+		put "$f" "$p/$f" "$(want "$p/SHA256SUMS" "$f")"
+		echo "$f: installed the 8-bit build ($(want "$p/SHA256SUMS" "$f"))"
+	done
+	# applied: the original each file replaced (what restore puts back)
+	if [ -f "$state/applied.part" ]; then
+		{ cat "$state/applied.part"
+		  [ ! -f "$state/applied" ] || awk 'NR == FNR { seen[$1] = 1; next } !($1 in seen)' "$state/applied.part" "$state/applied"
+		} >"$state/applied.new"
+		mv -f "$state/applied.new" "$state/applied"
+		rm -f "$state/applied.part"
+	fi
+}
+
+cmd=${1-}
+case $cmd in
+install)
+	[ "$(id -u)" = 0 ] || die 'run as root'
+	dir=${2-}; [ -n "$dir" ] && [ -f "$dir/SHA256SUMS" ] || die 'usage: install DIR [--force] (DIR has SHA256SUMS)'
+	force=0; [ "${3-}" = --force ] && force=1
+	(cd "$dir" && sha256sum -c --quiet SHA256SUMS) || die "$dir does not match its SHA256SUMS"
+	for f in $libs; do [ -n "$(want "$dir/SHA256SUMS" "$f")" ] || die "$dir/SHA256SUMS lists no $f"; done
+	[ -f "$dir/BASE.SHA256SUMS" ] || die "no $dir/BASE.SHA256SUMS"
+	take_locks
+	mkdir -p "$state"
+	rm -rf "$state/payload.new"
+	mkdir -p "$state/payload.new"
+	(cd "$dir" && cp --parents $libs SHA256SUMS BASE.SHA256SUMS "$state/payload.new/")
+	[ ! -f "$dir/BUILDINFO" ] || cp "$dir/BUILDINFO" "$state/payload.new/"
+	(cd "$state/payload.new" && sha256sum -c --quiet SHA256SUMS) || die 'payload copy does not match'
+	rm -rf "$state/payload.old"
+	[ ! -d "$state/payload" ] || mv "$state/payload" "$state/payload.old"
+	mv "$state/payload.new" "$state/payload"
+	rm -rf "$state/payload.old"
+	apply "$force"
+	: >"$state/enabled"
+	echo "enabled: steam-fex-rootfs-install reapplies it to a new guest root"
+	;;
+reapply)
+	[ "$(id -u)" = 0 ] || die 'run as root'
+	[ -e "$state/enabled" ] || { echo "$me: not enabled; nothing to do"; exit 0; }
+	take_locks
+	apply 0
+	;;
+restore)
+	[ "$(id -u)" = 0 ] || die 'run as root'
+	take_locks
+	rm -f "$state/enabled"
+	[ -f "$state/applied" ] || { echo "$me: nothing was replaced; $root keeps its own drivers"; exit 0; }
+	new_sums=$state/payload/SHA256SUMS
+	while read -r f orig; do
+		a=${f#usr/}; a=${a%%/*}; b=$state/orig/$a-$orig.so
+		cur=$(sha "$root/$f")
+		if [ "$cur" = "$orig" ]; then echo "$f: already the original"; continue; fi
+		if [ -f "$new_sums" ] && [ "$cur" != "$(want "$new_sums" "$f")" ]; then
+			echo "$me: warning: $f is neither the 8-bit build nor the backed-up original (a new guest root?); left alone" >&2
+			continue
+		fi
+		[ -f "$b" ] && [ "$(sha "$b")" = "$orig" ] || die "backup $b missing or damaged"
+		put "$f" "$b" "$orig"
+		echo "$f: restored the original ($orig)"
+	done <"$state/applied"
+	rm -f "$state/applied"
+	echo "disabled: steam-fex-rootfs-install no longer reapplies it"
+	;;
+status)
+	p=$state/payload
+	echo "guest root: $root ($(cat "$root/version" 2>/dev/null || echo 'no version file'))"
+	echo "reapply on rootfs update: $([ -e "$state/enabled" ] && echo yes || echo no)"
+	for f in $libs; do
+		cur=$(sha "$root/$f" 2>/dev/null || echo missing)
+		what='unknown build'
+		[ -f "$p/SHA256SUMS" ] && [ "$cur" = "$(want "$p/SHA256SUMS" "$f")" ] && what='8-bit build'
+		[ -f "$p/BASE.SHA256SUMS" ] && [ "$cur" = "$(want "$p/BASE.SHA256SUMS" "$f")" ] && what='guest original'
+		echo "$f: $what ($cur)"
+	done
+	;;
+*)
+	sed -n '2,/^set -eu/p' "$0" | sed '$d; s/^# \{0,1\}//' >&2
+	exit 2
+	;;
+esac

@@ -103,14 +103,14 @@ on the phone's Adreno 660, kernel r202.
     and all 11023 still pass; 180 more run now.
 
 Not tested yet: a D3D game through DXVK 3.x with this driver (needs a native
-ARM64 Proton; x86 Proton uses FEX's own Mesa, see below).
+ARM64 Proton; x86 Proton uses FEX's own Mesa: `packages/mesa-fex`).
 
 ## Not covered
 
 - x86 Proton (Proton Experimental x86_64 under FEX) uses the x86 Mesa in
-  `/usr/share/guestos/fex-mesa` (Mesa 26.2.0, `usr/lib` and `usr/lib32`),
-  not this package. It needs the same one-line change, built for x86_64 (and
-  i686 for 32-bit games if Proton isn't in WoW64 mode) and copied over
-  `usr/lib{,32}/libvulkan_freedreno.so` in that rootfs (no package manager
-  there; FEX updates would overwrite it).
+  `/usr/share/guestos/fex-mesa` (Mesa 26.2.0, `usr/lib` and `usr/lib32`; FEX's
+  Vulkan thunks are off and there is no 32-bit one), not this package. The
+  same one-line change for that root, x86_64 and i686, is `packages/mesa-fex`
+  (install with `steam-fex-turnip-8bit`; `steam-fex-rootfs-install` reapplies
+  it to a new root).
 - Other a6xx gen4 GPUs get the feature too but were not tested.

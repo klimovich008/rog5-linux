@@ -1,0 +1,23 @@
+# Build environment for packages/mesa-fex: Arch Linux x86_64 frozen at the
+# Arch Linux Archive snapshot of 2026-08-12, the package set FEX-Emu's
+# ArchLinux 2026-08-11 root image was built from (gcc 16.2.1+r23, clang
+# 22.1.8, glibc 2.44+r24, libdrm 2.4.134, wayland 1.26.0, spirv-tools
+# 1.4.357.0: the versions in that image's pacman database).
+#
+# Only the libraries the guest's own libvulkan_freedreno.so links are
+# installed (no libunwind, libdisplay-info, xcb-util-keysyms, valgrind), so
+# meson's auto features pick the same set; build.sh checks the result.
+FROM docker.io/library/archlinux@sha256:eb8f6dcc89a38977c9735f10fcf6ae4afe496283e7008eb7a3420cdba31fbd04
+RUN printf 'Server = https://archive.archlinux.org/repos/2026/08/12/$repo/os/$arch\n' >/etc/pacman.d/mirrorlist \
+ && printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >>/etc/pacman.conf \
+ && pacman -Syyuu --noconfirm \
+ && pacman -S --noconfirm --needed \
+      gcc clang llvm binutils pkgconf make file patch \
+      meson ninja python python-mako python-yaml python-packaging python-ply \
+      bison flex glslang \
+      xorgproto wayland-protocols vulkan-headers \
+      libdrm libx11 libxcb libxshmfence libxrandr wayland expat zlib zstd systemd-libs spirv-tools vulkan-icd-loader \
+      lib32-gcc-libs lib32-glibc lib32-libdrm lib32-libx11 lib32-libxcb lib32-libxshmfence lib32-libxrandr \
+      lib32-wayland lib32-expat lib32-zlib lib32-zstd lib32-systemd lib32-spirv-tools lib32-vulkan-icd-loader \
+ && rm -rf /var/cache/pacman/pkg/* \
+ && pacman -Q >/pkglist.txt

@@ -15,6 +15,8 @@
 # two renames are used, and an interrupted run is repaired by the next one.
 # One run at a time (flock), and not while Steam runs (games keep files of
 # the old root open; steam-arm64 holds a shared lock).
+# With steam-fex-turnip-8bit enabled, its driver is put into the new root
+# before the swap.
 #
 #   steam-fex-rootfs-install          (as root; needs squashfs-tools, xxhash)
 set -eu
@@ -51,6 +53,14 @@ got=$(xxhsum -H3 "$cache/rootfs.sqsh" | awk '{print $1}')
 rm -rf "$dest.new"; mkdir -p "$(dirname "$dest")"
 unsquashfs -q -n -d "$dest.new" "$cache/rootfs.sqsh"
 [ -f "$dest.new/graphics_provider.json" ] || { echo "steam-fex-rootfs-install: no graphics_provider.json in the image" >&2; exit 1; }
+# The 8-bit-storage Turnip (steam-fex-turnip-8bit, packages/mesa-fex) goes
+# into the new root before it is published, so DXVK 3.x games never see the
+# stock driver; a root with a different Mesa is published unchanged, with a
+# warning (rebuild packages/mesa-fex for it).
+if [ -e "${ROG5_FEX_TURNIP_STATE:-/var/lib/rog5-fex-turnip}/enabled" ]; then
+	ROG5_FEX_ROOT=$dest.new ROG5_FEX_TURNIP_LOCKED=1 sh "$(dirname "$0")/steam-fex-turnip-8bit" reapply ||
+		echo 'steam-fex-rootfs-install: warning: the 8-bit Turnip was not applied to the new root; DXVK 3.x under FEX will reject the Adreno 660' >&2
+fi
 if [ ! -e "$dest" ]; then
 	mv -T "$dest.new" "$dest"
 elif ! mv -T --exchange "$dest.new" "$dest" 2>/dev/null; then
