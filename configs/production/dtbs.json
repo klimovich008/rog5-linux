@@ -47,6 +47,15 @@
       "created": "2026-09-30",
       "kernel_requires": "0136-0139, 0144, 0146",
       "notes": "d8 plus memx (no-map 64 MiB at 0x34a000000, the DDR that aborts on instruction fetch). Default DTB since r204."
+    },
+    "d10": {
+      "path": "platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb",
+      "sha256": "dda8b280da1ee6a4d4c85c663008551757f9766b278dc93dfeba0b875114788e",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc,memx,l11off",
+      "base": "d9",
+      "created": "2026-10-01",
+      "kernel_requires": "",
+      "notes": "d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup)"
     }
   }
 }
