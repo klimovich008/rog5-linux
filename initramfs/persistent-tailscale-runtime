@@ -2,8 +2,8 @@
 set -eu
 
 action=${1:-}
-[ "$#" -eq 1 ] || { echo 'FAIL usage: persistent-tailscale-runtime prepare|cleanup' >&2; exit 1; }
-case $action in prepare|cleanup) ;; *) echo 'FAIL invalid Tailscale runtime action' >&2; exit 1 ;; esac
+[ "$#" -eq 1 ] || { echo 'FAIL usage: persistent-tailscale-runtime prepare|cleanup|ready' >&2; exit 1; }
+case $action in prepare|cleanup|ready) ;; *) echo 'FAIL invalid Tailscale runtime action' >&2; exit 1 ;; esac
 
 dist=/persist/opt/tailscale/1.102.3/dist
 archive=/persist/opt/tailscale/1.102.3/tailscale_1.102.3_arm64.tgz
@@ -54,6 +54,16 @@ cleanup() {
 if [ "$action" = cleanup ]; then
 	cleanup
 	exit 0
+fi
+
+# ExecCondition: without the automatic Wi-Fi composition this Tailscale needs
+# the USB link. Exit 1 (unit skipped, no restart) while usb0 is down, instead
+# of failing prepare and retrying every 60 s; rog5-usb-reconnect starts the
+# unit once a host configures the gadget.
+if [ "$action" = ready ]; then
+	[ "$automatic_wifi" = 1 ] && exit 0
+	[ "$(cat /sys/class/net/$interface/operstate 2>/dev/null)" = up ] && exit 0
+	exit 1
 fi
 
 [ -f /run/rog5-persistent-state.runtime ] &&

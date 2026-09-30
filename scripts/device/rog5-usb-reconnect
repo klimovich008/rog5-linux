@@ -44,6 +44,8 @@ retries=/run/rog5-usb-reconnect.retries
 max_retries=${ROG5_USB_HOST_RETRIES:-3}
 retry_s=${ROG5_USB_HOST_RETRY_S:-35}
 
+# The USB-link Tailscale (rog5-tailscaled) skips itself while usb0 is down.
+start_usb_tailscale() { systemctl --no-block start rog5-tailscaled.service 2>/dev/null || true; }
 log() { printf 'rog5-usb-reconnect: %s\n' "$*" >/dev/kmsg 2>/dev/null || true; }
 state() { cat "/sys/class/udc/$udc/state" 2>/dev/null; }
 host_mode() {
@@ -127,7 +129,7 @@ case $(cat "$supply/usb_type" 2>/dev/null) in
 esac
 waited=0
 while [ "$waited" -lt "$wait_s" ]; do
-	[ "$(state)" = configured ] && exit 0
+	[ "$(state)" = configured ] && { start_usb_tailscale; exit 0; }
 	host_mode && exit 0
 	sleep 1
 	waited=$((waited + 1))
@@ -138,7 +140,7 @@ reinit || exit 1
 ip link set usb0 up 2>/dev/null
 waited=0
 while [ "$waited" -lt 10 ]; do
-	[ "$(state)" = configured ] && { log "PASS gadget configured after re-initialisation"; exit 0; }
+	[ "$(state)" = configured ] && { log "PASS gadget configured after re-initialisation"; start_usb_tailscale; exit 0; }
 	sleep 1
 	waited=$((waited + 1))
 done

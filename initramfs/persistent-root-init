@@ -2638,6 +2638,7 @@ Type=simple
 Environment=TS_DEBUG_FIREWALL_MODE=nftables
 RuntimeDirectory=rog5-tailscale
 RuntimeDirectoryMode=0700
+ExecCondition=/run/rog5-persistent-tailscale ready
 ExecStartPre=/run/rog5-persistent-tailscale prepare
 ExecStart=/run/rog5-tailscale/tailscaled --state=/persist/var/lib/tailscale/tailscaled.state --statedir=/persist/var/lib/tailscale --socket=/run/rog5-tailscale/tailscaled.sock
 ExecStopPost=/run/rog5-persistent-tailscale cleanup
