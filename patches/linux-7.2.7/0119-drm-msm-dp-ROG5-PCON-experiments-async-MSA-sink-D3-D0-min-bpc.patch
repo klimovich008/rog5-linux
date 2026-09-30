@@ -1,0 +1,208 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 PCON experiment knobs: asynchronous MSA, sink D3/D0 cycle, 8 bpc floor for converters
+
+The USB-C HDMI hub (DP-to-HDMI converter, DPCD 0x80 = 0b f0 02 1f) trains
+at HBR2 but shows nothing, and then stays dark even at HBR until a replug
+and a reboot; 0110 caps it at HBR. amdgpu (Steam Deck) drives the same hub
+at HBR2 with asynchronous MSA clocking (MISC0 bit 0 clear) and cycles the
+sink through D3/D0 on every full link disable/enable; msm and stock msm-5.4
+use synchronous clocking and msm never sends D3 on an attached shutdown.
+Two opt-in knobs (0644, applied at the next fresh enable, defaults keep
+today's behaviour) so the arms can be tested without a rebuild:
+
+ - msm.dp_async_msa=1: CONFIGURATION_CTRL SYNC_ASYNC_CLK and MISC0 bit 0
+   clear (MISC0 bit 0 is now cleared first: the register is read back), TU
+   start delay with the async margin; MVID/NVID stay software-programmed.
+ - msm.dp_sink_power_cycle=1: D3 before msm_dp_ctrl_off() on an attached
+   shutdown, and D3, >= 200 us, D0 (retried) before a fresh link enable,
+   ahead of the converter (0x3050) setup.
+
+Always on:
+ - Behind a TMDS (HDMI/DVI) converter the bpp floor is 24: HDMI has no
+   6 bpc (stock forces 24 bpp for HDMI bridges, dp_asus_validate_24_bpp).
+   Native DP keeps 18 unless msm.dp_min_bpc=8.
+ - The dropped retrain result, a stream-enable failure and a main link that
+   is not ready after SEND_VIDEO are logged (no control-flow change, so no
+   new path writes link registers with the link clocks off; see 0091), plus
+   one line with the MSA mode and CONFIGURATION_CTRL/MISC1_MISC0 as written.
+
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -388,6 +388,17 @@
+ 	drm_dbg_dp(ctrl->drm_dev, "mainlink off\n");
+ }
+ 
++/*
++ * ROG5 experiment: asynchronous MSA clocking, as amdgpu (Steam Deck) sends to
++ * the USB-C HDMI hub that stays dark behind msm at HBR2. 0 = synchronous
++ * (mainline and stock msm-5.4), 1 = asynchronous: CONFIGURATION_CTRL
++ * SYNC_ASYNC_CLK and MISC0 bit 0 clear, TU start delay with the async margin;
++ * MVID/NVID stay software-programmed (static). Applied at the next modeset.
++ */
++static uint msm_dp_async_msa;
++module_param_named(dp_async_msa, msm_dp_async_msa, uint, 0644);
++MODULE_PARM_DESC(dp_async_msa, "ROG5: 1 = asynchronous MSA clock signalling at the next modeset (0 = synchronous)");
++
+ static void msm_dp_ctrl_config_ctrl(struct msm_dp_ctrl_private *ctrl)
+ {
+ 	u32 config = 0, tbd;
+@@ -419,7 +430,8 @@
+ 
+ 	/* sync clock & static Mvid */
+ 	config |= DP_CONFIGURATION_CTRL_STATIC_DYNAMIC_CN;
+-	config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
++	if (!msm_dp_async_msa)
++		config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
+ 
+ 	if (ctrl->panel->psr_cap.version)
+ 		config |= DP_CONFIGURATION_CTRL_SEND_VSC;
+@@ -500,8 +512,10 @@
+ 	misc_val &= ~(0x07 << DP_MISC0_TEST_BITS_DEPTH_SHIFT);
+ 	misc_val |= colorimetry_cfg << DP_MISC0_COLORIMETRY_CFG_SHIFT;
+ 	misc_val |= test_bits_depth << DP_MISC0_TEST_BITS_DEPTH_SHIFT;
+-	/* Configure clock to synchronous mode */
+-	misc_val |= DP_MISC0_SYNCHRONOUS_CLK;
++	/* Configure clock to synchronous mode (the register is read back: clear first) */
++	misc_val &= ~DP_MISC0_SYNCHRONOUS_CLK;
++	if (!msm_dp_async_msa)
++		misc_val |= DP_MISC0_SYNCHRONOUS_CLK;
+ 
+ 	drm_dbg_dp(ctrl->drm_dev, "misc settings = 0x%x\n", misc_val);
+ 	msm_dp_write_link(ctrl, REG_DP_MISC1_MISC0, misc_val);
+@@ -1291,7 +1305,7 @@
+ 	in.bpp = ctrl->panel->msm_dp_mode.bpp;
+ 	in.pixel_enc = ctrl->panel->msm_dp_mode.out_fmt_is_yuv_420 ? 420 : 444;
+ 	in.dsc_en = 0;
+-	in.async_en = 0;
++	in.async_en = !!msm_dp_async_msa;
+ 	in.fec_en = 0;
+ 	in.num_of_dsc_slices = 0;
+ 	in.compress_ratio = 100;
+@@ -2555,8 +2569,13 @@
+ 		ctrl->stream_clks_on = true;
+ 	}
+ 
+-	if (force_link_train || !msm_dp_ctrl_channel_eq_ok(ctrl))
+-		msm_dp_ctrl_link_retrain(ctrl);
++	if (force_link_train || !msm_dp_ctrl_channel_eq_ok(ctrl)) {
++		int rc = msm_dp_ctrl_link_retrain(ctrl);
++
++		/* ROG5: this result was dropped; only report it (no flow change) */
++		if (rc)
++			DRM_ERROR("DP: retraining before video failed, rc=%d\n", rc);
++	}
+ 
+ 	/* stop txing train pattern to end link training */
+ 	msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
+@@ -2587,6 +2606,12 @@
+ 	mainlink_ready = msm_dp_ctrl_mainlink_ready(ctrl);
+ 	drm_dbg_dp(ctrl->drm_dev,
+ 		"mainlink %s\n", mainlink_ready ? "READY" : "NOT READY");
++	if (!mainlink_ready)
++		DRM_ERROR("DP: main link not ready after SEND_VIDEO\n");
++	drm_info(ctrl->drm_dev, "DP: MSA %s clock, CONFIGURATION_CTRL 0x%08x MISC1_MISC0 0x%08x\n",
++		 msm_dp_async_msa ? "asynchronous" : "synchronous",
++		 msm_dp_read_link(ctrl, REG_DP_CONFIGURATION_CTRL),
++		 msm_dp_read_link(ctrl, REG_DP_MISC1_MISC0));
+ 
+ end:
+ 	return ret;
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -711,6 +711,16 @@
+ 	return 0;
+ }
+ 
++/*
++ * ROG5 experiment: put the sink/branch into D3 when an attached link is shut
++ * down and cycle D3 -> D0 before a fresh link enable, as stock msm-5.4 and
++ * amdgpu do. Aimed at the USB-C HDMI hub whose converter stayed dark after an
++ * HBR2 attempt until a replug and a reboot. Applied at the next modeset.
++ */
++static bool msm_dp_sink_power_cycle;
++module_param_named(dp_sink_power_cycle, msm_dp_sink_power_cycle, bool, 0644);
++MODULE_PARM_DESC(dp_sink_power_cycle, "ROG5: D3 on link shutdown and D3->D0 before a fresh link enable");
++
+ static int msm_dp_display_disable(struct msm_dp_display_private *dp)
+ {
+ 	struct msm_dp *msm_dp_display = &dp->msm_dp_display;
+@@ -740,6 +750,8 @@
+ 		 * unplugged interrupt
+ 		 * dongle unplugged out of DUT
+ 		 */
++		if (msm_dp_sink_power_cycle && !msm_dp_display->is_edp)
++			msm_dp_link_psm_config(dp->link, &dp->panel->link_info, true);
+ 		msm_dp_ctrl_off(dp->ctrl);
+ 		msm_dp_display_host_phy_exit(dp);
+ 	}
+@@ -1473,6 +1485,15 @@
+ 	if (!dp->power_on) {
+ 		msm_dp_display_host_phy_init(msm_dp_display);
+ 		force_link_train = true;
++		if (msm_dp_sink_power_cycle && !dp->is_edp) {
++			/* D3, >= 200 us (stock), D0 (retried, 1-2 ms wake each) */
++			msm_dp_link_psm_config(msm_dp_display->link,
++					       &msm_dp_display->panel->link_info, true);
++			usleep_range(200, 500);
++			rc = msm_dp_link_psm_config(msm_dp_display->link,
++						    &msm_dp_display->panel->link_info, false);
++			drm_info(msm_dp_display->drm_dev, "DP: sink D3 -> D0 before link enable (rc=%d)\n", rc);
++		}
+ 	}
+ 
+ 	msm_dp_panel_config_pcon(msm_dp_display->panel);
+@@ -1484,7 +1505,9 @@
+ 		return;
+ 	}
+ 
+-	msm_dp_display_enable(msm_dp_display, force_link_train);
++	rc = msm_dp_display_enable(msm_dp_display, force_link_train);
++	if (rc)
++		DRM_ERROR("DP: stream enable failed, rc=%d\n", rc);
+ 
+ 	if (msm_dp_tpg)
+ 		msm_dp_panel_tpg_config(msm_dp_display->panel, true);
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c
+@@ -254,14 +254,30 @@
+ 		 "DP: HDMI/DVI converter, link rate capped at %u kHz\n", link_info->rate);
+ }
+ 
++/*
++ * ROG5: lowest bits per component a mode may fall back to on a native DP sink
++ * (6 = mainline). A DP-to-HDMI/DVI converter always gets at least 8: HDMI and
++ * DVI have no 6 bpc (stock msm-5.4 forces 24 bpp for HDMI bridges too,
++ * dp_asus_validate_24_bpp). Modes that fit only below the floor are rejected.
++ */
++static uint msm_dp_min_bpc = 6;
++module_param_named(dp_min_bpc, msm_dp_min_bpc, uint, 0644);
++MODULE_PARM_DESC(dp_min_bpc, "ROG5: min bits per component for native DP sinks, 6 or 8 (converters: always 8)");
++
+ static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
+ 		u32 mode_edid_bpp, u32 mode_pclk_khz)
+ {
+ 	const struct msm_dp_link_info *link_info;
+-	const u32 max_supported_bpp = 30, min_supported_bpp = 18;
++	const u32 max_supported_bpp = 30;
++	u32 min_supported_bpp = msm_dp_min_bpc >= 8 ? 24 : 18;
+ 	u32 bpp, data_rate_khz;
+ 	int ds_max_bpc;
+ 
++	if (drm_dp_is_branch(msm_dp_panel->dpcd) &&
++	    (msm_dp_panel->dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) ==
++	    DP_DWN_STRM_PORT_TYPE_TMDS)
++		min_supported_bpp = 24;
++
+ 	bpp = min(mode_edid_bpp, max_supported_bpp);
+ 
+ 	/*
+@@ -284,6 +300,9 @@
+ 	link_info = &msm_dp_panel->link_info;
+ 	data_rate_khz = link_info->num_lanes * link_info->rate * 8;
+ 
++	if (bpp < min_supported_bpp)
++		bpp = min_supported_bpp;
++
+ 	do {
+ 		if (mode_pclk_khz * bpp <= data_rate_khz)
+ 			return bpp;

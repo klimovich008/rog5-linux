@@ -83,3 +83,6 @@
 0115-ASoC-cs35l45-ROG5-mask-unused-IRQ-sources-and-the-PLL-IRQs-like-stock.patch
 0116-arm64-mm-ROG5-log-user-SEA-with-the-PFN-optional-retire.patch
 0117-usb-dwc3-qcom-don-t-dereference-a-missing-xHCI-hcd-on-suspend.patch
+0118-drm-msm-dpu-ROG5-log-INTF-underruns-with-mode-and-core-clock.patch
+0119-drm-msm-dp-ROG5-PCON-experiments-async-MSA-sink-D3-D0-min-bpc.patch
+0120-soc-qcom-pmic_glink_altmode-ROG5-log-the-DP-pin-assignment.patch

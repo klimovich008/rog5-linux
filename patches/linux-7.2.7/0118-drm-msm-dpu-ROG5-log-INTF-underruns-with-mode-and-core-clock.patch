@@ -1,0 +1,53 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 log INTF underruns with the mode and core clock
+
+An INTF underrun on the DP side only incremented a debugfs counter (and took
+a devcoredump snapshot on the first one). The counter also stops while the
+video encoder's IRQs are off after the idle timeout (ENTER_IDLE ->
+_dpu_encoder_irq_disable), so a monitor showing the underflow colour on
+every frame looked like a "latched" underrun (2026-09-29/30, MSI 491C at
+5120x1440@60 and 3840x1080@100: 16151 underruns in 178 s, then no change
+while the desktop was idle).
+
+Log the 1st, 2nd, 4th, ... 1024th underrun after each enable and every
+1024th after that, with the mode, pixel clock and the core clock in effect.
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -1491,16 +1491,34 @@
+ void dpu_encoder_underrun_callback(struct drm_encoder *drm_enc,
+ 		struct dpu_encoder_phys *phy_enc)
+ {
++	int cnt;
++
+ 	if (!phy_enc)
+ 		return;
+ 
+ 	DPU_ATRACE_BEGIN("encoder_underrun_callback");
+-	atomic_inc(&phy_enc->underrun_cnt);
++	cnt = atomic_inc_return(&phy_enc->underrun_cnt);
+ 
+ 	/* trigger dump only on the first underrun */
+-	if (atomic_read(&phy_enc->underrun_cnt) == 1)
++	if (cnt == 1)
+ 		msm_disp_snapshot_state(drm_enc->dev);
+ 
++	/*
++	 * ROG5: underruns were only visible as a debugfs counter, which also
++	 * stops while the encoder IRQs are off after the idle timeout, so a
++	 * blue (underflow colour) DP monitor looked "latched". Say it in the
++	 * log, with what the rate depends on: 1, 2, 4, ... 1024, then every
++	 * 1024th since this enable.
++	 */
++	if (is_power_of_2(cnt) || !(cnt % 1024))
++		dev_info_ratelimited(drm_enc->dev->dev,
++			"INTF_%d underrun #%d: %dx%d@%d pclk %d kHz, core clk %llu Hz\n",
++			phy_enc->hw_intf ? phy_enc->hw_intf->idx - INTF_0 : -1, cnt,
++			phy_enc->cached_mode.hdisplay, phy_enc->cached_mode.vdisplay,
++			drm_mode_vrefresh(&phy_enc->cached_mode),
++			phy_enc->cached_mode.clock,
++			phy_enc->dpu_kms->perf.core_clk_rate);
++
+ 	trace_dpu_enc_underrun_cb(DRMID(drm_enc),
+ 				  atomic_read(&phy_enc->underrun_cnt));
+ 	DPU_ATRACE_END("encoder_underrun_callback");

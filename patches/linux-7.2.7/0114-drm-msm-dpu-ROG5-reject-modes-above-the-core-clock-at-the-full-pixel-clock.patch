@@ -5,9 +5,11 @@ dpu_crtc_mode_valid() halves the mode clock when the SoC has 3D merge,
 while 0099 makes a video-mode interface vote the core clock for the full
 pixel clock. Modes between the two limits were offered and then clamped to
 the 460 MHz SM8350 maximum: on the MSI MPG 491C, 5120x1440@60 (469 MHz)
-and 3840x1080@100 (453 MHz, x1.05 clk factor = 476 MHz) both came up as
-the plain underrun colour (blue) on the first enable after a plug-in or a
-boot, while 3840x1080@60 (266.5 MHz) works.
+and 3840x1080@100 (453 MHz, x1.05 clk factor = 476 MHz) both showed only
+the underflow colour (blue): with 1-2 % or no margin over the 460 MHz core
+clock every frame underran (the debugfs counter merely stops counting once
+the encoder IRQs are off after the idle timeout, so it looked latched), while
+3840x1080@60 (266.5 MHz, +73 %) works.
 
 Validate against the full pixel clock, as the vote does. With the 105%
 factor this rejects pixel clocks above ~438 MHz; the DSI panel (command
@@ -27,7 +29,7 @@ mode, ~180 MHz) is unaffected. Suggested by GPT-6.1-Sol's review
 +	 * core clock for the full pixel clock (0099), so a mode above the max
 +	 * core clock / clk factor was offered but could not be driven:
 +	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
-+	 * SM8350 latched the INTF underrun colour (blue) on enable.
++	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
 +	 */
  
  	/*

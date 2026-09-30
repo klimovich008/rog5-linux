@@ -1,0 +1,18 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] soc: qcom: pmic_glink_altmode: ROG5 log the DP pin assignment
+
+Log each DisplayPort alt-mode notification from the ADSP (raw pin
+assignment, mux control, orientation, HPD) so a replug shows whether a
+monitor was offered assignment C/E (4 lanes) or D (2 lanes + USB3) before
+the DT is changed for four lanes. A handful of lines per plug-in.
+
+--- a/drivers/soc/qcom/pmic_glink_altmode.c
++++ b/drivers/soc/qcom/pmic_glink_altmode.c
+@@ -492,6 +492,7 @@
+ 	if (svid == USB_TYPEC_DP_SID) {
+ 		dp = &notify->extended_data.dp;
+ 
++		dev_info(altmode->dev, "DP port=%u pin_assignment=%u mux_ctrl=%u orientation=%u hpd=%u irq=%u\n", port, dp->pin_assignment, notify->mux_ctrl, orientation, dp->hpd_state, dp->hpd_irq);
+ 		alt_port->mode = dp->pin_assignment - DPAM_HPD_A;
+ 		alt_port->hpd_state = dp->hpd_state;
+ 		alt_port->hpd_irq = dp->hpd_irq;
