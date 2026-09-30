@@ -75,3 +75,24 @@ condensed findings are here.
   on the side port, 4-lane DP (after T1), HDR (staged port of stock's
   VSC/HDR-metadata SDPs, 350-600 lines), a GNOME output helper so the phone
   panel stays out of the layout for new monitors: proposals in the reports.
+
+## Verified on r197 (booted 2026-10-01 05:03; kernel r100 = 0001-0120, DTB r5)
+
+- 0 failed units (after the rog5-perf-mode start-limit fix), 0 SMMU faults.
+- Locked phone at boot: logind LockedHint=yes (phosh 0002), desktop mode (auto)
+  stayed in Phosh with the monitor attached and awake.
+- Speakers 0 dB / 19 dBV, routed after alsactl restore (55.8 s); no PipeWire
+  capture-probe errors.
+- CS35L45: masks as predicted (0x5ffdfe7f, banks 5/8 0xffffffff), IRQ1_STATUS 0
+  on both amps, PLL IRQs not requested.
+- Wi-Fi radio ready at 49.9 s (65.4 s on r194).
+- zram zstd 5.2 GiB, MGLRU on (min_ttl 1000 ms), TEO available, THP madvise.
+- UFS-backed loops carry UDISKS_IGNORE; ramdisk tailscaled skipped
+  (exec-condition), packaged tailscaled active.
+- `rog5-perf-mode auto` picks performance (monitor power + DP).
+- Side-port USB at boot: first attempt found nothing, retry 1 (88 s)
+  re-initialised, keyboard/mouse hub up at 103 s.
+- New logs: the MSI 491C offers DP pin assignment **C** (3 = 4-lane DP-only),
+  so 4 lanes is possible with it; Phosh's first DP enable at 3840x1080@60 with
+  a 335 MHz core clock underran 8-15 times, then stayed clean (the known
+  first-enable burst).
