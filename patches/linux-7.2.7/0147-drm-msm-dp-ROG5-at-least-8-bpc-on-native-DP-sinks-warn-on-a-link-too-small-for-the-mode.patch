@@ -1,0 +1,129 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 at least 8 bpc on native DP sinks, warn on a link too small for the mode
+
+With msm.dpu_mode_clk_check=halved (0139) GNOME offered the MSI MPG 491C
+3840x1080@144 (666.25 MHz) and 5120x1440@100 (805.12 MHz) and set both:
+
+  DP: 3840x1080@144 pclk 666250 kHz, 4 lanes x 540000 kHz, bpp 24
+  DP: 5120x1440@100 pclk 805120 kHz, 4 lanes x 540000 kHz, bpp 18
+  [dpu error]enc37 frame done timeout (x3, during 5120x1440@100)
+
+The halved clock rule is not what let 5120x1440@100 through. These limits
+apply to a mode that wide, compared with stock msm-5.4 (lahaina) and the
+hardware; the DP bridge and dpu_crtc_mode_valid() check the first three,
+the atomic check the rest:
+
+- DPU core clock: two layer mixers behind 3D merge each take half the
+  pixels. Stock's sde_kms_get_mixer_count requires htotal * vtotal *
+  vrefresh * 1.05 / num_lm to fit the max MDP clock (460 MHz), i.e. pclk
+  <= ~876 MHz with two mixers. The halved rule matches this. 5120x1440@60
+  (469 MHz) ran at 460 MHz with no underrun (0118 logs none). 0099 still
+  votes the full pixel clock, clamped to 460 MHz.
+- DP stream clock: stock qcom,max-pclk-frequency-khz = 675000, checked at
+  pclk / 2 with the wide bus (dp_display_validate_pixel_clock), the same
+  as mainline's DP_MAX_PIXEL_CLK_KHZ check. The PHY's divided VCO clock is
+  1350 MHz at HBR/HBR2/HBR3. Above 337.5 MHz the pixel clock needs MMCX
+  NOM (stock dispcc-lahaina rate_max). Mainline's DP OPP table (link clock
+  only) votes NOM only at HBR3; the DPU's 460 MHz OPP (NOM) covers it, and
+  0099 votes that OPP for every mode clock above ~440 MHz.
+- Link: 4 lanes x HBR2 (0138 caps HBR3 unless msm.dp_hbr3=1) carry
+  17.28 Gbit/s. 5120x1440@100 needs 19.3 Gbit/s at 24 bpp and fits only
+  at 18 bpp. dp_min_bpc (0134) defaulted to mainline's 6 bpc floor, so the
+  mode was offered and a 10 bpc OLED was driven at 6 bpc.
+- SSPP, multirect, resources and memory bandwidth: plane and CRTC atomic
+  checks (rect clock <= max core clock, max_linewidth 4096, parallel
+  multirect of two linear 2560-pixel rects allowed as stock). The mode
+  size is limited to 2 x 2560 by 4096.
+
+Default dp_min_bpc to 8 so that a mode which fits the link only below 8 bpc
+is rejected (MODE_BAD). A sink that asks for less (EDID bpc, downstream
+port) still gets its own depth, and msm.dp_min_bpc=6 restores mainline's
+fallback. This is policy: 5120x1440@100 was the only mode with frame done
+timeouts, but that does not show 6 bpc caused them (18 bpp filled 84 % of
+the link). The MSI list with halved becomes 1920x1080@60/120,
+2560x1440@60/120, 3840x1080@60/100/144 and 5120x1440@60. With
+msm.dp_hbr3=1, 5120x1440@100 is offered again at 30 bpp (93 % of 4 x HBR3;
+each mixer needs 423 MHz). It is within the stock limits but untested.
+
+3840x1080@144 stays. At 24 bpp it uses 92.5 % of 4 x HBR2 (0145 trains
+4 x HBR2 with its 95 % margin). The stream clock is 333 MHz, each mixer
+needs 350 MHz of 460, and each SSPP rect less than that. The ASUS stock
+refresh cap is 144 Hz. It ran for 20 s without underrun or frame done
+timeout, which shows brief operation, not sustained. It cannot run at
+30 bpp over HBR2.
+
+Mode validation and bpp selection assume the maximum link, but training
+can end on a smaller link (msm's downshifts, including 0145's fallback to
+the maximum link, or msm.dp_max_rate), and nothing reports it; the
+inherited retry loop can even end with rc 0. Warn when the final link
+carries less than the mode needs. The patch also
+documents the halved budget and its dependence on the 0099 vote in
+dpu_crtc_mode_valid(). Found by GPT-6.1-Sol's review, not fixed here:
+TU/blanking feasibility is not a mode validation limit, and 420-only
+modes pick bpp with clock/2 at validation but the full clock at modeset.
+
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -2651,6 +2651,19 @@
+ 	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
+ 		return rc;
+ 
++	/*
++	 * ROG5: mode validation and bpp selection assume the maximum link, but
++	 * msm's downshifts (and dp_max_rate) can end training below what the
++	 * mode needs, and nothing reports it. Say so (0147).
++	 */
++	if (!rc && need_kbps &&
++	    !msm_dp_ctrl_link_carries(ctrl->link->link_params.num_lanes,
++				      ctrl->link->link_params.rate, need_kbps, 100))
++		drm_warn(ctrl->drm_dev,
++			 "DP: link %u lanes x %u kHz carries less than the mode's %llu kbit/s\n",
++			 ctrl->link->link_params.num_lanes,
++			 ctrl->link->link_params.rate, need_kbps);
++
+ 	if (rc == 0) {  /* link train successfully */
+ 		/*
+ 		 * do not stop train pattern here
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c
+@@ -323,10 +323,16 @@
+  * (6 = mainline). A DP-to-HDMI/DVI converter always gets at least 8: HDMI and
+  * DVI have no 6 bpc (stock msm-5.4 forces 24 bpp for HDMI bridges too,
+  * dp_asus_validate_24_bpp). Modes that fit only below the floor are rejected.
++ *
++ * Default 8: with 6, the MSI MPG 491C (10 bpc OLED) was offered 5120x1440@100
++ * (805 MHz), which fits 4 x HBR2 only at 18 bpp; GNOME listed it, set it and
++ * the DPU logged frame done timeouts (2026-09-30). A monitor is never meant to
++ * be driven at 6 bpc when it did not ask for it: a sink whose own ceiling
++ * (EDID bpc, downstream port) is below 8 still gets its depth, see below.
+  */
+-static uint msm_dp_min_bpc = 6;
++static uint msm_dp_min_bpc = 8;
+ module_param_named(dp_min_bpc, msm_dp_min_bpc, uint, 0644);
+-MODULE_PARM_DESC(dp_min_bpc, "ROG5: min bits per component for native DP sinks, 6 or 8 (converters: always 8)");
++MODULE_PARM_DESC(dp_min_bpc, "ROG5: min bits per component for native DP sinks, 8 (default) or 6 (mainline); converters: always 8");
+ 
+ static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
+ 		u32 mode_edid_bpp, u32 mode_pclk_khz)
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1767,6 +1767,19 @@
+ 	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
+ 	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
+ 	 * msm.dpu_mode_clk_check=halved restores the halving for A/B tests.
++	 *
++	 * The halved budget is stock msm-5.4's (sde_kms_get_mixer_count, from
++	 * htotal * vtotal * vrefresh): each of the two layer mixers behind 3D
++	 * merge takes half the pixels, so pclk * 1.05 / 2 must fit the max core
++	 * clock (pixel clocks up to ~876 MHz at 460 MHz; 5120x1440@60 at
++	 * 469 MHz ran without underruns). Other limits: the DP bridge checks the
++	 * stream clock (DP_MAX_PIXEL_CLK_KHZ at pclk / 2 with the wide bus,
++	 * 675 MHz as stock) and the link at the dp_min_bpc floor (0147, 0138's
++	 * HBR2 cap); the atomic check covers the SSPP rect clock, line width,
++	 * multirect, resources and bandwidth; the size check is below. The 0099
++	 * vote stays at the full pixel clock: its 460 MHz OPP also keeps MMCX
++	 * at NOM, which the DP pixel clock needs above 337.5 MHz (stock
++	 * dispcc-lahaina), i.e. for mode clocks above 675 MHz.
+ 	 */
+ 	if (READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED &&
+ 	    dpu_kms->catalog->caps->has_3d_merge &&
