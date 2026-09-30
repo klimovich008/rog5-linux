@@ -1,0 +1,305 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dp: ROG5 train the lowest link rate that carries the mode (dp_link_policy)
+
+msm (like stock msm-5.4, dp_ctrl_on) trains the maximum rate and lane count
+the sink, the DT and the Type-C pin assignment allow, whatever the mode
+needs: on the MSI MPG 491C (pin assignment C) 3840x1080@60 at 30 bpp
+(266.5 MHz, 8.0 Gbit/s) runs on 4 lanes x HBR2 (17.28 Gbit/s payload).
+
+What the link rate costs on SM8350: the DP controller votes its link clock
+OPP (sm8350.dtsi dp_opp_table), MMCX SVS_L1 at 540 MHz (HBR2) but SVS at
+270 MHz (HBR). With the DSI panel off, the DPU runs that mode at ~280 MHz
+(0099 floor; 300 MHz OPP = SVS), so HBR2 alone lifts the MMCX rail to the
+next corner. The link clock domain and the PHY serialisers also run at half
+the rate at HBR. The lane count costs less: the PLL is shared, and in
+2-lane mode qmp_v4_configure_dp_phy only lowers the bias of the unused TX
+block. So 4 x HBR (8.64 Gbit/s, the mode at 92.5 %) is the cheapest link
+for that mode; 2 x HBR2 has the same fill and carried it before 0136.
+
+Pick the link like i915 (intel_dp_compute_link_config_wide: "max bpp, min
+clock, min lanes") and amdgpu DC (decide_dp_link_settings): the lowest
+standard rate that carries the mode, then the fewest lanes at that rate,
+never fewer than 2 unless the link has only 1. The bpp stays what mode
+validation chose for the maximum link. A reduced link must leave margin:
+msm.dp_link_fill_pct (default 95 %: SSC downspread and reference clock
+0.6 %, DP 2.1 2.6.4.1, plus transfer unit rounding). Nouveau and msm train
+the maximum instead; i915 does so only for MST and for eDP before 1.4.
+
+msm.dp_link_policy: 0 = maximum (old behaviour), 1 = lowest rate then fewest
+lanes (default), 2 = fewest lanes then lowest rate (for A/B measurements:
+2 x HBR2 for the mode above without a replug). Read at every link enable,
+i.e. the next modeset; every mode change retrains, so a new mode gets its
+own link. If the reduced link fails training (including running out of
+retries, which msm's loop otherwise reports as success), or msm's downshifts
+end on a link without the margin, it retrains at the maximum exactly as
+before (inherited: those downshifts, and CTS link-training requests, which
+change link_params without retraining the PHY). External DP with
+standard rates only (no eDP, no eDP 1.4 rate table); a PHY compliance test
+keeps its link. Mode validation and bpp selection still use the maximum
+link (0110 converter cap, 0137 pin assignment lanes, 0138 HBR3/lane caps,
+msm.dp_max_rate).
+
+Expected: MMCX SVS instead of SVS_L1 and half the link clock for that mode,
+tens of mW (measurement: scripts/device/rog5-dp-power-measure). 4 x HBR is
+new on this port and monitor: check the picture and the policy line in the
+kernel log after the first enable; msm.dp_link_policy=0 plus a modeset puts
+the old link back.
+
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -2389,56 +2389,121 @@
+ 	return drm_dp_channel_eq_ok(link_status, num_lanes);
+ }
+ 
+-int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
++/*
++ * ROG5: link configuration policy. Mainline msm, like stock msm-5.4, trains
++ * the most the sink and the Type-C pin assignment allow: 4 lanes x HBR2
++ * (17.28 Gbit/s payload) for 3840x1080@60 at 30 bpp (8.0 Gbit/s) on the MSI
++ * MPG 491C. The DP controller's link clock OPP (sm8350.dtsi dp_opp_table)
++ * needs MMCX SVS_L1 at HBR2 (540 MHz) but SVS at HBR (270 MHz), the corner
++ * the DPU holds anyway for such a mode (core clock ~280 MHz, 300 MHz OPP),
++ * and the link clock domain and the PHY serialisers run at half the rate.
++ * So, in the order of i915 (intel_dp_compute_link_config_wide: "max bpp,
++ * min clock, min lanes") and amdgpu DC (decide_dp_link_settings), train the
++ * lowest rate that carries the mode and, at that rate, the fewest lanes
++ * (not below 2: a single lane is untested here and saves nothing
++ * measurable). The bpp stays what mode validation chose for the maximum
++ * link (msm_dp_panel_get_mode_bpp), as i915 keeps the maximum bpp.
++ *
++ *   dp_link_policy=0  maximum rate and lanes (mainline and stock behaviour)
++ *   dp_link_policy=1  lowest rate, then fewest lanes (default)
++ *   dp_link_policy=2  fewest lanes, then lowest rate (A/B tests: 2 x HBR2
++ *                     for the mode above without a replug)
++ *   dp_link_fill_pct  a reduced link carries the mode only if the mode needs
++ *                     at most this share of its payload bandwidth (50-100,
++ *                     default 95: 0.6 % SSC downspread and reference clock
++ *                     margin, DP 2.1 2.6.4.1, plus transfer unit rounding;
++ *                     2 x HBR2 has carried 3840x1080@60 30 bpp at 92.5 %)
++ *
++ * Both are read at every link enable, i.e. at the next modeset (every mode
++ * change retrains). A reduced link that fails training, or that trains only
++ * after msm's own downshifts to a link that no longer carries the mode, is
++ * retrained at the maximum. External DP with standard rates only (no eDP,
++ * no eDP 1.4 rate tables); PHY compliance test requests keep their link.
++ */
++static uint msm_dp_link_policy = 1;
++module_param_named(dp_link_policy, msm_dp_link_policy, uint, 0644);
++MODULE_PARM_DESC(dp_link_policy, "ROG5: DP link config at the next modeset: 0 = max rate and lanes, 1 = lowest rate then fewest lanes (default), 2 = fewest lanes then lowest rate");
++static uint msm_dp_link_fill_pct = 95;
++module_param_named(dp_link_fill_pct, msm_dp_link_fill_pct, uint, 0644);
++MODULE_PARM_DESC(dp_link_fill_pct, "ROG5: largest share (%) of a reduced DP link's payload bandwidth a mode may use (50-100, default 95)");
++
++/* 8b/10b: rate is the symbol rate in kHz, 8 payload bits per symbol and lane */
++static bool msm_dp_ctrl_link_carries(u32 lanes, u32 rate, u64 need_kbps,
++				     u32 fill_pct)
+ {
+-	int rc = 0;
+-	struct msm_dp_ctrl_private *ctrl;
+-	u32 rate;
+-	int link_train_max_retries = 5;
+-	u32 const phy_cts_pixel_clk_khz = 148500;
+-	u8 link_status[DP_LINK_STATUS_SIZE];
+-	unsigned int training_step;
+-	unsigned long pixel_rate;
++	return need_kbps * 100 <= (u64)lanes * rate * 8 * fill_pct;
++}
+ 
+-	if (!msm_dp_ctrl)
+-		return -EINVAL;
++/*
++ * link_params holds the maximum link (rate, lanes). Replace it with the one
++ * dp_link_policy picks for need_kbps; true when that is below the maximum.
++ */
++static bool msm_dp_ctrl_pick_link(struct msm_dp_ctrl_private *ctrl,
++				  u64 need_kbps)
++{
++	static const u32 rates[] = { 162000, 270000, 540000, 810000 };
++	struct msm_dp_link_info *params = &ctrl->link->link_params;
++	u32 max_rate = params->rate, max_lanes = params->num_lanes;
++	u32 min_lanes = min_t(u32, 2, max_lanes);
++	u32 policy = READ_ONCE(msm_dp_link_policy);
++	u32 fill = clamp_t(u32, READ_ONCE(msm_dp_link_fill_pct), 50, 100);
++	u32 lanes;
++	int i;
++
++	if (policy != 1 && policy != 2)
++		return false;
++	if (!need_kbps || !min_lanes ||
++	    ctrl->panel->dpcd[DP_EDP_CONFIGURATION_CAP] ||
++	    ctrl->panel->link_info.use_rate_set)
++		return false;
++
++	if (policy == 1) {
++		for (i = 0; i < ARRAY_SIZE(rates) && rates[i] <= max_rate; i++)
++			for (lanes = min_lanes; lanes <= max_lanes; lanes <<= 1)
++				if (msm_dp_ctrl_link_carries(lanes, rates[i],
++							     need_kbps, fill))
++					goto found;
++	} else {
++		for (lanes = min_lanes; lanes <= max_lanes; lanes <<= 1)
++			for (i = 0; i < ARRAY_SIZE(rates) && rates[i] <= max_rate; i++)
++				if (msm_dp_ctrl_link_carries(lanes, rates[i],
++							     need_kbps, fill))
++					goto found;
++	}
+ 
+-	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
++	return false;
+ 
+-	rate = ctrl->panel->link_info.rate;
+-	if (msm_dp_max_rate && rate > msm_dp_max_rate)
+-		rate = msm_dp_max_rate;
+-	pixel_rate = ctrl->panel->msm_dp_mode.drm_mode.clock;
++found:
++	if (rates[i] == max_rate && lanes == max_lanes)
++		return false;
+ 
+-	msm_dp_ctrl_core_clk_enable(&ctrl->msm_dp_ctrl);
++	params->rate = rates[i];
++	params->num_lanes = lanes;
+ 
+-	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) {
+-		drm_dbg_dp(ctrl->drm_dev,
+-				"using phy test link parameters\n");
+-		if (!pixel_rate)
+-			pixel_rate = phy_cts_pixel_clk_khz;
+-	} else {
+-		ctrl->link->link_params.rate = rate;
+-		ctrl->link->link_params.num_lanes =
+-			ctrl->panel->link_info.num_lanes;
+-		if (ctrl->panel->msm_dp_mode.out_fmt_is_yuv_420)
+-			pixel_rate >>= 1;
+-	}
+-
+-	drm_dbg_dp(ctrl->drm_dev, "rate=%d, num_lanes=%d, pixel_rate=%lu\n",
+-		ctrl->link->link_params.rate, ctrl->link->link_params.num_lanes,
+-		pixel_rate);
++	return true;
++}
+ 
+-	rc = msm_dp_ctrl_enable_mainlink_clocks(ctrl);
+-	if (rc)
+-		return rc;
++/*
++ * Link training with msm's rate and lane downshifts on failure. Inherited:
++ * when the retries run out, rc is the last (successful) reinitialisation,
++ * i.e. 0 for a link that never trained; on_stream() retrains it once more.
++ * ROG5: strict (a reduced link, 0145) reports that as -ETIMEDOUT so the
++ * caller falls back to the maximum link; the maximum link keeps the old flow.
++ */
++static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl,
++					    bool strict)
++{
++	int rc = 0;
++	int link_train_max_retries = 5;
++	u8 link_status[DP_LINK_STATUS_SIZE];
++	unsigned int training_step;
+ 
+ 	while (--link_train_max_retries) {
+ 		training_step = DP_TRAINING_NONE;
+ 		rc = msm_dp_ctrl_setup_main_link(ctrl, &training_step);
+ 		if (rc == 0) {
+ 			/* training completed successfully */
+-			break;
++			return 0;
+ 		} else if (training_step == DP_TRAINING_1) {
+ 			/* link train_1 failed */
+ 			if (!msm_dp_aux_is_link_connected(ctrl->aux))
+@@ -2493,6 +2558,96 @@
+ 		}
+ 	}
+ 
++	if (strict && !rc)
++		rc = -ETIMEDOUT;
++
++	return rc;
++}
++
++int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
++{
++	int rc = 0;
++	struct msm_dp_ctrl_private *ctrl;
++	u32 rate, max_lanes = 0;
++	u32 const phy_cts_pixel_clk_khz = 148500;
++	unsigned long pixel_rate;
++	u64 need_kbps = 0;
++	bool reduced = false;
++
++	if (!msm_dp_ctrl)
++		return -EINVAL;
++
++	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
++
++	rate = ctrl->panel->link_info.rate;
++	if (msm_dp_max_rate && rate > msm_dp_max_rate)
++		rate = msm_dp_max_rate;
++	pixel_rate = ctrl->panel->msm_dp_mode.drm_mode.clock;
++
++	msm_dp_ctrl_core_clk_enable(&ctrl->msm_dp_ctrl);
++
++	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) {
++		drm_dbg_dp(ctrl->drm_dev,
++				"using phy test link parameters\n");
++		if (!pixel_rate)
++			pixel_rate = phy_cts_pixel_clk_khz;
++	} else {
++		max_lanes = ctrl->panel->link_info.num_lanes;
++		ctrl->link->link_params.rate = rate;
++		ctrl->link->link_params.num_lanes = max_lanes;
++		if (ctrl->panel->msm_dp_mode.out_fmt_is_yuv_420)
++			pixel_rate >>= 1;
++
++		/* ROG5: dp_link_policy (see msm_dp_ctrl_pick_link) */
++		need_kbps = (u64)pixel_rate * ctrl->panel->msm_dp_mode.bpp;
++		reduced = msm_dp_ctrl_pick_link(ctrl, need_kbps);
++		if (reduced)
++			drm_info(ctrl->drm_dev,
++				 "DP: link policy %u: %u lanes x %u kHz for %llu kbit/s (max %u x %u)\n",
++				 READ_ONCE(msm_dp_link_policy),
++				 ctrl->link->link_params.num_lanes,
++				 ctrl->link->link_params.rate, need_kbps,
++				 max_lanes, rate);
++	}
++
++	drm_dbg_dp(ctrl->drm_dev, "rate=%d, num_lanes=%d, pixel_rate=%lu\n",
++		ctrl->link->link_params.rate, ctrl->link->link_params.num_lanes,
++		pixel_rate);
++
++	rc = msm_dp_ctrl_enable_mainlink_clocks(ctrl);
++	if (rc && !reduced)
++		return rc;
++
++	if (!rc)
++		rc = msm_dp_ctrl_train_link_downshift(ctrl, reduced);
++
++	/*
++	 * ROG5: a reduced link that failed, or that msm's downshifts left
++	 * without the policy's margin: retrain at the maximum, exactly as
++	 * before the policy (including its inherited downshifts, which can end
++	 * below the mode's bandwidth).
++	 */
++	if (reduced &&
++	    (rc || !msm_dp_ctrl_link_carries(ctrl->link->link_params.num_lanes,
++					     ctrl->link->link_params.rate, need_kbps,
++					     clamp_t(u32, READ_ONCE(msm_dp_link_fill_pct),
++						     50, 100))) &&
++	    msm_dp_aux_is_link_connected(ctrl->aux)) {
++		drm_info(ctrl->drm_dev,
++			 "DP: link policy: %u lanes x %u kHz %s (rc=%d), training %u lanes x %u kHz\n",
++			 ctrl->link->link_params.num_lanes,
++			 ctrl->link->link_params.rate,
++			 rc ? "failed" : "too small for the mode", rc,
++			 max_lanes, rate);
++		ctrl->link->link_params.rate = rate;
++		ctrl->link->link_params.num_lanes = max_lanes;
++		rc = msm_dp_ctrl_reinitialize_mainlink(ctrl);
++		if (rc)
++			DRM_ERROR("Failed to reinitialize mainlink. rc=%d\n", rc);
++		else
++			rc = msm_dp_ctrl_train_link_downshift(ctrl, false);
++	}
++
+ 	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
+ 		return rc;
+ 

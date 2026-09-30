@@ -1,0 +1,684 @@
+#!/usr/bin/env python3
+"""rog5-dp-power-measure: power and temperatures of the ROG5 per DP link setup.
+
+Answers "what does the DP link configuration (4 x HBR2, 2 x HBR2, 4 x HBR,
+...) cost?" on the phone, with the external monitor attached and GNOME
+(desktop mode) on it. Plan and expected numbers:
+docs/reviews/2026-09-30-dp-link-efficiency.md.
+
+  rog5-dp-power-measure sample [--label=L] [--seconds=120] [--interval=2]
+        one window in the current state (any kernel)
+  rog5-dp-power-measure matrix [--configs=max,narrow,efficient] [--rounds=3]
+        [--settle=45] [--seconds=120] [--interval=2] [--retrain=dpms]
+        [--load=CMD] [--power=input]
+        needs kernel patch 0145 (msm.dp_link_policy): sets the policy for each
+        config, retrains the link (a DPMS off/on of GNOME's monitors = one
+        modeset), checks the link the kernel logged, settles, measures.
+        Rounds rotate the order (ABC, BCA, CAB) so drift cancels.
+  rog5-dp-power-measure summarize DIR   recompute DIR/summary.txt
+  rog5-dp-power-measure restore         undo a killed run (policy, charger)
+
+Configs: max (dp_link_policy=0: 4 x HBR2 on the MSI MPG 491C at
+3840x1080@60 30 bpp), narrow (2: 2 x HBR2), efficient (1: 4 x HBR), or
+policy=N. --retrain=none measures without touching the link (sample-like),
+--retrain=manual waits for Enter (e.g. after a replug for msm.dp_max_lanes on
+a kernel without 0145).
+
+--power=input (default) sums V x I of the online charger inputs
+(qcom-battmgr-usb/-wls): the phone runs from the adapter (bypass or full)
+so the battery reads ~0. --power=battery stops rog5-charge-policy, sets
+charge_behaviour=force-discharge (USB input suspended, the fuel gauge
+measures everything: better resolution) and restores both at the end; the
+DP link stays up, but rog5-perf-mode "auto" sees the adapter as unplugged.
+
+--load=CMD runs CMD as the desktop user (Wayland env) during every window,
+e.g. --load='mpv --fs --loop=inf /home/phone/Videos/test.mkv'.
+
+GNOME is kept from going idle (gnome-session-inhibit) while a matrix runs:
+at idle rog5-desktop-mode would hand the display back to Phosh.
+
+Results: /var/lib/rog5-dp-power-measure/<UTC>/ (samples.csv, windows.json,
+summary.txt). Reads only sysfs, debugfs pm_genpd/clk (never dri/*/DP-*)
+and the kernel log; writes only msm.dp_link_policy and, with
+--power=battery, charge_behaviour, both restored on exit.
+
+Environment (tests): ROG5_DPM_ROOT prefixes every absolute path,
+ROG5_DPM_KMSG (kernel log file), ROG5_DPM_GDBUS / ROG5_DPM_INHIBIT /
+ROG5_DPM_SYSTEMCTL (commands), ROG5_DPM_USER (desktop user, phone),
+ROG5_DPM_NOSLEEP=1 (no real sleeping), ROG5_DPM_BASE (results dir).
+"""
+import argparse
+import errno
+import fcntl
+import json
+import math
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+
+ROOT = os.environ.get("ROG5_DPM_ROOT", "")
+BASE = os.environ.get("ROG5_DPM_BASE", "/var/lib/rog5-dp-power-measure")
+RUN = ROOT + "/run/rog5-dp-power-measure"
+USER = os.environ.get("ROG5_DPM_USER", "phone")
+NOSLEEP = os.environ.get("ROG5_DPM_NOSLEEP") == "1"
+
+PSY = ROOT + "/sys/class/power_supply"
+THERMAL = ROOT + "/sys/class/thermal"
+PARAMS = ROOT + "/sys/module/msm/parameters"
+DRM = ROOT + "/sys/class/drm"
+GENPD = ROOT + "/sys/kernel/debug/pm_genpd"
+CLK = ROOT + "/sys/kernel/debug/clk"
+CPUFREQ = ROOT + "/sys/devices/system/cpu/cpufreq"
+KMSG = os.environ.get("ROG5_DPM_KMSG", "/dev/kmsg")
+BAT = PSY + "/qcom-battmgr-bat"
+INPUTS = ("qcom-battmgr-usb", "qcom-battmgr-wls")
+ZONES = ("skin-thermal", "xo-thermal", "hot-pocket-thermal", "usb-conn-thermal",
+         "qcom-battmgr-bat", "cluster0-thermal", "cluster1-thermal",
+         "gpu-top-thermal", "video-thermal", "mem-thermal", "pm8350-thermal")
+CLOCKS = ("disp_cc_mdss_mdp_clk", "disp_cc_mdss_dp_link_clk",
+          "disp_cc_mdss_dp_pixel_clk")
+CONFIGS = {"max": 0, "efficient": 1, "narrow": 2}
+# msm (0145 / dp_display.c atomic_enable) logs one line per link enable
+DP_LINE = re.compile(r"DP: (\d+)x(\d+)@(\d+) pclk (\d+) kHz, (\d+) lanes x (\d+) kHz, bpp (\d+)")
+# 0145: a reduced link failed or lost its margin and was retrained at the max
+FALLBACK = re.compile(r"DP: link policy: .* training \d+ lanes")
+
+
+def sleep(s):
+    if not NOSLEEP:
+        time.sleep(s)
+
+
+def rd(path):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return None
+
+
+def num(path):
+    v = rd(path)
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def wr(path, value):
+    with open(path, "w") as f:
+        f.write(str(value))
+
+
+def mmcx_state():
+    """RPMh corner of MMCX: 64 low_svs, 128 svs, 192 svs_l1, 256 nom."""
+    return num(GENPD + "/mmcx/perf_state")
+
+
+def zone_paths():
+    out = {}
+    try:
+        names = sorted(os.listdir(THERMAL))
+    except OSError:
+        return out
+    for z in names:
+        if z.startswith("thermal_zone"):
+            t = rd(f"{THERMAL}/{z}/type")
+            if t in ZONES:
+                out[t] = f"{THERMAL}/{z}/temp"
+    return out
+
+
+def cpu_times():
+    v = rd(ROOT + "/proc/stat")
+    if not v:
+        return None
+    f = [int(x) for x in v.splitlines()[0].split()[1:]]
+    return sum(f), f[3] + (f[4] if len(f) > 4 else 0)
+
+
+def input_power_w():
+    """Sum of V x I of the online charger inputs, W (None: nothing readable)."""
+    total, seen = 0.0, False
+    for name in INPUTS:
+        p = f"{PSY}/{name}"
+        if rd(p + "/online") != "1":
+            continue
+        v, i = num(p + "/voltage_now"), num(p + "/current_now")
+        if v is None or i is None:
+            continue
+        total += v * i / 1e12
+        seen = True
+    return total if seen else None
+
+
+def battery_power_w():
+    p = num(BAT + "/power_now")
+    if p is not None and p != 0:
+        return abs(p) / 1e6
+    v, i = num(BAT + "/voltage_now"), num(BAT + "/current_now")
+    if v is None or i is None:
+        return None
+    return abs(v * i) / 1e12
+
+
+def sample(power):
+    s = {"t": time.monotonic(), "input_w": input_power_w(),
+         "battery_w": battery_power_w(), "mmcx": mmcx_state()}
+    s["w"] = s["battery_w"] if power == "battery" else s["input_w"]
+    for z, path in zone_paths().items():
+        t = num(path)
+        s["temp:" + z] = t / 1000 if t is not None else None
+    return s
+
+
+def mean(xs):
+    xs = [x for x in xs if x is not None]
+    return sum(xs) / len(xs) if xs else None
+
+
+def sd(xs):
+    xs = [x for x in xs if x is not None]
+    if len(xs) < 2:
+        return None
+    m = sum(xs) / len(xs)
+    return math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1))
+
+
+def window(label, seconds, interval, power, csv):
+    """Measure one window; append samples to csv; return the window record."""
+    n = max(1, int(seconds / interval))
+    c0 = cpu_times()
+    samples = []
+    for k in range(n):
+        s = sample(power)
+        samples.append(s)
+        cols = [label, f"{s['t']:.1f}", s["w"], s["input_w"], s["battery_w"], s["mmcx"]]
+        cols += [s.get("temp:" + z) for z in ZONES]
+        csv.write(",".join("" if c is None else (f"{c:.4f}" if isinstance(c, float) else str(c))
+                           for c in cols) + "\n")
+        if k + 1 < n:
+            sleep(interval)
+    csv.flush()
+    c1 = cpu_times()
+    busy = None
+    if c0 and c1 and c1[0] > c0[0]:
+        busy = 100.0 * (1 - (c1[1] - c0[1]) / (c1[0] - c0[0]))
+    rec = {"label": label, "n": len(samples),
+           "w_mean": mean(s["w"] for s in samples),
+           "w_sd": sd(s["w"] for s in samples),
+           "mmcx": sorted({s["mmcx"] for s in samples if s["mmcx"] is not None}),
+           "cpu_busy_pct": busy,
+           "clocks": {c: num(f"{CLK}/{c}/clk_rate") for c in CLOCKS},
+           "temps": {z: mean(s.get("temp:" + z) for s in samples) for z in ZONES}}
+    return rec
+
+
+def kmsg_lines(pattern=DP_LINE):
+    """Kernel log records matching pattern as (sequence, text), oldest first."""
+    recs = []
+    try:
+        fd = os.open(KMSG, os.O_RDONLY | os.O_NONBLOCK)
+    except OSError:
+        return []
+    try:
+        if KMSG == "/dev/kmsg":
+            os.lseek(fd, 0, os.SEEK_SET)
+            for _ in range(1 << 20):   # bounded: the ring holds far fewer records
+                try:
+                    rec = os.read(fd, 8192)
+                except BlockingIOError:
+                    break
+                except OSError as e:
+                    if e.errno == errno.EPIPE:
+                        continue       # the record was overwritten meanwhile
+                    raise
+                if not rec:
+                    break
+                recs.append(rec.decode(errors="replace").split("\n", 1)[0])
+        else:
+            recs = os.read(fd, 1 << 22).decode(errors="replace").splitlines()
+    finally:
+        os.close(fd)
+    out = []
+    for k, rec in enumerate(recs):
+        head, _, text = rec.partition(";")
+        if not text:
+            head, text = "", rec
+        if not pattern.search(text):
+            continue
+        f = head.split(",")
+        seq = int(f[1]) if len(f) > 1 and f[1].isdigit() else k
+        out.append((seq, text.strip()))
+    return out
+
+
+def kmsg_dp_lines():
+    return kmsg_lines(DP_LINE)
+
+
+def parse_link(line):
+    m = DP_LINE.search(line or "")
+    if not m:
+        return None
+    w, h, hz, pclk, lanes, rate, bpp = (int(x) for x in m.groups())
+    return {"mode": f"{w}x{h}@{hz}", "pclk_khz": pclk, "lanes": lanes,
+            "rate_khz": rate, "bpp": bpp,
+            "fill_pct": round(100.0 * pclk * bpp / (lanes * rate * 8), 1)}
+
+
+def user_env():
+    import pwd
+    pw = pwd.getpwnam(USER)
+    rt = f"/run/user/{pw.pw_uid}"
+    env = {"DBUS_SESSION_BUS_ADDRESS": f"unix:path={rt}/bus",
+           "XDG_RUNTIME_DIR": rt, "WAYLAND_DISPLAY": "wayland-0", "HOME": pw.pw_dir}
+    return pw, env
+
+
+def as_user(argv, **kw):
+    """Run argv as the desktop user with its session environment."""
+    try:
+        pw, env = user_env()
+    except KeyError:
+        env, pw = {}, None
+    full = dict(os.environ, **env)
+    if pw is not None and os.geteuid() == 0 and pw.pw_uid != 0:
+        argv = ["runuser", "-u", USER, "--"] + argv
+    return subprocess.Popen(argv, env=full, **kw)
+
+
+def power_save_mode(mode):
+    gdbus = os.environ.get("ROG5_DPM_GDBUS", "gdbus")
+    p = as_user([gdbus, "call", "--session", "--dest", "org.gnome.Mutter.DisplayConfig",
+                 "--object-path", "/org/gnome/Mutter/DisplayConfig", "--method",
+                 "org.freedesktop.DBus.Properties.Set", "org.gnome.Mutter.DisplayConfig",
+                 "PowerSaveMode", f"<{mode}>"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    _, err = p.communicate(timeout=20)
+    if p.returncode != 0:
+        raise RuntimeError(f"PowerSaveMode {mode}: {err.decode(errors='replace').strip()}")
+
+
+def dpms_cycle():
+    """GNOME's monitors off and on again: mutter disables the CRTC and does a
+    full modeset on power-on, so msm retrains the link (0145 policy read at
+    that enable). A marker covers a kill between off and on (restore)."""
+    marker = os.path.join(RUN, "dpms-off")
+    os.makedirs(RUN, exist_ok=True)
+    open(marker, "w").close()
+    try:
+        power_save_mode(3)
+        sleep(3)
+    finally:
+        power_save_mode(0)
+        os.remove(marker)
+
+
+def retrain(how, log):
+    """One modeset of the DP output; returns (new kernel link line, fallback)."""
+    if how == "none":
+        return None, False
+    before = max((q for q, _ in kmsg_lines(re.compile(r"DP: "))), default=-1)
+    if how == "manual":
+        input("retrain now (replug, or change the mode and back), then Enter: ")
+    else:
+        dpms_cycle()
+    for _ in range(30):
+        new = [t for q, t in kmsg_dp_lines() if q > before]
+        if new:
+            fb = any(q > before for q, _ in kmsg_lines(FALLBACK))
+            log(f"link: {new[-1]}" + ("  (0145 fell back to the maximum link)" if fb else ""))
+            return new[-1], fb
+        sleep(1)
+    raise RuntimeError("no new 'DP: ... lanes x ... kHz' kernel line after the retrain")
+
+
+def fmt(x, spec=".3f"):
+    return "-" if x is None else format(x, spec)
+
+
+def summarize(d):
+    with open(os.path.join(d, "windows.json")) as f:
+        wins = json.load(f)
+    meta = {}
+    if os.path.exists(os.path.join(d, "meta.json")):
+        with open(os.path.join(d, "meta.json")) as f:
+            meta = json.load(f)
+    def ltxt(w):
+        link = w.get("link") or {}
+        if not link:
+            return "-"
+        return (f"{link['lanes']}x{link['rate_khz'] // 1000}M {link['bpp']}bpp "
+                f"{link['fill_pct']}%" + (" FB" if w.get("fallback") else ""))
+
+    labels, rows = [], []
+    for w in wins:
+        if w["label"] not in labels:
+            labels.append(w["label"])
+        if (w["label"], ltxt(w)) not in rows:
+            rows.append((w["label"], ltxt(w)))
+    base = labels[0]
+    basew = {w.get("round"): w for w in wins if w["label"] == base}
+    mixed = {lab for lab in labels if sum(1 for r in rows if r[0] == lab) > 1}
+    lines = [f"rog5-dp-power-measure {os.path.basename(d)}  power={meta.get('power', '?')}"
+             f"  load={meta.get('load') or 'idle'}", ""]
+    lines.append(f"{'config':<12}{'link':<30}{'n':>3}{'W mean':>8}{'sd':>7}{'d vs ' + base:>14}"
+                 f"{'MMCX':>9}{'cpu%':>6}{'skin C':>8}{'xo C':>7}")
+    for lab, lt in rows:
+        ws = [w for w in wins if w["label"] == lab and ltxt(w) == lt]
+        m = mean(w["w_mean"] for w in ws)
+        s = sd(w["w_mean"] for w in ws)
+        # paired with the baseline window of the same round
+        deltas = []
+        for w in ws:
+            b = basew.get(w.get("round"))
+            if b and w["w_mean"] is not None and b["w_mean"] is not None:
+                deltas.append(w["w_mean"] - b["w_mean"])
+        dm, ds = mean(deltas), sd(deltas)
+        mm = sorted({v for w in ws for v in w.get("mmcx", [])})
+        dtxt = "-" if lab == base or dm is None else (
+            f"{dm * 1000:+.0f}" + (f"+-{ds * 1000:.0f}" if ds is not None else "") + " mW")
+        name = lab + ("*" if lab in mixed else "")
+        lines.append(f"{name:<12}{lt:<30}{len(ws):>3}{fmt(m):>8}{fmt(s):>7}{dtxt:>14}"
+                     f"{','.join(map(str, mm)) or '-':>9}"
+                     f"{fmt(mean(w['cpu_busy_pct'] for w in ws), '.1f'):>6}"
+                     f"{fmt(mean(w['temps'].get('skin-thermal') for w in ws), '.1f'):>8}"
+                     f"{fmt(mean(w['temps'].get('xo-thermal') for w in ws), '.1f'):>7}")
+    if mixed:
+        lines += ["", "* this config trained different links in different rounds (FB = 0145 fell "
+                  "back to the maximum): compare rows, not configs."]
+    lines += ["", "d = mean of per-round differences to the first config (+- sd over rounds,",
+              "descriptive, not a confidence interval); a difference smaller than ~2 sd is not",
+              "resolved. MMCX: 128 svs, 192 svs_l1, 256 nom."]
+    text = "\n".join(lines) + "\n"
+    with open(os.path.join(d, "summary.txt"), "w") as f:
+        f.write(text)
+    return text
+
+
+class Session:
+    """Saved settings and helpers; restores on exit (after a kill: restore)."""
+
+    def __init__(self, power):
+        self.power = power
+        self.inhibit = None
+        self.load = None
+        self.saved = os.path.join(RUN, "saved.json")
+
+    def save(self, dpms):
+        if os.path.exists(self.saved):
+            msg = restore()   # a killed run's leftovers (we hold the lock)
+            if not os.path.exists(self.saved):
+                print(f"restored a previous run: {msg}")
+            else:
+                raise SystemExit(f"a previous run could not be restored: {msg}")
+        st = {"dp_link_policy": rd(PARAMS + "/dp_link_policy"), "dpms": dpms}
+        if self.power == "battery":
+            beh = rd(BAT + "/charge_behaviour") or ""
+            m = re.search(r"\[(\S+)\]", beh)
+            st["charge_behaviour"] = m.group(1) if m else "auto"
+            st["charge_policy_active"] = systemctl("is-active", "rog5-charge-policy") == 0
+        with open(self.saved, "w") as f:
+            json.dump(st, f)
+        return st
+
+    def start_power(self):
+        if self.power != "battery":
+            return
+        cap = num(BAT + "/capacity")
+        if cap is not None and cap < 30:
+            raise RuntimeError(f"battery at {cap} %: --power=battery needs >= 30 %")
+        if systemctl("stop", "rog5-charge-policy") != 0:
+            raise RuntimeError("could not stop rog5-charge-policy (it would undo force-discharge)")
+        wr(BAT + "/charge_behaviour", "force-discharge")
+
+    def start_inhibit(self):
+        cmd = os.environ.get("ROG5_DPM_INHIBIT", "gnome-session-inhibit")
+        try:
+            self.inhibit = as_user([cmd, "--inhibit", "idle", "--inhibit-only",
+                                    "--reason", "rog5-dp-power-measure"],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            self.inhibit = None
+
+    def start_load(self, cmd):
+        if cmd:
+            self.load = as_user(["sh", "-c", cmd], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, start_new_session=True)
+
+    def stop_load(self):
+        """End the workload's whole process group (its leader may be gone)."""
+        if not self.load:
+            return
+        for sig, grace in ((signal.SIGTERM, 10), (signal.SIGKILL, 5)):
+            try:
+                os.killpg(self.load.pid, sig)
+            except ProcessLookupError:
+                break
+            except OSError:
+                pass
+            try:
+                self.load.wait(timeout=grace)
+            except subprocess.TimeoutExpired:
+                continue
+            try:
+                os.killpg(self.load.pid, 0)   # descendants still alive?
+            except ProcessLookupError:
+                break
+        self.load = None
+
+    def close(self):
+        self.stop_load()
+        if self.inhibit and self.inhibit.poll() is None:
+            self.inhibit.terminate()
+        return restore()
+
+
+def systemctl(*args):
+    cmd = os.environ.get("ROG5_DPM_SYSTEMCTL", "systemctl")
+    try:
+        return subprocess.run([cmd, "--quiet", *args], stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL, timeout=60).returncode
+    except (OSError, subprocess.TimeoutExpired):
+        return 1
+
+
+def lock():
+    """One measurement or restore at a time; held until the process exits."""
+    os.makedirs(RUN, exist_ok=True)
+    fd = os.open(os.path.join(RUN, "lock"), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("another rog5-dp-power-measure is running")
+    return fd
+
+
+def restore():
+    """Put the saved settings back; each step on its own. The record stays
+    until every step succeeded, so `restore` can be repeated."""
+    saved = os.path.join(RUN, "saved.json")
+    marker = os.path.join(RUN, "dpms-off")
+    if not os.path.exists(saved):
+        if os.path.exists(marker):
+            try:
+                power_save_mode(0)
+                os.remove(marker)
+                return "monitors powered on again"
+            except Exception as e:  # noqa: BLE001
+                return f"FAILED: monitors on: {e}"
+        return "nothing to restore"
+    with open(saved) as f:
+        st = json.load(f)
+    done, failed = [], []
+
+    def step(what, fn):
+        try:
+            fn()
+            done.append(what)
+        except Exception as e:  # noqa: BLE001 - every step gets its chance
+            failed.append(f"{what}: {e}")
+
+    if st.get("dp_link_policy") is not None and os.path.exists(PARAMS + "/dp_link_policy"):
+        step(f"dp_link_policy={st['dp_link_policy']}",
+             lambda: wr(PARAMS + "/dp_link_policy", st["dp_link_policy"]))
+    if st.get("dpms") or os.path.exists(marker):
+        # a modeset applies the restored policy (and powers the monitors on)
+        step("DPMS off/on", dpms_cycle)
+    if "charge_behaviour" in st:
+        def charger():
+            try:
+                wr(BAT + "/charge_behaviour", st["charge_behaviour"])
+            except OSError:
+                wr(BAT + "/charge_behaviour", "auto")
+                raise RuntimeError(f"{st['charge_behaviour']} refused, set auto")
+        step(f"charge_behaviour={st['charge_behaviour']}", charger)
+        if st.get("charge_policy_active"):
+            def service():
+                if systemctl("start", "rog5-charge-policy") != 0:
+                    raise RuntimeError("systemctl start failed")
+            step("rog5-charge-policy started", service)
+    if failed:
+        st["failed"] = failed
+        with open(saved, "w") as f:
+            json.dump(st, f)
+        return "; ".join(done + ["FAILED " + x for x in failed]) + \
+            " (record kept: rerun rog5-dp-power-measure restore)"
+    os.remove(saved)
+    return "; ".join(done) or "nothing to restore"
+
+
+def run(args):
+    configs = []
+    for c in args.configs.split(","):
+        c = c.strip()
+        if c in CONFIGS:
+            configs.append((c, CONFIGS[c]))
+        elif re.fullmatch(r"policy=[0-2]", c):
+            configs.append((c, int(c[7:])))
+        else:
+            sys.exit(f"unknown config {c!r} (max, narrow, efficient, policy=N)")
+    if args.cmd == "sample":
+        configs = [(args.label, None)]
+        args.rounds, args.retrain = 1, "none"
+    if os.geteuid() != 0 and not ROOT:
+        sys.exit("run as root (module parameters, debugfs)")
+    if rd(DRM + "/card1-DP-1/status") != "connected" and not args.allow_no_dp:
+        sys.exit("DP-1 is not connected (attach the monitor, start desktop mode)")
+    need_param = any(p is not None for _, p in configs) and args.retrain != "manual"
+    if need_param and not os.path.exists(PARAMS + "/dp_link_policy"):
+        sys.exit("kernel without msm.dp_link_policy (0145): use --retrain=manual with "
+                 "msm.dp_max_lanes + replug, or sample")
+
+    d = os.path.join(BASE, time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()))
+    os.makedirs(d, exist_ok=True)
+    logf = open(os.path.join(d, "log.txt"), "a")
+
+    def log(msg):
+        line = f"{time.strftime('%H:%M:%S')} {msg}"
+        print(line, flush=True)
+        logf.write(line + "\n")
+        logf.flush()
+
+    lockfd = lock()
+    ses = Session(args.power)
+    saved = ses.save(dpms=need_param and args.retrain == "dpms")
+    meta = {"power": args.power, "load": args.load, "configs": configs, "rounds": args.rounds,
+            "settle": args.settle, "seconds": args.seconds, "interval": args.interval,
+            "retrain": args.retrain, "saved": saved,
+            "kernel": rd(ROOT + "/proc/sys/kernel/osrelease"),
+            "modes_first": (rd(DRM + "/card1-DP-1/modes") or "").splitlines()[:1],
+            "cpufreq_max": {p: num(f"{CPUFREQ}/{p}/scaling_max_freq")
+                            for p in ("policy0", "policy4", "policy7")}}
+    with open(os.path.join(d, "meta.json"), "w") as f:
+        json.dump(meta, f, indent=1)
+    wins = []
+    csv = open(os.path.join(d, "samples.csv"), "a")
+    csv.write("label,t,w,input_w,battery_w,mmcx," + ",".join(ZONES) + "\n")
+
+    def on_term(*_):
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, on_term)
+    signal.signal(signal.SIGHUP, on_term)
+    rc = 0
+    try:
+        ses.start_power()
+        ses.start_inhibit()
+        ses.start_load(args.load)
+        for r in range(args.rounds):
+            order = configs[r % len(configs):] + configs[:r % len(configs)]
+            for label, policy in order:
+                if policy is not None and args.retrain != "manual":
+                    wr(PARAMS + "/dp_link_policy", policy)
+                line, fallback = retrain(args.retrain, log)
+                if line is None:
+                    line = (kmsg_dp_lines() or [(0, None)])[-1][1]
+                link = parse_link(line)
+                log(f"round {r + 1}/{args.rounds} {label}: settle {args.settle} s")
+                sleep(args.settle)
+                w = window(label, args.seconds, args.interval, args.power, csv)
+                w.update({"round": r, "link": link, "policy": policy, "fallback": fallback})
+                wins.append(w)
+                with open(os.path.join(d, "windows.json"), "w") as f:
+                    json.dump(wins, f, indent=1)
+                log(f"  {fmt(w['w_mean'])} W (sd {fmt(w['w_sd'])}), MMCX {w['mmcx']}, "
+                    f"link {link}")
+    except KeyboardInterrupt:
+        log("stopped")
+        rc = 130
+    except Exception as e:  # noqa: BLE001 - report, restore, keep partial data
+        log(f"error: {e}")
+        rc = 1
+    finally:
+        for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+            signal.signal(sig, signal.SIG_IGN)   # let the cleanup finish
+        log("restore: " + ses.close())
+        csv.close()
+        os.close(lockfd)
+    if wins:
+        print(summarize(d), end="")
+    print(f"results: {d}")
+    logf.close()
+    return rc
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("sample", "matrix"):
+        p = sub.add_parser(name)
+        p.add_argument("--label", default="now")
+        p.add_argument("--configs", default="max,narrow,efficient")
+        p.add_argument("--rounds", type=int, default=3)
+        p.add_argument("--settle", type=float, default=45 if name == "matrix" else 0)
+        p.add_argument("--seconds", type=float, default=120)
+        p.add_argument("--interval", type=float, default=2)
+        p.add_argument("--retrain", choices=("dpms", "manual", "none"), default="dpms")
+        p.add_argument("--load", default="")
+        p.add_argument("--power", choices=("input", "battery"), default="input")
+        p.add_argument("--allow-no-dp", action="store_true")
+    s = sub.add_parser("summarize")
+    s.add_argument("dir")
+    sub.add_parser("restore")
+    args = ap.parse_args()
+    if args.cmd == "summarize":
+        print(summarize(args.dir), end="")
+        return 0
+    if args.cmd == "restore":
+        fd = lock()
+        msg = restore()
+        os.close(fd)
+        print(msg)
+        return 1 if "FAILED" in msg else 0
+    if args.interval <= 0 or args.seconds <= 0 or args.rounds < 1:
+        ap.error("--interval, --seconds > 0 and --rounds >= 1")
+    return run(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
