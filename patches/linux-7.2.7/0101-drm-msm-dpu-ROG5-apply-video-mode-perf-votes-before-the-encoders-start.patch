@@ -16,7 +16,7 @@ vote, not a proven fix: the r180 case this was written for (USB-C HDMI hub,
 raised, until the next modeset, then 0/314) most likely was the colour-management
 resource reassignment fixed by 0131/0132 (the GAMMA_LUT commit after the
 first modeset moved the pipeline to other mixers without a modeset), not
-the vote timing. (Text and comment corrected 2026-10-01; code unchanged.)
+the vote timing. (Text and comment corrected 2026-09-30; code unchanged.)
 
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c	2026-09-29 15:38:28.260808836 +0200
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c	2026-09-29 15:38:28.274383127 +0200

@@ -24,7 +24,7 @@ Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
  GAMMA_LUT, 0080 gives it LM_4/LM_5 (no DSPP), and the GAMMA_LUT commit
  shortly after (0.17 s; 1.8 s at boot) re-reserved LM_2/LM_3 + DSPP_2/3
  without a modeset while the encoder kept PP_4/MERGE_3D_2: INTF_0
- underran on every frame (r197 2026-10-01 10:09, 460 MHz, 15.5 GB/s: 128+
+ underran on every frame (r197 2026-09-30 10:09, 460 MHz, 15.5 GB/s: 128+
  underruns; boot 32-35 s the same) until a mode change re-bound it all.
  Deviation: the modeset is only requested for an enabled CRTC, so a
  GAMMA_LUT set on a disabled one (no modeset allowed) is not refused. 0132

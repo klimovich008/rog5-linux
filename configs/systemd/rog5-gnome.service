@@ -37,11 +37,11 @@ ExecStartPre=+/usr/local/libexec/rog5-kms-reset /dev/dri/card1
 # DPU pin: core clock 460 MHz and 15.5 GB/s bus votes while the desktop
 # runs. Added 2026-09-29 against a blue DP monitor (INTF_0 underrun on every
 # frame). The low votes were fixed by 0099/0100; the blue screen at GNOME's
-# first enable (still there at 460 MHz, 2026-10-01) was the GAMMA_LUT commit
+# first enable (still there at 460 MHz, 2026-09-30) was the GAMMA_LUT commit
 # moving the DP pipeline to other mixers without a modeset (kernel 0131/0132).
 # Verified on kernel r104 (0130-0132): 5 of 5 GNOME starts without the pin
 # had one DP enable, 0 underruns and the DPU on its own votes (~280 MHz core,
-# 2026-10-01), so the pin is off by default and only costs DDR power.
+# 2026-09-30), so the pin is off by default and only costs DDR power.
 # ROG5_DPU_PIN=1 (e.g. in a drop-in) brings it back for A/B tests.
 Environment=ROG5_DPU_PIN=0
 ExecStartPre=+/bin/sh -c '[ "$${ROG5_DPU_PIN}" = 0 ] && exit 0; P=/sys/kernel/debug/dri/1/debug/core_perf; echo 460000000 > $P/fix_core_clk_rate; echo 15500000 > $P/fix_core_ab_vote; echo 15500000 > $P/fix_core_ib_vote; echo 2 > $P/perf_mode'

@@ -10,7 +10,7 @@ vendor_a (super partition extent, the same one install-rog5-sensors.sh uses)
 with e2fsprogs debugfs, which opens the image read-only: no loop device, no
 mount, nothing written on the phone. The SLPI only boots with the vendor_a
 variant (modem_a differs, 2026-09-25), so the CDSP uses the vendor copy too.
-Every file is checked against the hashes read on 2026-10-01 (WW33 vendor_a).
+Every file is checked against the hashes read on 2026-09-30 (WW33 vendor_a).
 Pass the printed SHA256SUMS hash as PRODUCTION_EXTRA_FIRMWARE_SHA256.
 """
 import hashlib

@@ -55,7 +55,7 @@ crash the ADSP, which battery telemetry depends on; LPI GPIO10/11 are shared
 with the (disabled) WSA SoundWire pins. Unknown: which DMIC is which mic, which
 physical speaker "RCV" drives.
 
-## Speaker protection firmware (2026-10-01, pending bring-up)
+## Speaker protection firmware (2026-09-30, pending bring-up)
 
 Stock loudness comes from the CS35L45 CSPL tuning, not from gain registers
 (both paths run 0 dB digital, 19 dBV analog). Pieces:

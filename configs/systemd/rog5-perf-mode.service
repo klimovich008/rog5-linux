@@ -6,7 +6,7 @@ Wants=rog5-platform-modules.service
 ConditionPathExists=/var/lib/rog5/perf-mode
 # 92-rog5-perf-mode.rules starts this on every charger and DP hotplug event;
 # a DP link that flaps at boot hit the default start limit (5 in 10 s) and
-# left the mode unapplied (2026-10-01 05:03). Applying is cheap and idempotent.
+# left the mode unapplied (2026-09-30 05:03). Applying is cheap and idempotent.
 StartLimitIntervalSec=0
 
 [Service]

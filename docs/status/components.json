@@ -1,11 +1,11 @@
 {
- "as_of": "2026-09-30 (r192)",
+ "as_of": "2026-09-30 (r201)",
  "bundles": {
   "default": {
-   "bundle": "production-7.2.7-r189",
-   "kernel": "7.2.7 build r92",
-   "dtb": "platform-cpucap-dp-sbumux-dtb-r2 (`09094112`)",
-   "installed": "2026-09-29"
+   "bundle": "production-7.2.7-r201",
+   "kernel": "7.2.7 build r104 (series to 0143, without 0125-0129/0136-0139)",
+   "dtb": "platform-cpucap-dp-sbumux-dtb-r7 (`99bcf5f8`)",
+   "installed": "2026-09-30"
   },
   "fallback": {
    "bundle": "production-7.2.7-safe-r7",
@@ -22,7 +22,7 @@
      "name": "Signed boot chain",
      "status": "ready",
      "weight": 3,
-     "note": "slot-B wrapper, try-once selector, signed fallback safe-r6"
+     "note": "slot-B wrapper, try-once selector, signed fallback safe-r7"
     },
     {
      "name": "Kernel updates",
@@ -32,9 +32,9 @@
     },
     {
      "name": "Unattended package updates",
-     "status": "partial",
+     "status": "untested",
      "weight": 2,
-     "note": "may reboot while the phone is used as a server (idle = backlight off)"
+     "note": "reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection, not yet a real rollback"
     },
     {
      "name": "Boot splash",
@@ -46,7 +46,7 @@
      "name": "Boot time",
      "status": "partial",
      "weight": 1,
-     "note": "~75 s to Phosh; initramfs waits, UFS 9.5 s"
+     "note": "~56 s to multi-user on r201 (23 s kernel + initramfs, 33 s userspace); Wi-Fi at ~57 s"
     },
     {
      "name": "Reboot to fastboot",
@@ -81,7 +81,7 @@
      "name": "Phosh",
      "status": "untested",
      "weight": 3,
-     "note": "hotplug crash fixed in phosh 0.57.0-1.1 (lock shields); needs a real plug/unplug test"
+     "note": "hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending"
     },
     {
      "name": "Lock screen & PIN",
@@ -100,33 +100,45 @@
    "name": "External display",
    "components": [
     {
-     "name": "DP alt mode 1080p60",
+     "name": "DP alt mode (2 lanes, HBR2)",
      "status": "ready",
      "weight": 2,
-     "note": "user-confirmed with USB keyboard behind the hub (2026-09-30)"
+     "note": "native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0132)"
     },
     {
-     "name": "HBR2 / higher modes",
+     "name": "4-lane DP, 5120x1440, 100 Hz",
      "status": "missing",
      "weight": 1,
-     "note": "link trains at HBR2 but the hub HDMI PCON shows no picture (needs HDMI 2.0 setup); 1080p60 over HBR works"
+     "note": "in progress (0136-0139, not in r104); 0114 rejects 5120x1440@60 and 3840x1080@100 until relaxed"
     },
     {
-     "name": "DP-only without perf pin",
-     "status": "untested",
+     "name": "No DPU clock pin",
+     "status": "ready",
      "weight": 1,
-     "note": "0106 NoC QoS candidate"
+     "note": "GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)"
     },
     {
      "name": "GNOME desktop mode",
      "status": "partial",
      "weight": 2,
-     "note": "starts automatically when a display is connected and the phone is unlocked; switching closes apps"
+     "note": "event-driven, fail-closed switcher; mode manual until one supervised boot test; switching closes apps"
     },
     {
      "name": "Touchscreen as touchpad",
      "status": "ready",
      "weight": 1
+    },
+    {
+     "name": "HDMI converters above HBR",
+     "status": "missing",
+     "weight": 1,
+     "note": "the hub HDMI PCON stays dark at HBR2; converters capped at HBR (1080p60); 0119/0134 opt-in experiments"
+    },
+    {
+     "name": "HDR",
+     "status": "missing",
+     "weight": 1,
+     "note": "later: port of stock VSC/HDR-metadata SDPs"
     }
    ]
   },
@@ -152,7 +164,8 @@
     {
      "name": "Tailscale",
      "status": "ready",
-     "weight": 1
+     "weight": 1,
+     "note": "one daemon per host; ramdisk tailscaled only as a fallback"
     },
     {
      "name": "Hotspot",
@@ -184,7 +197,13 @@
      "name": "Side port host + hubs",
      "status": "ready",
      "weight": 3,
-     "note": "survives suspend since 0105"
+     "note": "survives suspend (0105); monitor hub USB comes up at boot via reconnect retries"
+    },
+    {
+     "name": "Replug recovery (-71)",
+     "status": "partial",
+     "weight": 1,
+     "note": "rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test"
     },
     {
      "name": "Charging via hub",
@@ -195,12 +214,24 @@
      "name": "Bottom port (USB 2.0 host)",
      "status": "partial",
      "weight": 1,
-     "note": "5 V switched by hand"
+     "note": "5 V switched by hand (rog5-usb-bottom on); stage B (RT1715 + TCPM, automatic 5 V) built as DT feature usbbtmtc, not composed; needs a power-meter test"
     },
     {
      "name": "USB gadget (network to a PC)",
      "status": "ready",
      "weight": 1
+    },
+    {
+     "name": "USB drives (Files/Disks)",
+     "status": "ready",
+     "weight": 1,
+     "note": "udisks with a polkit guard for the internal UFS; ISO9660/UDF/exFAT/NTFS3"
+    },
+    {
+     "name": "USB 3 on the side port",
+     "status": "missing",
+     "weight": 1,
+     "note": "SuperSpeed not verified; the monitor hub runs at USB 2.0 (480M) next to DP"
     }
    ]
   },
@@ -222,7 +253,7 @@
      "name": "Deep standby (CX/DDR collapse)",
      "status": "missing",
      "weight": 3,
-     "note": "DDR held at 200 MHz by another RPMh master; ~79 mA"
+     "note": "DDR stays at 200 MHz in suspend (~79 mA), cause still traced; bisect kit ready (noslpi/noadsp/cdsp DTBs)"
     },
     {
      "name": "Battery standby measurement",
@@ -234,7 +265,13 @@
      "name": "Idle background wakeups",
      "status": "partial",
      "weight": 1,
-     "note": "desktop-mode switcher and sleep policy poll"
+     "note": "desktop-mode switcher event-driven (~0.1 % CPU), tailscaled retry loop gone; sleep policy still polls every 5 s"
+    },
+    {
+     "name": "Memory (zram swap)",
+     "status": "ready",
+     "weight": 1,
+     "note": "5.2 GiB zram zstd, MGLRU, THP madvise"
     }
    ]
   },
@@ -257,7 +294,7 @@
      "name": "Performance mode",
      "status": "partial",
      "weight": 1,
-     "note": "rog5-perf-mode CLI; no toggle in Phosh yet"
+     "note": "rog5-perf-mode auto: performance limits on external power with a DP display; no toggle in Phosh yet"
     },
     {
      "name": "Thermal protection",
@@ -278,7 +315,20 @@
     {
      "name": "Speakers",
      "status": "ready",
-     "weight": 2
+     "weight": 2,
+     "note": "full strength via PipeWire S16LE (e29c5ad3)"
+    },
+    {
+     "name": "Speaker protection DSP",
+     "status": "untested",
+     "weight": 1,
+     "note": "running on both amps with factory calibration (0121-0124); robustness tests pending"
+    },
+    {
+     "name": "24-bit playback",
+     "status": "partial",
+     "weight": 1,
+     "note": "the S24_LE front end (q6asm PCM_V2) reaches the amps far below full scale; PipeWire forced to S16LE"
     },
     {
      "name": "Microphones",
@@ -298,6 +348,11 @@
     {
      "name": "Bluetooth audio",
      "status": "untested",
+     "weight": 1
+    },
+    {
+     "name": "Audio over DP",
+     "status": "missing",
      "weight": 1
     }
    ]
@@ -328,7 +383,8 @@
     {
      "name": "Light / proximity",
      "status": "ready",
-     "weight": 1
+     "weight": 1,
+     "note": "proximity near level from the factory calibration"
     },
     {
      "name": "Cameras",
@@ -368,7 +424,8 @@
     {
      "name": "128 GiB persistent root",
      "status": "ready",
-     "weight": 2
+     "weight": 2,
+     "note": "overlay loop with direct I/O (4 KiB blocks)"
     },
     {
      "name": "Hardware watchdog",
@@ -377,9 +434,26 @@
     },
     {
      "name": "Journal retention",
-     "status": "partial",
+     "status": "ready",
      "weight": 1,
-     "note": "200 MB cap keeps ~11 h"
+     "note": "1 GB cap; excluded from update snapshots"
+    }
+   ]
+  },
+  {
+   "name": "Apps",
+   "components": [
+    {
+     "name": "Steam (native arm64)",
+     "status": "partial",
+     "weight": 2,
+     "note": "Valve's aarch64 client; x86 games through FEX (Half-Life ran); title-bar drag does nothing in GNOME"
+    },
+    {
+     "name": "Browsers",
+     "status": "ready",
+     "weight": 1,
+     "note": "Firefox and Chromium"
     }
    ]
   }

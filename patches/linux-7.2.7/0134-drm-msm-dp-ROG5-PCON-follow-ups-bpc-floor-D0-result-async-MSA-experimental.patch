@@ -1,7 +1,7 @@
 From: Claude <noreply@anthropic.com>
 Subject: [PATCH] drm/msm/dp: ROG5 PCON follow-ups: bpc floor yields to a ceiling, D0 result, async MSA marked experimental
 
-Follow-ups to 0119 from the GPT-6.1-Sol review (2026-10-01):
+Follow-ups to 0119 from the GPT-6.1-Sol review (2026-09-30):
 
  - The 8 bpc floor for TMDS converters (and msm.dp_min_bpc) overrode a
    lower ceiling: an 18 bpp EDID or msm.dp_max_bpc=6 became 24 bpp. A

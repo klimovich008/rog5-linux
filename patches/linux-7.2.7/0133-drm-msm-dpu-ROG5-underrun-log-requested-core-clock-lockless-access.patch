@@ -1,7 +1,7 @@
 From: Claude <noreply@anthropic.com>
 Subject: [PATCH] drm/msm/dpu: ROG5 underrun log: requested core clock, lockless access
 
-Follow-up to 0118 (GPT-6.1-Sol review, 2026-10-01): the value printed is
+Follow-up to 0118 (GPT-6.1-Sol review, 2026-09-30): the value printed is
 kms->perf.core_clk_rate, the rate last requested from the OPP table (after
 the max clamp), not a clock readback: say "requested core clk". The IRQ
 handler reads it without the perf lock: READ_ONCE there, WRITE_ONCE in

@@ -1,4 +1,4 @@
-# Night review 2026-09-30 → 10-01
+# Night review 2026-09-30 (the night of 09-29 to 09-30 and the morning after)
 
 The user asked, before sleeping, for every issue so far to be analysed with
 agents and GPT-6.1-Sol (fix / improve / reimplement), plus a GNOME test by
@@ -76,7 +76,7 @@ condensed findings are here.
   VSC/HDR-metadata SDPs, 350-600 lines), a GNOME output helper so the phone
   panel stays out of the layout for new monitors: proposals in the reports.
 
-## Verified on r197 (booted 2026-10-01 05:03; kernel r100 = 0001-0120, DTB r5)
+## Verified on r197 (booted 2026-09-30 05:03; kernel r100 = 0001-0120, DTB r5)
 
 - 0 failed units (after the rog5-perf-mode start-limit fix), 0 SMMU faults.
 - Locked phone at boot: logind LockedHint=yes (phosh 0002), desktop mode (auto)
@@ -99,7 +99,7 @@ condensed findings are here.
 
 ## GPT-6.1-Sol review of the display/desktop-mode patches (05:27)
 
-`2026-10-01-gpt-6.1-sol-display-patch-review.md`. Checked against what shipped:
+`2026-09-30-gpt-6.1-sol-display-patch-review.md`. Checked against what shipped:
 
 - Its "cross-session bypass" applies to the display agent's PID-based switcher
   variant, not the shipped one (which binds `seen_locked` to the logind session
@@ -127,7 +127,7 @@ condensed findings are here.
   clk" + READ_ONCE; the converter 8 bpc floor rejects instead of overriding a
   lower ceiling; `msm_dp_aux_link_power_up()` reports failed D0 writes;
   `dp_async_msa` marked experimental (static M/N).
-- DPU clock (`2026-10-01-gpt-6.1-sol-dpu-clock.md`): "latched" confirmed not a
+- DPU clock (`2026-09-30-gpt-6.1-sol-dpu-clock.md`): "latched" confirmed not a
   latched state. Sol ranks QoS/fetch latency at first enable (H3) above 6 bpc
   (H2) and the full-pixel-rate limit (H1): mainline's SM8350 QoS tables differ
   from stock's 60 Hz set (CREQ 0x0011222222335777 vs 0x0011223344556677; no
@@ -139,11 +139,11 @@ condensed findings are here.
 
 ## Sol standby and USB re-reviews (05:20-06:00)
 
-- `2026-10-01-gpt-6.1-sol-standby.md`: leading suspects ADSP firmware sleep
+- `2026-09-30-gpt-6.1-sol-standby.md`: leading suspects ADSP firmware sleep
   policy (charger PD, no island mode in mainline) and the SLPI sleep set; no
   single MC/SH/ACV voter proven. Stock's `ddr: ddr_log` AOP control is the one
   untested QMP difference. The boot-time bisects stay the plan.
-- `2026-10-01-gpt-6.1-sol-usb-review.md`: agrees with 0117 (mechanism; "confirmed
+- `2026-09-30-gpt-6.1-sol-usb-review.md`: agrees with 0117 (mechanism; "confirmed
   cause" too strong without an oops record), p2 (femto HOST_SS checks), p4;
   p3 (usbcore retry) to revise before adoption; p7 incomplete. Storage
   correction applied: udisks falls back to the device path for the `drive`
@@ -153,7 +153,7 @@ condensed findings are here.
   `cancel-job-other-user`. Checked with pkcheck: UFS loops/partition refused,
   a user image loop and a USB stick allowed.
 
-## Correction: the r200 "PIN bypass" (2026-10-01 11:34) was a real unlock
+## Correction: the r200 "PIN bypass" (2026-09-30 11:34) was a real unlock
 
 The main session reported the event-driven switcher starting GNOME from a
 locked phone 45 s after the r200 boot. The journal shows
