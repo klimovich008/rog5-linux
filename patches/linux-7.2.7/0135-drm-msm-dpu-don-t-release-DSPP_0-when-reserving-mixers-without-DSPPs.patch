@@ -1,0 +1,25 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: don't release DSPP_0 when reserving mixers without DSPPs
+
+_dpu_rm_reserve_lms() records the DSPP owner for every reserved mixer as
+"num_dspp ? crtc_id : 0" with dspp_idx[] zero-initialised, so a reservation
+without DSPPs writes 0 to dspp_to_crtc_id[0]: DSPP_0 is marked free even
+while another CRTC (on the ROG5 the DSC panel, LM_0 + DSPP_0) owns it, and
+the next DSPP reservation can hand the same block to a second CRTC.
+
+Only record DSPP owners when the topology has DSPPs. Found by GPT-6.1-Sol
+while reviewing 0132 (whose fallback reserves without DSPPs).
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
+@@ -450,8 +450,8 @@
+ 	for (i = 0; i < lm_count; i++) {
+ 		global_state->mixer_to_crtc_id[lm_idx[i]] = crtc_id;
+ 		global_state->pingpong_to_crtc_id[pp_idx[i]] = crtc_id;
+-		global_state->dspp_to_crtc_id[dspp_idx[i]] =
+-			topology->num_dspp ? crtc_id : 0;
++		if (topology->num_dspp)
++			global_state->dspp_to_crtc_id[dspp_idx[i]] = crtc_id;
+ 
+ 		trace_dpu_rm_reserve_lms(lm_idx[i] + LM_0, crtc_id,
+ 					 pp_idx[i] + PINGPONG_0);

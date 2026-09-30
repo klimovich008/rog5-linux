@@ -1,0 +1,31 @@
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Subject: [PATCH] drm/msm/dpu: clear the DSPP pointer when no DSPP is assigned
+
+dpu_crtc_assign_resources() only stores mixers[i].hw_dspp when the new
+topology has a DSPP for that mixer, and dpu_crtc_duplicate_state() copies
+the state with kmemdup(), so a crtc which once used a DSPP keeps a pointer
+to it for the rest of its life -- across reservations which no longer own
+that block.
+
+Assign NULL when there is no DSPP for the mixer.
+
+Fixes: 4259ff7ae509 ("drm/msm/dpu: add support for pcc color block in dpu driver")
+Assisted-by: LLM
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+[ROG5: backport of freedreno "[PATCH v2 4/6]" (v3 5/8) of "drm/msm: fix SMMU
+ fault dumps", 2026-09-08; 0131 relies on it: dpu_crtc_has_dspp() must not
+ see a stale pointer.]
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1505,8 +1505,8 @@
+ 
+ 		cstate->mixers[i].hw_lm = to_dpu_hw_mixer(hw_lm[i]);
+ 		cstate->mixers[i].lm_ctl = to_dpu_hw_ctl(hw_ctl[ctl_idx]);
+-		if (i < num_dspp)
+-			cstate->mixers[i].hw_dspp = to_dpu_hw_dspp(hw_dspp[i]);
++		cstate->mixers[i].hw_dspp = i < num_dspp ?
++			to_dpu_hw_dspp(hw_dspp[i]) : NULL;
+ 	}
+ 
+ 	cstate->num_mixers = num_lm;

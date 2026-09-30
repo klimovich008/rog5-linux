@@ -1,0 +1,38 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 underrun log: requested core clock, lockless access
+
+Follow-up to 0118 (GPT-6.1-Sol review, 2026-10-01): the value printed is
+kms->perf.core_clk_rate, the rate last requested from the OPP table (after
+the max clamp), not a clock readback: say "requested core clk". The IRQ
+handler reads it without the perf lock: READ_ONCE there, WRITE_ONCE in
+_dpu_core_perf_crtc_update_clk().
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_core_perf.c
+@@ -480,7 +480,8 @@
+ 			return ret;
+ 		}
+ 
+-		kms->perf.core_clk_rate = clk_rate;
++		/* read locklessly by the underrun log (0118) */
++		WRITE_ONCE(kms->perf.core_clk_rate, clk_rate);
+ 		DRM_DEBUG_ATOMIC("update clk rate = %lld HZ\n", clk_rate);
+ 	}
+ 	return 0;
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -1512,12 +1512,12 @@
+ 	 */
+ 	if (is_power_of_2(cnt) || !(cnt % 1024))
+ 		dev_info_ratelimited(drm_enc->dev->dev,
+-			"INTF_%d underrun #%d: %dx%d@%d pclk %d kHz, core clk %llu Hz\n",
++			"INTF_%d underrun #%d: %dx%d@%d pclk %d kHz, requested core clk %llu Hz\n",
+ 			phy_enc->hw_intf ? phy_enc->hw_intf->idx - INTF_0 : -1, cnt,
+ 			phy_enc->cached_mode.hdisplay, phy_enc->cached_mode.vdisplay,
+ 			drm_mode_vrefresh(&phy_enc->cached_mode),
+ 			phy_enc->cached_mode.clock,
+-			phy_enc->dpu_kms->perf.core_clk_rate);
++			READ_ONCE(phy_enc->dpu_kms->perf.core_clk_rate));
+ 
+ 	trace_dpu_enc_underrun_cb(DRMID(drm_enc),
+ 				  atomic_read(&phy_enc->underrun_cnt));

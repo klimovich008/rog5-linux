@@ -34,12 +34,16 @@ ExecStartPre=+/usr/bin/chvt 7
 # not use (plane-0 on the panel CRTC after Phosh): every frame on DP then
 # failed with "switching CRTC directly". Start from an all-off KMS state.
 ExecStartPre=+/usr/local/libexec/rog5-kms-reset /dev/dri/card1
-# msm votes the DPU core clock too low with only DP lit (136 MHz for 1080p60,
-# below the 148.5 MHz pixel clock): INTF_0 underruns every frame and the
-# monitor shows the underflow colour. With the panel on its command mode kept
-# the core at 345 MHz. Until the kernel floor is fixed, pin the core clock
-# and bus votes while the desktop runs (0 underruns, 2026-09-29).
-ExecStartPre=+/bin/sh -c 'P=/sys/kernel/debug/dri/1/debug/core_perf; echo 460000000 > $P/fix_core_clk_rate; echo 15500000 > $P/fix_core_ab_vote; echo 15500000 > $P/fix_core_ib_vote; echo 2 > $P/perf_mode'
+# DPU pin: core clock 460 MHz and 15.5 GB/s bus votes while the desktop
+# runs. Added 2026-09-29 against a blue DP monitor (INTF_0 underrun on every
+# frame). The low votes were fixed by 0099/0100; the blue screen at GNOME's
+# first enable (still there at 460 MHz, 2026-10-01) was the GAMMA_LUT commit
+# moving the DP pipeline to other mixers without a modeset (kernel 0131/0132).
+# Once that kernel is verified, the pin only costs DDR power: test with a
+# runtime drop-in (Environment=ROG5_DPU_PIN=0 in
+# /run/systemd/system/rog5-gnome.service.d/), then drop the pin.
+Environment=ROG5_DPU_PIN=1
+ExecStartPre=+/bin/sh -c '[ "$${ROG5_DPU_PIN}" = 0 ] && exit 0; P=/sys/kernel/debug/dri/1/debug/core_perf; echo 460000000 > $P/fix_core_clk_rate; echo 15500000 > $P/fix_core_ab_vote; echo 15500000 > $P/fix_core_ib_vote; echo 2 > $P/perf_mode'
 # Phosh shows no title-bar buttons ('appmenu:'); a desktop needs them. The
 # setting is shared with Phosh, so put it back when GNOME stops.
 ExecStartPre=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:minimize,maximize,close"'

@@ -1,0 +1,112 @@
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Subject: [PATCH] drm/msm/dpu: only reassign resources when the encoder is reprogrammed
+
+dpu_crtc_atomic_check() reassigns resources whenever color_mgmt_changed is
+set, but crtc_set_mode() only calls ->atomic_mode_set() for mode_changed or
+connectors_changed. A colour management update therefore re-reserves and
+can get a different CTL: cstate->mixers[].lm_ctl points at the new one
+while phys->hw_ctl still points at the old, so the flush mask is
+accumulated on one and triggered on the other. CTL_FLUSH is written with
+zero, so the pipe is not reprogrammed again until the next modeset.
+
+Reassign only when the encoder is reprogrammed too. Enabling colour
+management still needs a modeset, as that is when DSPPs join the
+topology, so ask for one in dpu_crtc_check_mode_changed() and only there.
+Drop the msm_atomic_check() hack, which forced a modeset both ways,
+ignored GAMMA_LUT and overrode allow_modeset behind userspace's back.
+
+Fixes: 39a750ff5fc9 ("drm/msm/dpu: Add DSPP GC driver to provide GAMMA_LUT DRM property")
+Assisted-by: LLM
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+[ROG5: backport of freedreno "[PATCH v2 5/6]" (v3 7/8) of "drm/msm: fix SMMU
+ fault dumps", 2026-09-08. On the ROG5 this is the DP "blue screen" of the
+ first enable: phoc (boot) and GNOME (desktop mode) enable DP without a
+ GAMMA_LUT, 0080 gives it LM_4/LM_5 (no DSPP), and the GAMMA_LUT commit
+ shortly after (0.17 s; 1.8 s at boot) re-reserved LM_2/LM_3 + DSPP_2/3
+ without a modeset while the encoder kept PP_4/MERGE_3D_2: INTF_0
+ underran on every frame (r197 2026-10-01 10:09, 460 MHz, 15.5 GB/s: 128+
+ underruns; boot 32-35 s the same) until a mode change re-bound it all.
+ Deviation: the modeset is only requested for an enabled CRTC, so a
+ GAMMA_LUT set on a disabled one (no modeset allowed) is not refused. 0132
+ keeps this path from triggering.]
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1514,6 +1514,26 @@
+ 	return 0;
+ }
+ 
++static bool dpu_crtc_needs_dspp(const struct drm_crtc_state *crtc_state)
++{
++	return crtc_state->ctm || crtc_state->gamma_lut;
++}
++
++static bool dpu_crtc_has_dspp(const struct drm_crtc_state *crtc_state)
++{
++	const struct dpu_crtc_state *cstate = to_dpu_crtc_state(crtc_state);
++	unsigned int i;
++
++	if (!cstate->num_mixers)
++		return false;
++
++	for (i = 0; i < cstate->num_mixers; i++)
++		if (!cstate->mixers[i].hw_dspp)
++			return false;
++
++	return true;
++}
++
+ /**
+  * dpu_crtc_check_mode_changed: check if full modeset is required
+  * @old_crtc_state:	Previous CRTC state
+@@ -1531,6 +1551,14 @@
+ 
+ 	DRM_DEBUG_ATOMIC("%d\n", crtc->base.id);
+ 
++	/*
++	 * DSPPs are only reserved during a modeset. ROG5: only for an enabled
++	 * CRTC; a disabled one gets its DSPPs when it is enabled (a modeset).
++	 */
++	if (new_crtc_state->enable && dpu_crtc_needs_dspp(new_crtc_state) &&
++	    !dpu_crtc_has_dspp(old_crtc_state))
++		new_crtc_state->mode_changed = true;
++
+ 	/* there might be cases where encoder needs a modeset too */
+ 	drm_for_each_encoder_mask(drm_enc, crtc->dev, new_crtc_state->encoder_mask) {
+ 		if (dpu_encoder_needs_modeset(drm_enc, new_crtc_state->state))
+@@ -1560,8 +1588,7 @@
+ 	bool needs_dirtyfb = dpu_crtc_needs_dirtyfb(crtc_state);
+ 
+ 	/* don't reallocate resources if only ACTIVE has beeen changed */
+-	if (crtc_state->mode_changed || crtc_state->connectors_changed ||
+-	    crtc_state->color_mgmt_changed) {
++	if (crtc_state->mode_changed || crtc_state->connectors_changed) {
+ 		rc = dpu_crtc_assign_resources(crtc, crtc_state);
+ 		if (rc < 0)
+ 			return rc;
+--- a/drivers/gpu/drm/msm/msm_atomic.c
++++ b/drivers/gpu/drm/msm/msm_atomic.c
+@@ -185,22 +185,7 @@
+ {
+ 	struct msm_drm_private *priv = dev->dev_private;
+ 	struct msm_kms *kms = priv->kms;
+-	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
+-	struct drm_crtc *crtc;
+-	int i, ret = 0;
+-
+-	/*
+-	 * FIXME: stop setting allow_modeset and move this check to the DPU
+-	 * driver.
+-	 */
+-	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state,
+-				      new_crtc_state, i) {
+-		if ((old_crtc_state->ctm && !new_crtc_state->ctm) ||
+-		    (!old_crtc_state->ctm && new_crtc_state->ctm)) {
+-			new_crtc_state->mode_changed = true;
+-			state->allow_modeset = true;
+-		}
+-	}
++	int ret = 0;
+ 
+ 	if (kms && kms->funcs && kms->funcs->check_mode_changed)
+ 		ret = kms->funcs->check_mode_changed(kms, state);

@@ -86,3 +86,9 @@
 0118-drm-msm-dpu-ROG5-log-INTF-underruns-with-mode-and-core-clock.patch
 0119-drm-msm-dp-ROG5-PCON-experiments-async-MSA-sink-D3-D0-min-bpc.patch
 0120-soc-qcom-pmic_glink_altmode-ROG5-log-the-DP-pin-assignment.patch
+0130-drm-msm-dpu-clear-the-DSPP-pointer-when-no-DSPP-is-assigned.patch
+0131-drm-msm-dpu-only-reassign-resources-when-the-encoder-is-reprogrammed.patch
+0132-drm-msm-dpu-ROG5-reserve-DSPPs-at-every-display-modeset-while-free.patch
+0133-drm-msm-dpu-ROG5-underrun-log-requested-core-clock-lockless-access.patch
+0134-drm-msm-dp-ROG5-PCON-follow-ups-bpc-floor-D0-result-async-MSA-experimental.patch
+0135-drm-msm-dpu-don-t-release-DSPP_0-when-reserving-mixers-without-DSPPs.patch

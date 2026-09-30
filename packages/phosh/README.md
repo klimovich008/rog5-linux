@@ -2,8 +2,9 @@
 
 Patched build of [Phosh](https://gitlab.gnome.org/World/Phosh/phosh) 0.57.0.
 `PKGBUILD` is the Arch Linux packaging (0.57.0-1) with `aarch64` added,
-`pkgrel=1.1`, `options=(debug)` (a `phosh-debug` package with symbols) and one
-patch. The installed version is `phosh 0.57.0-1.1` (plus `phosh-debug`).
+`options=(debug)` (a `phosh-debug` package with symbols) and two patches
+(0001 below, 0002 LockedHint). Current packaging: `phosh 0.57.0-1.3`
+(1.2 is installed on r197).
 `/etc/pacman.conf` has `phosh` in `IgnorePkg` next to `phoc` and `resources`.
 
 ## The crashes (2026-09-29)
@@ -57,6 +58,21 @@ Upstream `main` (checked 2026-09-29, 79 commits after v0.57.0) has not changed
   longer bails out.
 - The shield holds a reference on its `PhoshMonitor`, so a new monitor cannot
   reuse the address while the shield exists.
+
+## 0002: the startup lock reaches logind (1.2, revised in 1.3)
+
+Phosh locks in `main()` before the screen saver manager has its login1
+session proxy, so logind's `LockedHint` read "no" on a locked phone until the
+next lock/unlock, and `rog5-desktop-mode` (which starts GNOME only after a
+LockedHint yes -> no of the same session) could not see the boot lock.
+1.2 sent the state when the proxy arrived. 1.3
+(`0002-screen-saver-manager-publish-the-lock-state-from-both-callbacks.patch`)
+also sends it from `on_name_acquired` (lock changes are only connected
+there, before or after the proxy; a change in between was lost), and sends
+only the hint instead of calling `on_lockscreen_manager_locked_changed()`,
+which on an unlocked state also unarms a pending lock-delay timer. Check after
+a Phosh start: `loginctl show-session <id> -p LockedHint` is `yes` on the
+lock screen and `no` after the PIN.
 
 ## Gesture crash (not fixed here)
 
@@ -136,7 +152,7 @@ manager: add
     pacman -S --needed --asdeps python-docutils        # as root, for the man pages
     cd /home/phone/build/phosh                          # copy of this directory
     makepkg -f --nocheck --skippgpcheck                 # b2sums still pin the tag
-    sudo pacman -U phosh-0.57.0-1.1-aarch64.pkg.tar.xz phosh-debug-0.57.0-1.1-aarch64.pkg.tar.xz
+    sudo pacman -U phosh-0.57.0-1.3-aarch64.pkg.tar.xz phosh-debug-0.57.0-1.3-aarch64.pkg.tar.xz
 
 The PGP key for the signed tag is in `keys/pgp/`. Import it
 (`gpg --import keys/pgp/*.asc`) and drop `--skippgpcheck` to verify the tag

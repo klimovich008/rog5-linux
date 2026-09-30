@@ -9,7 +9,7 @@
 
 pkgname=phosh
 pkgver=0.57.0
-pkgrel=1.2
+pkgrel=1.3
 pkgdesc='A Wayland shell for GNOME on mobile devices'
 arch=(x86_64 aarch64)
 # ROG5: also build phosh-debug so coredumpctl/gdb show symbols
@@ -81,7 +81,7 @@ source=(
   phosh.pam
   libical-4.patch
   0001-lockscreen-manager-Don-t-keep-pointers-to-destroyed-.patch
-  0002-screen-saver-manager-sync-LockedHint-once-the-session-proxy-exists.patch
+  0002-screen-saver-manager-publish-the-lock-state-from-both-callbacks.patch
 )
 b2sums=('3c309da3d5a5b23ab49c77a80f990ccf06fa5a67af2b6064e436d9522587b523b52938be88935148a36a78ecb1a8ea852dceb4a2d5217bf374ef5dc212fdfe7c'
         'SKIP'
@@ -89,7 +89,7 @@ b2sums=('3c309da3d5a5b23ab49c77a80f990ccf06fa5a67af2b6064e436d9522587b523b52938b
         'd89e16605e2e8e29834f9537bd09ef3f76f1cf6420cdd99346a760cab8c7217f86898be66c24b206b464239fc8b5277150abd19bae81af72187a435bd8c2f869'
         '1e852c5f5d26689d0deebade2aa1ee59a92625c159829f185d132967a95b8e00481eebeffeab61c435053d4e152ea616fca7178d68bb72e0dbc8a61a854f0b98'
         '83efd781b60ea2f9040f593d2d7f23975e57b26dca62578354bd9a99b3313f94c43e2996974a3e1c92dd27d96980d38ac677acd9ae02fe903ebf1f97d45dbe9b'
-        'b3f1e9810aaf91e6f0d5e950bc4ee4f9dd70e891e04b931e04268b13e9e2deae9f3dcc5b91b9695859c08f5e741eb48c95dd54a3ac50aa5ca9d9b8ba5a2186fd')
+        '7a39a4bfedc43ba11cff9122ef9cc1a1281ba8b1d2e72dea77e58c120a67198cc584c16f0c737a6f637ba871a3137916eb8df664890848759e7b409a6dba443a')
 validpgpkeys=(0DB3932762F78E592F6522AFBB5A2C77584122D3) # Guido Günther <guido@xcpu.ch>
 
 prepare() {
@@ -99,8 +99,9 @@ prepare() {
   patch -d $pkgname -p1 < libical-4.patch # Fix build with libical 4
   # ROG5: don't touch lock shields the compositor already destroyed
   patch -d $pkgname -p1 < 0001-lockscreen-manager-Don-t-keep-pointers-to-destroyed-.patch
-  # ROG5: tell logind about the startup lock (LockedHint stayed "no")
-  patch -d $pkgname -p1 < 0002-screen-saver-manager-sync-LockedHint-once-the-session-proxy-exists.patch
+  # ROG5: tell logind about the startup lock (LockedHint stayed "no"),
+  # from both the login1-proxy and the bus-name callbacks (1.3)
+  patch -d $pkgname -p1 < 0002-screen-saver-manager-publish-the-lock-state-from-both-callbacks.patch
 }
 
 build() {

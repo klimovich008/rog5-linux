@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 build <klimovich008@gmail.com>
+Date: Thu, 1 Oct 2026 11:00:00 +0200
+Subject: [PATCH] screen-saver-manager: Publish the lock state once logind and
+ the lock signal are both set up
+
+Phosh locks at startup (main.c: phosh_shell_lock() unless started by a
+display manager or with --unlocked) before the screen saver manager has its
+login1 session proxy, so on_lockscreen_manager_locked_changed() had no proxy
+and dropped the SetLockedHint call, and on_logind_get_session_proxy_finish()
+never sent the current state: LockedHint read "no" for the whole first lock
+after every Phosh start. Anything that trusts LockedHint (session switchers,
+keyring helpers) then believes a locked session is unlocked.
+
+Lock changes are only connected once the session-bus name is acquired
+(on_name_acquired), which can happen before or after the proxy is ready, so
+a change between the two would also be lost. Publish the current state from
+both callbacks (whichever runs last sends it; SetLockedHint is idempotent
+and skipped without a proxy). Only the hint is sent: unlike calling
+on_lockscreen_manager_locked_changed(), this does not unarm a pending
+lock-delay timer.
+---
+--- a/src/screen-saver-manager.c
++++ b/src/screen-saver-manager.c
+@@ -506,6 +506,28 @@
+ }
+ 
+ 
++/*
++ * Tell logind the current lock state. The shell locks at startup (main.c)
++ * before the login1 session proxy exists and before lock changes are
++ * connected (on_name_acquired), so that lock never reached logind and
++ * LockedHint read "no" on a locked phone until the next lock/unlock.
++ * Called from both callbacks, whichever runs last sends the state.
++ */
++static void
++sync_locked_hint (PhoshScreenSaverManager *self)
++{
++  if (!self->logind_session_proxy || !self->lockscreen_manager)
++    return;
++
++  phosh_dbus_login_session_call_set_locked_hint (
++    self->logind_session_proxy,
++    phosh_lockscreen_manager_get_locked (self->lockscreen_manager),
++    self->cancel,
++    on_locked_hint_set,
++    NULL);
++}
++
++
+ static void
+ on_lockscreen_manager_locked_changed (PhoshScreenSaverManager *self)
+ {
+@@ -596,6 +618,9 @@
+     "swapped-object-signal::wakeup-outputs", G_CALLBACK (on_lockscreen_manager_wakeup_outputs), self,
+     "swapped-object-signal::notify::locked", G_CALLBACK (on_lockscreen_manager_locked_changed), self,
+     NULL);
++
++  /* A lock change before this point was not signalled to us */
++  sync_locked_hint (self);
+ }
+ 
+ 
+@@ -675,6 +700,9 @@
+     "swapped-object-signal::lock", G_CALLBACK (on_logind_lock), self,
+     "swapped-object-signal::unlock", G_CALLBACK (on_logind_unlock), self,
+     NULL);
++
++  /* The startup lock happened before this proxy existed */
++  sync_locked_hint (self);
+ }
+ 
+ 

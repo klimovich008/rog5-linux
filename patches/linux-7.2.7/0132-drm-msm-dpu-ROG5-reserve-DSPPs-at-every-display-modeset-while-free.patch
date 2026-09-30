@@ -1,0 +1,122 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/dpu: ROG5 reserve DSPPs at every display modeset while free
+
+With 0131 a CRTC enabled without DSPPs needs a full modeset when colour
+management is switched on, and a commit without ALLOW_MODESET is refused.
+On the ROG5 that is every DP enable: phoc at boot and mutter in desktop
+mode modeset without a GAMMA_LUT and set one in the next plain commit
+(before 0131 that commit silently moved the pipeline to other mixers and
+the monitor showed only the underflow colour).
+
+Reserve DSPPs at every modeset of a video/command-mode CRTC while enough
+are free, not only when a CTM or GAMMA_LUT is already set; fall back to a
+reservation without them (mainline) when they are taken. DP then always
+gets LM_2/LM_3 + DSPP_2/3 (0080 scans from the top and LM_4/LM_5 have no
+DSPP), the DSC panel keeps LM_0/1 + DSPP_0/1, and turning colour
+management on or off needs no modeset. (Only in the fallback, all DSPPs
+taken at the modeset, does a later CTM/GAMMA_LUT still need one: a commit
+without ALLOW_MODESET then gets -EINVAL, as in mainline with 0131.)
+Unused DSPPs are programmed with PCC and GC off, as for a CRTC whose
+CTM/GAMMA_LUT was removed.
+
+msm.dpu_reserve_dspp (0644, default 1, next modeset) switches back to the
+mainline rule for A/B tests. An LM without a DSPP in the catalog is not an
+error: "LM_4, invalid DSPP_-1" is now a debug line (it was printed twice
+per DP reservation).
+
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -11,6 +11,7 @@
+ #include <linux/debugfs.h>
+ #include <linux/ktime.h>
+ #include <linux/bits.h>
++#include <linux/moduleparam.h>
+ 
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_blend.h>
+@@ -1454,6 +1455,44 @@
+ 	return topology;
+ }
+ 
++/*
++ * ROG5: reserve DSPPs at every modeset of a display CRTC while enough are
++ * free, not only when a CTM or GAMMA_LUT is already set. DSPPs are only
++ * reserved during a modeset, so a CRTC enabled without them needs another
++ * modeset when colour management is switched on later (0131). GNOME and
++ * phoc set a GAMMA_LUT in a plain commit right after their first modeset;
++ * the DP output, enabled without one, had LM_4/LM_5 (no DSPP, 0080 scans
++ * from the top), and the reservation then moved to LM_2/LM_3 without a
++ * modeset: blue screen, INTF_0 underrun on every frame until the next mode
++ * change. Reserved DSPPs stay bypassed (PCC and GC off) until colour
++ * management is set. Applies at the next modeset; 0 = mainline.
++ */
++static bool dpu_reserve_dspp = true;
++module_param(dpu_reserve_dspp, bool, 0644);
++MODULE_PARM_DESC(dpu_reserve_dspp,
++		 "ROG5: reserve DSPPs at every display modeset while free, so colour management needs no modeset (next modeset)");
++
++static bool dpu_crtc_wants_spare_dspp(struct drm_crtc *crtc,
++				      struct drm_crtc_state *crtc_state,
++				      const struct msm_display_topology *topology)
++{
++	struct dpu_kms *dpu_kms = _dpu_crtc_get_kms(crtc);
++	struct drm_encoder *drm_enc;
++	enum dpu_intf_mode mode;
++
++	if (!dpu_reserve_dspp || topology->num_dspp || topology->cwb_enabled ||
++	    dpu_kms->catalog->dspp_count < topology->num_lm)
++		return false;
++
++	drm_for_each_encoder_mask(drm_enc, crtc->dev, crtc_state->encoder_mask) {
++		mode = dpu_encoder_get_intf_mode(drm_enc);
++		if (mode != INTF_MODE_VIDEO && mode != INTF_MODE_CMD)
++			return false;
++	}
++
++	return true;
++}
++
+ static int dpu_crtc_assign_resources(struct drm_crtc *crtc,
+ 				     struct drm_crtc_state *crtc_state)
+ {
+@@ -1480,8 +1519,24 @@
+ 		return 0;
+ 
+ 	topology = dpu_crtc_get_topology(crtc, dpu_kms, crtc_state);
+-	ret = dpu_rm_reserve(&dpu_kms->rm, global_state,
+-			     crtc_state->crtc, &topology);
++
++	ret = -ENAVAIL;
++	if (dpu_crtc_wants_spare_dspp(crtc, crtc_state, &topology)) {
++		struct msm_display_topology with_dspp = topology;
++
++		with_dspp.num_dspp = with_dspp.num_lm;
++		ret = dpu_rm_reserve(&dpu_kms->rm, global_state,
++				     crtc_state->crtc, &with_dspp);
++		if (ret) {
++			/* all DSPPs taken: reserve without, as mainline */
++			DRM_DEBUG_ATOMIC("crtc%d: no spare DSPPs (%d)\n",
++					 crtc->base.id, ret);
++			dpu_rm_release(global_state, crtc);
++		}
++	}
++	if (ret)
++		ret = dpu_rm_reserve(&dpu_kms->rm, global_state,
++				     crtc_state->crtc, &topology);
+ 	if (ret)
+ 		return ret;
+ 
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
+@@ -336,6 +336,11 @@
+ 		return true;
+ 
+ 	idx = lm_cfg->dspp - DSPP_0;
++	/* ROG5: an LM wired to no DSPP (SM8350 LM_4/5) is not an error */
++	if (!lm_cfg->dspp) {
++		DPU_DEBUG("LM_%d has no DSPP\n", lm_idx);
++		return false;
++	}
+ 	if (idx < 0 || idx >= ARRAY_SIZE(rm->dspp_blks) || !rm->dspp_blks[idx]) {
+ 		DPU_ERROR("LM_%d, invalid DSPP_%d\n", lm_idx, idx);
+ 		return false;
