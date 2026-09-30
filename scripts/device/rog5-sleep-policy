@@ -4,8 +4,8 @@
 #
 # rog5-server-inhibit keeps logind from sleeping at all, which is right on
 # USB power. On battery this daemon decides instead:
-#   - USB power online, screen on, /run/rog5-stay-awake present, a USB device
-#     attached in host mode with ROG5_SLEEP_USB_DEVICE_BLOCKS=1 (off by
+#   - external power (see ext_power), screen on, /run/rog5-stay-awake
+#     present, a USB device attached in host mode with ROG5_SLEEP_USB_DEVICE_BLOCKS=1 (off by
 #     default), or a remote client connected (unless
 #     ROG5_SLEEP_SSH_BLOCKS=0): stay awake. USB devices used to block sleep
 #     because s2idle killed the side-port xHCI (collapsed usb30_prim_gdsc);
@@ -13,9 +13,21 @@
 #     (r184, 2026-09-29). A remote
 #     client is any established inbound TCP connection from a non-loopback
 #     address to a local listening port (SSH and everything tunnelled
-#     through it, a web server, ...);
+#     through it, a web server, ...), audio playing (an ALSA playback
+#     substream RUNNING or DRAINING: PipeWire opens a sink only while a
+#     stream plays and suspends it 5 s after, 50-rog5-speakers.conf; covers
+#     the speakers, the headset and USB audio, not Bluetooth), or a logind
+#     block or block-weak "sleep" inhibitor from anyone but rog5-server
+#     (`systemd-inhibit --what=sleep --mode=block JOB`, an app inhibiting
+#     suspend through gnome-session; ROG5_SLEEP_INHIBIT_IGNORE, comma
+#     separated, lists the WHO names to ignore): stay awake;
 #   - otherwise, after ROG5_SLEEP_IDLE seconds (default 60) with the screen
-#     off, suspend (the server inhibitor is overridden deliberately).
+#     off, suspend. rog5-server-inhibit's block ("sleep:handle-power-key",
+#     WHO rog5-server) is always there, so logind's own idle and lid
+#     handling never suspend; this daemon overrides it with
+#     --check-inhibitors=no and therefore honours every other block
+#     inhibitor itself. Delay-mode inhibitors (NetworkManager, UPower,
+#     lock-before-sleep) only delay a suspend and do not keep it awake.
 # After every wake the phone stays up at least ROG5_SLEEP_AWAKE seconds
 # (default 15) so network and timers get a window, then suspends again if
 # nothing changed. Plugging USB in keeps it awake. The power key (a PMIC
@@ -52,6 +64,12 @@ idle_s=${ROG5_SLEEP_IDLE:-60}
 awake_s=${ROG5_SLEEP_AWAKE:-15}
 poll_s=${ROG5_SLEEP_POLL:-5}
 usb=${ROG5_SLEEP_USB:-/sys/class/power_supply/qcom-battmgr-usb/online}
+supplies=${ROG5_SLEEP_SUPPLIES:-/sys/class/power_supply}
+chg_behaviour=${ROG5_SLEEP_CHG_BEHAVIOUR:-/sys/class/power_supply/qcom-battmgr-bat/charge_behaviour}
+typec=${ROG5_SLEEP_TYPEC:-/sys/class/typec}
+asound=${ROG5_SLEEP_ASOUND:-/proc/asound}
+inhibitors_cmd=${ROG5_SLEEP_INHIBITORS_CMD:-busctl --system call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager ListInhibitors}
+inhibit_ignore=${ROG5_SLEEP_INHIBIT_IGNORE-rog5-server}
 dpms=${ROG5_SLEEP_DPMS:-/sys/class/drm/card1-DSI-1/dpms}
 stay=${ROG5_SLEEP_STAY:-/run/rog5-stay-awake}
 usb_devices=${ROG5_SLEEP_USB_DEVICES:-/sys/bus/usb/devices}
@@ -92,9 +110,10 @@ set_wifi_ps() {
 log() { printf 'rog5-sleep-policy: %s\n' "$*" >"$kmsg" 2>/dev/null || true; }
 now() { cut -d. -f1 /proc/uptime; }
 
-# Prints why the phone must stay awake, or nothing.
+# Prints why the phone must stay awake, or nothing. Cheapest checks first;
+# the inhibitor list (one D-Bus call) only when nothing else holds.
 awake_reason() {
-	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return; }
+	ext_power && return
 	[ "$(cat "$dpms" 2>/dev/null)" = Off ] || { echo screen-on; return; }
 	ext_display_lit && { echo external-display; return; }
 	[ -e "$stay" ] && { echo stay-awake-file; return; }
@@ -105,6 +124,89 @@ awake_reason() {
 	if [ "$ssh_blocks" = 1 ] && [ -n "$(clients)" ]; then
 		echo remote-client; return
 	fi
+	audio_playing && { echo audio-playback; return; }
+	who=$(sleep_blocker); case $? in
+	0) echo "sleep-inhibitor:$who" ;;
+	2) echo inhibitors-unknown ;;
+	esac
+}
+
+# External power; prints the reason. qcom-battmgr-usb/online is the charger
+# as the ADSP sees it and reads 0 while charge_behaviour force-discharge
+# suspends USB input with the charger attached (rog5-charge-policy drain, a
+# manual test: 2026-09-30 a force-discharge test on the hub suspended the
+# phone after 60 s). So also: any other online USB/Mains/Wireless supply
+# (the UCSI connector supply is online while the partner sources VBUS,
+# whatever the charger does with it), and a charge_behaviour other than
+# auto while a Type-C port has a partner and is the power sink (the partner
+# supplies VBUS). rog5-charge-policy returns to auto within a poll of an
+# unplug; the sink check keeps a stale value with a bottom-port disk (the
+# phone is the source there) from holding the phone awake on battery.
+ext_power() {
+	[ "$(cat "$usb" 2>/dev/null)" = 1 ] && { echo usb-power; return 0; }
+	for s in "$supplies"/*; do
+		[ "$s/online" != "$usb" ] || continue
+		case $(cat "$s/type" 2>/dev/null) in
+		USB* | Mains | Wireless)
+			[ "$(cat "$s/online" 2>/dev/null)" = 1 ] && { echo "external-power:${s##*/}"; return 0; } ;;
+		esac
+	done
+	case $(cat "$chg_behaviour" 2>/dev/null) in
+	'' | *'[auto]'*) ;;
+	*)
+		for p in "$typec"/port*-partner; do
+			[ -e "$p" ] && grep -qs '\[sink\]' "${p%-partner}/power_role" &&
+				{ echo usb-power-suspended; return 0; }
+		done
+		;;
+	esac
+	return 1
+}
+
+# Audio playback: an ALSA playback substream running or draining.
+audio_playing() {
+	grep -qs -e '^state: RUNNING' -e '^state: DRAINING' "$asound"/card*/pcm*p/sub*/status
+}
+
+# Prints the WHO of the first logind inhibitor in mode block or
+# block-weak (gnome-session takes block-weak since GNOME 50; this daemon
+# suspends with the inhibitors overridden, so it honours both) whose WHAT
+# includes "sleep", skipping $inhibit_ignore; exit 1 for none. Exit 2 when
+# the list could not be read: a workload's inhibitor may still be held, so
+# the caller stays awake (a suspend needs logind anyway). Parses busctl's
+# a(ssssuu) reply (what who why mode uid pid, repeated; strings quoted, with
+# backslash escapes).
+sleep_blocker() {
+	out=$($inhibitors_cmd 2>/dev/null) || return 2
+	case $out in 'a(ssssuu) '*) ;; *) return 2 ;; esac
+	printf '%s\n' "$out" | awk -v ignore=",$inhibit_ignore," '
+	{
+		s = $0; n = 0
+		while (1) {
+			sub(/^[ \t]+/, "", s)
+			if (s == "") break
+			if (substr(s, 1, 1) == "\"") {
+				v = ""; i = 2
+				while (i <= length(s)) {
+					c = substr(s, i, 1)
+					if (c == "\\") { v = v substr(s, i + 1, 1); i += 2; continue }
+					if (c == "\"") break
+					v = v c; i++
+				}
+				s = substr(s, i + 1)
+			} else {
+				match(s, /^[^ \t]+/); v = substr(s, 1, RLENGTH); s = substr(s, RLENGTH + 1)
+			}
+			tok[++n] = v
+		}
+		for (i = 3; i + 5 <= n; i += 6)
+			if ((tok[i + 3] == "block" || tok[i + 3] == "block-weak") && (":" tok[i] ":") ~ /:sleep:/ &&
+			    index(ignore, "," tok[i + 1] ",") == 0) {
+				who = tok[i + 1]; gsub(/[^A-Za-z0-9._@-]/, "_", who)
+				print who; found = 1; exit
+			}
+	}
+	END { exit !found }'
 }
 
 # Desktop mode: the panel is off while GNOME drives an external display
