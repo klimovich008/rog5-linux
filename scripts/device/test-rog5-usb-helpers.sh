@@ -385,6 +385,19 @@ reconnect
 grep -q 'DP alt mode entered (pin_assignment/hpd 3 1) but no DP connector after 6s; no kick' "$t/kmsg" || fail 'dark connector not logged'
 grep -q a600000.usb "$unbind" || fail 'no re-init with a dark connector'
 [ "$(grep -c 'sleep 1' "$t/calls")" -ge 5 ] || fail 'display stack not given the longer wait'
+# 2026-10-01: an HDMI adapter (pin_assignment=4) with nothing on its HDMI
+# (hpd=0): no kick and no display wait; the re-init follows as soon as
+# for a partner the phone powers (same number of waits).
+kick_setup; echo '[source] sink' >"$t/sys/class/typec/port0/power_role"
+reconnect
+base=$(grep -c 'sleep 1' "$t/calls")
+kick_setup
+printf '[   48.10] %s pin_assignment=4 mux_ctrl=3 orientation=1 hpd=0 irq=0\n' "$an" >"$t/dmesg"
+reconnect
+! grep -q '^kick' "$t/calls" || fail 'kick behind a sinkless DP adapter'
+grep -q 'DP alt mode entered without a sink (pin_assignment/hpd 4 0); no kick, no display wait' "$t/kmsg" || fail 'sinkless adapter not logged'
+grep -q a600000.usb "$unbind" || fail 'no re-init behind a sinkless DP adapter'
+[ "$(grep -c 'sleep 1' "$t/calls")" = "$base" ] || fail "waited for a display behind a sinkless adapter ($(grep -c 'sleep 1' "$t/calls") vs $base waits)"
 # r206 boot: only pin_assignment=0 (or DP left after an unplug): kick
 kick_setup
 printf '[   25.01] %s pin_assignment=3 mux_ctrl=2 orientation=0 hpd=1 irq=0\n[   26.00] %s pin_assignment=0 mux_ctrl=0 orientation=2 hpd=0 irq=0\n' "$an" "$an" >"$t/dmesg"

@@ -117,9 +117,11 @@ gaveup=$run/rog5-usb-reconnect.gaveup
 # unneeded kick at 37.7 s was accepted by the monitor, and the swap back to
 # host blanked DP for 2 s. The last pmic_glink_altmode notification of the
 # side port in the kernel log decides now: pin_assignment != 0 means DP alt
-# mode is entered (an unplug reports 0), so there is no kick; the helper
-# waits up to $dp_lit_wait_s from the start of the run for the connector
-# and then re-initialises anyway. A partner that accepts the swap must be
+# mode is entered (an unplug reports 0), so there is no kick. With hpd=1
+# the helper waits up to $dp_lit_wait_s from the start of the run for the
+# connector and then re-initialises anyway; with hpd=0 (an HDMI adapter with
+# nothing on its HDMI, 214b:7260 on 2026-10-01: the hub came up 30 s late)
+# it goes on at once. A partner that accepts the swap must be
 # switched back: as the UFP the phone cannot host the monitor's hub.
 kicks=$run/rog5-usb-reconnect.kicks
 max_kicks=${ROG5_USB_DP_KICKS:-2}
@@ -250,7 +252,12 @@ dp_kick() {
 		fi
 		enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
 		host_mode || return 1
-		[ "$waited" -ge "$dp_wait_s" ] && ! altmode_dp && break
+		if altmode_dp; then
+			# No sink behind the adapter: nothing to wait for.
+			[ "${am#* }" = 0 ] && break
+		else
+			[ "$waited" -ge "$dp_wait_s" ] && break
+		fi
 		sleep 1
 		waited=$((waited + 1))
 	done
@@ -258,7 +265,11 @@ dp_kick() {
 	dp_attached && return 0
 	enumerated && { rm -f "$retries" "$gaveup"; exit 0; }
 	if altmode_dp; then
-		log "DP alt mode entered (pin_assignment/hpd $am) but no DP connector after ${dp_lit_wait_s}s; no kick"
+		if [ "${am#* }" = 0 ]; then
+			log "DP alt mode entered without a sink (pin_assignment/hpd $am); no kick, no display wait"
+		else
+			log "DP alt mode entered (pin_assignment/hpd $am) but no DP connector after ${dp_lit_wait_s}s; no kick"
+		fi
 		host_mode || return 1
 		return 0
 	fi
