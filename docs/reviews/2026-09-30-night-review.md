@@ -114,3 +114,25 @@ condensed findings are here.
   6 bpc ceiling; `msm_dp_link_psm_config()` returns 0 when every D0 write
   failed. Follow-ups for the next kernel.
 - 0118: say "requested core clk", READ_ONCE/WRITE_ONCE on the field (cosmetic).
+
+## Display addendum (display agent + Sol DPU-clock run, ~05:40)
+
+- The switcher bypass Sol found (a lock seen in one session vouching for a
+  new one) was in the display agent's PID-based variant; the shipped switcher
+  uses only the logind session id, so auto mode stays on. Shared remaining gap:
+  a lock within the 3 s poll window. The agent's revised phosh 0002 also
+  publishes from `on_name_acquired` (an unlock at boot can otherwise be lost,
+  which only keeps GNOME off): take it at the next phosh build.
+- 0118/0119 follow-ups prepared by the agent (scratchpad): "requested core
+  clk" + READ_ONCE; the converter 8 bpc floor rejects instead of overriding a
+  lower ceiling; `msm_dp_aux_link_power_up()` reports failed D0 writes;
+  `dp_async_msa` marked experimental (static M/N).
+- DPU clock (`2026-10-01-gpt-6.1-sol-dpu-clock.md`): "latched" confirmed not a
+  latched state. Sol ranks QoS/fetch latency at first enable (H3) above 6 bpc
+  (H2) and the full-pixel-rate limit (H1): mainline's SM8350 QoS tables differ
+  from stock's 60 Hz set (CREQ 0x0011222222335777 vs 0x0011223344556677; no
+  VBIF OT limits). 0114 is a quarantine of two failing modes, not a proven
+  limit. New tests: bit depth (dp_max_bpc 6/8/6 at the 460 MHz pin), and in the
+  failing state raise bandwidth vs clock separately; candidate fix: port stock's
+  60 Hz QoS tables, then drop the GNOME pin. 0101's commit text is wrong (INTF
+  timing starts after the CTL flush).
