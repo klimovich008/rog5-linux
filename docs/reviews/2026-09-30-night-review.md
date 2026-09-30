@@ -152,3 +152,16 @@ condensed findings are here.
   unreadable backing refused, other loops default rules) and also refuses
   `cancel-job-other-user`. Checked with pkcheck: UFS loops/partition refused,
   a user image loop and a USB stick allowed.
+
+## Correction: the r200 "PIN bypass" (2026-10-01 11:34) was a real unlock
+
+The main session reported the event-driven switcher starting GNOME from a
+locked phone 45 s after the r200 boot. The journal shows
+`phosh: pam_unix(phosh:account)` 74 ms before the switch, which Phosh 0.57 only
+runs after `pam_authenticate` succeeded, and the user confirmed unlocking at
+11:34. No bypass. The switcher was hardened anyway (00986001): a lock must be
+re-confirmed 2 s later, only rog5-phosh's own logind session (Leader ==
+MainPID) authorises a start (Sol found GNOME's session also has
+Service=phosh), any doubt drops the lock history, and every lock/unlock is
+logged with its session id. Desktop mode stays `manual` until one supervised
+boot test (monitor attached, 2 min untouched, then PIN -> GNOME).
