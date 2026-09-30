@@ -40,8 +40,9 @@ is rejected (MODE_BAD). A sink that asks for less (EDID bpc, downstream
 port) still gets its own depth, and msm.dp_min_bpc=6 restores mainline's
 fallback. This is policy: 5120x1440@100 was the only mode with frame done
 timeouts, but that does not show 6 bpc caused them (18 bpp filled 84 % of
-the link). The MSI list with halved becomes 1920x1080@60/120,
-2560x1440@60/120, 3840x1080@60/100/144 and 5120x1440@60. With
+the link). With halved (the default since r110, 0139) the MSI list
+becomes 1920x1080@60/120, 2560x1440@60/120, 3840x1080@60/100/144 and
+5120x1440@60. With
 msm.dp_hbr3=1, 5120x1440@100 is offered again at 30 bpp (93 % of 4 x HBR3;
 each mixer needs 423 MHz). It is within the stock limits but untested.
 
@@ -62,9 +63,35 @@ dpu_crtc_mode_valid(). Found by GPT-6.1-Sol's review, not fixed here:
 TU/blanking feasibility is not a mode validation limit, and 420-only
 modes pick bpp with clock/2 at validation but the full clock at modeset.
 
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+index f70c655..19b8b97 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+@@ -1768,6 +1768,19 @@ static enum drm_mode_status dpu_crtc_mode_valid(struct drm_crtc *crtc,
+ 	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
+ 	 * msm.dpu_mode_clk_check=halved (the default) restores the halving;
+ 	 * full keeps this rule.
++	 *
++	 * The halved budget is stock msm-5.4's (sde_kms_get_mixer_count, from
++	 * htotal * vtotal * vrefresh): each of the two layer mixers behind 3D
++	 * merge takes half the pixels, so pclk * 1.05 / 2 must fit the max core
++	 * clock (pixel clocks up to ~876 MHz at 460 MHz; 5120x1440@60 at
++	 * 469 MHz ran without underruns). Other limits: the DP bridge checks the
++	 * stream clock (DP_MAX_PIXEL_CLK_KHZ at pclk / 2 with the wide bus,
++	 * 675 MHz as stock) and the link at the dp_min_bpc floor (0147, 0138's
++	 * HBR2 cap); the atomic check covers the SSPP rect clock, line width,
++	 * multirect, resources and bandwidth; the size check is below. The 0099
++	 * vote stays at the full pixel clock: its 460 MHz OPP also keeps MMCX
++	 * at NOM, which the DP pixel clock needs above 337.5 MHz (stock
++	 * dispcc-lahaina), i.e. for mode clocks above 675 MHz.
+ 	 */
+ 	if (READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED &&
+ 	    dpu_kms->catalog->caps->has_3d_merge &&
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index 9d01632..0931283 100644
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-@@ -2651,6 +2651,19 @@
+@@ -2651,6 +2651,19 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
  	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
  		return rc;
  
@@ -84,9 +111,11 @@ modes pick bpp with clock/2 at validation but the full clock at modeset.
  	if (rc == 0) {  /* link train successfully */
  		/*
  		 * do not stop train pattern here
+diff --git a/drivers/gpu/drm/msm/dp/dp_panel.c b/drivers/gpu/drm/msm/dp/dp_panel.c
+index 17deb74..eab405e 100644
 --- a/drivers/gpu/drm/msm/dp/dp_panel.c
 +++ b/drivers/gpu/drm/msm/dp/dp_panel.c
-@@ -323,10 +323,16 @@
+@@ -323,10 +323,16 @@ static void msm_dp_panel_cap_pcon_rate(struct msm_dp_panel *msm_dp_panel,
   * (6 = mainline). A DP-to-HDMI/DVI converter always gets at least 8: HDMI and
   * DVI have no 6 bpc (stock msm-5.4 forces 24 bpp for HDMI bridges too,
   * dp_asus_validate_24_bpp). Modes that fit only below the floor are rejected.
@@ -105,25 +134,3 @@ modes pick bpp with clock/2 at validation but the full clock at modeset.
  
  static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
  		u32 mode_edid_bpp, u32 mode_pclk_khz)
---- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-+++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-@@ -1767,6 +1767,19 @@
- 	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
- 	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
- 	 * msm.dpu_mode_clk_check=halved restores the halving for A/B tests.
-+	 *
-+	 * The halved budget is stock msm-5.4's (sde_kms_get_mixer_count, from
-+	 * htotal * vtotal * vrefresh): each of the two layer mixers behind 3D
-+	 * merge takes half the pixels, so pclk * 1.05 / 2 must fit the max core
-+	 * clock (pixel clocks up to ~876 MHz at 460 MHz; 5120x1440@60 at
-+	 * 469 MHz ran without underruns). Other limits: the DP bridge checks the
-+	 * stream clock (DP_MAX_PIXEL_CLK_KHZ at pclk / 2 with the wide bus,
-+	 * 675 MHz as stock) and the link at the dp_min_bpc floor (0147, 0138's
-+	 * HBR2 cap); the atomic check covers the SSPP rect clock, line width,
-+	 * multirect, resources and bandwidth; the size check is below. The 0099
-+	 * vote stays at the full pixel clock: its 460 MHz OPP also keeps MMCX
-+	 * at NOM, which the DP pixel clock needs above 337.5 MHz (stock
-+	 * dispcc-lahaina), i.e. for mode clocks above 675 MHz.
- 	 */
- 	if (READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED &&
- 	    dpu_kms->catalog->caps->has_3d_merge &&

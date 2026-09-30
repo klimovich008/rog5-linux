@@ -16,26 +16,41 @@ read at every mode validation (connector probe and every modeset), so
 5120x1440@60 can be tested at runtime by setting it and re-probing (replug). The core clock vote is
 unchanged: 0099 still asks for the full pixel clock x 1.05, clamped to 460 MHz.
 
+r110: halved is the default. 0147 rejects modes that fit the link only
+below 8 bpc (the 5120x1440@100 at 18 bpp that halved let through), and
+0130-0132 fixed the blue screens that 0114 was a quarantine for:
+5120x1440@60 (469 MHz) ran at the 460 MHz core clock without underruns on
+r109, and 3840x1080@144 (666 MHz, 24 bpp) for 20 s. The core clock vote
+does not depend on the rog5-gnome DPU pin (ROG5_DPU_PIN=0, core_perf
+perf_mode 0): 0099 computes it for every active video-mode CRTC from the
+physical encoder's interface mode, which is known before the first enable,
+so any mode above ~438 MHz gets the 460 MHz OPP, i.e. MMCX NOM (checked on
+r206 at 5120x1440@60: core_clk_rate 460000000, mmcx perf state 256). The
+DSI panel (hdisplay 1080) is never halved. msm.dpu_mode_clk_check=full
+restores 0114.
+
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+index b990dd6..f70c655 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-@@ -1702,6 +1702,48 @@
+@@ -1702,6 +1702,48 @@ static int dpu_crtc_atomic_check(struct drm_crtc *crtc,
  	return 0;
  }
  
 +/*
-+ * ROG5 A/B knob for 0114, msm.dpu_mode_clk_check (checked at every mode
++ * ROG5 knob for 0114, msm.dpu_mode_clk_check (checked at every mode
 + * validation, i.e. the next connector probe and every modeset):
 + *  full   - validate the full pixel clock against the max core clock, as 0099
-+ *           votes it (default; rejects pixel clocks above ~438 MHz);
-+ *  halved - upstream's rule: a mode wider than MAX_HDISPLAY_SPLIT runs on two
-+ *           layer mixers through 3D merge, so each needs half the pixel clock
-+ *           (stock msm-5.4 sizes mixers the same way and allows 675 MHz DP
-+ *           with the same 460 MHz core clock). For testing modes such as
-+ *           5120x1440@60 (469 MHz); the vote itself is unchanged (clamped
-+ *           to the max core clock).
++ *           votes it (0114; rejects pixel clocks above ~438 MHz);
++ *  halved - upstream's rule (default): a mode wider than MAX_HDISPLAY_SPLIT
++ *           runs on two layer mixers through 3D merge, so each needs half the
++ *           pixel clock (stock msm-5.4 sizes mixers the same way and allows
++ *           675 MHz DP with the same 460 MHz core clock). Offers modes such
++ *           as 5120x1440@60 (469 MHz); the vote itself is unchanged (full
++ *           pixel clock, clamped to the max core clock).
 + */
 +enum { DPU_MODE_CLK_CHECK_FULL, DPU_MODE_CLK_CHECK_HALVED };
-+static int dpu_mode_clk_check = DPU_MODE_CLK_CHECK_FULL;
++static int dpu_mode_clk_check = DPU_MODE_CLK_CHECK_HALVED;
 +
 +static int dpu_mode_clk_check_set(const char *val, const struct kernel_param *kp)
 +{
@@ -62,16 +77,17 @@ unchanged: 0099 still asks for the full pixel clock x 1.05, clamped to 460 MHz.
 +};
 +module_param_cb(dpu_mode_clk_check, &dpu_mode_clk_check_ops, NULL, 0644);
 +MODULE_PARM_DESC(dpu_mode_clk_check,
-+		 "ROG5: mode clock check, full (default) or halved (upstream 3D-merge rule, A/B testing)");
++		 "ROG5: mode clock check, halved (default, upstream 3D-merge rule) or full (0114)");
 +
  static enum drm_mode_status dpu_crtc_mode_valid(struct drm_crtc *crtc,
  						const struct drm_display_mode *mode)
  {
-@@ -1724,7 +1766,12 @@
+@@ -1724,7 +1766,13 @@ static enum drm_mode_status dpu_crtc_mode_valid(struct drm_crtc *crtc,
  	 * core clock / clk factor was offered but could not be driven:
  	 * 5120x1440@60 (469 MHz) and 3840x1080@100 (453 MHz) on a 460 MHz
  	 * SM8350 underran on every frame (blue: 1-2 % or no clock margin).
-+	 * msm.dpu_mode_clk_check=halved restores the halving for A/B tests.
++	 * msm.dpu_mode_clk_check=halved (the default) restores the halving;
++	 * full keeps this rule.
  	 */
 +	if (READ_ONCE(dpu_mode_clk_check) == DPU_MODE_CLK_CHECK_HALVED &&
 +	    dpu_kms->catalog->caps->has_3d_merge &&
