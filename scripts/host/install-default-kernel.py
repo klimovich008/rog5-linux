@@ -127,6 +127,12 @@ def archive_name(bundle, old_sha256):
     return f'wifi-trial-state.archived-before-{bundle}-{old_sha256}'
 
 
+def phone_state(output):
+    """The target's final STATE line after a failed write window, or None."""
+    lines = [line for line in output.decode(errors='replace').splitlines() if line.startswith('STATE ')]
+    return lines[-1][6:] if lines else None
+
+
 def render(values):
     """The target script with its exact values prepended."""
     lines = []
@@ -272,7 +278,8 @@ def main():
         p24_uuid=P24_UUID, p23_uuid=P23_UUID, p24_size=P24_SIZE,
         root_mount=ROOT_MOUNT, userdata_mount=USERDATA_MOUNT,
         source_root='/run/rog5-default-kernel-'+trial_id[:16],
-        sys_block='/sys/class/block', sys_power='/sys/class/power_supply')
+        sys_block='/sys/class/block', sys_power='/sys/class/power_supply',
+        drop_caches='/proc/sys/vm/drop_caches')
     script = render(values)
     write_new(args.evidence/'install-on-target.sh', script)
     (args.evidence/'values.json').write_text(json.dumps(dict(values, generated=generated), indent=2)+'\n')
@@ -316,6 +323,9 @@ def main():
         result = phone.script(script, '--stage', timeout=240)
         write_new(args.evidence/'stage.log', result.stdout+result.stderr)
         report['returncode'] = result.returncode
+        state = phone_state(result.stdout+result.stderr)
+        if state is not None:
+            report['phone_state'] = state
         staged = STAGED.format(bundle=bundle, fallback=fallback_name,
                                state='installed' if new_fallback is not None else 'preserved')
         need(result.returncode == 0 and result.stdout.endswith(staged.encode()),

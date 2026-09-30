@@ -4,7 +4,10 @@
 The target script runs under `unshare -r` against a temporary p24/p23 tree;
 findmnt, blkid, blockdev, mount, systemd-run and systemctl are stubs that
 keep the mount and block read-only state in files, so the write window,
-relock and cleanup are observable.
+relock and cleanup are observable. The mount stub can refuse read-only
+remounts like ext4 does (EBUSY): a number of times (busy-ro), from the Nth
+remount on (busy-from), or while a pinned inode (pinned-inode, the overlay
+dentry of / that kept the replaced selector alive on 2026-09-30) has no name.
 """
 import gzip
 import hashlib
@@ -73,6 +76,11 @@ class Host(unittest.TestCase):
             with self.assertRaises(ValueError):
                 I.selector_fallback(bad)
 
+    def test_phone_state_is_the_last_state_line(self):
+        output = b'FAIL x\nSTATE selector=previous record=previous\nSTATE selector=new record=archived p24=relocked\n'
+        self.assertEqual(I.phone_state(output), 'selector=new record=archived p24=relocked')
+        self.assertIsNone(I.phone_state(b'PASS default kernel\n'))
+
     def test_archive_name_is_unique_per_bundle_and_record(self):
         self.assertEqual(I.archive_name(BUNDLE, 'f'*64), f'wifi-trial-state.archived-before-{BUNDLE}-'+'f'*64)
 
@@ -89,6 +97,16 @@ esac''',
 case $1 in --getsize64) echo 34359717888 ;; --setrw) echo 0 >$S/block/sda24/ro ;; --setro) echo 1 >$S/block/sda24/ro ;; esac''',
     'mount': '''echo "mount $*" >>$S/calls
 [ -e $S/fail-remount-rw ] && [ "$2" = remount,rw ] && exit 1
+if [ "$2" = remount,ro ]; then
+	count=$(( $(cat $S/ro-count 2>/dev/null || echo 0) + 1 )); echo $count >$S/ro-count
+	busy() { echo "mount: $3: mount point is busy." >&2; exit 32; }
+	if [ -e $S/busy-ro ]; then
+		left=$(cat $S/busy-ro)
+		[ "$left" -eq 0 ] || { echo $((left - 1)) >$S/busy-ro; busy "$@"; }
+	fi
+	[ -e $S/busy-from ] && [ "$count" -ge "$(cat $S/busy-from)" ] && busy "$@"
+	[ -e $S/pinned-inode ] && [ -z "$(find $S/../p24 -inum "$(cat $S/pinned-inode)")" ] && busy "$@"
+fi
 case $2 in remount,ro) echo ro >$S/p24-mount ;; remount,rw) echo rw >$S/p24-mount ;; esac''',
     'systemd-run': 'echo "systemd-run $*" >>$S/calls; touch $S/timer',
     'systemctl': '''echo "systemctl $*" >>$S/calls
@@ -110,6 +128,7 @@ class Target(unittest.TestCase):
             (self.stub/'bin'/name).write_text(f'#!/bin/sh\nS={self.stub}\n{body}\n')
             (self.stub/'bin'/name).chmod(0o755)
         (self.stub/'p24-mount').write_text('ro\n')
+        (self.stub/'drop_caches').write_text('')
         for disk, ro in (('sda', 0), ('sda23', 0), ('sda24', 1), ('sdb', 1)):
             (self.stub/'block'/disk).mkdir(parents=True)
             (self.stub/'block'/disk/'ro').write_text(f'{ro}\n')
@@ -131,6 +150,7 @@ class Target(unittest.TestCase):
         self.selector_old = b'format=rog5-slotb-selector-v2\nold\n'
         (linux/'selector').write_bytes(self.selector_old)
         (linux/'selector').chmod(0o600)
+        self.selector_inode = (linux/'selector').stat().st_ino
         (self.p23/'rog5/boot').mkdir(parents=True)
         self.record_old = b'format=rog5-persistent-wifi-trial-v1\nforeign\nstate=healthy\n'
         (self.p23/'rog5/boot/wifi-trial-state').write_bytes(self.record_old)
@@ -155,7 +175,7 @@ class Target(unittest.TestCase):
             fallback_signature=self.fallback['manifest.sig'],
             p24_uuid=I.P24_UUID, p23_uuid=I.P23_UUID, p24_size=I.P24_SIZE,
             root_mount=str(self.p24), userdata_mount=str(self.p23), source_root=str(self.source),
-            sys_block=str(self.stub/'block'), sys_power=str(power),
+            sys_block=str(self.stub/'block'), sys_power=str(power), drop_caches=str(self.stub/'drop_caches'),
             install_path=f'{self.stub}/bin:/usr/bin:/bin')
 
     def tearDown(self):
@@ -208,6 +228,9 @@ class Target(unittest.TestCase):
         self.assertEqual(oct(target.stat().st_mode & 0o777), '0o700')
         self.assertEqual(sha((self.linux()/'selector').read_bytes()), self.payload['selector'])
         self.assertEqual((self.linux()/f'selector.rollback-{BUNDLE}').read_bytes(), self.selector_old)
+        self.assertEqual((self.linux()/f'selector.rollback-{BUNDLE}').stat().st_ino, self.selector_inode)
+        self.assertEqual(sorted(p.name for p in self.linux().iterdir()),
+                         ['bundles', 'selector', f'selector.rollback-{BUNDLE}'])
         self.assertFalse((self.p23/'rog5/boot/wifi-trial-state').exists())
         self.assertEqual((self.p23/'rog5/boot'/self.values['record_archive']).read_bytes(), self.record_old)
         for name in I.FILES:
@@ -217,6 +240,10 @@ class Target(unittest.TestCase):
         self.assertFalse((self.stub/'timer').exists())
         calls = self.calls()
         self.assertLess(calls.index('blockdev --setrw /dev/sda24'), calls.index(f'mount -o remount,rw {self.p24}'))
+        # A read-only remount is proven inside the window before activation.
+        self.assertEqual([c for c in calls if c.startswith('mount ')],
+                         [f'mount -o remount,{m} {self.p24}' for m in ('rw', 'ro', 'rw', 'ro')])
+        self.assertEqual((self.stub/'drop_caches').read_text(), '')
         self.assertTrue(any(c.startswith('systemd-run --quiet --unit=rog5-default-kernel-guard-') for c in calls))
         # The same values can never stage twice.
         code, out = self.run_target('--stage')
@@ -282,6 +309,111 @@ class Target(unittest.TestCase):
         self.assertIn('blockdev --setro /dev/sda24', self.calls())
         self.assertFalse((self.stub/'timer').exists())
 
+    def test_replaced_selector_stays_linked_for_an_overlay_pin(self):
+        # 2026-09-30: an overlay dentry of / held the replaced selector's
+        # lower dentry, so a rename over it left an orphan and every
+        # read-only remount of p24 failed after the swap.
+        (self.stub/'pinned-inode').write_text(f'{self.selector_inode}\n')
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 0, out)
+        self.assertEqual((self.stub/'p24-mount').read_text().strip(), 'ro')
+        self.assertEqual((self.stub/'drop_caches').read_text(), '')
+
+    def test_transient_busy_relock_retries_after_dropping_caches(self):
+        (self.stub/'busy-ro').write_text('2\n')
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 0, out)
+        self.assertEqual((self.stub/'drop_caches').read_text(), '2\n')
+        self.assertEqual(sha((self.linux()/'selector').read_bytes()), self.payload['selector'])
+        self.assertEqual((self.stub/'p24-mount').read_text().strip(), 'ro')
+
+    def test_busy_before_activation_keeps_the_previous_selector(self):
+        (self.stub/'busy-ro').write_text('99\n')
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 97, out)
+        self.assertIn('p24 read-only remount failed before activation; previous selector kept', out)
+        self.assertIn('STATE selector=previous record=previous p24=not-relocked p24_durable=0 '
+                      'next_boot=unchanged (previous selector and record)', out)
+        self.assertEqual((self.linux()/'selector').read_bytes(), self.selector_old)
+        self.assertEqual((self.p23/'rog5/boot/wifi-trial-state').read_bytes(), self.record_old)
+        self.assertEqual((self.stub/'block/sda24/ro').read_text(), '1\n')
+        self.assertFalse((self.linux()/f'selector.rollback-{BUNDLE}').exists())
+
+    def test_relock_failure_after_activation_finishes_on_p23(self):
+        # The proof remount (first) succeeds; every later one is refused.
+        (self.stub/'busy-from').write_text('2\n')
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 97, out)
+        self.assertIn('FAIL default kernel install: p24 read-only remount failed', out)
+        self.assertIn('FAIL default kernel install: p24 cleanup/relock failed', out)
+        self.assertIn(f'STATE selector=new record=archived p24=not-relocked p24_durable=1 '
+                      f'next_boot=tries {BUNDLE} once, falls back to {I.FALLBACK}', out)
+        self.assertEqual(sha((self.linux()/'selector').read_bytes()), self.payload['selector'])
+        self.assertEqual((self.linux()/f'selector.rollback-{BUNDLE}').read_bytes(), self.selector_old)
+        self.assertFalse((self.p23/'rog5/boot/wifi-trial-state').exists())
+        self.assertEqual((self.p23/'rog5/boot'/self.values['record_archive']).read_bytes(), self.record_old)
+        self.assertEqual((self.stub/'block/sda24/ro').read_text(), '1\n')
+        self.assertFalse((self.stub/'timer').exists())
+
+    def exch_then(self, command):
+        """An exch that also runs a shell command after a successful swap."""
+        (self.stub/'bin/exch').write_text(f'#!/bin/sh\n/usr/bin/exch "$@" || exit\n{command}\n')
+        (self.stub/'bin/exch').chmod(0o755)
+
+    def test_relock_failure_after_activation_keeps_the_record_if_p24_does_not_verify(self):
+        (self.stub/'busy-from').write_text('2\n')
+        self.exch_then(f"echo x >>'{self.linux()/'bundles'/BUNDLE/'Image'}'")
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 97, out)
+        self.assertIn(f'STATE selector=new record=previous p24=not-relocked p24_durable=1 next_boot={I.FALLBACK} '
+                      '(record does not match the new trial)', out)
+        self.assertEqual((self.p23/'rog5/boot/wifi-trial-state').read_bytes(), self.record_old)
+
+    def test_a_changed_fallback_leaves_the_next_boot_undetermined(self):
+        (self.stub/'busy-from').write_text('2\n')
+        self.exch_then(f"echo x >>'{self.linux()/'bundles'/BUNDLE/'Image'}'; "
+                       f"chmod u+w '{self.linux()/'bundles'/I.FALLBACK/'Image'}'; "
+                       f"echo x >>'{self.linux()/'bundles'/I.FALLBACK/'Image'}'")
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 97, out)
+        self.assertIn('STATE selector=new record=previous p24=not-relocked p24_durable=1 '
+                      'next_boot=undetermined: inspect the phone before rebooting', out)
+        self.assertEqual((self.p23/'rog5/boot/wifi-trial-state').read_bytes(), self.record_old)
+
+    def test_a_changed_fallback_alone_blocks_the_roll_forward(self):
+        # The loader verifies the fallback before booting either bundle.
+        (self.stub/'busy-from').write_text('2\n')
+        self.exch_then(f"chmod u+w '{self.linux()/'bundles'/I.FALLBACK/'Image'}'; "
+                       f"echo x >>'{self.linux()/'bundles'/I.FALLBACK/'Image'}'")
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 97, out)
+        self.assertIn('STATE selector=new record=previous p24=not-relocked p24_durable=1 '
+                      'next_boot=undetermined: inspect the phone before rebooting', out)
+        self.assertEqual((self.p23/'rog5/boot/wifi-trial-state').read_bytes(), self.record_old)
+
+    def test_a_failed_p24_sync_after_activation_never_archives(self):
+        # A writeback error may not reappear on a later sync, so the record
+        # stays and the next boot is reported as undetermined.
+        (self.stub/'bin/sync').write_text(f'#!/bin/sh\n[ -e {self.stub}/swapped ] && exit 1\nexec /usr/bin/sync "$@"\n')
+        (self.stub/'bin/sync').chmod(0o755)
+        self.exch_then(f'touch {self.stub}/swapped')
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 1, out)
+        self.assertIn('FAIL default kernel install: p24 sync failed', out)
+        self.assertIn('STATE selector=new record=previous p24=relocked p24_durable=0 '
+                      'next_boot=undetermined: inspect the phone before rebooting', out)
+        self.assertEqual((self.p23/'rog5/boot/wifi-trial-state').read_bytes(), self.record_old)
+        self.assertEqual((self.stub/'block/sda24/ro').read_text(), '1\n')
+
+    def test_a_failed_p23_sync_is_reported_as_undetermined(self):
+        (self.stub/'bin/sync').write_text(f'#!/bin/sh\n[ "$2" = {self.p23} ] && exit 1\nexec /usr/bin/sync "$@"\n')
+        (self.stub/'bin/sync').chmod(0o755)
+        code, out = self.run_target('--stage')
+        self.assertEqual(code, 1, out)
+        self.assertIn('FAIL default kernel install: p23 sync failed', out)
+        self.assertIn('STATE selector=new record=archived p24=relocked p24_durable=1 '
+                      'next_boot=undetermined (durability unproven): inspect the phone before rebooting', out)
+
     def test_refusals_before_any_write(self):
         cases = [
             ('boot identity changed', dict(boot_id='0'*8+'-0000-0000-0000-'+'0'*12), None),
@@ -298,6 +430,7 @@ class Target(unittest.TestCase):
             ('battery capacity below 30 %', {}, lambda: (self.dir/'power/qcom-battmgr-bat/capacity').write_text('29\n')),
             ('p24 is not read-only', {}, lambda: (self.stub/'p24-mount').write_text('rw\n')),
             ('unexpected userdata boot state', {}, lambda: (self.p23/'rog5/state/good').mkdir(parents=True)),
+            ('drop_caches is not writable', {}, lambda: (self.stub/'drop_caches').unlink()),
         ]
         for why, changes, setup in cases:
             with self.subTest(why):

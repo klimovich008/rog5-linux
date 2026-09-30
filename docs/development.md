@@ -217,11 +217,18 @@ trial descriptor:
    descriptor, generates the selector, backs up the old selector and record,
    and runs the target script's `--inspect` and `--preflight` against a RAM
    copy. Add `--stage` (clean repository) for the single write window: the
-   bundle goes to p24, the old selector stays as `selector.rollback-<bundle>`,
-   the new one is swapped in, p24 is relocked, and the old record is
-   archived as `wifi-trial-state.archived-before-<bundle>-<sha>`. A 180 s
-   timer relocks p24 if the script dies. Never retry a failed `--stage`:
-   inspect the phone first. `--fallback-bundle-dir <package>/bundles/<name>`
+   bundle goes to p24, a read-only remount is proven before activation, the
+   new selector is exchanged in atomically (`exch`; the old one keeps its
+   inode as `selector.rollback-<bundle>`), p24 is relocked, and the old
+   record is archived as `wifi-trial-state.archived-before-<bundle>-<sha>`.
+   Nothing on p24 is unlinked: `/` is an overlay over the same p24
+   superblock, a cached overlay dentry keeps a replaced inode alive, and
+   ext4 then refuses every read-only remount (the r206 install failed that
+   way on 2026-09-30). A 180 s timer relocks p24 if the script dies. If p24
+   cannot be relocked after activation, the script still archives the record
+   (once the selector and bundles re-verify) and prints a `STATE … next_boot=…`
+   line, kept in `INSTALL-RESULT.json` as `phone_state`. Never retry a failed
+   `--stage`: inspect the phone first. `--fallback-bundle-dir <package>/bundles/<name>`
    also installs a new fallback bundle in the same window. The bundle must
    be new on p24 and carry no trial descriptor, and the new selector names
    it.

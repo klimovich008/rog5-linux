@@ -219,7 +219,8 @@
       "prerequisites": [
         "python3",
         "sh",
-        "unshare"
+        "unshare",
+        "exch"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
