@@ -61,6 +61,17 @@ Sustained GPU speed is limited by the case (skin) temperature policy; see
 
 Cellular modem, cameras, fingerprint reader, NFC.
 
+## Installing
+
+[docs/install-guide.md](docs/install-guide.md) covers the whole path from a
+stock ROG Phone 5 (ZS673KS, all RAM/storage variants): unlocking, your own
+signing key, building the kernel and the root filesystem, the per-phone device
+profile, the boot chain, first boot, setup and Steam. The alpha is not yet
+installable by other owners from this repository alone: the guide lists the
+four pieces of the first install that still depend on unpublished files, and
+[docs/fresh-install-rehearsal.md](docs/fresh-install-rehearsal.md) records what
+a from-scratch build on a PC covers today.
+
 ## Screenshots
 
 GNOME desktop mode on an external monitor, driven by the phone:

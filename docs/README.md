@@ -6,6 +6,10 @@ When another document disagrees with it, current state wins.
 
 ## Start here
 
+- [install-guide.md](install-guide.md): installing on a ROG Phone 5 (all variants), with the
+  steps that are scripted, manual or still missing; [fresh-install-rehearsal.md](fresh-install-rehearsal.md)
+  is the from-scratch rehearsal and the gap list.
+
 - [current-state.md](current-state.md): installed default and fallback, component status, where to look.
 - [whats-left.md](whats-left.md): the short list, the status map and the tests that need the user.
 - [user-irritations.md](user-irritations.md): the top annoyances with causes and fixes.
@@ -44,6 +48,9 @@ External read-only reviews, each brief with the reviewer's answer:
 - [2026-09-28 brief](reviews/2026-09-28-external-review-brief.md) and [answer](reviews/2026-09-28-gpt-6-astra-review.md): storage rollback, watchdog lifecycle, suspend.
 - [2026-09-29 brightness brief](reviews/2026-09-29-brightness-review-brief.md) and [answer](reviews/2026-09-29-gpt-6-astra-brightness-review.md).
 - [2026-09-29 DisplayPort brief](reviews/2026-09-29-dp-review-brief.md) and [answer](reviews/2026-09-29-gpt-6-astra-dp-review.md).
+- [2026-09-30 device-profile brief](reviews/2026-09-30-device-profile-brief.md) and [answer](reviews/2026-09-30-gpt-6.1-sol-device-profile.md): per-phone values in the boot sources.
+- [2026-09-30 install-guide brief](reviews/2026-09-30-install-guide-brief.md) and [answer](reviews/2026-09-30-gpt-6.1-sol-install-guide.md).
+- [2026-10-01 device-profile follow-up brief](reviews/2026-10-01-device-profile-followup-brief.md) and [answer](reviews/2026-10-01-gpt-6.1-sol-device-profile-followup.md).
 
 ## History
 
