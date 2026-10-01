@@ -7,7 +7,8 @@
 # branch camelCaseNick/mobile-shell-devel-50, 50.3 based) with GNOME 50.5
 # merged in (0001), the upstream 51 auto-rotate fix for phones (0002), the
 # version that gnome-shell-mobile requires (0003) and a stray conflict marker
-# in a test file removed (0004). Opt-in only; it replaces mutter.
+# in a test file removed (0004), and the fork's 128-byte dma-buf stride
+# override dropped (0005: it broke Xwayland/Steam on Adreno). Opt-in only; it replaces mutter.
 # See ../README.md. Not in configs/rootfs/custom-packages.txt on purpose.
 
 pkgname=mutter-mobile
@@ -17,7 +18,7 @@ pkgname=mutter-mobile
 # compile (clutter-gesture.c half-ported to sprites, a stray conflict marker).
 _mobile_commit=fe00ce8682f0af9b1852ab68b5fdfb50682bebb8
 pkgver=50.5
-pkgrel=1
+pkgrel=1.1
 pkgdesc="Window manager and compositor for GNOME (GNOME Shell Mobile fork, ROG5 build)"
 url="https://gitlab.gnome.org/World/MobileShell/mutter-mobile"
 arch=(aarch64 x86_64)
@@ -102,13 +103,15 @@ source=(
   0002-backends-monitor-manager-Fix-auto-rotate-on-phones-w.patch
   0003-Bump-version-to-50.mobile.0-pairs-with-gnome-shell-m.patch
   0004-tests-clutter-conform-Drop-a-stray-conflict-marker-i.patch
+  0005-wayland-dma-buf-Keep-the-client-s-stride-drop-the-12.patch
 )
 b2sums=('SKIP'
         'f989bc2ceb52aad3c6a23c439df3bbc672bc11d561a247d19971d30cc85ed5d42295de40f8e55b13404ed32aa44f12307c9f5b470f2e288d1c9c8329255c43bf'
         '8d65306289d00fc7c97b7cc10caf700783d839743b9061420244bf96906583812517b6f2d094ea1fddd13ebe1b31765f6e0785210e65d6d2f7b1fdaf71fa35b9'
         '46ba50e5e44eeee443a929f7ccbccffe2a34a2a8a3c1c06cac096ea1c47495aeba2691e6f7a526c0df60b0c88567fd36d8a0937286d4e4414de47b7f7cff14d7'
         '54d57461b9b21afa4a14911b12b93bf2af7e2b2bc635363e295834b2cdee82d9e0cdc87fd1818e11c9b0915a4dc10ebc09a7c638e9f53b857292cd18df2aa53e'
-        '78d4aae00b12af19bcdde18cdd391623b2aab4179bdc632fda1621f0071744f43d0d3cb35502f1e15485950032daddee3c9b36135e52ba9fc33a5a3c08a0ea3d')
+        '78d4aae00b12af19bcdde18cdd391623b2aab4179bdc632fda1621f0071744f43d0d3cb35502f1e15485950032daddee3c9b36135e52ba9fc33a5a3c08a0ea3d'
+        '08a3933e0838dbe065c404871b05adac23fa657179c4624f2fec163072bd029858b90a69d27953ab1b2c67fe806f669750818f875d6be360848713a65df28a38')
 
 prepare() {
   cd mutter-mobile

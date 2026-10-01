@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 20:10:00 +0200
+Subject: [PATCH] wayland/dma-buf: Keep the client's stride (drop the
+ 128-byte "correction")
+
+The mobile-shell fork overwrote plane 0's stride of every linux-dmabuf
+buffer with ALIGN(width * 4, 128), a device-specific hack. On the ROG
+Phone 5 (Adreno 660, freedreno/Turnip) clients allocate wider strides
+(e.g. 8704 for a 2144-px row): the forced 8576 made the EGL import fail,
+Xwayland got a protocol error and was killed ("failed to import supplied
+dmabufs: EGL failed to allocate resources"), and the shell stopped
+answering for 45 s while Steam started. It is also wrong for any format
+that is not 32 bpp. Upstream mutter trusts the client's stride.
+---
+ src/wayland/meta-wayland-dma-buf.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/src/wayland/meta-wayland-dma-buf.c b/src/wayland/meta-wayland-dma-buf.c
+--- a/src/wayland/meta-wayland-dma-buf.c
++++ b/src/wayland/meta-wayland-dma-buf.c
+@@ -1181,7 +1181,6 @@
+   MetaWaylandBuffer *buffer;
+   struct wl_resource *buffer_resource;
+   GError *error = NULL;
+-  int corrected_stride;
+ 
+   dma_buf = wl_resource_get_user_data (params_resource);
+   if (!dma_buf)
+@@ -1222,13 +1221,6 @@
+   dma_buf->drm_format = drm_format;
+   dma_buf->is_y_inverted = !(flags & ZWP_LINUX_BUFFER_PARAMS_V1_FLAGS_Y_INVERT);
+ 
+-  corrected_stride = (int) (128.f * (ceilf ((float) (dma_buf->width * 4) / 128.f)));
+-  if (dma_buf->strides[0] != corrected_stride)
+-    {
+-      g_warning("DMABuf stride of %d corrected to %d", dma_buf->strides[0], corrected_stride);
+-      dma_buf->strides[0] = corrected_stride;
+-    }
+-
+   if (flags & ~ZWP_LINUX_BUFFER_PARAMS_V1_FLAGS_Y_INVERT)
+     {
+       wl_resource_post_error (params_resource,
+-- 
+2.50.0
