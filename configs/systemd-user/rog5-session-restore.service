@@ -1,0 +1,12 @@
+[Unit]
+Description=ROG5: reopen the apps that were open before a Phosh/GNOME switch
+Documentation=file:///usr/local/bin/rog5-session-carry
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/rog5-session-carry restore
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""Carry the open apps across a Phosh <-> GNOME desktop-mode switch.
+
+A switch stops one compositor and starts the other, so every app closes.
+This makes it cheaper:
+
+  save [--close]   (ExecStop of rog5-phosh / rog5-gnome, as the phone user,
+                   while the old compositor still runs) records the apps
+                   with windows and, with --close, asks them to quit
+                   cleanly (browsers then restore their tabs instead of
+                   reporting a crash) and waits up to --timeout seconds.
+  restore          (rog5-session-restore.service, user unit started with
+                   graphical-session.target) relaunches the recorded apps in
+                   the new session, once: the record is removed first, and
+                   it is used only in the same boot and within --max-age
+                   seconds, so a reboot or an old record never reopens apps.
+  status           prints the record.
+
+Which apps: the ones Phosh and GNOME launched (systemd scopes
+app-gnome-<desktop id>-<pid>.scope) plus D-Bus activated GtkApplications
+that have a window (<object path>/window/<n> on the session bus; names are
+checked with NameHasOwner and called with NO_AUTO_START, so nothing is ever
+activated by the check). Only ids with an installed, visible .desktop file
+are kept. Never carried: the shells' own pieces and the mode launchers;
+more with "exclude GLOB" lines in /etc/rog5/session-carry.conf or
+~/.config/rog5/session-carry.conf ("off" in either disables the tool).
+
+Games started by Steam run inside Steam's scope: Steam is reopened, the game
+is not.
+"""
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import json
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+DEFAULT_EXCLUDE = (
+    'rog5-desktop-mode', 'rog5-phone-mode', 'mobi.phosh.*', 'sm.puri.*',
+    'org.gnome.Shell*', 'org.gnome.Extensions', 'gnome-session*',
+    'org.freedesktop.*', 'xdg-desktop-portal*', 'org.gnome.ScreenSaver',
+)
+SCOPE_RE = re.compile(r'^app-gnome-(?P<id>.+)-(?P<pid>[0-9]+)\.scope$')
+
+
+def log(msg):
+    print(f'rog5-session-carry: {msg}', file=sys.stderr, flush=True)
+
+
+def env(name, default):
+    return os.environ.get('ROG5_SESSION_CARRY_' + name, default)
+
+
+def state_file():
+    base = os.environ.get('XDG_STATE_HOME') or os.path.join(os.path.expanduser('~'), '.local/state')
+    return Path(env('STATE', os.path.join(base, 'rog5/session-carry.json')))
+
+
+def config_files():
+    return [Path(env('SYS_CONF', '/etc/rog5/session-carry.conf')),
+            Path(os.path.expanduser(env('USER_CONF', '~/.config/rog5/session-carry.conf')))]
+
+
+def read_config():
+    """(enabled, exclude globs)."""
+    enabled, exclude = True, list(DEFAULT_EXCLUDE)
+    for path in config_files():
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            words = line.split('#', 1)[0].split()
+            if not words:
+                continue
+            if words[0] == 'off':
+                enabled = False
+            elif words[0] == 'exclude' and len(words) > 1:
+                exclude.extend(words[1:])
+    return enabled, exclude
+
+
+def boot_id():
+    try:
+        return Path(env('BOOT_ID_FILE', '/proc/sys/kernel/random/boot_id')).read_text().strip()
+    except OSError:
+        return ''
+
+
+def unescape_unit(text):
+    return re.sub(r'\\x([0-9a-fA-F]{2})', lambda m: chr(int(m.group(1), 16)), text)
+
+
+class System:
+    """Everything that touches the session; the tests replace it."""
+
+    def __init__(self):
+        self._bus = None
+
+    def run(self, argv, timeout=10):
+        try:
+            p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+            return p.returncode, p.stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return 1, ''
+
+    def scopes(self):
+        rc, out = self.run(['systemctl', '--user', 'list-units', '--type=scope', '--state=running',
+                            '--plain', '--no-legend', '--full', 'app-gnome-*'])
+        return [line.split()[0] for line in out.splitlines() if line.split()] if rc == 0 else []
+
+    def bus(self):
+        if self._bus is None:
+            from gi.repository import Gio
+            self._bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        return self._bus
+
+    def _call(self, name, path, iface, method, args, reply):
+        from gi.repository import Gio, GLib
+        return self.bus().call_sync(name, path, iface, method, args, GLib.VariantType(reply),
+                                    Gio.DBusCallFlags.NO_AUTO_START, 3000, None).unpack()
+
+    def bus_names(self):
+        try:
+            names = self._call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                               'ListNames', None, '(as)')[0]
+        except Exception:
+            return []
+        return [n for n in names if not n.startswith(':')]
+
+    def window_count(self, name):
+        """Open GtkApplication windows of NAME (0 if none or not running)."""
+        from gi.repository import GLib
+        try:
+            if not self._call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                              'NameHasOwner', GLib.Variant('(s)', (name,)), '(b)')[0]:
+                return 0
+            path = '/' + name.replace('.', '/').replace('-', '_') + '/window'
+            xml = self._call(name, path, 'org.freedesktop.DBus.Introspectable', 'Introspect', None, '(s)')[0]
+        except Exception:
+            return 0
+        return len(re.findall(r'<node name="[0-9]+"', xml))
+
+    def name_pid(self, name):
+        from gi.repository import GLib
+        try:
+            return int(self._call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                                  'GetConnectionUnixProcessID', GLib.Variant('(s)', (name,)), '(u)')[0])
+        except Exception:
+            return 0
+
+    def quit_app(self, name):
+        """GtkApplication's app.quit action; False if it has none."""
+        from gi.repository import GLib
+        path = '/' + name.replace('.', '/').replace('-', '_')
+        try:
+            actions = self._call(name, path, 'org.gtk.Actions', 'List', None, '(as)')[0]
+            if 'quit' not in actions:
+                return False
+            self._call(name, path, 'org.gtk.Actions', 'Activate',
+                       GLib.Variant('(sava{sv})', ('quit', [], {})), '()')
+            return True
+        except Exception:
+            return False
+
+    def visible_app(self, app_id):
+        """True for an installed .desktop file that is not hidden."""
+        try:
+            import gi
+            gi.require_version('Gio', '2.0')
+            from gi.repository import Gio
+            info = Gio.DesktopAppInfo.new(app_id + '.desktop')
+        except Exception:
+            return False
+        return info is not None and not info.get_nodisplay() and not info.get_is_hidden()
+
+    def kill_scope(self, unit):
+        self.run(['systemctl', '--user', 'kill', '--signal=SIGTERM', unit])
+
+    def kill_pid(self, pid):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+
+    def launch(self, app_id):
+        unit = 'app-gnome-%s-%d.scope' % (self.escape(app_id), os.getpid() * 100 + int(time.time()) % 100)
+        rc, _ = self.run(['systemd-run', '--user', '--scope', '--collect', '--quiet', '--unit=' + unit,
+                          'gtk-launch', app_id], timeout=30)
+        return rc == 0
+
+    def escape(self, text):
+        rc, out = self.run(['systemd-escape', text])
+        return out.strip() if rc == 0 and out.strip() else re.sub(r'[^A-Za-z0-9_.]', '_', text)
+
+    def sleep(self, s):
+        time.sleep(s)
+
+
+def excluded(app_id, globs):
+    return any(fnmatch.fnmatch(app_id, g) for g in globs)
+
+
+def collect(sysm, globs):
+    """{app id: {'scopes': [...], 'bus': name or None}} for the apps to carry."""
+    apps = {}
+    for unit in sysm.scopes():
+        m = SCOPE_RE.match(unit)
+        if not m:
+            continue
+        app_id = unescape_unit(m.group('id'))
+        if excluded(app_id, globs) or not sysm.visible_app(app_id):
+            continue
+        apps.setdefault(app_id, {'scopes': [], 'bus': None})['scopes'].append(unit)
+    for name in sysm.bus_names():
+        if excluded(name, globs) or not sysm.visible_app(name):
+            continue
+        if name not in apps and sysm.window_count(name) == 0:
+            continue
+        apps.setdefault(name, {'scopes': [], 'bus': None})['bus'] = name
+    return apps
+
+
+def close_apps(sysm, apps, timeout):
+    for app_id, a in apps.items():
+        if a['bus'] and sysm.quit_app(a['bus']):
+            continue
+        for unit in a['scopes']:
+            sysm.kill_scope(unit)
+        if a['bus'] and not a['scopes']:
+            pid = sysm.name_pid(a['bus'])
+            if pid > 1:
+                sysm.kill_pid(pid)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        running = set(sysm.scopes())
+        names = set(sysm.bus_names())
+        left = [i for i, a in apps.items()
+                if any(u in running for u in a['scopes']) or (a['bus'] and a['bus'] in names)]
+        if not left:
+            return []
+        sysm.sleep(0.5)
+    return left
+
+
+def cmd_save(sysm, args):
+    enabled, globs = read_config()
+    path = state_file()
+    if not enabled:
+        log('off (session-carry.conf)')
+        return 0
+    apps = collect(sysm, globs)
+    desktop = os.environ.get('XDG_CURRENT_DESKTOP', '')
+    rec = {'format': 'rog5-session-carry-v1', 'boot_id': boot_id(), 'saved': time.time(),
+           'from': desktop, 'apps': sorted(apps)}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + '.tmp')
+    tmp.write_text(json.dumps(rec) + '\n')
+    os.replace(tmp, path)
+    log(f'saved {len(apps)} app(s) from {desktop or "?"}: {" ".join(sorted(apps)) or "-"}')
+    if args.close and apps:
+        left = close_apps(sysm, apps, args.timeout)
+        log('closed cleanly' if not left else f'still running after {args.timeout:g} s: {" ".join(left)}')
+    return 0
+
+
+def cmd_restore(sysm, args):
+    enabled, globs = read_config()
+    path = state_file()
+    try:
+        rec = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return 0
+    try:
+        path.unlink()          # once only, whatever happens next
+    except OSError:
+        pass
+    if not enabled:
+        return 0
+    age = time.time() - float(rec.get('saved', 0))
+    if rec.get('boot_id') != boot_id() or not 0 <= age <= args.max_age:
+        log(f'record not used (other boot or {age:.0f} s old)')
+        return 0
+    apps = [a for a in rec.get('apps', []) if not excluded(a, globs) and sysm.visible_app(a)]
+    if not apps:
+        return 0
+    sysm.sleep(args.delay)
+    ok = [a for a in apps if sysm.launch(a)]
+    log(f'reopened {len(ok)}/{len(apps)} app(s) from {rec.get("from") or "?"}: {" ".join(ok) or "-"}')
+    return 0
+
+
+def cmd_status(_sysm, _args):
+    try:
+        print(state_file().read_text().strip())
+    except OSError:
+        print('no record')
+    return 0
+
+
+def main(argv=None, sysm=None):
+    p = argparse.ArgumentParser(prog='rog5-session-carry')
+    sub = p.add_subparsers(dest='cmd', required=True)
+    s = sub.add_parser('save')
+    s.add_argument('--close', action='store_true')
+    s.add_argument('--timeout', type=float, default=8.0)
+    r = sub.add_parser('restore')
+    r.add_argument('--max-age', type=float, default=300.0)
+    r.add_argument('--delay', type=float, default=2.0)
+    sub.add_parser('status')
+    args = p.parse_args(argv)
+    os.environ.setdefault('DBUS_SESSION_BUS_ADDRESS', f'unix:path=/run/user/{os.getuid()}/bus')
+    os.environ.setdefault('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+    sysm = sysm or System()
+    return {'save': cmd_save, 'restore': cmd_restore, 'status': cmd_status}[args.cmd](sysm, args)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -47,12 +47,16 @@ file	configs/systemd/rog5-shell-fallback.service	/etc/systemd/system/rog5-shell-
 file	configs/systemd/rog5-phosh.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-phosh.service.d/50-rog5-shell.conf	0644
 file	configs/systemd/rog5-desktop-mode.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-desktop-mode.service.d/50-rog5-shell.conf	0644
 file	configs/systemd/rog5-gnome.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-gnome.service.d/50-rog5-shell.conf	0644
+file	configs/systemd/rog5-phosh.service.d/60-rog5-session-carry.conf	/etc/systemd/system/rog5-phosh.service.d/60-rog5-session-carry.conf	0644
+file	configs/systemd/rog5-gnome.service.d/60-rog5-session-carry.conf	/etc/systemd/system/rog5-gnome.service.d/60-rog5-session-carry.conf	0644
+file	scripts/device/rog5-session-carry	/usr/local/bin/rog5-session-carry	0755
 file	configs/systemd/gdm.service.d/50-rog5-gnome-mobile.conf	/etc/systemd/system/gdm.service.d/50-rog5-gnome-mobile.conf	0644
 
 # Remote desktop (headless Sway and the wayvnc phone mirror, loopback only)
 file	configs/rog5-desktop/sway-base.conf	/etc/rog5-desktop/sway-base.conf	0644
 file	configs/rog5-desktop/sway.conf	/etc/rog5-desktop/sway.conf	0644
 file	configs/systemd-user/rog5-desktop.service	/etc/systemd/user/rog5-desktop.service	0644
+file	configs/systemd-user/rog5-session-restore.service	/etc/systemd/user/rog5-session-restore.service	0644
 file	configs/systemd-user/rog5-wayvnc-phone.service	/etc/systemd/user/rog5-wayvnc-phone.service	0644
 file	scripts/device/rog5-desktop	/usr/local/bin/rog5-desktop	0755
 
@@ -151,3 +155,4 @@ enable	system	rog5-usb-modalias.service
 enable	system	rog5-firewall.service
 enable	system	rog5-healthd.service
 enable	user	rog5-wayvnc-phone.service
+enable	user	rog5-session-restore.service
