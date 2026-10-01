@@ -2,6 +2,14 @@
 
 As of 2026-09-30 evening, kernel bundle r205 (kernel build r108, DTB r9;
 fallback safe-r8).
+
+**Update 2026-10-01** (bundle `main-k111-d10-261001a`, kernel k111, DTB d10):
+GNOME offers 5120x1440@60 and 3840x1080@60/100 on the MSI over 4 lanes and
+switches between them (0139 default; the replug series of test 9b is still
+due); the bottom-port stick survives s2idle with its data intact (test 4,
+partly: meter readings still due); the speaker robustness run passed at 80 %
+volume (test 5, partly: suspend/reboot cycles still due). The current counts
+are in [`status/components.json`](status/components.json).
 The picture below shows the same list at a glance (green ready, yellow
 partial, blue needs a test, red missing); it is generated from
 [`status/components.json`](status/components.json) by
