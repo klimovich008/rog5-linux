@@ -33,7 +33,7 @@ user=${ROG5_GM_USER:-phone}
 
 say() { printf 'rog5-gnome-mobile: %s\n' "$*"; }
 die() { say "ERROR: $*" >&2; exit 1; }
-[ "$(id -u)" = 0 ] || die 'run as root'
+[ "$(id -u)" = 0 ] || [ -n "${ROG5_GM_TEST:-}" ] || die 'run as root'
 
 installed_ver() { pacman -Q "$1" 2>/dev/null | cut -d' ' -f2; }
 
@@ -85,6 +85,27 @@ stock_files() {
 		v=$(awk -v n="$name" '$1 == n {print $2}' "$stock/installed-before.txt")
 		ls "$stock/$name-$v"-*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | head -n1
 	done
+}
+
+# Exit 0 if every package of installed-before.txt has exactly one archive of
+# that name, version and this architecture (or any) in the rollback set.
+validate_set() {
+	[ -s "$stock/installed-before.txt" ] || { say "no rollback set in $stock"; return 1; }
+	arch=${ROG5_GM_ARCH:-$(uname -m)}
+	ok=0
+	while read -r name v; do
+		[ -n "$name" ] || continue
+		f=$(ls "$stock/$name-$v"-*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | head -n1)
+		if [ -z "$f" ]; then say "rollback set: $name $v missing"; ok=1; continue; fi
+		[ "$(pacman -Qp "$f" 2>/dev/null)" = "$name $v" ] || { say "rollback set: $f is not $name $v"; ok=1; }
+		case ${f##*/} in
+		*"-$arch.pkg.tar."* | *-any.pkg.tar.*) ;;
+		*) say "rollback set: $f is not for $arch"; ok=1 ;;
+		esac
+	done <"$stock/installed-before.txt"
+	grep -q '^mutter ' "$stock/installed-before.txt" && grep -q '^gnome-shell ' "$stock/installed-before.txt" ||
+		{ say 'rollback set: mutter or gnome-shell not listed'; ok=1; }
+	return $ok
 }
 
 newest() {  # newest package file of NAME in DIR
@@ -154,6 +175,7 @@ cmd_install() {
 		[ "$v" = "$base" ] || die "installed $name is $v but the mobile build is $base: rebuild for $v first"
 	done
 	save_stock
+	validate_set || die "rollback set in $stock is not complete; nothing installed"
 	extra=
 	for d in "$(dirname "$m")"/mutter-mobile-debug-"$mv_"-*.pkg.tar.* "$(dirname "$s")"/gnome-shell-mobile-debug-"$sv"-*.pkg.tar.*; do
 		case $d in *.sig) ;; *) [ -f "$d" ] && extra="$extra $d" ;; esac
@@ -169,10 +191,8 @@ cmd_install() {
 cmd_rollback() {
 	keep_gdm=0
 	[ "${1:-}" = --keep-gdm ] && keep_gdm=1
-	[ -s "$stock/installed-before.txt" ] || die "no rollback set in $stock"
+	validate_set || die "rollback set in $stock is not complete; nothing changed"
 	files=$(stock_files)
-	n=$(wc -l <"$stock/installed-before.txt"); k=$(printf '%s\n' "$files" | grep -c . || true)
-	[ "$n" = "$k" ] || die "rollback set incomplete ($k of $n files in $stock)"
 	if [ -x /usr/local/sbin/rog5-shell ]; then
 		/usr/local/sbin/rog5-shell set phosh
 		if [ "$(/usr/local/sbin/rog5-shell is gnome-mobile; echo $?)" = 0 ]; then
@@ -194,11 +214,11 @@ cmd_rollback() {
 
 cmd_check() {
 	pacman -Q mutter mutter-mobile gnome-shell gnome-shell-mobile gdm 2>/dev/null || true
-	if [ -s "$stock/installed-before.txt" ]; then
-		say "rollback set ($stock):"
+	if validate_set; then
+		say "rollback set complete ($stock):"
 		stock_files | sed 's/^/  /'
 	else
-		say "no rollback set yet"
+		say "rollback set NOT usable"
 	fi
 	! [ -x /usr/local/sbin/rog5-shell ] || /usr/local/sbin/rog5-shell status
 }

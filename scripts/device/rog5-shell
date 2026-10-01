@@ -21,8 +21,10 @@ before GDM starts, and before Phosh is stopped by `switch gnome-mobile`.
 Within ARM_S seconds (90) GDM must be active and a gnome-shell must answer
 on its session bus (a property read that the shell's main loop serves),
 hold the touchscreen open and have lit the panel. After that it supervises:
-GDM inactive for GDM_GRACE_S, no answering shell for DEAD_S, or more than
-CRASH_MAX new shell processes within CRASH_WINDOW_S end the mobile mode. The
+GDM inactive for GDM_GRACE_S, no answering shell in the active seat session
+for DEAD_S, or CRASH_MAX shells that ended within SHORT_S of starting (within
+CRASH_WINDOW_S) end the mobile mode. "Answering" means the bus name
+org.gnome.Shell belongs to that very process and its ShellVersion is read. The
 fallback writes "phosh" to both files, stops GDM and the GNOME sessions,
 waits until nothing holds the DRM device, starts rog5-phosh and
 rog5-desktop-mode and checks that Phosh comes up locked (logind LockedHint
@@ -89,7 +91,8 @@ SESSION_HELPER = env('SESSION_HELPER', '/usr/local/libexec/rog5-gnome-mobile-ses
 ARM_S = float(env('ARM_S', '90'))
 GDM_GRACE_S = float(env('GDM_GRACE_S', '10'))
 DEAD_S = float(env('DEAD_S', '45'))
-CRASH_MAX = int(env('CRASH_MAX', '5'))
+CRASH_MAX = int(env('CRASH_MAX', '3'))
+SHORT_S = float(env('SHORT_S', '30'))
 CRASH_WINDOW_S = float(env('CRASH_WINDOW_S', '300'))
 POLL_S = float(env('POLL_S', '2'))
 LOCK_S = float(env('LOCK_S', '30'))
@@ -142,8 +145,18 @@ class System:
         """(returncode, stdout). user = (uid, gid, bus address) runs as that user."""
         if user is not None:
             uid, gid, bus = user
+            try:
+                import pwd
+                pw = pwd.getpwuid(uid)
+                name, home = pw.pw_name, pw.pw_dir
+            except KeyError:
+                name, home = str(uid), '/'
+            # a clean environment: root's HOME/XDG_* must not leak in
             argv = ['setpriv', f'--reuid={uid}', f'--regid={gid}', '--clear-groups',
-                    'env', f'DBUS_SESSION_BUS_ADDRESS={bus}'] + list(argv)
+                    'env', '-i', 'PATH=/usr/local/sbin:/usr/local/bin:/usr/bin',
+                    f'HOME={home}', f'USER={name}', f'LOGNAME={name}',
+                    f'XDG_RUNTIME_DIR=/run/user/{uid}',
+                    f'DBUS_SESSION_BUS_ADDRESS={bus}'] + list(argv)
         try:
             r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
             return r.returncode, r.stdout
@@ -248,6 +261,19 @@ class System:
                 res.append(dict(l.split('=', 1) for l in props.splitlines() if '=' in l))
         return res
 
+    def active_seat_uid(self):
+        """uid of the active session on seat0, or None."""
+        rc, sid = self.run(['loginctl', 'show-seat', 'seat0', '-p', 'ActiveSession',
+                            '--value'], timeout=10)
+        if rc != 0 or not sid.strip():
+            return None
+        rc, uid = self.run(['loginctl', 'show-session', sid.strip(), '-p', 'User',
+                            '--value'], timeout=10)
+        try:
+            return int(uid.strip()) if rc == 0 else None
+        except ValueError:
+            return None
+
     def kill(self, pid, sig):
         try:
             os.kill(pid, sig)
@@ -263,9 +289,16 @@ def shell_answers(sysm, pid, uid, gid):
     Peer.Ping is answered by GDBus's worker thread even when the shell's main
     loop hangs; a property of org.gnome.Shell is served by the main loop."""
     bus = sysm.proc_env(pid, 'DBUS_SESSION_BUS_ADDRESS') or f'unix:path=/run/user/{uid}/bus'
+    who = (uid, gid, bus)
+    rc, out = sysm.run(['busctl', '--user', '--timeout=3', 'call', 'org.freedesktop.DBus',
+                        '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                        'GetConnectionUnixProcessID', 's', 'org.gnome.Shell'],
+                       timeout=6, user=who)
+    if rc != 0 or out.split() != ['u', str(pid)]:
+        return False        # the name is not this process's
     rc, out = sysm.run(['busctl', '--user', '--timeout=3', 'get-property', 'org.gnome.Shell',
                         '/org/gnome/Shell', 'org.gnome.Shell', 'ShellVersion'],
-                       timeout=6, user=(uid, gid, bus))
+                       timeout=6, user=who)
     return rc == 0 and out.startswith('s ')
 
 
@@ -278,9 +311,10 @@ def holds_touch(sysm, pid):
     return bool(nodes) and bool(nodes & sysm.proc_fds(pid))
 
 
-def phosh_alive(sysm):
-    """Phosh picked from GDM's session list (a user's phosh process)."""
-    return any(uid >= 1000 for _, uid, _ in sysm.processes('phosh'))
+def phosh_alive(sysm, seat_uid):
+    """Phosh picked from GDM's session list, in the active seat session."""
+    return any(uid >= 1000 and (seat_uid is None or uid == seat_uid)
+               for _, uid, _ in sysm.processes('phosh'))
 
 
 # ------------------------------------------------------------- fallback ---
@@ -336,7 +370,9 @@ def restore_session_settings(sysm):
     except (KeyError, ImportError):
         return
     bus = f'unix:path=/run/user/{pw.pw_uid}/bus'
-    sysm.run([SESSION_HELPER, 'stop'], timeout=30, user=(pw.pw_uid, pw.pw_gid, bus))
+    rc, _ = sysm.run([SESSION_HELPER, 'stop'], timeout=30, user=(pw.pw_uid, pw.pw_gid, bus))
+    if rc != 0:
+        log(f'WARN could not restore the session settings of {PHONE_USER} (rc {rc})')
 
 
 def wait_phosh_locked(sysm):
@@ -359,19 +395,24 @@ def fallback(sysm, reason):
                      f'{time.strftime("%Y-%m-%dT%H:%M:%S%z")} {reason}\n')
     except OSError:
         pass
-    stop_gnome(sysm)
-    restore_session_settings(sysm)
-    sysm.systemctl('reset-failed', *PHOSH_UNITS, timeout=10)
-    sysm.systemctl('start', *PHOSH_UNITS, timeout=90)
-    sid = wait_phosh_locked(sysm)
-    if sid:
-        log(f'fallback done: Phosh session {sid} is locked')
-        return 0
-    # Never leave an unlocked phone: stop Phosh again (the switcher would
-    # restart it after 10 s without a session).
-    sysm.systemctl('stop', *PHOSH_UNITS, timeout=60)
-    log(f'FAILED CLOSED: Phosh did not report a lock within {LOCK_S:.0f} s; '
-        'display stopped, use SSH')
+    restored = False
+    for attempt in (1, 2):
+        if not stop_gnome(sysm):
+            stop_gnome(sysm)        # a second, longer TERM/KILL round; then go on
+        if not restored:
+            restore_session_settings(sysm)
+            restored = True
+        sysm.systemctl('reset-failed', *PHOSH_UNITS, timeout=10)
+        sysm.systemctl('start', *PHOSH_UNITS, timeout=90)
+        sid = wait_phosh_locked(sysm)
+        if sid:
+            log(f'fallback done: Phosh session {sid} is locked')
+            return 0
+        # Never leave an unlocked phone: stop Phosh again (the switcher would
+        # restart it after 10 s without a session), then try once more.
+        sysm.systemctl('stop', *PHOSH_UNITS, timeout=60)
+        log(f'Phosh did not report a lock within {LOCK_S:.0f} s (attempt {attempt})')
+    log('FAILED CLOSED: no locked Phosh after 2 attempts; display stopped, use SSH')
     return 1
 
 
@@ -385,8 +426,8 @@ class Watchdog:
         self.lit_seen = False
         self.gdm_down_since = None
         self.dead_since = None
-        self.seen_pids = set()
-        self.starts = []          # times new shell pids appeared
+        self.alive = {}           # shell pid -> first seen
+        self.short_deaths = []    # times a shell died within SHORT_S of its start
         self.boosted = set()
 
     def missing(self, live):
@@ -406,34 +447,38 @@ class Watchdog:
         """One check. Returns None to go on, or a fallback reason."""
         now = self.s.now()
         procs = self.s.processes('gnome-shell')
-        for pid, _, _ in procs:
-            if pid not in self.seen_pids:
-                self.seen_pids.add(pid)
-                self.starts.append(now)
-        self.starts = [t for t in self.starts if now - t <= CRASH_WINDOW_S]
-        live = [p for p in procs if shell_answers(self.s, *p)]
+        pids = {p for p, _, _ in procs}
+        for pid in pids - set(self.alive):
+            self.alive[pid] = now
+        for pid in set(self.alive) - pids:
+            if now - self.alive.pop(pid) < SHORT_S:
+                self.short_deaths.append(now)
+        self.short_deaths = [t for t in self.short_deaths if now - t <= CRASH_WINDOW_S]
+        # only the shell of the active session on the seat counts
+        seat_uid = self.s.active_seat_uid()
+        live = [p for p in procs
+                if (seat_uid is None or p[1] == seat_uid) and shell_answers(self.s, *p)]
         if live and panel_lit(self.s):
             self.lit_seen = True
         if not self.ready:
             miss = self.missing(live)
             if not miss:
                 self.ready = True
-                self.starts = self.starts[-1:]
                 log(f'gnome-mobile ready after {now - self.armed_at:.0f} s')
                 return None
             if now - self.armed_at >= ARM_S:
                 return f'not ready within {ARM_S:.0f} s: {", ".join(miss)}'
             return None
-        if len(self.starts) > CRASH_MAX:
-            return (f'gnome-shell started {len(self.starts)} times within '
-                    f'{CRASH_WINDOW_S:.0f} s')
+        if len(self.short_deaths) >= CRASH_MAX:
+            return (f'{len(self.short_deaths)} gnome-shell processes ended within '
+                    f'{SHORT_S:.0f} s of starting in the last {CRASH_WINDOW_S:.0f} s')
         if self.s.unit_state(GDM) != 'active':
             self.gdm_down_since = self.gdm_down_since or now
             if now - self.gdm_down_since >= GDM_GRACE_S:
                 return 'gdm stopped'
         else:
             self.gdm_down_since = None
-        if live or phosh_alive(self.s):
+        if live or phosh_alive(self.s, seat_uid):
             self.dead_since = None
             for pid, uid, _ in live:
                 if uid >= 1000 and pid not in self.boosted:

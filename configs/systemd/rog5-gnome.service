@@ -29,6 +29,9 @@ StandardError=journal
 UtmpIdentifier=tty7
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
+# Setup marker: ExecStopPost also runs after a skipped start (ExecCondition,
+# e.g. in GNOME Mobile mode), and must then not reset the shared settings.
+ExecStartPre=+/bin/touch /run/rog5-gnome.setup
 ExecStartPre=+/usr/bin/chvt 7
 # mutter does not detach planes a previous compositor left on a CRTC it does
 # not use (plane-0 on the panel CRTC after Phosh): every frame on DP then
@@ -55,5 +58,6 @@ ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(i
 # Phosh keeps no wallpaper (00-rog5-phosh); the desktop gets GNOME's default.
 ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.background picture-uri file:///usr/share/backgrounds/gnome/adwaita-l.jxl; gsettings set org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/gnome/adwaita-d.jxl; gsettings set org.gnome.desktop.background picture-options zoom'
 ExecStart=/usr/bin/gnome-session
-ExecStopPost=+/bin/sh -c 'echo 0 > /sys/kernel/debug/dri/1/debug/core_perf/perf_mode'
-ExecStopPost=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:"; gsettings reset org.gnome.desktop.background picture-uri; gsettings reset org.gnome.desktop.background picture-uri-dark; gsettings reset org.gnome.desktop.background picture-options; gsettings reset org.gnome.desktop.session idle-delay; gsettings reset org.gnome.settings-daemon.plugins.power power-button-action'
+ExecStopPost=+/bin/sh -c '[ -e /run/rog5-gnome.setup ] || exit 0; echo 0 > /sys/kernel/debug/dri/1/debug/core_perf/perf_mode'
+ExecStopPost=/bin/sh -c '[ -e /run/rog5-gnome.setup ] || exit 0; export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:"; gsettings reset org.gnome.desktop.background picture-uri; gsettings reset org.gnome.desktop.background picture-uri-dark; gsettings reset org.gnome.desktop.background picture-options; gsettings reset org.gnome.desktop.session idle-delay; gsettings reset org.gnome.settings-daemon.plugins.power power-button-action'
+ExecStopPost=+/bin/rm -f /run/rog5-gnome.setup

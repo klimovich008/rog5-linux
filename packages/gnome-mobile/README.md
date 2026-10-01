@@ -14,7 +14,7 @@ What is here:
 | Path | What |
 |---|---|
 | `mutter-mobile/` | PKGBUILD + 4 patches: mutter-mobile 50 branch + GNOME 50.5 + fixes |
-| `gnome-shell-mobile/` | PKGBUILD + 9 patches: gnome-shell-mobile 50 branch + GNOME 50.5 + fixes |
+| `gnome-shell-mobile/` | PKGBUILD + 11 patches: gnome-shell-mobile 50 branch + GNOME 50.5 + fixes |
 | `rog5-gnome-mobile-install` | install (with a rollback set) / rollback / check, as root on the phone |
 | `../../scripts/device/rog5-shell` | shell selector, GDM watchdog, fallback to a locked Phosh |
 | `../../configs/systemd/rog5-shell-*.service`, `*.service.d/50-rog5-*.conf` | boot selector, watchdog, unit gates |
@@ -41,7 +41,7 @@ requires). Rejected:
 | Package | Fork commit | Merge | Result |
 |---|---|---|---|
 | mutter-mobile | `fe00ce86` (camelCaseNick/mobile-shell-devel-50, 2026-09-27) | 50.5 merges cleanly | + 0002 auto-rotate fix for phones without a tablet-mode switch (upstream 51 `25e48d8b3`, cherry-picked clean) + 0003 version `50.mobile.0` (the branches never bumped it; the shell requires `= 50.mobile.0`) + 0004 a stray `<<<<<<< HEAD` in a test file |
-| gnome-shell-mobile | `d95fe2ac` (mobile-shell-devel-50, 2026-07-23) | 5 conflicts, resolved | + 0002-0009 below |
+| gnome-shell-mobile | `d95fe2ac` (mobile-shell-devel-50, 2026-07-23) | 5 conflicts, resolved | + 0002-0011 below |
 
 **Why camelCaseNick's mutter branch:** the official `mobile-shell-devel-50`
 head (`c99af8f4`, 2026-07-26) does not compile. The host build stopped in
@@ -84,17 +84,17 @@ security-relevant ones:
 | Upstream commit | Release | Coverage in the mobile shell |
 |---|---|---|
 | be3c57680 unlockDialog: escape markup in notification titles | 50.5 | **By design.** `NotificationsBox` is gone; the lock screen shows `NotificationMessage`s, whose `title` setter uses `Util.fixMarkup(text, false)` (escapes everything). Checked in `messageList.js`. |
-| 94d5d7545 unlockDialog: restrict markup in notification body | 50.5 | **By design.** `body` goes through `URLHighlighter.setMarkup` → `Util.fixMarkup(text, useBodyMarkup)` (only b/i/u, links). |
+| 94d5d7545 unlockDialog: restrict markup in notification body | 50.5 | **By design.** `body` goes through `URLHighlighter.setMarkup` → `Util.fixMarkup(text, useBodyMarkup)` (only b/i/u; URLs are detected in the text, `<a>` is not accepted). Launching those URLs while locked is blocked by 0010. |
 | 8edf30c34 unlockDialog: `should-lock-session` blocks auth; 24b06f318 timeLimitsManager property | 50.5 | Merged. The fork's PIN pad bypassed the block (it types into the hidden entry and activates it at six digits): **0007** refuses input and activation while the parental-controls shield is shown. |
 | 5fc616ea8 screenShield: refuse to deactivate at the screen-time limit | 50.5 | Merged into the fork's rewritten `deactivate()` (checked). |
-| ea662dd2f unlockDialog: wait for authPrompt destruction before switching VT | 50.4 | Merged into the fork's `_otherUserClicked()` (checked). |
+| ea662dd2f unlockDialog: wait for authPrompt destruction before switching VT | 50.4 | Merged textually into the fork's `_otherUserClicked()`, but the fork's cancel path resets and keeps the prompt, so "Switch user" may not switch (Sol). Not reachable here: the button needs several users, and the phone has one. |
 | 3e73f8cf1 unlockDialog: fix username reuse on reset | 50.4 | Merged into the fork's `_onReset()` (checked). |
 | 0a5b2bbc4 authPrompt: `connectObject` for userVerifier signals; 929e431ee userVerifier: disconnect settings signals on destroy | 50.4/50.5 | Conflict resolved to upstream's form; `_onDestroy` disconnects the verifier. |
 | 6954e7cf5 authPrompt: keep preemptiveAnswer while verifying; 42076add3 profile picture on Escape | 50.4/50.5 | Merged clean. |
 | 470c6910c unlockDialog: keyboard focus navigation | 50.5 | Ported (conflict). |
 | 412d7a8ff / 7af8e6463 xdndHandler: hide DND feedback and cursor clone while locked | 50.5 | Merged clean. |
 | f79bbadb5 no accent colour for the lock-screen focus ring | 50.5 | Merged clean. |
-| ad738eda9 messageList: limit title/body length | 50.5 | Merged (conflict, both sides kept); applies to the lock screen's messages too. |
+| ad738eda9 messageList: limit title/body length | 50.5 | Merged (conflict, both sides kept). Upstream itself still renders and scans the untruncated strings, so the bound is ineffective in 50.5 too; not changed here. |
 | 5df9af992 + 951426f3e notificationDaemon: internal signals only to the shell; b6ff90d14, b443183c3 serialization; 38780b223, 086c28492 activation tokens | 50.5 | Merged clean. |
 | d710f00a5 shell/util: validate `create_pixbuf_from_data()`; 1fad949e6, eae83d181, 7f6fff694 polkit agent; c43812357 endSessionDialog in gdm mode | 50.5 | Merged clean (C and JS). |
 
@@ -109,10 +109,15 @@ security-relevant ones:
 | 0007 | PIN pad bypasses the screen-time auth block (above). | Refused while blocked. |
 | 0008 | `powerManager.js` lights the panel after every resume, so `rog5-sleep-policy`'s 15 s wake windows would light it every minute. | Reads `/sys/power/pm_wakeup_irq`; only a PMIC power-key wake (or an unknown source) lights the panel. Any other wake turns the suspend action into `blank`: still locked, panel dark, the power key or user activity ends it. |
 | 0009 | `powerManager.js` tests the return value of `screenShield._becomeModal()`, which GNOME 49 dropped (e350a7f1b). The test always failed, so **idle blanking never locked**: the shell showed "Unable to lock", and user activity deactivated the shield. On battery the policy's suspend locked it anyway (suspend-forced); on USB power an idle phone stayed unlocked. | Checks the shield's grab instead. |
+| 0010 | (Sol) Quick settings stay usable on the lock screen, and the mobile quick-settings menu has its own notification list without the lock-screen privacy policy, so hidden notifications or bodies showed there. Detected URLs in lock-screen notifications launched from their own click gesture, past 0006. | The quick-settings list is hidden while locked or locking; no URL recognition or launch while locked. |
+| 0011 | (Sol) blank/suspend/hibernate called `lock(false, true)`: locked, but the shield and lock mode came only after the fade (`showLater()`), and a power-key cancel during the awaits could light the panel uncovered. `org.gnome.ScreenSaver.Lock` returned before the lock screen was shown. The pre-suspend frame wait ran only when the action had just locked. A power press ignored in the 500 ms after resume had consumed the user-active watch. | Lock synchronously before blanking; `Lock` waits for `lock-screen-shown` again; wait for a frame (≤ 1 s, panel on) before every suspend; re-arm the watch. |
 
 Noted, not changed: the 20 WIP/HACK/"stuff" commits outside the lock path
-are unreviewed; the fork removed the `canLock()` check, so the shell always
-has a lock screen, which can only unlock through GDM. In Phosh mode's
+are unreviewed. As upstream, two trusted paths deactivate the shield without
+the PIN: logind's `Unlock` (root: `loginctl unlock-session`) and
+`org.gnome.ScreenSaver.SetActive(false)` on the session bus (processes of the
+same user). The PIN unlock itself needs GDM. The fork removed the
+`canLock()` check, so the shell always has a lock screen. In Phosh mode's
 desktop mode (rog5-gnome, no GDM running) a GNOME lock therefore cannot be
 unlocked, but `rog5-desktop-mode` already hands back to Phosh as soon as
 GNOME reports a lock or idle.
@@ -171,6 +176,11 @@ gnome-mobile is used only if gdm, both mobile packages and the session file
 are installed and `/etc/gdm/custom.conf` has no automatic or timed login;
 otherwise the boot is Phosh and the journal says why.
 
+**rog5-gnome cleanup.** `ExecStopPost=` also runs after a start that its
+`ExecCondition` skipped, so the desktop mode's settings reset (button
+layout, idle delay, power-button action, DPU perf mode) now runs only after
+a real start (marker `/run/rog5-gnome.setup`).
+
 **Gates.** Drop-ins give `rog5-phosh`, `rog5-desktop-mode` and `rog5-gnome`
 an `ExecCondition` that passes unless the effective file says gnome-mobile,
 and `gdm.service` one that passes only then. A missing file means Phosh, so
@@ -197,15 +207,23 @@ GDM active, a gnome-shell that answers a `ShellVersion` property read on its
 session bus (served by the shell's main loop; `Peer.Ping` would be answered
 by the GDBus thread of a hung shell), that has the touchscreen
 (`ASUS ROG5 MP2 front FTS3658U`) open, and the panel lit (DSI-1 enabled,
-DPMS On) at least once. Then it supervises: GDM inactive for 10 s, no
-answering shell for 45 s (a GDM-started Phosh counts), or more than 5 shell
-starts in 5 min. On any failure: `/etc/rog5/shell` and the effective file go
+DPMS On) at least once. "Answering" means: the shell belongs to the active
+session on seat0, the bus name `org.gnome.Shell` is owned by that very
+process (`GetConnectionUnixProcessID`), and its `ShellVersion` is read. Then
+it supervises: GDM inactive for 10 s, no answering shell for 45 s (a
+GDM-started Phosh in the active session counts), or 3 shells in 5 min that
+ended within 30 s of starting (logins and logouts replace shells too, but
+those lived longer). If the watchdog itself fails for good (5 starts in
+5 min), `OnFailure=` runs `rog5-shell-fallback.service`. On any failure: `/etc/rog5/shell` and the effective file go
 to phosh, the reason goes to `/var/lib/rog5/shell-fallback`, GDM is stopped,
 GDM's logind sessions are terminated, gnome-shell/DRM holders get TERM then
 KILL until `/dev/dri/card1` is free, the mobile session settings are
-restored, `rog5-phosh` + `rog5-desktop-mode` start, and Phosh must report
-`LockedHint=yes` within 30 s. If it does not, both are stopped again: a dark
-phone (SSH works) instead of an unlocked one.
+restored (as the phone user, with its own clean environment),
+`rog5-phosh` + `rog5-desktop-mode` start, and Phosh must report
+`LockedHint=yes` within 30 s. Only compositor-side processes are signalled
+(logind keeps fds of session devices too). If Phosh does not report a lock,
+both are stopped and the whole sequence runs once more; after a second
+failure the phone stays dark (SSH works) instead of unlocked.
 
 **gsd-power.** The mobile shell's `powerManager.js` blanks, locks and handles
 the power key; its gsd fork drops gsd-power. Here a user-unit drop-in
@@ -223,9 +241,12 @@ permanent `rog5-server` inhibitor turns into a polkit prompt) and restores
 it on stop; the fallback restores it too.
 
 **rog5-sleep-policy** stays the owner of suspend. With 0008 the shell keeps
-the panel dark after the policy's wakes. The policy's power-key replay now
-re-reads DPMS right before the press, because the mobile shell lights the
-panel on a power-key wake by itself and a late replay would blank it again.
+the panel dark after the policy's wakes and lights it itself after a
+power-key wake, so in gnome-mobile mode the policy does not replay the power
+key at all (a replay is a toggle and could blank the panel again). For
+Phosh it still replays, and now re-reads DPMS right before the press. Known
+limit: a power press within 500 ms of a non-user wake is ignored by the
+shell (stale-event guard); press again.
 The shell's sleep delay inhibitor locks before every policy suspend
 (`systemctl suspend --check-inhibitors=no` still waits for delay inhibitors).
 
@@ -268,7 +289,9 @@ It sets Phosh, reinstalls the stock `mutter`/`gnome-shell` (and any
 `/var/cache/rog5-gnome-mobile/stock`, removes gdm (`--keep-gdm` keeps it), the
 debug packages and the session files. `install` refuses to start without a
 complete rollback set (pacman cache → repository download of exactly the
-installed version → `bacman`). Rehearse it once (stage 0) before the first
+installed version → `bacman`). `install`, `check` and `rollback` all run the
+same validation first: every listed package has exactly that name, version
+and architecture in the set, or nothing changes. Rehearse it once (stage 0) before the first
 real session: Phosh and the desktop mode are not isolated from a replaced
 mutter/gnome-shell.
 

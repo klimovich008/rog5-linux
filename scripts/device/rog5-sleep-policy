@@ -88,6 +88,7 @@ mode_file=${ROG5_SLEEP_MODE_FILE:-/etc/rog5/sleep-mode}
 wifi_ps=${ROG5_SLEEP_WIFI_PS:-1}
 wifi_ps_hold=${ROG5_SLEEP_WIFI_PS_HOLD:-60}
 ext_displays=${ROG5_SLEEP_EXT_DISPLAYS:-/sys/class/drm/card*-DP-*}
+shell_effective=${ROG5_SLEEP_SHELL_EFFECTIVE:-/run/rog5-shell/effective}
 
 # The configured mode: suspend or reachable.
 sleep_mode() {
@@ -319,6 +320,12 @@ PY
 
 # After a power-key wake: turn the display on once the shell listens again.
 wake_display() {
+	# GNOME Shell Mobile lights the display itself on a power-key wake; a
+	# replayed press (a toggle) could only blank it again.
+	if grep -qsx gnome-mobile "$shell_effective"; then
+		log 'power-key wake: GNOME Mobile lights the display itself'
+		return 0
+	fi
 	[ -e /dev/uinput ] || modprobe -d /run/rog5-modules uinput 2>/dev/null || modprobe uinput 2>/dev/null
 	tries=0
 	while [ "$tries" -lt 8 ] && [ "$(cat "$dpms" 2>/dev/null)" = Off ]; do

@@ -6,6 +6,11 @@
 # /etc/rog5/shell goes back to phosh. gdm.service Requires= this unit.
 [Unit]
 Description=ROG5 GNOME Mobile watchdog (back to a locked Phosh on failure)
+# If the watchdog itself keeps failing, nothing would supervise GDM: fall
+# back from outside (rog5-shell-fallback.service).
+StartLimitIntervalSec=300
+StartLimitBurst=5
+OnFailure=rog5-shell-fallback.service
 
 [Service]
 ExecCondition=/usr/bin/grep -qsx gnome-mobile /run/rog5-shell/effective

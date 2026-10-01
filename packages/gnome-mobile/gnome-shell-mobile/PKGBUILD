@@ -7,9 +7,10 @@
 # branch mobile-shell-devel-50, 50.3 based) with GNOME 50.5 merged in (0001,
 # conflicts resolved, every 50.4/50.5 lock-screen fix checked: ../README.md),
 # a stray conflict marker fixed (0002), two postmarketOS fixes (0003, 0004)
-# and five ROG5 patches (0005-0009: no lock-screen overlays, no notification
-# actions while locked, no PIN input while auth is blocked, panel stays dark
-# after a non-user resume, idle blank locks again on GNOME 50). Opt-in only; it replaces gnome-shell and needs
+# and seven ROG5 patches (0005-0011: no lock-screen overlays, no notification
+# actions/URLs/quick-settings list while locked, no PIN input while auth is
+# blocked, panel stays dark after a non-user resume, idle blank locks again on
+# GNOME 50, lock screen shown before blanking). Opt-in only; it replaces gnome-shell and needs
 # mutter-mobile of the same version. Not in configs/rootfs/custom-packages.txt.
 
 pkgname=gnome-shell-mobile
@@ -111,6 +112,8 @@ source=(
   0007-rog5-authPrompt-Ignore-PIN-input-and-activation-whil.patch
   0008-rog5-powerManager-Keep-the-panel-dark-after-a-non-us.patch
   0009-rog5-powerManager-Lock-on-idle-blank-again-GNOME-49-.patch
+  0010-rog5-Keep-notifications-private-and-inert-on-the-loc.patch
+  0011-rog5-Show-the-lock-screen-before-blanking-Lock-waits.patch
 )
 b2sums=('SKIP'
         'b3ff7babceb21522cbdc8f2d11b00fe7c83a820250629f79831b42c4802613aa116a0df58038c76d9948c452c27cd47eca7a0172f06800df571c90f8671c0b6c'
@@ -124,7 +127,9 @@ b2sums=('SKIP'
         '21317331691deb7309a3644a030984570200793f94e3a879beac9a44d9dac50fa0f561a3174a1a1794d12790583c86ee6105be4a91bf2479b5318093dac13e64'
         '08cd978576faf7c3a3370fb3fe638df0cf0844fbfcd9ef5b1412a50fce92dc1ff745f9b0dcc4a671fc16bc13877864e8b11f436d5d5f0efdd81cda15d5d17e1f'
         'c8823735d4c98e137bb8da2d6980bca449c15329ec6e1593e970392faa130d445afb9e63a90c7bd01c6e161bc089906909076353b6628efe411175dd48909960'
-        '7380949895fd68b14fe55a83768639eff36492be5d5db0fd7db9a8eb225c184332f6a89d15455221c96e60699c23caf45b3b2042eaabce347ef2af968b94a97a')
+        '7380949895fd68b14fe55a83768639eff36492be5d5db0fd7db9a8eb225c184332f6a89d15455221c96e60699c23caf45b3b2042eaabce347ef2af968b94a97a'
+        '8d7a0a7e42b573ced22cbe11ccb94c7eb43a9a2d8080fa4f5428192194d898c1959524cad8fab3e37e390c6adde8f224c84f9b6c3dd09305f2541123b4461549'
+        '218c234745af15738b0c4b85c40ceb1b80a370b64bda86b7827f1ae4a437e48cde43581ac5b25d642e138fc423bcdac1174d7c248680c930d9cefc32ded875ae')
 
 prepare() {
   # Inject gvc

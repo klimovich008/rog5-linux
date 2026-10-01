@@ -1,0 +1,9 @@
+# Runs when rog5-shell-watchdog.service fails for good (start limit): back to
+# a locked Phosh, since GDM would otherwise run unsupervised.
+[Unit]
+Description=ROG5 GNOME Mobile fallback after a watchdog failure
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/grep -qsx gnome-mobile /run/rog5-shell/effective
+ExecStart=/usr/local/sbin/rog5-shell fallback watchdog failed

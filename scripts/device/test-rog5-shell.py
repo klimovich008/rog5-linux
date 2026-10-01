@@ -63,6 +63,7 @@ class FakeSystem:
         self.kills = []
         self.on_sleep = None
         self.user_runs = []
+        self.seat_uid = None             # active session's uid on seat0 (None: unknown)
 
     # time
     def now(self):
@@ -140,6 +141,9 @@ class FakeSystem:
     def sessions(self):
         return [dict(s) for s in self.sess]
 
+    def active_seat_uid(self):
+        return self.seat_uid
+
     def kill(self, pid, sig):
         self.kills.append((pid, sig))
         if sig == 9:
@@ -150,6 +154,7 @@ def fake_answers(sysm, pid, uid, gid):
     return pid in sysm.answering
 
 
+real_shell_answers = rs.shell_answers
 rs.shell_answers = fake_answers
 
 
@@ -389,21 +394,34 @@ class WatchdogSupervise(unittest.TestCase):
             s.shells = [(pid[0], 1000, 1000)]
             s.answering = {pid[0]}
         r = None
-        for _ in range(rs.CRASH_MAX + 1):
+        for _ in range(rs.CRASH_MAX + 2):
             respawn(self.f)
-            r = self.steps(20)
+            r = self.steps(20)          # each shell lives 20 s (< SHORT_S)
             if r:
                 break
         self.assertIsNotNone(r)
-        self.assertIn('started', r)
+        self.assertIn('ended within', r)
 
     def test_normal_relogins_are_not_a_loop(self):
+        # many greeter <-> user transitions, each shell living a while
         pid = [600]
-        for _ in range(rs.CRASH_MAX - 1):
+        for i in range(10):
             pid[0] += 1
-            self.f.shells = [(pid[0], 1000, 1000)]
+            self.f.shells = [(pid[0], 1000 + i % 2, 1000)]
             self.f.answering = {pid[0]}
-            self.assertIsNone(self.steps(70))
+            self.assertIsNone(self.steps(40))
+
+    def test_quick_login_counts_once(self):
+        # the greeter lived 10 s (PIN typed fast): one short death, no loop
+        self.f.shells = [(501, 1000, 1000)]
+        self.f.answering = {501}
+        self.assertIsNone(self.steps(300))
+
+    def test_only_the_active_seat_session_counts(self):
+        self.f.seat_uid = 1000
+        self.f.shells = [(500, 60578, 60578)]      # a leftover greeter answers
+        self.f.answering = {500}
+        self.assertIn('no answering shell', self.steps(rs.DEAD_S + 10))
 
     def test_phosh_from_gdm_counts_as_alive(self):
         self.f.shells = []
@@ -423,6 +441,8 @@ class Fallback(unittest.TestCase):
         self.assertEqual(rs.fallback(f, 'test'), 1)
         last_phosh = max(i for i, c in enumerate(f.calls) if 'rog5-phosh.service' in c)
         self.assertEqual(f.calls[last_phosh][1], 'stop')
+        starts = [c for c in f.calls if c[:2] == ('systemctl', 'start') and 'rog5-phosh.service' in c]
+        self.assertEqual(len(starts), 2)            # one retry
         self.assertIn('FAILED CLOSED', (TMP / 'kmsg').read_text())
 
     def test_gdm_sessions_terminated_and_drm_released(self):
@@ -674,6 +694,139 @@ class Patches(unittest.TestCase):
                 if s.endswith('.patch'):
                     self.assertEqual(hashlib.blake2b((pdir / s).read_bytes()).hexdigest(),
                                      h.strip("'"), f'{d}/{s}')
+
+
+class ShellProbe(unittest.TestCase):
+    def test_owner_pid_must_match(self):
+        class S(FakeSystem):
+            owner = 500
+
+            def run(self, argv, timeout=30, user=None):
+                if 'GetConnectionUnixProcessID' in argv:
+                    return 0, f'u {self.owner}\n'
+                if 'ShellVersion' in argv:
+                    return 0, 's "50.mobile.0"\n'
+                return 1, ''
+        f = S()
+        self.assertTrue(real_shell_answers(f, 500, 1000, 1000))
+        f.owner = 777                                   # another process owns the name
+        self.assertFalse(real_shell_answers(f, 500, 1000, 1000))
+
+    def test_user_runs_get_a_clean_environment(self):
+        seen = {}
+
+        def fake_run(argv, **kw):
+            seen['argv'] = argv
+            return subprocess.CompletedProcess(argv, 0, '', '')
+        old = rs.subprocess.run
+        rs.subprocess.run = fake_run
+        try:
+            rs.System().run(['true'], user=(os.getuid(), os.getgid(), 'unix:path=/x'))
+        finally:
+            rs.subprocess.run = old
+        argv = seen['argv']
+        i = argv.index('env')
+        self.assertEqual(argv[i + 1], '-i')
+        import pwd
+        self.assertIn(f'HOME={pwd.getpwuid(os.getuid()).pw_dir}', argv)
+        self.assertIn('DBUS_SESSION_BUS_ADDRESS=unix:path=/x', argv)
+        self.assertEqual(argv[-1], 'true')
+
+
+class ReviewFixes(unittest.TestCase):
+    def test_rog5_gnome_cleanup_only_after_setup(self):
+        text = (REPO / 'configs/systemd/rog5-gnome.service').read_text()
+        pre = unit_lines(REPO / 'configs/systemd/rog5-gnome.service', 'ExecStartPre')
+        self.assertEqual(pre[0], '+/bin/touch /run/rog5-gnome.setup')
+        post = unit_lines(REPO / 'configs/systemd/rog5-gnome.service', 'ExecStopPost')
+        for line in post[:-1]:
+            self.assertIn('[ -e /run/rog5-gnome.setup ] || exit 0;', line)
+        self.assertEqual(post[-1], '+/bin/rm -f /run/rog5-gnome.setup')
+        self.assertIn('ExecStart=/usr/bin/gnome-session', text)
+
+    def test_watchdog_failure_falls_back(self):
+        wd = (REPO / 'configs/systemd/rog5-shell-watchdog.service').read_text()
+        self.assertIn('OnFailure=rog5-shell-fallback.service', wd)
+        fb = REPO / 'configs/systemd/rog5-shell-fallback.service'
+        self.assertIn('rog5-shell fallback', fb.read_text())
+        self.assertIn('configs/systemd/rog5-shell-fallback.service',
+                      (REPO / 'configs/rootfs/userspace.tsv').read_text())
+
+    def test_policy_does_not_replay_in_mobile_mode(self):
+        pol = (REPO / 'scripts/device/rog5-sleep-policy').read_text()
+        fn = pol[pol.index('wake_display() {'):]
+        fn = fn[:fn.index('\n}\n') + 3]
+        eff = TMP / 'policy-effective'
+        out = TMP / 'policy-out'
+        for mode, presses in (('gnome-mobile', ''), ('phosh', 'press')):
+            eff.write_text(mode + '\n')
+            dpms = TMP / 'policy-dpms'
+            dpms.write_text('Off\n')
+            script = (f'shell_effective={eff}; dpms={dpms}\n'
+                      'log() { :; }\nsleep() { :; }\nmodprobe() { :; }\n'
+                      f'press_power_key() {{ echo press >>{out}; echo On >{dpms}; }}\n' + fn +
+                      '\nwake_display\n')
+            out.write_text('')
+            subprocess.run(['sh', '-c', script], check=True)
+            self.assertEqual(out.read_text().strip(), presses, mode)
+
+
+class Installer(unittest.TestCase):
+    """rog5-gnome-mobile-install's rollback set handling, with a fake pacman."""
+
+    def setUp(self):
+        self.d = TMP / 'inst'
+        shutil.rmtree(self.d, ignore_errors=True)
+        (self.d / 'bin').mkdir(parents=True)
+        (self.d / 'cache/stock').mkdir(parents=True)
+        self.log = self.d / 'pacman.log'
+        (self.d / 'bin/pacman').write_text(f"""#!/bin/sh
+echo "$*" >>{self.log}
+case $1 in
+-Qp) b=${{2##*/}}; b=${{b%.pkg.tar.*}}; b=${{b%-*}}; rel=${{b##*-}}; b=${{b%-*}}; ver=${{b##*-}}; name=${{b%-*}}
+     echo "$name $ver-$rel" ;;
+-Q) shift; for n in "$@"; do case $n in mutter) echo 'mutter 50.5-1' ;; gnome-shell) echo 'gnome-shell 1:50.5-1' ;; esac; done ;;
+-U|-R|-Rns) exit 0 ;;
+*) exit 1 ;;
+esac
+""")
+        for b in ('systemctl', 'dconf'):
+            (self.d / 'bin' / b).write_text('#!/bin/sh\nexit 0\n')
+        for b in ('pacman', 'systemctl', 'dconf'):
+            os.chmod(self.d / 'bin' / b, 0o755)
+        (self.d / 'cache/stock/installed-before.txt').write_text('mutter 50.5-1\ngnome-shell 1:50.5-1\n')
+        self.env = dict(os.environ, PATH=f"{self.d / 'bin'}:{os.environ['PATH']}", ROG5_GM_TEST='1',
+                        ROG5_GM_CACHE=str(self.d / 'cache'), ROG5_GM_ARCH='aarch64',
+                        ROG5_GM_USER='nobody-rog5-test')
+
+    def run_inst(self, *args):
+        return subprocess.run(['sh', str(REPO / 'packages/gnome-mobile/rog5-gnome-mobile-install')] + list(args),
+                               env=self.env, capture_output=True, text=True)
+
+    def test_incomplete_set_refuses_rollback(self):
+        (self.d / 'cache/stock/mutter-50.5-1-aarch64.pkg.tar.zst').write_text('x')
+        r = self.run_inst('rollback')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('gnome-shell 1:50.5-1 missing', r.stdout + r.stderr)
+        self.assertNotIn('-U', self.log.read_text() if self.log.exists() else '')
+
+    def test_wrong_arch_is_rejected(self):
+        (self.d / 'cache/stock/mutter-50.5-1-x86_64.pkg.tar.zst').write_text('x')
+        (self.d / 'cache/stock/gnome-shell-1:50.5-1-aarch64.pkg.tar.zst').write_text('x')
+        r = self.run_inst('check')
+        self.assertIn('not for aarch64', r.stdout)
+        self.assertIn('NOT usable', r.stdout)
+
+    def test_complete_set_restores(self):
+        (self.d / 'cache/stock/mutter-50.5-1-aarch64.pkg.tar.zst').write_text('x')
+        (self.d / 'cache/stock/gnome-shell-1:50.5-1-aarch64.pkg.tar.zst').write_text('x')
+        r = self.run_inst('rollback', '--keep-gdm')
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        u = [l for l in self.log.read_text().splitlines() if l.startswith('-U')]
+        self.assertEqual(len(u), 1)
+        self.assertIn('--ask=4', u[0])
+        self.assertIn('mutter-50.5-1-aarch64', u[0])
+        self.assertIn('gnome-shell-1:50.5-1-aarch64', u[0])
 
 
 if __name__ == '__main__':

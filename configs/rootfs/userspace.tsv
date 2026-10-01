@@ -43,6 +43,7 @@ file	scripts/device/rog5-shell	/usr/local/sbin/rog5-shell	0755
 conf	configs/rog5/shell	/etc/rog5/shell	0644
 file	configs/systemd/rog5-shell-select.service	/etc/systemd/system/rog5-shell-select.service	0644
 file	configs/systemd/rog5-shell-watchdog.service	/etc/systemd/system/rog5-shell-watchdog.service	0644
+file	configs/systemd/rog5-shell-fallback.service	/etc/systemd/system/rog5-shell-fallback.service	0644
 file	configs/systemd/rog5-phosh.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-phosh.service.d/50-rog5-shell.conf	0644
 file	configs/systemd/rog5-desktop-mode.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-desktop-mode.service.d/50-rog5-shell.conf	0644
 file	configs/systemd/rog5-gnome.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-gnome.service.d/50-rog5-shell.conf	0644
