@@ -393,7 +393,7 @@
       "package": "package-main-k112-d13-261001a",
       "source_commit": "bb03eb907a53",
       "changes": "memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 17:28",
       "notes": "RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked"
@@ -409,10 +409,10 @@
       "package": "package-main-k113-d13-261001a",
       "source_commit": "defc52dbea98",
       "changes": "0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": null
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 18:30",
+      "notes": "SWIOTLB 4 MiB: hiwater 4 slabs after Wi-Fi bulk, pressure, 15 s2idle; one unreproduced WCN6855 RDDM on resume (Wi-Fi dead until reboot); USB storage/DP/game not yet on k113"
     }
   ]
 }

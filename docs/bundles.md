@@ -11,14 +11,14 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `main-k112-d13-261001a`, fallback `safe-k111-d10-261001a`.
+Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k113-d13-261001a` | main | k113 | d13 | built | unknown |  | 0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB) |  |
-| `main-k112-d13-261001a` | main | k112 | d13 | installed-main | yes | 2026-10-01 17:28 | memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed) | RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked |
+| `main-k113-d13-261001a` | main | k113 | d13 | installed-main | yes | 2026-10-01 18:30 | 0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB) | SWIOTLB 4 MiB: hiwater 4 slabs after Wi-Fi bulk, pressure, 15 s2idle; one unreproduced WCN6855 RDDM on resume (Wi-Fi dead until reboot); USB storage/DP/game not yet on k113 |
+| `main-k112-d13-261001a` | main | k112 | d13 | retired | yes | 2026-10-01 17:28 | memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed) | RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked |
 | `main-k112-d12-261001a` | main | k112 | d12 | retired | yes | 2026-10-01 17:22 | TRIAL memslim stockcma,ionpool (+324 MiB) | RAM trial B pass (stockcma+ionpool): all ranges pass, 3x s2idle, Wi-Fi restart, 0 SEA |
 | `main-k112-d11-261001a` | main | k112 | d11 | retired | yes | 2026-10-01 15:50 | TRIAL memslim stockcma (+196 MiB) | RAM trial A pass (stockcma): pressure 50109/50176 hits, 256/256 exec, 3x s2idle, Wi-Fi restart, 0 SEA |
 | `main-k112-d10-261001b` | main | k112 | d10 | retired | yes | 2026-10-01 15:45 | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |

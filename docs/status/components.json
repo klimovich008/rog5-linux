@@ -284,7 +284,7 @@
      "name": "Memory (zram swap)",
      "status": "ready",
      "weight": 1,
-     "note": "5.2 GiB zram zstd, MGLRU, THP madvise; d13 memslim gives 590 MiB of unused carve-outs back (MemTotal 11.2 GiB, RAM trials passed 2026-10-01)"
+     "note": "5.2 GiB zram zstd, MGLRU, THP madvise; d13 memslim (590 MiB of unused carve-outs) + k113 SWIOTLB 4 MiB (60 MiB): MemTotal 11.0 GiB, up from 10.4 GiB (trials 2026-10-01)"
     },
     {
      "name": "Instruction-fetch aborts (SIGBUS)",

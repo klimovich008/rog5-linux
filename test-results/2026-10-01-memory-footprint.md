@@ -320,3 +320,32 @@ Notes:
 
 Result: d13 (all three parts) is the default main DTB from 2026-10-01 17:35.
 The fallback stays on d10.
+
+## 7. SWIOTLB trial, kernel k113 (2026-10-01 18:30-19:10)
+
+`main-k113-d13-261001a` = k112 + 0153 (`CONFIG_SWIOTLB_DEFAULT_SIZE_MB=4`,
+`SWIOTLB_DYNAMIC=y`, `rog5-swiotlb-slim.fragment`) on d13. dmesg
+`software IO TLB: mapped [mem 0xf7800000-0xf7c00000] (4MB)`; MemTotal
+11531552 kB (+60 MiB over k112/d13, +650 MiB over k112/d10). Committed
+healthy; ADSP/SLPI running, speaker protection running.
+
+Load: 400 MiB over Wi-Fi each way (checksum matched), twice; pressure to
+256 MiB free; 15 s2idle cycles; two Wi-Fi off/on. `io_tlb_used_hiwater` 4
+slabs at most, `io_tlb_transient_nslabs` 0 (no dynamic pool was needed), no
+"swiotlb buffer is full" or DMA mapping error.
+
+One failure, not reproduced: in the first 3-cycle run the WCN6855 firmware
+crashed on the second resume (`PCIe Bus Error: Correctable, RxErr`, then
+`firmware crashed: MHI_CB_EE_RDDM`, WMI timeouts, `cannot restart radio 0`,
+later `failed to process regulatory info -22`); wlan0 stayed down until a
+reboot (the phone itself was fine and reachable over USB). The bounce pool
+was idle (hiwater 4 slabs), the crash started at the PCIe link, and the same
+sequence passed 9 times on k112 (d11-d13) and 9 more times on k113 after
+the reboot, including the exact bulk-transfer + 3 cycles + radio toggle
+order. Classed as a sporadic WCN6855 resume crash, not a SWIOTLB effect.
+Gap: ath11k does not recover from RDDM here; Wi-Fi needs a reboot. dmesg in
+`~/.local/state/rog5-production-boot-20260923/evidence-k113-wifi-crash/`.
+
+Not covered: USB storage, USB audio and Ethernet behind the hub, DP and a
+game on k113 (SWIOTLB_DYNAMIC adds pools if a device ever needs more).
+k113 stays the default; the fallback (k111/d10) keeps the 64 MiB pool.
