@@ -382,6 +382,7 @@ scripted installers run on the phone itself (Stage 11):
 | Speaker protection DSP (CS35L45) + factory calibration | `vendor_a`, `persist` | `scripts/device/install-rog5-speaker-firmware` | every vendor file against its WW33 hash; calibration range |
 | Sensors (SLPI) registry and config, `hexagonrpcd` | `vendor_a`, `persist`, `dsp_a` | `scripts/device/install-rog5-sensors.sh` | the source archive hash and the vendor filesystem label, not each file |
 | CDSP (standby experiments only) | `vendor_a` | `scripts/host/fetch-vendor-cdsp-firmware.py` | reference-only: needs the reference display kit as its base |
+| Video core (Iris v2), trial | `vendor_a` (`firmware/vpu20_4v.mbn`) | `scripts/device/install-rog5-video-firmware` (`--runtime` for one boot) | the WW33 hash and size; needs a video DTB (d15) bundle, see [hardware/video.md](hardware/video.md) |
 
 ## Stage 7: format and partition (destructive)
 
