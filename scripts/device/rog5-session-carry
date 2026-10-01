@@ -45,6 +45,8 @@ DEFAULT_EXCLUDE = (
     'rog5-desktop-mode', 'rog5-phone-mode', 'mobi.phosh.*', 'sm.puri.*',
     'org.gnome.Shell*', 'org.gnome.Extensions', 'gnome-session*',
     'org.freedesktop.*', 'xdg-desktop-portal*', 'org.gnome.ScreenSaver',
+    # background services that keep a hidden GtkApplication window
+    'org.gnome.Software', 'org.gnome.Evolution-alarm-notify',
 )
 SCOPE_RE = re.compile(r'^app-gnome-(?P<id>.+)-(?P<pid>[0-9]+)\.scope$')
 

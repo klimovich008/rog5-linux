@@ -224,6 +224,11 @@ class Units(unittest.TestCase):
         self.assertEqual(sc.unescape_unit('steam\\x2darm64'), 'steam-arm64')
         self.assertIsNone(sc.SCOPE_RE.match('app-gnome-firefox.scope'))
 
+    def test_background_services_are_excluded(self):
+        # GNOME Software runs as a service with a hidden window
+        _, globs = sc.read_config()
+        self.assertTrue(sc.excluded('org.gnome.Software', globs))
+
 
 if __name__ == '__main__':
     result = unittest.main(exit=False, verbosity=1).result
