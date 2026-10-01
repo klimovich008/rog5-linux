@@ -1,0 +1,48 @@
+From 56095ab451db3a7a724069951109759798d24ac3 Mon Sep 17 00:00:00 2001
+From: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+Date: Fri, 7 Aug 2026 13:54:45 +0530
+Subject: [PATCH] dt-bindings: media: qcom,venus-common: Allow IOVA reservation
+ memory-region
+
+Non-pixel stream IDs should not allocate IOVA space from the 0 to 600MB
+restricted region, as this region is reserved exclusively for secure
+non-pixel.
+
+In addition to the firmware-loaded codec carveout, platforms need to
+declare an IOMMU IOVA reservation (a reserved-memory node with
+iommu-addresses) to keep DMA away from restricted IOVA range.
+
+Permit a second memory-region phandle for this purpose, and describe the
+meaning of each entry so the ordering is unambiguous.
+
+Fixes: f8cc21d454c5 ("media: dt-bindings: qcom,venus: split common properties")
+Cc: stable@vger.kernel.org
+Signed-off-by: Vikash Garodia <vikash.garodia@oss.qualcomm.com>
+
+[ROG5: backport of the proposed upstream patch 01/22 of "media: iris:
+Restrict lower IOVA range for Venus and Iris"
+(20260807-iris_iova_600mb_fix-v1-1-3996f67e33f9@oss.qualcomm.com,
+not merged as of v7.3-rc5), so the ROG5 video DTB (d14), which carries
+the sm8350 part of that series (patch 08/22: iris-iova reservation
+[0, 0x25800000) as the second memory-region), validates against the
+k114 schemas. Patch 0155, kernel k114.]
+---
+ .../devicetree/bindings/media/qcom,venus-common.yaml         | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/media/qcom,venus-common.yaml b/Documentation/devicetree/bindings/media/qcom,venus-common.yaml
+index 59a3fde..0be2f91 100644
+--- a/Documentation/devicetree/bindings/media/qcom,venus-common.yaml
++++ b/Documentation/devicetree/bindings/media/qcom,venus-common.yaml
+@@ -37,7 +37,10 @@ properties:
+     maxItems: 20
+ 
+   memory-region:
+-    maxItems: 1
++    minItems: 1
++    items:
++      - description: Firmware-loaded codec carveout
++      - description: IOMMU IOVA reservation region
+ 
+   power-domains:
+     minItems: 1

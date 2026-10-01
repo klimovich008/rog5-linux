@@ -1,0 +1,21 @@
+[Unit]
+Description=Load the ROG5 hardware video codec (Iris) after Wi-Fi, audio and sensors
+# Last of the platform modules: the video core's SMMU stream takes a context
+# bank when qcom_iris binds (audio loaded ahead of the PCIe Wi-Fi function
+# broke the Wi-Fi firmware load, r39). The firmware itself loads on the first
+# open of /dev/video* (udev's v4l_id opens the nodes as they appear) and only
+# if install-rog5-video-firmware has installed it; without it every open fails
+# at request_firmware and the core stays off.
+After=rog5-platform-modules.service rog5-wifi-radio.service rog5-bluetooth.service rog5-audio.service rog5-sensors.service
+# Only with the video DTB (d14 and later).
+ConditionPathExists=/proc/device-tree/soc@0/video-codec@aa00000
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-platform/modules video-modules
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

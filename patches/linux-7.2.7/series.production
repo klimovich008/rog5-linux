@@ -115,3 +115,6 @@
 0151-ASoC-cs35l45-ROG5-reload-the-protection-firmware-after-a-missed-pause.patch
 0152-drm-msm-a6xx-ROG5-recover-from-a-GMU-that-does-not-answer-no-ring-writes-without-hw_init-bounded-dump-waits.patch
 0153-dma-swiotlb-default-pool-size-from-Kconfig.patch
+0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch
+0155-dt-bindings-media-qcom-venus-common-Allow-IOVA-reservation-memory-region.patch
+0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch

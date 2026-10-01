@@ -107,7 +107,9 @@ class Builds(unittest.TestCase):
         self.assertEqual(modes['rog5-platform/rtc-time'], '-rwxr-xr-x')
         self.assertEqual(modes['rog5-platform/audio-route'], '-rwxr-xr-x')
         self.assertEqual(modes['rog5-platform/sensor-modules'], '-r--r--r--')
-        self.assertEqual(len(modes), 14)
+        self.assertEqual(modes['rog5-platform/video-modules'], '-r--r--r--')
+        self.assertEqual(modes['rog5-platform/rog5-video.service'], '-rw-r--r--')
+        self.assertEqual(len(modes), 16)
 
     @unittest.skipUnless((WIFI_KIT/'SHA256SUMS').is_file(), 'needs the private Wi-Fi kit')
     def test_wifi_kit_is_installed_only_when_pinned(self):
@@ -293,6 +295,10 @@ class LabelledRelease(unittest.TestCase):
             init = subprocess.run(f'gzip -dc {output} | cpio -i --to-stdout --quiet init', shell=True,
                                   capture_output=True, check=True).stdout
             self.assertIn(b'\nexpected_kernel_release='+LABELLED.encode()+b'\n', init)
+            # r110's modules predate the video modules: the video list is empty.
+            video = subprocess.run(f'gzip -dc {output} | cpio -i --to-stdout --quiet rog5-platform/video-modules', shell=True,
+                                   capture_output=True, check=True).stdout
+            self.assertEqual(video, b'# empty: kernel '+LABELLED.encode()+b' has no video modules\n')
             # The modules of k111 never go into a ramdisk for another release.
             wrong = build(BASE, tmp/'wrong.cpio.gz', package, sha(package), release='7.2.7-rog5-k112')
             self.assertNotEqual(wrong.returncode, 0)
