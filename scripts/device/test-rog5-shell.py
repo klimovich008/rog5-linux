@@ -570,6 +570,29 @@ class GsdPower(unittest.TestCase):
         f.sess = []
         self.assertEqual(rs.cmd_gsd_power_allowed(f), 0)
 
+    def test_user_manager_environment(self):
+        # GDM 50 leaves logind's Desktop empty: XDG_SESSION_DESKTOP decides,
+        # but only on a gnome-mobile boot.
+        f = FakeSystem()
+        f.sess = [{'Id': '1', 'Name': self.me(), 'Desktop': '', 'Class': 'user',
+                   'State': 'active'}]
+        old = os.environ.get('XDG_SESSION_DESKTOP')
+        try:
+            os.environ['XDG_SESSION_DESKTOP'] = 'gnome-mobile'
+            reset_files(effective='gnome-mobile')
+            self.assertEqual(rs.cmd_gsd_power_allowed(f), 1)
+            reset_files(effective='phosh')
+            self.assertEqual(rs.cmd_gsd_power_allowed(f), 0)
+            os.environ['XDG_SESSION_DESKTOP'] = 'gnome'
+            reset_files(effective='gnome-mobile')
+            self.assertEqual(rs.cmd_gsd_power_allowed(f), 0)
+        finally:
+            if old is None:
+                os.environ.pop('XDG_SESSION_DESKTOP', None)
+            else:
+                os.environ['XDG_SESSION_DESKTOP'] = old
+            reset_files()
+
 
 class GreeterMonitors(unittest.TestCase):
     def test_panel_only_configs_copied(self):

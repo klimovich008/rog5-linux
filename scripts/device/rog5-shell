@@ -633,7 +633,15 @@ def cmd_status(sysm):
 def cmd_gsd_power_allowed(sysm):
     """User-unit ExecCondition: exit 1 (skip gsd-power) in the gnome-mobile
     session and in GDM's greeter; the mobile shell does its own power
-    handling. Everything else, including errors, allows it."""
+    handling. Everything else, including errors, allows it.
+
+    GDM 50 does not pass the session's desktop name to logind (Desktop is
+    empty), so the user manager's XDG_SESSION_DESKTOP (imported by
+    gnome-session before it starts the gsd units) counts too, but only on a
+    gnome-mobile boot: after a fallback to Phosh a stale value must not keep
+    gsd-power off."""
+    if os.environ.get('XDG_SESSION_DESKTOP') == MOBILE and effective_mode() == MOBILE:
+        return 1
     import pwd
     try:
         me = pwd.getpwuid(os.getuid()).pw_name
