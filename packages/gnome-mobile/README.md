@@ -162,10 +162,9 @@ or build both on the host).
 
 Host (what was done here): the rehearsal's aarch64 Arch root
 (`scripts/host/rog5-build-rootfs` method: user namespace + qemu-aarch64
-binfmt), `makepkg -f --nocheck`; see "Host build" at the end for the times
-and the package files. The phone (8 cores, native) should take a small
-fraction of the qemu time; estimate ~20-30 min for mutter and ~10 min for
-gnome-shell.
+binfmt), `makepkg -f --nocheck`: ~50 min for mutter, 12-18 min for
+gnome-shell under qemu; see "Host build" at the end. Natively on the phone
+(8 cores) expect roughly 10-20 min and 5 min.
 
 ## 3. Session plumbing
 
@@ -437,4 +436,11 @@ decides the default.
 
 ## Host build
 
-(filled in below when the host build finished)
+Done 2026-10-01: both packages built on the host (aarch64 under qemu) from
+exactly this patch series, and a headless smoke test passed (mobile UI,
+`isPhone` at 405x918, lock → PIN pad without Emergency button, unlock fails
+closed without GDM). Details, checksums and the phone's read-only state:
+[test-results/2026-10-01-gnome-mobile-host-build.md](../../test-results/2026-10-01-gnome-mobile-host-build.md).
+The package files are in `~/.local/state/rog5-gnome-mobile-build/packages/`
+(private); copy them into `mutter-mobile/` and `gnome-shell-mobile/` of the
+phone's checkout before `rog5-gnome-mobile-install install`.
