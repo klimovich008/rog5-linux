@@ -110,7 +110,7 @@ security-relevant ones:
 | 0008 | `powerManager.js` lights the panel after every resume, so `rog5-sleep-policy`'s 15 s wake windows would light it every minute. | Reads `/sys/power/pm_wakeup_irq`; only a PMIC power-key wake (or an unknown source) lights the panel. Any other wake turns the suspend action into `blank`: still locked, panel dark, the power key or user activity ends it. |
 | 0009 | `powerManager.js` tests the return value of `screenShield._becomeModal()`, which GNOME 49 dropped (e350a7f1b). The test always failed, so **idle blanking never locked**: the shell showed "Unable to lock", and user activity deactivated the shield. On battery the policy's suspend locked it anyway (suspend-forced); on USB power an idle phone stayed unlocked. | Checks the shield's grab instead. |
 | 0010 | (Sol) Quick settings stay usable on the lock screen, and the mobile quick-settings menu has its own notification list without the lock-screen privacy policy, so hidden notifications or bodies showed there. Detected URLs in lock-screen notifications launched from their own click gesture, past 0006. | The quick-settings list is hidden while locked or locking; no URL recognition or launch while locked. |
-| 0011 | (Sol) blank/suspend/hibernate called `lock(false, true)`: locked, but the shield and lock mode came only after the fade (`showLater()`), and a power-key cancel during the awaits could light the panel uncovered. `org.gnome.ScreenSaver.Lock` returned before the lock screen was shown. The pre-suspend frame wait ran only when the action had just locked. A power press ignored in the 500 ms after resume had consumed the user-active watch. | Lock synchronously before blanking; `Lock` waits for `lock-screen-shown` again; wait for a frame (≤ 1 s, panel on) before every suspend; re-arm the watch. |
+| 0011 | (Sol) blank/suspend/hibernate called `lock(false, true)`: locked, but the shield and lock mode came only after the fade (`showLater()`), and a power-key cancel during the awaits could light the panel uncovered. `org.gnome.ScreenSaver.Lock` returned before the lock screen was shown. The pre-suspend frame wait ran only when the action had just locked. A power press ignored in the 500 ms after resume had consumed the user-active watch. | Lock synchronously before blanking; `Lock` waits for `lock-screen-shown` again (and returns an error when locking is refused, e.g. by lockdown); wait for a frame (≤ 1 s, panel on) before every suspend; re-arm the watch. |
 
 Noted, not changed: the 20 WIP/HACK/"stuff" commits outside the lock path
 are unreviewed. As upstream, two trusted paths deactivate the shield without
@@ -179,7 +179,8 @@ otherwise the boot is Phosh and the journal says why.
 **rog5-gnome cleanup.** `ExecStopPost=` also runs after a start that its
 `ExecCondition` skipped, so the desktop mode's settings reset (button
 layout, idle delay, power-button action, DPU perf mode) now runs only after
-a real start (marker `/run/rog5-gnome.setup`).
+a real start (marker `/run/rog5-gnome.setup`; the cleanup commands are
+`-` so the marker is always removed).
 
 **Gates.** Drop-ins give `rog5-phosh`, `rog5-desktop-mode` and `rog5-gnome`
 an `ExecCondition` that passes unless the effective file says gnome-mobile,
@@ -211,18 +212,22 @@ DPMS On) at least once. "Answering" means: the shell belongs to the active
 session on seat0, the bus name `org.gnome.Shell` is owned by that very
 process (`GetConnectionUnixProcessID`), and its `ShellVersion` is read. Then
 it supervises: GDM inactive for 10 s, no answering shell for 45 s (a
-GDM-started Phosh in the active session counts), or 3 shells in 5 min that
-ended within 30 s of starting (logins and logouts replace shells too, but
-those lived longer). If the watchdog itself fails for good (5 starts in
-5 min), `OnFailure=` runs `rog5-shell-fallback.service`. On any failure: `/etc/rog5/shell` and the effective file go
+GDM-started Phosh in the active session counts), or 3 crashed shells in 5 min (a shell
+that died before it ever answered, or within 30 s while the same user's
+shell came back; logins and logouts switch between the greeter's and the
+user's uid and do not count). Without seat information no shell counts as
+alive. If the watchdog itself fails for good (5 starts in 5 min;
+`RestartMode=direct`, so retries do not pass through "failed"),
+`OnFailure=` runs `rog5-shell-fallback.service`. On any failure: `/etc/rog5/shell` and the effective file go
 to phosh, the reason goes to `/var/lib/rog5/shell-fallback`, GDM is stopped,
 GDM's logind sessions are terminated, gnome-shell/DRM holders get TERM then
 KILL until `/dev/dri/card1` is free, the mobile session settings are
 restored (as the phone user, with its own clean environment),
 `rog5-phosh` + `rog5-desktop-mode` start, and Phosh must report
 `LockedHint=yes` within 30 s. Only compositor-side processes are signalled
-(logind keeps fds of session devices too). If Phosh does not report a lock,
-both are stopped and the whole sequence runs once more; after a second
+(logind keeps fds of session devices too). Phosh is started only once the
+GNOME compositor processes are gone. If they do not go away, or Phosh does
+not report a lock, the whole sequence runs once more; after a second
 failure the phone stays dark (SSH works) instead of unlocked.
 
 **gsd-power.** The mobile shell's `powerManager.js` blanks, locks and handles
@@ -291,7 +296,8 @@ debug packages and the session files. `install` refuses to start without a
 complete rollback set (pacman cache → repository download of exactly the
 installed version → `bacman`). `install`, `check` and `rollback` all run the
 same validation first: every listed package has exactly that name, version
-and architecture in the set, or nothing changes. Rehearse it once (stage 0) before the first
+and architecture (from the archive's metadata) in the set, exactly one
+archive each, or nothing changes. Rehearse it once (stage 0) before the first
 real session: Phosh and the desktop mode are not isolated from a replaced
 mutter/gnome-shell.
 

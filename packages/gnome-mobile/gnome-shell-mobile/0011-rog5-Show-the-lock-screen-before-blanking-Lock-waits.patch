@@ -20,8 +20,8 @@ Found in review (GPT-6.1-Sol):
 ---
  js/misc/powerManager.js | 84 +++++++++++++++++++++++++++++------------
  js/ui/screenShield.js   |  3 ++
- js/ui/shellDBus.js      | 15 +++++++-
- 3 files changed, 75 insertions(+), 27 deletions(-)
+ js/ui/shellDBus.js      | 22 ++++++++++-
+ 3 files changed, 82 insertions(+), 27 deletions(-)
 
 diff --git a/js/misc/powerManager.js b/js/misc/powerManager.js
 index 5690af701..692ebf894 100644
@@ -171,10 +171,10 @@ index dd321cf35..a1e01c019 100644
  
      async _wakeUpScreen() {
 diff --git a/js/ui/shellDBus.js b/js/ui/shellDBus.js
-index 5ce09e986..ad083c6f3 100644
+index 5ce09e986..77d5f9c8e 100644
 --- a/js/ui/shellDBus.js
 +++ b/js/ui/shellDBus.js
-@@ -532,10 +532,21 @@ export class ScreenSaverDBus {
+@@ -532,10 +532,28 @@ export class ScreenSaverDBus {
      }
  
      LockAsync(parameters, invocation) {
@@ -192,6 +192,13 @@ index 5ce09e986..ad083c6f3 100644
 +        });
 +
          this._screenShield.lock(true);
++        if (!this._screenShield.locked) {
++            // refused (lockdown) or no lock dialog: answer instead of hanging
++            this._screenShield.disconnect(tmpId);
++            invocation.return_error_literal(Gio.DBusError, Gio.DBusError.FAILED,
++                'The screen could not be locked');
++            return;
++        }
          Main.powerManager.blank();
 -
 -        invocation.return_value(null);

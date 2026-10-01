@@ -17,3 +17,6 @@ ExecCondition=/usr/bin/grep -qsx gnome-mobile /run/rog5-shell/effective
 ExecStart=/usr/local/sbin/rog5-shell watchdog
 Restart=on-failure
 RestartSec=5
+# retries do not pass through "failed", so OnFailure= fires only once the
+# start limit gives up
+RestartMode=direct

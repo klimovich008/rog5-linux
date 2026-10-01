@@ -22,8 +22,8 @@ Within ARM_S seconds (90) GDM must be active and a gnome-shell must answer
 on its session bus (a property read that the shell's main loop serves),
 hold the touchscreen open and have lit the panel. After that it supervises:
 GDM inactive for GDM_GRACE_S, no answering shell in the active seat session
-for DEAD_S, or CRASH_MAX shells that ended within SHORT_S of starting (within
-CRASH_WINDOW_S) end the mobile mode. "Answering" means the bus name
+for DEAD_S, or CRASH_MAX crashed shells within CRASH_WINDOW_S (died before ever answering,
+or within SHORT_S while the same user's shell came back) end the mobile mode. "Answering" means the bus name
 org.gnome.Shell belongs to that very process and its ShellVersion is read. The
 fallback writes "phosh" to both files, stops GDM and the GNOME sessions,
 waits until nothing holds the DRM device, starts rog5-phosh and
@@ -313,8 +313,8 @@ def holds_touch(sysm, pid):
 
 def phosh_alive(sysm, seat_uid):
     """Phosh picked from GDM's session list, in the active seat session."""
-    return any(uid >= 1000 and (seat_uid is None or uid == seat_uid)
-               for _, uid, _ in sysm.processes('phosh'))
+    return seat_uid is not None and any(
+        uid >= 1000 and uid == seat_uid for _, uid, _ in sysm.processes('phosh'))
 
 
 # ------------------------------------------------------------- fallback ---
@@ -397,8 +397,10 @@ def fallback(sysm, reason):
         pass
     restored = False
     for attempt in (1, 2):
-        if not stop_gnome(sysm):
-            stop_gnome(sysm)        # a second, longer TERM/KILL round; then go on
+        if not stop_gnome(sysm) and not stop_gnome(sysm):
+            # phoc cannot take the panel while a GNOME compositor holds it
+            log(f'GNOME compositor processes did not go away (attempt {attempt})')
+            continue
         if not restored:
             restore_session_settings(sysm)
             restored = True
@@ -426,8 +428,9 @@ class Watchdog:
         self.lit_seen = False
         self.gdm_down_since = None
         self.dead_since = None
-        self.alive = {}           # shell pid -> first seen
-        self.short_deaths = []    # times a shell died within SHORT_S of its start
+        self.alive = {}           # shell pid -> (first seen, uid)
+        self.answered = set()     # shell pids that answered at least once
+        self.short_deaths = []    # times of abnormal-looking shell exits
         self.boosted = set()
 
     def missing(self, live):
@@ -448,16 +451,23 @@ class Watchdog:
         now = self.s.now()
         procs = self.s.processes('gnome-shell')
         pids = {p for p, _, _ in procs}
-        for pid in pids - set(self.alive):
-            self.alive[pid] = now
+        uids = {u for _, u, _ in procs}
+        for pid, uid, _ in procs:
+            self.alive.setdefault(pid, (now, uid))
         for pid in set(self.alive) - pids:
-            if now - self.alive.pop(pid) < SHORT_S:
+            started, uid = self.alive.pop(pid)
+            # A crash, not a login/logout: the shell died before it ever
+            # answered, or within SHORT_S while a shell of the same user came
+            # back (greeter <-> user switches change the uid).
+            if pid not in self.answered or (now - started < SHORT_S and uid in uids):
                 self.short_deaths.append(now)
+            self.answered.discard(pid)
         self.short_deaths = [t for t in self.short_deaths if now - t <= CRASH_WINDOW_S]
-        # only the shell of the active session on the seat counts
+        # only the shell of the active session on the seat counts; no seat
+        # information means no usable shell yet
         seat_uid = self.s.active_seat_uid()
-        live = [p for p in procs
-                if (seat_uid is None or p[1] == seat_uid) and shell_answers(self.s, *p)]
+        live = [p for p in procs if p[1] == seat_uid and shell_answers(self.s, *p)]
+        self.answered.update(p for p, _, _ in live)
         if live and panel_lit(self.s):
             self.lit_seen = True
         if not self.ready:
@@ -470,8 +480,8 @@ class Watchdog:
                 return f'not ready within {ARM_S:.0f} s: {", ".join(miss)}'
             return None
         if len(self.short_deaths) >= CRASH_MAX:
-            return (f'{len(self.short_deaths)} gnome-shell processes ended within '
-                    f'{SHORT_S:.0f} s of starting in the last {CRASH_WINDOW_S:.0f} s')
+            return (f'{len(self.short_deaths)} gnome-shell crashes/restarts in the last '
+                    f'{CRASH_WINDOW_S:.0f} s')
         if self.s.unit_state(GDM) != 'active':
             self.gdm_down_since = self.gdm_down_since or now
             if now - self.gdm_down_since >= GDM_GRACE_S:

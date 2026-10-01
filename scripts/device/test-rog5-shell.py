@@ -63,7 +63,8 @@ class FakeSystem:
         self.kills = []
         self.on_sleep = None
         self.user_runs = []
-        self.seat_uid = None             # active session's uid on seat0 (None: unknown)
+        self.seat_uid = 'auto'           # active seat0 session's uid; 'auto': the newest
+                                         # shell/phosh process's (None: logind unknown)
 
     # time
     def now(self):
@@ -118,7 +119,7 @@ class FakeSystem:
 
     def processes(self, comm):
         if comm == 'gnome-shell':
-            return list(self.shells)
+            return list(self.shells) + ([(55, 1000, 1000)] if getattr(self, 'stubborn', False) else [])
         if comm == 'phosh':
             return list(self.phosh_procs)
         return []
@@ -142,7 +143,10 @@ class FakeSystem:
         return [dict(s) for s in self.sess]
 
     def active_seat_uid(self):
-        return self.seat_uid
+        if self.seat_uid != 'auto':
+            return self.seat_uid
+        procs = self.shells + self.phosh_procs
+        return max(procs)[1] if procs else None
 
     def kill(self, pid, sig):
         self.kills.append((pid, sig))
@@ -387,6 +391,7 @@ class WatchdogSupervise(unittest.TestCase):
         self.assertEqual(self.steps(10), 'gdm stopped')
 
     def test_crash_loop(self):
+        # the user's shell keeps coming back within SHORT_S
         pid = [600]
 
         def respawn(s):
@@ -396,11 +401,37 @@ class WatchdogSupervise(unittest.TestCase):
         r = None
         for _ in range(rs.CRASH_MAX + 2):
             respawn(self.f)
-            r = self.steps(20)          # each shell lives 20 s (< SHORT_S)
+            r = self.steps(20)
             if r:
                 break
         self.assertIsNotNone(r)
-        self.assertIn('ended within', r)
+        self.assertIn('crashes/restarts', r)
+
+    def test_shells_that_never_answer(self):
+        pid = [700]
+        r = None
+        for _ in range(rs.CRASH_MAX + 2):
+            pid[0] += 1
+            self.f.shells = [(pid[0], 60578 + pid[0], 1)]   # new greeter uid each time
+            self.f.answering = set()
+            self.f.answering.add(500)                       # nothing of these answers
+            r = self.steps(8)
+            if r:
+                break
+        self.assertIsNotNone(r)
+
+    def test_three_quick_healthy_greeters(self):
+        # greeters that answered and were each replaced by a user shell after 10 s
+        pid = [800]
+        for i in range(3):
+            pid[0] += 1
+            self.f.shells = [(pid[0], 60000 + i, 1)]
+            self.f.answering = {pid[0]}
+            self.assertIsNone(self.steps(10))
+            pid[0] += 1
+            self.f.shells = [(pid[0], 1000, 1000)]
+            self.f.answering = {pid[0]}
+            self.assertIsNone(self.steps(30))
 
     def test_normal_relogins_are_not_a_loop(self):
         # many greeter <-> user transitions, each shell living a while
@@ -429,6 +460,10 @@ class WatchdogSupervise(unittest.TestCase):
         self.f.phosh_procs = [(700, 1000, 1000)]
         self.assertIsNone(self.steps(120))
 
+    def test_unknown_seat_is_not_alive(self):
+        self.f.seat_uid = None
+        self.assertIn('no answering shell', self.steps(rs.DEAD_S + 10))
+
 
 class Fallback(unittest.TestCase):
     def setUp(self):
@@ -444,6 +479,13 @@ class Fallback(unittest.TestCase):
         starts = [c for c in f.calls if c[:2] == ('systemctl', 'start') and 'rog5-phosh.service' in c]
         self.assertEqual(len(starts), 2)            # one retry
         self.assertIn('FAILED CLOSED', (TMP / 'kmsg').read_text())
+
+    def test_no_phosh_while_gnome_holds_on(self):
+        f = FakeSystem()
+        f.units['rog5-phosh.service'] = 'inactive'
+        f.stubborn = True                     # survives TERM and KILL (D state)
+        self.assertEqual(rs.fallback(f, 'test'), 1)
+        self.assertEqual(order(f.calls, ('systemctl', 'start', 'rog5-phosh.service')), -1)
 
     def test_gdm_sessions_terminated_and_drm_released(self):
         f = FakeSystem()
@@ -785,6 +827,7 @@ echo "$*" >>{self.log}
 case $1 in
 -Qp) b=${{2##*/}}; b=${{b%.pkg.tar.*}}; b=${{b%-*}}; rel=${{b##*-}}; b=${{b%-*}}; ver=${{b##*-}}; name=${{b%-*}}
      echo "$name $ver-$rel" ;;
+-Qip) b=${{2##*/}}; b=${{b%.pkg.tar.*}}; echo "Architecture    : ${{b##*-}}" ;;
 -Q) shift; for n in "$@"; do case $n in mutter) echo 'mutter 50.5-1' ;; gnome-shell) echo 'gnome-shell 1:50.5-1' ;; esac; done ;;
 -U|-R|-Rns) exit 0 ;;
 *) exit 1 ;;
@@ -814,7 +857,7 @@ esac
         (self.d / 'cache/stock/mutter-50.5-1-x86_64.pkg.tar.zst').write_text('x')
         (self.d / 'cache/stock/gnome-shell-1:50.5-1-aarch64.pkg.tar.zst').write_text('x')
         r = self.run_inst('check')
-        self.assertIn('not for aarch64', r.stdout)
+        self.assertIn("not aarch64", r.stdout)
         self.assertIn('NOT usable', r.stdout)
 
     def test_complete_set_restores(self):
