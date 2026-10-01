@@ -465,6 +465,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k115-d15-261002b",
+      "role": "main",
+      "kernel": "k115",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k115",
+      "manifest_sha256": "f23e646f6f2932256b0c10140538cdd7e5156bc8ba59cb0ee13d5a54d480840d",
+      "package": "package-main-k115-d15-261002b",
+      "source_commit": "1a0ec87dd2d2",
+      "changes": "k115 RAM re-trial bundle (same content as main-k115-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
