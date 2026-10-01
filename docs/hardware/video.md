@@ -206,7 +206,7 @@ Not run. Bundle, install, firmware and test steps: [Trial plan](#trial-plan).
 
 ## Trial plan
 
-Bundle `main-k114-d15-261001a` (k114 + d15, try-once main; package under
+Bundle `main-k114-d15-261001a` (k114 + d15, try-once main; wrapper `boot-ram-128m.img` SHA-256 `cab1469544ee515154f64ac91255e97417339210d5012b1cd3b0ed27ba114c1a`, descriptor `trial-main-k114-d15-261001a/descriptor`; package under
 `~/.local/state/rog5-production-boot-20260923/package-main-k114-d15-261001a/`).
 Fallback stays `safe-k111-d10-261001a` (its DTB has no video node). Every
 step below is read-only on the phone except the firmware installer (step 3)

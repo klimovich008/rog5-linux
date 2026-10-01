@@ -91,6 +91,16 @@
       "source_commit": "defc52dbea98",
       "source_dirty": false,
       "changes": ""
+    },
+    "k114": {
+      "build": "rog5-kernel-7.2.7-build-r114",
+      "release": "7.2.7-rog5-k114",
+      "date": "2026-10-01",
+      "series": "119 patches, 0001-0156",
+      "image_sha256": "204faf0e584e47db4edc854c1e5c45ea14bee4ce0e9c958938cc68782b954385",
+      "source_commit": "52e3d413b2b0",
+      "source_dirty": false,
+      "changes": "k113 + hardware video: rog5-video.fragment (SM_VIDEOCC_8350, VIDEO_QCOM_IRIS), 0154 iris fail-clean teardown, 0155 IOVA memory-region binding (backport), 0156 SM8350 SMMU route readback"
     }
   },
   "bundles": [
@@ -413,6 +423,22 @@
       "healthy": "yes",
       "installed": "2026-10-01 18:30",
       "notes": "SWIOTLB 4 MiB: hiwater 4 slabs after Wi-Fi bulk, pressure, 15 s2idle; one unreproduced WCN6855 RDDM on resume (Wi-Fi dead until reboot); USB storage/DP/game not yet on k113"
+    },
+    {
+      "name": "main-k114-d15-261001a",
+      "role": "main",
+      "kernel": "k114",
+      "dtb": "d15",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k114",
+      "manifest_sha256": "542354ecf6de418f86f18d5ee6d362b6181009540eb258319874b9f57a2e28b5",
+      "package": "package-main-k114-d15-261001a",
+      "source_commit": "c9255283ae87",
+      "changes": "TRIAL hardware video: iris (sm8350-iris/sm8250-venus fallback) + videocc, 0154 iris fail-clean teardown, 0155 IOVA memory-region binding, 0156 SMMU route readback; d15 = d13 + video overlay with IOVA hole; video-modules kit (rog5-video.service)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
