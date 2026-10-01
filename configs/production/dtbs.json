@@ -74,6 +74,15 @@
       "created": "2026-10-01",
       "kernel_requires": "",
       "notes": "TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool (d11 + frees 0xedc00000-0xef7fffff and 0xf3800000-0xf9bfffff, 128 MiB)"
+    },
+    "d13": {
+      "path": "platform-d10-memslim-all-dtb-d13/board.dtb",
+      "sha256": "1d690d392baa94ff03933763397adbb163b4f953ab25ccb2cb262ffcf9187119",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc,memx,l11off",
+      "base": "d10",
+      "created": "2026-10-01",
+      "kernel_requires": "",
+      "notes": "TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each)"
     }
   }
 }
