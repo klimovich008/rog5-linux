@@ -1,0 +1,309 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: cs35l45: ROG5: reload the protection firmware after a missed pause
+
+The speaker-protection firmware is paused (mailbox command 1) when the
+DSP1 widget powers down and resumed (2) when it powers up; the driver
+writes the command and polls DSP_MBOX_2 for the new state for 5 x 1 ms.
+The DSP's own mailbox interrupt stays masked (IRQ2_MASK_2 reads
+0xffffffff), so the firmware picks commands up when it polls.
+
+On 2026-10-01 a PCM opened and closed within ~100 ms (WirePlumber's
+re-probe right after the route started both DSPs, later DP hotplug
+desktop sounds) left both amplifiers silent:
+  cs35l45 5-0031: Failed to set mailbox cmd 1 (status 0)
+  snd-sm8250 sound: ASoC: PRE_PMD: SPK DSP1 event failed: -42
+Status 0 is CSPL_MBOX_STS_RUNNING: the firmware had not acted on the pause
+within 5 ms. DAPM ignores a failed PRE_PMD and goes on to disable the
+amplifier, and the stream's clocks stop, while the core keeps running
+with the pause pending. From then on the firmware never answered its
+mailbox again: every later stream "resumed" at once (the status had
+never left RUNNING), played silence with CSPL_TEMPERATURE frozen at its
+initial 0x64000 and failed the next pause. With the Preload switch on the
+DSP is never reloaded, so only Preload off/on recovered it.
+
+- Pause and resume poll for up to mbox_timeout_ms (200) instead of 5 ms
+  and log how long a slow one took; the hibernation exit keeps its five
+  polls, as its caller retries it.
+- A pause is sent no earlier than pause_settle_ms (100) after the resume,
+  while the stream still clocks the amplifier (DAPM powers DSP1 down in
+  hw_free, before the back end's port stops).
+- If the firmware still does not pause (or a pause/resume could not be
+  written or was not acknowledged while the core runs), it is marked for
+  a reload: the preloader's power down, which follows in the same
+  sequence, stops the core, restores the default protection registers
+  and powers the DSP down even though it is preloaded. 500 ms later a
+  work item boots it again through the preloader events, as a Preload
+  switch write would (firmware, tuning and calibration loaded, vendor
+  registers, calibration check in pre_run); a stream that starts first
+  boots it through the same events. The work holds the card's control
+  lock for reading around its DAPM transaction, so a Preload switch
+  write (made with that lock held for writing) cannot interleave with
+  it, and it is disabled at the start of cs35l45_remove(), before
+  wm_adsp2_remove() frees the DSP's controls.
+
+The calibration gate (0124) applies to every reload; a DSP that fails it
+stays stopped and DSP_TX1 carries no audio.
+
+--- a/sound/soc/codecs/cs35l45.h
++++ b/sound/soc/codecs/cs35l45.h
+@@ -500,6 +500,9 @@
+ 	bool sysclk_set;
+ 	bool dsp_part_named;
+ 	bool prot_regs_set;
++	bool dsp_reload;
++	ktime_t dsp_resumed;
++	struct delayed_work dsp_reload_work;
+ 	u8 slot_width;
+ 	u8 slot_count;
+ 	int amplifier_mode;
+--- a/sound/soc/codecs/cs35l45.c
++++ b/sound/soc/codecs/cs35l45.c
+@@ -7,11 +7,13 @@
+ // Author: James Schulman <james.schulman@cirrus.com>
+ 
+ #include <linux/gpio/consumer.h>
++#include <linux/ktime.h>
+ #include <linux/module.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/property.h>
+ #include <linux/firmware.h>
+ #include <linux/regulator/consumer.h>
++#include <linux/workqueue.h>
+ #include <sound/core.h>
+ #include <sound/pcm.h>
+ #include <sound/pcm_params.h>
+@@ -43,11 +45,23 @@
+ 	}
+ }
+ 
++/*
++ * The protection firmware polls its mailbox (the DSP's own mailbox IRQ stays
++ * masked) and can take longer than 5 ms to act on a pause or resume, e.g.
++ * while it fades a stream in that was started a few milliseconds earlier.
++ * Pause and resume wait up to mbox_timeout_ms; the hibernation exit keeps its
++ * five 1 ms polls, as its caller retries it.
++ */
++static unsigned int mbox_timeout_ms = 200;
++module_param(mbox_timeout_ms, uint, 0644);
++MODULE_PARM_DESC(mbox_timeout_ms,
++		 "How long a protection firmware pause or resume may take (ms, at least 5)");
++
+ static int cs35l45_set_cspl_mbox_cmd(struct cs35l45_private *cs35l45,
+ 				      struct regmap *regmap,
+ 				      const enum cs35l45_cspl_mboxcmd cmd)
+ {
+-	unsigned int sts = 0, i;
++	unsigned int sts = 0, i, polls;
+ 	int ret;
+ 
+ 	if (!cs35l45->dsp.cs_dsp.running) {
+@@ -63,8 +77,10 @@
+ 		return ret;
+ 	}
+ 
++	polls = cmd == CSPL_MBOX_CMD_OUT_OF_HIBERNATE ? 5 : max(READ_ONCE(mbox_timeout_ms), 5U);
++
+ 	// Read mailbox status and verify it is appropriate for the given cmd
+-	for (i = 0; i < 5; i++) {
++	for (i = 0; i < polls; i++) {
+ 		usleep_range(1000, 1100);
+ 
+ 		ret = regmap_read(regmap, CS35L45_DSP_MBOX_2, &sts);
+@@ -73,10 +89,16 @@
+ 			continue;
+ 		}
+ 
+-		if (!cs35l45_check_cspl_mbox_sts(cmd, sts))
++		if (!cs35l45_check_cspl_mbox_sts(cmd, sts)) {
+ 			dev_dbg(cs35l45->dev, "[%u] cmd %u returned invalid sts %u", i, cmd, sts);
+-		else
+-			return 0;
++			continue;
++		}
++
++		/* Before, anything past five polls was a failure */
++		if (i >= 5)
++			dev_info(cs35l45->dev, "Mailbox cmd %u took %u polls\n", cmd, i + 1);
++
++		return 0;
+ 	}
+ 
+ 	if (cmd != CSPL_MBOX_CMD_OUT_OF_HIBERNATE)
+@@ -179,6 +201,9 @@
+ 	return ret;
+ }
+ 
++/* A wedged preloaded DSP is booted again this long after its stream stopped */
++#define CS35L45_DSP_RELOAD_DELAY_MS	500
++
+ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
+ 				  struct snd_kcontrol *kcontrol, int event)
+ {
+@@ -215,7 +240,8 @@
+ 
+ 		return ret;
+ 	case SND_SOC_DAPM_PRE_PMD:
+-		if (cs35l45->dsp.preloaded)
++		/* A preloaded DSP keeps running between streams, unless wedged */
++		if (cs35l45->dsp.preloaded && !cs35l45->dsp_reload)
+ 			return 0;
+ 
+ 		if (cs35l45->dsp.cs_dsp.running) {
+@@ -226,25 +252,126 @@
+ 
+ 		cs35l45_set_prot_regs(cs35l45, false);
+ 
+-		return wm_adsp_early_event(w, kcontrol, event);
++		ret = wm_adsp_early_event(w, kcontrol, event);
++
++		if (cs35l45->dsp_reload) {
++			cs35l45->dsp_reload = false;
++			/* The next stream would boot it too; do it while idle. */
++			if (cs35l45->dsp.preloaded)
++				queue_delayed_work(system_freezable_wq, &cs35l45->dsp_reload_work,
++						   msecs_to_jiffies(CS35L45_DSP_RELOAD_DELAY_MS));
++		}
++
++		return ret;
+ 	default:
+ 		return 0;
+ 	}
+ }
+ 
++/*
++ * Boot a preloaded DSP that was powered down after a failed pause, as a
++ * "DSP1 Preload Switch" write would: the preloader's events load the
++ * firmware and coefficients, apply the protection registers and start the
++ * core behind the calibration check (pre_run). A stream that starts first
++ * boots it through the same events and this finds it booted. The control
++ * lock keeps a concurrent Preload Switch write (wm_adsp2_preloader_put,
++ * called with it held for writing, takes the DAPM mutex several times)
++ * from interleaving with this.
++ */
++static void cs35l45_dsp_reload_work(struct work_struct *work)
++{
++	struct cs35l45_private *cs35l45 = container_of(to_delayed_work(work),
++						       struct cs35l45_private,
++						       dsp_reload_work);
++	struct snd_soc_component *component = cs35l45->dsp.component;
++	struct snd_soc_dapm_context *dapm;
++	struct snd_card *card;
++	char preload[32];
++
++	if (!component || !component->card)
++		return;
++
++	dapm = snd_soc_component_to_dapm(component);
++	card = component->card->snd_card;
++	snprintf(preload, sizeof(preload), "%s Preload", cs35l45->dsp.cs_dsp.name);
++
++	if (pm_runtime_resume_and_get(cs35l45->dev) < 0)
++		return;
++
++	down_read(&card->controls_rwsem);
++	snd_soc_dapm_mutex_lock(dapm);
++	if (cs35l45->dsp.preloaded && !cs35l45->dsp.cs_dsp.booted) {
++		snd_soc_dapm_force_enable_pin_unlocked(dapm, preload);
++		snd_soc_dapm_sync_unlocked(dapm);
++		snd_soc_dapm_disable_pin_unlocked(dapm, preload);
++		snd_soc_dapm_sync_unlocked(dapm);
++		dev_info(cs35l45->dev, "Protection firmware reloaded: %s\n",
++			 cs35l45->dsp.cs_dsp.running ? "running" : "not running");
++	}
++	snd_soc_dapm_mutex_unlock(dapm);
++	up_read(&card->controls_rwsem);
++
++	pm_runtime_put_autosuspend(cs35l45->dev);
++}
++
++/*
++ * A pause sent right after a resume (a PCM opened and closed within tens of
++ * milliseconds, e.g. a sound server probing the device) is sent no earlier
++ * than pause_settle_ms after the resume, while the stream still clocks the
++ * amplifier, so the firmware has finished starting the stream.
++ */
++static unsigned int pause_settle_ms = 100;
++module_param(pause_settle_ms, uint, 0644);
++MODULE_PARM_DESC(pause_settle_ms,
++		 "Minimum time between a protection firmware resume and the next pause (ms)");
++
+ static int cs35l45_dsp_audio_ev(struct snd_soc_dapm_widget *w,
+ 				struct snd_kcontrol *kcontrol, int event)
+ {
+ 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
+ 	struct cs35l45_private *cs35l45 = snd_soc_component_get_drvdata(component);
++	unsigned int settle = READ_ONCE(pause_settle_ms);
++	s64 elapsed;
++	int ret;
+ 
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+-		return cs35l45_set_cspl_mbox_cmd(cs35l45, cs35l45->regmap,
+-						 CSPL_MBOX_CMD_RESUME);
++		ret = cs35l45_set_cspl_mbox_cmd(cs35l45, cs35l45->regmap,
++						CSPL_MBOX_CMD_RESUME);
++		if (!ret)
++			cs35l45->dsp_resumed = ktime_get();
++		else if (cs35l45->dsp.cs_dsp.running)
++			/* Unknown firmware state: reload it when the stream stops. */
++			cs35l45->dsp_reload = true;
++
++		return ret;
+ 	case SND_SOC_DAPM_PRE_PMD:
+-		return cs35l45_set_cspl_mbox_cmd(cs35l45, cs35l45->regmap,
+-						 CSPL_MBOX_CMD_PAUSE);
++		if (cs35l45->dsp_reload)
++			return 0;
++
++		elapsed = ktime_ms_delta(ktime_get(), cs35l45->dsp_resumed);
++		if (cs35l45->dsp.cs_dsp.running && elapsed >= 0 && elapsed < settle)
++			msleep((unsigned int)(settle - elapsed));
++
++		ret = cs35l45_set_cspl_mbox_cmd(cs35l45, cs35l45->regmap,
++						CSPL_MBOX_CMD_PAUSE);
++		/* A stopped DSP (-EPERM) needs no pause */
++		if (!ret || !cs35l45->dsp.cs_dsp.running)
++			return ret;
++
++		/*
++		 * The firmware did not pause (or the command could not be
++		 * written). Left running, it stays wedged
++		 * once the stream clocks stop: it ignores the mailbox from then
++		 * on and plays silence, while every later resume "succeeds"
++		 * on the unchanged status. Power it down with the preloader,
++		 * which follows, and boot it again.
++		 */
++		dev_err(cs35l45->dev,
++			"Protection firmware did not pause: stopping it, it is reloaded before the next stream\n");
++		cs35l45->dsp_reload = true;
++
++		return 0;
+ 	default:
+ 		return 0;
+ 	}
+@@ -980,6 +1107,7 @@
+ {
+ 	struct cs35l45_private *cs35l45 = snd_soc_component_get_drvdata(component);
+ 
++	cancel_delayed_work_sync(&cs35l45->dsp_reload_work);
+ 	wm_adsp2_component_remove(&cs35l45->dsp, component);
+ }
+ 
+@@ -1605,6 +1733,7 @@
+ 	dsp->part = part;
+ 	dsp->fw = 9; /* 9 is WM_ADSP_FW_SPK_PROT in wm_adsp.c */
+ 	dsp->toggle_preload = true;
++	INIT_DELAYED_WORK(&cs35l45->dsp_reload_work, cs35l45_dsp_reload_work);
+ 	dsp->pre_run = cs35l45_dsp_pre_run;
+ 	dsp->control_add = cs35l45_dsp_control_add;
+ 	dsp->cs_dsp.num = 1;
+@@ -1758,6 +1887,9 @@
+ 
+ void cs35l45_remove(struct cs35l45_private *cs35l45)
+ {
++	/* Before the DSP's controls are freed; no reload is queued after this */
++	disable_delayed_work_sync(&cs35l45->dsp_reload_work);
++
+ 	pm_runtime_get_sync(cs35l45->dev);
+ 	pm_runtime_disable(cs35l45->dev);
+ 	wm_adsp2_remove(&cs35l45->dsp);

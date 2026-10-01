@@ -150,6 +150,12 @@ class AmpBase(unittest.TestCase):
         self.route.runtime_control = runtime_control
         self.route.runtime_status = lambda device: 'active' if self.pm.get(device) == 'on' else 'suspended'
         self.route.DSP_BOOT_SECONDS = 0.3
+        self.route.DSP_STOP_SECONDS = 0.3
+        self.route.PCM_IDLE_SECONDS = 0.3
+        self.kmsg = []
+        self.route.kernel_messages = lambda: list(self.kmsg)
+        self.idle = True
+        self.route.playback_idle = lambda card: self.idle
         self.calibration = {'rcv_cal_r': '8996', 'spk_cal_r': '9096',
                             'rcv_cal_source': 'persist', 'spk_cal_source': 'persist'}
         self.on = {'amps': 'rcv spk'}
@@ -189,6 +195,7 @@ class Amp(AmpBase):
         self.assertEqual(self.pm['/sys/fake/RCV'], 'auto')
 
     def test_rerun_does_not_restart_a_running_dsp(self):
+        self.kmsg = ['cs35l45 RCV: Protection firmware calibration CAL_R 8996']
         mixer = FakeMixer(cal={'RCV': 8996})
         mixer.set('RCV DSP1 Preload Switch', '1')
         mixer.writes.clear()
@@ -274,6 +281,127 @@ class Amp(AmpBase):
         self.assertEqual(params[:4], (68).to_bytes(4, 'big'))
         self.assertEqual(mixer.params['RCV DSP1 Protection cd CSPL_COMMAND'], (8).to_bytes(4, 'big'))
         self.assertEqual(mixer.values['RCV DACPCM Source'], 'DSP_TX1')
+
+
+# The amplifier device of the fake sysfs is /sys/fake/RCV.
+START = 'cs35l45 RCV: Protection firmware calibration CAL_R 8996'
+PAUSE_FAILED = 'cs35l45 RCV: Failed to set mailbox cmd 1 (status 0)'
+
+
+class Wedge(AmpBase):
+    """A protection DSP whose firmware missed a pause after its last start
+    is power cycled, once playback is idle."""
+
+    def running_mixer(self):
+        mixer = FakeMixer(cal={'RCV': 8996})
+        mixer.set('RCV DSP1 Preload Switch', '1')
+        mixer.writes.clear()
+        return mixer
+
+    def preloads(self, mixer):
+        return [value for name, value in mixer.writes if name == 'RCV DSP1 Preload Switch']
+
+    def test_wedge_reason(self):
+        reason = self.route.wedge_reason
+        # no start in the history (overwritten) or no history: unknown, restart
+        self.assertIn('no longer in the kernel log', reason([], '5-0030', 'RCV'))
+        self.assertEqual(reason(None, '5-0030', 'RCV'), 'kernel log unreadable')
+        log = ['cs35l45 5-0030: Protection firmware calibration CAL_R 8996',
+               'cs35l45 5-0031: Failed to set mailbox cmd 1 (status 0)',
+               'snd-sm8250 sound: ASoC: PRE_PMD: SPK DSP1 event failed: -42']
+        self.assertIsNone(reason(log, '5-0030', 'RCV'))
+        self.assertIn('5-0031: Failed', reason(log[:2], '5-0031', 'SPK'))
+        self.assertIn('SPK DSP1', reason(log, '5-0031', 'SPK'))
+        # a later start (a reload) clears it
+        self.assertIsNone(reason(log + ['cs35l45 5-0031: Protection firmware calibration CAL_R 9096'],
+                                 '5-0031', 'SPK'))
+        # this script's own report quotes the failure
+        self.assertIsNone(reason(log[:1] + ['rog5-audio-route: RCV protection DSP wedged after its last start '
+                                            '(cs35l45 5-0030: Failed to set mailbox cmd 1 (status 0)); restarting it'],
+                                 '5-0030', 'RCV'))
+        # the hibernation exit retries are not failures
+        self.assertIsNone(reason(log[:1] + ['cs35l45 5-0030: Failed to set mailbox cmd 6 (status 1)'],
+                                 '5-0030', 'RCV'))
+        self.assertIsNotNone(reason(['cs35l45 5-0030: Protection firmware did not pause: stopping it'],
+                                    '5-0030', 'RCV'))
+        # a resume that could not be written
+        for line in ('cs35l45 5-0030: Failed to write MBOX: -5',
+                     'snd-sm8250 sound: ASoC: POST_PMU: RCV DSP1 event failed: -5'):
+            self.assertEqual(reason(log[:1] + [line], '5-0030', 'RCV'), line)
+
+    def test_kernel_messages_reads_records(self):
+        path = self.dir/'kmsg'
+        path.write_bytes(b'6,1,5,-;cs35l45 5-0030: Failed to set mailbox cmd 1 (status 0)\n SUBSYSTEM=i2c\n')
+        # a regular file returns everything in one read, then EOF
+        self.assertEqual(self.route_module_messages(path), ['cs35l45 5-0030: Failed to set mailbox cmd 1 (status 0)'])
+        self.assertIsNone(self.route_module_messages(self.dir/'missing'))
+
+    def test_kernel_messages_overwritten_while_reading_is_unknown(self):
+        route = load_route()
+        reads = iter([b'6,1,5,-;cs35l45 RCV: Protection firmware calibration CAL_R 8996\n', BrokenPipeError()])
+
+        def read(fd, size):
+            item = next(reads)
+            if isinstance(item, Exception):
+                raise item
+            return item
+        route.os = type('os', (), dict(open=lambda *a: 3, read=read, close=lambda fd: None,
+                                       O_RDONLY=0, O_NONBLOCK=0))
+        self.assertIsNone(route.kernel_messages('/dev/kmsg'))
+
+    def route_module_messages(self, path):
+        return load_route().kernel_messages(str(path))
+
+    def test_healthy_running_dsp_is_kept(self):
+        self.kmsg = [PAUSE_FAILED, START]
+        mixer = self.running_mixer()
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(self.preloads(mixer), [])
+        self.assertEqual(mixer.values['RCV DACPCM Source'], 'DSP_TX1')
+
+    def test_unknown_history_restarts_the_dsp(self):
+        for history in ([], None, [PAUSE_FAILED]):
+            self.kmsg = history
+            self.route.kernel_messages = lambda: None if self.kmsg is None else list(self.kmsg)
+            mixer = self.running_mixer()
+            self.assertIsNone(self.run_amp(mixer))
+            self.assertEqual(self.preloads(mixer), ['0', '1'])
+            self.assertEqual(mixer.values['RCV DACPCM Source'], 'DSP_TX1')
+
+    def test_wedged_dsp_is_power_cycled(self):
+        self.kmsg = [START, PAUSE_FAILED]
+        mixer = self.running_mixer()
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(self.preloads(mixer), ['0', '1'])
+        self.assertTrue(any('RCV protection DSP wedged' in line for line in self.logs))
+        self.assertTrue(any('started' in line for line in self.logs))
+        self.assertEqual(mixer.values['RCV DACPCM Source'], 'DSP_TX1')
+        self.assertEqual(mixer.values['RCV Digital PCM Volume'], '409')
+
+    def test_wedged_dsp_with_playback_running_goes_direct(self):
+        self.kmsg = [START, PAUSE_FAILED]
+        self.idle = False
+        mixer = self.running_mixer()
+        self.assertIsNone(self.run_amp(mixer))
+        self.assertEqual(mixer.values['RCV DACPCM Source'], 'ASP_RX1')
+        self.assertEqual(mixer.values['RCV Digital PCM Volume'], '361')
+        self.assertNotIn('409', [value for name, value in mixer.writes if name == 'RCV Digital PCM Volume'])
+        self.assertTrue(any('wedged' in line and 'playback did not stop' in line for line in self.logs))
+
+    def test_dsp_that_does_not_stop_goes_direct(self):
+        self.kmsg = [START, PAUSE_FAILED]
+        mixer = self.running_mixer()
+        orig = mixer.set
+
+        def set_keep_core(name, value):
+            rc = orig(name, value)
+            mixer.running.add('RCV')
+            return rc
+        mixer.set = set_keep_core
+        failure = self.run_amp(mixer)
+        self.assertTrue(any('DSP did not stop' in line for line in self.logs))
+        self.assertEqual(mixer.values['RCV DACPCM Source'], 'ASP_RX1')
+        self.assertIn('DSP stop', failure)
 
 
 class NoDspMixer(FakeMixer):

@@ -33,6 +33,18 @@ The amplifier then stays runtime-active, so its DSP pauses between streams as
 on stock instead of hibernating (hibernate=1 allows the driver's hibernation).
 Any failure puts that amplifier back on the direct path (DACPCM = ASP_RX, DSP
 stopped).
+
+A running DSP is normally kept, but not one the kernel log shows wedged: a
+pause or resume its firmware did not acknowledge ("Failed to set mailbox cmd",
+"PRE_PMD: <amp> DSP1 event failed", "Protection firmware did not pause")
+after the DSP's last start ("Protection firmware calibration CAL_R"), nor one
+whose last start is no longer in the log (unreadable, or overwritten). Such a
+firmware stops answering its mailbox and plays silence, while the controls
+still read CSPL_STATE 0 (2026-10-01: a PCM opened and closed within ~100 ms
+during boot; kernels with 0151 reload it themselves). That DSP is power
+cycled (Preload off, then the normal start) once playback is idle: the
+preload switch cannot stop a DSP that a running stream holds up. If playback
+does not stop within PCM_IDLE_SECONDS, the amplifier goes to the direct path.
 Without the firmware, with the amplifier disabled, on a kernel without the
 protection support (no DSP controls) or after a failed start, it plays ASP_RX
 straight to the DAC (no protection) at -12 dB.
@@ -104,6 +116,9 @@ CSPL_CMD_UPDATE_PARAM = 8
 # wm_adsp keeps the last 20 characters of CSPL_UPDATE_PARAMS_CONFIG
 UPDATE_PARAMS = 'UPDATE_PARAMS_CONFIG'
 DSP_BOOT_SECONDS = 10
+DSP_STOP_SECONDS = 2
+PCM_IDLE_SECONDS = 15
+KMSG = '/dev/kmsg'
 
 
 def log(message):
@@ -351,6 +366,82 @@ def unavailable(prefix, part, config, calibration):
     return None
 
 
+def kernel_messages(path=KMSG):
+    """The kernel log records still in the ring buffer, oldest first (text
+    of each record's first line); None when the log cannot be read in full."""
+    messages = []
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    except OSError:
+        return None
+    try:
+        while True:
+            try:
+                record = os.read(fd, 8192)
+            except BlockingIOError:
+                break
+            except BrokenPipeError:
+                return None  # records overwritten while reading: incomplete
+            except OSError:
+                return None
+            if not record:
+                break
+            text = record.decode(errors='replace').partition(';')[2]
+            messages.append(text.split('\n', 1)[0])
+    finally:
+        os.close(fd)
+    return messages
+
+
+def wedge_reason(messages, device, prefix):
+    """The kernel log line showing that this amplifier's protection firmware
+    missed a pause/resume after its last start, or None. A history that does
+    not show the start (log unreadable, or the start overwritten in the ring
+    buffer) cannot rule a wedge out and counts as one."""
+    if messages is None:
+        return 'kernel log unreadable'
+    started = False
+    start = f'cs35l45 {device}: Protection firmware calibration CAL_R'
+    failures = (f'cs35l45 {device}: Failed to set mailbox cmd 1 ',
+                f'cs35l45 {device}: Failed to set mailbox cmd 2 ',
+                f'cs35l45 {device}: Protection firmware did not pause',
+                f'cs35l45 {device}: Failed to write MBOX',
+                f'ASoC: PRE_PMD: {prefix} DSP1 event failed',
+                f'ASoC: POST_PMU: {prefix} DSP1 event failed')
+    reason = None
+    for text in messages:
+        if text.startswith('rog5-audio-route:'):
+            continue  # this script's own reports quote the kernel lines
+        if start in text:
+            started, reason = True, None
+        elif any(failure in text for failure in failures):
+            reason = text
+    if reason is None and not started:
+        return 'its last start is no longer in the kernel log'
+    return reason
+
+
+def playback_idle(card):
+    """MultiMedia1 (PCM 0 playback) is closed."""
+    for path in glob.glob(f'/proc/asound/card{card}/pcm0p/sub*/status'):
+        try:
+            with open(path) as f:
+                if f.read().strip() != 'closed':
+                    return False
+        except OSError:
+            continue
+    return True
+
+
+def wait_playback_idle(card, seconds):
+    deadline = time.monotonic() + seconds
+    while not playback_idle(card):
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.2)
+    return True
+
+
 def core_running(mixer, prefix):
     """The DSP core runs when its volatile CSPL_STATE can be read (any
     DAPM path may keep it running, Preload or not)."""
@@ -391,16 +482,31 @@ def apply_music_delta(mixer, prefix, part):
     return None
 
 
-def start_protection(mixer, prefix, part, direct, cal_r, config):
+def start_protection(mixer, prefix, part, direct, cal_r, config, card=None):
     """Set up and verify the protection DSP; return None or a failure."""
     for name, value in (('DSP_RX1 Source', direct), ('DSP_RX2 Source', direct)) + DSP_INPUTS:
         if mixer.set(f'{prefix} {name}', value) < 0:
             return f'could not set {name}'
     started = False
-    if not dsp_running(mixer, prefix):
-        # A preloaded DSP that does not run: stop it before loading again.
+    running = dsp_running(mixer, prefix)
+    if running:
+        device = amp_device(prefix)
+        wedge = wedge_reason(kernel_messages(), os.path.basename(device or ''), prefix)
+        if wedge:
+            if not wait_playback_idle(card, PCM_IDLE_SECONDS):
+                return f'protection DSP wedged ({wedge}) and playback did not stop'
+            log(f'{prefix} protection DSP wedged after its last start ({wedge}); restarting it')
+            running = False
+    if not running:
+        # A preloaded DSP that does not run (or is wedged): stop it before
+        # loading again.
         if mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1:
             mixer.set(f'{prefix} DSP1 Preload Switch', '0')
+            deadline = time.monotonic() + DSP_STOP_SECONDS
+            while core_running(mixer, prefix):
+                if time.monotonic() > deadline:
+                    return 'DSP did not stop'
+                time.sleep(0.1)
         if mixer.set(f'{prefix} DSP1 Firmware', 'Protection') < 0:
             return 'could not select the Protection firmware'
         # Loads the wmfw and the .bin (tuning + this unit's calibration) and
@@ -435,7 +541,7 @@ def start_protection(mixer, prefix, part, direct, cal_r, config):
     return None
 
 
-def route_amp(mixer, prefix, part, direct, config, calibration):
+def route_amp(mixer, prefix, part, direct, config, calibration, card=None):
     """Direct path or protection DSP for one amplifier; None, or what failed
     on the way to the direct path."""
     reason = unavailable(prefix, part, config, calibration)
@@ -445,7 +551,7 @@ def route_amp(mixer, prefix, part, direct, config, calibration):
         if runtime_control(device, 'on') != 'on' or runtime_status(device) != 'active':
             reason = 'amplifier did not stay runtime-active'
         else:
-            reason = start_protection(mixer, prefix, part, direct, cal_r, config)
+            reason = start_protection(mixer, prefix, part, direct, cal_r, config, card)
         if reason is None:
             if mixer.set(f'{prefix} DACPCM Source', 'DSP_TX1') >= 0:
                 if config.get('hibernate', '0') == '1':
@@ -539,7 +645,7 @@ def main():
     config = read_key_values(CONFIG_FILE)
     calibration = read_key_values(f'{SPEAKER_DIR}/calibration')
     for prefix, part, direct in AMPS:
-        failure = route_amp(mixer, prefix, part, direct, config, calibration)
+        failure = route_amp(mixer, prefix, part, direct, config, calibration, card)
         if failure:
             failed.append(failure)
     asound.snd_ctl_close(handle)
