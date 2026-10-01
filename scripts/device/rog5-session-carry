@@ -5,19 +5,25 @@ A switch stops one compositor and starts the other, so every app closes.
 This makes it cheaper:
 
   save [--close]   (ExecStop of rog5-phosh / rog5-gnome, as the phone user,
-                   while the old compositor still runs) records the apps
-                   with windows and, with --close, asks them to quit
-                   cleanly (browsers then restore their tabs instead of
-                   reporting a crash) and waits up to --timeout seconds.
+                   while the old compositor still runs) acts only on a
+                   switch, i.e. while systemd has a start job queued for the
+                   other session unit and no shutdown/reboot job: it records
+                   the apps and, with --close, asks them to quit cleanly
+                   (browsers then restore their tabs instead of reporting a
+                   crash). --timeout bounds the whole run (collection, quit
+                   requests and waiting). On a shutdown, a crash restart or a
+                   plain stop it records nothing and drops any old record.
   restore          (rog5-session-restore.service, user unit started with
-                   graphical-session.target) relaunches the recorded apps in
-                   the new session, once: the record is removed first, and
-                   it is used only in the same boot and within --max-age
-                   seconds, so a reboot or an old record never reopens apps.
+                   graphical-session.target) claims the record atomically
+                   (once only), uses it only in the same boot and if it is
+                   at most --max-age seconds old, waits until the session is
+                   unlocked (Phosh comes up locked after a hand-back; up to
+                   --unlock-wait seconds) and then relaunches the apps.
   status           prints the record.
 
-Which apps: the ones Phosh and GNOME launched (systemd scopes
-app-gnome-<desktop id>-<pid>.scope) plus D-Bus activated GtkApplications
+Which apps: the ones Phosh and GNOME launched that still run (systemd
+scopes app-gnome-<desktop id>-<pid>.scope; this includes an app that only
+sits in the tray, e.g. Steam with its window closed) plus D-Bus activated GtkApplications
 that have a window (<object path>/window/<n> on the session bus; names are
 checked with NameHasOwner and called with NO_AUTO_START, so nothing is ever
 activated by the check). Only ids with an installed, visible .desktop file
@@ -49,6 +55,24 @@ DEFAULT_EXCLUDE = (
     'org.gnome.Software', 'org.gnome.Evolution-alarm-notify',
 )
 SCOPE_RE = re.compile(r'^app-gnome-(?P<id>.+)-(?P<pid>[0-9]+)\.scope$')
+APP_ID_RE = re.compile(r'^[A-Za-z0-9._-]{1,128}$')
+SESSION_UNITS = ('rog5-gnome.service', 'rog5-phosh.service')
+SHUTDOWN_UNITS = ('shutdown.target', 'reboot.target', 'poweroff.target', 'halt.target',
+                  'kexec.target', 'final.target', 'soft-reboot.target')
+MAX_RECORD = 64 * 1024
+MAX_APPS = 64
+_deadline = None
+
+
+def remaining(cap):
+    """Seconds an operation may take: CAP, or less near the run's deadline."""
+    if _deadline is None:
+        return cap
+    return max(0.05, min(cap, _deadline - time.monotonic()))
+
+
+def expired():
+    return _deadline is not None and time.monotonic() >= _deadline
 
 
 def log(msg):
@@ -107,7 +131,7 @@ class System:
 
     def run(self, argv, timeout=10):
         try:
-            p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+            p = subprocess.run(argv, capture_output=True, text=True, timeout=remaining(timeout))
             return p.returncode, p.stdout
         except (OSError, subprocess.TimeoutExpired):
             return 1, ''
@@ -126,7 +150,7 @@ class System:
     def _call(self, name, path, iface, method, args, reply):
         from gi.repository import Gio, GLib
         return self.bus().call_sync(name, path, iface, method, args, GLib.VariantType(reply),
-                                    Gio.DBusCallFlags.NO_AUTO_START, 3000, None).unpack()
+                                    Gio.DBusCallFlags.NO_AUTO_START, int(remaining(3) * 1000), None).unpack()
 
     def bus_names(self):
         try:
@@ -195,6 +219,29 @@ class System:
         except OSError:
             pass
 
+    def switch_pending(self):
+        """True while a start job for the other session unit is queued and
+        no shutdown-type job is: a Phosh <-> GNOME switch, not a shutdown,
+        crash restart or plain stop."""
+        rc, out = self.run(['systemctl', 'list-jobs', '--no-legend', '--plain'])
+        if rc != 0:
+            return False
+        jobs = [line.split() for line in out.splitlines() if len(line.split()) >= 3]
+        if any(j[1] in SHUTDOWN_UNITS for j in jobs):
+            return False
+        return any(j[1] in SESSION_UNITS and j[2] == 'start' for j in jobs)
+
+    def session_locked(self):
+        """'yes'/'no' for this user's graphical session, None if unknown."""
+        import pwd
+        user = pwd.getpwuid(os.getuid()).pw_name
+        rc, sid = self.run(['loginctl', 'show-user', user, '-p', 'Display', '--value'])
+        if rc != 0 or not sid.strip():
+            return None
+        rc, out = self.run(['loginctl', 'show-session', sid.strip(), '-p', 'LockedHint', '--value'])
+        out = out.strip()
+        return out if rc == 0 and out in ('yes', 'no') else None
+
     def launch(self, app_id):
         unit = 'app-gnome-%s-%d.scope' % (self.escape(app_id), os.getpid() * 100 + int(time.time()) % 100)
         rc, _ = self.run(['systemd-run', '--user', '--scope', '--collect', '--quiet', '--unit=' + unit,
@@ -217,6 +264,8 @@ def collect(sysm, globs):
     """{app id: {'scopes': [...], 'bus': name or None}} for the apps to carry."""
     apps = {}
     for unit in sysm.scopes():
+        if expired():
+            break
         m = SCOPE_RE.match(unit)
         if not m:
             continue
@@ -225,6 +274,8 @@ def collect(sysm, globs):
             continue
         apps.setdefault(app_id, {'scopes': [], 'bus': None})['scopes'].append(unit)
     for name in sysm.bus_names():
+        if expired():
+            break
         if excluded(name, globs) or not sysm.visible_app(name):
             continue
         if name not in apps and sysm.window_count(name) == 0:
@@ -233,8 +284,12 @@ def collect(sysm, globs):
     return apps
 
 
-def close_apps(sysm, apps, timeout):
+def close_apps(sysm, apps):
+    """Ask APPS to quit; wait until they are gone or the deadline passes."""
+    left = sorted(apps)
     for app_id, a in apps.items():
+        if expired():
+            return left
         if a['bus'] and sysm.quit_app(a['bus']):
             continue
         for unit in a['scopes']:
@@ -243,58 +298,140 @@ def close_apps(sysm, apps, timeout):
             pid = sysm.name_pid(a['bus'])
             if pid > 1:
                 sysm.kill_pid(pid)
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+    while not expired():
         running = set(sysm.scopes())
         names = set(sysm.bus_names())
         left = [i for i, a in apps.items()
                 if any(u in running for u in a['scopes']) or (a['bus'] and a['bus'] in names)]
         if not left:
             return []
-        sysm.sleep(0.5)
+        sysm.sleep(min(0.5, remaining(0.5)))
     return left
 
 
+def drop_record(path):
+    try:
+        path.unlink()
+    except OSError:
+        pass
+
+
+def write_private(path, text):
+    import tempfile
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix='.' + path.name + '.', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        drop_record(Path(tmp))
+        raise
+
+
 def cmd_save(sysm, args):
+    global _deadline
+    _deadline = time.monotonic() + args.timeout
     enabled, globs = read_config()
     path = state_file()
     if not enabled:
         log('off (session-carry.conf)')
         return 0
+    if not sysm.switch_pending():
+        drop_record(path)
+        log('not a Phosh/GNOME switch (shutdown, restart or plain stop): nothing recorded')
+        return 0
     apps = collect(sysm, globs)
+    names = sorted(apps)[:MAX_APPS]
     desktop = os.environ.get('XDG_CURRENT_DESKTOP', '')
     rec = {'format': 'rog5-session-carry-v1', 'boot_id': boot_id(), 'saved': time.time(),
-           'from': desktop, 'apps': sorted(apps)}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + '.tmp')
-    tmp.write_text(json.dumps(rec) + '\n')
-    os.replace(tmp, path)
-    log(f'saved {len(apps)} app(s) from {desktop or "?"}: {" ".join(sorted(apps)) or "-"}')
+           'from': desktop[:64], 'apps': names}
+    write_private(path, json.dumps(rec) + '\n')
+    log(f'saved {len(names)} app(s) from {desktop or "?"}: {" ".join(names) or "-"}')
     if args.close and apps:
-        left = close_apps(sysm, apps, args.timeout)
-        log('closed cleanly' if not left else f'still running after {args.timeout:g} s: {" ".join(left)}')
+        left = close_apps(sysm, apps)
+        log('closed cleanly' if not left else f'still running at the {args.timeout:g} s limit: {" ".join(left)}')
     return 0
+
+
+def claim_record(path):
+    """Take the record for this run only (rename, then read); None if there
+    is none or it is not a plain private file of ours."""
+    claimed = path.with_name(f'.{path.name}.claimed.{os.getpid()}')
+    try:
+        os.rename(path, claimed)
+    except OSError:
+        return None
+    try:
+        st = os.lstat(claimed)
+        import stat
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_size > MAX_RECORD:
+            return None
+        return claimed.read_text()
+    except OSError:
+        return None
+    finally:
+        drop_record(claimed)
+
+
+def valid_record(text):
+    """The record as a dict, or None unless it has exactly the expected shape."""
+    import math
+    try:
+        rec = json.loads(text)
+    except ValueError:
+        return None
+    if not isinstance(rec, dict) or rec.get('format') != 'rog5-session-carry-v1':
+        return None
+    saved, apps = rec.get('saved'), rec.get('apps')
+    if not isinstance(rec.get('boot_id'), str) or not isinstance(saved, (int, float)) or \
+            isinstance(saved, bool) or not math.isfinite(saved):
+        return None
+    if not isinstance(apps, list) or len(apps) > MAX_APPS or \
+            not all(isinstance(a, str) and APP_ID_RE.match(a) for a in apps):
+        return None
+    if not isinstance(rec.get('from', ''), str):
+        return None
+    return rec
+
+
+def wait_unlocked(sysm, limit):
+    """True once the session reports unlocked; False on timeout or if the
+    lock state stays unreadable (no session) for 30 s."""
+    end = time.monotonic() + limit
+    unknown_since = None
+    while time.monotonic() < end:
+        state = sysm.session_locked()
+        if state == 'no':
+            return True
+        if state is None:
+            unknown_since = unknown_since or time.monotonic()
+            if time.monotonic() - unknown_since > 30:
+                return False
+        else:
+            unknown_since = None
+        sysm.sleep(2)
+    return False
 
 
 def cmd_restore(sysm, args):
     enabled, globs = read_config()
-    path = state_file()
-    try:
-        rec = json.loads(path.read_text())
-    except (OSError, ValueError):
+    text = claim_record(state_file())
+    if text is None or not enabled:
         return 0
-    try:
-        path.unlink()          # once only, whatever happens next
-    except OSError:
-        pass
-    if not enabled:
+    rec = valid_record(text)
+    if rec is None:
+        log('record malformed: ignored')
         return 0
-    age = time.time() - float(rec.get('saved', 0))
-    if rec.get('boot_id') != boot_id() or not 0 <= age <= args.max_age:
+    age = time.time() - float(rec['saved'])
+    if rec['boot_id'] != boot_id() or not 0 <= age <= args.max_age:
         log(f'record not used (other boot or {age:.0f} s old)')
         return 0
-    apps = [a for a in rec.get('apps', []) if not excluded(a, globs) and sysm.visible_app(a)]
+    apps = [a for a in rec['apps'] if not excluded(a, globs) and sysm.visible_app(a)]
     if not apps:
+        return 0
+    if not wait_unlocked(sysm, args.unlock_wait):
+        log(f'session not unlocked within {args.unlock_wait:g} s: {len(apps)} app(s) not reopened')
         return 0
     sysm.sleep(args.delay)
     ok = [a for a in apps if sysm.launch(a)]
@@ -315,14 +452,21 @@ def main(argv=None, sysm=None):
     sub = p.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('save')
     s.add_argument('--close', action='store_true')
-    s.add_argument('--timeout', type=float, default=8.0)
+    s.add_argument('--timeout', type=float, default=6.0)
     r = sub.add_parser('restore')
     r.add_argument('--max-age', type=float, default=300.0)
     r.add_argument('--delay', type=float, default=2.0)
+    r.add_argument('--unlock-wait', type=float, default=1800.0)
     sub.add_parser('status')
     args = p.parse_args(argv)
+    for name in ('timeout', 'max_age', 'delay', 'unlock_wait'):
+        v = getattr(args, name, None)
+        if v is not None and not (0 <= v < 1e6):
+            p.error(f'--{name.replace("_", "-")} must be between 0 and 1e6')
     os.environ.setdefault('DBUS_SESSION_BUS_ADDRESS', f'unix:path=/run/user/{os.getuid()}/bus')
     os.environ.setdefault('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+    global _deadline
+    _deadline = None
     sysm = sysm or System()
     return {'save': cmd_save, 'restore': cmd_restore, 'status': cmd_status}[args.cmd](sysm, args)
 

@@ -5,7 +5,9 @@ After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
-Type=oneshot
+# exec, not oneshot: after a hand-back it waits (up to 30 min) for the
+# PIN unlock before reopening anything, and ends with the session.
+Type=exec
 ExecStart=/usr/local/bin/rog5-session-carry restore
 
 [Install]

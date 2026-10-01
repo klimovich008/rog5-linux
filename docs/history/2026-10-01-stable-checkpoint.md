@@ -1,7 +1,7 @@
 # Stable checkpoint 2026-10-01 (tag `stable-2026-10-01`)
 
-What changed since the 0.1.0-alpha source (33f9f852), all installed and
-tested on the phone. Default `main-k113-d13-261001a` (two committed boots,
+What changed since the 0.1.0-alpha source (33f9f852): all installed on the
+phone; the validation status is given per item. Default `main-k113-d13-261001a` (two committed boots,
 s2idle, Wi-Fi, audio, sensors, GPU), fallback `safe-k111-d10-261001a`
 (rehearsed). Details: [current state](../current-state.md),
 [bundles](../bundles.md).
@@ -23,9 +23,12 @@ s2idle, Wi-Fi, audio, sensors, GPU), fallback `safe-k111-d10-261001a`
 ## Robustness
 
 - **0151** cs35l45: the speaker-protection DSP recovers from a missed pause
-  (it used to wedge silent after DP/HDMI use): quick-stop test PASS.
+  (it used to wedge silent after DP/HDMI use). The quick-stop test passed with
+  zero reloads, so it shows the wedge is prevented; the forced-reload path
+  itself is not yet tested on the phone.
 - **0152** msm: the GPU recovers when the GMU stops answering;
-  `rog5-gpu-watchdog` reboots if it stays dead.
+  `rog5-gpu-watchdog` reboots if it stays dead (a live hang/recovery test is
+  still outstanding).
 - Installer: atomic `exch` swap and a proven read-only remount before
   activation (no more EBUSY on p24).
 - Device profile: per-phone boot values; the overlay grows to the userdata
@@ -35,9 +38,10 @@ s2idle, Wi-Fi, audio, sensors, GPU), fallback `safe-k111-d10-261001a`
 
 - Work in progress (shader compiles, games, audio, fullscreen, inhibitors)
   keeps GNOME from idling back to Phosh.
-- **rog5-session-carry**: a switch no longer just kills the apps; they quit
-  cleanly (browsers keep their tabs) and reopen in the other session (same
-  boot, within 5 min; exclusions in `session-carry.conf`).
+- **rog5-session-carry**: on a switch the apps quit cleanly (browsers keep
+  their tabs) and reopen in the other session (same boot, within 5 min, and
+  in Phosh only after the PIN unlock; exclusions in `session-carry.conf`).
+  Offline-tested; the first live switch with apps open is still pending.
 
 ## Tried and rejected (kept for reference)
 

@@ -44,6 +44,15 @@ class FakeSystem:
         self.calls = []
         self.exit_on_signal = True
         self.launch_ok = True
+        self.switch = True
+        self.locked = ['no']
+        self.slow = 0.0
+
+    def switch_pending(self):
+        return self.switch
+
+    def session_locked(self):
+        return self.locked.pop(0) if len(self.locked) > 1 else self.locked[0]
 
     def scopes(self):
         return list(self.scope_list)
@@ -52,6 +61,8 @@ class FakeSystem:
         return list(self.names)
 
     def window_count(self, name):
+        if self.slow:
+            time.sleep(self.slow)
         self.calls.append(('windows', name))
         return self.windows.get(name, 0)
 
@@ -160,6 +171,25 @@ class SaveRestore(unittest.TestCase):
         self.assertLess(time.monotonic() - t, 3)
         self.assertTrue(STATE.exists())
 
+    def test_timeout_covers_collection_too(self):
+        f = FakeSystem()
+        f.slow = 0.2
+        f.exit_on_signal = False
+        f.names = ['org.gnome.Console', 'org.gnome.Settings', 'org.gnome.clocks'] * 5
+        f.windows = {'org.gnome.Console': 1}
+        t = time.monotonic()
+        self.assertEqual(sc.main(['save', '--close', '--timeout', '0.5'], f), 0)
+        self.assertLess(time.monotonic() - t, 1.2)
+
+    def test_not_a_switch_records_nothing(self):
+        STATE.write_text('{"old": 1}')
+        f = FakeSystem()
+        f.switch = False
+        f.scope_list = ['app-gnome-firefox-2.scope']
+        self.assertEqual(sc.main(['save', '--close'], f), 0)
+        self.assertFalse(STATE.exists())
+        self.assertEqual([c for c in f.calls if c[0] == 'kill'], [])
+
     def test_restore_once_in_the_same_boot(self):
         self.saved()
         g = FakeSystem()
@@ -194,6 +224,47 @@ class SaveRestore(unittest.TestCase):
         g.apps.discard('firefox')
         sc.main(['restore', '--delay', '0'], g)
         self.assertEqual([c[1] for c in g.calls if c[0] == 'launch'], ['org.gnome.Console', 'steam-arm64'])
+
+    def test_restore_waits_for_unlock(self):
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['yes', 'yes', 'no']
+        sc.main(['restore', '--delay', '0'], g)
+        sleeps = [c for c in g.calls if c[0] == 'sleep']
+        launches = [c for c in g.calls if c[0] == 'launch']
+        self.assertEqual(len(launches), 4)
+        self.assertLess(g.calls.index(sleeps[1]), g.calls.index(launches[0]))
+
+    def test_restore_gives_up_while_locked(self):
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['yes']
+        sc.main(['restore', '--delay', '0', '--unlock-wait', '0.01'], g)
+        self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
+        self.assertFalse(STATE.exists())
+
+    def test_malformed_shapes_are_ignored(self):
+        bad = ['[]', '{"format": "rog5-session-carry-v1"}',
+               '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": "x", "apps": []}',
+               '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": NaN, "apps": []}',
+               '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": %f, "apps": [1]}' % time.time(),
+               '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": %f, "apps": ["../x y"]}' % time.time()]
+        for text in bad:
+            STATE.write_text(text)
+            g = FakeSystem()
+            self.assertEqual(sc.main(['restore', '--delay', '0'], g), 0, text)
+            self.assertEqual(g.calls, [], text)
+            self.assertFalse(STATE.exists())
+
+    def test_symlinked_record_is_refused(self):
+        self.saved()
+        real = TMP / 'elsewhere.json'
+        STATE.rename(real)
+        STATE.symlink_to(real)
+        g = FakeSystem()
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual(g.calls, [])
+        real.unlink()
 
     def test_corrupt_record_is_ignored(self):
         STATE.write_text('{not json')
