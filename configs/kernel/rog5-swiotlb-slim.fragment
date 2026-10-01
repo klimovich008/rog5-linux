@@ -1,6 +1,5 @@
-# ROG5 memory-slim kernel options: OPT-IN, not in rog5-production-build-7.2.7.json.
-# Needs patches/opt-in/memory/0001-dma-swiotlb-default-pool-size-from-Kconfig.patch
-# on top of series.production. RAM-trial plan and numbers:
+# ROG5 SWIOTLB size (kernel k113 trial). Needs
+# patches/linux-7.2.7/0153-dma-swiotlb-default-pool-size-from-Kconfig.patch. RAM-trial plan and numbers:
 # test-results/2026-10-01-memory-footprint.md.
 #
 # SWIOTLB: the 64 MiB bounce pool had io_tlb_used_hiwater 4 slabs (8 KiB)

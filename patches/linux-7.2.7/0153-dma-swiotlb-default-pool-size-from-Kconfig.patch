@@ -13,7 +13,7 @@ means a new loader on boot_b.
 CONFIG_SWIOTLB_DEFAULT_SIZE_MB sets the default instead (64 keeps the old
 behaviour); "swiotlb=" still overrides it and architecture adjustments
 (swiotlb_adjust_size) still apply, since they compare against the same
-IO_TLB_DEFAULT_SIZE. Opt-in for ROG5: not in series.production; see
+IO_TLB_DEFAULT_SIZE. ROG5: kernel k113 trial (rog5-swiotlb-slim.fragment); see
 test-results/2026-10-01-memory-footprint.md for the RAM-trial plan.
 
 --- a/include/linux/swiotlb.h

@@ -114,3 +114,4 @@
 0148-usb-dwc3-qcom-legacy-ROG5-usb-ddr-vote-follows-the-attached-devices.patch
 0151-ASoC-cs35l45-ROG5-reload-the-protection-firmware-after-a-missed-pause.patch
 0152-drm-msm-a6xx-ROG5-recover-from-a-GMU-that-does-not-answer-no-ring-writes-without-hw_init-bounded-dump-waits.patch
+0153-dma-swiotlb-default-pool-size-from-Kconfig.patch

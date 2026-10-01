@@ -8,7 +8,8 @@
     "configs/kernel/rog5-persistent-root-power-usb.fragment",
     "configs/kernel/rog5-wifi.fragment",
     "configs/kernel/rog5-thermal-pmic-critical.fragment",
-    "configs/kernel/rog5-production.fragment"
+    "configs/kernel/rog5-production.fragment",
+    "configs/kernel/rog5-swiotlb-slim.fragment"
   ],
   "required": {
     "CONFIG_ARM64": "y",
