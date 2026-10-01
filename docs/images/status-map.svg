@@ -57,7 +57,7 @@
 </g>
 <rect x="232.1" y="2.0" width="292.1" height="205.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="236.1" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Boot &amp; updates</text>
-<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-r8 (safe-r7 could not restore v2 update snapshots)</title><rect x="233.1" y="19.0" width="131.9" height="112.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-r8 (rehearsed: reject -&gt; safe-r8 boot -&gt; reinstall, 2026-09-30); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx</title><rect x="233.1" y="19.0" width="131.9" height="112.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="236.1" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Signed boot chain</text>
 </g>
 <g><title>Boot &amp; updates / Kernel updates: ready - file writes on p24, automatic fallback</title><rect x="233.1" y="131.4" width="131.9" height="74.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
@@ -100,16 +100,16 @@
 <g><title>External display / DP alt mode (native DP, HBR2): ready - native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0135)</title><rect x="233.1" y="429.7" width="105.5" height="93.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="236.1" y="441.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode (na…</text>
 </g>
-<g><title>External display / GNOME desktop mode: partial / not fully integrated - event-driven, fail-closed switcher; mode manual until one supervised boot test; switching closes apps</title><rect x="233.1" y="523.3" width="105.5" height="93.7" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / GNOME desktop mode: partial / not fully integrated - event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); switching closes apps</title><rect x="233.1" y="523.3" width="105.5" height="93.7" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="236.1" y="535.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop m…</text>
 </g>
-<g><title>External display / 4-lane DP: partial / not fully integrated - 0136-0139: 4 x HBR2 in both orientations after a replug (r202); one boot with the monitor attached got no DP notification from the ADSP (suspected race), not retested on r205</title><rect x="338.6" y="429.7" width="61.5" height="80.3" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / 4-lane DP: ready - 4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes</title><rect x="338.6" y="429.7" width="61.5" height="80.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="341.6" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">4-lane DP</text>
 </g>
-<g><title>External display / 5120x1440, 100 Hz, HBR3: needs a test - hidden by 0114 unless msm.dpu_mode_clk_check=halved (0139); HBR3 opt-in (0138); none tested on the 4-lane link</title><rect x="400.2" y="429.7" width="61.5" height="80.3" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / 5120x1440, 100 Hz, HBR3: partial / not fully integrated - halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested</title><rect x="400.2" y="429.7" width="61.5" height="80.3" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="403.2" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">5120x1440,…</text>
 </g>
-<g><title>External display / DP link power policy: missing - 0145 msm.dp_link_policy (4 x HBR instead of 4 x HBR2 for 3840x1080@60) committed, goes into r109; then rog5-dp-power-measure on the MSI</title><rect x="461.7" y="429.7" width="61.5" height="80.3" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>External display / DP link power policy: ready - 0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)</title><rect x="461.7" y="429.7" width="61.5" height="80.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="464.7" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">DP link po…</text>
 </g>
 <g><title>External display / No DPU clock pin: ready - GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)</title><rect x="338.6" y="510.0" width="92.3" height="53.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
@@ -126,25 +126,25 @@
 </g>
 <rect x="524.3" y="2.0" width="227.2" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="528.3" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Power</text>
-<g><title>Power / Deep standby (CX/DDR collapse): missing - ~79 mA suspended, no CX/DDR collapse; bisect kit (noslpi/noadsp/cdsp DTBs) pinned to DTB r5, needs requalifying against r9</title><rect x="525.3" y="19.0" width="135.1" height="111.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Power / Deep standby (CX/DDR collapse): missing - ~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged</title><rect x="525.3" y="19.0" width="135.1" height="111.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
 <text x="528.3" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Deep standby (CX/DDR…</text>
 </g>
 <g><title>Power / Charging &amp; limits: ready - rog5-charge-policy: 70-80 % limit with bypass at the limit, bypass in performance mode or when hot; below-full bypass with a PD charger untested</title><rect x="660.4" y="19.0" width="90.1" height="111.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="663.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging &amp; li…</text>
 </g>
-<g><title>Power / Suspend (s2idle): ready - sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116)</title><rect x="525.3" y="130.8" width="75.1" height="134.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Power / Suspend (s2idle): ready - sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111</title><rect x="525.3" y="130.8" width="75.1" height="134.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="528.3" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Suspend (s…</text>
 </g>
 <g><title>Power / Battery standby measurement: needs a test - needs the phone unplugged</title><rect x="600.3" y="130.8" width="75.1" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
 <text x="603.3" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Battery st…</text>
 </g>
-<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher event-driven (~0.1 % CPU), tailscaled retry loop gone; sleep policy still polls every 5 s</title><rect x="600.3" y="197.9" width="75.1" height="67.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending</title><rect x="600.3" y="197.9" width="75.1" height="67.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="603.3" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Idle backg…</text>
 </g>
 <g><title>Power / Memory (zram swap): ready - 5.2 GiB zram zstd, MGLRU, THP madvise</title><rect x="675.4" y="130.8" width="75.1" height="67.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="678.4" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Memory (zr…</text>
 </g>
-<g><title>Power / Instruction-fetch aborts (SIGBUS): needs a test - memx: no-map 64 MiB at 0x34a000000 (a79182ba) + rog5-sea-retire; Dota 2 under FEX to retest</title><rect x="675.4" y="197.9" width="75.1" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Power / Instruction-fetch aborts (SIGBUS): needs a test - memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest</title><rect x="675.4" y="197.9" width="75.1" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
 <text x="678.4" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Instructio…</text>
 </g>
 <rect x="751.5" y="2.0" width="206.5" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
@@ -175,7 +175,7 @@
 <g><title>USB / Charging via hub: ready</title><rect x="617.5" y="362.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="620.5" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Charging v…</text>
 </g>
-<g><title>USB / Bottom port (USB 2.0 host): needs a test - stage B (RT1715 + TCPM): automatic 5 V on attach on r204/r205 (0144 PDC edge/level); s2idle with a device, detach power readings and 0144 retention across CX collapse unproven</title><rect x="679.1" y="283.0" width="61.5" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>USB / Bottom port (USB 2.0 host): ready - stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured</title><rect x="679.1" y="283.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="682.1" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bottom por…</text>
 </g>
 <g><title>USB / USB gadget (network to a PC): ready</title><rect x="740.6" y="283.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
@@ -192,7 +192,7 @@
 <g><title>Audio / Speakers: ready - full strength via PipeWire S16LE; 0 dB only behind a verified protection DSP, -12 dB otherwise (b509257c)</title><rect x="525.3" y="459.0" width="92.3" height="105.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="528.3" y="471.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speakers</text>
 </g>
-<g><title>Audio / Speaker protection DSP: needs a test - running on both amps with factory calibration on r205 (0121-0124); robustness tests pending</title><rect x="525.3" y="564.3" width="92.3" height="52.7" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Audio / Speaker protection DSP: ready - both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)</title><rect x="525.3" y="564.3" width="92.3" height="52.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="528.3" y="576.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speaker prote…</text>
 </g>
 <g><title>Audio / 24-bit playback: needs a test - 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B</title><rect x="617.5" y="459.0" width="61.5" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
@@ -232,19 +232,19 @@
 </g>
 <rect x="803.1" y="512.4" width="154.9" height="105.6" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
 <text x="807.1" y="524.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Apps</text>
-<g><title>Apps / Steam (native arm64): partial / not fully integrated - title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on Proton 9; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage</title><rect x="804.1" y="529.4" width="101.9" height="87.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Apps / Steam (native arm64): partial / not fully integrated - title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending</title><rect x="804.1" y="529.4" width="101.9" height="87.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="807.1" y="541.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Steam (native …</text>
 </g>
 <g><title>Apps / Browsers: ready - Firefox and Chromium</title><rect x="906.0" y="529.4" width="51.0" height="87.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
 <text x="909.0" y="539.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Browsers</text>
 </g>
 <rect x="8" y="630" width="14" height="14" fill="#4cc417"/>
-<text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (34)</text>
+<text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (38)</text>
 <rect x="108" y="630" width="14" height="14" fill="#e0b91b"/>
 <text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (10)</text>
 <rect x="383" y="630" width="14" height="14" fill="#3b8fd9"/>
-<text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (11)</text>
-<rect x="532" y="630" width="14" height="14" fill="#d9534f"/>
-<text x="552.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (17)</text>
-<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-09-30 (r205)</text>
+<text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (8)</text>
+<rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
+<text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (16)</text>
+<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-10-01 (main-k111-d10-261001a)</text>
 </svg>

@@ -1,17 +1,17 @@
 {
- "as_of": "2026-09-30 (r205)",
+ "as_of": "2026-10-01 (main-k111-d10-261001a)",
  "bundles": {
   "default": {
-   "bundle": "production-7.2.7-r205",
-   "kernel": "7.2.7 build r108 (series to 0144, without 0128/0129; 0145 goes into r109)",
-   "dtb": "platform-cpucap-dp4-btmtc-memx-dtb-r9 (`4a919c15`)",
-   "installed": "2026-09-30 18:20"
+   "bundle": "main-k111-d10-261001a",
+   "kernel": "k111 (series to 0148; uname 7.2.7-rog5-k111)",
+   "dtb": "d10 (`dda8b280`, d9 + l11off)",
+   "installed": "2026-10-01 00:32"
   },
   "fallback": {
    "bundle": "production-7.2.7-safe-r8",
    "kernel": "7.2.7 build r69",
    "dtb": "platform-usbbtm-memx-dtb-r3 (`bb4668b4`, usbbtm-r2 + memx)",
-   "installed": "2026-09-30 with r205; current init (v2 restore), speakers at -12 dB"
+   "installed": "2026-09-30 with r205; current init (v2 restore), speakers at -12 dB; fallback rehearsal PASS 2026-09-30 22:29"
   }
  },
  "areas": [
@@ -22,7 +22,7 @@
      "name": "Signed boot chain",
      "status": "ready",
      "weight": 3,
-     "note": "slot-B wrapper, try-once selector, signed fallback safe-r8 (safe-r7 could not restore v2 update snapshots)"
+     "note": "slot-B wrapper, try-once selector, signed fallback safe-r8 (rehearsed: reject -> safe-r8 boot -> reinstall, 2026-09-30); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx"
     },
     {
      "name": "Kernel updates",
@@ -107,21 +107,21 @@
     },
     {
      "name": "4-lane DP",
-     "status": "partial",
+     "status": "ready",
      "weight": 1,
-     "note": "0136-0139: 4 x HBR2 in both orientations after a replug (r202); one boot with the monitor attached got no DP notification from the ADSP (suspected race), not retested on r205"
+     "note": "4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes"
     },
     {
      "name": "5120x1440, 100 Hz, HBR3",
-     "status": "untested",
+     "status": "partial",
      "weight": 1,
-     "note": "hidden by 0114 unless msm.dpu_mode_clk_check=halved (0139); HBR3 opt-in (0138); none tested on the 4-lane link"
+     "note": "halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested"
     },
     {
      "name": "DP link power policy",
-     "status": "missing",
+     "status": "ready",
      "weight": 1,
-     "note": "0145 msm.dp_link_policy (4 x HBR instead of 4 x HBR2 for 3840x1080@60) committed, goes into r109; then rog5-dp-power-measure on the MSI"
+     "note": "0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)"
     },
     {
      "name": "No DPU clock pin",
@@ -133,7 +133,7 @@
      "name": "GNOME desktop mode",
      "status": "partial",
      "weight": 2,
-     "note": "event-driven, fail-closed switcher; mode manual until one supervised boot test; switching closes apps"
+     "note": "event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); switching closes apps"
     },
     {
      "name": "Touchscreen as touchpad",
@@ -224,9 +224,9 @@
     },
     {
      "name": "Bottom port (USB 2.0 host)",
-     "status": "untested",
+     "status": "ready",
      "weight": 1,
-     "note": "stage B (RT1715 + TCPM): automatic 5 V on attach on r204/r205 (0144 PDC edge/level); s2idle with a device, detach power readings and 0144 retention across CX collapse unproven"
+     "note": "stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured"
     },
     {
      "name": "USB gadget (network to a PC)",
@@ -260,13 +260,13 @@
      "name": "Suspend (s2idle)",
      "status": "ready",
      "weight": 2,
-     "note": "sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116)"
+     "note": "sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111"
     },
     {
      "name": "Deep standby (CX/DDR collapse)",
      "status": "missing",
      "weight": 3,
-     "note": "~79 mA suspended, no CX/DDR collapse; bisect kit (noslpi/noadsp/cdsp DTBs) pinned to DTB r5, needs requalifying against r9"
+     "note": "~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged"
     },
     {
      "name": "Battery standby measurement",
@@ -278,7 +278,7 @@
      "name": "Idle background wakeups",
      "status": "partial",
      "weight": 1,
-     "note": "desktop-mode switcher event-driven (~0.1 % CPU), tailscaled retry loop gone; sleep policy still polls every 5 s"
+     "note": "desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending"
     },
     {
      "name": "Memory (zram swap)",
@@ -290,7 +290,7 @@
      "name": "Instruction-fetch aborts (SIGBUS)",
      "status": "untested",
      "weight": 1,
-     "note": "memx: no-map 64 MiB at 0x34a000000 (a79182ba) + rog5-sea-retire; Dota 2 under FEX to retest"
+     "note": "memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest"
     }
    ]
   },
@@ -339,9 +339,9 @@
     },
     {
      "name": "Speaker protection DSP",
-     "status": "untested",
+     "status": "ready",
      "weight": 1,
-     "note": "running on both amps with factory calibration on r205 (0121-0124); robustness tests pending"
+     "note": "both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)"
     },
     {
      "name": "24-bit playback",
@@ -466,7 +466,7 @@
      "name": "Steam (native arm64)",
      "status": "partial",
      "weight": 2,
-     "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; DXVK 3 on native ARM64 Proton not game-tested; FEX x86 Mesa lacks 8-bit storage"
+     "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending"
     },
     {
      "name": "Browsers",
