@@ -303,7 +303,7 @@
       "package": "package-main-k111-d10-261001c",
       "source_commit": "b170a898c457",
       "changes": "companion default for installing safe-k111 (same content as 261001b)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 13:52",
       "notes": "built from HEAD while the working tree had uncommitted changes"
@@ -319,10 +319,10 @@
       "package": "package-main-k112-d10-261001a",
       "source_commit": "c50a09ac5642",
       "changes": "0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": null
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 15:36",
+      "notes": "booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0)"
     }
   ]
 }
