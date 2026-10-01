@@ -35,11 +35,9 @@ external monitor, and Steam.
 > are published, **do not unlock or erase your phone for this project.**
 >
 > `scripts/host/rog5-device-profile`, `scripts/host/rog5-dtb-memory` and the
-> overlay cap derived from the userdata size (stage 8, variants) belong to
-> the device-profile change on branch `agent/install-guide-20261001`
-> (commit `99620823`). It changes the boot path and is merged only after a
-> trial boot on the reference phone; until then those commands are not in
-> this branch.
+> overlay cap derived from the userdata size (stage 8, variants) are merged
+> (commit 914217cc) after a successful try-once trial on the reference phone
+> (bundle `main-k111-d10-261001b`, 2026-10-01).
 
 - [What you need](#what-you-need)
 - [Variants](#variants)
