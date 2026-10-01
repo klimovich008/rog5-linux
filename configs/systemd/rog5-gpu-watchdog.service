@@ -1,0 +1,17 @@
+# Reboots the phone when the GPU stays dead after a GMU/GPU error (kernel
+# patch 0152 publishes msm.gpu_init_failures and msm.gpu_recovering; without
+# them the daemon exits). It sleeps in a blocking read of the kernel log.
+# ROG5_GPUWD_ACTION=log (drop-in) only logs. See /usr/local/sbin/rog5-gpu-watchdog.
+[Unit]
+Description=ROG5 GPU watchdog: reboot when the GPU does not recover
+Wants=rog5-platform-modules.service
+After=rog5-platform-modules.service
+
+[Service]
+ExecStart=/usr/local/sbin/rog5-gpu-watchdog
+Restart=on-failure
+RestartSec=10
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

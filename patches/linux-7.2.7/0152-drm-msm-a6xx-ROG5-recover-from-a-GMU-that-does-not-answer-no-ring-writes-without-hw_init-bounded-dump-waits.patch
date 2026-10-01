@@ -1,0 +1,357 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm/a6xx: ROG5 recover from a GMU that does not answer: no ring writes without hw_init, bounded dump waits
+
+2026-10-01 13:32 (bundle main-k111-d10-261001b): GNOME was stopped while
+Steam's shader compilation had the GPU busy. On the next GPU resume phoc's
+first submit ran hw_init, the GMU did not acknowledge the GPU_SET OOB
+request ("Timeout waiting for GMU OOB set GPU_SET: 0x0"), and the GPU never
+came back: phoc and Phosh hung, the phone looked frozen and was
+hard-rebooted. Three msm problems turned one unanswered OOB request into a
+dead GPU:
+
+1. msm_gpu_submit() ignored msm_gpu_hw_init()'s error and wrote the ring
+   of a CP that was never set up. The CP fetched from iova 0: hang IRQ
+   "gpu fault ... rb 0000/0fb9 ib1 0/0 ib2 0/0" and "*** gpu fault:
+   iova=0 dir=READ type=TRANSLATION source=CP", 66 ms after the OOB
+   timeout, with phoc's innocent submit blamed.
+2. The stalled SMMU fault started a devcoredump: adreno_fault_handler()
+   re-armed fault_coredump_done and waited for gpu->lock in
+   msm_gpu_fault_crashstate_capture(). The recover worker held gpu->lock
+   and, in a6xx_recover() -> runtime suspend -> a6xx_gmu_shutdown()
+   (needs_hw_init still set), asked the dead GMU for GPU_SET again; on the
+   timeout a6xx_gmu_set_oob() waits for fault_coredump_done without a
+   limit. Each waited for the other for good: no second OOB timeout, no
+   further GPU message, every GPU client blocked on gpu->lock. The GMU
+   watchdog bite 1.5 s later only queued another recovery behind it.
+   (a6xx_hfi_wait_for_msg_interrupt() has the same unbounded wait.)
+3. A failed init inside a6xx_recover() was ignored too: the replay wrote
+   the rings again.
+
+None of this is fixed upstream (v7.3-rc5, msm-next and msm-fixes of
+2026-10-01 still have the unbounded waits and the ignored return value).
+Changes:
+
+- a6xx_gmu_set_oob() / a6xx_hfi_wait_for_msg_interrupt(): wait at most
+  A6XX_GMU_FAULT_DUMP_WAIT_MS (2 s) for a fault devcoredump, then fail the
+  request. The recover worker then force-stops the GMU, the dump gets
+  gpu->lock afterwards (the hang already captured a crash state, so it
+  returns at once) and the SMMU resumes.
+- msm_gpu_submit(): after a failed hw_init the submit is queued and
+  counted as usual, but the rings are not touched; gpu->deferred_submits
+  is set and the recover worker queued. While it is set every later
+  submit is deferred the same way, even if its own hw_init succeeds: a
+  later fence written directly would retire the unwritten ones.
+- recover_worker(): with needs_hw_init or deferred_submits set the first
+  pending submit never ran, so no submit is blamed, no fence is skipped
+  and no VM is marked unusable: GMU and GPU are restarted (a6xx_recover:
+  forced suspend, cold GMU boot, hw_init) and everything is replayed in
+  order, then the hangcheck timer is re-armed for the replayed work. If
+  hw_init fails again (also in a recovery from an ordinary hang) the
+  rings stay untouched, deferred_submits is set so no later submit
+  overtakes the queued ones, and the hangcheck timer (armed while
+  submits are pending) queues the next attempt; hangcheck_handler() does
+  not read CP registers for progress while submits are deferred or the
+  GPU is not initialised. The replay empties submits of closed contexts
+  as msm_job_run() does (a deferred one was never written empty).
+- Read-only module parameters for user space (rog5-gpu-watchdog), read
+  without locks: msm.gpu_init_failures (failed hw_init calls in a row,
+  reset by a successful one), msm.gpu_inits_ok and msm.gpu_recoveries
+  (monotonic counts, so two samples tell one long incident from two
+  short ones) and msm.gpu_recovering (the recover worker runs).
+  msm_gpu_hw_init() logs failures (rate limited) and the first success
+  after them.
+
+What made the GMU stop answering is not known: it booted (firmware start
+and HFI start succeeded), then did not acknowledge GPU_SET and its watchdog
+bit 1.5 s later; the first such event in the ~30 boots in the journal. The 0102 corner
+offsets were empty (no undervolt), and rog5-gmu-bind only binds an empty
+driver (the "rog5-gmu-bind 3d6a000.gmu:" prefix of msm's GMU messages is
+just the GMU device's driver name). With this patch such a GMU is
+force-stopped and cold-booted like after a GMU fault instead of hanging
+the GPU.
+
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -224,6 +224,14 @@
+ 	/* does gpu need hw_init? */
+ 	bool needs_hw_init;
+ 
++	/*
++	 * ROG5: submits were queued without being written to a ring (hw_init
++	 * had failed). Later submits must wait for the recovery that replays
++	 * them in order: a later fence written directly would retire them
++	 * unexecuted. Protected by gpu->lock.
++	 */
++	bool deferred_submits;
++
+ 	/**
+ 	 * global_faults: number of GPU hangs not attributed to a particular
+ 	 * address space
+--- a/drivers/gpu/drm/msm/msm_gpu.c
++++ b/drivers/gpu/drm/msm/msm_gpu.c
+@@ -18,6 +18,28 @@
+ #include <linux/sched/task.h>
+ #include <linux/sched/mm.h>
+ #include <linux/utsname.h>
++#include <linux/moduleparam.h>
++
++/*
++ * ROG5: GPU health for user space (rog5-gpu-watchdog), readable without any
++ * lock. gpu_init_failures counts hardware inits in a row that failed (the GMU
++ * did not answer: CP and ring were never set up); a successful init resets
++ * it. gpu_inits_ok and gpu_recoveries count successful inits and started
++ * recoveries since boot, so two samples tell one long incident from two short
++ * ones. gpu_recovering is set while the recover worker runs.
++ */
++static unsigned int rog5_gpu_init_failures;
++module_param_named(gpu_init_failures, rog5_gpu_init_failures, uint, 0444);
++MODULE_PARM_DESC(gpu_init_failures, "ROG5: failed GPU hardware inits in a row (read-only)");
++static unsigned int rog5_gpu_inits_ok;
++module_param_named(gpu_inits_ok, rog5_gpu_inits_ok, uint, 0444);
++MODULE_PARM_DESC(gpu_inits_ok, "ROG5: successful GPU hardware inits since boot (read-only)");
++static unsigned int rog5_gpu_recoveries;
++module_param_named(gpu_recoveries, rog5_gpu_recoveries, uint, 0444);
++MODULE_PARM_DESC(gpu_recoveries, "ROG5: GPU recoveries started since boot (read-only)");
++static bool rog5_gpu_recovering;
++module_param_named(gpu_recovering, rog5_gpu_recovering, bool, 0444);
++MODULE_PARM_DESC(gpu_recovering, "ROG5: a GPU recovery is running (read-only)");
+ 
+ /*
+  * Power Management:
+@@ -172,6 +194,19 @@
+ 		gpu->needs_hw_init = false;
+ 	enable_irq(gpu->irq);
+ 
++	if (!ret) {
++		WRITE_ONCE(rog5_gpu_inits_ok, rog5_gpu_inits_ok + 1);
++		if (READ_ONCE(rog5_gpu_init_failures)) {
++			DRM_DEV_INFO(gpu->dev->dev, "%s: hardware init succeeded after %u failed\n",
++				     gpu->name, rog5_gpu_init_failures);
++			WRITE_ONCE(rog5_gpu_init_failures, 0);
++		}
++	} else {
++		WRITE_ONCE(rog5_gpu_init_failures, rog5_gpu_init_failures + 1);
++		DRM_DEV_ERROR_RATELIMITED(gpu->dev->dev, "%s: hardware init failed: %d (%u in a row)\n",
++					  gpu->name, ret, rog5_gpu_init_failures);
++	}
++
+ 	return ret;
+ }
+ 
+@@ -461,6 +496,8 @@
+ 	put_task_struct(task);
+ }
+ 
++static void hangcheck_timer_reset(struct msm_gpu *gpu);
++
+ static void recover_worker(struct kthread_work *work)
+ {
+ 	struct msm_gpu *gpu = container_of(work, struct msm_gpu, recover_work);
+@@ -474,9 +511,24 @@
+ 	int i;
+ 
+ 	mutex_lock(&gpu->lock);
++	WRITE_ONCE(rog5_gpu_recovering, true);
++	WRITE_ONCE(rog5_gpu_recoveries, rog5_gpu_recoveries + 1);
+ 
+ 	DRM_DEV_ERROR(dev->dev, "%s: hangcheck recover!\n", gpu->name);
+ 
++	/*
++	 * ROG5: the GPU was never set up since it last resumed (hw_init failed:
++	 * the GMU did not answer), or submits wait unwritten for this replay.
++	 * The first pending submit did not run, so none is to blame or to
++	 * skip: restart the GMU and GPU and replay everything in order.
++	 */
++	if (gpu->needs_hw_init || gpu->deferred_submits) {
++		DRM_DEV_ERROR(dev->dev, "%s: submits not run (GPU init failed): restarting GMU and GPU, no submit blamed\n",
++			      gpu->name);
++		pm_runtime_get_sync(&gpu->pdev->dev);
++		goto recover;
++	}
++
+ 	submit = find_submit(cur_ring, cur_ring->memptrs->fence + 1);
+ 
+ 	/*
+@@ -554,6 +606,7 @@
+ 		msm_update_fence(ring->fctx, fence);
+ 	}
+ 
++recover:
+ 	priv->disable_err_irq = false;
+ 
+ 	gpu->funcs->recover(gpu);
+@@ -562,6 +615,25 @@
+ 	retire_submits(gpu);
+ 
+ 	/*
++	 * ROG5: the GPU did not come back (hw_init failed again): never write
++	 * the rings of an uninitialised CP. Keep the submits queued, defer
++	 * every later one until they are replayed (a later fence written
++	 * directly would retire them unexecuted) and let the hangcheck timer
++	 * start the next attempt (hangcheck_handler).
++	 */
++	if (gpu->needs_hw_init) {
++		DRM_DEV_ERROR_RATELIMITED(dev->dev, "%s: GPU did not come back, retrying\n",
++					  gpu->name);
++		gpu->deferred_submits = true;
++		for (i = 0; i < gpu->nr_rings; i++)
++			if (fence_after(gpu->rb[i]->fctx->last_fence,
++					gpu->rb[i]->memptrs->fence))
++				hangcheck_timer_reset(gpu);
++		goto put;
++	}
++	gpu->deferred_submits = false;
++
++	/*
+ 	 * Replay all remaining submits starting with highest priority
+ 	 * ring
+ 	 */
+@@ -573,18 +645,30 @@
+ 		list_for_each_entry(submit, &ring->submits, node) {
+ 			/*
+ 			 * If the submit uses an unusable vm make sure
+-			 * we don't actually run it
++			 * we don't actually run it. ROG5: likewise for a
++			 * closed context (msm_job_run() empties those, but a
++			 * deferred submit was never written: keep the rule).
+ 			 */
+-			if (to_msm_vm(submit->vm)->unusable)
++			if (to_msm_vm(submit->vm)->unusable ||
++			    submit->queue->ctx->closed)
+ 				submit->nr_cmds = 0;
+ 			gpu->funcs->submit(gpu, submit);
+ 		}
+ 		spin_unlock_irqrestore(&ring->submit_lock, flags);
+ 	}
+ 
++	/* ROG5: the replayed work needs hangcheck (the failed submit or the
++	 * fault IRQ deleted the timer) */
++	for (i = 0; i < gpu->nr_rings; i++)
++		if (fence_after(gpu->rb[i]->fctx->last_fence,
++				gpu->rb[i]->memptrs->fence))
++			hangcheck_timer_reset(gpu);
++
++put:
+ 	pm_runtime_put(&gpu->pdev->dev);
+ 
+ out_unlock:
++	WRITE_ONCE(rog5_gpu_recovering, false);
+ 	mutex_unlock(&gpu->lock);
+ 
+ 	msm_gpu_retire(gpu);
+@@ -658,6 +742,17 @@
+ 	struct msm_ringbuffer *ring = gpu->funcs->active_ring(gpu);
+ 	uint32_t fence = ring->memptrs->fence;
+ 
++	/*
++	 * ROG5: submits wait for a GPU whose hardware init failed (the GMU did
++	 * not answer): no CP runs, so do not read its registers for progress;
++	 * try the recovery again.
++	 */
++	if (READ_ONCE(gpu->deferred_submits) ||
++	    (READ_ONCE(gpu->needs_hw_init) && READ_ONCE(rog5_gpu_init_failures))) {
++		kthread_queue_work(gpu->worker, &gpu->recover_work);
++		return;
++	}
++
+ 	if (fence != ring->hangcheck_fence) {
+ 		/* some progress has been made.. ya! */
+ 		ring->hangcheck_fence = fence;
+@@ -794,12 +889,21 @@
+ {
+ 	struct msm_ringbuffer *ring = submit->ring;
+ 	unsigned long flags;
++	bool hw_ok;
+ 
+ 	WARN_ON(!mutex_is_locked(&gpu->lock));
+ 
+ 	pm_runtime_get_sync(&gpu->pdev->dev);
+ 
+-	msm_gpu_hw_init(gpu);
++	/*
++	 * ROG5: the return value was ignored. After a failed init (the GMU did
++	 * not answer the GPU_SET OOB request) the ring was written anyway and
++	 * the uninitialised CP fetched from iova 0 (2026-10-01 13:32: CP
++	 * translation fault at 0, rptr 0, ib1/ib2 0). Queue the submit but
++	 * leave the rings alone; recovery restarts the GMU and replays it, and
++	 * every later submit waits for that replay to keep the order.
++	 */
++	hw_ok = !msm_gpu_hw_init(gpu) && !gpu->deferred_submits;
+ 
+ 	submit->seqno = submit->hw_fence->seqno;
+ 
+@@ -822,11 +926,18 @@
+ 	gpu->active_submits++;
+ 	mutex_unlock(&gpu->active_lock);
+ 
+-	gpu->funcs->submit(gpu, submit);
+-	submit->ring->cur_ctx_seqno = submit->queue->ctx->seqno;
++	if (hw_ok) {
++		gpu->funcs->submit(gpu, submit);
++		submit->ring->cur_ctx_seqno = submit->queue->ctx->seqno;
++	} else {
++		gpu->deferred_submits = true;
++		timer_delete(&gpu->hangcheck_timer);
++		kthread_queue_work(gpu->worker, &gpu->recover_work);
++	}
+ 
+ 	pm_runtime_put(&gpu->pdev->dev);
+-	hangcheck_timer_reset(gpu);
++	if (hw_ok)
++		hangcheck_timer_reset(gpu);
+ }
+ 
+ /*
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.h
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.h
+@@ -60,6 +60,14 @@
+ /* The GMU does automatic IFPC (intra-frame power collapse) */
+ #define GMU_IDLE_STATE_IFPC 3
+ 
++/*
++ * ROG5: longest wait for a GPU fault devcoredump before a GMU request gives
++ * up. The capture takes gpu->lock, which the recover worker holds while it
++ * talks to the GMU: an unbounded wait deadlocked the GPU for good
++ * (2026-10-01 13:32).
++ */
++#define A6XX_GMU_FAULT_DUMP_WAIT_MS 2000
++
+ struct a6xx_gmu {
+ 	struct device *dev;
+ 
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -437,9 +437,13 @@
+ 
+ 		/* We may timeout because the GMU is temporarily wedged from
+ 		 * pending faults from the GPU and we are taking a devcoredump.
+-		 * Wait until the MMU is resumed and try again.
++		 * Wait until the MMU is resumed and try again. ROG5: not for
++		 * ever - the capture waits for gpu->lock, which the recover
++		 * worker may hold while it is here.
+ 		 */
+-		wait_for_completion(&a6xx_gpu->base.fault_coredump_done);
++		if (!wait_for_completion_timeout(&a6xx_gpu->base.fault_coredump_done,
++				msecs_to_jiffies(A6XX_GMU_FAULT_DUMP_WAIT_MS)))
++			break;
+ 	} while (true);
+ 
+ 	if (ret)
+--- a/drivers/gpu/drm/msm/adreno/a6xx_hfi.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_hfi.c
+@@ -127,9 +127,13 @@
+ 
+ 		/* We may timeout because the GMU is temporarily wedged from
+ 		 * pending faults from the GPU and we are taking a devcoredump.
+-		 * Wait until the MMU is resumed and try again.
++		 * Wait until the MMU is resumed and try again. ROG5: not for
++		 * ever - the capture waits for gpu->lock, which the recover
++		 * worker may hold while it is here.
+ 		 */
+-		wait_for_completion(&a6xx_gpu->base.fault_coredump_done);
++		if (!wait_for_completion_timeout(&a6xx_gpu->base.fault_coredump_done,
++				msecs_to_jiffies(A6XX_GMU_FAULT_DUMP_WAIT_MS)))
++			break;
+ 	} while (true);
+ 
+ 	if (ret) {
