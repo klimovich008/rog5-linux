@@ -17,6 +17,7 @@ Installed: default `main-k112-d10-261001b`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k112-d13-261001a` | main | k112 | d13 | built | unknown |  | TRIAL memslim stockcma,ionpool,pil (+590 MiB) | built from HEAD while the working tree had uncommitted changes |
 | `main-k112-d12-261001a` | main | k112 | d12 | built | unknown |  | TRIAL memslim stockcma,ionpool (+324 MiB) | built from HEAD while the working tree had uncommitted changes |
 | `main-k112-d11-261001a` | main | k112 | d11 | built | unknown |  | TRIAL memslim stockcma (+196 MiB) | built from HEAD while the working tree had uncommitted changes |
 | `main-k112-d10-261001b` | main | k112 | d10 | installed-main | yes | 2026-10-01 15:45 | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |
@@ -55,6 +56,7 @@ Paths are under `~/.local/state/rog5-production-boot-20260923`; each directory h
 
 | DTB | Path | SHA-256 | Base | Features | Needs | Notes |
 |---|---|---|---|---|---|---|
+| d13 | `platform-d10-memslim-all-dtb-d13/board.dtb` | `1d690d39` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each) |
 | d12 | `platform-d10-memslim-stockcma-ionpool-dtb-d12/board.dtb` | `363c4cd8` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool (d11 + frees 0xedc00000-0xef7fffff and 0xf3800000-0xf9bfffff, 128 MiB) |
 | d11 | `platform-d10-memslim-stockcma-dtb-d11/board.dtb` | `57091d95` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma (frees 0xcbc00000-0xd7ffffff, 196 MiB) |
 | d10 | `platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb` | `dda8b280` | d9 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup) |
