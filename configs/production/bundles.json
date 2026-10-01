@@ -339,6 +339,22 @@
       "healthy": "yes",
       "installed": "2026-10-01 15:45",
       "notes": null
+    },
+    {
+      "name": "main-k112-d11-261001a",
+      "role": "main",
+      "kernel": "k112",
+      "dtb": "d11",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k112",
+      "manifest_sha256": "21997d9465dcda672e27f5845e03d2e001ecaca7dc0d9562bb2639d9ea51dc66",
+      "package": "package-main-k112-d11-261001a",
+      "source_commit": "2b3651284eec",
+      "changes": "TRIAL memslim stockcma (+196 MiB)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": "built from HEAD while the working tree had uncommitted changes"
     }
   ]
 }
