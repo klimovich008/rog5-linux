@@ -1,8 +1,9 @@
 #!/bin/sh
 # Compose a reduced-reservation ("memslim") DTB for RAM trials from the
 # production board.dtb d10 (platform-dp4-btmtc-memx-l11off-dtb-d10, bundle
-# main-k111-d10-261001b). Opt-in only: never the default until a RAM trial
-# per part has passed (plan: test-results/2026-10-01-memory-footprint.md).
+# main-k111-d10-261001b). Each part passed its RAM trial on 2026-10-01
+# (test-results/2026-10-01-memory-footprint.md, section 6); all three
+# together are DTB d13, the default main DTB. Any new part needs its own trial.
 #
 #   compose-memslim-dtb.sh BASE_DTB OUTPUT PART[,PART...]
 #

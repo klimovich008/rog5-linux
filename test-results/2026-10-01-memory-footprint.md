@@ -272,3 +272,51 @@ Eleven findings, all addressed before commit:
 The phone stopped answering on 192.168.1.83 after the snapshots, so the
 aarch64 exec self-test (`test_exec_pages_native`, root on the phone) has not
 run yet.
+
+## 6. RAM trials on the phone (2026-10-01 15:50-17:35, kernel k112)
+
+Cumulative, in plan order, each part installed as a try-once main bundle
+(fallback `safe-k111-d10-261001a`, d10, untouched). Phone on USB power
+through the hub, idle, no monitor.
+
+| Trial | Bundle | DTB | MemTotal kB | vs d10 |
+|---|---|---|---:|---:|
+| baseline | `main-k112-d10-261001b` | d10 | 10866028 | |
+| A stockcma | `main-k112-d11-261001a` | d11 `57091d95` | 11066476 | +196 MiB |
+| B + ionpool | `main-k112-d12-261001a` | d12 `363c4cd8` | 11197548 | +324 MiB |
+| C + pil | `main-k112-d13-261001a` | d13 `1d690d39` | 11469392 | +590 MiB |
+
+Every trial: committed healthy on the first boot, ADSP and SLPI `running`,
+GPU up (`msm.gpu_inits_ok`), Wi-Fi associated, both amps' speaker protection
+running, no `rog5-sea`/SError/external-abort/qcom_scm/PAS line; then
+`pressure --yes --ranges <all freed ranges so far> --exec-sample 256`, three
+`rtcwake -m freeze -s 20` cycles and a Wi-Fi off/on, then the error check
+again (0 each time).
+
+Pressure, last run (d13, `--target-mib 11800 --floor-mib 256 --step-mib 128`,
+9728 MiB allocated, `zram_exercised: true`, no write mismatch, no SEA):
+
+| Range | Pages | Hits | Exec | Verdict |
+|---|---:|---:|---|---|
+| `0x85200000-0x856fffff` camera | 1280 | 1280 | 256/256 ok | pass |
+| `0x85c00000-0x860fffff` cvp | 1280 | 1280 | 256/256 ok | pass |
+| `0x8b800000-0x9b7fffff` modem | 65536 | 63488 | 256/256 ok | pass |
+| `0xcbc00000-0xd7ffffff` stockcma | 50176 | 50176 | 256/256 ok | pass |
+| `0xedc00000-0xef7fffff` audio_cma | 7168 | 5547 | 256/256 ok | pass |
+| `0xf3800000-0xf9bfffff` non_secure_display | 25600 | 1046 | 256/256 ok | pass |
+
+Notes:
+- The freed ranges are all below 4 GiB, so they land in ZONE_DMA, which
+  user allocations only reach once ZONE_Normal is at its low watermark. The
+  default `--target-mib 8192` never got there (trial A's first run: 0 hits,
+  `inconclusive`); fill to `--floor-mib 256` instead.
+- The kernel now places the 64 MiB SWIOTLB pool in the freed
+  non_secure_display range (16384 `reserved` pages there), so device DMA
+  bounces through reclaimed memory as well.
+- `monitor-sensor` on d13: accelerometer, light, proximity, compass.
+- Second committed boot of d13 at 17:35: same checks, 0 errors.
+- Not covered: DP desktop mode (no monitor attached during the trials), a
+  long game session with the SEA watch, and unplugged standby.
+
+Result: d13 (all three parts) is the default main DTB from 2026-10-01 17:35.
+The fallback stays on d10.

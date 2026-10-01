@@ -335,7 +335,7 @@
       "package": "package-main-k112-d10-261001b",
       "source_commit": "8202bb9a3d17",
       "changes": "return bundle after the safe-k111 fallback rehearsal (same content as 261001a)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 15:45",
       "notes": null
@@ -351,10 +351,10 @@
       "package": "package-main-k112-d11-261001a",
       "source_commit": "2b3651284eec",
       "changes": "TRIAL memslim stockcma (+196 MiB)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": "built from HEAD while the working tree had uncommitted changes"
+      "status": "retired",
+      "healthy": "yes",
+      "installed": "2026-10-01 15:50",
+      "notes": "RAM trial A pass (stockcma): pressure 50109/50176 hits, 256/256 exec, 3x s2idle, Wi-Fi restart, 0 SEA"
     },
     {
       "name": "main-k112-d12-261001a",
@@ -367,10 +367,10 @@
       "package": "package-main-k112-d12-261001a",
       "source_commit": "25d54fef094d",
       "changes": "TRIAL memslim stockcma,ionpool (+324 MiB)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": "built from HEAD while the working tree had uncommitted changes"
+      "status": "retired",
+      "healthy": "yes",
+      "installed": "2026-10-01 17:22",
+      "notes": "RAM trial B pass (stockcma+ionpool): all ranges pass, 3x s2idle, Wi-Fi restart, 0 SEA"
     },
     {
       "name": "main-k112-d13-261001a",
@@ -382,11 +382,11 @@
       "manifest_sha256": "b7ccb67c70cdb47719c7233a6351010e2dae344106098dc181cd6c7913f8de28",
       "package": "package-main-k112-d13-261001a",
       "source_commit": "bb03eb907a53",
-      "changes": "TRIAL memslim stockcma,ionpool,pil (+590 MiB)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": "built from HEAD while the working tree had uncommitted changes"
+      "changes": "memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed)",
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 17:28",
+      "notes": "RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked"
     }
   ]
 }

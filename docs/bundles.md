@@ -11,16 +11,16 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `main-k112-d10-261001b`, fallback `safe-k111-d10-261001a`.
+Installed: default `main-k112-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k112-d13-261001a` | main | k112 | d13 | built | unknown |  | TRIAL memslim stockcma,ionpool,pil (+590 MiB) | built from HEAD while the working tree had uncommitted changes |
-| `main-k112-d12-261001a` | main | k112 | d12 | built | unknown |  | TRIAL memslim stockcma,ionpool (+324 MiB) | built from HEAD while the working tree had uncommitted changes |
-| `main-k112-d11-261001a` | main | k112 | d11 | built | unknown |  | TRIAL memslim stockcma (+196 MiB) | built from HEAD while the working tree had uncommitted changes |
-| `main-k112-d10-261001b` | main | k112 | d10 | installed-main | yes | 2026-10-01 15:45 | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |
+| `main-k112-d13-261001a` | main | k112 | d13 | installed-main | yes | 2026-10-01 17:28 | memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed) | RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked |
+| `main-k112-d12-261001a` | main | k112 | d12 | retired | yes | 2026-10-01 17:22 | TRIAL memslim stockcma,ionpool (+324 MiB) | RAM trial B pass (stockcma+ionpool): all ranges pass, 3x s2idle, Wi-Fi restart, 0 SEA |
+| `main-k112-d11-261001a` | main | k112 | d11 | retired | yes | 2026-10-01 15:50 | TRIAL memslim stockcma (+196 MiB) | RAM trial A pass (stockcma): pressure 50109/50176 hits, 256/256 exec, 3x s2idle, Wi-Fi restart, 0 SEA |
+| `main-k112-d10-261001b` | main | k112 | d10 | retired | yes | 2026-10-01 15:45 | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |
 | `main-k112-d10-261001a` | main | k112 | d10 | retired | yes | 2026-10-01 15:36 | 0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits) | booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0) |
 | `main-k111-d10-261001c` | main | k111 | d10 | retired | yes | 2026-10-01 13:52 | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
 | `safe-k111-d10-261001a` | safe | k111 | d10 | installed-fallback | yes | 2026-10-01 13:52 | alpha kernel k111 as fallback (user request); same DTB as main | alpha kernel k111 as fallback (user request); rehearsed PASS 2026-10-01 15:42-15:47: reject main -> safe-k111 boot (running, Wi-Fi, memx, speaker protection, USB power seen via hub) -> reinstall main-k112-d10-261001b |
@@ -56,9 +56,9 @@ Paths are under `~/.local/state/rog5-production-boot-20260923`; each directory h
 
 | DTB | Path | SHA-256 | Base | Features | Needs | Notes |
 |---|---|---|---|---|---|---|
-| d13 | `platform-d10-memslim-all-dtb-d13/board.dtb` | `1d690d39` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each) |
-| d12 | `platform-d10-memslim-stockcma-ionpool-dtb-d12/board.dtb` | `363c4cd8` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma,ionpool (d11 + frees 0xedc00000-0xef7fffff and 0xf3800000-0xf9bfffff, 128 MiB) |
-| d11 | `platform-d10-memslim-stockcma-dtb-d11/board.dtb` | `57091d95` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | TRIAL: d10 + compose-memslim-dtb.sh stockcma (frees 0xcbc00000-0xd7ffffff, 196 MiB) |
+| d13 | `platform-d10-memslim-all-dtb-d13/board.dtb` | `1d690d39` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | RAM trials A-C passed 2026-10-01; default main DTB: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each) |
+| d12 | `platform-d10-memslim-stockcma-ionpool-dtb-d12/board.dtb` | `363c4cd8` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | RAM trial B passed: d10 + compose-memslim-dtb.sh stockcma,ionpool (d11 + frees 0xedc00000-0xef7fffff and 0xf3800000-0xf9bfffff, 128 MiB) |
+| d11 | `platform-d10-memslim-stockcma-dtb-d11/board.dtb` | `57091d95` | d10 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | RAM trial A passed: d10 + compose-memslim-dtb.sh stockcma (frees 0xcbc00000-0xd7ffffff, 196 MiB) |
 | d10 | `platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb` | `dda8b280` | d9 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx, l11off |  | d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup) |
 | d9 | `platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb` | `4a919c15` | d8 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc, memx | 0136-0139, 0144, 0146 | d8 plus memx (no-map 64 MiB at 0x34a000000, the DDR that aborts on instruction fetch). Default DTB since r204. |
 | d8 | `platform-cpucap-dp4-btmtc-dtb-r8/board.dtb` | `3630cb6f` | d7 | touch, bluetooth, cpuidle, gpubw, bwmon, ddrscale, periph, audio, slpi, usbotg, osi, aoss, qupicc, dp, l3, skin, acd, cpucap, usbbtm, mic, usbbtmtc | 0136-0139 (4-lane DP); usbbtmtc needs 0144 and 0146 | 4-lane DP on the side port; bottom USB-C stage B (RT1715 + TCPM, source-only 5 V). With k105 (no 0144) the RT1715 ALERT never fired. |
