@@ -17,6 +17,7 @@ Installed: default `main-k112-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k113-d13-261001a` | main | k113 | d13 | built | unknown |  | 0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB) |  |
 | `main-k112-d13-261001a` | main | k112 | d13 | installed-main | yes | 2026-10-01 17:28 | memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed) | RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked |
 | `main-k112-d12-261001a` | main | k112 | d12 | retired | yes | 2026-10-01 17:22 | TRIAL memslim stockcma,ionpool (+324 MiB) | RAM trial B pass (stockcma+ionpool): all ranges pass, 3x s2idle, Wi-Fi restart, 0 SEA |
 | `main-k112-d11-261001a` | main | k112 | d11 | retired | yes | 2026-10-01 15:50 | TRIAL memslim stockcma (+196 MiB) | RAM trial A pass (stockcma): pressure 50109/50176 hits, 256/256 exec, 3x s2idle, Wi-Fi restart, 0 SEA |
@@ -41,6 +42,7 @@ Installed: default `main-k112-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k113 | `rog5-kernel-7.2.7-build-r113` | `7.2.7-rog5-k113` | 116 patches, 0001-0153 | 2026-10-01 |  |
 | k112 | `rog5-kernel-7.2.7-build-r112` | `7.2.7-rog5-k112` | 115 patches, 0001-0152 | 2026-10-01 |  |
 | k111 | `rog5-kernel-7.2.7-build-r111` | `7.2.7-rog5-k111` | 113 patches, 0001-0148 | 2026-09-30 |  |
 | k110 | `rog5-kernel-7.2.7-build-r110` | `7.2.7-rog5-production` | 0001-0147 without 0128/0129 | 2026-09-30 | k109 + 0146 TCPM reads CC after the port reset (stick attached at boot), 0147 msm.dp_min_bpc=8, 0139 halved mode clock check by default |

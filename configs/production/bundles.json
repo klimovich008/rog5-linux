@@ -81,6 +81,16 @@
       "source_commit": "1a563cb21d7a",
       "source_dirty": false,
       "changes": ""
+    },
+    "k113": {
+      "build": "rog5-kernel-7.2.7-build-r113",
+      "release": "7.2.7-rog5-k113",
+      "date": "2026-10-01",
+      "series": "116 patches, 0001-0153",
+      "image_sha256": "d2d0c025145a7ca7408b0454d6334206611282fab3d8d9e0d42f4f5a4c99a85f",
+      "source_commit": "defc52dbea98",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -387,6 +397,22 @@
       "healthy": "yes",
       "installed": "2026-10-01 17:28",
       "notes": "RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked"
+    },
+    {
+      "name": "main-k113-d13-261001a",
+      "role": "main",
+      "kernel": "k113",
+      "dtb": "d13",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k113",
+      "manifest_sha256": "759bf829dc761d7378ef5a511ed5d125c4fd01f147246fd3ce96ec3368596ea3",
+      "package": "package-main-k113-d13-261001a",
+      "source_commit": "defc52dbea98",
+      "changes": "0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
