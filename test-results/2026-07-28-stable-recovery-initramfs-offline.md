@@ -75,7 +75,7 @@ The local source review, ShellCheck warning gate, repository quick suite, and
 full AArch64 integration pass. Two bounded Codex reviewer attempts did not
 return a verdict and were stopped. The separately authorized Claude CLI
 review was attempted read-only but the service reported a session limit until
-17:10 Europe/Warsaw. No independent-review verdict is claimed by this
+17:10 local time. No independent-review verdict is claimed by this
 checkpoint; that review remains required before a production candidate.
 
 ## Promotion status

@@ -86,7 +86,7 @@ fixture fixed those findings; the final reviewer returned `RESOLVED`.
 
 The already-authorized Claude safe reviewer was retried with tool-free,
 nonpersistent input. Claude returned the existing session-quota limit
-(`resets 11:20pm Europe/Warsaw`) before reviewing. This was an advisory
+(`resets 11:20pm local time`) before reviewing. This was an advisory
 availability failure, not an authentication or security failure, and no
 Claude finding is claimed.
 

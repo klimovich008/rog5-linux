@@ -64,7 +64,7 @@ scanout screenshots.
 | Page | Status | Evidence / notes |
 |---|---|---|
 | Appearance | Works | Colour scheme, wallpaper, accent, blur, shape; cursor and window-opacity sections hidden |
-| Language & time | Works | Language chips; Date & time: Europe/Paris, synchronized, NTP switch, zone list from timedated with search ("war" -> Europe/Warsaw), cancelled without changing. The Chinese chip shows tofu: no CJK font on the phone |
+| Language & time | Works | Language chips; Date & time: Europe/Paris, synchronized, NTP switch, zone list from timedated with search (a typed prefix -> the matching zone), cancelled without changing. The Chinese chip shows tofu: no CJK font on the phone |
 | Keyboard | Works (hardware keyboards) | Layout, options, repeat |
 | Touchpad | Hidden | Reappears with a touchpad or mouse |
 | Shortcuts | Works | 34 shortcuts listed |
