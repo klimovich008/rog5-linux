@@ -47,6 +47,31 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-rog5-shell.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "grep",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-startup-observer.py",
       "interpreter": "python3",
       "tiers": [

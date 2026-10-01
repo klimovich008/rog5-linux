@@ -12,7 +12,7 @@ Status as of 2026-10-01 (main-k111-d10-261001a) (source: `docs/status/components
 | Default | `main-k111-d10-261001a` | k111 (series to 0148; uname 7.2.7-rog5-k111) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 00:32 |
 | Fallback | `production-7.2.7-safe-r8` | 7.2.7 build r69 | platform-usbbtm-memx-dtb-r3 (`bb4668b4`, usbbtm-r2 + memx) | 2026-09-30 with r205; current init (v2 restore), speakers at -12 dB; fallback rehearsal PASS 2026-09-30 22:29 |
 
-Components: 38 ready, 10 partial, 8 needs a test, 16 missing.
+Components: 38 ready, 10 partial, 9 needs a test, 16 missing.
 
 Partial:
 
@@ -32,6 +32,7 @@ Needs a test:
 - Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback
 - Boot & updates / Boot splash: r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check
 - Display & shell / Phosh: hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending
+- Display & shell / GNOME Shell Mobile (opt-in): 2026-10-01: packages (mobile 50 branches + GNOME 50.5, 50.4/50.5 lock fixes checked, 11 shell / 4 mutter patches incl. 6 lock-screen fixes), selector, watchdog with fallback to a locked Phosh, rollback set; Sol-reviewed; host aarch64 build; not run on the phone (packages/gnome-mobile/README.md)
 - Connectivity / Hotspot
 - Power / Battery standby measurement: needs the phone unplugged
 - Power / Instruction-fetch aborts (SIGBUS): memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest

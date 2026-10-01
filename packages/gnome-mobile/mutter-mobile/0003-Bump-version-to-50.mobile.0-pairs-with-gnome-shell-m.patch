@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 14:19:40 +0200
+Subject: [PATCH] Bump version to 50.mobile.0 (pairs with gnome-shell-mobile's
+ mutter_req)
+
+gnome-shell-mobile 50 requires mutter-clutter/cogl/mtk/libmutter = 50.mobile.0,
+but the mutter-mobile 50 branches never bumped their version (50.3; 50.5
+after the merge).
+---
+ meson.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 45d148fd6f..b3f7da050c 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,5 +1,5 @@
+ project('mutter', 'c',
+-  version: '50.5',
++  version: '50.mobile.0',
+   meson_version: '>= 1.5.0',
+   license: 'GPL-2.0-or-later',
+ )

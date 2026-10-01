@@ -1,0 +1,207 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 14:44:03 +0200
+Subject: [PATCH] rog5: Show the lock screen before blanking; Lock waits for it
+
+Found in review (GPT-6.1-Sol):
+- The blank, suspend and hibernate actions called lock(false, true), which
+  sets the session locked but defers the shield and the unlock-dialog mode
+  until showLater() after the screen-off awaits (sensor daemon, fade). A
+  power-key cancel during those awaits could light the panel with the app
+  content and no cover. Lock synchronously before blanking.
+- org.gnome.ScreenSaver.Lock returned before the lock screen was shown
+  (upstream waits for 'lock-screen-shown', which the mobile branch no
+  longer emitted). Emit it again and wait for it.
+- suspend-forced waited for a painted frame only when it had just locked
+  itself; wait whenever the panel is on, bounded to 1 s (no frames are
+  presented with DPMS off).
+- A power press ignored in the 500 ms after resume had already consumed
+  the one-shot user-active watch; re-arm it.
+---
+ js/misc/powerManager.js | 84 +++++++++++++++++++++++++++++------------
+ js/ui/screenShield.js   |  3 ++
+ js/ui/shellDBus.js      | 22 ++++++++++-
+ 3 files changed, 82 insertions(+), 27 deletions(-)
+
+diff --git a/js/misc/powerManager.js b/js/misc/powerManager.js
+index 5690af701..692ebf894 100644
+--- a/js/misc/powerManager.js
++++ b/js/misc/powerManager.js
+@@ -517,6 +517,29 @@ export class PowerManager {
+         }
+     }
+ 
++    // ROG5: resolves after the next stage update, or after timeoutMs.
++    _rog5WaitFrame(timeoutMs) {
++        return new Promise(resolve => {
++            let id = 0, timeoutId = 0;
++            const done = () => {
++                if (id)
++                    global.stage.disconnect(id);
++                if (timeoutId)
++                    GLib.source_remove(timeoutId);
++                id = timeoutId = 0;
++                resolve();
++            };
++            id = global.stage.connect('after-update', () => done());
++            timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, timeoutMs, () => {
++                timeoutId = 0;
++                log('POWERMANAGER: no stage update within ' + timeoutMs + ' ms before suspend');
++                done();
++                return GLib.SOURCE_REMOVE;
++            });
++            global.stage.queue_redraw();
++        });
++    }
++
+     // ROG5: 'power-key' when the wake IRQ (/sys/power/pm_wakeup_irq) is the
+     // PMIC power key's (the 'pwrkey' line in /proc/interrupts), 'other'
+     // for any other recorded wake IRQ, null when unknown (then the upstream
+@@ -870,9 +893,13 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+             }
+             case 'blank': {
+                 if (this._screensaverSettings.get_boolean(LOCK_ENABLED_KEY)) {
+-                    Main.screenShield.lock(false, true);
++                    // ROG5: show the shield and enter lock mode synchronously,
++                    // then blank. lock(false, true) + showLater() left the
++                    // session "locked" without its cover until the fade ended,
++                    // and a power-key cancel during the awaits could light the
++                    // panel in between.
++                    Main.screenShield.lock(false);
+                     await this._turnOffScreen(screenFadeTimeMs).catch(e => console.error(e));
+-                    Main.screenShield.showLater();
+                 } else {
+                     await this._turnOffScreen(screenFadeTimeMs);
+                 }
+@@ -907,9 +934,13 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+                     return;
+ 
+                 if (this._screensaverSettings.get_boolean(LOCK_ENABLED_KEY)) {
+-                    Main.screenShield.lock(false, true);
++                    // ROG5: show the shield and enter lock mode synchronously,
++                    // then blank. lock(false, true) + showLater() left the
++                    // session "locked" without its cover until the fade ended,
++                    // and a power-key cancel during the awaits could light the
++                    // panel in between.
++                    Main.screenShield.lock(false);
+                     await this._turnOffScreen(screenFadeTimeMs).catch(e => console.error(e));
+-                    Main.screenShield.showLater();
+                 } else {
+                     await this._turnOffScreen(screenFadeTimeMs);
+                 }
+@@ -947,25 +978,17 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+                 // Strictly speaking lock-enabled is defined as "lock the screen when
+                 // the screensaver goes active", but we interpret it as "lock the screen
+                 // when using screensaver, blanking, and suspending".
+-                if (this._screensaverSettings.get_boolean(LOCK_ENABLED_KEY) && !Main.screenShield.locked) {
+-                    Main.screenShield.lock(false);
+-
+-                    // The suspend can happen quicker than we take to draw the next frame
+-                    // (ie. draw the lockscreen), and the display driver will restore the
+-                    // last drawn frame on resume. We must ensure the lockscreen is painted
+-                    // before the suspend so there's no single frame with the unlocked
+-                    // screen content visible after suspend. As long as we show some animation
+-                    // or wait otherwise before suspending, the next few lines are not
+-                    // necessary, but they are necessary when we skip animations and suspend
+-                    // immediately.
+-                    await new Promise((resolve, reject) => {
+-                        const id = global.stage.connect('after-update', () => {
+-                            log("POWERMANAGER: waited for stage update, now done");
+-                            global.stage.disconnect(id);
+-                            resolve();
+-                        });
+-                        global.stage.queue_redraw();
+-                    });
++                if (this._screensaverSettings.get_boolean(LOCK_ENABLED_KEY)) {
++                    // ROG5: also wait when already locked (a lock that was just
++                    // requested may not be painted yet), but only while the
++                    // panel is on (no frames are presented with DPMS off) and
++                    // at most 1 s.
++                    // The display driver restores the last drawn frame on
++                    // resume, so the lock screen must be painted first.
++                    if (!Main.screenShield.locked)
++                        Main.screenShield.lock(false);
++                    if (this._displayConfigProxy.PowerSaveMode === 0)
++                        await this._rog5WaitFrame(1000);
+ 
+                     if (cancellable.is_cancelled())
+                         return;
+@@ -993,9 +1016,13 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+                     return;
+ 
+                 if (this._screensaverSettings.get_boolean(LOCK_ENABLED_KEY)) {
+-                    Main.screenShield.lock(false, true);
++                    // ROG5: show the shield and enter lock mode synchronously,
++                    // then blank. lock(false, true) + showLater() left the
++                    // session "locked" without its cover until the fade ended,
++                    // and a power-key cancel during the awaits could light the
++                    // panel in between.
++                    Main.screenShield.lock(false);
+                     await this._turnOffScreen(screenFadeTimeMs).catch(e => console.error(e));
+-                    Main.screenShield.showLater();
+                 } else {
+                     await this._turnOffScreen(screenFadeTimeMs);
+                 }
+@@ -1218,6 +1245,13 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+ 
+             if (this._ignoreInputAfterSuspend) {
+                 log("POWERMANAGER: ignoring power key press (event age " + (timeNowMs - eventTimeMs) + "ms) after suspend wakeup (" + (timeNowMs - this._ignoreInputAfterSuspendStartMs) + "ms after wakeup)");
++                // ROG5: _onUserActive() consumed its one-shot watch for this
++                // key and left it to us; re-arm it so later activity still
++                // ends the action.
++                if (this._isInAction && !this._userActiveId) {
++                    this._userActiveId = this._idleMonitor.add_user_active_watch(
++                        () => this._onUserActive().catch(e => console.error(e)));
++                }
+                 return;
+             }
+ 
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index dd321cf35..a1e01c019 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -566,6 +566,9 @@ export class ScreenShield extends Signals.EventEmitter {
+         this._dialog.grab_key_focus();
+ 
+         this._setActive(true);
++
++        // ROG5: as upstream; org.gnome.ScreenSaver.Lock waits for it
++        this.emit('lock-screen-shown');
+     }
+ 
+     async _wakeUpScreen() {
+diff --git a/js/ui/shellDBus.js b/js/ui/shellDBus.js
+index 5ce09e986..77d5f9c8e 100644
+--- a/js/ui/shellDBus.js
++++ b/js/ui/shellDBus.js
+@@ -532,10 +532,28 @@ export class ScreenSaverDBus {
+     }
+ 
+     LockAsync(parameters, invocation) {
++        // ROG5: return only once the lock screen is shown, as upstream does
++        // (the mobile branch returned at once).
++        if (this._screenShield.locked && this._screenShield.active) {
++            Main.powerManager.blank();
++            invocation.return_value(null);
++            return;
++        }
++
++        const tmpId = this._screenShield.connect('lock-screen-shown', () => {
++            this._screenShield.disconnect(tmpId);
++            invocation.return_value(null);
++        });
++
+         this._screenShield.lock(true);
++        if (!this._screenShield.locked) {
++            // refused (lockdown) or no lock dialog: answer instead of hanging
++            this._screenShield.disconnect(tmpId);
++            invocation.return_error_literal(Gio.DBusError, Gio.DBusError.FAILED,
++                'The screen could not be locked');
++            return;
++        }
+         Main.powerManager.blank();
+-
+-        invocation.return_value(null);
+     }
+ 
+     SetActive(active) {

@@ -34,7 +34,9 @@
 # wakeup source) wakes the phone, but a shell that re-activates its seat session
 # on resume drops key events that arrive meanwhile (seen with Denial, 2026-09), so when the power key
 # was the wake reason this daemon replays one KEY_POWER press through uinput
-# (only while the display is still off, so it can never switch it back off).
+# (only while the display is still off, so it can never switch it back off;
+# read again right before the press, since GNOME Shell Mobile lights the
+# display on a power-key wake by itself).
 # Suspend uses s2idle: a power-key wake from PSCI deep suspend warm-reset the
 # phone (2026-09-27).
 # ROG5_SLEEP_MODE (or the first word of /etc/rog5/sleep-mode) picks what
@@ -86,6 +88,7 @@ mode_file=${ROG5_SLEEP_MODE_FILE:-/etc/rog5/sleep-mode}
 wifi_ps=${ROG5_SLEEP_WIFI_PS:-1}
 wifi_ps_hold=${ROG5_SLEEP_WIFI_PS_HOLD:-60}
 ext_displays=${ROG5_SLEEP_EXT_DISPLAYS:-/sys/class/drm/card*-DP-*}
+shell_effective=${ROG5_SLEEP_SHELL_EFFECTIVE:-/run/rog5-shell/effective}
 
 # The configured mode: suspend or reachable.
 sleep_mode() {
@@ -290,7 +293,7 @@ pwrkey_irq() { awk '/pwrkey/{sub(":", "", $1); print $1; exit}' /proc/interrupts
 
 # Replays one KEY_POWER press/release through uinput.
 press_power_key() {
-	python3 - <<'PY'
+	ROG5_SLEEP_DPMS_PATH=$dpms python3 - <<'PY'
 import fcntl, os, struct, time
 UI_SET_EVBIT, UI_SET_KEYBIT, UI_DEV_CREATE, UI_DEV_DESTROY = 0x40045564, 0x40045565, 0x5501, 0x5502
 EV_SYN, EV_KEY, KEY_POWER = 0, 1, 116
@@ -300,7 +303,13 @@ fcntl.ioctl(fd, UI_SET_KEYBIT, KEY_POWER)
 os.write(fd, struct.pack('80sHHHHi', b'rog5-sleep-policy wake key', 0x19, 1, 1, 1, 0) + bytes(256 * 4))
 fcntl.ioctl(fd, UI_DEV_CREATE)
 time.sleep(1.0)  # let the compositor pick the new device up
-for value in (1, 0):
+# The shell may have lit the display itself meanwhile (GNOME Shell Mobile
+# does on a power-key wake): a press now would blank it again.
+try:
+    lit = open(os.environ['ROG5_SLEEP_DPMS_PATH']).read().strip() != 'Off'
+except (KeyError, OSError):
+    lit = False
+for value in (() if lit else (1, 0)):
     os.write(fd, struct.pack('llHHi', 0, 0, EV_KEY, KEY_POWER, value))
     os.write(fd, struct.pack('llHHi', 0, 0, EV_SYN, 0, 0))
 time.sleep(0.5)
@@ -311,10 +320,17 @@ PY
 
 # After a power-key wake: turn the display on once the shell listens again.
 wake_display() {
+	# GNOME Shell Mobile lights the display itself on a power-key wake; a
+	# replayed press (a toggle) could only blank it again.
+	if grep -qsx gnome-mobile "$shell_effective"; then
+		log 'power-key wake: GNOME Mobile lights the display itself'
+		return 0
+	fi
 	[ -e /dev/uinput ] || modprobe -d /run/rog5-modules uinput 2>/dev/null || modprobe uinput 2>/dev/null
 	tries=0
 	while [ "$tries" -lt 8 ] && [ "$(cat "$dpms" 2>/dev/null)" = Off ]; do
 		sleep 1
+		# checked again right before the press (the shell may light it itself)
 		press_power_key || log 'WARN could not replay the power key'
 		sleep 1
 		tries=$((tries + 1))

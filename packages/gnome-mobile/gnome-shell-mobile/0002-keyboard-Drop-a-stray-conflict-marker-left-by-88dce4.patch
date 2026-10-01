@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 13:43:11 +0200
+Subject: [PATCH] keyboard: Drop a stray conflict marker left by 88dce45b7
+
+The mobile-shell-devel-50 head d95fe2ac carries a literal
+'>>>>>>> eca9850fde' line in js/ui/keyboard.js (from the FIXME commit
+88dce45b7), which makes the module fail to parse. The 51 'mobile' branch
+has the same open() without the marker.
+---
+ js/ui/keyboard.js | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 562a8cdc8..9f5d7b070 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -1980,6 +1980,8 @@ export const Keyboard = GObject.registerClass({
+             purpose === Clutter.InputContentPurpose.ALPHA ||
+             purpose === Clutter.InputContentPurpose.PASSWORD ||
+             purpose === Clutter.InputContentPurpose.TERMINAL;
++        this._modifiers.clear();
++        this._modifierKeys.clear();
+ 
+         this._keyContainerGesture = new KeyContainerGesture();
+         layout.add_action(this._keyContainerGesture);
+@@ -2142,9 +2144,9 @@ export const Keyboard = GObject.registerClass({
+             }
+ 
+             if (key.action === 'modifier') {
+-                const modifierKeys = this._modifierKeys[key.keyval] || [];
++                const modifierKeys = this._modifierKeys.get(key.keyval) ?? [];
+                 modifierKeys.push(button);
+-                this._modifierKeys[key.keyval] = modifierKeys;
++                this._modifierKeys.set(key.keyval, modifierKeys);
+             }
+ 
+             // znwj key uses keyval but should appear like a normal key
+@@ -2175,7 +2177,7 @@ export const Keyboard = GObject.registerClass({
+         else
+             this._modifiers.delete(keyval);
+ 
+-        for (const key of this._modifierKeys[keyval])
++        for (const key of this._modifierKeys.get(keyval))
+             key.setLatched(enabled);
+     }
+ 
+@@ -2370,7 +2372,6 @@ export const Keyboard = GObject.registerClass({
+ 
+ 
+         this._open();
+->>>>>>> eca9850fde (keyboard: Remove the OSK rest timeout)
+     }
+ 
+     _open() {

@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 13:50:01 +0200
+Subject: [PATCH] rog5: messageList: Don't activate notifications or their
+ actions while locked
+
+The mobile unlock dialog shows notifications through CalendarMessageList
+(isOnLockscreen), and NotificationMessage activated the notification on a
+tap and ran its action buttons with the session locked. MediaMessage
+already refuses to raise its player while locked; do the same here. Media
+controls and dismissing stay available.
+---
+ js/ui/messageList.js | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/messageList.js b/js/ui/messageList.js
+index 9c6d51f38..65c4389d1 100644
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -871,6 +871,12 @@ class NotificationMessage extends Message {
+     }
+ 
+     vfunc_clicked() {
++        // ROG5: the mobile lock screen lists notifications with this
++        // widget; activating one (or one of its actions) ran app code from
++        // a locked phone. Upstream's lock screen is not interactive.
++        if (Main.sessionMode.isLocked)
++            return;
++
+         this.notification?.activate();
+     }
+ 
+@@ -901,7 +907,12 @@ class NotificationMessage extends Message {
+             label: action.label,
+         });
+ 
+-        button.connect('clicked', () => action.activate());
++        button.connect('clicked', () => {
++            if (Main.sessionMode.isLocked)
++                return;
++
++            action.activate();
++        });
+ 
+         this._actions.set(action, button);
+         this._buttonBox.add_child(button);

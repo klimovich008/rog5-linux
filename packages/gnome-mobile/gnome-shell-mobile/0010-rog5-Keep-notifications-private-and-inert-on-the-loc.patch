@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 14:43:14 +0200
+Subject: [PATCH] rog5: Keep notifications private and inert on the lock screen
+ (quick settings, URLs)
+
+Two more ways from the locked phone to notification content and app code,
+found in review (GPT-6.1-Sol):
+- Quick settings stay available while locked (unlock-dialog mode), and the
+  mobile quick settings menu has its own CalendarMessageList without the
+  lock-screen privacy policy (isOnLockscreen): it showed notifications
+  whose policy hides them, or their bodies, on the lock screen. Hide it
+  while locked or locking.
+- URLHighlighter launches a URI from its own click gesture, past the guards
+  of 'rog5: messageList: Don't activate notifications ...'. No URL
+  recognition or launch while locked.
+The guards also check screenShield.locked, which turns true before the
+session mode changes.
+---
+ js/ui/messageList.js   | 11 +++++++++--
+ js/ui/quickSettings.js | 16 ++++++++++++++++
+ 2 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/messageList.js b/js/ui/messageList.js
+index 65c4389d1..b8e321d49 100644
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -67,12 +67,19 @@ class URLHighlighter extends St.Label {
+     }
+ 
+     _checkInUrl() {
++        // ROG5: no URL launches from a locked phone (lock-screen messages)
++        if (Main.sessionMode.isLocked || Main.screenShield?.locked)
++            return false;
++
+         const {x, y} = this._clickGesture.get_coords_abs();
+         const urlId = this._findUrlAtPos(x, y);
+         return urlId !== -1;
+     }
+ 
+     _onClick() {
++        if (Main.sessionMode.isLocked || Main.screenShield?.locked)
++            return;
++
+         const {x, y} = this._clickGesture.get_coords_abs();
+         const urlId = this._findUrlAtPos(x, y);
+         if (urlId !== -1) {
+@@ -874,7 +881,7 @@ class NotificationMessage extends Message {
+         // ROG5: the mobile lock screen lists notifications with this
+         // widget; activating one (or one of its actions) ran app code from
+         // a locked phone. Upstream's lock screen is not interactive.
+-        if (Main.sessionMode.isLocked)
++        if (Main.sessionMode.isLocked || Main.screenShield?.locked)
+             return;
+ 
+         this.notification?.activate();
+@@ -908,7 +915,7 @@ class NotificationMessage extends Message {
+         });
+ 
+         button.connect('clicked', () => {
+-            if (Main.sessionMode.isLocked)
++            if (Main.sessionMode.isLocked || Main.screenShield?.locked)
+                 return;
+ 
+             action.activate();
+diff --git a/js/ui/quickSettings.js b/js/ui/quickSettings.js
+index f17651657..a4a4f3410 100644
+--- a/js/ui/quickSettings.js
++++ b/js/ui/quickSettings.js
+@@ -792,6 +792,22 @@ export const QuickSettingsMenu = class extends PopupMenu.PopupMenu {
+         this._messageList = new Calendar.CalendarMessageList();
+         this._innerBox.add_child(this._messageList);
+ 
++        // ROG5: quick settings stay available on the lock screen, but this
++        // list has no lock-screen privacy policy (isOnLockscreen): hide it
++        // while locked or locking, and check again whenever the menu opens.
++        const syncMessageList = () => {
++            this._messageList.visible =
++                !Main.sessionMode.isLocked && !Main.screenShield?.locked;
++        };
++        Main.sessionMode.connect('updated', syncMessageList);
++        this.connect('open-state-changed', () => syncMessageList());
++        this._messageList.connect('notify::visible', () => {
++            if (this._messageList.visible &&
++                (Main.sessionMode.isLocked || Main.screenShield?.locked))
++                this._messageList.hide();
++        });
++        syncMessageList();
++
+         const xConstraint = new Clutter.BindConstraint({
+             coordinate: Clutter.BindCoordinate.X,
+             source: this.box,

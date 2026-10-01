@@ -1,0 +1,22 @@
+# GNOME Mobile watchdog (rog5-shell watchdog). Armed before GDM starts (and
+# before Phosh stops on `rog5-shell switch gnome-mobile`): GDM must be active
+# and a gnome-shell must answer on its bus, hold the touchscreen and have lit
+# the panel within 90 s; later it watches for GDM going away, a dead or hung
+# shell and crash loops. Any failure ends in Phosh on its lock screen, and
+# /etc/rog5/shell goes back to phosh. gdm.service Requires= this unit.
+[Unit]
+Description=ROG5 GNOME Mobile watchdog (back to a locked Phosh on failure)
+# If the watchdog itself keeps failing, nothing would supervise GDM: fall
+# back from outside (rog5-shell-fallback.service).
+StartLimitIntervalSec=300
+StartLimitBurst=5
+OnFailure=rog5-shell-fallback.service
+
+[Service]
+ExecCondition=/usr/bin/grep -qsx gnome-mobile /run/rog5-shell/effective
+ExecStart=/usr/local/sbin/rog5-shell watchdog
+Restart=on-failure
+RestartSec=5
+# retries do not pass through "failed", so OnFailure= fires only once the
+# start limit gives up
+RestartMode=direct

@@ -36,6 +36,19 @@ file	scripts/device/rog5-mobile-apps	/usr/local/sbin/rog5-mobile-apps	0755
 build	tools/rog5-kms-reset.c	/usr/local/libexec/rog5-kms-reset	0755
 user-file	configs/environment.d/60-rog5-mutter.conf	.config/environment.d/60-rog5-mutter.conf	0644
 
+# Phone shell selector: Phosh (default) or GNOME Shell Mobile through GDM
+# (opt-in; packages/gnome-mobile installs the packages and session files).
+# The drop-ins only gate the display units on /run/rog5-shell/effective.
+file	scripts/device/rog5-shell	/usr/local/sbin/rog5-shell	0755
+conf	configs/rog5/shell	/etc/rog5/shell	0644
+file	configs/systemd/rog5-shell-select.service	/etc/systemd/system/rog5-shell-select.service	0644
+file	configs/systemd/rog5-shell-watchdog.service	/etc/systemd/system/rog5-shell-watchdog.service	0644
+file	configs/systemd/rog5-shell-fallback.service	/etc/systemd/system/rog5-shell-fallback.service	0644
+file	configs/systemd/rog5-phosh.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-phosh.service.d/50-rog5-shell.conf	0644
+file	configs/systemd/rog5-desktop-mode.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-desktop-mode.service.d/50-rog5-shell.conf	0644
+file	configs/systemd/rog5-gnome.service.d/50-rog5-shell.conf	/etc/systemd/system/rog5-gnome.service.d/50-rog5-shell.conf	0644
+file	configs/systemd/gdm.service.d/50-rog5-gnome-mobile.conf	/etc/systemd/system/gdm.service.d/50-rog5-gnome-mobile.conf	0644
+
 # Remote desktop (headless Sway and the wayvnc phone mirror, loopback only)
 file	configs/rog5-desktop/sway-base.conf	/etc/rog5-desktop/sway-base.conf	0644
 file	configs/rog5-desktop/sway.conf	/etc/rog5-desktop/sway.conf	0644
@@ -124,6 +137,7 @@ enable	system	bluetooth.service
 enable	system	systemd-resolved.service
 enable	system	systemd-timesyncd.service
 enable	system	rog5-phosh.service
+enable	system	rog5-shell-select.service
 enable	system	rog5-session-boost.service
 enable	system	rog5-desktop-mode.service
 enable	system	rog5-sleep-policy.service

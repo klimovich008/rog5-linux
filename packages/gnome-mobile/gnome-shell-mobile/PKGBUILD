@@ -1,0 +1,168 @@
+# Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+# Maintainer: Fabian Bornschein <fabiscafe@archlinux.org>
+# Contributor: Ionut Biru <ibiru@archlinux.org>
+# Contributor: Flamelab <panosfilip@gmail.com
+# ROG Phone 5 (SM8350) build: Arch Linux packaging gnome-shell 1:50.5-1, but
+# the source is GNOME Shell Mobile (World/MobileShell/gnome-shell-mobile,
+# branch mobile-shell-devel-50, 50.3 based) with GNOME 50.5 merged in (0001,
+# conflicts resolved, every 50.4/50.5 lock-screen fix checked: ../README.md),
+# a stray conflict marker fixed (0002), two postmarketOS fixes (0003, 0004)
+# and seven ROG5 patches (0005-0011: no lock-screen overlays, no notification
+# actions/URLs/quick-settings list while locked, no PIN input while auth is
+# blocked, panel stays dark after a non-user resume, idle blank locks again on
+# GNOME 50, lock screen shown before blanking). Opt-in only; it replaces gnome-shell and needs
+# mutter-mobile of the same version. Not in configs/rootfs/custom-packages.txt.
+
+pkgname=gnome-shell-mobile
+_mobile_commit=d95fe2ac2c2f5a7ec4e50aa3978a06180e89db61 # mobile-shell-devel-50, 2026-07-23
+pkgver=50.5
+pkgrel=1
+pkgdesc="Next generation desktop shell (GNOME Shell Mobile fork, ROG5 build)"
+url="https://gitlab.gnome.org/World/MobileShell/gnome-shell-mobile"
+arch=(aarch64 x86_64)
+license=(GPL-3.0-or-later)
+# ROG5: also build gnome-shell-mobile-debug
+options=(debug)
+depends=(
+  accountsservice
+  at-spi2-core
+  bash
+  cairo
+  dconf
+  gcr-4
+  gdk-pixbuf2
+  gjs
+  glib2
+  glibc
+  gnome-autoar
+  gnome-desktop-4
+  gnome-session
+  gnome-settings-daemon
+  graphene
+  gsettings-desktop-schemas
+  gtk4
+  hicolor-icon-theme
+  ibus
+  json-glib
+  libadwaita
+  libcanberra-pulse
+  libgcc
+  libgdm
+  libglvnd
+  libgweather-4
+  libibus
+  libical
+  libnm
+  libnma-gtk4
+  libpipewire
+  libpulse
+  libsecret
+  libsoup3
+  libx11
+  libxext
+  libxfixes
+  "mutter-mobile=$pkgver"
+  libmutter-18.so
+  pango
+  polkit
+  systemd-libs
+  unzip
+  upower
+  webkitgtk-6.0
+)
+# ROG5: no API docs (gi-docgen)
+makedepends=(
+  asciidoc
+  bash-completion
+  evolution-data-server
+  git
+  glib2-devel
+  gnome-keybindings
+  gobject-introspection
+  meson
+  python-docutils
+  sassc
+)
+optdepends=(
+  'evolution-data-server: Evolution calendar integration'
+  'gnome-bluetooth-3.0: Bluetooth support'
+  'gnome-control-center: System settings'
+  'gnome-disk-utility: Mount with keyfiles'
+  'gst-plugin-pipewire: Screen recording'
+  'gst-plugins-good: Screen recording'
+  'power-profiles-daemon: Power profile switching'
+  'python-gobject: gnome-shell-test-tool performance tester'
+  'python-simplejson: gnome-shell-test-tool performance tester'
+  'switcheroo-control: Multi-GPU support'
+)
+provides=("gnome-shell=1:$pkgver")
+conflicts=(gnome-shell)
+groups=(gnome)
+source=(
+  "git+$url.git#commit=$_mobile_commit"
+  "git+https://gitlab.gnome.org/GNOME/libgnome-volume-control.git#commit=0a4eda0cdc2deb352bebc70ec697c42af46094e4"
+  "git+https://github.com/ptomato/jasmine-gjs.git#commit=856465dddbd92e82e574891e1ebc79e17d7b708a"
+  "git+https://gitlab.gnome.org/GNOME/libshew.git#commit=d16afc40412b565d2bbecf80335f54a19a978009"
+  0001-Merge-GNOME-50.5-into-mobile-shell-devel-50.patch
+  0002-keyboard-Drop-a-stray-conflict-marker-left-by-88dce4.patch
+  0003-windowPreview-Only-try-to-close-closable-windows.patch
+  0004-keyboard-Avoid-spinning-idle-source-when-window-acto.patch
+  0005-rog5-screenShield-Keep-lock-screen-overlays-and-the-.patch
+  0006-rog5-messageList-Don-t-activate-notifications-or-the.patch
+  0007-rog5-authPrompt-Ignore-PIN-input-and-activation-whil.patch
+  0008-rog5-powerManager-Keep-the-panel-dark-after-a-non-us.patch
+  0009-rog5-powerManager-Lock-on-idle-blank-again-GNOME-49-.patch
+  0010-rog5-Keep-notifications-private-and-inert-on-the-loc.patch
+  0011-rog5-Show-the-lock-screen-before-blanking-Lock-waits.patch
+)
+b2sums=('SKIP'
+        'b3ff7babceb21522cbdc8f2d11b00fe7c83a820250629f79831b42c4802613aa116a0df58038c76d9948c452c27cd47eca7a0172f06800df571c90f8671c0b6c'
+        'ecbbb9ce5895cc1caed2ddef39c70b4768d78ea0a929ea932d4149f923f92650973cdaefc2aacc9063f2ccf4ec965b57a9698a286f9a6561e39ce2e579ae4522'
+        '7b39ef786d0af34f207c36c078fda5410848a5eceb84509b145184be1dbb994aeb3ffa70cb3de363a8460d59c140aafbdee8f74312cf2971a80cc5d485f1b829'
+        '3caa741a3c94573353ff49f72ee2c7211bdc8fb02aff01b04c08b3c96608747b0c90763cf8bcb3a62aa07c665186dd2e0c4ea50d1c1261e62438e2a903449389'
+        'eb8d2436ca25614e7c8e168d4a1eace7a6d7c35df941354158422d6146cc2c147de2bf8632335393d2ac07b1f876ea4d171caa1493ae1e4fe96b5d1ae55820e6'
+        '68c5385b9426a966d2a0d6efeaeefa15016bf1d88b6ef884956bd364a1b6854b4d9fcca7139cc52bb876b66bf253fd39271c6ea26e9acdb1527c21dab1a8ae48'
+        'eb12866fec893d3e0b7fa4a096d5ab6ea35cfcc5b126d9a213ce36c0cd2cfa847b45ec810d2dc20648856b4d03e7b2f65bf7cd25be0eb261655089d33726671c'
+        'fd3d6a262c71b6c520b1b7810bba0c20d06dc595a41e6bea921055a69fc4a8c754f9d518f01257439a6b83d2e973165bf2592ee699c68b44dc260e7cb8fe8ced'
+        '21317331691deb7309a3644a030984570200793f94e3a879beac9a44d9dac50fa0f561a3174a1a1794d12790583c86ee6105be4a91bf2479b5318093dac13e64'
+        '08cd978576faf7c3a3370fb3fe638df0cf0844fbfcd9ef5b1412a50fce92dc1ff745f9b0dcc4a671fc16bc13877864e8b11f436d5d5f0efdd81cda15d5d17e1f'
+        'c8823735d4c98e137bb8da2d6980bca449c15329ec6e1593e970392faa130d445afb9e63a90c7bd01c6e161bc089906909076353b6628efe411175dd48909960'
+        '7380949895fd68b14fe55a83768639eff36492be5d5db0fd7db9a8eb225c184332f6a89d15455221c96e60699c23caf45b3b2042eaabce347ef2af968b94a97a'
+        '8d7a0a7e42b573ced22cbe11ccb94c7eb43a9a2d8080fa4f5428192194d898c1959524cad8fab3e37e390c6adde8f224c84f9b6c3dd09305f2541123b4461549'
+        'db9d8de0809c836b8ec1b94c9fb0239e1bb37df5b9a278245c8595fd4def33ff61e115351c4927ab9914bc94d43fd57d2a013ef113a37482ae88fcaec96684db')
+
+prepare() {
+  # Inject gvc
+  ln -sfn libgnome-volume-control gvc
+
+  cd gnome-shell-mobile
+  local p
+  for p in "${source[@]}"; do
+    [[ $p = *.patch ]] || continue
+    echo "Applying $p"
+    git apply --whitespace=nowarn "$srcdir/$p"
+  done
+}
+
+build() {
+  local meson_options=(
+    -D gtk_doc=false
+    -D tests=false
+  )
+
+  CFLAGS="${CFLAGS/-O2/-O3} -fno-semantic-interposition"
+  LDFLAGS+=" -Wl,-Bsymbolic-functions"
+
+  # Inject subprojects
+  export MESON_PACKAGE_CACHE_DIR="$srcdir"
+
+  arch-meson gnome-shell-mobile build "${meson_options[@]}"
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+  rm -rf "$pkgdir"/usr/share/doc
+}
+
+# vim:set sw=2 sts=-1 et:

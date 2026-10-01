@@ -1,0 +1,14 @@
+# GDM greeter defaults for the ROG5 GNOME Mobile mode (/etc/dconf/db/gdm.d;
+# run `dconf update` after a change).
+# The on-screen keyboard for the PIN (a touch phone has no other keyboard).
+[org/gnome/desktop/a11y/applications]
+screen-keyboard-enabled=true
+
+# rog5-sleep-policy owns suspend; the greeter must not suspend on its own.
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-type='nothing'
+power-button-action='nothing'
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
