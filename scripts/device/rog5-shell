@@ -1,0 +1,655 @@
+#!/usr/bin/env python3
+"""ROG5 phone shell selector: Phosh (default) or GNOME Shell Mobile (opt-in).
+
+/etc/rog5/shell holds the shell for the next boot: "phosh" (default; also
+for a missing file or any other word) or "gnome-mobile". At boot
+rog5-shell-select.service runs `rog5-shell boot`, which writes the shell of
+this boot to /run/rog5-shell/effective. Every display unit reads only that
+file (ExecCondition drop-ins), so exactly one side can start:
+
+  phosh         rog5-phosh, rog5-desktop-mode, rog5-gnome (today's boot,
+                unchanged); gdm is skipped.
+  gnome-mobile  gdm (greeter without autologin: the PIN at boot, then the
+                "GNOME Mobile" session); the Phosh units are skipped.
+
+gnome-mobile is used only when its packages and files are installed and
+GDM has no automatic or timed login; otherwise the boot falls back to phosh
+(and says why in the journal).
+
+In gnome-mobile mode a root watchdog (rog5-shell-watchdog.service) is armed
+before GDM starts, and before Phosh is stopped by `switch gnome-mobile`.
+Within ARM_S seconds (90) GDM must be active and a gnome-shell must answer
+on its session bus (a property read that the shell's main loop serves),
+hold the touchscreen open and have lit the panel. After that it supervises:
+GDM inactive for GDM_GRACE_S, no answering shell for DEAD_S, or more than
+CRASH_MAX new shell processes within CRASH_WINDOW_S end the mobile mode. The
+fallback writes "phosh" to both files, stops GDM and the GNOME sessions,
+waits until nothing holds the DRM device, starts rog5-phosh and
+rog5-desktop-mode and checks that Phosh comes up locked (logind LockedHint
+of rog5-phosh's session). If it does not within LOCK_S, both are stopped
+again: a dark phone (SSH still works) rather than an unlocked one.
+
+Commands (as root unless noted):
+  rog5-shell status
+  rog5-shell set phosh|gnome-mobile [--pin-is-6-digits]   next boot
+  rog5-shell switch phosh|gnome-mobile [--pin-is-6-digits] now (and next boot)
+  rog5-shell fallback [REASON]                to a locked Phosh now
+  rog5-shell greeter-monitors                 copy the phone user's panel-only
+                                              display configuration for GDM
+  rog5-shell boot | watchdog                  run by the units
+  rog5-shell is MODE                          exit 0 if this boot's shell is MODE
+  rog5-shell gsd-power-allowed                (user unit ExecCondition, any user)
+
+The GNOME Shell Mobile PIN pad submits at the sixth digit and has no Enter
+key, so gnome-mobile needs a 6-digit PIN: `set`/`switch gnome-mobile` ask
+for --pin-is-6-digits. The PIN itself is never read.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+PHOSH, MOBILE = 'phosh', 'gnome-mobile'
+MODES = (PHOSH, MOBILE)
+PHOSH_UNITS = ('rog5-phosh.service', 'rog5-desktop-mode.service')
+GDM = 'gdm.service'
+WATCHDOG = 'rog5-shell-watchdog.service'
+GDM_SERVICES = ('gdm-password', 'gdm-autologin', 'gdm-fingerprint',
+                'gdm-smartcard', 'gdm-launch-environment')
+
+
+def env(name, default):
+    return os.environ.get(f'ROG5_SHELL_{name}', default)
+
+
+MODE_FILE = Path(env('MODE_FILE', '/etc/rog5/shell'))
+RUN_DIR = Path(env('RUN_DIR', '/run/rog5-shell'))
+STATE_DIR = Path(env('STATE_DIR', '/var/lib/rog5'))
+DSI = Path(env('DSI', '/sys/class/drm/card1-DSI-1'))
+DRM_DEV = env('DRM_DEV', '/dev/dri/card1')
+TOUCH_NAME = env('TOUCH_NAME', 'ASUS ROG5 MP2 front FTS3658U')
+SESSION_FILE = Path(env('SESSION_FILE', '/usr/share/wayland-sessions/gnome-mobile.desktop'))
+GDM_CONF = Path(env('GDM_CONF', '/etc/gdm/custom.conf'))
+GDM_BIN = Path(env('GDM_BIN', '/usr/bin/gdm'))
+PHONE_USER = env('PHONE_USER', 'phone')
+GREETER_MONITORS = Path(env('GREETER_MONITORS', '/etc/xdg/monitors.xml'))
+SESSION_HELPER = env('SESSION_HELPER', '/usr/local/libexec/rog5-gnome-mobile-session')
+
+ARM_S = float(env('ARM_S', '90'))
+GDM_GRACE_S = float(env('GDM_GRACE_S', '10'))
+DEAD_S = float(env('DEAD_S', '45'))
+CRASH_MAX = int(env('CRASH_MAX', '5'))
+CRASH_WINDOW_S = float(env('CRASH_WINDOW_S', '300'))
+POLL_S = float(env('POLL_S', '2'))
+LOCK_S = float(env('LOCK_S', '30'))
+RELEASE_S = float(env('RELEASE_S', '15'))
+
+
+def log(msg):
+    print(f'rog5-shell: {msg}', flush=True)
+    try:
+        with open(env('KMSG', '/dev/kmsg'), 'w') as k:
+            k.write(f'rog5-shell: {msg}\n')
+    except OSError:
+        pass
+
+
+def read_word(path, default=''):
+    try:
+        for line in Path(path).read_text().splitlines():
+            words = line.split('#', 1)[0].split()
+            if words:
+                return words[0]
+    except OSError:
+        pass
+    return default
+
+
+def persistent_mode():
+    m = read_word(MODE_FILE, PHOSH)
+    return m if m in MODES else PHOSH
+
+
+def effective_mode():
+    """This boot's shell; anything but an explicit gnome-mobile is phosh."""
+    m = read_word(RUN_DIR / 'effective', PHOSH)
+    return m if m in MODES else PHOSH
+
+
+def write_atomic(path, text):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f'.{path.name}.{os.getpid()}')
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+class System:
+    """Everything that touches the running system; tests replace it."""
+
+    def run(self, argv, timeout=30, user=None):
+        """(returncode, stdout). user = (uid, gid, bus address) runs as that user."""
+        if user is not None:
+            uid, gid, bus = user
+            argv = ['setpriv', f'--reuid={uid}', f'--regid={gid}', '--clear-groups',
+                    'env', f'DBUS_SESSION_BUS_ADDRESS={bus}'] + list(argv)
+        try:
+            r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+            return r.returncode, r.stdout
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return 255, str(e)
+
+    def now(self):
+        return time.monotonic()
+
+    def sleep(self, s):
+        time.sleep(s)
+
+    def unit_state(self, unit):
+        _, out = self.run(['systemctl', 'is-active', unit], timeout=10)
+        return out.strip() or 'unknown'
+
+    def systemctl(self, *args, timeout=90):
+        rc, _ = self.run(['systemctl'] + list(args), timeout=timeout)
+        return rc == 0
+
+    def processes(self, comm):
+        """[(pid, uid, gid)] of processes whose comm is `comm`."""
+        res = []
+        for d in Path('/proc').iterdir():
+            if not d.name.isdigit():
+                continue
+            try:
+                if (d / 'comm').read_text().strip() != comm:
+                    continue
+                st = (d / 'status').read_text()
+                uid = int(re.search(r'^Uid:\s+(\d+)', st, re.M).group(1))
+                gid = int(re.search(r'^Gid:\s+(\d+)', st, re.M).group(1))
+                res.append((int(d.name), uid, gid))
+            except (OSError, AttributeError, ValueError):
+                continue
+        return res
+
+    def proc_env(self, pid, name):
+        try:
+            for item in Path(f'/proc/{pid}/environ').read_bytes().split(b'\0'):
+                if item.startswith(name.encode() + b'='):
+                    return item.split(b'=', 1)[1].decode()
+        except OSError:
+            pass
+        return None
+
+    def proc_fds(self, pid):
+        res = set()
+        try:
+            for fd in Path(f'/proc/{pid}/fd').iterdir():
+                try:
+                    res.add(os.readlink(fd))
+                except OSError:
+                    pass
+        except OSError:
+            pass
+        return res
+
+    def drm_holders(self):
+        holders = []
+        for d in Path('/proc').iterdir():
+            if d.name.isdigit() and DRM_DEV in self.proc_fds(d.name):
+                holders.append(int(d.name))
+        return holders
+
+    def touch_nodes(self):
+        nodes = set()
+        for ev in Path('/sys/class/input').glob('event*'):
+            try:
+                if (ev / 'device/name').read_text().strip() == TOUCH_NAME:
+                    nodes.add(f'/dev/input/{ev.name}')
+            except OSError:
+                pass
+        return nodes
+
+    def read(self, path):
+        try:
+            return Path(path).read_text().strip()
+        except OSError:
+            return ''
+
+    def sessions(self):
+        """[{Id, Service, Class, Desktop, Leader, LockedHint, State, Name}]"""
+        rc, out = self.run(['loginctl', 'list-sessions', '--no-legend'], timeout=10)
+        res = []
+        if rc != 0:
+            return res
+        for line in out.splitlines():
+            if not line.split():
+                continue
+            sid = line.split()[0]
+            rc, props = self.run(['loginctl', 'show-session', sid, '-p', 'Id', '-p', 'Service',
+                                  '-p', 'Class', '-p', 'Desktop', '-p', 'Leader',
+                                  '-p', 'LockedHint', '-p', 'State', '-p', 'Name'], timeout=10)
+            if rc == 0:
+                res.append(dict(l.split('=', 1) for l in props.splitlines() if '=' in l))
+        return res
+
+    def kill(self, pid, sig):
+        try:
+            os.kill(pid, sig)
+        except OSError:
+            pass
+
+
+# ---------------------------------------------------------------- probes ---
+
+def shell_answers(sysm, pid, uid, gid):
+    """True if the gnome-shell process answers a property read on its bus.
+
+    Peer.Ping is answered by GDBus's worker thread even when the shell's main
+    loop hangs; a property of org.gnome.Shell is served by the main loop."""
+    bus = sysm.proc_env(pid, 'DBUS_SESSION_BUS_ADDRESS') or f'unix:path=/run/user/{uid}/bus'
+    rc, out = sysm.run(['busctl', '--user', '--timeout=3', 'get-property', 'org.gnome.Shell',
+                        '/org/gnome/Shell', 'org.gnome.Shell', 'ShellVersion'],
+                       timeout=6, user=(uid, gid, bus))
+    return rc == 0 and out.startswith('s ')
+
+
+def panel_lit(sysm):
+    return sysm.read(DSI / 'enabled') == 'enabled' and sysm.read(DSI / 'dpms') == 'On'
+
+
+def holds_touch(sysm, pid):
+    nodes = sysm.touch_nodes()
+    return bool(nodes) and bool(nodes & sysm.proc_fds(pid))
+
+
+def phosh_alive(sysm):
+    """Phosh picked from GDM's session list (a user's phosh process)."""
+    return any(uid >= 1000 for _, uid, _ in sysm.processes('phosh'))
+
+
+# ------------------------------------------------------------- fallback ---
+
+def phosh_session(sysm):
+    rc, out = sysm.run(['systemctl', 'show', '-p', 'MainPID', '--value', 'rog5-phosh.service'],
+                       timeout=10)
+    pid = out.strip() if rc == 0 else ''
+    if not pid or pid == '0':
+        return None
+    for s in sysm.sessions():
+        if s.get('Leader') == pid and s.get('State') != 'closing':
+            return s
+    return None
+
+
+def stop_gnome(sysm):
+    """Stop GDM and every GDM-started session; wait for the DRM device."""
+    if not sysm.systemctl('stop', GDM, timeout=60):
+        sysm.systemctl('kill', '-s', 'KILL', GDM, timeout=10)
+    for s in sysm.sessions():
+        if s.get('Service') in GDM_SERVICES:
+            sysm.run(['loginctl', 'terminate-session', s['Id']], timeout=10)
+    deadline = sysm.now() + RELEASE_S
+    termed = killed = False
+    while True:
+        shells = [p for p, _, _ in sysm.processes('gnome-shell')]
+        holders = sysm.drm_holders()
+        if not shells and not holders:
+            return True
+        left = deadline - sysm.now()
+        if left <= RELEASE_S * 2 / 3 and not termed:
+            for p in shells + holders:
+                sysm.kill(p, 15)
+            termed = True
+        if left <= RELEASE_S / 3 and not killed:
+            for p in shells + holders:
+                sysm.kill(p, 9)
+            killed = True
+        if left <= 0:
+            log(f'WARN DRM device still held by {holders}, gnome-shell {shells}')
+            return False
+        sysm.sleep(1)
+
+
+def restore_session_settings(sysm):
+    """Undo what the mobile session set in the phone user's dconf, in case
+    the session died before its own ExecStop (rog5-gnome-mobile-session)."""
+    try:
+        import pwd
+        pw = pwd.getpwnam(PHONE_USER)
+    except (KeyError, ImportError):
+        return
+    bus = f'unix:path=/run/user/{pw.pw_uid}/bus'
+    sysm.run([SESSION_HELPER, 'stop'], timeout=30, user=(pw.pw_uid, pw.pw_gid, bus))
+
+
+def wait_phosh_locked(sysm):
+    deadline = sysm.now() + LOCK_S
+    while sysm.now() < deadline:
+        s = phosh_session(sysm)
+        if s and s.get('LockedHint') == 'yes':
+            return s['Id']
+        sysm.sleep(1)
+    return None
+
+
+def fallback(sysm, reason):
+    """To a locked Phosh, persistently. Returns 0 when Phosh is up and locked."""
+    log(f'fallback to Phosh: {reason}')
+    write_atomic(RUN_DIR / 'effective', PHOSH + '\n')
+    write_atomic(MODE_FILE, PHOSH + '\n')
+    try:
+        write_atomic(STATE_DIR / 'shell-fallback',
+                     f'{time.strftime("%Y-%m-%dT%H:%M:%S%z")} {reason}\n')
+    except OSError:
+        pass
+    stop_gnome(sysm)
+    restore_session_settings(sysm)
+    sysm.systemctl('reset-failed', *PHOSH_UNITS, timeout=10)
+    sysm.systemctl('start', *PHOSH_UNITS, timeout=90)
+    sid = wait_phosh_locked(sysm)
+    if sid:
+        log(f'fallback done: Phosh session {sid} is locked')
+        return 0
+    # Never leave an unlocked phone: stop Phosh again (the switcher would
+    # restart it after 10 s without a session).
+    sysm.systemctl('stop', *PHOSH_UNITS, timeout=60)
+    log(f'FAILED CLOSED: Phosh did not report a lock within {LOCK_S:.0f} s; '
+        'display stopped, use SSH')
+    return 1
+
+
+# ------------------------------------------------------------- watchdog ---
+
+class Watchdog:
+    def __init__(self, sysm):
+        self.s = sysm
+        self.armed_at = sysm.now()
+        self.ready = False
+        self.lit_seen = False
+        self.gdm_down_since = None
+        self.dead_since = None
+        self.seen_pids = set()
+        self.starts = []          # times new shell pids appeared
+        self.boosted = set()
+
+    def missing(self, live):
+        """What the startup check still lacks ([] = ready)."""
+        miss = []
+        if self.s.unit_state(GDM) != 'active':
+            miss.append('gdm not active')
+        if not live:
+            miss.append('no answering gnome-shell')
+        elif not any(holds_touch(self.s, p) for p, _, _ in live):
+            miss.append('touchscreen not opened by gnome-shell')
+        if not self.lit_seen:
+            miss.append('panel never lit')
+        return miss
+
+    def step(self):
+        """One check. Returns None to go on, or a fallback reason."""
+        now = self.s.now()
+        procs = self.s.processes('gnome-shell')
+        for pid, _, _ in procs:
+            if pid not in self.seen_pids:
+                self.seen_pids.add(pid)
+                self.starts.append(now)
+        self.starts = [t for t in self.starts if now - t <= CRASH_WINDOW_S]
+        live = [p for p in procs if shell_answers(self.s, *p)]
+        if live and panel_lit(self.s):
+            self.lit_seen = True
+        if not self.ready:
+            miss = self.missing(live)
+            if not miss:
+                self.ready = True
+                self.starts = self.starts[-1:]
+                log(f'gnome-mobile ready after {now - self.armed_at:.0f} s')
+                return None
+            if now - self.armed_at >= ARM_S:
+                return f'not ready within {ARM_S:.0f} s: {", ".join(miss)}'
+            return None
+        if len(self.starts) > CRASH_MAX:
+            return (f'gnome-shell started {len(self.starts)} times within '
+                    f'{CRASH_WINDOW_S:.0f} s')
+        if self.s.unit_state(GDM) != 'active':
+            self.gdm_down_since = self.gdm_down_since or now
+            if now - self.gdm_down_since >= GDM_GRACE_S:
+                return 'gdm stopped'
+        else:
+            self.gdm_down_since = None
+        if live or phosh_alive(self.s):
+            self.dead_since = None
+            for pid, uid, _ in live:
+                if uid >= 1000 and pid not in self.boosted:
+                    self.boosted.add(pid)
+                    self.s.systemctl('restart', '--no-block', 'rog5-session-boost.service',
+                                     timeout=10)
+        else:
+            self.dead_since = self.dead_since or now
+            if now - self.dead_since >= DEAD_S:
+                return f'no answering shell for {DEAD_S:.0f} s'
+        return None
+
+
+def cmd_watchdog(sysm):
+    if effective_mode() != MOBILE:
+        log('watchdog: this boot is not gnome-mobile; nothing to watch')
+        return 0
+    log(f'watchdog armed: ready within {ARM_S:.0f} s or back to Phosh')
+    wd = Watchdog(sysm)
+    while True:
+        reason = wd.step()
+        if reason:
+            return fallback(sysm, reason)
+        if effective_mode() != MOBILE:
+            log('watchdog: mode changed to phosh; exiting')
+            return 0
+        sysm.sleep(POLL_S)
+
+
+# ----------------------------------------------------------------- boot ---
+
+def gdm_autologin(conf_text):
+    """True if custom.conf enables automatic or timed login."""
+    section = ''
+    for line in conf_text.splitlines():
+        line = line.strip()
+        if line.startswith('['):
+            section = line.strip('[]').strip().lower()
+        elif section == 'daemon' and '=' in line and not line.startswith('#'):
+            k, v = (x.strip() for x in line.split('=', 1))
+            if k in ('AutomaticLoginEnable', 'TimedLoginEnable') and v.lower() in ('true', '1', 'yes'):
+                return True
+    return False
+
+
+def mobile_problems(sysm):
+    probs = []
+    if not GDM_BIN.exists():
+        probs.append(f'{GDM_BIN} missing (pacman -S gdm)')
+    if not SESSION_FILE.exists():
+        probs.append(f'{SESSION_FILE} missing')
+    rc, out = sysm.run(['pacman', '-Q', 'gnome-shell-mobile', 'mutter-mobile'], timeout=30)
+    if rc != 0:
+        probs.append('gnome-shell-mobile/mutter-mobile not installed')
+    try:
+        if gdm_autologin(GDM_CONF.read_text()):
+            probs.append(f'{GDM_CONF} enables automatic/timed login')
+    except OSError:
+        probs.append(f'{GDM_CONF} missing')
+    return probs
+
+
+def cmd_boot(sysm):
+    want = persistent_mode()
+    mode = want
+    if want == MOBILE:
+        probs = mobile_problems(sysm)
+        if probs:
+            log(f'gnome-mobile selected but not usable ({"; ".join(probs)}): Phosh this boot')
+            mode = PHOSH
+    write_atomic(RUN_DIR / 'effective', mode + '\n')
+    log(f'shell this boot: {mode}')
+    if mode == MOBILE:
+        # arm first: if GDM never comes up, the watchdog starts Phosh
+        if not sysm.systemctl('start', WATCHDOG, timeout=30):
+            log('watchdog did not start: Phosh this boot')
+            write_atomic(RUN_DIR / 'effective', PHOSH + '\n')
+            sysm.systemctl('start', '--no-block', *PHOSH_UNITS, timeout=10)
+            return 1
+        sysm.systemctl('start', '--no-block', GDM, timeout=10)
+    return 0
+
+
+# ---------------------------------------------------------- set / switch ---
+
+PIN_NOTE = ('GNOME Shell Mobile\'s PIN pad submits at the sixth digit and has no Enter '
+            'key: the phone user needs a 6-digit PIN (change it with `passwd phone`). '
+            'Confirm with --pin-is-6-digits.')
+
+
+def cmd_set(sysm, mode, pin_ok):
+    if mode == MOBILE and not pin_ok:
+        log(PIN_NOTE)
+        return 2
+    write_atomic(MODE_FILE, mode + '\n')
+    log(f'next boot: {mode}')
+    return 0
+
+
+def cmd_switch(sysm, mode, pin_ok):
+    if mode == MOBILE:
+        if not pin_ok:
+            log(PIN_NOTE)
+            return 2
+        probs = mobile_problems(sysm)
+        if probs:
+            log(f'gnome-mobile not usable: {"; ".join(probs)}')
+            return 1
+        if effective_mode() == MOBILE and sysm.unit_state(GDM) == 'active':
+            log('already gnome-mobile')
+            return 0
+        write_atomic(MODE_FILE, MOBILE + '\n')
+        write_atomic(RUN_DIR / 'effective', MOBILE + '\n')
+        # the watchdog is armed before Phosh stops
+        if not sysm.systemctl('restart', WATCHDOG, timeout=30):
+            write_atomic(RUN_DIR / 'effective', PHOSH + '\n')
+            write_atomic(MODE_FILE, PHOSH + '\n')
+            log('watchdog did not start; staying on Phosh')
+            return 1
+        sysm.systemctl('stop', 'rog5-desktop-mode.service', 'rog5-gnome.service',
+                       'rog5-phosh.service', timeout=90)
+        sysm.systemctl('start', '--no-block', GDM, timeout=10)
+        log('switching to gnome-mobile (watchdog armed)')
+        return 0
+    sysm.systemctl('stop', WATCHDOG, timeout=30)
+    return fallback(sysm, 'switch to phosh requested')
+
+
+# --------------------------------------------------------------- others ---
+
+def cmd_status(sysm):
+    print(f'next boot:  {persistent_mode()}')
+    print(f'this boot:  {effective_mode()}')
+    for u in (GDM, WATCHDOG) + PHOSH_UNITS:
+        print(f'{u:28s} {sysm.unit_state(u)}')
+    fb = STATE_DIR / 'shell-fallback'
+    if fb.exists():
+        print(f'last fallback: {fb.read_text().strip()}')
+    return 0
+
+
+def cmd_gsd_power_allowed(sysm):
+    """User-unit ExecCondition: exit 1 (skip gsd-power) in the gnome-mobile
+    session and in GDM's greeter; the mobile shell does its own power
+    handling. Everything else, including errors, allows it."""
+    import pwd
+    try:
+        me = pwd.getpwuid(os.getuid()).pw_name
+    except KeyError:
+        return 0
+    for s in sysm.sessions():
+        if s.get('Name') != me or s.get('State') == 'closing':
+            continue
+        if s.get('Desktop') == MOBILE or s.get('Class') == 'greeter':
+            return 1
+    return 0
+
+
+def cmd_greeter_monitors(sysm):
+    """Copy the phone user's panel-only configurations (DSI only) from
+    ~phone/.config/monitors.xml into /etc/xdg/monitors.xml for GDM."""
+    src = Path(os.path.expanduser(f'~{PHONE_USER}')) / '.config/monitors.xml'
+    try:
+        tree = ET.parse(src)
+    except (OSError, ET.ParseError) as e:
+        log(f'cannot read {src}: {e}')
+        return 1
+    root = tree.getroot()
+    out = ET.Element('monitors', root.attrib)
+    n = 0
+    for conf in root.findall('configuration'):
+        connectors = [c.text for c in conf.iter('connector')]
+        logical = conf.findall('logicalmonitor')
+        if connectors and all(c and c.startswith('DSI-') for c in connectors) and logical:
+            out.append(conf)
+            n += 1
+    if not n:
+        log(f'{src} has no panel-only configuration; set the scale in the mobile '
+            'session first (gdctl or Settings > Displays)')
+        return 1
+    ET.indent(out)
+    write_atomic(GREETER_MONITORS, ET.tostring(out, encoding='unicode') + '\n')
+    os.chmod(GREETER_MONITORS, 0o644)
+    log(f'{n} panel-only configuration(s) written to {GREETER_MONITORS}')
+    return 0
+
+
+def main(argv=None, sysm=None):
+    sysm = sysm or System()
+    p = argparse.ArgumentParser(prog='rog5-shell', description=__doc__.split('\n\n')[0])
+    sub = p.add_subparsers(dest='cmd', required=True)
+    sub.add_parser('status')
+    for name in ('set', 'switch'):
+        sp = sub.add_parser(name)
+        sp.add_argument('mode', choices=MODES)
+        sp.add_argument('--pin-is-6-digits', action='store_true')
+    sp = sub.add_parser('fallback')
+    sp.add_argument('reason', nargs='*')
+    sp = sub.add_parser('is')
+    sp.add_argument('mode', choices=MODES)
+    for name in ('boot', 'watchdog', 'gsd-power-allowed', 'greeter-monitors'):
+        sub.add_parser(name)
+    a = p.parse_args(argv)
+    if a.cmd == 'is':
+        return 0 if effective_mode() == a.mode else 1
+    if a.cmd == 'gsd-power-allowed':
+        return cmd_gsd_power_allowed(sysm)
+    if a.cmd == 'status':
+        return cmd_status(sysm)
+    if os.geteuid() != 0 and not os.environ.get('ROG5_SHELL_TEST'):
+        log('run as root')
+        return 2
+    if a.cmd == 'set':
+        return cmd_set(sysm, a.mode, a.pin_is_6_digits)
+    if a.cmd == 'switch':
+        return cmd_switch(sysm, a.mode, a.pin_is_6_digits)
+    if a.cmd == 'fallback':
+        sysm.systemctl('stop', WATCHDOG, timeout=30)
+        return fallback(sysm, ' '.join(a.reason) or 'requested')
+    if a.cmd == 'boot':
+        return cmd_boot(sysm)
+    if a.cmd == 'watchdog':
+        return cmd_watchdog(sysm)
+    if a.cmd == 'greeter-monitors':
+        return cmd_greeter_monitors(sysm)
+    return 2
+
+
+if __name__ == '__main__':
+    sys.exit(main())

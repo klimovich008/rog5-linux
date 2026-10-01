@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 13:51:14 +0200
+Subject: [PATCH] rog5: powerManager: Keep the panel dark after a non-user
+ resume
+
+PrepareForSleep(false) turned the screen on after every resume: through
+_maybeCancelAction('suspend-wakeup') for the suspend-forced action an
+external suspend gets, or directly when no action was running.
+rog5-sleep-policy suspends the phone a minute after the panel goes off on
+battery and lets it wake for 15 s windows, so the panel lit up on every
+cycle.
+
+Read the wake IRQ (/sys/power/pm_wakeup_irq) and compare it with the PMIC
+power key's IRQ (/proc/interrupts 'pwrkey'). On a power-key wake, or when
+the source is unknown, keep the upstream behaviour. After any other wake
+turn an ongoing suspend action into 'blank' (the shield is already up and
+locked, the user-active watch stays armed) and leave the panel off, so the
+power key or user activity ends it as from a normal blank.
+---
+ js/misc/powerManager.js | 67 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 67 insertions(+)
+
+diff --git a/js/misc/powerManager.js b/js/misc/powerManager.js
+index 257846b01..821e015c4 100644
+--- a/js/misc/powerManager.js
++++ b/js/misc/powerManager.js
+@@ -495,6 +495,18 @@ export class PowerManager {
+                 return GLib.SOURCE_REMOVE;
+             });
+ 
++            // ROG5: rog5-sleep-policy suspends the phone whenever the panel
++            // has been off for a minute on battery and lets it wake for
++            // short windows (timers, network). Only a wake by the PMIC power
++            // key is the user's; after any other wake keep the panel dark
++            // and stay in 'blank' (locked, user-active watch armed) until
++            // the power key or user activity ends it.
++            const wake = this._rog5WakeSource();
++            if (wake === 'other' && this._rog5KeepDark()) {
++                log('POWERMANAGER: resumed by a non-user wake source, keeping the screen off');
++                return;
++            }
++
+             if (this._isInAction) {
+                 await this._maybeCancelAction('suspend-wakeup');
+             } else {
+@@ -505,6 +517,61 @@ export class PowerManager {
+         }
+     }
+ 
++    // ROG5: 'power-key' when the wake IRQ (/sys/power/pm_wakeup_irq) is the
++    // PMIC power key's (the 'pwrkey' line in /proc/interrupts), 'other'
++    // for any other recorded wake IRQ, null when unknown (then the upstream
++    // behaviour, screen on, applies).
++    _rog5WakeSource() {
++        const read = path => {
++            const [, bytes] = GLib.file_get_contents(path);
++            return new TextDecoder().decode(bytes);
++        };
++
++        try {
++            const irq = read('/sys/power/pm_wakeup_irq').trim();
++            if (!/^[0-9]+$/.test(irq))
++                return null;
++
++            for (const line of read('/proc/interrupts').split('\n')) {
++                if (!line.includes('pwrkey'))
++                    continue;
++                const num = line.trim().split(':')[0];
++                return num === irq ? 'power-key' : 'other';
++            }
++        } catch (e) {
++            log(`POWERMANAGER: wake source unknown: ${e.message}`);
++        }
++        return null;
++    }
++
++    // ROG5: called after a non-user wake. Returns true when the screen stays
++    // off: an ongoing suspend action becomes 'blank' (the shield is already
++    // up), and a suspend without an action keeps a panel that was off.
++    _rog5KeepDark() {
++        if (this._suspendAgainTimeout) {
++            GLib.source_remove(this._suspendAgainTimeout);
++            delete this._suspendAgainTimeout;
++        }
++
++        if (this._isInAction) {
++            if (this._isInAction !== 'suspend' &&
++                this._isInAction !== 'suspend-forced' &&
++                this._isInAction !== 'hibernate')
++                return false;
++            this._isInAction = 'blank';
++        } else {
++            if (this._displayConfigProxy.PowerSaveMode === 0)
++                return false;
++            this._isInAction = 'blank';
++        }
++
++        if (!this._userActiveId) {
++            this._userActiveId = this._idleMonitor.add_user_active_watch(
++                () => this._onUserActive().catch(e => console.error(e)));
++        }
++        return true;
++    }
++
+     async _onUserActive() {
+ //        log("POWERMANAGER: user became active, dpms mode " + this._displayConfigProxy.PowerSaveMode);
+ 

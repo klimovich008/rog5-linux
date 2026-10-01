@@ -1,0 +1,12 @@
+# Session settings for GNOME Mobile that differ from Phosh's (dconf is not
+# per session): set at start, restored at stop (rog5-shell fallback also
+# restores them).
+[Unit]
+Description=ROG5 GNOME Mobile session settings
+PartOf=gnome-session@gnome-mobile.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/libexec/rog5-gnome-mobile-session start
+ExecStop=/usr/local/libexec/rog5-gnome-mobile-session stop

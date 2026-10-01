@@ -10,7 +10,9 @@
 # glmark2 scored 590-765. Idle is unaffected: the floor applies only to
 # running tasks.
 #
-# Run by rog5-session-boost.service after rog5-phosh.service (re)starts.
+# Run by rog5-session-boost.service after rog5-phosh.service (re)starts, and
+# (restarted by rog5-shell's watchdog) when a GNOME Mobile session's
+# gnome-shell is up.
 set -u
 floor=${ROG5_SESSION_UCLAMP_MIN:-400}
 cap=$(cat /sys/devices/system/cpu/cpu0/cpu_capacity 2>/dev/null || echo 1024)
@@ -22,10 +24,13 @@ boost() {
 		uclampset -m "$floor" -a -p "$pid" && echo "rog5-session-boost: $1 ($pid) util_min=$floor"
 	done
 }
-# Wait for the session (phosh starts a few seconds after phoc).
+# Wait for the session (phosh starts a few seconds after phoc; GNOME Mobile
+# has gnome-shell).
 i=0
-while [ $i -lt 60 ] && ! pgrep -u "$uid" -x phosh >/dev/null; do sleep 1; i=$((i + 1)); done
-for comm in systemd phoc phosh gnome-session-b gnome-session-c squeekboard; do
+while [ $i -lt 60 ] && ! pgrep -u "$uid" -x phosh >/dev/null && ! pgrep -u "$uid" -x gnome-shell >/dev/null; do
+	sleep 1; i=$((i + 1))
+done
+for comm in systemd phoc phosh gnome-shell Xwayland gnome-session-b gnome-session-c squeekboard; do
 	boost "$comm"
 done
 exit 0

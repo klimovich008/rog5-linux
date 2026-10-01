@@ -1,0 +1,52 @@
+#!/bin/sh
+# Settings the GNOME Mobile session needs that differ from Phosh's (dconf is
+# not per session). Runs as the session user from
+# rog5-gnome-mobile-session.service (user unit, pulled in by
+# gnome-session@gnome-mobile.target): "start" saves the current values and
+# sets the mobile ones, "stop" puts the saved values back. `rog5-shell
+# fallback` also runs "stop", in case the session died first.
+#
+#   power-button-action = nothing: gnome-shell-mobile handles the power key
+#   itself (it maps "nothing" to blank). With Phosh's default ("suspend")
+#   gsd-media-keys would also ask logind to suspend, which the permanent
+#   rog5-server inhibitor turns into a polkit prompt.
+set -u
+dir=${XDG_STATE_HOME:-$HOME/.local/state}/rog5-gnome-mobile
+saved=$dir/saved-settings
+keys='org.gnome.settings-daemon.plugins.power power-button-action nothing'
+
+case ${1:-} in
+start)
+	mkdir -p "$dir"
+	# keep the first saved values if a previous session died without "stop"
+	if [ ! -s "$saved" ]; then
+		: >"$saved.tmp"
+		printf '%s\n' "$keys" | while read -r schema key _; do
+			if gsettings writable "$schema" "$key" >/dev/null 2>&1; then
+				# user value, or "default" when the key is unset
+				v=$(dconf read "/$(echo "$schema" | tr . /)/$key")
+				printf '%s %s %s\n' "$schema" "$key" "${v:-default}" >>"$saved.tmp"
+			fi
+		done
+		mv "$saved.tmp" "$saved"
+	fi
+	printf '%s\n' "$keys" | while read -r schema key value; do
+		gsettings set "$schema" "$key" "$value"
+	done
+	;;
+stop)
+	[ -s "$saved" ] || exit 0
+	while read -r schema key value; do
+		if [ "$value" = default ]; then
+			gsettings reset "$schema" "$key"
+		else
+			dconf write "/$(echo "$schema" | tr . /)/$key" "$value"
+		fi
+	done <"$saved"
+	rm -f "$saved"
+	;;
+*)
+	echo "usage: $0 start|stop" >&2
+	exit 2
+	;;
+esac

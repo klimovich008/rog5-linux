@@ -1,0 +1,16 @@
+# Picks this boot's phone shell from /etc/rog5/shell (rog5-shell boot):
+# Phosh (default) or GNOME Mobile (opt-in, GDM). Writes
+# /run/rog5-shell/effective, which every display unit's ExecCondition reads;
+# a missing file means Phosh. In gnome-mobile mode it arms
+# rog5-shell-watchdog before GDM starts.
+[Unit]
+Description=ROG5 phone shell for this boot (Phosh or GNOME Mobile)
+Before=rog5-phosh.service rog5-desktop-mode.service rog5-gnome.service gdm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rog5-shell boot
+
+[Install]
+WantedBy=multi-user.target

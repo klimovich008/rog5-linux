@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 14:17:09 +0200
+Subject: [PATCH] rog5: powerManager: Lock on idle-blank again (GNOME 49+
+ _becomeModal)
+
+The idle-blank action checked Main.screenShield._becomeModal()'s return
+value to detect a failed grab. Since e350a7f1b ('screenShield: Drop seat
+state check after grabs', GNOME 49) it returns nothing, so the check always
+failed: the shell showed 'Unable to lock', skipped the lock and, when the
+user came back, deactivated the shield. An idle phone on external power (no
+policy suspend, which locks through suspend-forced) stayed unlocked. Check
+the shield's grab instead.
+---
+ js/misc/powerManager.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/js/misc/powerManager.js b/js/misc/powerManager.js
+index 821e015c4..5690af701 100644
+--- a/js/misc/powerManager.js
++++ b/js/misc/powerManager.js
+@@ -842,7 +842,12 @@ log("POWERMANAGER: turn on this._fadeInTimeout " + this._fadeInTimeout + " this.
+ 
+                 // try to become modal now already, so that we fail before LOCK_DELAY
+                 // in case becoming modal fails
+-                if (!Main.screenShield._becomeModal()) {
++                // ROG5: since e350a7f1b ("screenShield: Drop seat state check
++                // after grabs", GNOME 49) _becomeModal() returns nothing, so
++                // testing its result always took this branch: idle-blank never
++                // locked, and user activity then deactivated the shield.
++                Main.screenShield._becomeModal();
++                if (!Main.screenShield._grab) {
+                     Main.notifyError(
+                         _('Unable to lock'),
+                         _('Lock was blocked by an app'));

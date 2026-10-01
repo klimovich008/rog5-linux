@@ -1,0 +1,211 @@
+#!/bin/sh
+# Install or roll back the opt-in GNOME Shell Mobile session (run as root on
+# the phone, from a checkout of this repository). See README.md here.
+#
+#   rog5-gnome-mobile-install install    keep the stock packages (rollback
+#                                        set), install mutter-mobile and
+#                                        gnome-shell-mobile (built here with
+#                                        makepkg), gdm and the session files.
+#                                        The shell stays Phosh until
+#                                        `rog5-shell set|switch gnome-mobile`.
+#   rog5-gnome-mobile-install rollback   back to Phosh and the stock
+#                                        mutter/gnome-shell from the rollback
+#                                        set; removes the session files and
+#                                        gdm (--keep-gdm keeps it).
+#   rog5-gnome-mobile-install check      show what is installed and whether
+#                                        the rollback set is complete.
+#
+# The rollback set is /var/cache/rog5-gnome-mobile/stock: the installed
+# versions of mutter, gnome-shell (and mutter-devkit, mutter-docs,
+# gnome-shell-docs if installed), taken from the pacman cache, else
+# downloaded when the repository still has exactly that version, else
+# rebuilt from the installed files with bacman (pacman-contrib). Without a
+# complete set nothing is installed.
+set -eu
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$here/../.." && pwd)
+cache=${ROG5_GM_CACHE:-/var/cache/rog5-gnome-mobile}
+stock=$cache/stock
+pkgdir=${ROG5_GM_PKGDIR:-$here}
+pacman_conflict_yes='--ask=4'   # ALPM_QUESTION_CONFLICT_PKG: replace mutter/gnome-shell
+stock_names='mutter mutter-devkit mutter-docs gnome-shell gnome-shell-docs'
+user=${ROG5_GM_USER:-phone}
+
+say() { printf 'rog5-gnome-mobile: %s\n' "$*"; }
+die() { say "ERROR: $*" >&2; exit 1; }
+[ "$(id -u)" = 0 ] || die 'run as root'
+
+installed_ver() { pacman -Q "$1" 2>/dev/null | cut -d' ' -f2; }
+
+# A package file of NAME at exactly VERSION, or nothing.
+find_stock() {
+	for f in /var/cache/pacman/pkg/"$1-$2"-*.pkg.tar.*; do
+		case $f in *.sig) continue ;; esac
+		[ -f "$f" ] || continue
+		[ "$(pacman -Qp "$f" 2>/dev/null)" = "$1 $2" ] && { echo "$f"; return; }
+	done
+}
+
+save_stock() {
+	mkdir -p "$stock"
+	for name in $stock_names; do
+		# not installed (or already replaced by the mobile build): nothing to keep
+		v=$(installed_ver "$name") || true
+		[ -n "$v" ] || continue
+		have=
+		for f in "$stock/$name-$v"-*.pkg.tar.*; do
+			[ -f "$f" ] && [ "$(pacman -Qp "$f" 2>/dev/null)" = "$name $v" ] && have=$f
+		done
+		if [ -n "$have" ]; then say "rollback set has $name $v"; continue; fi
+		f=$(find_stock "$name" "$v")
+		if [ -z "$f" ] && [ "$(pacman -Si "$name" 2>/dev/null | sed -n 's/^Version *: //p' | head -n1)" = "$v" ]; then
+			pacman -Sw --noconfirm --cachedir "$stock" "$name" >/dev/null && f=$(ls "$stock/$name-$v"-*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | head -n1)
+		fi
+		if [ -z "$f" ] && command -v bacman >/dev/null; then
+			(cd "$stock" && bacman "$name" >/dev/null) && f=$(ls "$stock/$name-$v"-*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | head -n1)
+		fi
+		[ -n "$f" ] || die "no package file for the installed $name $v (not in /var/cache/pacman/pkg, not in the repository, no bacman: pacman -S pacman-contrib)"
+		[ "$(pacman -Qp "$f")" = "$name $v" ] || die "$f is not $name $v"
+		[ "$(dirname "$f")" = "$stock" ] || cp "$f" "$stock/"
+		say "rollback set: $name $v"
+	done
+	# The list of what to restore is written once, from the stock install;
+	# a later run (mobile packages installed) must not replace it.
+	if [ ! -s "$stock/installed-before.txt" ]; then
+		pacman -Q $stock_names 2>/dev/null >"$stock/installed-before.txt.new" || true
+		grep -q '^mutter ' "$stock/installed-before.txt.new" &&
+			grep -q '^gnome-shell ' "$stock/installed-before.txt.new" ||
+			die 'stock mutter and gnome-shell are not installed; nothing to keep for a rollback'
+		mv "$stock/installed-before.txt.new" "$stock/installed-before.txt"
+	fi
+}
+
+stock_files() {
+	for name in $(cut -d' ' -f1 "$stock/installed-before.txt"); do
+		v=$(awk -v n="$name" '$1 == n {print $2}' "$stock/installed-before.txt")
+		ls "$stock/$name-$v"-*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | head -n1
+	done
+}
+
+newest() {  # newest package file of NAME in DIR
+	ls -t "$2/$1"-[0-9]*.pkg.tar.* 2>/dev/null | grep -v '\.sig$' | grep -v -- '-debug-' | head -n1
+}
+
+install_files() {
+	g=$repo/configs/gnome-mobile
+	install -Dm644 "$g/gnome-mobile.desktop" /usr/share/wayland-sessions/gnome-mobile.desktop
+	install -Dm644 "$g/gnome-mobile.session" /usr/share/gnome-session/sessions/gnome-mobile.session
+	install -Dm644 "$g/systemd-user/gnome-session@gnome-mobile.target.d/session.conf" \
+		/etc/systemd/user/gnome-session@gnome-mobile.target.d/session.conf
+	install -Dm644 "$g/systemd-user/rog5-gnome-mobile-session.service" \
+		/etc/systemd/user/rog5-gnome-mobile-session.service
+	install -Dm644 "$g/systemd-user/org.gnome.SettingsDaemon.Power.service.d/50-rog5-gnome-mobile.conf" \
+		/etc/systemd/user/org.gnome.SettingsDaemon.Power.service.d/50-rog5-gnome-mobile.conf
+	install -Dm755 "$repo/scripts/device/rog5-gnome-mobile-session" /usr/local/libexec/rog5-gnome-mobile-session
+	install -Dm644 "$g/dconf-gdm/00-rog5-gnome-mobile" /etc/dconf/db/gdm.d/00-rog5-gnome-mobile
+	if [ -f /etc/gdm/custom.conf ] && ! cmp -s "$g/gdm-custom.conf" /etc/gdm/custom.conf; then
+		cp /etc/gdm/custom.conf "/etc/gdm/custom.conf.before-rog5"
+	fi
+	install -Dm644 "$g/gdm-custom.conf" /etc/gdm/custom.conf
+	dconf update
+	# GDM preselects the session the user had last: GNOME Mobile
+	a=/var/lib/AccountsService/users/$user
+	mkdir -p /var/lib/AccountsService/users
+	if [ -f "$a" ]; then
+		if grep -q '^Session=' "$a"; then sed -i 's/^Session=.*/Session=gnome-mobile/' "$a"
+		elif grep -q '^\[User\]' "$a"; then sed -i '/^\[User\]/a Session=gnome-mobile' "$a"
+		else printf '[User]\nSession=gnome-mobile\n' >>"$a"; fi
+	else
+		printf '[User]\nSession=gnome-mobile\nSystemAccount=false\n' >"$a"
+	fi
+	chmod 600 "$a"
+	systemctl daemon-reload
+	# never as the display manager: rog5-shell-select starts it
+	systemctl disable gdm.service >/dev/null 2>&1 || true
+}
+
+remove_files() {
+	rm -f /usr/share/wayland-sessions/gnome-mobile.desktop \
+		/usr/share/gnome-session/sessions/gnome-mobile.session \
+		/etc/systemd/user/gnome-session@gnome-mobile.target.d/session.conf \
+		/etc/systemd/user/rog5-gnome-mobile-session.service \
+		/etc/systemd/user/org.gnome.SettingsDaemon.Power.service.d/50-rog5-gnome-mobile.conf \
+		/usr/local/libexec/rog5-gnome-mobile-session \
+		/etc/dconf/db/gdm.d/00-rog5-gnome-mobile
+	rmdir /etc/systemd/user/gnome-session@gnome-mobile.target.d \
+		/etc/systemd/user/org.gnome.SettingsDaemon.Power.service.d 2>/dev/null || true
+	[ ! -f /etc/gdm/custom.conf.before-rog5 ] || mv /etc/gdm/custom.conf.before-rog5 /etc/gdm/custom.conf
+	a=/var/lib/AccountsService/users/$user
+	[ ! -f "$a" ] || sed -i 's/^Session=gnome-mobile$/Session=/' "$a"
+	! command -v dconf >/dev/null || dconf update
+	systemctl daemon-reload
+}
+
+cmd_install() {
+	m=$(newest mutter-mobile "$pkgdir/mutter-mobile")
+	s=$(newest gnome-shell-mobile "$pkgdir/gnome-shell-mobile")
+	[ -n "$m" ] && [ -n "$s" ] || die "build first: as $user, makepkg -f --nocheck in $pkgdir/mutter-mobile and $pkgdir/gnome-shell-mobile"
+	mv_=$(pacman -Qp "$m" | cut -d' ' -f2); sv=$(pacman -Qp "$s" | cut -d' ' -f2)
+	base=${mv_%-*}
+	for name in mutter gnome-shell; do
+		v=$(installed_ver "$name") || true
+		[ -n "$v" ] || continue
+		v=${v#*:}; v=${v%-*}
+		[ "$v" = "$base" ] || die "installed $name is $v but the mobile build is $base: rebuild for $v first"
+	done
+	save_stock
+	extra=
+	for d in "$(dirname "$m")"/mutter-mobile-debug-"$mv_"-*.pkg.tar.* "$(dirname "$s")"/gnome-shell-mobile-debug-"$sv"-*.pkg.tar.*; do
+		case $d in *.sig) ;; *) [ -f "$d" ] && extra="$extra $d" ;; esac
+	done
+	say "installing $m $s$extra"
+	# shellcheck disable=SC2086
+	pacman -U --noconfirm $pacman_conflict_yes "$m" "$s" $extra
+	pacman -S --needed --noconfirm gdm
+	install_files
+	say 'installed. The shell is still Phosh. Next: README.md "Phone test plan" (stage 1).'
+}
+
+cmd_rollback() {
+	keep_gdm=0
+	[ "${1:-}" = --keep-gdm ] && keep_gdm=1
+	[ -s "$stock/installed-before.txt" ] || die "no rollback set in $stock"
+	files=$(stock_files)
+	n=$(wc -l <"$stock/installed-before.txt"); k=$(printf '%s\n' "$files" | grep -c . || true)
+	[ "$n" = "$k" ] || die "rollback set incomplete ($k of $n files in $stock)"
+	if [ -x /usr/local/sbin/rog5-shell ]; then
+		/usr/local/sbin/rog5-shell set phosh
+		if [ "$(/usr/local/sbin/rog5-shell is gnome-mobile; echo $?)" = 0 ]; then
+			/usr/local/sbin/rog5-shell switch phosh || say 'WARN: switch to Phosh did not confirm the lock; check the phone'
+		fi
+	fi
+	say "restoring: $(echo $files)"
+	# shellcheck disable=SC2086
+	pacman -U --noconfirm $pacman_conflict_yes $files
+	if [ "$keep_gdm" = 0 ] && pacman -Q gdm >/dev/null 2>&1; then
+		pacman -Rns --noconfirm gdm || say 'WARN: gdm kept (something depends on it)'
+	fi
+	for p in mutter-mobile-debug gnome-shell-mobile-debug; do
+		! pacman -Q "$p" >/dev/null 2>&1 || pacman -R --noconfirm "$p"
+	done
+	remove_files
+	say "rolled back to: $(pacman -Q mutter gnome-shell | tr '\n' ' ')"
+}
+
+cmd_check() {
+	pacman -Q mutter mutter-mobile gnome-shell gnome-shell-mobile gdm 2>/dev/null || true
+	if [ -s "$stock/installed-before.txt" ]; then
+		say "rollback set ($stock):"
+		stock_files | sed 's/^/  /'
+	else
+		say "no rollback set yet"
+	fi
+	! [ -x /usr/local/sbin/rog5-shell ] || /usr/local/sbin/rog5-shell status
+}
+
+case ${1:-} in
+install) cmd_install ;;
+rollback) shift; cmd_rollback "$@" ;;
+check) cmd_check ;;
+*) sed -n '2,25p' "$0"; exit 2 ;;
+esac

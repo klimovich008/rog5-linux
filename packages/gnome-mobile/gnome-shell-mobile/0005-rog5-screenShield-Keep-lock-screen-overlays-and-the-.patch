@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 13:49:53 +0200
+Subject: [PATCH] rog5: screenShield: Keep lock-screen overlays and the
+ Emergency button off
+
+The mobile branch shows every org.gnome.Calls window over the lock screen
+(_appStateChanged reparents it into the shield whenever Calls has a window,
+not only during a call), and the Emergency button launches Calls while
+locked. On mutter-mobile 50 MetaDisplay has no
+set_forward_to_wayland_while_grabbed(), so the overlay path threw after
+reparenting the window. The ROG Phone 5 build has no modem; keep both off.
+---
+ js/ui/screenShield.js | 14 ++++++++++++++
+ js/ui/unlockDialog.js |  7 +++++--
+ 2 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index f75f94193..dd321cf35 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -32,6 +32,9 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
+ 
+ const LOCKED_STATE_STR = 'screenShield.locked';
+ 
++// ROG5: lock-screen overlays (Calls over the lock screen) stay off.
++const ROG5_LOCKSCREEN_OVERLAYS = false;
++
+ const USER_IDLE_FADE_OUT_TIME_FROM_SESSION = 10000;
+ const SHIELD_SLIDE_UP_TIME = 300;
+ 
+@@ -425,6 +428,14 @@ export class ScreenShield extends Signals.EventEmitter {
+     }
+ 
+     _appStateChanged() {
++        // ROG5: no lock-screen overlays. This reparented every window of
++        // org.gnome.Calls into the lock screen whenever it existed (not
++        // only during a call), and the mutter-mobile 50 branch lacks
++        // MetaDisplay.set_forward_to_wayland_while_grabbed(), so the path
++        // threw after the reparent. The phone has no modem.
++        if (!ROG5_LOCKSCREEN_OVERLAYS)
++            return;
++
+         const windows = global.get_window_actors();
+ 
+         for (const window of windows) {
+@@ -458,6 +469,9 @@ export class ScreenShield extends Signals.EventEmitter {
+     }
+ 
+     _showEmergencyCalls() {
++        if (!ROG5_LOCKSCREEN_OVERLAYS)
++            return;
++
+         if (this._lockscreenOverlayStack.length > 0)
+             this._prepareLockscreenOverlay().catch().then(() => this._showSurfaceOverlayView(true));
+     }
+diff --git a/js/ui/unlockDialog.js b/js/ui/unlockDialog.js
+index d5894a465..17134d2a4 100644
+--- a/js/ui/unlockDialog.js
++++ b/js/ui/unlockDialog.js
+@@ -547,7 +547,7 @@ export const UnlockDialog = GObject.registerClass({
+             if (!callsApp)
+                 this._emergencyButton.add_style_class_name('unavailable');
+             this._emergencyButton.connect('clicked', () => {
+-                if (callsApp) {
++                if (callsApp && this._emergencyButton.visible) {
+                     callsApp.activate_full(-1, 0);
+                     this.emit('show-emergency-calls');
+                 }
+@@ -556,7 +556,10 @@ export const UnlockDialog = GObject.registerClass({
+ 
+             if (Main.layoutManager.isPhone) {
+                 this._pinUnlockKeyboard.show();
+-                this._emergencyButton.show();
++                // ROG5: no modem and no lock-screen overlays, so the
++                // Emergency button (it launched org.gnome.Calls while
++                // locked) stays hidden.
++                this._emergencyButton.hide();
+                 pinEntryIndicator.show();
+                 this._authPrompt.y_align = Clutter.ActorAlign.END;
+                 this._authPrompt.y_expand = false;

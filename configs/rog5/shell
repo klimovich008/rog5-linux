@@ -1,0 +1,5 @@
+# ROG5 phone shell for the next boot (rog5-shell set|switch; see
+# packages/gnome-mobile/README.md):
+#   phosh         Phosh (default)
+#   gnome-mobile  GNOME Shell Mobile through GDM (opt-in; needs a 6-digit PIN)
+phosh

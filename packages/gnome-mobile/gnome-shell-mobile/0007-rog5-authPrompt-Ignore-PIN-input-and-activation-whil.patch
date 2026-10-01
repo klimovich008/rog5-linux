@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 13:50:10 +0200
+Subject: [PATCH] rog5: authPrompt: Ignore PIN input and activation while auth
+ is blocked
+
+Upstream blocks authentication (screen time limit, 8edf30c34) by replacing
+the input well with the parental controls shield, so the entry cannot be
+focused or activated. The mobile PIN pad bypasses focus: it inserts
+characters with addCharacter() and activates the entry at six digits.
+Refuse both while the shield is shown. screenShield.deactivate() also
+refuses (5fc616ea8); this keeps the prompt from authenticating at all.
+---
+ js/gdm/authPrompt.js | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 62777cd48..19d749dcc 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -502,7 +502,10 @@ visible:false,
+ 
+             entry.clutter_text.connect('activate', () => {
+                 const shouldSpin = entry === this._passwordEntry;
+-                if (entry.reactive)
++                // ROG5: the mobile PIN pad activates the entry itself (at
++                // the sixth digit) even while setAuthBlocked() has swapped
++                // the input well for the parental controls shield.
++                if (entry.reactive && !this._isAuthBlocked())
+                     this._activateNext(shouldSpin);
+             });
+         });
+@@ -1007,8 +1010,13 @@ visible:false,
+         this.emit('reset', beginRequestType);
+     }
+ 
++    _isAuthBlocked() {
++        return !!this._parentalControlsShield &&
++            this._mainContent === this._parentalControlsShield;
++    }
++
+     addCharacter(unichar) {
+-        if (!this._entry.reactive)
++        if (!this._entry.reactive || this._isAuthBlocked())
+             return;
+ 
+         if (this._entry.visible)
