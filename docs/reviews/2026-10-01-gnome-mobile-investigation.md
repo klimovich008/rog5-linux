@@ -9,6 +9,12 @@ gnome-session 50.1-1, phosh 0.57.0-1.3, phoc 0.57.0-1.2, squeekboard
 versions, units, inhibitors, `monitors.xml`); nothing was built, installed or
 restarted. The user was in GNOME desktop mode during the reads.
 
+**Update, later on 2026-10-01:** the user chose to try GNOME Shell Mobile
+now anyway. It is implemented as an opt-in session next to Phosh (base
+GNOME 50.5 with the mobile 50 branches merged in, fixes ported, watchdog
+with fallback to a locked Phosh, rollback set):
+[packages/gnome-mobile/README.md](../../packages/gnome-mobile/README.md).
+
 ## Short answer
 
 **Recommendation: not yet.** Don't replace Phosh now. Revisit when

@@ -4,14 +4,18 @@
 # Contributor: Michael Kanis <mkanis_at_gmx_dot_de>
 # ROG Phone 5 (SM8350) build: Arch Linux packaging mutter 50.5-1, but the
 # source is GNOME Shell Mobile's mutter (World/MobileShell/mutter-mobile,
-# branch mobile-shell-devel-50, 50.3 based) with GNOME 50.5 merged in
-# (0001), the upstream 51 auto-rotate fix for phones (0002), the version
-# that gnome-shell-mobile requires (0003) and stray conflict markers in the
-# fork's own sources removed (0004). Opt-in only; it replaces mutter.
+# branch camelCaseNick/mobile-shell-devel-50, 50.3 based) with GNOME 50.5
+# merged in (0001), the upstream 51 auto-rotate fix for phones (0002), the
+# version that gnome-shell-mobile requires (0003) and a stray conflict marker
+# in a test file removed (0004). Opt-in only; it replaces mutter.
 # See ../README.md. Not in configs/rootfs/custom-packages.txt on purpose.
 
 pkgname=mutter-mobile
-_mobile_commit=c99af8f42a8372da402501d8ab207c6f9df5ee78 # mobile-shell-devel-50, 2026-07-26
+# camelCaseNick/mobile-shell-devel-50, 2026-09-27: mobile-shell-devel-50
+# (c99af8f4) rebased with the fixes that make clutter compile, plus OSK
+# events during popups and the window mapped state. c99af8f4 itself does not
+# compile (clutter-gesture.c half-ported to sprites, a stray conflict marker).
+_mobile_commit=fe00ce8682f0af9b1852ab68b5fdfb50682bebb8
 pkgver=50.5
 pkgrel=1
 pkgdesc="Window manager and compositor for GNOME (GNOME Shell Mobile fork, ROG5 build)"
@@ -97,14 +101,14 @@ source=(
   0001-Merge-GNOME-50.5-into-mobile-shell-devel-50.patch
   0002-backends-monitor-manager-Fix-auto-rotate-on-phones-w.patch
   0003-Bump-version-to-50.mobile.0-pairs-with-gnome-shell-m.patch
-  0004-Drop-stray-conflict-markers-left-by-790bb4f9b-and-th.patch
+  0004-tests-clutter-conform-Drop-a-stray-conflict-marker-i.patch
 )
 b2sums=('SKIP'
         'f989bc2ceb52aad3c6a23c439df3bbc672bc11d561a247d19971d30cc85ed5d42295de40f8e55b13404ed32aa44f12307c9f5b470f2e288d1c9c8329255c43bf'
-        'ada0557fc1666359187ba737c130b9f90734c46ab48e400e4747b9828a267e32ff050d9f7bf3becfd1cbdcdadc0c60cc6452ce8dc3a34b35eb433a319ceb861b'
-        '6c74a968ca6887c04d040a402a7afeea2c68265b38ee5b71e7c367dda758ef8755d993037719a1c6615c3c5fb5e73e705567bcf1d1e4863c029971d8caa0a459'
-        '0c7a66ebb37b0374112c1f3518dfeae6d1a8f1273cdc262e5a9e0bf6e42f8d1fd3fc7b23f84fd709b2a5553705debb3fa0388b628b720f3e283e81b496436710'
-        '2aa07dcf5cd98f0e87de146c1d7571ca8d09dc0648118b9d55b5e94f5c6bbffdd948afaf24589ee74a845bd36d8294064faddbb4419451bdf807411440f5305e')
+        '8d65306289d00fc7c97b7cc10caf700783d839743b9061420244bf96906583812517b6f2d094ea1fddd13ebe1b31765f6e0785210e65d6d2f7b1fdaf71fa35b9'
+        '46ba50e5e44eeee443a929f7ccbccffe2a34a2a8a3c1c06cac096ea1c47495aeba2691e6f7a526c0df60b0c88567fd36d8a0937286d4e4414de47b7f7cff14d7'
+        '54d57461b9b21afa4a14911b12b93bf2af7e2b2bc635363e295834b2cdee82d9e0cdc87fd1818e11c9b0915a4dc10ebc09a7c638e9f53b857292cd18df2aa53e'
+        '78d4aae00b12af19bcdde18cdd391623b2aab4179bdc632fda1621f0071744f43d0d3cb35502f1e15485950032daddee3c9b36135e52ba9fc33a5a3c08a0ea3d')
 
 prepare() {
   cd mutter-mobile

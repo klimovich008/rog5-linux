@@ -40,8 +40,19 @@ requires). Rejected:
 
 | Package | Fork commit | Merge | Result |
 |---|---|---|---|
-| mutter-mobile | `c99af8f4` (mobile-shell-devel-50, 2026-07-26) | 50.5 merges cleanly | + 0002 auto-rotate fix for phones without a tablet-mode switch (upstream 51 `25e48d8b3`, cherry-picked clean) + 0003 version `50.mobile.0` (the branch never bumped it; the shell requires `= 50.mobile.0`) + 0004 two stray `<<<<<<< HEAD` lines in the fork's own sources (`clutter-actor.c` did not compile; found by the host build) |
+| mutter-mobile | `fe00ce86` (camelCaseNick/mobile-shell-devel-50, 2026-09-27) | 50.5 merges cleanly | + 0002 auto-rotate fix for phones without a tablet-mode switch (upstream 51 `25e48d8b3`, cherry-picked clean) + 0003 version `50.mobile.0` (the branches never bumped it; the shell requires `= 50.mobile.0`) + 0004 a stray `<<<<<<< HEAD` in a test file |
 | gnome-shell-mobile | `d95fe2ac` (mobile-shell-devel-50, 2026-07-23) | 5 conflicts, resolved | + 0002-0009 below |
+
+**Why camelCaseNick's mutter branch:** the official `mobile-shell-devel-50`
+head (`c99af8f4`, 2026-07-26) does not compile. The host build stopped in
+`clutter-actor.c` (a lone `<<<<<<< HEAD` line from 790bb4f9b) and then in
+`clutter-gesture.c` (the gesture commits are half ported to GNOME 50's
+`ClutterSprite`: an undeclared `set_state_after()`, calls with the old
+device/sequence arguments). `camelCaseNick/mobile-shell-devel-50`
+(`fe00ce86`) is the same series rebased with exactly those fixes, plus OSK
+events during Wayland popups and a window "mapped" state (19 files,
++130/-41 against `c99af8f4`; it also carries the fork's inert Aliendalvik
+hacks). The shell has a single 50 branch.
 
 The patch series reproduces the merged trees exactly (checked: tree hashes
 equal). The merge branches are kept as git bundles in

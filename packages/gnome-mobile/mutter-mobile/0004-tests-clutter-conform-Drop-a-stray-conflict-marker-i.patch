@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rog5 <rog5@localhost>
+Date: Thu, 1 Oct 2026 14:19:49 +0200
+Subject: [PATCH] tests/clutter/conform: Drop a stray conflict marker in
+ gesture-relationship.c
+
+A lone '<<<<<<< HEAD' line from the gesture rebase; the conform tests are
+not built here (-D tests=disabled), but the file should parse.
+---
+ src/tests/clutter/conform/gesture-relationship.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/tests/clutter/conform/gesture-relationship.c b/src/tests/clutter/conform/gesture-relationship.c
+index fc13cae2db..ffce088847 100644
+--- a/src/tests/clutter/conform/gesture-relationship.c
++++ b/src/tests/clutter/conform/gesture-relationship.c
+@@ -1296,7 +1296,6 @@ gesture_relationship_influencing_event_order (void)
+ }
+ 
+ static void
+-<<<<<<< HEAD
+ gesture_relationship_change (void)
+ {
+   ClutterActor *stage = clutter_test_get_stage ();

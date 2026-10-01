@@ -61,6 +61,10 @@ MODES = (PHOSH, MOBILE)
 PHOSH_UNITS = ('rog5-phosh.service', 'rog5-desktop-mode.service')
 GDM = 'gdm.service'
 WATCHDOG = 'rog5-shell-watchdog.service'
+# processes that may hold the panel's DRM device for GNOME (killed if they
+# outlive GDM and their session); comm is cut at 15 characters
+COMPOSITOR_COMMS = ('gnome-shell', 'Xwayland', 'mutter-x11-fram', 'gnome-session-b',
+                    'gdm-wayland-ses')
 GDM_SERVICES = ('gdm-password', 'gdm-autologin', 'gdm-fingerprint',
                 'gdm-smartcard', 'gdm-launch-environment')
 
@@ -199,10 +203,16 @@ class System:
         return res
 
     def drm_holders(self):
+        """[(pid, comm)] of processes with the DRM device open (logind keeps
+        its own fds of session devices; callers must not kill those)."""
         holders = []
         for d in Path('/proc').iterdir():
             if d.name.isdigit() and DRM_DEV in self.proc_fds(d.name):
-                holders.append(int(d.name))
+                try:
+                    comm = (d / 'comm').read_text().strip()
+                except OSError:
+                    continue
+                holders.append((int(d.name), comm))
         return holders
 
     def touch_nodes(self):
@@ -297,21 +307,22 @@ def stop_gnome(sysm):
     deadline = sysm.now() + RELEASE_S
     termed = killed = False
     while True:
-        shells = [p for p, _, _ in sysm.processes('gnome-shell')]
-        holders = sysm.drm_holders()
-        if not shells and not holders:
+        # only compositor-side processes; never logind, gdm or pid 1
+        targets = sorted({p for p, _, _ in sysm.processes('gnome-shell')} |
+                         {p for p, comm in sysm.drm_holders() if comm in COMPOSITOR_COMMS})
+        if not targets:
             return True
         left = deadline - sysm.now()
         if left <= RELEASE_S * 2 / 3 and not termed:
-            for p in shells + holders:
+            for p in targets:
                 sysm.kill(p, 15)
             termed = True
         if left <= RELEASE_S / 3 and not killed:
-            for p in shells + holders:
+            for p in targets:
                 sysm.kill(p, 9)
             killed = True
         if left <= 0:
-            log(f'WARN DRM device still held by {holders}, gnome-shell {shells}')
+            log(f'WARN compositor processes still there: {targets}')
             return False
         sysm.sleep(1)
 

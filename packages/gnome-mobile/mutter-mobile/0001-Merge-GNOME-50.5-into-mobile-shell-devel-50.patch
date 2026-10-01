@@ -1,5 +1,5 @@
 diff --git a/NEWS b/NEWS
-index eddce8bfa..69f29b936 100644
+index eddce8bfa0..69f29b9362 100644
 --- a/NEWS
 +++ b/NEWS
 @@ -1,3 +1,44 @@
@@ -48,7 +48,7 @@ index eddce8bfa..69f29b936 100644
  ====
  * Fix erroneous stack order changes on workspace switches [AnonymouX47; !4992]
 diff --git a/clutter/clutter/clutter-actor.c b/clutter/clutter/clutter-actor.c
-index 3cb4321e2..69153a055 100644
+index 8c1341ff5b..a6daa8405a 100644
 --- a/clutter/clutter/clutter-actor.c
 +++ b/clutter/clutter/clutter-actor.c
 @@ -906,6 +906,7 @@ enum
@@ -96,7 +96,7 @@ index 3cb4321e2..69153a055 100644
      g_signal_emit (self, actor_signals[RESOURCE_SCALE_CHANGED], 0);
  }
 diff --git a/clutter/clutter/clutter-color-state-params.c b/clutter/clutter/clutter-color-state-params.c
-index e85b3db91..f6e2c705f 100644
+index e85b3db91d..f6e2c705f2 100644
 --- a/clutter/clutter/clutter-color-state-params.c
 +++ b/clutter/clutter/clutter-color-state-params.c
 @@ -30,6 +30,7 @@
@@ -137,7 +137,7 @@ index e85b3db91..f6e2c705f 100644
 +    g_clear_pointer (&colorimetry->primaries, g_free);
 +}
 diff --git a/clutter/clutter/clutter-event.c b/clutter/clutter/clutter-event.c
-index 5cdb1a1f1..37b8ed001 100644
+index 5cdb1a1f1e..37b8ed0018 100644
 --- a/clutter/clutter/clutter-event.c
 +++ b/clutter/clutter/clutter-event.c
 @@ -1875,7 +1875,8 @@ clutter_event_key_new (ClutterEventType     type,
@@ -151,7 +151,7 @@ index 5cdb1a1f1..37b8ed001 100644
    event = clutter_event_new (type);
  
 diff --git a/clutter/clutter/clutter-frame-clock.c b/clutter/clutter/clutter-frame-clock.c
-index f0e24f4ad..feac00beb 100644
+index f0e24f4ad8..feac00beb4 100644
 --- a/clutter/clutter/clutter-frame-clock.c
 +++ b/clutter/clutter/clutter-frame-clock.c
 @@ -997,37 +997,21 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
@@ -205,7 +205,7 @@ index f0e24f4ad..feac00beb 100644
      }
  
 diff --git a/clutter/clutter/clutter-mutter.h b/clutter/clutter/clutter-mutter.h
-index ef271eeda..bbd3c2ca7 100644
+index ef271eedaa..bbd3c2ca77 100644
 --- a/clutter/clutter/clutter-mutter.h
 +++ b/clutter/clutter/clutter-mutter.h
 @@ -111,4 +111,9 @@ gboolean clutter_seat_query_state (ClutterSeat         *seat,
@@ -219,7 +219,7 @@ index ef271eeda..bbd3c2ca7 100644
 +
  #undef __CLUTTER_H_INSIDE__
 diff --git a/clutter/clutter/clutter-offscreen-effect.c b/clutter/clutter/clutter-offscreen-effect.c
-index 8a046e5ca..548e5cc59 100644
+index 8a046e5ca5..548e5cc595 100644
 --- a/clutter/clutter/clutter-offscreen-effect.c
 +++ b/clutter/clutter/clutter-offscreen-effect.c
 @@ -123,12 +123,22 @@ typedef struct _ClutterOffscreenEffectPrivate
@@ -266,7 +266,7 @@ index 8a046e5ca..548e5cc59 100644
  
  static CoglTexture*
 diff --git a/clutter/clutter/clutter-stage-view.c b/clutter/clutter/clutter-stage-view.c
-index aedd5f6cf..e808863b3 100644
+index aedd5f6cf9..e808863b3a 100644
 --- a/clutter/clutter/clutter-stage-view.c
 +++ b/clutter/clutter/clutter-stage-view.c
 @@ -184,6 +184,9 @@ ensure_stage_view_offscreen (ClutterStageView *view)
@@ -306,10 +306,10 @@ index aedd5f6cf..e808863b3 100644
    if (priv->ensure_offscreen_idle_id != 0)
      return;
 diff --git a/clutter/clutter/clutter-stage.c b/clutter/clutter/clutter-stage.c
-index de80c81f7..0ab811aad 100644
+index e3be6e0777..03ef11b06f 100644
 --- a/clutter/clutter/clutter-stage.c
 +++ b/clutter/clutter/clutter-stage.c
-@@ -2350,45 +2350,99 @@ clutter_stage_update_view_perspective (ClutterStage *stage)
+@@ -2351,45 +2351,99 @@ clutter_stage_update_view_perspective (ClutterStage *stage)
    clutter_actor_invalidate_transform (CLUTTER_ACTOR (stage));
  }
  
@@ -431,7 +431,7 @@ index de80c81f7..0ab811aad 100644
  }
  
  #undef _DEG_TO_RAD
-@@ -2625,6 +2679,9 @@ clutter_stage_paint_to_framebuffer (ClutterStage       *stage,
+@@ -2626,6 +2680,9 @@ clutter_stage_paint_to_framebuffer (ClutterStage       *stage,
    ClutterStagePrivate *priv = clutter_stage_get_instance_private (stage);
    ClutterPaintContext *paint_context;
    g_autoptr (MtkRegion) redraw_clip = NULL;
@@ -441,7 +441,7 @@ index de80c81f7..0ab811aad 100644
  
    COGL_TRACE_BEGIN_SCOPED (PaintToFramebuffer,
                             "Clutter::Stage::paint_to_framebuffer()");
-@@ -2648,13 +2705,20 @@ clutter_stage_paint_to_framebuffer (ClutterStage       *stage,
+@@ -2649,13 +2706,20 @@ clutter_stage_paint_to_framebuffer (ClutterStage       *stage,
                                                 paint_flags,
                                                 color_state);
  
@@ -468,7 +468,7 @@ index de80c81f7..0ab811aad 100644
    cogl_framebuffer_pop_matrix (framebuffer);
  
 diff --git a/cogl/cogl/cogl-context.c b/cogl/cogl/cogl-context.c
-index 44b885124..ddb84ba7a 100644
+index 44b8851245..ddb84ba7a5 100644
 --- a/cogl/cogl/cogl-context.c
 +++ b/cogl/cogl/cogl-context.c
 @@ -87,7 +87,9 @@ cogl_context_dispose (GObject *object)
@@ -482,7 +482,7 @@ index 44b885124..ddb84ba7a 100644
    g_clear_object (&context->dummy_layer_dependant);
    g_clear_object (&context->default_layer_n);
 diff --git a/cogl/cogl/cogl-pipeline-cache.c b/cogl/cogl/cogl-pipeline-cache.c
-index c591f6d4b..c7045a0dc 100644
+index c591f6d4b8..c7045a0dc2 100644
 --- a/cogl/cogl/cogl-pipeline-cache.c
 +++ b/cogl/cogl/cogl-pipeline-cache.c
 @@ -83,6 +83,10 @@ _cogl_pipeline_cache_new (CoglContext *ctx)
@@ -497,7 +497,7 @@ index c591f6d4b..c7045a0dc 100644
    _cogl_pipeline_hash_table_destroy (&cache->vertex_hash);
    _cogl_pipeline_hash_table_destroy (&cache->combined_hash);
 diff --git a/cogl/cogl/cogl-pipeline-hash-table.c b/cogl/cogl/cogl-pipeline-hash-table.c
-index e57dfbfb9..0d512fee0 100644
+index e57dfbfb9a..0d512fee02 100644
 --- a/cogl/cogl/cogl-pipeline-hash-table.c
 +++ b/cogl/cogl/cogl-pipeline-hash-table.c
 @@ -64,7 +64,7 @@ value_destroy_cb (void *value)
@@ -533,7 +533,7 @@ index e57dfbfb9..0d512fee0 100644
  _cogl_pipeline_hash_table_destroy (CoglPipelineHashTable *hash)
  {
 diff --git a/cogl/cogl/cogl-pipeline-hash-table.h b/cogl/cogl/cogl-pipeline-hash-table.h
-index 3fc1c7e8c..447091cc1 100644
+index 3fc1c7e8c6..447091cc15 100644
 --- a/cogl/cogl/cogl-pipeline-hash-table.h
 +++ b/cogl/cogl/cogl-pipeline-hash-table.h
 @@ -62,6 +62,9 @@ _cogl_pipeline_hash_table_init (CoglPipelineHashTable *hash,
@@ -547,7 +547,7 @@ index 3fc1c7e8c..447091cc1 100644
  _cogl_pipeline_hash_table_destroy (CoglPipelineHashTable *hash);
  
 diff --git a/cogl/cogl/cogl-pipeline-layer.c b/cogl/cogl/cogl-pipeline-layer.c
-index 041c0914d..ca6519941 100644
+index 041c0914dd..ca6519941a 100644
 --- a/cogl/cogl/cogl-pipeline-layer.c
 +++ b/cogl/cogl/cogl-pipeline-layer.c
 @@ -88,7 +88,7 @@ cogl_pipeline_layer_dispose (GObject *object)
@@ -560,7 +560,7 @@ index 041c0914d..ca6519941 100644
  
    G_OBJECT_CLASS (cogl_pipeline_layer_parent_class)->dispose (object);
 diff --git a/cogl/cogl/driver/gl/cogl-pipeline-fragend-glsl.c b/cogl/cogl/driver/gl/cogl-pipeline-fragend-glsl.c
-index d31960b10..7955fb63e 100644
+index d31960b10f..7955fb63e9 100644
 --- a/cogl/cogl/driver/gl/cogl-pipeline-fragend-glsl.c
 +++ b/cogl/cogl/driver/gl/cogl-pipeline-fragend-glsl.c
 @@ -152,6 +152,7 @@ destroy_shader_state (void *user_data)
@@ -572,7 +572,7 @@ index d31960b10..7955fb63e 100644
      shader_state->cache_entry->usage_count--;
  
 diff --git a/cogl/cogl/driver/gl/cogl-pipeline-gl.c b/cogl/cogl/driver/gl/cogl-pipeline-gl.c
-index e4bea8b3b..ffdfdab0c 100644
+index e4bea8b3b1..ffdfdab0cc 100644
 --- a/cogl/cogl/driver/gl/cogl-pipeline-gl.c
 +++ b/cogl/cogl/driver/gl/cogl-pipeline-gl.c
 @@ -975,10 +975,7 @@ _cogl_pipeline_flush_gl_state (CoglContext *ctx,
@@ -588,7 +588,7 @@ index e4bea8b3b..ffdfdab0c 100644
    ctx->current_pipeline_with_color_attrib = with_color_attrib;
    ctx->current_pipeline_unknown_color_alpha = unknown_color_alpha;
 diff --git a/cogl/cogl/driver/gl/cogl-pipeline-progend-glsl.c b/cogl/cogl/driver/gl/cogl-pipeline-progend-glsl.c
-index 1bc36e693..d52e1e9a5 100644
+index 1bc36e6939..d52e1e9a54 100644
 --- a/cogl/cogl/driver/gl/cogl-pipeline-progend-glsl.c
 +++ b/cogl/cogl/driver/gl/cogl-pipeline-progend-glsl.c
 @@ -292,6 +292,7 @@ destroy_program_state (void *user_data)
@@ -600,7 +600,7 @@ index 1bc36e693..d52e1e9a5 100644
      program_state->cache_entry->usage_count--;
  
 diff --git a/cogl/cogl/driver/gl/cogl-pipeline-vertend-glsl.c b/cogl/cogl/driver/gl/cogl-pipeline-vertend-glsl.c
-index 26ce9f742..6e03c2cdf 100644
+index 26ce9f7427..6e03c2cdf4 100644
 --- a/cogl/cogl/driver/gl/cogl-pipeline-vertend-glsl.c
 +++ b/cogl/cogl/driver/gl/cogl-pipeline-vertend-glsl.c
 @@ -112,6 +112,7 @@ destroy_shader_state (void *user_data)
@@ -612,7 +612,7 @@ index 26ce9f742..6e03c2cdf 100644
      shader_state->cache_entry->usage_count--;
  
 diff --git a/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml b/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
-index ff95e88d8..1fdc2ef4e 100644
+index ff95e88d8f..1fdc2ef4e2 100644
 --- a/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
 +++ b/data/dbus-interfaces/org.gnome.Mutter.DisplayConfig.xml
 @@ -406,6 +406,7 @@
@@ -624,7 +624,7 @@ index ff95e88d8..1fdc2ef4e 100644
          Available RGB quantization ranges:
            1: auto
 diff --git a/meson.build b/meson.build
-index ecbeb8550..45d148fd6 100644
+index ecbeb85508..45d148fd6f 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -1,5 +1,5 @@
@@ -635,7 +635,7 @@ index ecbeb8550..45d148fd6 100644
    license: 'GPL-2.0-or-later',
  )
 diff --git a/src/backends/meta-color-device.c b/src/backends/meta-color-device.c
-index a20e0784b..3eb29ca93 100644
+index a20e0784b0..3eb29ca93d 100644
 --- a/src/backends/meta-color-device.c
 +++ b/src/backends/meta-color-device.c
 @@ -751,7 +751,7 @@ update_color_state (MetaColorDevice *color_device)
@@ -648,7 +648,7 @@ index a20e0784b..3eb29ca93 100644
    ClutterLuminance luminance;
    UpdateResult result = 0;
 diff --git a/src/backends/meta-color-profile.c b/src/backends/meta-color-profile.c
-index 3dca529c0..af166afd8 100644
+index 3dca529c03..af166afd82 100644
 --- a/src/backends/meta-color-profile.c
 +++ b/src/backends/meta-color-profile.c
 @@ -119,9 +119,9 @@ meta_color_profile_finalize (GObject *object)
@@ -664,7 +664,7 @@ index 3dca529c0..af166afd8 100644
          {
            g_autoptr (GError) error = NULL;
 diff --git a/src/backends/meta-cursor-renderer.c b/src/backends/meta-cursor-renderer.c
-index f41fa7c1e..6d0d76913 100644
+index f41fa7c1e2..6d0d769136 100644
 --- a/src/backends/meta-cursor-renderer.c
 +++ b/src/backends/meta-cursor-renderer.c
 @@ -24,11 +24,14 @@
@@ -827,7 +827,7 @@ index f41fa7c1e..6d0d76913 100644
 -  return priv->needs_overlay;
 -}
 diff --git a/src/backends/meta-cursor-renderer.h b/src/backends/meta-cursor-renderer.h
-index 6980ceff2..a8a142d91 100644
+index 6980ceff2f..a8a142d91d 100644
 --- a/src/backends/meta-cursor-renderer.h
 +++ b/src/backends/meta-cursor-renderer.h
 @@ -51,8 +51,11 @@ struct _MetaCursorRendererClass
@@ -853,7 +853,7 @@ index 6980ceff2..a8a142d91 100644
 +gboolean meta_cursor_renderer_needs_overlay_on_view (MetaCursorRenderer *renderer,
 +                                                     ClutterStageView   *view);
 diff --git a/src/backends/meta-logical-monitor-private.h b/src/backends/meta-logical-monitor-private.h
-index 338ae3732..f71da6337 100644
+index 338ae37325..f71da63378 100644
 --- a/src/backends/meta-logical-monitor-private.h
 +++ b/src/backends/meta-logical-monitor-private.h
 @@ -65,6 +65,7 @@ META_EXPORT_TEST
@@ -865,7 +865,7 @@ index 338ae3732..f71da6337 100644
  META_EXPORT_TEST
  float meta_logical_monitor_get_scale (MetaLogicalMonitor *logical_monitor);
 diff --git a/src/backends/meta-logical-monitor.c b/src/backends/meta-logical-monitor.c
-index 19ff4a35d..8ec8b88a8 100644
+index 19ff4a35df..8ec8b88a8c 100644
 --- a/src/backends/meta-logical-monitor.c
 +++ b/src/backends/meta-logical-monitor.c
 @@ -178,6 +178,12 @@ meta_logical_monitor_make_primary (MetaLogicalMonitor *logical_monitor)
@@ -882,7 +882,7 @@ index 19ff4a35d..8ec8b88a8 100644
  meta_logical_monitor_get_scale (MetaLogicalMonitor *logical_monitor)
  {
 diff --git a/src/backends/meta-monitor-manager-private.h b/src/backends/meta-monitor-manager-private.h
-index 7b45fb8b4..cfce38d37 100644
+index 7b45fb8b49..cfce38d376 100644
 --- a/src/backends/meta-monitor-manager-private.h
 +++ b/src/backends/meta-monitor-manager-private.h
 @@ -287,8 +287,13 @@ void                meta_monitor_manager_get_screen_size   (MetaMonitorManager *
@@ -900,7 +900,7 @@ index 7b45fb8b4..cfce38d37 100644
                                                                    MetaPowerSave              mode,
                                                                    MetaPowerSaveChangeReason  reason);
 diff --git a/src/backends/meta-monitor-manager.c b/src/backends/meta-monitor-manager.c
-index ef3ff2649..0534c2787 100644
+index ef3ff2649e..0534c27870 100644
 --- a/src/backends/meta-monitor-manager.c
 +++ b/src/backends/meta-monitor-manager.c
 @@ -176,6 +176,8 @@ meta_monitor_manager_set_primary_logical_monitor (MetaMonitorManager *manager,
@@ -961,7 +961,7 @@ index ef3ff2649..0534c2787 100644
  
  void
 diff --git a/src/backends/meta-monitor-private.h b/src/backends/meta-monitor-private.h
-index fcfa94126..c668f3c39 100644
+index fcfa941262..c668f3c394 100644
 --- a/src/backends/meta-monitor-private.h
 +++ b/src/backends/meta-monitor-private.h
 @@ -302,6 +302,7 @@ gboolean meta_monitor_get_min_refresh_rate (MetaMonitor *monitor,
@@ -973,7 +973,7 @@ index fcfa94126..c668f3c39 100644
                                   const MetaGammaLut *lut);
  
 diff --git a/src/backends/meta-output.c b/src/backends/meta-output.c
-index f9cd01a8f..777b7d6dd 100644
+index f9cd01a8f8..777b7d6dd5 100644
 --- a/src/backends/meta-output.c
 +++ b/src/backends/meta-output.c
 @@ -22,6 +22,7 @@
@@ -1019,7 +1019,7 @@ index f9cd01a8f..777b7d6dd 100644
      }
  }
 diff --git a/src/backends/meta-screen-cast-area-stream-src.c b/src/backends/meta-screen-cast-area-stream-src.c
-index 5502251c2..ca6ceebcd 100644
+index 5502251c2c..ca6ceebcdb 100644
 --- a/src/backends/meta-screen-cast-area-stream-src.c
 +++ b/src/backends/meta-screen-cast-area-stream-src.c
 @@ -121,12 +121,14 @@ is_cursor_in_stream (MetaScreenCastAreaStreamSrc *area_src)
@@ -1062,7 +1062,7 @@ index 5502251c2..ca6ceebcd 100644
  
    if (!should_cursor_metadata_be_set (area_src))
 diff --git a/src/backends/meta-screen-cast-monitor-stream-src.c b/src/backends/meta-screen-cast-monitor-stream-src.c
-index eea0fd1ec..8a20d17b3 100644
+index eea0fd1ecb..8a20d17b33 100644
 --- a/src/backends/meta-screen-cast-monitor-stream-src.c
 +++ b/src/backends/meta-screen-cast-monitor-stream-src.c
 @@ -223,16 +223,14 @@ before_stage_painted (MetaStage        *stage,
@@ -1194,7 +1194,7 @@ index eea0fd1ec..8a20d17b3 100644
  
    if (!should_cursor_metadata_be_set (monitor_src))
 diff --git a/src/backends/meta-screen-cast-stream-src.c b/src/backends/meta-screen-cast-stream-src.c
-index 7e1a63f09..14ad74493 100644
+index 7e1a63f093..14ad74493f 100644
 --- a/src/backends/meta-screen-cast-stream-src.c
 +++ b/src/backends/meta-screen-cast-stream-src.c
 @@ -1489,7 +1489,6 @@ add_format_param (MetaScreenCastStreamSrc    *src,
@@ -1206,7 +1206,7 @@ index 7e1a63f09..14ad74493 100644
                                                     frame_rate_fraction.denom);
            max_framerate_values.def = max_framerate_values.max;
 diff --git a/src/backends/meta-screen-cast-virtual-stream-src.c b/src/backends/meta-screen-cast-virtual-stream-src.c
-index d5821919d..24757eb63 100644
+index d5821919d8..24757eb63a 100644
 --- a/src/backends/meta-screen-cast-virtual-stream-src.c
 +++ b/src/backends/meta-screen-cast-virtual-stream-src.c
 @@ -513,12 +513,14 @@ is_cursor_in_stream (MetaScreenCastVirtualStreamSrc *virtual_src)
@@ -1227,7 +1227,7 @@ index d5821919d..24757eb63 100644
      {
        graphene_rect_t cursor_rect;
 diff --git a/src/backends/meta-screen-cast-window-stream-src.c b/src/backends/meta-screen-cast-window-stream-src.c
-index ff5aee97e..e5b46208b 100644
+index ff5aee97e5..e5b46208bc 100644
 --- a/src/backends/meta-screen-cast-window-stream-src.c
 +++ b/src/backends/meta-screen-cast-window-stream-src.c
 @@ -144,6 +144,9 @@ maybe_draw_cursor_sprite (MetaScreenCastWindowStreamSrc *window_src,
@@ -1285,7 +1285,7 @@ index ff5aee97e..e5b46208b 100644
  
    if (!meta_cursor_tracker_get_pointer_visible (cursor_tracker) ||
 diff --git a/src/backends/meta-stage-impl.c b/src/backends/meta-stage-impl.c
-index e6f3b18a0..762a480f4 100644
+index e6f3b18a0a..762a480f44 100644
 --- a/src/backends/meta-stage-impl.c
 +++ b/src/backends/meta-stage-impl.c
 @@ -323,10 +323,12 @@ static MtkRegion *
@@ -1421,7 +1421,7 @@ index e6f3b18a0..762a480f4 100644
        mtk_region_subtract (swap_region_in_stage_space, queued_redraw_clip);
  
 diff --git a/src/backends/meta-stage-private.h b/src/backends/meta-stage-private.h
-index b13571788..86bc626c8 100644
+index b135717889..86bc626c86 100644
 --- a/src/backends/meta-stage-private.h
 +++ b/src/backends/meta-stage-private.h
 @@ -55,8 +55,12 @@ void              meta_stage_update_cursor_overlay   (MetaStage               *s
@@ -1440,7 +1440,7 @@ index b13571788..86bc626c8 100644
  META_EXPORT_TEST
  MetaStageWatch * meta_stage_watch_view (MetaStage           *stage,
 diff --git a/src/backends/meta-stage.c b/src/backends/meta-stage.c
-index 66b5aed5d..c4f399a6d 100644
+index 66b5aed5d0..c4f399a6d2 100644
 --- a/src/backends/meta-stage.c
 +++ b/src/backends/meta-stage.c
 @@ -40,14 +40,13 @@ typedef struct _MetaOverlayViewState
@@ -1518,7 +1518,7 @@ index 66b5aed5d..c4f399a6d 100644
  
  MetaStageWatch *
 diff --git a/src/backends/native/meta-backend-native.c b/src/backends/native/meta-backend-native.c
-index 61e9278bb..c55d33f5e 100644
+index 61e9278bbc..c55d33f5ea 100644
 --- a/src/backends/native/meta-backend-native.c
 +++ b/src/backends/native/meta-backend-native.c
 @@ -401,7 +401,7 @@ meta_backend_native_set_pointer_constraint (MetaBackend           *backend,
@@ -1531,7 +1531,7 @@ index 61e9278bb..c55d33f5e 100644
  
    if (constraint)
 diff --git a/src/backends/native/meta-cursor-renderer-native.c b/src/backends/native/meta-cursor-renderer-native.c
-index f6e38bb6c..ec32a9c28 100644
+index f6e38bb6c8..ec32a9c285 100644
 --- a/src/backends/native/meta-cursor-renderer-native.c
 +++ b/src/backends/native/meta-cursor-renderer-native.c
 @@ -49,6 +49,7 @@
@@ -1755,7 +1755,7 @@ index f6e38bb6c..ec32a9c28 100644
 +    g_hash_table_new (g_direct_hash, g_direct_equal);
  }
 diff --git a/src/backends/native/meta-kms-impl-device-atomic.c b/src/backends/native/meta-kms-impl-device-atomic.c
-index d02442826..c020c007e 100644
+index d024428267..c020c007e4 100644
 --- a/src/backends/native/meta-kms-impl-device-atomic.c
 +++ b/src/backends/native/meta-kms-impl-device-atomic.c
 @@ -741,6 +741,33 @@ process_plane_assignment (MetaKmsImplDevice  *impl_device,
@@ -1793,7 +1793,7 @@ index d02442826..c020c007e 100644
                                  blob_ids,
                                  fb_damage->rects,
 diff --git a/src/backends/native/meta-kms-impl-device-simple.c b/src/backends/native/meta-kms-impl-device-simple.c
-index 9d9465403..4435d5dd6 100644
+index 9d94654038..4435d5dd6a 100644
 --- a/src/backends/native/meta-kms-impl-device-simple.c
 +++ b/src/backends/native/meta-kms-impl-device-simple.c
 @@ -1519,7 +1519,7 @@ process_plane_assignment (MetaKmsImplDevice       *impl_device,
@@ -1806,7 +1806,7 @@ index 9d9465403..4435d5dd6 100644
  
    g_assert_not_reached ();
 diff --git a/src/backends/native/meta-kms-impl-device.c b/src/backends/native/meta-kms-impl-device.c
-index 162a7ca9e..1ecbf0397 100644
+index 162a7ca9e2..1ecbf0397f 100644
 --- a/src/backends/native/meta-kms-impl-device.c
 +++ b/src/backends/native/meta-kms-impl-device.c
 @@ -1864,6 +1864,10 @@ is_using_deadline_timer (MetaKmsImplDevice *impl_device)
@@ -1867,7 +1867,7 @@ index 162a7ca9e..1ecbf0397 100644
    klass->discard_pending_page_flips (impl_device);
  }
 diff --git a/src/backends/native/meta-onscreen-native.c b/src/backends/native/meta-onscreen-native.c
-index 9dfd9d5c6..f0b7c0d80 100644
+index 9dfd9d5c68..f0b7c0d802 100644
 --- a/src/backends/native/meta-onscreen-native.c
 +++ b/src/backends/native/meta-onscreen-native.c
 @@ -1962,8 +1962,11 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
@@ -1927,7 +1927,7 @@ index 9dfd9d5c6..f0b7c0d80 100644
  
  static gboolean
 diff --git a/src/backends/native/meta-onscreen-native.h b/src/backends/native/meta-onscreen-native.h
-index 7c5f87ecb..5a191d3b2 100644
+index 7c5f87ecb5..5a191d3b20 100644
 --- a/src/backends/native/meta-onscreen-native.h
 +++ b/src/backends/native/meta-onscreen-native.h
 @@ -46,6 +46,8 @@ void meta_onscreen_native_dummy_power_save_page_flip (CoglOnscreen *onscreen);
@@ -1940,7 +1940,7 @@ index 7c5f87ecb..5a191d3b2 100644
  
  void meta_onscreen_native_set_view (CoglOnscreen     *onscreen,
 diff --git a/src/backends/native/meta-output-kms.c b/src/backends/native/meta-output-kms.c
-index b1dd4f1b6..c4b5a7460 100644
+index b1dd4f1b64..c4b5a74603 100644
 --- a/src/backends/native/meta-output-kms.c
 +++ b/src/backends/native/meta-output-kms.c
 @@ -44,6 +44,7 @@
@@ -1976,7 +1976,7 @@ index b1dd4f1b6..c4b5a7460 100644
  
        crtc_mode = meta_gpu_kms_get_mode_from_kms_mode (gpu_kms,
 diff --git a/src/backends/native/meta-render-device.c b/src/backends/native/meta-render-device.c
-index ec47cecf6..a1a23aed7 100644
+index ec47cecf68..a1a23aed74 100644
 --- a/src/backends/native/meta-render-device.c
 +++ b/src/backends/native/meta-render-device.c
 @@ -73,6 +73,8 @@ detect_hardware_rendering (MetaRenderDevice *render_device)
@@ -2012,7 +2012,7 @@ index ec47cecf6..a1a23aed7 100644
  out_has_context:
    meta_egl_destroy_context (egl, priv->egl_display, egl_context, NULL);
 diff --git a/src/backends/native/meta-renderer-native.c b/src/backends/native/meta-renderer-native.c
-index 420a2f11e..802a2b5d9 100644
+index 420a2f11e4..802a2b5d91 100644
 --- a/src/backends/native/meta-renderer-native.c
 +++ b/src/backends/native/meta-renderer-native.c
 @@ -201,21 +201,17 @@ struct gbm_device *
@@ -2111,7 +2111,7 @@ index 420a2f11e..802a2b5d9 100644
  
  void
 diff --git a/src/backends/native/meta-seat-impl.c b/src/backends/native/meta-seat-impl.c
-index 4abf244cb..74e616a9b 100644
+index 4abf244cbc..74e616a9bb 100644
 --- a/src/backends/native/meta-seat-impl.c
 +++ b/src/backends/native/meta-seat-impl.c
 @@ -691,16 +691,26 @@ meta_seat_impl_notify_key_in_impl (MetaSeatImpl       *seat_impl,
@@ -2146,7 +2146,7 @@ index 4abf244cb..74e616a9b 100644
      seat_impl->repeat_count = 0;
  
 diff --git a/src/compositor/meta-compositor-view-native.c b/src/compositor/meta-compositor-view-native.c
-index 951908921..b2c51a599 100644
+index 9519089219..b2c51a5993 100644
 --- a/src/compositor/meta-compositor-view-native.c
 +++ b/src/compositor/meta-compositor-view-native.c
 @@ -226,7 +226,8 @@ has_overlapping_cursor_overlay_foreach (ClutterStage  *stage,
@@ -2193,7 +2193,7 @@ index 951908921..b2c51a599 100644
  
    return TRUE;
 diff --git a/src/compositor/meta-shaped-texture.c b/src/compositor/meta-shaped-texture.c
-index a80818e3d..5a67cea79 100644
+index a80818e3d2..5a67cea790 100644
 --- a/src/compositor/meta-shaped-texture.c
 +++ b/src/compositor/meta-shaped-texture.c
 @@ -648,6 +648,7 @@ get_unblended_pipeline (MetaShapedTexture   *stex,
@@ -2213,7 +2213,7 @@ index a80818e3d..5a67cea79 100644
        attach_and_save_color_snippet (stex,
                                       color_state, target_color_state,
 diff --git a/src/compositor/meta-window-drag.c b/src/compositor/meta-window-drag.c
-index 03e19750f..4580371e3 100644
+index 9401944bd6..313fbd5172 100644
 --- a/src/compositor/meta-window-drag.c
 +++ b/src/compositor/meta-window-drag.c
 @@ -55,6 +55,7 @@ struct _MetaWindowDrag {
@@ -2233,7 +2233,7 @@ index 03e19750f..4580371e3 100644
    /* Clear out the edge cache */
    meta_window_drag_update_edges (window_drag);
  
-@@ -2136,3 +2139,9 @@ meta_window_drag_destroy (MetaWindowDrag *window_drag)
+@@ -2137,3 +2140,9 @@ meta_window_drag_destroy (MetaWindowDrag *window_drag)
    g_object_run_dispose (G_OBJECT (window_drag));
    g_object_unref (window_drag);
  }
@@ -2244,7 +2244,7 @@ index 03e19750f..4580371e3 100644
 +  return window_drag->is_ending;
 +}
 diff --git a/src/compositor/meta-window-drag.h b/src/compositor/meta-window-drag.h
-index 254ec2986..e0a39bb0f 100644
+index 254ec2986a..e0a39bb0fb 100644
 --- a/src/compositor/meta-window-drag.h
 +++ b/src/compositor/meta-window-drag.h
 @@ -73,3 +73,5 @@ void meta_window_drag_calculate_window_size (MetaWindowDrag *window_drag,
@@ -2254,7 +2254,7 @@ index 254ec2986..e0a39bb0f 100644
 +
 +gboolean meta_window_drag_is_ending (MetaWindowDrag *window_drag);
 diff --git a/src/core/meta-session-manager.c b/src/core/meta-session-manager.c
-index 68662d71f..df9b37c7b 100644
+index 68662d71f6..df9b37c7b6 100644
 --- a/src/core/meta-session-manager.c
 +++ b/src/core/meta-session-manager.c
 @@ -369,7 +369,7 @@ snapshot_gvdb_recursively (GvdbTable   *table,
@@ -2267,7 +2267,7 @@ index 68662d71f..df9b37c7b 100644
        size_t len, i;
  
 diff --git a/src/meta/meta-logical-monitor.h b/src/meta/meta-logical-monitor.h
-index c5f367851..eb4d804fb 100644
+index c5f3678514..eb4d804fbf 100644
 --- a/src/meta/meta-logical-monitor.h
 +++ b/src/meta/meta-logical-monitor.h
 @@ -21,6 +21,8 @@
@@ -2280,7 +2280,7 @@ index c5f367851..eb4d804fb 100644
  META_EXPORT
  G_DECLARE_FINAL_TYPE (MetaLogicalMonitor,
 diff --git a/src/tests/cogl/conform/test-blend.c b/src/tests/cogl/conform/test-blend.c
-index 7c9ea02cf..7a1e0e061 100644
+index 7c9ea02cfe..7a1e0e0617 100644
 --- a/src/tests/cogl/conform/test-blend.c
 +++ b/src/tests/cogl/conform/test-blend.c
 @@ -7,7 +7,7 @@
@@ -2301,7 +2301,7 @@ index 7c9ea02cf..7a1e0e061 100644
    cogl_primitive_draw (tri1, test_fb, pipeline);
  
 diff --git a/src/tests/cogl/conform/test-custom-attributes.c b/src/tests/cogl/conform/test-custom-attributes.c
-index fb15f0445..ff76f702b 100644
+index fb15f04455..ff76f702bd 100644
 --- a/src/tests/cogl/conform/test-custom-attributes.c
 +++ b/src/tests/cogl/conform/test-custom-attributes.c
 @@ -171,7 +171,7 @@ test_short_verts (TestState *state, int offset_x, int offset_y)
@@ -2314,7 +2314,7 @@ index fb15f0445..ff76f702b 100644
    CoglColor color;
  
 diff --git a/src/tests/cogl/conform/test-framebuffer-cycles.c b/src/tests/cogl/conform/test-framebuffer-cycles.c
-index da546644c..ae780c903 100644
+index da546644ce..ae780c903b 100644
 --- a/src/tests/cogl/conform/test-framebuffer-cycles.c
 +++ b/src/tests/cogl/conform/test-framebuffer-cycles.c
 @@ -40,6 +40,9 @@ test_framebuffer_cycles (void)
@@ -2328,7 +2328,7 @@ index da546644c..ae780c903 100644
    cogl_pipeline_set_layer_texture (pipeline1, 0, tex2);
    cogl_framebuffer_draw_rectangle (COGL_FRAMEBUFFER (offscreen1), pipeline1,
 diff --git a/src/tests/cogl/conform/test-pipeline-shader-state.c b/src/tests/cogl/conform/test-pipeline-shader-state.c
-index 587e74389..ddf20ed15 100644
+index 587e743898..ddf20ed15b 100644
 --- a/src/tests/cogl/conform/test-pipeline-shader-state.c
 +++ b/src/tests/cogl/conform/test-pipeline-shader-state.c
 @@ -9,9 +9,9 @@ test_pipeline_shader_state (void)
@@ -2344,7 +2344,7 @@ index 587e74389..ddf20ed15 100644
    CoglColor color;
  
 diff --git a/src/tests/cogl/conform/test-premult.c b/src/tests/cogl/conform/test-premult.c
-index 9deb54c7c..761029827 100644
+index 9deb54c7cf..7610298272 100644
 --- a/src/tests/cogl/conform/test-premult.c
 +++ b/src/tests/cogl/conform/test-premult.c
 @@ -114,7 +114,7 @@ check_texture (CoglPipeline *pipeline,
@@ -2357,7 +2357,7 @@ index 9deb54c7c..761029827 100644
  
    cogl_framebuffer_orthographic (test_fb, 0, 0,
 diff --git a/src/tests/cogl/conform/test-primitive-and-journal.c b/src/tests/cogl/conform/test-primitive-and-journal.c
-index 8deccc12b..225cf5624 100644
+index 8deccc12bc..225cf5624e 100644
 --- a/src/tests/cogl/conform/test-primitive-and-journal.c
 +++ b/src/tests/cogl/conform/test-primitive-and-journal.c
 @@ -70,7 +70,7 @@ static void
@@ -2370,7 +2370,7 @@ index 8deccc12b..225cf5624 100644
    setup_orthographic_modelview ();
    create_primitives (primitives);
 diff --git a/src/tests/cursor-overlay-tests.c b/src/tests/cursor-overlay-tests.c
-index 44024a728..bd8500561 100644
+index 44024a728b..bd8500561b 100644
 --- a/src/tests/cursor-overlay-tests.c
 +++ b/src/tests/cursor-overlay-tests.c
 @@ -19,6 +19,7 @@
@@ -2439,7 +2439,7 @@ index 44024a728..bd8500561 100644
  
  int
 diff --git a/src/tests/meson.build b/src/tests/meson.build
-index 1bcad75c9..3bf511ecb 100644
+index 1bcad75c9c..3bf511ecba 100644
 --- a/src/tests/meson.build
 +++ b/src/tests/meson.build
 @@ -1029,6 +1029,7 @@ wayland_test_cases = [
@@ -2460,7 +2460,7 @@ index 1bcad75c9..3bf511ecb 100644
    {
 diff --git a/src/tests/monitor-configs/stage-views-fractional-position.xml b/src/tests/monitor-configs/stage-views-fractional-position.xml
 new file mode 100644
-index 000000000..b0de6644a
+index 0000000000..b0de6644a6
 --- /dev/null
 +++ b/src/tests/monitor-configs/stage-views-fractional-position.xml
 @@ -0,0 +1,41 @@
@@ -2506,7 +2506,7 @@ index 000000000..b0de6644a
 +  </configuration>
 +</monitors>
 diff --git a/src/tests/native-kms-cursor-hotplug.c b/src/tests/native-kms-cursor-hotplug.c
-index 11a4fe113..907f0d968 100644
+index 11a4fe1134..907f0d9680 100644
 --- a/src/tests/native-kms-cursor-hotplug.c
 +++ b/src/tests/native-kms-cursor-hotplug.c
 @@ -19,6 +19,7 @@
@@ -2696,7 +2696,7 @@ index 11a4fe113..907f0d968 100644
  
  int
 diff --git a/src/tests/native-kms-device.c b/src/tests/native-kms-device.c
-index f9cadf3f5..e9bff8010 100644
+index f9cadf3f5b..e9bff80107 100644
 --- a/src/tests/native-kms-device.c
 +++ b/src/tests/native-kms-device.c
 @@ -18,6 +18,9 @@
@@ -2775,7 +2775,7 @@ index f9cadf3f5..e9bff8010 100644
                     meta_test_kms_device_discard_disabled);
    g_test_add_func ("/backends/native/kms/device/empty-update",
 diff --git a/src/tests/stage-view-tests.c b/src/tests/stage-view-tests.c
-index 680ebdb75..815f76ace 100644
+index 680ebdb759..815f76acea 100644
 --- a/src/tests/stage-view-tests.c
 +++ b/src/tests/stage-view-tests.c
 @@ -1293,6 +1293,353 @@ meta_test_timeline_actor_tree_clear (void)
@@ -3144,7 +3144,7 @@ index 680ebdb75..815f76ace 100644
  
  int
 diff --git a/src/tests/wayland-fullscreen-test.c b/src/tests/wayland-fullscreen-test.c
-index eaf94e6ca..a66ea784d 100644
+index eaf94e6cad..a66ea784d3 100644
 --- a/src/tests/wayland-fullscreen-test.c
 +++ b/src/tests/wayland-fullscreen-test.c
 @@ -81,30 +81,6 @@ wait_for_first_frame (MetaWindow *window)
@@ -3188,7 +3188,7 @@ index eaf94e6ca..a66ea784d 100644
    g_assert_true (meta_window_wayland_is_acked_fullscreen (wl_window));
  
 diff --git a/src/tests/wayland-stable-rounding-test.c b/src/tests/wayland-stable-rounding-test.c
-index c8a692214..6c3c26d43 100644
+index c8a6922145..6c3c26d43e 100644
 --- a/src/tests/wayland-stable-rounding-test.c
 +++ b/src/tests/wayland-stable-rounding-test.c
 @@ -100,30 +100,6 @@ stable_rounding (void)
@@ -3232,7 +3232,7 @@ index c8a692214..6c3c26d43 100644
    meta_ref_test_verify_view (get_view (),
                               g_test_get_path (), 1,
 diff --git a/src/tests/wayland-test-clients/meson.build b/src/tests/wayland-test-clients/meson.build
-index 603263814..9c92663de 100644
+index 6032638146..9c92663def 100644
 --- a/src/tests/wayland-test-clients/meson.build
 +++ b/src/tests/wayland-test-clients/meson.build
 @@ -122,6 +122,9 @@ wayland_test_clients = [
@@ -3257,7 +3257,7 @@ index 603263814..9c92663de 100644
  test_client_executables = {}
 diff --git a/src/tests/wayland-test-clients/resize-state.c b/src/tests/wayland-test-clients/resize-state.c
 new file mode 100644
-index 000000000..9c9ed4927
+index 0000000000..9c9ed4927e
 --- /dev/null
 +++ b/src/tests/wayland-test-clients/resize-state.c
 @@ -0,0 +1,48 @@
@@ -3311,7 +3311,7 @@ index 000000000..9c9ed4927
 +}
 diff --git a/src/tests/wayland-test-clients/xdg-foreign-parent-of-destroyed.c b/src/tests/wayland-test-clients/xdg-foreign-parent-of-destroyed.c
 new file mode 100644
-index 000000000..bb708c766
+index 0000000000..bb708c7662
 --- /dev/null
 +++ b/src/tests/wayland-test-clients/xdg-foreign-parent-of-destroyed.c
 @@ -0,0 +1,169 @@
@@ -3485,7 +3485,7 @@ index 000000000..bb708c766
 +  return EXIT_SUCCESS;
 +}
 diff --git a/src/tests/wayland-xdg-foreign-tests.c b/src/tests/wayland-xdg-foreign-tests.c
-index 6d50f2181..ffc9aae2f 100644
+index 6d50f2181a..ffc9aae2f7 100644
 --- a/src/tests/wayland-xdg-foreign-tests.c
 +++ b/src/tests/wayland-xdg-foreign-tests.c
 @@ -57,11 +57,47 @@ xdg_foreign_set_parent_of (void)
@@ -3537,7 +3537,7 @@ index 6d50f2181..ffc9aae2f 100644
  
  int
 diff --git a/src/tests/wayland-xdg-shell-tests.c b/src/tests/wayland-xdg-shell-tests.c
-index e8401b392..fa97889dc 100644
+index e8401b3921..fa97889dcb 100644
 --- a/src/tests/wayland-xdg-shell-tests.c
 +++ b/src/tests/wayland-xdg-shell-tests.c
 @@ -767,6 +767,67 @@ toplevel_show_states (void)
@@ -3618,7 +3618,7 @@ index e8401b392..fa97889dc 100644
    (void)(toplevel_bounds_struts);
    (void)(toplevel_bounds_monitors);
 diff --git a/src/wayland/meta-wayland-color-management.c b/src/wayland/meta-wayland-color-management.c
-index d542654a2..40ac1ee9b 100644
+index d542654a2f..40ac1ee9b1 100644
 --- a/src/wayland/meta-wayland-color-management.c
 +++ b/src/wayland/meta-wayland-color-management.c
 @@ -103,7 +103,7 @@ typedef struct _MetaWaylandColorManagementSurface
@@ -4021,7 +4021,7 @@ index d542654a2..40ac1ee9b 100644
  
  static void
 diff --git a/src/wayland/meta-wayland-transaction.c b/src/wayland/meta-wayland-transaction.c
-index 0419663a5..911212155 100644
+index 0419663a53..9112121557 100644
 --- a/src/wayland/meta-wayland-transaction.c
 +++ b/src/wayland/meta-wayland-transaction.c
 @@ -501,7 +501,7 @@ meta_wayland_transaction_commit (MetaWaylandTransaction *transaction)
@@ -4034,7 +4034,7 @@ index 0419663a5..911212155 100644
        MetaSurfaceActor *actor;
        ClutterFrameClock *frame_clock = NULL;
 diff --git a/src/wayland/meta-wayland-xdg-foreign.c b/src/wayland/meta-wayland-xdg-foreign.c
-index baa0c5ef9..dbb5907bc 100644
+index baa0c5ef9c..dbb5907bc1 100644
 --- a/src/wayland/meta-wayland-xdg-foreign.c
 +++ b/src/wayland/meta-wayland-xdg-foreign.c
 @@ -273,6 +273,7 @@ static void
@@ -4046,7 +4046,7 @@ index baa0c5ef9..dbb5907bc 100644
  }
  
 diff --git a/src/wayland/meta-wayland-xdg-shell.c b/src/wayland/meta-wayland-xdg-shell.c
-index f0be8116e..f0328e67d 100644
+index 892ab58c9e..e1043fece4 100644
 --- a/src/wayland/meta-wayland-xdg-shell.c
 +++ b/src/wayland/meta-wayland-xdg-shell.c
 @@ -737,7 +737,8 @@ fill_states (MetaWaylandXdgToplevel         *xdg_toplevel,

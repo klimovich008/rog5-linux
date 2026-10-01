@@ -36,7 +36,7 @@ Part-of: <https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/4962>
  1 file changed, 40 insertions(+), 18 deletions(-)
 
 diff --git a/src/backends/meta-monitor-manager.c b/src/backends/meta-monitor-manager.c
-index 0534c2787..2c2f131bb 100644
+index 0534c27870..2c2f131bbe 100644
 --- a/src/backends/meta-monitor-manager.c
 +++ b/src/backends/meta-monitor-manager.c
 @@ -123,6 +123,7 @@ typedef struct _MetaMonitorManagerPrivate

@@ -98,7 +98,7 @@ class FakeSystem:
                 self.units[u] = 'inactive'
                 if u == 'gdm.service':
                     self.shells = []
-                    self.drm = [p for p in self.drm if p == 99]   # 99: a stuck holder
+                    self.drm = [h for h in self.drm if h[0] in (99, 1)]   # stuck, logind
         return True
 
     def run(self, argv, timeout=30, user=None):
@@ -142,8 +142,8 @@ class FakeSystem:
 
     def kill(self, pid, sig):
         self.kills.append((pid, sig))
-        if sig == 9 and pid in self.drm:
-            self.drm.remove(pid)
+        if sig == 9:
+            self.drm = [h for h in self.drm if h[0] != pid]
 
 
 def fake_answers(sysm, pid, uid, gid):
@@ -431,8 +431,10 @@ class Fallback(unittest.TestCase):
         f.sess = [{'Id': '3', 'Service': 'gdm-password', 'Leader': '1', 'State': 'active'},
                   {'Id': '2', 'Service': 'gdm-launch-environment', 'Leader': '2', 'State': 'active'},
                   {'Id': '5', 'Service': 'sshd', 'Leader': '3', 'State': 'active'}]
-        f.drm = [99]
+        f.drm = [(99, 'Xwayland'), (1, 'systemd-logind')]
         self.assertEqual(rs.fallback(f, 'test'), 0)
+        # logind keeps its own fds of session devices: never killed
+        self.assertNotIn(1, [p for p, _ in f.kills])
         self.assertIn(('terminate', '3'), f.calls)
         self.assertIn(('terminate', '2'), f.calls)
         self.assertNotIn(('terminate', '5'), f.calls)

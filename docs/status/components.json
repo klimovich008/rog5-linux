@@ -89,6 +89,12 @@
      "weight": 1
     },
     {
+     "name": "GNOME Shell Mobile (opt-in)",
+     "status": "untested",
+     "weight": 1,
+     "note": "2026-10-01: packages (mobile 50 branches + GNOME 50.5, 50.4/50.5 lock fixes checked, 9 shell/4 mutter patches), selector, watchdog with fallback to a locked Phosh, rollback set; host aarch64 build; not run on the phone (packages/gnome-mobile/README.md)"
+    },
+    {
      "name": "App launch feedback",
      "status": "ready",
      "weight": 1,
