@@ -49,7 +49,8 @@
 # Work in progress keeps GNOME from going idle (2026-10-01 13:32: Steam's
 # shader pre-compilation ran without input for 10 min and the hand-back
 # killed it with the whole session). While GNOME runs, every BUSY_POLL
-# seconds (and at once when IdleHint turns yes) the switcher looks for
+# seconds, PRE_IDLE seconds before GNOME's idle-delay runs out (mutter's idle
+# time) and at once when IdleHint turns yes, the switcher looks for
 #   - processes of the desktop user matching ROG5_DM_BUSY_PROCS (pgrep -f,
 #     default: Steam's fossilize_replay and a game under Steam's reaper
 #     "SteamLaunch"),
@@ -64,7 +65,8 @@
 # and while any is there it holds a GNOME idle inhibitor of its own
 # (gnome-session-inhibit, app id rog5-desktop-mode), so GNOME neither blanks
 # nor locks and IdleHint stays no. A GNOME already idle is not handed back
-# while work runs. With the work gone the inhibitor is dropped, and the
+# while work runs; but work that starts in the last PRE_IDLE seconds before
+# the idle-delay can still meet GNOME's lock, and a lock always hands back. With the work gone the inhibitor is dropped, and the
 # hand-back follows GNOME's idle-delay as before.
 # /var/lib/rog5/desktop-mode holds auto (default: switch automatically),
 # manual (only the "Desktop mode" launcher) or off.
@@ -81,12 +83,13 @@ TRANSIT=2         # re-check interval while a switch is in progress
 SAFETY=60         # re-check interval without events
 LOCKED_MIN=2      # a lock counts once it still reads "yes" this long after
 BUSY_POLL=60      # seconds between work checks while GNOME runs
+PRE_IDLE=10       # and one this long before GNOME's idle-delay runs out
 DM_USER=${ROG5_DM_USER:-phone}
 BUSY_PROCS=${ROG5_DM_BUSY_PROCS-fossilize_replay|SteamLaunch}
 ASOUND=${ROG5_DM_ASOUND:-/proc/asound}
 INHIBITORS_CMD=${ROG5_DM_INHIBITORS_CMD:-timeout 5 busctl --system call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager ListInhibitors}
 INHIBIT_ID=rog5-desktop-mode   # app id / reason tag of the own inhibitor
-inhibit_pid= busy= busy_at=
+inhibit_pid= busy= eval_at=
 auto_done=0 nosess_since= dp_state= dp_since=0 now=0 wait_s=$SAFETY EV=
 lock_sess= locked_at=0 lock_ready= unlock_ok=
 sess_cache= seen_locked=
@@ -314,6 +317,21 @@ x11_fullscreen() {
 	return 1
 }
 
+# Prints the seconds left until GNOME's idle-delay runs out (mutter's idle
+# time against org.gnome.desktop.session idle-delay); fails if unknown or
+# idle-delay is 0 (never).
+gnome_idle_left() {
+	user_cmd sh -c '
+	i=$(gdbus call --session --dest org.gnome.Mutter.IdleMonitor \
+		--object-path /org/gnome/Mutter/IdleMonitor/Core \
+		--method org.gnome.Mutter.IdleMonitor.GetIdletime) || exit 1
+	d=$(gsettings get org.gnome.desktop.session idle-delay) || exit 1
+	i=${i#*uint64 }; i=${i%%,*}; d=${d#uint32 }
+	case $i$d in *[!0-9]*|"") exit 1 ;; esac
+	[ "$d" -gt 0 ] || exit 1
+	echo $((d - i / 1000))'
+}
+
 # Prints why the desktop user's work is running, or nothing. $1 = idle: also
 # ask GNOME for its own idle inhibitors (they only matter once GNOME is idle,
 # which they normally prevent).
@@ -344,9 +362,10 @@ work_reason() {
 spawn_inhibitor() {
 	local user_argv
 	user_argv || return 0
-	# a simple command in the background: $! is gnome-session-inhibit itself
-	"${user_argv[@]}" gnome-session-inhibit --app-id "$INHIBIT_ID" \
-		--reason "$INHIBIT_ID: $1" --inhibit idle --inhibit-only </dev/null >/dev/null 2>&1 &
+	# exec in the background subshell: $! is gnome-session-inhibit itself,
+	# so inhibit_stop's kill reaches it (no shell in between to orphan it)
+	(exec "${user_argv[@]}" gnome-session-inhibit --app-id "$INHIBIT_ID" \
+		--reason "$INHIBIT_ID: $1" --inhibit idle --inhibit-only) </dev/null >/dev/null 2>&1 &
 	inhibit_pid=$!
 }
 
@@ -363,16 +382,19 @@ inhibit_stop() {
 	return 0
 }
 
-# Re-evaluates the work at most every BUSY_POLL seconds, at once with $1 =
-# idle; keeps the inhibitor in step and logs every change.
+# Re-evaluates the work every BUSY_POLL seconds, PRE_IDLE seconds before
+# GNOME's idle-delay runs out (so work that started since the last look gets
+# its inhibitor before GNOME blanks and locks), and at once with $1 = idle;
+# keeps the inhibitor in step and logs every change.
 work_check() {
-	local r
-	if [ "${1:-}" != idle ] && [ -n "$busy_at" ] && [ $((now - busy_at)) -lt $((BUSY_POLL * 100)) ]; then
+	local r left next
+	if [ "${1:-}" != idle ] && [ -n "$eval_at" ] && [ "$now" -lt "$eval_at" ]; then
 		[ -z "$busy" ] || inhibit_start "$busy"
+		set_wait $(( (eval_at - now + 99) / 100 ))
 		return 0
 	fi
 	r=$(work_reason "${1:-}")
-	busy_at=$now
+	next=$BUSY_POLL
 	if [ -n "$r" ]; then
 		[ -n "$busy" ] || echo "rog5-desktop-mode: work in progress ($r): GNOME kept from idling"
 		busy=$r
@@ -381,13 +403,19 @@ work_check() {
 		[ -z "$busy" ] || echo "rog5-desktop-mode: work done: GNOME may idle again"
 		busy=
 		inhibit_stop
+		if [ "${1:-}" != idle ] && left=$(gnome_idle_left) && [ $((left - PRE_IDLE)) -lt "$next" ]; then
+			next=$((left - PRE_IDLE))
+			[ "$next" -ge 1 ] || next=1
+		fi
 	fi
+	eval_at=$((now + next * 100))
+	set_wait "$next"
 	return 0
 }
 
 work_forget() {         # GNOME is not running (any more)
 	inhibit_stop
-	busy= busy_at=
+	busy= eval_at=
 }
 
 check() {
@@ -436,7 +464,6 @@ check() {
 		else
 			work_check
 		fi
-		set_wait "$BUSY_POLL"
 		return ;;
 	deactivating)
 		work_forget; set_wait "$TRANSIT"; return ;;

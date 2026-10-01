@@ -87,7 +87,8 @@ see. Each item says whether it needs a lab action to trigger.
 - **Evidence:** `configs/systemd/rog5-gnome.service` (`Conflicts=rog5-phosh.service`), `rog5-desktop-mode` log ("display unplugged -> Phosh" at 14:26, 16:22, 19:22).
 - **Cause:** Phosh and GNOME are two compositors on one tty. Only Phosh can lock, so the design swaps whole sessions.
 - **Fix:** a real fix means one compositor for both screens: phoc with a desktop layout on DP, or GNOME Shell mobile. Short term: warn before the switch ("apps will close"), and delay the unplug switch-back (for example 30 s, so a loose cable does not kill the session). Effort **L** (short-term items S).
-- **Still open** (by design). Improved in 598189d9: GNOME hands back to Phosh only after its own 10 min idle, and an unplug or "off" is honoured even while GNOME starts. Desktop mode is `manual` until one supervised boot test (see [whats-left](whats-left.md), test 1).
+- **Still open** (by design). Improved in 598189d9: GNOME hands back to Phosh only after its own 10 min idle, and an unplug or "off" is honoured even while GNOME starts.
+  Since 2026-10-01 running work (Steam shader compilation or a game, audio, idle inhibitors, a fullscreen X11 window) keeps GNOME from idling, so the idle hand-back no longer closes it (test-results/2026-10-01-desktop-idle-gpu-gmu-hang.md). Desktop mode is `manual` until one supervised boot test (see [whats-left](whats-left.md), test 1).
 
 ### 3. New MAC and new IP on every boot
 - **User sees:** the phone's address changes after every reboot (today .91, .40, .120, .34, .109, .11). SSH bookmarks, the Deck scripts and router rules stop working. The router lists a new "alarm" device each time.

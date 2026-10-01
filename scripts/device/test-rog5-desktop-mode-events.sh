@@ -5,7 +5,8 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 t=$(mktemp -d)
-trap 'rm -rf "$t"' EXIT
+# a forked child killed before it execs runs the EXIT trap too: only the test shell cleans up
+trap '[ "$BASHPID" = "$$" ] || exit 0; inhibit_stop 2>/dev/null; rm -rf "$t"' EXIT
 fail() { echo "FAIL $*"; exit 1; }
 pass() { echo "PASS $*"; }
 
@@ -60,15 +61,16 @@ user_cmd() { case $1 in pactl) [ -s "$t/SINKS" ] && cat "$t/SINKS" ;; *) return 
 mock_inhibitors() { if [ -s "$t/INH" ]; then cat "$t/INH"; else echo 'a(ssssuu) 0'; fi; }
 x11_fullscreen() { [ -s "$t/FULL" ] && cat "$t/FULL"; }
 gnome_idle_inhibitor() { [ -s "$t/GINH" ] && cat "$t/GINH"; }
-spawn_inhibitor() { echo "inhibit $1" >>"$t/calls"; sleep 300 & inhibit_pid=$!; }
+gnome_idle_left() { [ -s "$t/LEFT" ] && cat "$t/LEFT"; }
+spawn_inhibitor() { echo "inhibit $1" >>"$t/calls"; (exec sleep 300) </dev/null >/dev/null 2>&1 & inhibit_pid=$!; }
 inhibiting() { [ -n "$inhibit_pid" ] && kill -0 "$inhibit_pid" 2>/dev/null; }
 
 reset() {       # G P dp mode
 	inhibit_stop
 	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/* \
-		"$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH
+		"$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH "$t"/LEFT
 	echo closed >"$t/asound/card0/pcm0p/sub0/status"
-	busy= busy_at=
+	busy= eval_at=
 	put G "$1"; put P "$2"; put status "$3"; put mode "$4"
 	put SESS 2; put LOCK no; put IDLE no; put JOBS ""
 	auto_done=0 nosess_since= dp_state= dp_since=0 sess_cache= seen_locked= EV=
@@ -121,6 +123,16 @@ T=1030; check; inhibiting || fail "audio: re-evaluated before BUSY_POLL"
 T=1061; check; inhibiting && fail "audio: inhibitor kept after playback stopped"
 called "stop rog5-gnome.service" && fail "audio: switched while GNOME was not idle"
 pass "audio playback holds the inhibitor; it is dropped after BUSY_POLL without work"
+
+# work that starts after a check is still seen PRE_IDLE s before GNOME idles
+reset active inactive connected auto
+put LEFT 35; check
+[ "$wait_s" = 25 ] || fail "pre-idle: next look in $wait_s s, expected 25 (35 - PRE_IDLE)"
+put PROCS "4711 fossilize_replay"; T=1010; check
+inhibiting && fail "pre-idle: evaluated before its time"
+T=1025; check
+inhibiting || fail "pre-idle: work that started after the last look got no inhibitor before the idle-delay"
+pass "work is checked again PRE_IDLE s before GNOME's idle-delay runs out"
 
 reset active inactive connected auto
 put SINKS "57	bluez_output.00_11_22.1	PipeWire	s16le 2ch 48000Hz	RUNNING"; put IDLE yes; check
