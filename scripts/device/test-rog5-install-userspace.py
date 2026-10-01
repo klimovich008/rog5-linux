@@ -41,8 +41,8 @@ class Manifest(unittest.TestCase):
         targets = set()
         for row in entries():
             kind = row[0]
-            self.assertIn(kind, ('file', 'conf', 'build', 'enable', 'user-file'), row)
-            if kind == 'enable':
+            self.assertIn(kind, ('file', 'conf', 'build', 'enable', 'disable', 'user-file'), row)
+            if kind in ('enable', 'disable'):
                 self.assertEqual(len(row), 3, row)
                 self.assertIn(row[1], ('system', 'user'), row)
                 continue
@@ -61,6 +61,12 @@ class Manifest(unittest.TestCase):
         for row in entries():
             if row[0] == 'enable':
                 self.assertTrue(row[2] in installed or row[2] in packaged, row)
+
+    def test_disabled_units_are_not_also_enabled(self):
+        enabled = {(r[1], r[2]) for r in entries() if r[0] == 'enable'}
+        for row in entries():
+            if row[0] == 'disable':
+                self.assertNotIn((row[1], row[2]), enabled, row)
 
     def test_executables_are_installed_executable(self):
         for row in entries():

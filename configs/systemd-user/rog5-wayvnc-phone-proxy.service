@@ -1,0 +1,11 @@
+# Socket-activated by rog5-wayvnc-phone.socket: forwards 127.0.0.1:5900 to
+# wayvnc on 127.0.0.1:5910 and exits after two idle minutes, which also
+# stops wayvnc (StopWhenUnneeded there).
+[Unit]
+Description=wayvnc phone mirror: on-demand proxy
+Requires=rog5-wayvnc-phone.service
+After=rog5-wayvnc-phone.service
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd --exit-idle-time=120s 127.0.0.1:5910

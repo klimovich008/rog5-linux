@@ -170,6 +170,16 @@ while IFS="$tab" read -r kind a b c; do
 			*) echo "rog5-install-userspace: bad enable scope $a" >&2; exit 1 ;;
 		esac
 		;;
+	disable)
+		# A unit that used to be enabled and no longer is (e.g. now
+		# socket-activated): systemctl disable removes every link to it.
+		[ "$mode" = install ] && [ "$enable" -eq 1 ] || continue
+		case $a in
+			system) systemctl --root="$root" disable "$b" >/dev/null 2>&1 || report warning "could not disable $b" ;;
+			user) systemctl --root="$root" --global disable "$b" >/dev/null 2>&1 || report warning "could not disable user unit $b" ;;
+			*) echo "rog5-install-userspace: bad disable scope $a" >&2; exit 1 ;;
+		esac
+		;;
 	*)
 		echo "rog5-install-userspace: unknown manifest entry '$kind'" >&2
 		exit 1

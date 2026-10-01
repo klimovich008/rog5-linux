@@ -5,7 +5,8 @@
 #            phone screen. Started on demand: "start" (e.g. before a VNC
 #            session), or by any desktop command below; "stop" ends it
 #   phone    the Phosh session on the panel (VNC mirror on 127.0.0.1:5900,
-#            rog5-wayvnc-phone.service); it only renders while the panel is on
+#            started on demand by rog5-wayvnc-phone.socket); it only renders
+#            while the panel is on
 #
 #   rog5-desktop status
 #   rog5-desktop start | stop                 start/stop the virtual desktop
@@ -76,7 +77,7 @@ status)
 		"$(cat "$rt/rog5-desktop.display" 2>/dev/null || echo -)"
 	printf 'phone:   screen %s, VNC mirror %s (127.0.0.1:5900)\n' \
 		"$(cat /sys/class/drm/card1-DSI-1/dpms 2>/dev/null || echo unknown)" \
-		"$(usys is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
+		"$(usys is-active rog5-wayvnc-phone.socket 2>/dev/null || true) socket, wayvnc $(usys is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
 	;;
 start) target=desktop; ensure_desktop
 	echo "desktop: running (VNC 127.0.0.1:5901)" ;;

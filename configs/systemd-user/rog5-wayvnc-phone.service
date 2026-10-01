@@ -1,22 +1,24 @@
-# VNC server for the phone screen (mirror, with input) in the Phosh session. It listens on
-# localhost only: connect through an SSH tunnel, e.g.
-#   ssh -L 5900:127.0.0.1:5900 root@<phone>   then a VNC client on localhost:5900
-# (see rog5-desktop). wayvnc uses phoc's screencopy, virtual keyboard and pointer.
+# VNC server for the phone screen (mirror, with input) in the Phosh session,
+# started on demand through rog5-wayvnc-phone.socket (clients use
+# 127.0.0.1:5900, see that unit and rog5-desktop); wayvnc itself listens on
+# 127.0.0.1:5910 and stops when the proxy no longer needs it. wayvnc uses
+# phoc's screencopy, virtual keyboard and pointer.
 [Unit]
 Description=wayvnc: the phone screen (mirror, with input)
 PartOf=graphical-session.target
 After=graphical-session.target
+StopWhenUnneeded=yes
 
 [Service]
 # graphical-session.target is also up in GNOME (desktop mode), where mutter has
 # no wlr virtual pointer and wayvnc failed every 3 s: run only beside phoc (a
 # failed ExecCondition skips the unit without a restart).
 ExecCondition=/usr/bin/pgrep -u %U -x phoc
-ExecStart=/usr/bin/wayvnc --output=DSI-1 --socket=%t/wayvnc-phone.sock 127.0.0.1 5900
+ExecStart=/usr/bin/wayvnc --output=DSI-1 --socket=%t/wayvnc-phone.sock 127.0.0.1 5910
+# The proxy connects as soon as this unit is started: wait until wayvnc listens.
+ExecStartPost=/bin/sh -c 'i=0; while [ $i -lt 50 ]; do ss -Hltn "sport = :5910" | grep -q . && exit 0; sleep 0.1; i=$((i + 1)); done; exit 1'
 # wayvnc exited 0 on a Wayland protocol error (2026-09-28), so on-failure
 # left remote input dead.
 Restart=always
 RestartSec=3
 
-[Install]
-WantedBy=graphical-session.target

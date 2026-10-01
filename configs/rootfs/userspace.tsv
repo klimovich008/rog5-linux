@@ -6,6 +6,8 @@
 #                                 edit survives; --force replaces it)
 #   build  SOURCE  TARGET  MODE   C helper compiled with cc (pkg-config libdrm)
 #   enable system|user UNIT       enabled with systemctl --root
+#   disable system|user UNIT      disabled (all links removed) with systemctl --root;
+#                                 for units that are no longer enabled directly
 #   user-file SOURCE  RELATIVE  MODE   into the phone user's home, owned by it
 # SOURCE is relative to the repository root. The boot bundle, not this list,
 # provides the platform, Wi-Fi, update and trial units (they live in /run).
@@ -58,6 +60,8 @@ file	configs/rog5-desktop/sway.conf	/etc/rog5-desktop/sway.conf	0644
 file	configs/systemd-user/rog5-desktop.service	/etc/systemd/user/rog5-desktop.service	0644
 file	configs/systemd-user/rog5-session-restore.service	/etc/systemd/user/rog5-session-restore.service	0644
 file	configs/systemd-user/rog5-wayvnc-phone.service	/etc/systemd/user/rog5-wayvnc-phone.service	0644
+file	configs/systemd-user/rog5-wayvnc-phone.socket	/etc/systemd/user/rog5-wayvnc-phone.socket	0644
+file	configs/systemd-user/rog5-wayvnc-phone-proxy.service	/etc/systemd/user/rog5-wayvnc-phone-proxy.service	0644
 file	scripts/device/rog5-desktop	/usr/local/bin/rog5-desktop	0755
 
 # Power: sleep policy, charge limit and bypass, performance mode, bad-memory retirement
@@ -154,5 +158,7 @@ enable	system	rog5-server-inhibit.service
 enable	system	rog5-usb-modalias.service
 enable	system	rog5-firewall.service
 enable	system	rog5-healthd.service
-enable	user	rog5-wayvnc-phone.service
+enable	user	rog5-wayvnc-phone.socket
+# wayvnc used to be enabled directly; it now starts through the socket
+disable	user	rog5-wayvnc-phone.service
 enable	user	rog5-session-restore.service
