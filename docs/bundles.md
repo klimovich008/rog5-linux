@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k115-d15-261002d` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle D (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k115-d15-261002c` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle C (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k115-d15-261002b` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k115-d15-261002a` | main | k115 | d15 | built | unknown |  | TRIAL hardware video round 2: k114 + 0157-0162 (iris SFR/HFI-trace diagnostics, fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer and interframe_pc switches); d15 unchanged |  |
