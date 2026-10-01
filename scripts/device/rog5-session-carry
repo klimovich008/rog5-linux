@@ -175,9 +175,13 @@ class System:
         """True for an installed .desktop file that is not hidden."""
         try:
             import gi
-            gi.require_version('Gio', '2.0')
-            from gi.repository import Gio
-            info = Gio.DesktopAppInfo.new(app_id + '.desktop')
+            try:        # GLib >= 2.86 moved it to GioUnix (Gio's copy warns)
+                gi.require_version('GioUnix', '2.0')
+                from gi.repository import GioUnix as DesktopGio
+            except (ImportError, ValueError):
+                gi.require_version('Gio', '2.0')
+                from gi.repository import Gio as DesktopGio
+            info = DesktopGio.DesktopAppInfo.new(app_id + '.desktop')
         except Exception:
             return False
         return info is not None and not info.get_nodisplay() and not info.get_is_hidden()
