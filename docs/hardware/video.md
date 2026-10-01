@@ -1,7 +1,7 @@
 # Hardware video decode/encode (Iris v2 on SM8350)
 
 Status 2026-10-01: trial bundle built, **not installed, nothing has run on the
-phone**. Kernel k114 (patch 0154, `rog5-video.fragment`), DTB d14 (d13 + the
+phone**. Kernel k114 (patch 0154, `rog5-video.fragment`), DTB d15 (d13 + the
 video overlay), bundle and exact steps in [Trial](#trial) below.
 
 ## The hardware
@@ -77,7 +77,7 @@ to `qcom/sm8350/vpu20_4v.mbn`; the blob never enters the repository.
   with FFmpeg v4l2m2m; 10-bit (HEVC Main10) 0/11. Venus fails on SM8350 with
   a UC_REGION error. Reviewer bot (Sashiko) worried about MMCX scaling under
   the venus driver; irrelevant with iris, which attaches both OPP domains.
-- Our d14 nodes are the upstream nodes byte for byte except `status` and the
+- Our d15 nodes are the upstream nodes byte for byte except `status` and the
   firmware path.
 
 ## How the stock (Android) stack does it
@@ -161,18 +161,26 @@ WW33 vendor_a partition (read-only on 2026-10-01).
   - 0156: diagnostic for the hypervisor: every translating S2CR route is read
     back on SM8350 and a dropped one is logged with its SMR and bank, at
     driver probe, before the video core is started.
-- **DTB d14** = d13 + `dts/qcom/sm8350-asus-rog-phone5-video.dtso`, composed by
+- **DTB d15** = d13 + `dts/qcom/sm8350-asus-rog-phone5-video.dtso`, composed by
   `scripts/device/compose-video-dtb.sh` (base pinned to d13's SHA-256, so
   d13's own memslim check against d10 stays the reference; checks the
   carve-out and labels first, and afterwards that removing the three new
-  nodes gives back d13 exactly). The third node is `/reserved-memory/iris-iova`
+  nodes gives back d13 exactly). The third node is `/iris-iova`
   (`iommu-addresses = <&iris 0 0 0 0x25800000>`, no physical memory), the
   second `memory-region` of iris: IOVAs below 600 MiB are the content-protection
   ranges handed to TrustZone, and non-secure DMA there faults and can reboot
   the SoC (Vikash Garodia's 2026-08-07 series "media: iris: Restrict lower
   IOVA range for Venus and Iris", patch 08/22 for sm8350, proposed for
   stable, not merged yet; stock does the same with its `venus_ns` pool
-  starting at 0x25800000). The overlay is not in the kernel build's
+  starting at 0x25800000). Upstream puts the node under `/reserved-memory`;
+  d14 did the same and the slot-B loader's bundle verifier
+  (`tools/recovery_control/rog5-bundle-verify.c:1468`, signed into boot_b)
+  refused it ("reserved-memory child has no reg") when the first bundle was
+  packaged, so d15 carries it as a root child: Linux only follows the
+  `memory-region` phandle to `iommu-addresses` (`of_iommu_get_resv_regions()`,
+  translated with the iris node's parent cells), fw_devlink does not parse
+  `memory-region`, and a root child without `compatible` creates no device.
+  d14 stays registered as the rejected composition. The overlay is not in the kernel build's
   `dt_sources`: compiled without its base it warns (reg format, default
   address cells), and the build fails on unreviewed warnings; like the other
   feature overlays it is checked by its composer and dt-validate instead.
@@ -198,8 +206,8 @@ Not run. Bundle, install, firmware and test steps: [Trial plan](#trial-plan).
 
 ## Trial plan
 
-Bundle `main-k114-d14-261001a` (k114 + d14, try-once main; package under
-`~/.local/state/rog5-production-boot-20260923/package-main-k114-d14-261001a/`).
+Bundle `main-k114-d15-261001a` (k114 + d15, try-once main; package under
+`~/.local/state/rog5-production-boot-20260923/package-main-k114-d15-261001a/`).
 Fallback stays `safe-k111-d10-261001a` (its DTB has no video node). Every
 step below is read-only on the phone except the firmware installer (step 3)
 and the install (step 5).
@@ -268,9 +276,9 @@ and the install (step 5).
    (or an ordinary reboot); the runtime firmware copy is gone with the RAM
    boot.
 5. **Install** (only after a clean step 1-3), from a clean checkout of this
-   branch: `python3 scripts/host/install-default-kernel.py --bundle-dir <package>/bundles/main-k114-d14-261001a --descriptor <trial dir>/descriptor --trust-key <raw key> --evidence <state>/install-main-k114-d14-261001a-preflight --address 10.77.0.2`
+   branch: `python3 scripts/host/install-default-kernel.py --bundle-dir <package>/bundles/main-k114-d15-261001a --descriptor <trial dir>/descriptor --trust-key <raw key> --evidence <state>/install-main-k114-d15-261001a-preflight --address 10.77.0.2`
    (preflight), then the same with `--stage` and a new evidence directory;
-   reboot, `PASS main-k114-d14-261001a committed healthy`, reboot again.
+   reboot, `PASS main-k114-d15-261001a committed healthy`, reboot again.
    Then the persistent firmware:
    `ssh root@10.77.0.2 sh -s < scripts/device/install-rog5-video-firmware`
    and one more reboot to see the boot-time load (`authenticated and out of
@@ -278,7 +286,7 @@ and the install (step 5).
 6. **Back-out**: the firmware alone: `install-rog5-video-firmware --uninstall`
    (the drivers stay bound, the core stays off). The bundle: it is a try-once
    main, so a boot that does not commit falls back to safe-k111-d10; a
-   committed install goes back by the selector (`selector.rollback-main-k114-d14-261001a`)
+   committed install goes back by the selector (`selector.rollback-main-k114-d15-261001a`)
    or a fresh `rog5-make-bundle.py --role main --kernel k113 --dtb d13`.
 
 ### What a failure looks like

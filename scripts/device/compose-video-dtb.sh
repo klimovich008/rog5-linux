@@ -1,10 +1,11 @@
 #!/bin/sh
-# Compose the hardware-video DTB (d14) from the default main DTB d13
+# Compose the hardware-video DTB (d15) from the default main DTB d13
 # (platform-d10-memslim-all-dtb-d13, d10 + compose-memslim-dtb.sh
 # stockcma,ionpool,pil): adds the SM8350 Iris v2 video core, its video
-# clock controller and its IOVA reservation (/reserved-memory/iris-iova, no
-# physical memory) from dts/qcom/sm8350-asus-rog-phone5-video.dtso and
-# nothing else.
+# clock controller and its IOVA reservation (/iris-iova: iommu-addresses
+# only, no physical memory; a root child because the slot-B loader's bundle
+# verifier refuses /reserved-memory children without reg) from
+# dts/qcom/sm8350-asus-rog-phone5-video.dtso and nothing else.
 #
 #   compose-video-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT
 #
@@ -20,7 +21,7 @@
 # compatible, firmware path, stream ID, carve-out, IOVA reservation and
 # clock-controller phandles; removing them (and their __symbols__ entries
 # and the two markers) gives back the base tree byte for byte as dts. Markers:
-# / rog5,video = iris-v1, / rog5,video-base = production-dtb-d13.
+# / rog5,video = iris-v2, / rog5,video-base = production-dtb-d13.
 # Prints the output's SHA-256.
 set -eu
 base=${1:?usage: compose-video-dtb.sh BASE_DTB KERNEL_SOURCE OUTPUT}
@@ -34,7 +35,7 @@ overlay=$repo/dts/qcom/sm8350-asus-rog-phone5-video.dtso
 iris=/soc@0/video-codec@aa00000
 videocc=/soc@0/clock-controller@abf0000
 carveout=/reserved-memory/memory@85700000
-iova=/reserved-memory/iris-iova
+iova=/iris-iova
 firmware=qcom/sm8350/vpu20_4v.mbn
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -67,7 +68,7 @@ cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 dtc -@ -q -I dts -O dtb -o "$work/video.dtbo" "$work/video.pp"
 fdtoverlay -i "$base" -o "$work/composed.dtb" "$work/video.dtbo"
 dtb=$work/composed.dtb
-fdtput -t s "$dtb" / rog5,video iris-v1
+fdtput -t s "$dtb" / rog5,video iris-v2
 fdtput -t s "$dtb" / rog5,video-base "$base_name"
 
 # after
@@ -79,6 +80,11 @@ fdtput -t s "$dtb" / rog5,video-base "$base_name"
 iova_ph=$(get -t u "$dtb" "$iova" phandle) || fail 'iris-iova phandle'
 [ "$(get -t u "$dtb" "$iris" memory-region)" = "$(get -t u "$dtb" "$carveout" phandle) $iova_ph" ] || fail 'memory-region'
 ! get "$dtb" "$iova" reg >/dev/null || fail 'iris-iova must not reserve physical memory'
+! get "$dtb" "$iova" compatible >/dev/null || fail 'iris-iova must not create a device'
+# every /reserved-memory child keeps a reg (rog5-bundle-verify refuses others)
+for child in $(fdtget -l "$dtb" /reserved-memory); do
+	get "$dtb" "/reserved-memory/$child" reg >/dev/null || fail "/reserved-memory/$child has no reg"
+done
 [ "$(get -t x "$dtb" "$iova" iommu-addresses)" = "$(printf '%x 0 0 0 25800000' "$(get -t u "$dtb" "$iris" phandle)")" ] ||
 	fail 'iris-iova iommu-addresses'
 smmu=$(get -t u "$dtb" "$(get "$dtb" /__symbols__ apps_smmu)" phandle)

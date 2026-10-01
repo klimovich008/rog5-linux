@@ -26,6 +26,13 @@
  * (Vikash Garodia, "arm64: dts: qcom: sm8350: Reserve low IOVA range for
  * Iris", 2026-08-07, proposed for stable; binding: patch 0155). The firmware
  * carve-out must stay the first memory-region (iris_firmware.c uses index 0).
+ * Upstream puts iris-iova under /reserved-memory; here it is a child of the
+ * root: the slot-B loader's bundle verifier (rog5-bundle-verify, signed into
+ * boot_b) refuses any /reserved-memory child without reg. Linux only follows
+ * the memory-region phandle to its iommu-addresses
+ * (of_iommu_get_resv_regions(), translated with the iris node's parent
+ * cells), fw_devlink does not parse memory-region, and a root child without
+ * compatible creates no device.
  *
  * Firmware: vpu20_4v from the phone's own vendor_a (the name the stock
  * runtime FDT gives, vidc,firmware-name), signed for this OEM with the same
@@ -133,7 +140,7 @@
 	};
 };
 
-&{/reserved-memory} {
+&{/} {
 	iris_iova: iris-iova {
 		iommu-addresses = <&iris 0x0 0x0 0x0 0x25800000>;
 	};

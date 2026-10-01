@@ -37,7 +37,7 @@ Needs a test:
 - Power / Instruction-fetch aborts (SIGBUS): memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest
 - Audio / 24-bit playback: 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B
 - Audio / Bluetooth audio
-- Sensors & hardware / Hardware video decode/encode: trial bundle main-k114-d14-261001a built, not installed: upstream iris driver via the "qcom,sm8350-iris", "qcom,sm8250-venus" fallback, patches 0154-0156, DTB d14 (d13 + video overlay with IOVA hole), firmware = vendor_a vpu20_4v.mbn (OEM-signed, same root as the accepted ADSP image), installer scripts/device/install-rog5-video-firmware; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
+- Sensors & hardware / Hardware video decode/encode: trial bundle main-k114-d15-261001a built, not installed: upstream iris driver via the "qcom,sm8350-iris", "qcom,sm8250-venus" fallback, patches 0154-0156, DTB d15 (d13 + video overlay with IOVA hole), firmware = vendor_a vpu20_4v.mbn (OEM-signed, same root as the accepted ADSP image), installer scripts/device/install-rog5-video-firmware; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 Missing:
 

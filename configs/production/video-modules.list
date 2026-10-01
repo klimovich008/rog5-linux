@@ -2,7 +2,7 @@
 # after Wi-Fi, Bluetooth, audio and sensors: the video core's apps SMMU
 # stream (0x2100) takes a context bank when qcom_iris binds, and a bank taken
 # ahead of the PCIe Wi-Fi function broke the Wi-Fi firmware load once (audio,
-# r39). Both must bind on every boot with the video DTB (d14): until they do,
+# r39). Both must bind on every boot with the video DTB (d15): until they do,
 # GCC, the RPMh power domains and the interconnects they consume keep
 # sync_state() pending (boot-level votes). One module per line, as in
 # boot-modules; qcom_iris pulls videodev, v4l2-mem2mem and videobuf2.

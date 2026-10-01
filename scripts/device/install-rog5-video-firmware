@@ -18,7 +18,7 @@
 # Pinned below by SHA-256 (WW33 vendor_a, checked 2026-10-01).
 #
 # Installs qcom/sm8350/vpu20_4v.mbn, the DT firmware-name of the video DTB
-# (d14, dts/qcom/sm8350-asus-rog-phone5-video.dtso):
+# (d15, dts/qcom/sm8350-asus-rog-phone5-video.dtso):
 #   default     /lib/firmware/qcom/sm8350/vpu20_4v.mbn (the overlay root; every
 #               boot then loads the firmware when udev first opens /dev/video*)
 #   --runtime   the same name under the kernel's firmware_class.path directory
@@ -125,5 +125,5 @@ echo "installed $target ($mode)"
 if [ -e /sys/bus/platform/drivers/qcom-iris/aa00000.video-codec ]; then
 	echo 'qcom-iris is bound: the next open of /dev/video* loads it (v4l2-ctl --list-devices)'
 else
-	echo 'qcom-iris is not bound yet (needs the video DTB d14 and rog5-video.service)'
+	echo 'qcom-iris is not bound yet (needs the video DTB d15 and rog5-video.service)'
 fi
