@@ -89,3 +89,14 @@ Kernel source with 0001-0153 applied: /home/deck/.local/state/rog5-kernel-7.2.7-
 2. patches/linux-7.2.7/0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch: now only
    reads back entries with s2cr->type == S2CR_TYPE_TRANS && s2cr->count. Correct and quiet at boot?
 Answer briefly with concrete blocking findings (file:line) or say there are none. Do not modify anything.
+
+
+## Round 4 brief
+
+Final short check (read-only) of patches/linux-7.2.7/0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch
+after your round-3 finding (/tmp/claude-1000/-home-deck-Projects-rog-phone-linux-migration/2cc1c994-1a4f-4a0b-aca7-41804577680f/scratchpad/video-review-sol-r3.md):
+the iris_core_init() error unwind after power on now sets IRIS_CORE_ERROR, drops core->lock, disable_irq(), retakes the lock,
+skips (enable_irq + exit, state untouched) if init_attempt changed or the state is no longer IRIS_CORE_ERROR, else unloads
+(if loaded), powers off, enable_irq(), frees the queues and sets DEINIT. Kernel source with 0001-0153:
+/home/deck/.local/state/rog5-kernel-7.2.7-build-r113/source. Any real bug left (IRQ depth, double teardown, a core stuck in
+ERROR with no owner, lock misuse)? Answer briefly; say "no blocking findings" if none. Do not modify anything.
