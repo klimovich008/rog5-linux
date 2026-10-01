@@ -41,8 +41,31 @@
 # start by hand): after "Phone mode" the phone stays in Phosh until the
 # display has been unplugged for OFF_AFTER seconds; after an idle or lock
 # hand-back the next unlock returns to the desktop. GNOME's idle time is its
-# own idle-delay (600 s, set by rog5-gnome.service): logind's IdleHint turns
-# yes after it, and the switcher hands back at once.
+# own idle-delay (ROG5_DESKTOP_IDLE_DELAY in rog5-gnome.service, 600 s; 0 =
+# never): logind's IdleHint turns yes after it, GNOME blanks and locks, and
+# the switcher hands back at once. GNOME has no lock screen of its own here,
+# so this hand-back is the desktop's auto-lock (Phosh comes up on its PIN).
+#
+# Work in progress keeps GNOME from going idle (2026-10-01 13:32: Steam's
+# shader pre-compilation ran without input for 10 min and the hand-back
+# killed it with the whole session). While GNOME runs, every BUSY_POLL
+# seconds (and at once when IdleHint turns yes) the switcher looks for
+#   - processes of the desktop user matching ROG5_DM_BUSY_PROCS (pgrep -f,
+#     default: Steam's fossilize_replay and a game under Steam's reaper
+#     "SteamLaunch"),
+#   - audio playing (an ALSA playback substream RUNNING/DRAINING, or a
+#     RUNNING PipeWire sink: also Bluetooth),
+#   - a logind "idle" inhibitor (block or block-weak; systemd-inhibit
+#     --what=idle),
+#   - a fullscreen X11 (Xwayland) window with the focus (games, Proton),
+#   - with IdleHint yes also GNOME's own idle inhibitors (apps inhibit
+#     through org.gnome.SessionManager, org.freedesktop.ScreenSaver or the
+#     inhibit portal; GNOME itself never goes idle while one is held),
+# and while any is there it holds a GNOME idle inhibitor of its own
+# (gnome-session-inhibit, app id rog5-desktop-mode), so GNOME neither blanks
+# nor locks and IdleHint stays no. A GNOME already idle is not handed back
+# while work runs. With the work gone the inhibitor is dropped, and the
+# hand-back follows GNOME's idle-delay as before.
 # /var/lib/rog5/desktop-mode holds auto (default: switch automatically),
 # manual (only the "Desktop mode" launcher) or off.
 set -u
@@ -57,6 +80,13 @@ NOSESS_AFTER=10   # seconds with neither session running or queued
 TRANSIT=2         # re-check interval while a switch is in progress
 SAFETY=60         # re-check interval without events
 LOCKED_MIN=2      # a lock counts once it still reads "yes" this long after
+BUSY_POLL=60      # seconds between work checks while GNOME runs
+DM_USER=${ROG5_DM_USER:-phone}
+BUSY_PROCS=${ROG5_DM_BUSY_PROCS-fossilize_replay|SteamLaunch}
+ASOUND=${ROG5_DM_ASOUND:-/proc/asound}
+INHIBITORS_CMD=${ROG5_DM_INHIBITORS_CMD:-timeout 5 busctl --system call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager ListInhibitors}
+INHIBIT_ID=rog5-desktop-mode   # app id / reason tag of the own inhibitor
+inhibit_pid= busy= busy_at=
 auto_done=0 nosess_since= dp_state= dp_since=0 now=0 wait_s=$SAFETY EV=
 lock_sess= locked_at=0 lock_ready= unlock_ok=
 sess_cache= seen_locked=
@@ -87,6 +117,7 @@ phone_session() {       # id of the phone user's graphical (phosh PAM) session
 }
 
 to_phosh() {
+	inhibit_stop
 	echo "rog5-desktop-mode: $1 -> Phosh"
 	# stop also cancels a GNOME start that is still activating
 	systemctl stop rog5-gnome.service
@@ -186,6 +217,179 @@ pending_events() {      # true if the event pipe holds unread input
 	[ -n "$EV" ] && read -r -t 0 -u "$EV" 2>/dev/null
 }
 
+# --- work in progress (keeps GNOME from idling) ------------------------------
+
+# The environment for a command as the desktop user on its session bus (no
+# PAM, no session): sets user_argv.
+user_argv() {
+	local uid gid home
+	uid=$(id -u "$DM_USER" 2>/dev/null) && gid=$(id -g "$DM_USER" 2>/dev/null) || return 1
+	home=$(getent passwd "$DM_USER" | cut -d: -f6)
+	user_argv=(setpriv --reuid="$uid" --regid="$gid" --init-groups
+		env -i PATH=/usr/local/bin:/usr/bin:/bin HOME="${home:-/}" XDG_RUNTIME_DIR="/run/user/$uid"
+		DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus")
+}
+
+# Runs "$@" as the desktop user, limited to 5 s (a wedged session bus must
+# not stall the switcher).
+user_cmd() {
+	local user_argv
+	user_argv "$@" || return 1
+	timeout -k 2 5 "${user_argv[@]}" "$@"
+}
+
+# Prints "<who>: <why>" of the first logind idle inhibitor in mode block or
+# block-weak that is not this switcher's own (gnome-session may mirror app
+# inhibitors to logind). Parses busctl's a(ssssuu) reply (what who why mode
+# uid pid, strings quoted with backslash escapes), as rog5-sleep-policy does.
+logind_idle_inhibitor() {
+	local out
+	out=$($INHIBITORS_CMD 2>/dev/null) || return 1
+	case $out in 'a(ssssuu) '*) ;; *) return 1 ;; esac
+	printf '%s\n' "$out" | awk -v own="$INHIBIT_ID" '
+	{
+		s = $0; n = 0
+		while (1) {
+			sub(/^[ \t]+/, "", s)
+			if (s == "") break
+			if (substr(s, 1, 1) == "\"") {
+				v = ""; i = 2
+				while (i <= length(s)) {
+					c = substr(s, i, 1)
+					if (c == "\\") { v = v substr(s, i + 1, 1); i += 2; continue }
+					if (c == "\"") break
+					v = v c; i++
+				}
+				s = substr(s, i + 1)
+			} else {
+				match(s, /^[^ \t]+/); v = substr(s, 1, RLENGTH); s = substr(s, RLENGTH + 1)
+			}
+			tok[++n] = v
+		}
+		for (i = 3; i + 5 <= n; i += 6)
+			if ((tok[i + 3] == "block" || tok[i + 3] == "block-weak") && (":" tok[i] ":") ~ /:idle:/ &&
+			    index(tok[i + 1], own) == 0 && index(tok[i + 2], own) == 0) {
+				print tok[i + 1] ": " tok[i + 2]; found = 1; exit
+			}
+	}
+	END { exit !found }'
+}
+
+# Prints the app id of the first GNOME session idle inhibitor (flag 8) that
+# is not this switcher's own.
+gnome_idle_inhibitor() {
+	user_cmd sh -c '
+	sm() { gdbus call --session --dest org.gnome.SessionManager --object-path "$1" --method "$2"; }
+	for p in $(sm /org/gnome/SessionManager org.gnome.SessionManager.GetInhibitors |
+	           grep -o "/org/gnome/SessionManager/Inhibitor[0-9]*"); do
+		f=$(sm "$p" org.gnome.SessionManager.Inhibitor.GetFlags | tr -dc 0-9) || continue
+		[ -n "$f" ] && [ $((f & 8)) -ne 0 ] || continue
+		a=$(sm "$p" org.gnome.SessionManager.Inhibitor.GetAppId | sed "s/^(.\(.*\).,)$/\1/") || continue
+		[ "$a" = "$1" ] && continue
+		echo "${a:-unknown app}"; exit 0
+	done
+	exit 1' sh "$INHIBIT_ID"
+}
+
+# Prints the name of a fullscreen X11 window that has the focus (Xwayland:
+# games, Proton, Steam Big Picture). Native Wayland fullscreen apps are
+# covered by their idle inhibitors (SDL, browsers and players take one).
+x11_fullscreen() {
+	local uid x auth r
+	uid=$(id -u "$DM_USER" 2>/dev/null) || return 1
+	for auth in /run/user/"$uid"/.mutter-Xwaylandauth.*; do
+		[ -e "$auth" ] || return 1
+		for x in /tmp/.X11-unix/X*; do
+			[ -S "$x" ] && [ "$(stat -c %u "$x" 2>/dev/null)" = "$uid" ] || continue
+			r=$(user_cmd sh -c '
+			export DISPLAY=$1 XAUTHORITY=$2
+			w=$(xprop -root _NET_ACTIVE_WINDOW | sed -n "s/.*# \(0x[0-9a-fA-F]*\).*/\1/p")
+			[ -n "$w" ] && [ "$w" != 0x0 ] || exit 1
+			xprop -id "$w" _NET_WM_STATE | grep -q _NET_WM_STATE_FULLSCREEN || exit 1
+			c=$(xprop -id "$w" WM_CLASS | sed -n "s/.*= \"\([^\"]*\)\".*/\1/p")
+			echo "${c:-X11} $w"' sh ":${x##*/X}" "$auth" 2>/dev/null) && [ -n "$r" ] &&
+				{ echo "$r"; return 0; }
+		done
+	done
+	return 1
+}
+
+# Prints why the desktop user's work is running, or nothing. $1 = idle: also
+# ask GNOME for its own idle inhibitors (they only matter once GNOME is idle,
+# which they normally prevent).
+work_reason() {
+	local r
+	if [ -n "$BUSY_PROCS" ] && r=$(pgrep -u "$DM_USER" -l -f -- "$BUSY_PROCS" 2>/dev/null | head -n 1) && [ -n "$r" ]; then
+		echo "running: ${r#* }"; return
+	fi
+	if grep -qs -e '^state: RUNNING' -e '^state: DRAINING' "$ASOUND"/card*/pcm*p/sub*/status; then
+		echo "audio playing"; return
+	fi
+	if r=$(user_cmd pactl list short sinks 2>/dev/null | awk '$NF == "RUNNING" { print $2; exit }') && [ -n "$r" ]; then
+		echo "audio playing on $r"; return
+	fi
+	if r=$(logind_idle_inhibitor); then
+		echo "idle inhibitor: $r"; return
+	fi
+	if r=$(x11_fullscreen); then
+		echo "fullscreen window: $r"; return
+	fi
+	if [ "${1:-}" = idle ] && r=$(gnome_idle_inhibitor); then
+		echo "GNOME idle inhibitor: $r"; return
+	fi
+}
+
+# Holds a GNOME idle inhibitor while work runs (gnome-session-inhibit as the
+# desktop user, ended by inhibit_stop or with the switcher's cgroup).
+spawn_inhibitor() {
+	local user_argv
+	user_argv || return 0
+	# a simple command in the background: $! is gnome-session-inhibit itself
+	"${user_argv[@]}" gnome-session-inhibit --app-id "$INHIBIT_ID" \
+		--reason "$INHIBIT_ID: $1" --inhibit idle --inhibit-only </dev/null >/dev/null 2>&1 &
+	inhibit_pid=$!
+}
+
+inhibit_start() {
+	[ -n "$inhibit_pid" ] && kill -0 "$inhibit_pid" 2>/dev/null && return 0
+	spawn_inhibitor "$1"
+}
+
+inhibit_stop() {
+	[ -n "$inhibit_pid" ] || return 0
+	kill "$inhibit_pid" 2>/dev/null
+	wait "$inhibit_pid" 2>/dev/null
+	inhibit_pid=
+	return 0
+}
+
+# Re-evaluates the work at most every BUSY_POLL seconds, at once with $1 =
+# idle; keeps the inhibitor in step and logs every change.
+work_check() {
+	local r
+	if [ "${1:-}" != idle ] && [ -n "$busy_at" ] && [ $((now - busy_at)) -lt $((BUSY_POLL * 100)) ]; then
+		[ -z "$busy" ] || inhibit_start "$busy"
+		return 0
+	fi
+	r=$(work_reason "${1:-}")
+	busy_at=$now
+	if [ -n "$r" ]; then
+		[ -n "$busy" ] || echo "rog5-desktop-mode: work in progress ($r): GNOME kept from idling"
+		busy=$r
+		inhibit_start "$r"
+	else
+		[ -z "$busy" ] || echo "rog5-desktop-mode: work done: GNOME may idle again"
+		busy=
+		inhibit_stop
+	fi
+	return 0
+}
+
+work_forget() {         # GNOME is not running (any more)
+	inhibit_stop
+	busy= busy_at=
+}
+
 check() {
 	local mode gnome phosh sess kv locked idle
 	now_cs
@@ -222,14 +426,22 @@ check() {
 		done < <(loginctl show-session "$sess" -p LockedHint -p IdleHint 2>/dev/null)
 		if [ "$locked" = yes ]; then
 			# GNOME's own lock needs GDM: hand over to the Phosh lock screen
-			to_phosh "GNOME locked"; latch 0; set_wait "$TRANSIT"
-		elif [ "$idle" = yes ]; then
-			to_phosh "GNOME idle"; latch 0; set_wait "$TRANSIT"
+			to_phosh "GNOME locked"; latch 0; set_wait "$TRANSIT"; return
 		fi
+		if [ "$idle" = yes ]; then
+			work_check idle
+			if [ -z "$busy" ]; then
+				to_phosh "GNOME idle"; latch 0; set_wait "$TRANSIT"; return
+			fi
+		else
+			work_check
+		fi
+		set_wait "$BUSY_POLL"
 		return ;;
 	deactivating)
-		set_wait "$TRANSIT"; return ;;
+		work_forget; set_wait "$TRANSIT"; return ;;
 	esac
+	work_forget
 	if [ "$dp_state" != connected ] && [ "$auto_done" = 1 ]; then
 		if [ "$(remaining "$OFF_AFTER")" -le 0 ]; then latch 0; else set_wait "$(remaining "$OFF_AFTER")"; fi
 	fi

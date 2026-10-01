@@ -2,8 +2,9 @@
 # started from the "Desktop mode" launcher on the unlocked phone (polkit rule
 # 60-rog5-desktop-mode: active local session only). No
 # display manager, so GNOME's own screen lock (it needs GDM) is off: when
-# GNOME goes idle or the display is unplugged, rog5-desktop-mode starts Phosh
-# again, which comes up on its PIN lock screen. The touchscreen is a touchpad
+# GNOME goes idle (no input and no work running) or locks, or the display is
+# unplugged, rog5-desktop-mode starts Phosh again, which comes up on its PIN
+# lock screen. The touchscreen is a touchpad
 # while this runs (rog5-touchpad.service).
 [Unit]
 Description=GNOME desktop on the external display (ROG5 desktop mode)
@@ -48,10 +49,17 @@ ExecStartPre=+/bin/sh -c '[ "$${ROG5_DPU_PIN}" = 0 ] && exit 0; P=/sys/kernel/de
 # Phosh shows no title-bar buttons ('appmenu:'); a desktop needs them. The
 # setting is shared with Phosh, so put it back when GNOME stops.
 ExecStartPre=/bin/sh -c 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus gsettings set org.gnome.desktop.wm.preferences button-layout "appmenu:minimize,maximize,close"'
-# Desktop use: blank after 10 min (Phosh: 60 s), and the phone's power key
+# Desktop use: blank after ROG5_DESKTOP_IDLE_DELAY seconds without input
+# (Phosh: 60 s); GNOME then locks and rog5-desktop-mode hands back to the
+# Phosh PIN screen, the desktop's auto-lock. 0 = never idle (no blank, no
+# hand-back: the desktop stays unlocked until "Phone mode" or an unplug).
+# Work in progress (Steam's shader compilation, a game, audio, fullscreen,
+# idle inhibitors) keeps GNOME from idling (rog5-desktop-mode). Override with
+# a drop-in (systemctl edit rog5-gnome.service). And the phone's power key
 # must not try to suspend (the rog5-server inhibitor blocks sleep, so GNOME
 # asked for a password to override it). Restored for Phosh on stop.
-ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.session idle-delay 600; gsettings set org.gnome.settings-daemon.plugins.power power-button-action nothing'
+Environment=ROG5_DESKTOP_IDLE_DELAY=600
+ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; d=$${ROG5_DESKTOP_IDLE_DELAY:-600}; case $$d in ""|*[!0-9]*) d=600 ;; esac; gsettings set org.gnome.desktop.session idle-delay $$d; gsettings set org.gnome.settings-daemon.plugins.power power-button-action nothing'
 # Phosh keeps no wallpaper (00-rog5-phosh); the desktop gets GNOME's default.
 ExecStartPre=/bin/sh -c 'export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; gsettings set org.gnome.desktop.background picture-uri file:///usr/share/backgrounds/gnome/adwaita-l.jxl; gsettings set org.gnome.desktop.background picture-uri-dark file:///usr/share/backgrounds/gnome/adwaita-d.jxl; gsettings set org.gnome.desktop.background picture-options zoom'
 ExecStart=/usr/bin/gnome-session

@@ -10,7 +10,8 @@ fail() { echo "FAIL $*"; exit 1; }
 pass() { echo "PASS $*"; }
 
 export ROG5_DM_LIB=1 ROG5_DM_STATUS=$t/status ROG5_DM_MODE_FILE=$t/mode ROG5_DM_RUN_DIR=$t/run
-mkdir -p "$t/run"
+export ROG5_DM_ASOUND=$t/asound ROG5_DM_INHIBITORS_CMD=mock_inhibitors
+mkdir -p "$t/run" "$t/asound/card0/pcm0p/sub0"
 . "$here/rog5-desktop-mode"
 set +e
 
@@ -51,9 +52,23 @@ loginctl() {
 }
 T=1000
 now_cs() { now=$((T * 100)); }
+# work in progress: PROCS (pgrep -l lines), SINKS (pactl list short sinks),
+# INH (busctl ListInhibitors reply), FULL (fullscreen window), GINH (GNOME
+# idle inhibitor app id), asound status file
+pgrep() { echo "pgrep $*" >>"$t/calls"; [ -s "$t/PROCS" ] && cat "$t/PROCS"; }
+user_cmd() { case $1 in pactl) [ -s "$t/SINKS" ] && cat "$t/SINKS" ;; *) return 1 ;; esac; }
+mock_inhibitors() { if [ -s "$t/INH" ]; then cat "$t/INH"; else echo 'a(ssssuu) 0'; fi; }
+x11_fullscreen() { [ -s "$t/FULL" ] && cat "$t/FULL"; }
+gnome_idle_inhibitor() { [ -s "$t/GINH" ] && cat "$t/GINH"; }
+spawn_inhibitor() { echo "inhibit $1" >>"$t/calls"; sleep 300 & inhibit_pid=$!; }
+inhibiting() { [ -n "$inhibit_pid" ] && kill -0 "$inhibit_pid" 2>/dev/null; }
 
 reset() {       # G P dp mode
-	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/*
+	inhibit_stop
+	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/* \
+		"$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH
+	echo closed >"$t/asound/card0/pcm0p/sub0/status"
+	busy= busy_at=
 	put G "$1"; put P "$2"; put status "$3"; put mode "$4"
 	put SESS 2; put LOCK no; put IDLE no; put JOBS ""
 	auto_done=0 nosess_since= dp_state= dp_since=0 sess_cache= seen_locked= EV=
@@ -73,6 +88,90 @@ put IDLE yes; T=1001; check
 called "stop rog5-gnome.service" && called "start rog5-phosh.service" || fail "idle: no hand-back on IdleHint=yes"
 [ "$auto_done" = 0 ] || fail "idle: latch not cleared"
 pass "IdleHint=yes hands back at once (GNOME's idle-delay is the only wait)"
+
+# --- work in progress keeps GNOME from idling (2026-10-01 13:32 regression) ---
+# Steam's shader pre-compilation ran 10 min without input; the idle hand-back
+# killed it with the session. The switcher must hold GNOME awake instead.
+reset active inactive connected auto
+put PROCS "4711 fossilize_replay"; check
+inhibiting || fail "work: no GNOME idle inhibitor while fossilize_replay runs"
+grep -q "^inhibit running: fossilize_replay" "$t/calls" || fail "work: inhibitor reason"
+[ "$wait_s" = 60 ] || fail "work: re-check in $wait_s s, expected BUSY_POLL"
+put IDLE yes; T=1001; check
+called "stop rog5-gnome.service" && fail "work: GNOME idle while fossilize_replay runs was handed back"
+inhibiting || fail "work: inhibitor dropped while idle and busy"
+[ "$(grep -c '^inhibit ' "$t/calls")" = 1 ] || fail "work: inhibitor spawned more than once"
+rm -f "$t/PROCS"; T=1002; check
+called "stop rog5-gnome.service" && called "start rog5-phosh.service" || fail "work: no hand-back once the work ended"
+inhibiting && fail "work: inhibitor left running after the hand-back"
+pass "fossilize_replay keeps GNOME from idling; an idle GNOME is handed back only once it ends"
+
+reset active inactive connected auto
+put PROCS "9001 reaper"; put IDLE yes; check
+called "stop rog5-gnome.service" && fail "a Steam game (reaper SteamLaunch) was handed back"
+grep -q "pgrep -u phone -l -f -- fossilize_replay|SteamLaunch" "$t/calls" || fail "work: pgrep pattern"
+pass "a game under Steam (SteamLaunch) keeps GNOME"
+
+# not idle: the work is re-evaluated only every BUSY_POLL seconds
+reset active inactive connected auto
+echo "state: RUNNING" >"$t/asound/card0/pcm0p/sub0/status"
+check; inhibiting || fail "audio: no inhibitor while ALSA playback runs"
+echo closed >"$t/asound/card0/pcm0p/sub0/status"
+T=1030; check; inhibiting || fail "audio: re-evaluated before BUSY_POLL"
+T=1061; check; inhibiting && fail "audio: inhibitor kept after playback stopped"
+called "stop rog5-gnome.service" && fail "audio: switched while GNOME was not idle"
+pass "audio playback holds the inhibitor; it is dropped after BUSY_POLL without work"
+
+reset active inactive connected auto
+put SINKS "57	bluez_output.00_11_22.1	PipeWire	s16le 2ch 48000Hz	RUNNING"; put IDLE yes; check
+called "stop rog5-gnome.service" && fail "Bluetooth playback (RUNNING sink) was handed back"
+put SINKS "57	bluez_output.00_11_22.1	PipeWire	s16le 2ch 48000Hz	SUSPENDED"; T=1001; check
+called "stop rog5-gnome.service" || fail "a suspended sink counted as playback"
+pass "a RUNNING PipeWire sink (Bluetooth too) counts as audio playing"
+
+reset active inactive connected auto
+put FULL "steam_app_1493710 0x1a00003"; put IDLE yes; check
+called "stop rog5-gnome.service" && fail "a fullscreen window was handed back"
+pass "a focused fullscreen X11 window keeps GNOME"
+
+reset active inactive connected auto
+put GINH "org.mozilla.firefox"; check
+inhibiting && fail "GNOME's own inhibitors are GNOME's business while it is not idle"
+put IDLE yes; T=1001; check
+called "stop rog5-gnome.service" && fail "an idle GNOME with an app idle inhibitor was handed back"
+pass "GNOME app idle inhibitors are honoured when GNOME reports idle"
+
+# logind idle inhibitors: block or block-weak, never the switcher's own
+reset active inactive connected auto
+put INH 'a(ssssuu) 3 "sleep" "rog5-server" "keep-server-workloads-running" "block" 0 8398 "idle" "rog5-desktop-mode" "rog5-desktop-mode: running: fossilize_replay" "block" 1000 77 "idle:sleep" "phone" "rog5-desktop-mode: audio" "block-weak" 1000 78'
+put IDLE yes; check
+called "stop rog5-gnome.service" || fail "the switcher's own (mirrored) inhibitor or a sleep inhibitor kept GNOME"
+reset active inactive connected auto
+put INH 'a(ssssuu) 2 "sleep" "rog5-server" "x" "block" 0 1 "handle-lid-switch:idle" "mpv" "Playing \"a b\"" "block-weak" 1000 2'
+put IDLE yes; check
+called "stop rog5-gnome.service" && fail "a logind idle inhibitor (block-weak) was ignored"
+[ "$busy" = 'idle inhibitor: mpv: Playing "a b"' ] || fail "logind inhibitor reason: [$busy]"
+put INH 'a(ssssuu) 1 "idle" "mpv" "x" "delay" 1000 2'; T=1001; check
+called "stop rog5-gnome.service" || fail "a delay-mode idle inhibitor kept GNOME"
+pass "logind idle inhibitors (block, block-weak) keep GNOME; delay mode and the own one do not"
+
+# a lock still hands back at once (GNOME has no unlock), work or not
+reset active inactive connected auto
+put PROCS "4711 fossilize_replay"; check; inhibiting || fail "setup"
+put LOCK yes; T=1001; check
+called "start rog5-phosh.service" || fail "GNOME lock with work running was not handed back"
+inhibiting && fail "inhibitor left after the lock hand-back"
+pass "a GNOME lock hands back even with work running; the inhibitor goes with it"
+
+# GNOME stopping or gone (Phone mode, unplug) drops the inhibitor
+reset active inactive connected auto
+put PROCS "4711 fossilize_replay"; check; inhibiting || fail "setup"
+put G deactivating; T=1001; check
+inhibiting && fail "inhibitor left while GNOME stops"
+put G active; T=1002; check; inhibiting || fail "setup 2"
+put G inactive; put P active; T=1003; check
+inhibiting && fail "inhibitor left after GNOME ended"
+pass "the inhibitor ends with GNOME"
 
 # --- GNOME lock ---------------------------------------------------------------
 reset active inactive connected auto
@@ -335,4 +434,5 @@ timeout 5 bash -c "EV=$EV; $(declare -f trap_cmd); trap_cmd"; rc=$?
 [ "$rc" != 124 ] || fail "reload trap blocked on a full pipe"
 kill "$filler" 2>/dev/null; exec {EV}>&-; EV=
 pass "the reload trap does not block on a full pipe"
+inhibit_stop
 echo PASS rog5-desktop-mode events
