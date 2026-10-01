@@ -1,486 +1,492 @@
 {
- "as_of": "2026-10-01 (main-k111-d10-261001a)",
- "bundles": {
-  "default": {
-   "bundle": "main-k111-d10-261001a",
-   "kernel": "k111 (series to 0148; uname 7.2.7-rog5-k111)",
-   "dtb": "d10 (`dda8b280`, d9 + l11off)",
-   "installed": "2026-10-01 00:32"
-  },
-  "fallback": {
-   "bundle": "production-7.2.7-safe-r8",
-   "kernel": "7.2.7 build r69",
-   "dtb": "platform-usbbtm-memx-dtb-r3 (`bb4668b4`, usbbtm-r2 + memx)",
-   "installed": "2026-09-30 with r205; current init (v2 restore), speakers at -12 dB; fallback rehearsal PASS 2026-09-30 22:29"
-  }
- },
- "areas": [
-  {
-   "name": "Boot & updates",
-   "components": [
-    {
-     "name": "Signed boot chain",
-     "status": "ready",
-     "weight": 3,
-     "note": "slot-B wrapper, try-once selector, signed fallback safe-r8 (rehearsed: reject -> safe-r8 boot -> reinstall, 2026-09-30); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx"
+  "as_of": "2026-10-01 (main-k113-d13-261001a)",
+  "bundles": {
+    "default": {
+      "bundle": "main-k113-d13-261001a",
+      "kernel": "k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB)",
+      "dtb": "d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil)",
+      "installed": "2026-10-01 18:30"
     },
-    {
-     "name": "Kernel updates",
-     "status": "ready",
-     "weight": 2,
-     "note": "file writes on p24, automatic fallback"
-    },
-    {
-     "name": "Unattended package updates",
-     "status": "untested",
-     "weight": 2,
-     "note": "reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback"
-    },
-    {
-     "name": "Boot splash",
-     "status": "untested",
-     "weight": 2,
-     "note": "r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check"
-    },
-    {
-     "name": "Boot time",
-     "status": "partial",
-     "weight": 1,
-     "note": "~57 s to multi-user on r205 (21 s kernel + initramfs, 35 s userspace)"
-    },
-    {
-     "name": "Reboot to fastboot",
-     "status": "missing",
-     "weight": 1,
-     "note": "reboot argument ignored by the shutdown script"
+    "fallback": {
+      "bundle": "safe-k111-d10-261001a",
+      "kernel": "k111 (series to 0148)",
+      "dtb": "d10 (`dda8b280`, d9 + l11off)",
+      "installed": "2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24)"
     }
-   ]
   },
-  {
-   "name": "Display & shell",
-   "components": [
+  "areas": [
     {
-     "name": "AMOLED panel",
-     "status": "ready",
-     "weight": 3,
-     "note": "1080x2448 at 60 Hz"
+      "name": "Boot & updates",
+      "components": [
+        {
+          "name": "Signed boot chain",
+          "status": "ready",
+          "weight": 3,
+          "note": "slot-B wrapper, try-once selector, signed fallback safe-k111-d10 (rehearsed 2026-10-01; safe-r8 rehearsed 2026-09-30, kept on p24); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx"
+        },
+        {
+          "name": "Kernel updates",
+          "status": "ready",
+          "weight": 2,
+          "note": "file writes on p24, automatic fallback"
+        },
+        {
+          "name": "Unattended package updates",
+          "status": "untested",
+          "weight": 2,
+          "note": "reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback"
+        },
+        {
+          "name": "Boot splash",
+          "status": "untested",
+          "weight": 2,
+          "note": "r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check"
+        },
+        {
+          "name": "Boot time",
+          "status": "partial",
+          "weight": 1,
+          "note": "~57 s to multi-user on r205 (21 s kernel + initramfs, 35 s userspace)"
+        },
+        {
+          "name": "Reboot to fastboot",
+          "status": "missing",
+          "weight": 1,
+          "note": "reboot argument ignored by the shutdown script"
+        }
+      ]
     },
     {
-     "name": "Brightness",
-     "status": "partial",
-     "weight": 2,
-     "note": "about 4 real steps"
+      "name": "Display & shell",
+      "components": [
+        {
+          "name": "AMOLED panel",
+          "status": "ready",
+          "weight": 3,
+          "note": "1080x2448 at 60 Hz"
+        },
+        {
+          "name": "Brightness",
+          "status": "partial",
+          "weight": 2,
+          "note": "about 4 real steps"
+        },
+        {
+          "name": "High refresh rate",
+          "status": "missing",
+          "weight": 1,
+          "note": "60 Hz only"
+        },
+        {
+          "name": "Phosh",
+          "status": "untested",
+          "weight": 3,
+          "note": "hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending"
+        },
+        {
+          "name": "Lock screen & PIN",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Alternative phone shells (GNOME Mobile, Plasma Mobile)",
+          "status": "ready",
+          "weight": 1,
+          "note": "2026-10-01: both tried on the phone and rejected by the user; Phosh + GNOME desktop mode stays. GNOME Mobile: opt-in packages, rog5-shell selector and watchdog (fell back to a locked Phosh correctly), mutter-mobile 50.5-1.1 drops the fork's dma-buf stride override (it killed Xwayland/Steam); packages kept in packages/gnome-mobile. Plasma Mobile 6.7.5: ran, lock-on-start not honoured, removed (test-results/2026-10-01-kde-plasma-trial.md)"
+        },
+        {
+          "name": "App launch feedback",
+          "status": "ready",
+          "weight": 1,
+          "note": "Chromium desktop file fixed; Firefox splash still times out"
+        }
+      ]
     },
     {
-     "name": "High refresh rate",
-     "status": "missing",
-     "weight": 1,
-     "note": "60 Hz only"
+      "name": "External display",
+      "components": [
+        {
+          "name": "DP alt mode (native DP, HBR2)",
+          "status": "ready",
+          "weight": 2,
+          "note": "native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0135)"
+        },
+        {
+          "name": "4-lane DP",
+          "status": "ready",
+          "weight": 1,
+          "note": "4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes"
+        },
+        {
+          "name": "5120x1440, 100 Hz, HBR3",
+          "status": "partial",
+          "weight": 1,
+          "note": "halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested"
+        },
+        {
+          "name": "DP link power policy",
+          "status": "ready",
+          "weight": 1,
+          "note": "0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)"
+        },
+        {
+          "name": "No DPU clock pin",
+          "status": "ready",
+          "weight": 1,
+          "note": "GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)"
+        },
+        {
+          "name": "GNOME desktop mode",
+          "status": "partial",
+          "weight": 2,
+          "note": "event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); apps close on a switch but rog5-session-carry quits them cleanly and reopens them in the other session (2026-10-01; first live switch with apps pending)"
+        },
+        {
+          "name": "Touchscreen as touchpad",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "HDMI converters above HBR",
+          "status": "missing",
+          "weight": 1,
+          "note": "the hub HDMI PCON stays dark at HBR2; converters capped at HBR (1080p60); 0119/0134 opt-in experiments"
+        },
+        {
+          "name": "HDR",
+          "status": "missing",
+          "weight": 1,
+          "note": "later: port of stock VSC/HDR-metadata SDPs"
+        }
+      ]
     },
     {
-     "name": "Phosh",
-     "status": "untested",
-     "weight": 3,
-     "note": "hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending"
+      "name": "Connectivity",
+      "components": [
+        {
+          "name": "Wi-Fi",
+          "status": "partial",
+          "weight": 3,
+          "note": "stable MAC/IP since 2026-09-29; 11 s reconnect after wake"
+        },
+        {
+          "name": "Bluetooth",
+          "status": "ready",
+          "weight": 2
+        },
+        {
+          "name": "Bluetooth headset mic (HFP)",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "Tailscale",
+          "status": "ready",
+          "weight": 1,
+          "note": "one daemon per host; ramdisk tailscaled only as a fallback"
+        },
+        {
+          "name": "Hotspot",
+          "status": "untested",
+          "weight": 1
+        },
+        {
+          "name": "Cellular modem",
+          "status": "missing",
+          "weight": 3,
+          "note": "out of scope"
+        },
+        {
+          "name": "GPS",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "NFC",
+          "status": "missing",
+          "weight": 1
+        }
+      ]
     },
     {
-     "name": "Lock screen & PIN",
-     "status": "ready",
-     "weight": 1
+      "name": "USB",
+      "components": [
+        {
+          "name": "Side port host + hubs",
+          "status": "ready",
+          "weight": 3,
+          "note": "survives suspend (0105); monitor hub USB comes up at boot via reconnect retries"
+        },
+        {
+          "name": "Replug recovery (-71)",
+          "status": "partial",
+          "weight": 1,
+          "note": "side port: rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test"
+        },
+        {
+          "name": "Charging via hub",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Bottom port (USB 2.0 host)",
+          "status": "ready",
+          "weight": 1,
+          "note": "stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured"
+        },
+        {
+          "name": "USB gadget (network to a PC)",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "USB drives (Files/Disks)",
+          "status": "ready",
+          "weight": 1,
+          "note": "udisks with a polkit guard for the internal UFS; configured disks mounted at boot by rog5-usb-storage (28 s on r205); unconfigured sticks via gvfs after login"
+        },
+        {
+          "name": "USB 3 on the side port",
+          "status": "missing",
+          "weight": 1,
+          "note": "SuperSpeed not verified; the monitor hub runs at USB 2.0 (480M) next to DP"
+        }
+      ]
     },
     {
-     "name": "GNOME Shell Mobile (opt-in)",
-     "status": "untested",
-     "weight": 1,
-     "note": "2026-10-01: packages (mobile 50 branches + GNOME 50.5, 50.4/50.5 lock fixes checked, 11 shell / 4 mutter patches incl. 6 lock-screen fixes), selector, watchdog with fallback to a locked Phosh, rollback set; Sol-reviewed; host aarch64 build; not run on the phone (packages/gnome-mobile/README.md)"
+      "name": "Power",
+      "components": [
+        {
+          "name": "Charging & limits",
+          "status": "ready",
+          "weight": 2,
+          "note": "rog5-charge-policy: 70-80 % limit with bypass at the limit, bypass in performance mode or when hot; below-full bypass with a PD charger untested; via the monitor hub: 9 V contract, input capped at 1.4 A (~12.5 W) by the ADSP (the hub offers 9 V 2.45 A, no PPS; 15/20 V unusable by the phone)"
+        },
+        {
+          "name": "Suspend (s2idle)",
+          "status": "ready",
+          "weight": 2,
+          "note": "sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111"
+        },
+        {
+          "name": "Deep standby (CX/DDR collapse)",
+          "status": "missing",
+          "weight": 3,
+          "note": "~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged"
+        },
+        {
+          "name": "Battery standby measurement",
+          "status": "untested",
+          "weight": 1,
+          "note": "needs the phone unplugged"
+        },
+        {
+          "name": "Idle background wakeups",
+          "status": "partial",
+          "weight": 1,
+          "note": "desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending"
+        },
+        {
+          "name": "Memory (zram swap)",
+          "status": "ready",
+          "weight": 1,
+          "note": "5.2 GiB zram zstd, MGLRU, THP madvise; d13 memslim (590 MiB of unused carve-outs) + k113 SWIOTLB 4 MiB (60 MiB): MemTotal 11.0 GiB, up from 10.4 GiB (trials 2026-10-01)"
+        },
+        {
+          "name": "Instruction-fetch aborts (SIGBUS)",
+          "status": "untested",
+          "weight": 1,
+          "note": "memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest"
+        }
+      ]
     },
     {
-     "name": "App launch feedback",
-     "status": "ready",
-     "weight": 1,
-     "note": "Chromium desktop file fixed; Firefox splash still times out"
+      "name": "Performance",
+      "components": [
+        {
+          "name": "CPU",
+          "status": "ready",
+          "weight": 3,
+          "note": "GB6 1580/4191 (above Android)"
+        },
+        {
+          "name": "GPU (Vulkan/GL)",
+          "status": "ready",
+          "weight": 3,
+          "note": "GB6 Vulkan 4670 normal, 5405 performance mode; Turnip 8-bit storage for DXVK 3 (vulkan-freedreno 26.2.3-1.1, held)"
+        },
+        {
+          "name": "Performance mode",
+          "status": "partial",
+          "weight": 1,
+          "note": "rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet"
+        },
+        {
+          "name": "Thermal protection",
+          "status": "ready",
+          "weight": 2,
+          "note": "skin + junction trips, 65 C shutdown"
+        },
+        {
+          "name": "System monitor (Resources)",
+          "status": "ready",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Audio",
+      "components": [
+        {
+          "name": "Speakers",
+          "status": "ready",
+          "weight": 2,
+          "note": "full strength via PipeWire S16LE; 0 dB only behind a verified protection DSP, -12 dB otherwise (b509257c)"
+        },
+        {
+          "name": "Speaker protection DSP",
+          "status": "ready",
+          "weight": 1,
+          "note": "both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)"
+        },
+        {
+          "name": "24-bit playback",
+          "status": "untested",
+          "weight": 1,
+          "note": "0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B"
+        },
+        {
+          "name": "Microphones",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Earpiece",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "3.5 mm jack",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "Bluetooth audio",
+          "status": "untested",
+          "weight": 1
+        },
+        {
+          "name": "Audio over DP",
+          "status": "missing",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Sensors & hardware",
+      "components": [
+        {
+          "name": "Touchscreen",
+          "status": "ready",
+          "weight": 2
+        },
+        {
+          "name": "Buttons",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Vibration",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Motion sensors (SLPI)",
+          "status": "ready",
+          "weight": 2
+        },
+        {
+          "name": "Light / proximity",
+          "status": "ready",
+          "weight": 1,
+          "note": "proximity near level from the factory calibration"
+        },
+        {
+          "name": "Cameras",
+          "status": "missing",
+          "weight": 3
+        },
+        {
+          "name": "Fingerprint",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "AirTriggers",
+          "status": "missing",
+          "weight": 1
+        },
+        {
+          "name": "RGB logo LED",
+          "status": "partial",
+          "weight": 1
+        },
+        {
+          "name": "Hardware video decode/encode",
+          "status": "missing",
+          "weight": 1,
+          "note": "no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)"
+        }
+      ]
+    },
+    {
+      "name": "Server",
+      "components": [
+        {
+          "name": "SSH (keys only)",
+          "status": "ready",
+          "weight": 2
+        },
+        {
+          "name": "Firewall (nftables)",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "128 GiB persistent root",
+          "status": "ready",
+          "weight": 2,
+          "note": "overlay loop with direct I/O (4 KiB blocks)"
+        },
+        {
+          "name": "Hardware watchdog",
+          "status": "ready",
+          "weight": 1
+        },
+        {
+          "name": "Journal retention",
+          "status": "ready",
+          "weight": 1,
+          "note": "1 GB cap; excluded from update snapshots"
+        }
+      ]
+    },
+    {
+      "name": "Apps",
+      "components": [
+        {
+          "name": "Steam (native arm64)",
+          "status": "partial",
+          "weight": 2,
+          "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending"
+        },
+        {
+          "name": "Browsers",
+          "status": "ready",
+          "weight": 1,
+          "note": "Firefox and Chromium"
+        }
+      ]
     }
-   ]
-  },
-  {
-   "name": "External display",
-   "components": [
-    {
-     "name": "DP alt mode (native DP, HBR2)",
-     "status": "ready",
-     "weight": 2,
-     "note": "native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0135)"
-    },
-    {
-     "name": "4-lane DP",
-     "status": "ready",
-     "weight": 1,
-     "note": "4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes"
-    },
-    {
-     "name": "5120x1440, 100 Hz, HBR3",
-     "status": "partial",
-     "weight": 1,
-     "note": "halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested"
-    },
-    {
-     "name": "DP link power policy",
-     "status": "ready",
-     "weight": 1,
-     "note": "0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)"
-    },
-    {
-     "name": "No DPU clock pin",
-     "status": "ready",
-     "weight": 1,
-     "note": "GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)"
-    },
-    {
-     "name": "GNOME desktop mode",
-     "status": "partial",
-     "weight": 2,
-     "note": "event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); switching closes apps"
-    },
-    {
-     "name": "Touchscreen as touchpad",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "HDMI converters above HBR",
-     "status": "missing",
-     "weight": 1,
-     "note": "the hub HDMI PCON stays dark at HBR2; converters capped at HBR (1080p60); 0119/0134 opt-in experiments"
-    },
-    {
-     "name": "HDR",
-     "status": "missing",
-     "weight": 1,
-     "note": "later: port of stock VSC/HDR-metadata SDPs"
-    }
-   ]
-  },
-  {
-   "name": "Connectivity",
-   "components": [
-    {
-     "name": "Wi-Fi",
-     "status": "partial",
-     "weight": 3,
-     "note": "stable MAC/IP since 2026-09-29; 11 s reconnect after wake"
-    },
-    {
-     "name": "Bluetooth",
-     "status": "ready",
-     "weight": 2
-    },
-    {
-     "name": "Bluetooth headset mic (HFP)",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "Tailscale",
-     "status": "ready",
-     "weight": 1,
-     "note": "one daemon per host; ramdisk tailscaled only as a fallback"
-    },
-    {
-     "name": "Hotspot",
-     "status": "untested",
-     "weight": 1
-    },
-    {
-     "name": "Cellular modem",
-     "status": "missing",
-     "weight": 3,
-     "note": "out of scope"
-    },
-    {
-     "name": "GPS",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "NFC",
-     "status": "missing",
-     "weight": 1
-    }
-   ]
-  },
-  {
-   "name": "USB",
-   "components": [
-    {
-     "name": "Side port host + hubs",
-     "status": "ready",
-     "weight": 3,
-     "note": "survives suspend (0105); monitor hub USB comes up at boot via reconnect retries"
-    },
-    {
-     "name": "Replug recovery (-71)",
-     "status": "partial",
-     "weight": 1,
-     "note": "side port: rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test"
-    },
-    {
-     "name": "Charging via hub",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "Bottom port (USB 2.0 host)",
-     "status": "ready",
-     "weight": 1,
-     "note": "stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured"
-    },
-    {
-     "name": "USB gadget (network to a PC)",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "USB drives (Files/Disks)",
-     "status": "ready",
-     "weight": 1,
-     "note": "udisks with a polkit guard for the internal UFS; configured disks mounted at boot by rog5-usb-storage (28 s on r205); unconfigured sticks via gvfs after login"
-    },
-    {
-     "name": "USB 3 on the side port",
-     "status": "missing",
-     "weight": 1,
-     "note": "SuperSpeed not verified; the monitor hub runs at USB 2.0 (480M) next to DP"
-    }
-   ]
-  },
-  {
-   "name": "Power",
-   "components": [
-    {
-     "name": "Charging & limits",
-     "status": "ready",
-     "weight": 2,
-     "note": "rog5-charge-policy: 70-80 % limit with bypass at the limit, bypass in performance mode or when hot; below-full bypass with a PD charger untested"
-    },
-    {
-     "name": "Suspend (s2idle)",
-     "status": "ready",
-     "weight": 2,
-     "note": "sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111"
-    },
-    {
-     "name": "Deep standby (CX/DDR collapse)",
-     "status": "missing",
-     "weight": 3,
-     "note": "~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged"
-    },
-    {
-     "name": "Battery standby measurement",
-     "status": "untested",
-     "weight": 1,
-     "note": "needs the phone unplugged"
-    },
-    {
-     "name": "Idle background wakeups",
-     "status": "partial",
-     "weight": 1,
-     "note": "desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending"
-    },
-    {
-     "name": "Memory (zram swap)",
-     "status": "ready",
-     "weight": 1,
-     "note": "5.2 GiB zram zstd, MGLRU, THP madvise; d13 memslim (590 MiB of unused carve-outs) + k113 SWIOTLB 4 MiB (60 MiB): MemTotal 11.0 GiB, up from 10.4 GiB (trials 2026-10-01)"
-    },
-    {
-     "name": "Instruction-fetch aborts (SIGBUS)",
-     "status": "untested",
-     "weight": 1,
-     "note": "memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest"
-    }
-   ]
-  },
-  {
-   "name": "Performance",
-   "components": [
-    {
-     "name": "CPU",
-     "status": "ready",
-     "weight": 3,
-     "note": "GB6 1580/4191 (above Android)"
-    },
-    {
-     "name": "GPU (Vulkan/GL)",
-     "status": "ready",
-     "weight": 3,
-     "note": "GB6 Vulkan 4670 normal, 5405 performance mode; Turnip 8-bit storage for DXVK 3 (vulkan-freedreno 26.2.3-1.1, held)"
-    },
-    {
-     "name": "Performance mode",
-     "status": "partial",
-     "weight": 1,
-     "note": "rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet"
-    },
-    {
-     "name": "Thermal protection",
-     "status": "ready",
-     "weight": 2,
-     "note": "skin + junction trips, 65 C shutdown"
-    },
-    {
-     "name": "System monitor (Resources)",
-     "status": "ready",
-     "weight": 1
-    }
-   ]
-  },
-  {
-   "name": "Audio",
-   "components": [
-    {
-     "name": "Speakers",
-     "status": "ready",
-     "weight": 2,
-     "note": "full strength via PipeWire S16LE; 0 dB only behind a verified protection DSP, -12 dB otherwise (b509257c)"
-    },
-    {
-     "name": "Speaker protection DSP",
-     "status": "ready",
-     "weight": 1,
-     "note": "both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)"
-    },
-    {
-     "name": "24-bit playback",
-     "status": "untested",
-     "weight": 1,
-     "note": "0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B"
-    },
-    {
-     "name": "Microphones",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "Earpiece",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "3.5 mm jack",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "Bluetooth audio",
-     "status": "untested",
-     "weight": 1
-    },
-    {
-     "name": "Audio over DP",
-     "status": "missing",
-     "weight": 1
-    }
-   ]
-  },
-  {
-   "name": "Sensors & hardware",
-   "components": [
-    {
-     "name": "Touchscreen",
-     "status": "ready",
-     "weight": 2
-    },
-    {
-     "name": "Buttons",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "Vibration",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "Motion sensors (SLPI)",
-     "status": "ready",
-     "weight": 2
-    },
-    {
-     "name": "Light / proximity",
-     "status": "ready",
-     "weight": 1,
-     "note": "proximity near level from the factory calibration"
-    },
-    {
-     "name": "Cameras",
-     "status": "missing",
-     "weight": 3
-    },
-    {
-     "name": "Fingerprint",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "AirTriggers",
-     "status": "missing",
-     "weight": 1
-    },
-    {
-     "name": "RGB logo LED",
-     "status": "partial",
-     "weight": 1
-    }
-   ]
-  },
-  {
-   "name": "Server",
-   "components": [
-    {
-     "name": "SSH (keys only)",
-     "status": "ready",
-     "weight": 2
-    },
-    {
-     "name": "Firewall (nftables)",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "128 GiB persistent root",
-     "status": "ready",
-     "weight": 2,
-     "note": "overlay loop with direct I/O (4 KiB blocks)"
-    },
-    {
-     "name": "Hardware watchdog",
-     "status": "ready",
-     "weight": 1
-    },
-    {
-     "name": "Journal retention",
-     "status": "ready",
-     "weight": 1,
-     "note": "1 GB cap; excluded from update snapshots"
-    }
-   ]
-  },
-  {
-   "name": "Apps",
-   "components": [
-    {
-     "name": "Steam (native arm64)",
-     "status": "partial",
-     "weight": 2,
-     "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending"
-    },
-    {
-     "name": "Browsers",
-     "status": "ready",
-     "weight": 1,
-     "note": "Firefox and Chromium"
-    }
-   ]
-  }
- ]
+  ]
 }

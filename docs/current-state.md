@@ -5,21 +5,21 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-10-01 (main-k111-d10-261001a) (source: `docs/status/components.json`).
+Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
-| Default | `main-k111-d10-261001a` | k111 (series to 0148; uname 7.2.7-rog5-k111) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 00:32 |
-| Fallback | `production-7.2.7-safe-r8` | 7.2.7 build r69 | platform-usbbtm-memx-dtb-r3 (`bb4668b4`, usbbtm-r2 + memx) | 2026-09-30 with r205; current init (v2 restore), speakers at -12 dB; fallback rehearsal PASS 2026-09-30 22:29 |
+| Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
+| Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
-Components: 38 ready, 10 partial, 9 needs a test, 16 missing.
+Components: 39 ready, 10 partial, 8 needs a test, 17 missing.
 
 Partial:
 
 - Boot & updates / Boot time: ~57 s to multi-user on r205 (21 s kernel + initramfs, 35 s userspace)
 - Display & shell / Brightness: about 4 real steps
 - External display / 5120x1440, 100 Hz, HBR3: halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested
-- External display / GNOME desktop mode: event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); switching closes apps
+- External display / GNOME desktop mode: event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); apps close on a switch but rog5-session-carry quits them cleanly and reopens them in the other session (2026-10-01; first live switch with apps pending)
 - Connectivity / Wi-Fi: stable MAC/IP since 2026-09-29; 11 s reconnect after wake
 - USB / Replug recovery (-71): side port: rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test
 - Power / Idle background wakeups: desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending
@@ -32,7 +32,6 @@ Needs a test:
 - Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback
 - Boot & updates / Boot splash: r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check
 - Display & shell / Phosh: hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending
-- Display & shell / GNOME Shell Mobile (opt-in): 2026-10-01: packages (mobile 50 branches + GNOME 50.5, 50.4/50.5 lock fixes checked, 11 shell / 4 mutter patches incl. 6 lock-screen fixes), selector, watchdog with fallback to a locked Phosh, rollback set; Sol-reviewed; host aarch64 build; not run on the phone (packages/gnome-mobile/README.md)
 - Connectivity / Hotspot
 - Power / Battery standby measurement: needs the phone unplugged
 - Power / Instruction-fetch aborts (SIGBUS): memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest
@@ -57,6 +56,7 @@ Missing:
 - Sensors & hardware / Cameras
 - Sensors & hardware / Fingerprint
 - Sensors & hardware / AirTriggers
+- Sensors & hardware / Hardware video decode/encode: no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 <!-- END GENERATED -->
 

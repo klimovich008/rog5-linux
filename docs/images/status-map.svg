@@ -1,250 +1,256 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="654" viewBox="0 0 960 654">
 <rect width="960" height="654" fill="#1f2229"/>
-<rect x="2.0" y="2.0" width="230.1" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="6.0" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Connectivity</text>
-<g><title>Connectivity / Wi-Fi: partial / not fully integrated - stable MAC/IP since 2026-09-29; 11 s reconnect after wake</title><rect x="3.0" y="19.0" width="114.1" height="133.8" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Wi-Fi</text>
+<rect x="2.0" y="2.0" width="234.7" height="319.4" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="6.0" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Sensors &amp; hardware</text>
+<g><title>Sensors &amp; hardware / Cameras: missing</title><rect x="3.0" y="19.0" width="139.6" height="107.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cameras</text>
 </g>
-<g><title>Connectivity / Cellular modem: missing - out of scope</title><rect x="117.1" y="19.0" width="114.1" height="133.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="120.1" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cellular modem</text>
+<g><title>Sensors &amp; hardware / Touchscreen: ready</title><rect x="142.6" y="19.0" width="93.1" height="107.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="145.6" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen</text>
 </g>
-<g><title>Connectivity / Bluetooth: ready</title><rect x="3.0" y="152.8" width="97.8" height="104.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="164.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth</text>
+<g><title>Sensors &amp; hardware / Motion sensors (SLPI): ready</title><rect x="3.0" y="126.6" width="77.6" height="129.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="138.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Motion sen…</text>
 </g>
-<g><title>Connectivity / Bluetooth headset mic (HFP): missing</title><rect x="3.0" y="256.9" width="97.8" height="52.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="268.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth head…</text>
+<g><title>Sensors &amp; hardware / Buttons: ready</title><rect x="3.0" y="255.8" width="77.6" height="64.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="267.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Buttons</text>
 </g>
-<g><title>Connectivity / Tailscale: ready - one daemon per host; ramdisk tailscaled only as a fallback</title><rect x="100.8" y="152.8" width="65.2" height="78.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="103.8" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Tailscale</text>
+<g><title>Sensors &amp; hardware / Vibration: ready</title><rect x="80.6" y="126.6" width="77.6" height="64.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="83.6" y="138.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Vibration</text>
 </g>
-<g><title>Connectivity / Hotspot: needs a test</title><rect x="166.0" y="152.8" width="65.2" height="78.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="169.0" y="162.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hotspot</text>
+<g><title>Sensors &amp; hardware / Light / proximity: ready - proximity near level from the factory calibration</title><rect x="158.1" y="126.6" width="77.6" height="64.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="161.1" y="138.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Light / pr…</text>
 </g>
-<g><title>Connectivity / GPS: missing</title><rect x="100.8" y="230.9" width="65.2" height="78.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="103.8" y="240.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">GPS</text>
+<g><title>Sensors &amp; hardware / Fingerprint: missing</title><rect x="80.6" y="191.2" width="77.6" height="64.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="83.6" y="203.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Fingerprint</text>
 </g>
-<g><title>Connectivity / NFC: missing</title><rect x="166.0" y="230.9" width="65.2" height="78.1" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="169.0" y="240.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">NFC</text>
+<g><title>Sensors &amp; hardware / AirTriggers: missing</title><rect x="80.6" y="255.8" width="77.6" height="64.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="83.6" y="267.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AirTriggers</text>
 </g>
-<rect x="2.0" y="310.0" width="230.1" height="308.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="6.0" y="322.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Sensors &amp; hardware</text>
-<g><title>Sensors &amp; hardware / Cameras: missing</title><rect x="3.0" y="327.0" width="136.9" height="111.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cameras</text>
+<g><title>Sensors &amp; hardware / RGB logo LED: partial / not fully integrated</title><rect x="158.1" y="191.2" width="77.6" height="64.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="161.1" y="203.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">RGB logo L…</text>
 </g>
-<g><title>Sensors &amp; hardware / Touchscreen: ready</title><rect x="139.9" y="327.0" width="91.3" height="111.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="142.9" y="339.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen</text>
+<g><title>Sensors &amp; hardware / Hardware video decode/encode: missing - no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)</title><rect x="158.1" y="255.8" width="77.6" height="64.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="161.1" y="267.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Hardware v…</text>
 </g>
-<g><title>Sensors &amp; hardware / Motion sensors (SLPI): ready</title><rect x="3.0" y="438.5" width="85.6" height="119.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Motion senso…</text>
+<rect x="2.0" y="321.4" width="234.7" height="296.6" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="6.0" y="333.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Connectivity</text>
+<g><title>Connectivity / Wi-Fi: partial / not fully integrated - stable MAC/IP since 2026-09-29; 11 s reconnect after wake</title><rect x="3.0" y="338.4" width="116.3" height="128.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="350.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Wi-Fi</text>
 </g>
-<g><title>Sensors &amp; hardware / Buttons: ready</title><rect x="3.0" y="557.5" width="85.6" height="59.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="6.0" y="569.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Buttons</text>
+<g><title>Connectivity / Cellular modem: missing - out of scope</title><rect x="119.3" y="338.4" width="116.3" height="128.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="122.3" y="350.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Cellular modem</text>
 </g>
-<g><title>Sensors &amp; hardware / Vibration: ready</title><rect x="88.6" y="438.5" width="71.3" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="91.6" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Vibration</text>
+<g><title>Connectivity / Bluetooth: ready</title><rect x="3.0" y="467.0" width="99.7" height="100.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="479.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth</text>
 </g>
-<g><title>Sensors &amp; hardware / Light / proximity: ready - proximity near level from the factory calibration</title><rect x="159.9" y="438.5" width="71.3" height="71.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="162.9" y="450.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Light / p…</text>
+<g><title>Connectivity / Bluetooth headset mic (HFP): missing</title><rect x="3.0" y="567.0" width="99.7" height="50.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="6.0" y="579.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Bluetooth head…</text>
 </g>
-<g><title>Sensors &amp; hardware / Fingerprint: missing</title><rect x="88.6" y="509.9" width="95.1" height="53.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="91.6" y="521.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Fingerprint</text>
+<g><title>Connectivity / Tailscale: ready - one daemon per host; ramdisk tailscaled only as a fallback</title><rect x="102.7" y="467.0" width="66.5" height="75.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="105.7" y="477.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Tailscale</text>
 </g>
-<g><title>Sensors &amp; hardware / AirTriggers: missing</title><rect x="88.6" y="563.5" width="95.1" height="53.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="91.6" y="575.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AirTriggers</text>
+<g><title>Connectivity / Hotspot: needs a test</title><rect x="169.2" y="467.0" width="66.5" height="75.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="172.2" y="477.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hotspot</text>
 </g>
-<g><title>Sensors &amp; hardware / RGB logo LED: partial / not fully integrated</title><rect x="183.6" y="509.9" width="47.5" height="107.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="186.6" y="519.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">RGB log…</text>
+<g><title>Connectivity / GPS: missing</title><rect x="102.7" y="542.0" width="66.5" height="75.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="105.7" y="552.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">GPS</text>
 </g>
-<rect x="232.1" y="2.0" width="292.1" height="205.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="236.1" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Boot &amp; updates</text>
-<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-r8 (rehearsed: reject -&gt; safe-r8 boot -&gt; reinstall, 2026-09-30); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx</title><rect x="233.1" y="19.0" width="131.9" height="112.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Signed boot chain</text>
+<g><title>Connectivity / NFC: missing</title><rect x="169.2" y="542.0" width="66.5" height="75.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="172.2" y="552.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">NFC</text>
 </g>
-<g><title>Boot &amp; updates / Kernel updates: ready - file writes on p24, automatic fallback</title><rect x="233.1" y="131.4" width="131.9" height="74.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="143.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Kernel updates</text>
+<rect x="236.7" y="2.0" width="295.5" height="217.4" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="240.7" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Display &amp; shell</text>
+<g><title>Display &amp; shell / AMOLED panel: ready - 1080x2448 at 60 Hz</title><rect x="237.7" y="19.0" width="146.7" height="99.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AMOLED panel</text>
 </g>
-<g><title>Boot &amp; updates / Unattended package updates: needs a test - reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback</title><rect x="365.0" y="19.0" width="79.1" height="124.9" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="368.0" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Unattended …</text>
+<g><title>Display &amp; shell / Phosh: needs a test - hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending</title><rect x="237.7" y="118.7" width="146.7" height="99.7" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="130.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Phosh</text>
 </g>
-<g><title>Boot &amp; updates / Boot splash: needs a test - r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check</title><rect x="444.1" y="19.0" width="79.1" height="124.9" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="447.1" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot splash</text>
+<g><title>Display &amp; shell / Brightness: partial / not fully integrated - about 4 real steps</title><rect x="384.4" y="19.0" width="97.8" height="99.7" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="387.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Brightness</text>
 </g>
-<g><title>Boot &amp; updates / Boot time: partial / not fully integrated - ~57 s to multi-user on r205 (21 s kernel + initramfs, 35 s userspace)</title><rect x="365.0" y="143.9" width="79.1" height="62.4" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="368.0" y="155.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot time</text>
+<g><title>Display &amp; shell / High refresh rate: missing - 60 Hz only</title><rect x="482.2" y="19.0" width="48.9" height="99.7" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="485.2" y="29.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">High re…</text>
 </g>
-<g><title>Boot &amp; updates / Reboot to fastboot: missing - reboot argument ignored by the shutdown script</title><rect x="444.1" y="143.9" width="79.1" height="62.4" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="447.1" y="155.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Reboot to f…</text>
+<g><title>Display &amp; shell / Lock screen &amp; PIN: ready</title><rect x="384.4" y="118.7" width="97.8" height="49.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="387.4" y="130.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Lock screen &amp; …</text>
 </g>
-<rect x="232.1" y="207.3" width="292.1" height="205.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="236.1" y="219.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Display &amp; shell</text>
-<g><title>Display &amp; shell / AMOLED panel: ready - 1080x2448 at 60 Hz</title><rect x="233.1" y="224.3" width="158.2" height="93.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="236.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">AMOLED panel</text>
+<g><title>Display &amp; shell / Alternative phone shells (GNOME Mobile, Plasma Mobile): ready - 2026-10-01: both tried on the phone and rejected by the user; Phosh + GNOME desktop mode stays. GNOME Mobile: opt-in packages, rog5-shell selector and watchdog (fell back to a locked Phosh correctly), mutter-mobile 50.5-1.1 drops the fork&#x27;s dma-buf stride override (it killed Xwayland/Steam); packages kept in packages/gnome-mobile. Plasma Mobile 6.7.5: ran, lock-on-start not honoured, removed (test-results/2026-10-01-kde-plasma-trial.md)</title><rect x="384.4" y="168.6" width="97.8" height="49.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="387.4" y="180.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Alternative ph…</text>
 </g>
-<g><title>Display &amp; shell / Phosh: needs a test - hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending</title><rect x="233.1" y="318.0" width="158.2" height="93.7" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="330.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Phosh</text>
+<g><title>Display &amp; shell / App launch feedback: ready - Chromium desktop file fixed; Firefox splash still times out</title><rect x="482.2" y="118.7" width="48.9" height="99.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="485.2" y="128.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">App lau…</text>
 </g>
-<g><title>Display &amp; shell / Brightness: partial / not fully integrated - about 4 real steps</title><rect x="391.4" y="224.3" width="131.9" height="74.9" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="394.4" y="236.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Brightness</text>
+<rect x="236.7" y="219.4" width="295.5" height="199.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="240.7" y="231.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Boot &amp; updates</text>
+<g><title>Boot &amp; updates / Signed boot chain: ready - slot-B wrapper, try-once selector, signed fallback safe-k111-d10 (rehearsed 2026-10-01; safe-r8 rehearsed 2026-09-30, kept on p24); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx</title><rect x="237.7" y="236.4" width="133.4" height="108.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="248.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Signed boot chain</text>
 </g>
-<g><title>Display &amp; shell / High refresh rate: missing - 60 Hz only</title><rect x="391.4" y="299.3" width="87.9" height="56.2" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="394.4" y="311.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">High refresh…</text>
+<g><title>Boot &amp; updates / Kernel updates: ready - file writes on p24, automatic fallback</title><rect x="237.7" y="345.2" width="133.4" height="72.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="357.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Kernel updates</text>
 </g>
-<g><title>Display &amp; shell / Lock screen &amp; PIN: ready</title><rect x="391.4" y="355.5" width="87.9" height="56.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="394.4" y="367.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Lock screen …</text>
+<g><title>Boot &amp; updates / Unattended package updates: needs a test - reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback</title><rect x="371.1" y="236.4" width="80.0" height="120.9" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="374.1" y="248.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Unattended …</text>
 </g>
-<g><title>Display &amp; shell / App launch feedback: ready - Chromium desktop file fixed; Firefox splash still times out</title><rect x="479.3" y="299.3" width="44.0" height="112.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="482.3" y="309.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">App la…</text>
+<g><title>Boot &amp; updates / Boot splash: needs a test - r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check</title><rect x="451.1" y="236.4" width="80.0" height="120.9" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="454.1" y="248.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot splash</text>
 </g>
-<rect x="232.1" y="412.7" width="292.1" height="205.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="236.1" y="424.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">External display</text>
-<g><title>External display / DP alt mode (native DP, HBR2): ready - native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0135)</title><rect x="233.1" y="429.7" width="105.5" height="93.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="441.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode (na…</text>
+<g><title>Boot &amp; updates / Boot time: partial / not fully integrated - ~57 s to multi-user on r205 (21 s kernel + initramfs, 35 s userspace)</title><rect x="371.1" y="357.3" width="80.0" height="60.4" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="374.1" y="369.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Boot time</text>
 </g>
-<g><title>External display / GNOME desktop mode: partial / not fully integrated - event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); switching closes apps</title><rect x="233.1" y="523.3" width="105.5" height="93.7" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="236.1" y="535.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop m…</text>
+<g><title>Boot &amp; updates / Reboot to fastboot: missing - reboot argument ignored by the shutdown script</title><rect x="451.1" y="357.3" width="80.0" height="60.4" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="454.1" y="369.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Reboot to f…</text>
 </g>
-<g><title>External display / 4-lane DP: ready - 4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes</title><rect x="338.6" y="429.7" width="61.5" height="80.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="341.6" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">4-lane DP</text>
+<rect x="236.7" y="418.7" width="295.5" height="199.3" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="240.7" y="430.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">External display</text>
+<g><title>External display / DP alt mode (native DP, HBR2): ready - native DP monitors at HBR2 (0110), MSI 491C 3840x1080@60 with keyboard/mouse behind its hub; first-enable blue screen fixed at the root (0130-0135)</title><rect x="237.7" y="435.7" width="106.7" height="90.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="447.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP alt mode (na…</text>
 </g>
-<g><title>External display / 5120x1440, 100 Hz, HBR3: partial / not fully integrated - halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested</title><rect x="400.2" y="429.7" width="61.5" height="80.3" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="403.2" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">5120x1440,…</text>
+<g><title>External display / GNOME desktop mode: partial / not fully integrated - event-driven, fail-closed switcher; the user keeps mode manual (2026-10-01; auto needs a supervised lock test); apps close on a switch but rog5-session-carry quits them cleanly and reopens them in the other session (2026-10-01; first live switch with apps pending)</title><rect x="237.7" y="526.4" width="106.7" height="90.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="240.7" y="538.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GNOME desktop m…</text>
 </g>
-<g><title>External display / DP link power policy: ready - 0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)</title><rect x="461.7" y="429.7" width="61.5" height="80.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="464.7" y="439.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">DP link po…</text>
+<g><title>External display / 4-lane DP: ready - 4 x HBR2/HBR in both orientations; boot with the monitor attached comes up by itself (rog5-usb-reconnect: UCSI data-role kick only when the ADSP sent no DP notification; hub re-init after DP); HDMI hub on pin D at 2 lanes</title><rect x="344.4" y="435.7" width="80.0" height="60.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="347.4" y="447.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">4-lane DP</text>
 </g>
-<g><title>External display / No DPU clock pin: ready - GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)</title><rect x="338.6" y="510.0" width="92.3" height="53.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="341.6" y="522.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">No DPU clock …</text>
+<g><title>External display / 5120x1440, 100 Hz, HBR3: partial / not fully integrated - halved clock check is the default (0139); 8 bpc floor (0147) hides 5120x1440@100; GNOME offers 5120x1440@60, 3840x1080@60/100/144, 2560x1440@60/120 and switches modes (user, 2026-10-01); 3840x1080@144 only briefly tested; HBR3 opt-in untested</title><rect x="344.4" y="496.1" width="80.0" height="60.4" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="347.4" y="508.1" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">5120x1440, …</text>
 </g>
-<g><title>External display / Touchscreen as touchpad: ready</title><rect x="338.6" y="563.5" width="92.3" height="53.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="341.6" y="575.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Touchscreen a…</text>
+<g><title>External display / DP link power policy: ready - 0145 dp_link_policy=1: 3840x1080@60 on 4 x HBR, -48 +- 30 mW vs 4 x HBR2 (MMCX SVS instead of SVS_L1), measured on the MSI (test-results/2026-09-30-dp-link-policy-power.md)</title><rect x="344.4" y="556.6" width="80.0" height="60.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="347.4" y="568.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">DP link pow…</text>
 </g>
-<g><title>External display / HDMI converters above HBR: missing - the hub HDMI PCON stays dark at HBR2; converters capped at HBR (1080p60); 0119/0134 opt-in experiments</title><rect x="431.0" y="510.0" width="92.3" height="53.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="434.0" y="522.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">HDMI converte…</text>
+<g><title>External display / No DPU clock pin: ready - GNOME without the 460 MHz pin: 5/5 clean first enables on r104 (ca10325b)</title><rect x="424.4" y="435.7" width="53.4" height="90.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="427.4" y="445.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">No DPU c…</text>
 </g>
-<g><title>External display / HDR: missing - later: port of stock VSC/HDR-metadata SDPs</title><rect x="431.0" y="563.5" width="92.3" height="53.5" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="434.0" y="575.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">HDR</text>
+<g><title>External display / Touchscreen as touchpad: ready</title><rect x="477.8" y="435.7" width="53.4" height="90.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="480.8" y="445.7" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Touchscr…</text>
 </g>
-<rect x="524.3" y="2.0" width="227.2" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="528.3" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Power</text>
-<g><title>Power / Deep standby (CX/DDR collapse): missing - ~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged</title><rect x="525.3" y="19.0" width="135.1" height="111.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="528.3" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Deep standby (CX/DDR…</text>
+<g><title>External display / HDMI converters above HBR: missing - the hub HDMI PCON stays dark at HBR2; converters capped at HBR (1080p60); 0119/0134 opt-in experiments</title><rect x="424.4" y="526.4" width="53.4" height="90.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="427.4" y="536.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">HDMI con…</text>
 </g>
-<g><title>Power / Charging &amp; limits: ready - rog5-charge-policy: 70-80 % limit with bypass at the limit, bypass in performance mode or when hot; below-full bypass with a PD charger untested</title><rect x="660.4" y="19.0" width="90.1" height="111.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="663.4" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging &amp; li…</text>
+<g><title>External display / HDR: missing - later: port of stock VSC/HDR-metadata SDPs</title><rect x="477.8" y="526.4" width="53.4" height="90.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="480.8" y="536.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">HDR</text>
 </g>
-<g><title>Power / Suspend (s2idle): ready - sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111</title><rect x="525.3" y="130.8" width="75.1" height="134.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="528.3" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Suspend (s…</text>
+<rect x="532.1" y="2.0" width="223.1" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="536.1" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Power</text>
+<g><title>Power / Deep standby (CX/DDR collapse): missing - ~79 mA suspended, no CX/DDR collapse; bisect kit requalified on DTB r9 (3de9e285): likely a DDR vote from another RPMh master (ADSP); trials need the phone unplugged</title><rect x="533.1" y="19.0" width="132.6" height="111.8" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="536.1" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Deep standby (CX/DDR…</text>
 </g>
-<g><title>Power / Battery standby measurement: needs a test - needs the phone unplugged</title><rect x="600.3" y="130.8" width="75.1" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="603.3" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Battery st…</text>
+<g><title>Power / Charging &amp; limits: ready - rog5-charge-policy: 70-80 % limit with bypass at the limit, bypass in performance mode or when hot; below-full bypass with a PD charger untested; via the monitor hub: 9 V contract, input capped at 1.4 A (~12.5 W) by the ADSP (the hub offers 9 V 2.45 A, no PPS; 15/20 V unusable by the phone)</title><rect x="665.8" y="19.0" width="88.4" height="111.8" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="668.8" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Charging &amp; l…</text>
 </g>
-<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending</title><rect x="600.3" y="197.9" width="75.1" height="67.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="603.3" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Idle backg…</text>
+<g><title>Power / Suspend (s2idle): ready - sleep policy stays awake for audio playback, sleep inhibitors and charger-attached force-discharge (10cc4116); s2idle with a bottom-port stick PASS on k111</title><rect x="533.1" y="130.8" width="73.7" height="134.2" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="536.1" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Suspend (s…</text>
 </g>
-<g><title>Power / Memory (zram swap): ready - 5.2 GiB zram zstd, MGLRU, THP madvise</title><rect x="675.4" y="130.8" width="75.1" height="67.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="678.4" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Memory (zr…</text>
+<g><title>Power / Battery standby measurement: needs a test - needs the phone unplugged</title><rect x="606.8" y="130.8" width="73.7" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="609.8" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Battery st…</text>
 </g>
-<g><title>Power / Instruction-fetch aborts (SIGBUS): needs a test - memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest</title><rect x="675.4" y="197.9" width="75.1" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="678.4" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Instructio…</text>
+<g><title>Power / Idle background wakeups: partial / not fully integrated - desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending</title><rect x="606.8" y="197.9" width="73.7" height="67.1" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="609.8" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Idle backg…</text>
 </g>
-<rect x="751.5" y="2.0" width="206.5" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="755.5" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Performance</text>
-<g><title>Performance / CPU: ready - GB6 1580/4191 (above Android)</title><rect x="752.5" y="19.0" width="102.3" height="147.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="755.5" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">CPU</text>
+<g><title>Power / Memory (zram swap): ready - 5.2 GiB zram zstd, MGLRU, THP madvise; d13 memslim (590 MiB of unused carve-outs) + k113 SWIOTLB 4 MiB (60 MiB): MemTotal 11.0 GiB, up from 10.4 GiB (trials 2026-10-01)</title><rect x="680.5" y="130.8" width="73.7" height="67.1" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="683.5" y="142.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Memory (zr…</text>
 </g>
-<g><title>Performance / GPU (Vulkan/GL): ready - GB6 Vulkan 4670 normal, 5405 performance mode; Turnip 8-bit storage for DXVK 3 (vulkan-freedreno 26.2.3-1.1, held)</title><rect x="854.7" y="19.0" width="102.3" height="147.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="857.7" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GPU (Vulkan/GL)</text>
+<g><title>Power / Instruction-fetch aborts (SIGBUS): needs a test - memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest</title><rect x="680.5" y="197.9" width="73.7" height="67.1" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="683.5" y="209.9" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Instructio…</text>
 </g>
-<g><title>Performance / Thermal protection: ready - skin + junction trips, 65 C shutdown</title><rect x="752.5" y="166.6" width="102.3" height="98.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="755.5" y="178.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Thermal protect…</text>
+<rect x="755.2" y="2.0" width="202.8" height="264.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="759.2" y="14.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Performance</text>
+<g><title>Performance / CPU: ready - GB6 1580/4191 (above Android)</title><rect x="756.2" y="19.0" width="100.4" height="147.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="759.2" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">CPU</text>
 </g>
-<g><title>Performance / Performance mode: partial / not fully integrated - rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet</title><rect x="854.7" y="166.6" width="51.1" height="98.4" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="857.7" y="176.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Performa…</text>
+<g><title>Performance / GPU (Vulkan/GL): ready - GB6 Vulkan 4670 normal, 5405 performance mode; Turnip 8-bit storage for DXVK 3 (vulkan-freedreno 26.2.3-1.1, held)</title><rect x="856.6" y="19.0" width="100.4" height="147.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="859.6" y="31.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">GPU (Vulkan/GL)</text>
 </g>
-<g><title>Performance / System monitor (Resources): ready</title><rect x="905.9" y="166.6" width="51.1" height="98.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="908.9" y="176.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">System m…</text>
+<g><title>Performance / Thermal protection: ready - skin + junction trips, 65 C shutdown</title><rect x="756.2" y="166.6" width="100.4" height="98.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="759.2" y="178.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Thermal protec…</text>
 </g>
-<rect x="524.3" y="266.0" width="278.8" height="176.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="528.3" y="278.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">USB</text>
-<g><title>USB / Side port host + hubs: ready - survives suspend (0105); monitor hub USB comes up at boot via reconnect retries</title><rect x="525.3" y="283.0" width="92.3" height="158.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="528.3" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Side port hos…</text>
+<g><title>Performance / Performance mode: partial / not fully integrated - rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet</title><rect x="856.6" y="166.6" width="50.2" height="98.4" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="859.6" y="176.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Performa…</text>
 </g>
-<g><title>USB / Replug recovery (-71): partial / not fully integrated - side port: rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test</title><rect x="617.5" y="283.0" width="61.5" height="79.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="620.5" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Replug rec…</text>
+<g><title>Performance / System monitor (Resources): ready</title><rect x="906.8" y="166.6" width="50.2" height="98.4" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="909.8" y="176.6" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">System m…</text>
 </g>
-<g><title>USB / Charging via hub: ready</title><rect x="617.5" y="362.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="620.5" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Charging v…</text>
+<rect x="532.1" y="266.0" width="273.8" height="176.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="536.1" y="278.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">USB</text>
+<g><title>USB / Side port host + hubs: ready - survives suspend (0105); monitor hub USB comes up at boot via reconnect retries</title><rect x="533.1" y="283.0" width="90.6" height="158.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="536.1" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Side port hos…</text>
 </g>
-<g><title>USB / Bottom port (USB 2.0 host): ready - stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured</title><rect x="679.1" y="283.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="682.1" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bottom por…</text>
+<g><title>USB / Replug recovery (-71): partial / not fully integrated - side port: rog5-usb-reconnect re-initialises the controller; kernel fix (0142 retries / 0143 session override) needs the one-replug test</title><rect x="623.7" y="283.0" width="60.4" height="79.0" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="626.7" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Replug rec…</text>
 </g>
-<g><title>USB / USB gadget (network to a PC): ready</title><rect x="740.6" y="283.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="743.6" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB gadget…</text>
+<g><title>USB / Charging via hub: ready</title><rect x="623.7" y="362.0" width="60.4" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="626.7" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Charging v…</text>
 </g>
-<g><title>USB / USB drives (Files/Disks): ready - udisks with a polkit guard for the internal UFS; configured disks mounted at boot by rog5-usb-storage (28 s on r205); unconfigured sticks via gvfs after login</title><rect x="679.1" y="362.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="682.1" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB drives…</text>
+<g><title>USB / Bottom port (USB 2.0 host): ready - stage B (RT1715 + TCPM): automatic 5 V on attach incl. a stick present at boot (0144 PDC edge/level, 0146 TCPM reset-exit CC read); survives s2idle with data intact (2026-10-01); detach power not measured</title><rect x="684.1" y="283.0" width="60.4" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="687.1" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bottom por…</text>
 </g>
-<g><title>USB / USB 3 on the side port: missing - SuperSpeed not verified; the monitor hub runs at USB 2.0 (480M) next to DP</title><rect x="740.6" y="362.0" width="61.5" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="743.6" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB 3 on t…</text>
+<g><title>USB / USB gadget (network to a PC): ready</title><rect x="744.5" y="283.0" width="60.4" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="747.5" y="293.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB gadget…</text>
 </g>
-<rect x="524.3" y="442.0" width="278.8" height="176.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="528.3" y="454.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Audio</text>
-<g><title>Audio / Speakers: ready - full strength via PipeWire S16LE; 0 dB only behind a verified protection DSP, -12 dB otherwise (b509257c)</title><rect x="525.3" y="459.0" width="92.3" height="105.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="528.3" y="471.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speakers</text>
+<g><title>USB / USB drives (Files/Disks): ready - udisks with a polkit guard for the internal UFS; configured disks mounted at boot by rog5-usb-storage (28 s on r205); unconfigured sticks via gvfs after login</title><rect x="684.1" y="362.0" width="60.4" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="687.1" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB drives…</text>
 </g>
-<g><title>Audio / Speaker protection DSP: ready - both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)</title><rect x="525.3" y="564.3" width="92.3" height="52.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="528.3" y="576.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speaker prote…</text>
+<g><title>USB / USB 3 on the side port: missing - SuperSpeed not verified; the monitor hub runs at USB 2.0 (480M) next to DP</title><rect x="744.5" y="362.0" width="60.4" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="747.5" y="372.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">USB 3 on t…</text>
 </g>
-<g><title>Audio / 24-bit playback: needs a test - 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B</title><rect x="617.5" y="459.0" width="61.5" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="620.5" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">24-bit pla…</text>
+<rect x="532.1" y="442.0" width="273.8" height="176.0" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="536.1" y="454.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Audio</text>
+<g><title>Audio / Speakers: ready - full strength via PipeWire S16LE; 0 dB only behind a verified protection DSP, -12 dB otherwise (b509257c)</title><rect x="533.1" y="459.0" width="90.6" height="105.3" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="536.1" y="471.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speakers</text>
 </g>
-<g><title>Audio / Microphones: ready</title><rect x="617.5" y="538.0" width="61.5" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="620.5" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Microphones</text>
+<g><title>Audio / Speaker protection DSP: ready - both amps with factory calibration; robustness PASS on k111: 20 start/stops + 5 min, 0 amp errors (2026-10-01)</title><rect x="533.1" y="564.3" width="90.6" height="52.7" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="536.1" y="576.3" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Speaker prote…</text>
 </g>
-<g><title>Audio / Earpiece: missing</title><rect x="679.1" y="459.0" width="61.5" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="682.1" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Earpiece</text>
+<g><title>Audio / 24-bit playback: needs a test - 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B</title><rect x="623.7" y="459.0" width="60.4" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="626.7" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">24-bit pla…</text>
 </g>
-<g><title>Audio / 3.5 mm jack: missing</title><rect x="740.6" y="459.0" width="61.5" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="743.6" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">3.5 mm jack</text>
+<g><title>Audio / Microphones: ready</title><rect x="623.7" y="538.0" width="60.4" height="79.0" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="626.7" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Microphones</text>
 </g>
-<g><title>Audio / Bluetooth audio: needs a test</title><rect x="679.1" y="538.0" width="61.5" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
-<text x="682.1" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bluetooth …</text>
+<g><title>Audio / Earpiece: missing</title><rect x="684.1" y="459.0" width="60.4" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="687.1" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Earpiece</text>
 </g>
-<g><title>Audio / Audio over DP: missing</title><rect x="740.6" y="538.0" width="61.5" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
-<text x="743.6" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Audio over…</text>
+<g><title>Audio / 3.5 mm jack: missing</title><rect x="744.5" y="459.0" width="60.4" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="747.5" y="469.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">3.5 mm jack</text>
 </g>
-<rect x="803.1" y="266.0" width="154.9" height="246.4" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="807.1" y="278.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Server</text>
-<g><title>Server / SSH (keys only): ready</title><rect x="804.1" y="283.0" width="76.5" height="130.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="807.1" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">SSH (keys …</text>
+<g><title>Audio / Bluetooth audio: needs a test</title><rect x="684.1" y="538.0" width="60.4" height="79.0" fill="#3b8fd9" stroke="#e6e6e6" stroke-width="1"/>
+<text x="687.1" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Bluetooth …</text>
 </g>
-<g><title>Server / 128 GiB persistent root: ready - overlay loop with direct I/O (4 KiB blocks)</title><rect x="880.5" y="283.0" width="76.5" height="130.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="883.5" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">128 GiB pe…</text>
+<g><title>Audio / Audio over DP: missing</title><rect x="744.5" y="538.0" width="60.4" height="79.0" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<text x="747.5" y="548.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Audio over…</text>
 </g>
-<g><title>Server / Firewall (nftables): ready</title><rect x="804.1" y="413.5" width="51.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="807.1" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Firewall…</text>
+<rect x="805.9" y="266.0" width="152.1" height="246.4" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="809.9" y="278.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Server</text>
+<g><title>Server / SSH (keys only): ready</title><rect x="806.9" y="283.0" width="75.0" height="130.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="809.9" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">SSH (keys …</text>
 </g>
-<g><title>Server / Hardware watchdog: ready</title><rect x="855.1" y="413.5" width="51.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="858.1" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hardware…</text>
+<g><title>Server / 128 GiB persistent root: ready - overlay loop with direct I/O (4 KiB blocks)</title><rect x="882.0" y="283.0" width="75.0" height="130.5" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="885.0" y="295.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">128 GiB pe…</text>
 </g>
-<g><title>Server / Journal retention: ready - 1 GB cap; excluded from update snapshots</title><rect x="906.0" y="413.5" width="51.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="909.0" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Journal …</text>
+<g><title>Server / Firewall (nftables): ready</title><rect x="806.9" y="413.5" width="50.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="809.9" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Firewall…</text>
 </g>
-<rect x="803.1" y="512.4" width="154.9" height="105.6" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
-<text x="807.1" y="524.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Apps</text>
-<g><title>Apps / Steam (native arm64): partial / not fully integrated - title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending</title><rect x="804.1" y="529.4" width="101.9" height="87.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
-<text x="807.1" y="541.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Steam (native …</text>
+<g><title>Server / Hardware watchdog: ready</title><rect x="856.9" y="413.5" width="50.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="859.9" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Hardware…</text>
 </g>
-<g><title>Apps / Browsers: ready - Firefox and Chromium</title><rect x="906.0" y="529.4" width="51.0" height="87.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
-<text x="909.0" y="539.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Browsers</text>
+<g><title>Server / Journal retention: ready - 1 GB cap; excluded from update snapshots</title><rect x="907.0" y="413.5" width="50.0" height="97.9" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="910.0" y="423.5" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Journal …</text>
+</g>
+<rect x="805.9" y="512.4" width="152.1" height="105.6" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
+<text x="809.9" y="524.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" font-weight="bold" fill="#e8e8e8">Apps</text>
+<g><title>Apps / Steam (native arm64): partial / not fully integrated - title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending</title><rect x="806.9" y="529.4" width="100.1" height="87.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
+<text x="809.9" y="541.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Steam (native …</text>
+</g>
+<g><title>Apps / Browsers: ready - Firefox and Chromium</title><rect x="907.0" y="529.4" width="50.0" height="87.6" fill="#4cc417" stroke="#e6e6e6" stroke-width="1"/>
+<text x="910.0" y="539.4" font-family="DejaVu Sans, Arial, sans-serif" font-size="8" font-weight="normal" fill="#10200a">Browsers</text>
 </g>
 <rect x="8" y="630" width="14" height="14" fill="#4cc417"/>
-<text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (38)</text>
+<text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (39)</text>
 <rect x="108" y="630" width="14" height="14" fill="#e0b91b"/>
 <text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (10)</text>
 <rect x="383" y="630" width="14" height="14" fill="#3b8fd9"/>
 <text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (8)</text>
 <rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
-<text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (16)</text>
-<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-10-01 (main-k111-d10-261001a)</text>
+<text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (17)</text>
+<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-10-01 (main-k113-d13-261001a)</text>
 </svg>
