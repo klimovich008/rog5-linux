@@ -11,13 +11,14 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `main-k111-d10-261001a`, fallback `production-7.2.7-safe-r8`.
+Installed: default `main-k111-d10-261001b`, fallback `production-7.2.7-safe-r8`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k111-d10-261001a` | main | k111 | d10 | installed-main | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
+| `main-k111-d10-261001b` | main | k111 | d10 | installed-main | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
+| `main-k111-d10-261001a` | main | k111 | d10 | retired | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
 | `production-7.2.7-r208` | main | k110 | d9 | retired | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |
 | `production-7.2.7-r207` | main | k110 | d9 | retired | yes | 2026-09-30 20:51 | 0146 TCPM (stick attached at boot), 0147 dp_min_bpc, halved DP mode clock check by default | Rejected on purpose at 22:29 for the safe-r8 fallback rehearsal. |
 | `production-7.2.7-r206` | main | k109 | d9 | retired | yes | 2026-09-30 19:06 | 0145 DP link policy | The stage reported FAIL (p24 read-only remount: mount point busy) after the selector exchange; the bundle booted and committed healthy. Led to the never-unlink installer fix (cc090781). |
