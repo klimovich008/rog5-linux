@@ -56,6 +56,15 @@
       "created": "2026-10-01",
       "kernel_requires": "",
       "notes": "d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup)"
+    },
+    "d11": {
+      "path": "platform-d10-memslim-stockcma-dtb-d11/board.dtb",
+      "sha256": "57091d95fa248635889344a2442d2683e768f69a563552d64d4b99ec40d876de",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc,memx,l11off",
+      "base": "d10",
+      "created": "2026-10-01",
+      "kernel_requires": "",
+      "notes": "TRIAL: d10 + compose-memslim-dtb.sh stockcma (frees 0xcbc00000-0xd7ffffff, 196 MiB)"
     }
   }
 }
