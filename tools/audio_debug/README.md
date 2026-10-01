@@ -16,3 +16,15 @@ Then swap the `.ko` into a copy of the module package.
   sufficient on its own.
 
 Results are in `test-results/2026-09-24-power-idle-ddr.md`.
+
+## Speaker protection quick-stop check
+
+`speaker-quick-stop-check.py` runs on the phone (root, PipeWire idle): it
+opens and closes `hw:0,0` with 10 ms of silence several times, the pattern
+that left the CS35L45 protection firmware wedged on 2026-10-01 (a missed
+pause, then silence with CSPL_TEMPERATURE frozen at 0x64000), then plays a
+tone and checks that both firmwares run (temperature or heartbeat moving) and
+that the stop paused them. It prints the kernel lines of the run: slow
+pauses ("took N polls"), missed pauses and reloads (patch 0151).
+
+    ssh root@<phone> python3 - < tools/audio_debug/speaker-quick-stop-check.py

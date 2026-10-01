@@ -112,3 +112,4 @@
 0146-usb-typec-tcpm-source-only-port-without-toggling-look-at-CC-when-the-port-reset-ends.patch
 0147-drm-msm-dp-ROG5-at-least-8-bpc-on-native-DP-sinks-warn-on-a-link-too-small-for-the-mode.patch
 0148-usb-dwc3-qcom-legacy-ROG5-usb-ddr-vote-follows-the-attached-devices.patch
+0151-ASoC-cs35l45-ROG5-reload-the-protection-firmware-after-a-missed-pause.patch
