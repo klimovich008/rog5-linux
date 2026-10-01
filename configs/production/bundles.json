@@ -323,6 +323,22 @@
       "healthy": "yes",
       "installed": "2026-10-01 15:36",
       "notes": "booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0)"
+    },
+    {
+      "name": "main-k112-d10-261001b",
+      "role": "main",
+      "kernel": "k112",
+      "dtb": "d10",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k112",
+      "manifest_sha256": "44c79f1515641ffd39585424a282d0735eb972ffe9bca3e85f949c5d8d2f7fa3",
+      "package": "package-main-k112-d10-261001b",
+      "source_commit": "8202bb9a3d17",
+      "changes": "return bundle after the safe-k111 fallback rehearsal (same content as 261001a)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
