@@ -11,8 +11,10 @@ the mainline kernel runs directly on the hardware.
 
 ## Status
 
-As of 2026-09-29. Green is ready, yellow partial, blue needs a test, red
-missing ([what's left and tests to do](docs/whats-left.md)):
+As of 2026-10-01 (bundle `main-k111-d10-261001a`: kernel `7.2.7-rog5-k111`,
+DTB d10): 38 components ready, 10 partial, 8 untested, 16 missing. Green is
+ready, yellow partial, blue needs a test, red missing
+([what's left and tests to do](docs/whats-left.md)):
 
 ![Component status map](docs/images/status-map.svg)
 
@@ -24,15 +26,16 @@ missing ([what's left and tests to do](docs/whats-left.md)):
 | Display | AMOLED panel; Phosh at 1080x2448 |
 | Input | Touchscreen |
 | Wireless | Wi-Fi (NetworkManager), Bluetooth |
-| Audio | Speakers (24-bit), built-in microphones |
+| Audio | Speakers at full strength behind the amplifiers' speaker-protection DSP (factory calibration); built-in microphones |
 | Sensors | Through the SLPI sensor DSP |
-| Power | Charging, including charge limit and bypass; suspend-to-idle (about 27 mA while suspended) |
+| Power | Charging with a 70-80 % limit and bypass at the limit; suspend-to-idle (about 79 mA while suspended) |
 | Watchdog | Haven/Gunyah hardware watchdog |
-| USB | Side USB-C as host, including hubs; bottom USB-C as USB 2.0 host |
-| External display | USB-C DisplayPort alt mode to an HDMI hub at 1920x1080@60 (HBR link rate) |
+| USB | Side USB-C as host, including hubs (survives suspend); bottom USB-C as USB 2.0 host that switches its 5 V on by itself |
+| External display | USB-C DisplayPort alt mode on 4 lanes (HBR2); a native DP monitor offers 3840x1080 at 60/100 Hz and 5120x1440 at 60 Hz; HDMI converters at 1920x1080@60 |
 | Desktop mode | GNOME on the external monitor, started from a launcher on the unlocked phone; the phone screen becomes a touchpad |
-| GPU | Hardware acceleration with Mesa freedreno/turnip (Adreno 660) |
+| GPU | Hardware acceleration with Mesa freedreno/turnip (Adreno 660); Turnip patched with 8-bit storage buffers for DXVK 3 |
 | CPU | Scheduling with the stock capacity/energy model |
+| Apps | Steam (native arm64 client); x86 games through FEX, including Proton 9 |
 
 ### Benchmarks
 
@@ -50,12 +53,13 @@ Sustained GPU speed is limited by the case (skin) temperature policy; see
 
 ### Partial / known issues
 
-- DisplayPort at HBR2 shows lane errors, so 3840x1080 is not available yet.
-- Desktop mode currently pins the display core clock and bus vote while GNOME
-  runs; an underrun when DP is the only output is under investigation.
-- Deep sleep (CXPC / DDR collapse) is not reached.
-- AMOLED brightness has coarse steps only.
-- Phosh crashes when a monitor is hot-unplugged (it restarts automatically).
+- Deep sleep (CXPC / DDR collapse) is not reached (~79 mA suspended).
+- AMOLED brightness has coarse steps only; the panel runs at 60 Hz only.
+- HDMI converters stay dark above the HBR link rate (1080p60 maximum).
+- Switching between the phone and desktop mode closes all apps.
+- Wi-Fi needs ~11 s to reconnect after wake.
+- The full list is in [what's left](docs/whats-left.md) and
+  [user irritations](docs/user-irritations.md).
 
 ### Not yet / out of scope
 
@@ -68,7 +72,7 @@ stock ROG Phone 5 (ZS673KS, all RAM/storage variants): unlocking, your own
 signing key, building the kernel and the root filesystem, the per-phone device
 profile, the boot chain, first boot, setup and Steam. The alpha is not yet
 installable by other owners from this repository alone: the guide lists the
-four pieces of the first install that still depend on unpublished files, and
+pieces of the first install that still depend on unpublished files, and
 [docs/fresh-install-rehearsal.md](docs/fresh-install-rehearsal.md) records what
 a from-scratch build on a PC covers today.
 
