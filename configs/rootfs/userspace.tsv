@@ -62,6 +62,9 @@ file	configs/memory/60-rog5-memory.conf	/etc/sysctl.d/60-rog5-memory.conf	0644
 file	configs/memory/rog5-mglru.conf	/etc/tmpfiles.d/rog5-mglru.conf	0644
 file	configs/memory/rog5-thp.conf	/etc/tmpfiles.d/rog5-thp.conf	0644
 file	configs/memory/zram-generator.conf	/etc/systemd/zram-generator.conf	0644
+file	configs/systemd/rog5-memory-tune.service	/etc/systemd/system/rog5-memory-tune.service	0644
+file	scripts/device/rog5-memory-tune	/usr/local/sbin/rog5-memory-tune	0755
+conf	configs/rog5/memory	/etc/rog5/memory	0644
 file	configs/journald/50-rog5-journal-size.conf	/etc/systemd/journald.conf.d/50-rog5-journal-size.conf	0644
 
 # USB: module autoload, replug recovery, runtime PM, bottom port, storage
@@ -127,6 +130,7 @@ enable	system	rog5-sleep-policy.service
 enable	system	rog5-gpu-watchdog.service
 enable	system	rog5-charge-policy.service
 enable	system	rog5-perf-mode.service
+enable	system	rog5-memory-tune.service
 enable	system	rog5-sea-retire.service
 enable	system	rog5-server-inhibit.service
 enable	system	rog5-usb-modalias.service

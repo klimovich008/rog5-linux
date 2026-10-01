@@ -1,0 +1,14 @@
+[Unit]
+Description=ROG5 memory footprint settings (/etc/rog5/memory)
+Documentation=file:///etc/rog5/memory
+# After the THP mode and sysctl defaults (rog5-thp.conf, 60-rog5-memory.conf).
+After=systemd-tmpfiles-setup.service systemd-sysctl.service
+ConditionPathExists=/etc/rog5/memory
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rog5-memory-tune apply
+
+[Install]
+WantedBy=multi-user.target

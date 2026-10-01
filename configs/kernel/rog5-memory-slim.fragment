@@ -1,0 +1,12 @@
+# ROG5 memory-slim kernel options: OPT-IN, not in rog5-production-build-7.2.7.json.
+# Needs patches/opt-in/memory/0001-dma-swiotlb-default-pool-size-from-Kconfig.patch
+# on top of series.production. RAM-trial plan and numbers:
+# test-results/2026-10-01-memory-footprint.md.
+#
+# SWIOTLB: the 64 MiB bounce pool had io_tlb_used_hiwater 4 slabs (8 KiB)
+# after a GNOME + Steam + Proton session on k111: every DMA master Linux
+# drives sits behind an SMMU. 4 MiB (2048 slabs, 256 KiB per CPU area)
+# returns 60 MiB; SWIOTLB_DYNAMIC grows extra pools on demand should a
+# device ever need more (e.g. a USB device behind a bounce-only path).
+CONFIG_SWIOTLB_DEFAULT_SIZE_MB=4
+CONFIG_SWIOTLB_DYNAMIC=y
