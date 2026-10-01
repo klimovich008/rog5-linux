@@ -17,6 +17,7 @@ Installed: default `main-k111-d10-261001c`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k112-d10-261001a` | main | k112 | d10 | built | unknown |  | 0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits) |  |
 | `main-k111-d10-261001c` | main | k111 | d10 | installed-main | yes | 2026-10-01 13:52 | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
 | `safe-k111-d10-261001a` | safe | k111 | d10 | installed-fallback | unknown | 2026-10-01 13:52 | alpha kernel k111 as fallback (user request); same DTB as main | alpha kernel k111 as fallback at the user's request (Sol advised an independent kernel); not yet rehearsed |
 | `main-k111-d10-261001b` | main | k111 | d10 | retired | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
@@ -36,6 +37,7 @@ Installed: default `main-k111-d10-261001c`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k112 | `rog5-kernel-7.2.7-build-r112` | `7.2.7-rog5-k112` | 115 patches, 0001-0152 | 2026-10-01 |  |
 | k111 | `rog5-kernel-7.2.7-build-r111` | `7.2.7-rog5-k111` | 113 patches, 0001-0148 | 2026-09-30 |  |
 | k110 | `rog5-kernel-7.2.7-build-r110` | `7.2.7-rog5-production` | 0001-0147 without 0128/0129 | 2026-09-30 | k109 + 0146 TCPM reads CC after the port reset (stick attached at boot), 0147 msm.dp_min_bpc=8, 0139 halved mode clock check by default |
 | k109 | `rog5-kernel-7.2.7-build-r109` | `7.2.7-rog5-production` | 0001-0145 without 0128/0129 | 2026-09-30 | k108 + 0145 DP link policy (lowest link rate that carries the mode) |

@@ -71,6 +71,16 @@
       "source_commit": "dc610a1f2b71",
       "source_dirty": true,
       "changes": ""
+    },
+    "k112": {
+      "build": "rog5-kernel-7.2.7-build-r112",
+      "release": "7.2.7-rog5-k112",
+      "date": "2026-10-01",
+      "series": "115 patches, 0001-0152",
+      "image_sha256": "aafa6e872fc9c4a0779074f9eeb2a00d5ed1445b95a62379255ec581fc3078bd",
+      "source_commit": "1a563cb21d7a",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -297,6 +307,22 @@
       "healthy": "yes",
       "installed": "2026-10-01 13:52",
       "notes": "built from HEAD while the working tree had uncommitted changes"
+    },
+    {
+      "name": "main-k112-d10-261001a",
+      "role": "main",
+      "kernel": "k112",
+      "dtb": "d10",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k112",
+      "manifest_sha256": "63793eab0b4b7c1b0402f545be88746c0941aa0e8385dee7e04bd45ed669766f",
+      "package": "package-main-k112-d10-261001a",
+      "source_commit": "c50a09ac5642",
+      "changes": "0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
