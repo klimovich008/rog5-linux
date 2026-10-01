@@ -355,6 +355,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": "built from HEAD while the working tree had uncommitted changes"
+    },
+    {
+      "name": "main-k112-d12-261001a",
+      "role": "main",
+      "kernel": "k112",
+      "dtb": "d12",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k112",
+      "manifest_sha256": "3efb09f5cb086b72d9e97e17e72c92daea81943b38b46c7b2792c2f6658aaac9",
+      "package": "package-main-k112-d12-261001a",
+      "source_commit": "25d54fef094d",
+      "changes": "TRIAL memslim stockcma,ionpool (+324 MiB)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": "built from HEAD while the working tree had uncommitted changes"
     }
   ]
 }
