@@ -265,6 +265,38 @@
       "healthy": "yes",
       "installed": "2026-10-01 12:50",
       "notes": "trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state"
+    },
+    {
+      "name": "safe-k111-d10-261001a",
+      "role": "safe",
+      "kernel": "k111",
+      "dtb": "d10",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k111",
+      "manifest_sha256": "acba6f54efdcb831a2223826b6be9e8b791add4cb3a114134d6dddabb6b318ee",
+      "package": "package-safe-k111-d10-261001a",
+      "source_commit": "b170a898c457",
+      "changes": "alpha kernel k111 as fallback (user request); same DTB as main",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
+    },
+    {
+      "name": "main-k111-d10-261001c",
+      "role": "main",
+      "kernel": "k111",
+      "dtb": "d10",
+      "date": "2026-10-01",
+      "release": "7.2.7-rog5-k111",
+      "manifest_sha256": "4f9f7cef7150f738c6e2c10816b47ce4e982b0c8c0c4fde70e4f2a4c7e5a6c21",
+      "package": "package-main-k111-d10-261001c",
+      "source_commit": "b170a898c457",
+      "changes": "companion default for installing safe-k111 (same content as 261001b)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": "built from HEAD while the working tree had uncommitted changes"
     }
   ]
 }

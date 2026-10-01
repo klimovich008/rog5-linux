@@ -17,6 +17,8 @@ Installed: default `main-k111-d10-261001b`, fallback `production-7.2.7-safe-r8`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k111-d10-261001c` | main | k111 | d10 | built | unknown |  | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
+| `safe-k111-d10-261001a` | safe | k111 | d10 | built | unknown |  | alpha kernel k111 as fallback (user request); same DTB as main |  |
 | `main-k111-d10-261001b` | main | k111 | d10 | installed-main | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
 | `main-k111-d10-261001a` | main | k111 | d10 | retired | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
 | `production-7.2.7-r208` | main | k110 | d9 | retired | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |
