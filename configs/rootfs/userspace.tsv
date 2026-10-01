@@ -96,7 +96,6 @@ file	scripts/device/rog5-wifi-networkmanager.sh	/usr/local/sbin/rog5-wifi-networ
 file	configs/systemd/rog5-early-sshd.service.d/50-oom-continue.conf	/etc/systemd/system/rog5-early-sshd.service.d/50-oom-continue.conf	0644
 file	configs/systemd/rog5-tailscaled.service.d/60-slow-retry.conf	/etc/systemd/system/rog5-tailscaled.service.d/60-slow-retry.conf	0644
 file	configs/systemd/tailscaled.service.d/60-rog5-fallback.conf	/etc/systemd/system/tailscaled.service.d/60-rog5-fallback.conf	0644
-file	packaging/arch/20-rog5-sshd-keepalive.conf	/etc/ssh/sshd_config.d/20-rog5-sshd-keepalive.conf	0644
 file	packaging/arch/rog5-healthd.service	/etc/systemd/system/rog5-healthd.service	0644
 file	scripts/device/rog5-healthd.py	/usr/local/libexec/rog5-healthd	0755
 

@@ -204,12 +204,13 @@ class Builder:
                 fail(f'bad custom-packages row: {line!r}')
             rows.append(cols)
         extra = ' '.join(self.pacman_extra)
-        holds = []
+        # Every patched package that is installed is held, also one built in
+        # an earlier run or by hand (a skipped one is held once installed).
+        holds = [row[2] for row in rows]
         for directory, installs, hold, flags in rows:
             if directory in skip:
                 log(f'custom: skipping {directory} (--skip-custom)')
                 continue
-            holds.append(hold)
             # makedepends/depends come from the PKGBUILD itself (bash array
             # syntax), installed as root; makepkg then runs as a build user.
             self.chroot(textwrap.dedent(f'''
@@ -235,7 +236,13 @@ class Builder:
         if holds:
             self.chroot(textwrap.dedent(f'''
                 current=$(sed -n 's/^IgnorePkg *= *//p' /etc/pacman.conf | head -n 1)
-                all=$(printf '%s\\n' $current {' '.join(holds)} | sort -u | tr '\\n' ' ')
+                # Hold what a patched build installed: the version must be one of
+                # the kept package files (a stock repository package stays free).
+                installed=$(for p in {' '.join(holds)}; do
+                    v=$(pacman -Q "$p" 2>/dev/null | cut -d' ' -f2) || continue
+                    ! ls /var/cache/rog5-custom-packages/"$p-$v"-*.pkg.tar.* >/dev/null 2>&1 || echo "$p"
+                done)
+                all=$(printf '%s\\n' $current $installed | sort -u | tr '\\n' ' ')
                 if grep -q '^IgnorePkg' /etc/pacman.conf; then
                     sed -i "s/^IgnorePkg.*/IgnorePkg   = $all/" /etc/pacman.conf
                 else
@@ -280,7 +287,9 @@ class Builder:
 
     def step_userspace(self):
         self.chroot(textwrap.dedent(f'''
-            {REPO_IN_ROOT}/scripts/device/rog5-install-userspace --repo {REPO_IN_ROOT} --user {PHONE_USER}
+            # --force: a fresh root has no local edits; ALARM's own /etc/hostname
+            # ("alarm") must not survive as one.
+            {REPO_IN_ROOT}/scripts/device/rog5-install-userspace --repo {REPO_IN_ROOT} --user {PHONE_USER} --force
             ! command -v dconf >/dev/null || dconf update
         '''))
 
@@ -382,10 +391,17 @@ class Builder:
                         f'manifest_sha256={hashlib.sha256(manifest).hexdigest()}\n').encode()
         staging = self.work / 'boot-staging'
         if staging.exists():
+            for path in [staging, *staging.rglob('*')]:
+                if path.is_dir():
+                    path.chmod(0o700)
             shutil.rmtree(staging)
         (staging / 'bundles').mkdir(parents=True)
         for bundle in bundles:
-            shutil.copytree(bundle, staging / 'bundles' / bundle.name)
+            # Contents only: packaged bundles are 0500/0400 and root sets the
+            # final owners and modes below.
+            (staging / 'bundles' / bundle.name).mkdir()
+            for name in BUNDLE_FILES:
+                shutil.copyfile(bundle / name, staging / 'bundles' / bundle.name / name)
         (staging / 'selector').write_bytes(selector)
         # Owners and modes as install-default-kernel-on-target.sh leaves them:
         # bundles 0700 root, files 0400, selector 0600.
