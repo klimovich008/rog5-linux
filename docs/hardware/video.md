@@ -309,8 +309,11 @@ and the install (step 5).
 
 ## k115 trial
 
-Bundle `main-k115-d15-261002a` (k115 + d15); wrapper and package paths are
-in [bundles.md](../bundles.md) and the 2026-10-02 report. What k115 changes
+Bundle `main-k115-d15-261002a` (k115 + d15, try-once main): package
+`~/.local/state/rog5-production-boot-20260923/package-main-k115-d15-261002a/`,
+wrapper `boot-ram-128m.img` SHA-256
+`bb2aeeeb41b7218057c78ea5abe3f10d8f6fac412facad9f7826da3d5ea4302c`, descriptor
+`trial-main-k115-d15-261002a/descriptor` (see [bundles.md](../bundles.md)). What k115 changes
 (patches 0157-0162, see their commit messages and
 [the review](../reviews/2026-10-02-gpt-6.1-sol-video-k115.md)):
 

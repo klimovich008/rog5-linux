@@ -17,7 +17,8 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k114-d15-261001a` | main | k114 | d15 | built | unknown |  | TRIAL hardware video: iris (sm8350-iris/sm8250-venus fallback) + videocc, 0154 iris fail-clean teardown, 0155 IOVA memory-region binding, 0156 SMMU route readback; d15 = d13 + video overlay with IOVA hole; video-modules kit (rog5-video.service) |  |
+| `main-k115-d15-261002a` | main | k115 | d15 | built | unknown |  | TRIAL hardware video round 2: k114 + 0157-0162 (iris SFR/HFI-trace diagnostics, fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer and interframe_pc switches); d15 unchanged |  |
+| `main-k114-d15-261001a` | main | k114 | d15 | ram-trial-fail | no |  | TRIAL hardware video: iris (sm8350-iris/sm8250-venus fallback) + videocc, 0154 iris fail-clean teardown, 0155 IOVA memory-region binding, 0156 SMMU route readback; d15 = d13 + video overlay with IOVA hole; video-modules kit (rog5-video.service) | RAM trial 2026-10-01 23:13-23:41: PAS 9 accepted vpu20_4v, H.264 300/300 frames bit-exact; firmware fatal error at every decode session end, reload with stale sessions, hung decodes, vb2 WARN, hard SoC hang ~4 min after the last fatal (test-results/2026-10-01-video-iris-k114-ram-trial.md) |
 | `main-k113-d13-261001a` | main | k113 | d13 | installed-main | yes | 2026-10-01 18:30 | 0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB) | SWIOTLB 4 MiB: hiwater 4 slabs after Wi-Fi bulk, pressure, 15 s2idle; one unreproduced WCN6855 RDDM on resume (Wi-Fi dead until reboot); USB storage/DP/game not yet on k113 |
 | `main-k112-d13-261001a` | main | k112 | d13 | retired | yes | 2026-10-01 17:28 | memslim stockcma,ionpool,pil: +590 MiB MemTotal (RAM trials A-C passed) | RAM trial C pass: 6/6 ranges pass, 3x s2idle, Wi-Fi restart, sensors, two committed boots, 0 SEA; DP not yet checked |
 | `main-k112-d12-261001a` | main | k112 | d12 | retired | yes | 2026-10-01 17:22 | TRIAL memslim stockcma,ionpool (+324 MiB) | RAM trial B pass (stockcma+ionpool): all ranges pass, 3x s2idle, Wi-Fi restart, 0 SEA |
@@ -43,6 +44,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k115 | `rog5-kernel-7.2.7-build-r115` | `7.2.7-rog5-k115` | 125 patches, 0001-0162 | 2026-10-01 | k114 + 0157-0162: iris diagnostics (SFR, HFI trace, fw log), fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer/interframe_pc module parameters |
 | k114 | `rog5-kernel-7.2.7-build-r114` | `7.2.7-rog5-k114` | 119 patches, 0001-0156 | 2026-10-01 | k113 + hardware video: rog5-video.fragment (SM_VIDEOCC_8350, VIDEO_QCOM_IRIS), 0154 iris fail-clean teardown, 0155 IOVA memory-region binding (backport), 0156 SM8350 SMMU route readback |
 | k113 | `rog5-kernel-7.2.7-build-r113` | `7.2.7-rog5-k113` | 116 patches, 0001-0153 | 2026-10-01 |  |
 | k112 | `rog5-kernel-7.2.7-build-r112` | `7.2.7-rog5-k112` | 115 patches, 0001-0152 | 2026-10-01 |  |

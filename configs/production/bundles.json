@@ -101,6 +101,16 @@
       "source_commit": "52e3d413b2b0",
       "source_dirty": false,
       "changes": "k113 + hardware video: rog5-video.fragment (SM_VIDEOCC_8350, VIDEO_QCOM_IRIS), 0154 iris fail-clean teardown, 0155 IOVA memory-region binding (backport), 0156 SM8350 SMMU route readback"
+    },
+    "k115": {
+      "build": "rog5-kernel-7.2.7-build-r115",
+      "release": "7.2.7-rog5-k115",
+      "date": "2026-10-01",
+      "series": "125 patches, 0001-0162",
+      "image_sha256": "06dec33c55ad7407de4d785d99098ef012434f54face6676d254f811888c58e1",
+      "source_commit": "de7a8a518c08",
+      "source_dirty": false,
+      "changes": "k114 + 0157-0162: iris diagnostics (SFR, HFI trace, fw log), fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer/interframe_pc module parameters"
     }
   },
   "bundles": [
@@ -435,6 +445,22 @@
       "package": "package-main-k114-d15-261001a",
       "source_commit": "c9255283ae87",
       "changes": "TRIAL hardware video: iris (sm8350-iris/sm8250-venus fallback) + videocc, 0154 iris fail-clean teardown, 0155 IOVA memory-region binding, 0156 SMMU route readback; d15 = d13 + video overlay with IOVA hole; video-modules kit (rog5-video.service)",
+      "status": "ram-trial-fail",
+      "healthy": "no",
+      "installed": null,
+      "notes": "RAM trial 2026-10-01 23:13-23:41: PAS 9 accepted vpu20_4v, H.264 300/300 frames bit-exact; firmware fatal error at every decode session end, reload with stale sessions, hung decodes, vb2 WARN, hard SoC hang ~4 min after the last fatal (test-results/2026-10-01-video-iris-k114-ram-trial.md)"
+    },
+    {
+      "name": "main-k115-d15-261002a",
+      "role": "main",
+      "kernel": "k115",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k115",
+      "manifest_sha256": "c1bc0a77b9b22f0cad37ded445c8965472f50ffcc6ab98689b7ec92efdc8f2b3",
+      "package": "package-main-k115-d15-261002a",
+      "source_commit": "de7a8a518c08",
+      "changes": "TRIAL hardware video round 2: k114 + 0157-0162 (iris SFR/HFI-trace diagnostics, fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer and interframe_pc switches); d15 unchanged",
       "status": "built",
       "healthy": "unknown",
       "installed": null,
