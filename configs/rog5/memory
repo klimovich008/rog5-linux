@@ -1,0 +1,51 @@
+# /etc/rog5/memory: memory-footprint settings applied by `rog5-memory-tune
+# apply` (rog5-memory-tune.service at boot; run it again after editing).
+# `rog5-memory-tune status` shows the live values, `revert` restores the
+# kernel and distribution defaults. Measured in
+# test-results/2026-10-01-memory-footprint.md.
+
+# malloc_thp: off|on. glibc 2.43 madvises every malloc heap and arena for
+# 2 MiB transparent huge pages, so with THP "madvise" (rog5-thp.conf) each
+# process still gets a 2 MiB page per touched arena: 1.0-1.3 GiB of
+# AnonHugePages in a GNOME + Steam session, 7 MiB of 32 MiB RSS in a small
+# python3 test, and the madvised faults compact memory synchronously
+# (defrag defer+madvise). off sets GLIBC_TUNABLES=glibc.malloc.hugetlb=0 in
+# the system and user service managers' default environment (drop-ins in
+# /etc/systemd/{system,user}.conf.d); it takes effect at the next boot.
+# Programs that madvise their own memory (Mesa, FEX, JITs) keep THP.
+malloc_thp=off
+
+# thp_max_ptes_none: 0-511. khugepaged collapses a 2 MiB range into a huge
+# page only when at most this many of its 512 PTEs are empty, and under
+# memory pressure the THP shrinker splits a huge page in which more than this
+# many 4 KiB pages are all zero and frees those pages (shrink_underused).
+# 511 (kernel default) collapses ranges with a single page in them and never
+# splits. 409 keeps huge pages that are at least 20 % used.
+thp_max_ptes_none=409
+
+# watermark_boost_factor: 0-...; kernel default 15000. After each
+# fragmentation event kswapd boosts its target by a pageblock, up to 150 % of
+# the high watermark, reclaiming page cache to help later contiguous
+# allocations. 0 trades that help for keeping cache that would otherwise be
+# re-read from UFS (with zram most anonymous memory is cheap to move anyway);
+# Android devices commonly run with 0. Part of the planned A/B comparison.
+watermark_boost_factor=0
+
+# anon_mthp_64k: never|madvise|always|inherit (kernel default never).
+# Anonymous faults in 64 KiB folios, mapped with contiguous PTEs (one TLB
+# entry per 64 KiB where the core honours the contiguous hint): 16x fewer
+# faults and less TLB pressure for at most 60 KiB of padding per sparse 64 KiB range. A
+# performance option, to be A/B-measured (rog5-mem-report perf/pressure)
+# before it becomes the default.
+anon_mthp_64k=never
+
+# mask_user_units: space-separated systemd user units masked for every user
+# (/etc/systemd/user/UNIT -> /dev/null; removed again when dropped from this
+# list; masks take effect at the next login). Empty by default. Candidates, measured PSS in GNOME desktop mode:
+#   evolution-alarm-notify.service  46 MiB  (calendar reminders pop-ups)
+#   localsearch-3.service           54 MiB  (file indexer: Files search
+#                                            falls back to a slow scan)
+# Never list org.gnome.SettingsDaemon.* (required components of the Phosh
+# and GNOME sessions) or gnome-software.service (D-Bus activatable app: its
+# launcher would stop working).
+mask_user_units=

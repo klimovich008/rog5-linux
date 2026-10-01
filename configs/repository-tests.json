@@ -2840,6 +2840,106 @@
         "configs/rootfs/custom-packages.txt"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-memory-tune.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-mem-report.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-memslim-dtb.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "dtc",
+        "fdtget",
+        "fdtput",
+        "awk",
+        "sha256sum"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb (or ROG5_MEMSLIM_D10_DTB)"
+          ],
+          "kind": "unittest",
+          "message": "requires the private production DTB d10",
+          "reason": "The real d10 bytes are private build output; the synthetic d10-shaped fixture covers the composition logic and refusals, so a skip proves nothing about the installed DTB or the loader check.",
+          "scope": "subcheck",
+          "test_ids": [
+            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
+          ]
+        },
+        {
+          "id": "optional-2",
+          "inputs": [
+            "cc with OpenSSL and zlib headers"
+          ],
+          "kind": "unittest",
+          "message": "requires cc with OpenSSL and zlib headers for the loader check",
+          "reason": "The loader check compiles verify_fdt from tools/recovery_control/rog5-bundle-verify.c.",
+          "scope": "subcheck",
+          "test_ids": [
+            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
+          ]
+        }
+      ]
     }
   ]
 }

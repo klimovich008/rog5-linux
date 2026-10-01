@@ -1,0 +1,759 @@
+#!/usr/bin/env python3
+"""Measure where the phone's RAM goes, before and after memory changes.
+
+Runs on the phone as root (read-only unless a subcommand says otherwise):
+
+  snapshot [--label L] [--out F] [--ranges R]   JSON: boot map, reserved
+          memory (DT nodes, swiotlb, CMA), meminfo, zram, slab, vmalloc,
+          tmpfs, per-process PSS (smaps_rollup), GPU GEM / DRM fdinfo /
+          dma-buf, cgroups, PSI. --ranges START-END[,...] (hex, inclusive)
+          adds the in-use share of those physical ranges (/proc/kpageflags).
+  compare A.json B.json                          the key numbers side by side
+  perf [--runs N] [--cmd CMD ...] [--out F]     start-up time of commands,
+          anonymous page-fault throughput with and without MADV_HUGEPAGE,
+          GLIBC_TUNABLES seen by the session processes. Light: no settings
+          change, ~1 GiB touched for a few seconds.
+  pressure --yes [--target-mib N] [--floor-mib N] [--step-mib N]
+           [--ranges R] [--exec-sample N] [--out F]
+          Allocates compressible anonymous memory step by step until N MiB
+          or until MemAvailable reaches the floor, timing each step, then
+          touches everything again (swap-in from zram) and frees it. Records
+          PSI, zram, swap and fault counters. With --ranges every page of
+          the test that landed in those physical ranges (pagemap) is
+          written, read back and, for up to --exec-sample pages per range,
+          executed (one aarch64 RET): the RAM-trial check for reclaimed
+          carve-outs. The whole test runs in a child process, so a user-mode
+          SEA on a secure-owned page (rog5-sea logs the PFN) ends the child
+          and is reported; a fault in kernel context can still crash the
+          phone. Per range: pass (hits and executed pages, no error),
+          inconclusive (no hit or nothing executed) or fail (exit 1).
+          zram_exercised says whether pages really went to zram and back.
+          Pushes the phone into zram swap: never during a call or a game.
+
+Never reads /sys/kernel/debug/dri/*/DP-* (reading those debugfs files has
+hung the DP controller); only the msm "name", "gem" and "clients" files.
+ROG5_MEMREPORT_ROOT points every path at a fixture tree (offline tests).
+"""
+import argparse
+import ctypes
+import json
+import mmap
+import os
+import re
+import select
+import signal
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = os.environ.get('ROG5_MEMREPORT_ROOT', '/')
+PAGE = 4096
+MiB = 1 << 20
+
+
+def path(*parts):
+    return os.path.join(ROOT, *[p.lstrip('/') for p in parts])
+
+
+def read(p, default=None, binary=False):
+    try:
+        with open(path(p), 'rb' if binary else 'r', errors=None if binary else 'replace') as f:
+            return f.read()
+    except OSError:
+        return default
+
+
+def kv_kb(text):
+    """'Key:   123 kB' lines -> {key: kB}."""
+    out = {}
+    for line in (text or '').splitlines():
+        m = re.match(r'^([\w()]+):\s+(\d+)', line)
+        if m:
+            out[m.group(1)] = int(m.group(2))
+    return out
+
+
+def vmstat():
+    out = {}
+    for line in (read('/proc/vmstat') or '').splitlines():
+        k, _, v = line.partition(' ')
+        if v.strip().isdigit():
+            out[k] = int(v)
+    return out
+
+
+def psi():
+    out = {}
+    for line in (read('/proc/pressure/memory') or '').splitlines():
+        kind, *fields = line.split()
+        out[kind] = {k: float(v) for k, v in (f.split('=') for f in fields)}
+    return out
+
+
+def dmesg_text():
+    if ROOT != '/':
+        return read('/dmesg.txt') or ''
+    try:
+        return subprocess.run(['dmesg'], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ''
+
+
+def boot_memory(dmesg):
+    """The kernel's own boot accounting ('Memory: A/T available ... R reserved, C cma-reserved')."""
+    m = re.search(r'Memory: (\d+)K/(\d+)K available \((\d+)K kernel code, (\d+)K rwdata, (\d+)K rodata, '
+                  r'(\d+)K init, (\d+)K bss, (\d+)K reserved, (\d+)K cma-reserved\)', dmesg)
+    out = {}
+    if m:
+        keys = ['available', 'total', 'code', 'rwdata', 'rodata', 'init', 'bss', 'reserved', 'cma_reserved']
+        out = {k + '_kb': int(v) for k, v in zip(keys, m.groups())}
+    m = re.search(r'software IO TLB: mapped \[mem (0x[0-9a-f]+)-(0x[0-9a-f]+)\] \((\d+)MB\)', dmesg)
+    if m:
+        out['swiotlb_mb'] = int(m.group(3))
+    m = re.search(r'cma: Reserved (\d+) MiB at (0x[0-9a-f]+)', dmesg)
+    if m:
+        out['cma_mb'] = int(m.group(1))
+    return out
+
+
+def be_cells(raw, cells):
+    vals = [int.from_bytes(raw[i:i + 4], 'big') for i in range(0, len(raw), 4)]
+    out = []
+    for i in range(0, len(vals) - cells * 2 + 1, cells * 2):
+        a = s = 0
+        for c in vals[i:i + cells]:
+            a = (a << 32) | c
+        for c in vals[i + cells:i + cells * 2]:
+            s = (s << 32) | c
+        out.append((a, s))
+    return out
+
+
+def reserved_memory():
+    base = '/sys/firmware/devicetree/base/reserved-memory'
+    nodes = []
+    try:
+        names = sorted(os.listdir(path(base)))
+    except OSError:
+        return {'nodes': [], 'active_nomap_bytes': 0, 'active_map_bytes': 0}
+    for name in names:
+        d = f'{base}/{name}'
+        if not os.path.isdir(path(d)):
+            continue
+        reg = read(f'{d}/reg', b'', binary=True)
+        size = read(f'{d}/size', b'', binary=True)
+        status = (read(f'{d}/status', b'okay', binary=True) or b'okay').rstrip(b'\0').decode()
+        comp = (read(f'{d}/compatible', b'', binary=True) or b'').split(b'\0')[0].decode()
+        ranges = be_cells(reg, 2) if reg else []
+        node = {'name': name, 'status': status, 'compatible': comp,
+                'no_map': os.path.exists(path(f'{d}/no-map')), 'reusable': os.path.exists(path(f'{d}/reusable'))}
+        if ranges:
+            node['base'], node['size'] = ranges[0][0], ranges[0][1]   # Linux uses the first entry only
+        elif size:
+            node['size'] = int.from_bytes(size, 'big')
+        nodes.append(node)
+    active = [n for n in nodes if n['status'] in ('okay', 'ok') and 'size' in n and not n['reusable']]
+    return {'nodes': nodes,
+            'active_nomap_bytes': sum(n['size'] for n in active if n['no_map']),
+            'active_map_bytes': sum(n['size'] for n in active if not n['no_map'])}
+
+
+def swiotlb():
+    out = {}
+    for k in ('io_tlb_nslabs', 'io_tlb_used', 'io_tlb_used_hiwater'):
+        v = (read(f'/sys/kernel/debug/swiotlb/{k}') or '').strip()
+        if v.isdigit():
+            out[k] = int(v)
+    if 'io_tlb_nslabs' in out:
+        out['pool_bytes'] = out['io_tlb_nslabs'] * 2048
+    return out
+
+
+def zram():
+    out = {}
+    d = '/sys/block/zram0'
+    if not os.path.isdir(path(d)):
+        return out
+    algo = read(f'{d}/comp_algorithm') or ''
+    m = re.search(r'\[(\w+)\]', algo)
+    out['algorithm'] = m.group(1) if m else algo.strip()
+    ds = (read(f'{d}/disksize') or '0').strip()
+    out['disksize'] = int(ds) if ds.isdigit() else 0
+    f = (read(f'{d}/mm_stat') or '').split()
+    names = ['orig_data_size', 'compr_data_size', 'mem_used_total', 'mem_limit', 'mem_used_max',
+             'same_pages', 'pages_compacted', 'huge_pages', 'huge_pages_since']
+    out.update({k: int(v) for k, v in zip(names, f) if v.isdigit()})
+    if out.get('compr_data_size'):
+        out['ratio'] = round(out['orig_data_size'] / out['compr_data_size'], 2)
+    return out
+
+
+def slab_top(n=15):
+    rows = []
+    for line in (read('/proc/slabinfo') or '').splitlines()[2:]:
+        f = line.split()
+        if len(f) > 4 and f[2].isdigit() and f[3].isdigit():
+            rows.append((int(f[2]) * int(f[3]), f[0]))
+    rows.sort(reverse=True)
+    return [{'cache': c, 'bytes': b} for b, c in rows[:n]]
+
+
+def vmalloc_top(n=12):
+    by = {}
+    for line in (read('/proc/vmallocinfo') or '').splitlines():
+        f = line.split()
+        if len(f) >= 3 and f[1].isdigit():
+            caller = re.sub(r'\+0x[0-9a-f]+/0x[0-9a-f]+', '', f[2])
+            by[caller] = by.get(caller, 0) + int(f[1])
+    return [{'caller': k, 'bytes': v} for k, v in sorted(by.items(), key=lambda x: -x[1])[:n]]
+
+
+def modules_bytes():
+    return sum(int(l.split()[1]) for l in (read('/proc/modules') or '').splitlines() if len(l.split()) > 1)
+
+
+def tmpfs():
+    out = []
+    for line in (read('/proc/self/mounts') or '').splitlines():
+        f = line.split()
+        if len(f) > 2 and f[2] in ('tmpfs', 'devtmpfs', 'ramfs'):
+            try:
+                st = os.statvfs(path(f[1]))
+            except OSError:
+                continue
+            out.append({'mount': f[1], 'size': st.f_blocks * st.f_frsize,
+                        'used': (st.f_blocks - st.f_bfree) * st.f_frsize})
+    return out
+
+
+def processes():
+    out = []
+    try:
+        pids = [p for p in os.listdir(path('/proc')) if p.isdigit()]
+    except OSError:
+        return out
+    for pid in pids:
+        text = read(f'/proc/{pid}/smaps_rollup')
+        if not text:
+            continue
+        kv = kv_kb(text)
+        if not kv.get('Rss'):
+            continue
+        cg = read(f'/proc/{pid}/cgroup') or ''
+        m = re.search(r'^0::(\S*)', cg, re.M)
+        out.append({'pid': int(pid), 'comm': (read(f'/proc/{pid}/comm') or '?').strip(),
+                    'unit': (m.group(1).rsplit('/', 1)[-1] if m else ''), 'cgroup': m.group(1) if m else '',
+                    'rss': kv.get('Rss', 0), 'pss': kv.get('Pss', 0), 'pss_anon': kv.get('Pss_Anon', 0),
+                    'pss_file': kv.get('Pss_File', 0), 'pss_shmem': kv.get('Pss_Shmem', 0),
+                    'swap_pss': kv.get('SwapPss', 0), 'anon_huge': kv.get('AnonHugePages', 0)})
+    out.sort(key=lambda p: -p['pss'])
+    return out
+
+
+def group(procs, key):
+    by = {}
+    for p in procs:
+        g = by.setdefault(p[key], {'pss': 0, 'swap_pss': 0, 'anon_huge': 0, 'count': 0})
+        for k in ('pss', 'swap_pss', 'anon_huge'):
+            g[k] += p[k]
+        g['count'] += 1
+    return dict(sorted(by.items(), key=lambda x: -x[1]['pss']))
+
+
+GEM_RE = re.compile(r'^(Total|Active|Resident|Purgeable|Purged):\s+(\d+) objects,\s+(\d+) bytes', re.M)
+
+
+def gpu():
+    out = {'gem': {}, 'clients': {}, 'dma_buf_bytes': None}
+    base = '/sys/kernel/debug/dri'
+    try:
+        dirs = sorted(d for d in os.listdir(path(base)) if d.isdigit())
+    except OSError:
+        dirs = []
+    for d in dirs:
+        # Only these two files: never list or read the connector entries (DP-*).
+        name = (read(f'{base}/{d}/name') or '').split()
+        if not name or not name[0].startswith('msm'):
+            continue
+        gem = read(f'{base}/{d}/gem') or ''
+        totals = {k.lower(): {'objects': int(o), 'bytes': int(b)} for k, o, b in GEM_RE.findall(gem)}
+        key = f'{name[0]}:{name[1].split("=", 1)[-1] if len(name) > 1 else d}'
+        if totals and key not in out['gem']:
+            out['gem'][key] = totals
+    m = re.search(r'Total (\d+) objects, (\d+) bytes', read('/sys/kernel/debug/dma_buf/bufinfo') or '')
+    if m:
+        out['dma_buf_bytes'] = int(m.group(2))
+        out['dma_buf_objects'] = int(m.group(1))
+    seen = set()
+    try:
+        pids = sorted((p for p in os.listdir(path('/proc')) if p.isdigit()), key=int)
+    except OSError:
+        pids = []
+    for pid in pids:
+        try:
+            fds = os.listdir(path(f'/proc/{pid}/fdinfo'))
+        except OSError:
+            continue
+        comm = (read(f'/proc/{pid}/comm') or '?').strip()
+        for fd in fds:
+            text = read(f'/proc/{pid}/fdinfo/{fd}') or ''
+            if 'drm-driver:' not in text:
+                continue
+            cid = re.search(r'^drm-client-id:\s+(\d+)', text, re.M)
+            if not cid or cid.group(1) in seen:
+                continue
+            seen.add(cid.group(1))
+            mem = {}
+            for k, v, unit in re.findall(r'^drm-(total|resident|shared|purgeable)-memory:\s+(\d+)\s*(\w*)', text, re.M):
+                mem[k] = int(v) * {'KiB': 1024, 'MiB': MiB, '': 1}.get(unit, 1)
+            if mem.get('total'):
+                c = out['clients'].setdefault(comm, {'total': 0, 'resident': 0, 'shared': 0})
+                for k in c:
+                    c[k] += mem.get(k, 0)
+    return out
+
+
+def cgroups():
+    out = {}
+    for c in ('system.slice', 'user.slice', 'init.scope'):
+        v = (read(f'/sys/fs/cgroup/{c}/memory.current') or '').strip()
+        if v.isdigit():
+            out[c] = int(v)
+    return out
+
+
+def parse_ranges(text):
+    out = []
+    for part in (text or '').split(','):
+        if not part.strip():
+            continue
+        a, _, b = part.partition('-')
+        start, end = int(a, 16), int(b, 16)
+        if end < start or start % PAGE or (end + 1) % PAGE:
+            raise ValueError(f'bad range {part} (page-aligned START-END, END inclusive)')
+        out.append((start, end))
+    return out
+
+
+KPF_BUDDY = 10
+KPF_NOPAGE = 20
+KPF_RESERVED = 32
+
+
+def range_use(ranges):
+    """Share of each physical range in use (not free buddy pages), from /proc/kpageflags."""
+    out = []
+    try:
+        f = open(path('/proc/kpageflags'), 'rb')
+    except OSError:
+        return [{'range': f'{a:#x}-{b:#x}', 'error': 'no /proc/kpageflags'} for a, b in ranges]
+    with f:
+        for a, b in ranges:
+            first, n = a // PAGE, (b + 1 - a) // PAGE
+            f.seek(first * 8)
+            raw = f.read(n * 8)
+            flags = [int.from_bytes(raw[i:i + 8], 'little') for i in range(0, len(raw), 8)]
+            buddy = sum(1 for x in flags if x >> KPF_BUDDY & 1)
+            nopage = sum(1 for x in flags if x >> KPF_NOPAGE & 1)
+            reserved = sum(1 for x in flags if x >> KPF_RESERVED & 1)
+            out.append({'range': f'{a:#x}-{b:#x}', 'pages': n, 'read': len(flags), 'free_buddy': buddy,
+                        'nopage': nopage, 'reserved': reserved, 'in_use': len(flags) - buddy - nopage - reserved})
+    return out
+
+
+def session():
+    names = {}
+    for pid in (p for p in os.listdir(path('/proc')) if p.isdigit()):
+        c = (read(f'/proc/{pid}/comm') or '').strip()
+        if c in ('phoc', 'phosh', 'gnome-shell', 'Xwayland', 'steam', 'steamwebhelper', 'FEXInterpreter'):
+            names[c] = names.get(c, 0) + 1
+    return names
+
+
+def snapshot(args):
+    cmdline = read('/proc/cmdline') or ''
+    bundle = re.search(r'rog5\.bundle=(\S+)', cmdline)
+    dmesg = dmesg_text()
+    procs = processes()
+    mi = kv_kb(read('/proc/meminfo'))
+    snap = {
+        'format': 'rog5-mem-report-v1', 'label': args.label, 'time': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+        'uptime_s': float((read('/proc/uptime') or '0').split()[0]),
+        'kernel': (read('/proc/sys/kernel/osrelease') or '').strip(), 'bundle': bundle.group(1) if bundle else None,
+        'session': session(), 'boot_memory': boot_memory(dmesg), 'reserved_memory': reserved_memory(),
+        'swiotlb': swiotlb(), 'meminfo_kb': mi, 'vmstat': vmstat(), 'psi': psi(), 'zram': zram(),
+        'sysctl': {k: (read(f'/proc/sys/vm/{k}') or '').strip() for k in
+                   ('swappiness', 'page-cluster', 'watermark_scale_factor', 'watermark_boost_factor',
+                    'min_free_kbytes', 'vfs_cache_pressure')},
+        'thp': {k: (read(f'/sys/kernel/mm/transparent_hugepage/{k}') or '').strip() for k in
+                ('enabled', 'defrag', 'shmem_enabled', 'khugepaged/max_ptes_none', 'shrink_underused')},
+        'slab_top': slab_top(), 'vmalloc_top': vmalloc_top(), 'modules_bytes': modules_bytes(),
+        'tmpfs': tmpfs(), 'cgroups': cgroups(), 'gpu': gpu(),
+        'processes_total_pss_kb': sum(p['pss'] for p in procs),
+        'processes_anon_huge_kb': sum(p['anon_huge'] for p in procs),
+        'by_comm': dict(list(group(procs, 'comm').items())[:40]),
+        'by_unit': dict(list(group(procs, 'unit').items())[:40]),
+        'processes_top': procs[:40],
+    }
+    if args.ranges:
+        snap['range_use'] = range_use(parse_ranges(args.ranges))
+    return snap
+
+
+def summary(s):
+    mi = s['meminfo_kb']
+    gem = sum(v.get('total', {}).get('bytes', 0) for k, v in s['gpu']['gem'].items() if k.startswith('msm:'))
+    rows = [
+        ('MemTotal MiB', mi.get('MemTotal', 0) / 1024),
+        ('MemAvailable MiB', mi.get('MemAvailable', 0) / 1024),
+        ('Used (Total-Available) MiB', (mi.get('MemTotal', 0) - mi.get('MemAvailable', 0)) / 1024),
+        ('AnonPages MiB', mi.get('AnonPages', 0) / 1024),
+        ('AnonHugePages MiB', mi.get('AnonHugePages', 0) / 1024),
+        ('Shmem MiB', mi.get('Shmem', 0) / 1024),
+        ('Cached MiB', mi.get('Cached', 0) / 1024),
+        ('Slab MiB', mi.get('Slab', 0) / 1024),
+        ('PageTables MiB', mi.get('PageTables', 0) / 1024),
+        ('Swap used MiB', (mi.get('SwapTotal', 0) - mi.get('SwapFree', 0)) / 1024),
+        ('zram mem_used MiB', s['zram'].get('mem_used_total', 0) / MiB),
+        ('Reserved no-map (DT) MiB', s['reserved_memory']['active_nomap_bytes'] / MiB),
+        ('Reserved mapped (DT) MiB', s['reserved_memory']['active_map_bytes'] / MiB),
+        ('swiotlb pool MiB', s['swiotlb'].get('pool_bytes', 0) / MiB),
+        ('GPU GEM total MiB', gem / MiB),
+        ('Processes PSS MiB', s['processes_total_pss_kb'] / 1024),
+        ('Processes AnonHuge MiB', s['processes_anon_huge_kb'] / 1024),
+    ]
+    return rows
+
+
+def compare(args):
+    a, b = (json.load(open(f)) for f in (args.a, args.b))
+    print(f'{"":34} {a.get("label") or "A":>12} {b.get("label") or "B":>12} {"delta":>10}')
+    for (name, va), (_, vb) in zip(summary(a), summary(b)):
+        print(f'{name:34} {va:12.1f} {vb:12.1f} {vb - va:+10.1f}')
+    print('\nlargest per-command PSS changes (MiB):')
+    ca, cb = a.get('by_comm', {}), b.get('by_comm', {})
+    deltas = [(cb.get(k, {}).get('pss', 0) - ca.get(k, {}).get('pss', 0), k) for k in set(ca) | set(cb)]
+    for d, k in sorted(deltas, key=lambda x: -abs(x[0]))[:15]:
+        print(f'  {k:28} {d / 1024:+9.1f}')
+    return 0
+
+
+# -- perf ------------------------------------------------------------------
+
+DEFAULT_CMDS = ['/usr/bin/true', 'python3 -c pass',
+                "python3 -c \"import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk\""]
+
+
+def time_cmd(cmd, runs):
+    times = []
+    for _ in range(runs):
+        t = time.perf_counter()
+        r = subprocess.run(cmd, shell=True, capture_output=True, timeout=120)
+        times.append((time.perf_counter() - t) * 1000)
+        if r.returncode:
+            return {'cmd': cmd, 'error': f'rc {r.returncode}: {r.stderr[-200:].decode(errors="replace")}'}
+    return {'cmd': cmd, 'median_ms': round(statistics.median(times), 1), 'min_ms': round(min(times), 1),
+            'runs': runs}
+
+
+def fault_rate(mib, huge):
+    """MiB/s touching a fresh anonymous mapping (one write per 4 KiB page)."""
+    m = mmap.mmap(-1, mib * MiB, flags=mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS)
+    try:
+        advice = getattr(mmap, 'MADV_HUGEPAGE' if huge else 'MADV_NOHUGEPAGE', None)
+        if advice is not None:
+            m.madvise(advice)
+        t = time.perf_counter()
+        for off in range(0, mib * MiB, PAGE):
+            m[off] = 1
+        dt = time.perf_counter() - t
+        huge_kb = kv_kb(read('/proc/self/smaps_rollup')).get('AnonHugePages', 0)
+        return {'mib': mib, 'madvise_hugepage': huge, 'mib_per_s': round(mib / dt, 1), 'anon_huge_kb': huge_kb}
+    finally:
+        m.close()
+
+
+def tunables():
+    out = {}
+    for pid in (p for p in os.listdir(path('/proc')) if p.isdigit()):
+        c = (read(f'/proc/{pid}/comm') or '').strip()
+        if c in ('phoc', 'phosh', 'gnome-shell', 'steam', 'wireplumber') and c not in out:
+            env = (read(f'/proc/{pid}/environ', b'', binary=True) or b'').split(b'\0')
+            v = [e.decode(errors='replace') for e in env if e.startswith(b'GLIBC_TUNABLES=')]
+            out[c] = v[0].split('=', 1)[1] if v else None
+    return out
+
+
+def perf(args):
+    cmds = args.cmds or DEFAULT_CMDS
+    res = {'format': 'rog5-mem-perf-v1', 'label': args.label, 'time': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+           'startup': [time_cmd(c, args.runs) for c in cmds],
+           'fault': [fault_rate(args.fault_mib, False), fault_rate(args.fault_mib, True)],
+           'glibc_tunables': tunables(), 'thp_enabled': (read('/sys/kernel/mm/transparent_hugepage/enabled') or '').strip()}
+    return res
+
+
+# -- pressure ----------------------------------------------------------------
+
+def pagemap_pfns(addr, length):
+    """PFN of every present page of [addr, addr+length) (root: real PFNs)."""
+    with open('/proc/self/pagemap', 'rb') as f:
+        f.seek(addr // PAGE * 8)
+        raw = f.read(length // PAGE * 8)
+    out = []
+    for i in range(0, len(raw), 8):
+        e = int.from_bytes(raw[i:i + 8], 'little')
+        out.append(e & ((1 << 55) - 1) if e >> 63 & 1 else None)
+    return out
+
+
+RET = (0xd65f03c0).to_bytes(4, 'little')     # aarch64 RET
+
+
+def exec_pages(cands, deadline_s=120):
+    """Execute one RET from each candidate page in a forked child.
+
+    cands: [(mmap, offset, phys)]. The RET is written by this process before
+    the fork, so the child maps the same physical page copy-on-write and
+    never writes it; the child checks the PFN before and after the call (swap
+    or migration can move a page) and reports each step on a pipe. A
+    secure-owned page kills the child (SIGBUS, logged by rog5-sea) and the
+    page it was running is the finding. Returns one entry per candidate:
+    ok | moved | moved-after | mprotect | killed (signal N) | error (exit N)
+    | not run.
+    """
+    if not cands:
+        return []
+    libc = ctypes.CDLL(None, use_errno=True)
+    for buf, off, _ in cands:
+        buf[off:off + 4] = RET
+    rd, wr = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        os.close(rd)
+        code = 0
+        try:
+            for i, (buf, off, phys) in enumerate(cands):
+                addr = ctypes.addressof(ctypes.c_char.from_buffer(buf, off))
+                pfn = pagemap_pfns(addr, PAGE)[0]
+                if pfn is None or pfn * PAGE != phys:
+                    os.write(wr, f'moved {i}\n'.encode())
+                    continue
+                os.write(wr, f'run {i}\n'.encode())
+                if libc.mprotect(ctypes.c_void_p(addr), PAGE, mmap.PROT_READ | mmap.PROT_EXEC):
+                    os.write(wr, f'mprotect {i}\n'.encode())
+                    continue
+                ctypes.CFUNCTYPE(None)(addr)()
+                pfn = pagemap_pfns(addr, PAGE)[0]
+                os.write(wr, f'{"ok" if pfn is not None and pfn * PAGE == phys else "moved-after"} {i}\n'.encode())
+        except BaseException:
+            code = 4
+        os._exit(code)
+    os.close(wr)
+    data, end = b'', time.monotonic() + deadline_s
+    while True:
+        r, _, _ = select.select([rd], [], [], max(0, end - time.monotonic()))
+        if not r:
+            os.kill(pid, signal.SIGKILL)
+            break
+        chunk = os.read(rd, 65536)
+        if not chunk:
+            break
+        data += chunk
+    os.close(rd)
+    _, status = os.waitpid(pid, 0)
+    results = {}
+    words = data.decode().split()
+    for word, idx in zip(words[0::2], words[1::2]):
+        results[int(idx)] = word
+    out = []
+    for i, (_, _, phys) in enumerate(cands):
+        r = results.get(i, 'not run')
+        if r == 'run':      # started, never finished
+            if os.WIFSIGNALED(status):
+                r = f'killed (signal {os.WTERMSIG(status)})'
+            else:
+                r = f'error (exit {os.WEXITSTATUS(status)})'
+        out.append({'phys': hex(phys), 'result': r})
+    if not os.WIFSIGNALED(status) and os.WEXITSTATUS(status) and not any(
+            o['result'].startswith('error') for o in out):
+        out.append({'phys': None, 'result': f'error (exit {os.WEXITSTATUS(status)})'})
+    return out
+
+
+def counters():
+    vs = vmstat()
+    z = zram()
+    mi = kv_kb(read('/proc/meminfo'))
+    p = psi()
+    return {'mem_available_kb': mi.get('MemAvailable', 0), 'swap_used_kb': mi.get('SwapTotal', 0) - mi.get('SwapFree', 0),
+            'zram_orig': z.get('orig_data_size', 0), 'zram_used': z.get('mem_used_total', 0),
+            'psi_some_us': p.get('some', {}).get('total', 0), 'psi_full_us': p.get('full', {}).get('total', 0),
+            **{k: vs.get(k, 0) for k in ('pswpin', 'pswpout', 'pgmajfault', 'allocstall_normal', 'allocstall_dma',
+                                         'compact_stall', 'oom_kill', 'thp_underused_split_page')}}
+
+
+def pressure(args):
+    if not args.yes:
+        print('pressure: pushes the phone into zram swap; rerun with --yes', file=sys.stderr)
+        return None
+    ranges = parse_ranges(args.ranges) if args.ranges else []
+    pattern = (os.urandom(1024) + b'\0' * 1024 + bytes(range(256)) * 8)   # ~3x compressible 4 KiB
+    start = counters()
+    keys = [f'{a:#x}-{b:#x}' for a, b in ranges]
+    steps, chunks, bad = [], [], []
+    hits, exec_cands = {k: 0 for k in keys}, {k: [] for k in keys}
+    total = 0
+    t0 = time.perf_counter()
+    while total < args.target_mib:
+        if kv_kb(read('/proc/meminfo')).get('MemAvailable', 0) < (args.floor_mib + args.step_mib) * 1024:
+            break
+        size = args.step_mib * MiB
+        buf = mmap.mmap(-1, size, flags=mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS)
+        t = time.perf_counter()
+        buf[:] = pattern * (size // PAGE)
+        dt = time.perf_counter() - t
+        if ranges:
+            base = ctypes.addressof(ctypes.c_char.from_buffer(buf))
+            for i, pfn in enumerate(pagemap_pfns(base, size)):
+                if pfn is None:
+                    continue
+                phys = pfn * PAGE
+                for a, b in ranges:
+                    if a <= phys <= b:
+                        key = f'{a:#x}-{b:#x}'
+                        hits[key] += 1
+                        off = i * PAGE
+                        probe = os.urandom(64)
+                        buf[off:off + 64] = probe
+                        if buf[off:off + 64] != probe:
+                            bad.append(hex(phys))
+                        if len(exec_cands[key]) < args.exec_sample:      # a budget per range
+                            exec_cands[key].append((buf, off, phys))
+        chunks.append(buf)
+        total += args.step_mib
+        c = counters()
+        steps.append({'mib': total, 'fill_mib_per_s': round(args.step_mib / dt, 1),
+                      'mem_available_mib': c['mem_available_kb'] // 1024, 'swap_used_mib': c['swap_used_kb'] // 1024})
+    fill_s = time.perf_counter() - t0
+    peak = counters()
+    exec_results = {k: exec_pages(v) for k, v in exec_cands.items()}
+    t = time.perf_counter()
+    for buf in chunks:              # touch everything again: swap-in from zram
+        for off in range(0, len(buf), PAGE):
+            _ = buf[off]
+    retouch_s = time.perf_counter() - t
+    after_touch = counters()
+    for buf in chunks:
+        buf.close()
+    end = counters()
+    res = {'format': 'rog5-mem-pressure-v1', 'label': args.label, 'allocated_mib': total, 'fill_s': round(fill_s, 2),
+           'retouch_s': round(retouch_s, 2), 'retouch_mib_per_s': round(total / retouch_s, 1) if retouch_s else None,
+           'steps': steps, 'start': start, 'peak': peak, 'after_touch': after_touch, 'end': end,
+           'delta': {k: after_touch[k] - start[k] for k in start}}
+    # The zram numbers mean something only if pages really went out and back.
+    res['zram_exercised'] = res['delta']['pswpout'] > 0 and res['delta']['pswpin'] > 0
+    if ranges:
+        res['range_hits'] = hits
+        res['range_write_errors'] = bad
+        res['range_exec'] = exec_results
+        res['range_verdict'] = {}
+        for k in keys:
+            ok = sum(1 for e in exec_results[k] if e['result'] == 'ok')
+            failed = [e for e in exec_results[k] if e['result'].startswith(('killed', 'error', 'mprotect'))]
+            errs = [x for x in bad if int(x, 16) in range(int(k.split('-')[0], 16), int(k.split('-')[1], 16) + 1)]
+            res['range_verdict'][k] = ('fail' if failed or errs else
+                                       'pass' if hits[k] and ok else 'inconclusive')
+        res['dmesg_sea_lines'] = sea_lines()
+    return res
+
+
+def sea_lines():
+    return [l for l in dmesg_text().splitlines() if re.search(r'rog5-sea|SError|external abort', l)][-20:]
+
+
+def supervised(fn, args):
+    """Run fn(args) in a child: a data abort on a reclaimed page (SIGBUS)
+    then ends the child, not the report. A fault in kernel context or an
+    SError can still take the whole phone down: that is what the RAM trial
+    is for."""
+    rd, wr = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        os.close(rd)
+        code = 0
+        try:
+            res = fn(args)
+            payload = json.dumps(res).encode() if res is not None else b''
+            with os.fdopen(wr, 'wb') as f:
+                f.write(payload)
+        except BaseException as e:
+            try:
+                os.write(wr, json.dumps({'error': f'{type(e).__name__}: {e}'}).encode())
+            except OSError:
+                pass
+            code = 4
+        os._exit(code)
+    os.close(wr)
+    with os.fdopen(rd, 'rb') as f:
+        data = f.read()
+    _, status = os.waitpid(pid, 0)
+    if os.WIFSIGNALED(status):
+        return {'format': 'rog5-mem-pressure-v1', 'label': getattr(args, 'label', ''),
+                'error': f'probe process killed by signal {os.WTERMSIG(status)}', 'dmesg_sea_lines': sea_lines()}
+    if not data:
+        return None
+    return json.loads(data)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest='cmd', required=True)
+    s = sub.add_parser('snapshot')
+    s.add_argument('--label', default='')
+    s.add_argument('--out')
+    s.add_argument('--ranges')
+    c = sub.add_parser('compare')
+    c.add_argument('a')
+    c.add_argument('b')
+    p = sub.add_parser('perf')
+    p.add_argument('--label', default='')
+    p.add_argument('--runs', type=int, default=5)
+    p.add_argument('--cmd', action='append', dest='cmds')
+    p.add_argument('--fault-mib', type=int, default=512)
+    p.add_argument('--out')
+    q = sub.add_parser('pressure')
+    q.add_argument('--yes', action='store_true')
+    q.add_argument('--label', default='')
+    q.add_argument('--target-mib', type=int, default=8192)
+    q.add_argument('--floor-mib', type=int, default=768)
+    q.add_argument('--step-mib', type=int, default=256)
+    q.add_argument('--ranges')
+    q.add_argument('--exec-sample', type=int, default=64)
+    q.add_argument('--out')
+    args = ap.parse_args()
+    if args.cmd == 'compare':
+        return compare(args)
+    if args.cmd == 'pressure':
+        res = supervised(pressure, args) if args.yes else pressure(args)
+    else:
+        res = {'snapshot': snapshot, 'perf': perf}[args.cmd](args)
+    if res is None:
+        return 2
+    text = json.dumps(res, indent=1, sort_keys=False)
+    if args.out:
+        with open(args.out, 'w') as f:
+            f.write(text + '\n')
+    else:
+        print(text)
+    if args.cmd == 'snapshot':
+        for name, v in summary(res):
+            print(f'{name:34} {v:10.1f}', file=sys.stderr)
+    if args.cmd == 'pressure' and (res.get('error') or 'fail' in res.get('range_verdict', {}).values()):
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

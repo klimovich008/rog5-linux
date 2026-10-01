@@ -1,0 +1,202 @@
+#!/bin/sh
+# rog5-memory-tune: apply the memory-footprint settings of /etc/rog5/memory.
+#
+#   rog5-memory-tune [status|apply|revert]
+#
+#   status  config values next to the live ones, huge-page totals
+#   apply   write the THP and vm knobs, the malloc_thp drop-ins and the user
+#           unit masks from the config (rog5-memory-tune.service at boot)
+#   revert  kernel defaults (max_ptes_none 511, watermark_boost_factor
+#           15000, 64 KiB mTHP never), remove the drop-ins and the masks
+#           this tool created
+#
+# Keys (see /etc/rog5/memory): malloc_thp=off|on, thp_max_ptes_none=0-511,
+# watermark_boost_factor=N, anon_mthp_64k=never|madvise|always|inherit,
+# mask_user_units="unit.service ...". A missing or
+# invalid value falls back to the default (with a warning for invalid ones).
+# The malloc_thp drop-ins set the service managers' default environment, so
+# they take effect at the next boot (run apply once before that reboot after
+# a fresh install), user unit masks at the next login. Everything else is
+# live. A drop-in of the same name this tool did not write is never touched
+# (apply/revert then exit 1).
+set -eu
+conf=${ROG5_MEMORY_CONF:-/etc/rog5/memory}
+sysfs=${ROG5_MEMORY_SYSFS:-/sys}
+procsys=${ROG5_MEMORY_PROCSYS:-/proc/sys}
+etc=${ROG5_MEMORY_ETC:-/etc}
+state=${ROG5_MEMORY_STATE:-/var/lib/rog5/memory-tune-masks}
+meminfo=${ROG5_MEMORY_MEMINFO:-/proc/meminfo}
+vmstat=${ROG5_MEMORY_VMSTAT:-/proc/vmstat}
+
+thp=$sysfs/kernel/mm/transparent_hugepage
+dropin_name=60-rog5-malloc-thp.conf
+marker='# Written by rog5-memory-tune from /etc/rog5/memory (malloc_thp=off).'
+
+warn() { echo "rog5-memory-tune: $*" >&2; }
+
+# Last assignment of KEY in the config, comments and blanks stripped.
+value() {
+	sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\\([^#]*\\).*/\\1/p" "$conf" 2>/dev/null |
+		tail -n 1 | sed 's/[[:space:]]*$//; s/^"\(.*\)"$/\1/'
+}
+
+uint_in() { # VALUE MIN MAX
+	case $1 in '' | *[!0-9]*) return 1 ;; esac
+	[ "${#1}" -le 9 ] && [ "$1" -ge "$2" ] && [ "$1" -le "$3" ]
+}
+
+malloc_thp() {
+	v=$(value malloc_thp)
+	case $v in on | off) echo "$v" ;; '') echo off ;; *) warn "malloc_thp=$v is not on|off, using off"; echo off ;; esac
+}
+max_ptes_none() {
+	v=$(value thp_max_ptes_none)
+	if [ -z "$v" ]; then echo 409
+	elif uint_in "$v" 0 511; then echo "$v"
+	else warn "thp_max_ptes_none=$v is not 0-511, using 409"; echo 409
+	fi
+}
+boost() {
+	v=$(value watermark_boost_factor)
+	if [ -z "$v" ]; then echo 0
+	elif uint_in "$v" 0 100000; then echo "$v"
+	else warn "watermark_boost_factor=$v is not 0-100000, using 0"; echo 0
+	fi
+}
+mthp64() {
+	v=$(value anon_mthp_64k)
+	case $v in never | madvise | always | inherit) echo "$v" ;; '') echo never ;;
+		*) warn "anon_mthp_64k=$v is not never|madvise|always|inherit, using never"; echo never ;; esac
+}
+masks() {
+	for u in $(value mask_user_units); do
+		case $u in
+		org.gnome.SettingsDaemon.* | gnome-software.service | mobi.phosh.* | org.gnome.Shell*)
+			warn "refusing to mask $u (session component or D-Bus activatable app)" ;;
+		*[!A-Za-z0-9@._:-]* | .*) warn "ignoring bad unit name $u" ;;
+		*.service) echo "$u" ;;
+		*) warn "ignoring $u (only .service units)" ;;
+		esac
+	done
+}
+
+write_knob() { # FILE VALUE
+	[ -e "$1" ] || { warn "no $1 (kernel without it), skipped"; return 0; }
+	[ "$(cat "$1" 2>/dev/null)" = "$2" ] && return 0
+	echo "$2" >"$1" || { warn "could not write $2 to $1"; return 1; }
+}
+
+# sysfs choice files read back as "a [b] c".
+write_choice() { # FILE VALUE
+	[ -e "$1" ] || { warn "no $1 (kernel without it), skipped"; return 0; }
+	case " $(cat "$1" 2>/dev/null) " in *" [$2] "*) return 0 ;; esac
+	echo "$2" >"$1" || { warn "could not write $2 to $1"; return 1; }
+}
+
+dropin_text() {
+	printf '%s\n# glibc 2.43 madvises every malloc heap and arena for 2 MiB pages; off\n# here, THP stays for programs that madvise their own memory.\n[Manager]\nDefaultEnvironment=GLIBC_TUNABLES=glibc.malloc.hugetlb=0\n' "$marker"
+}
+
+# Install (or remove) the two manager drop-ins. Prints "changed" when it
+# changed one; returns 1 when a write failed or a file this tool did not
+# write is in the way (never overwritten or removed). Every step is checked
+# by hand: set -e does not apply inside the caller's $(...) || ...
+set_dropins() { # on|off
+	changed=0 failed=0
+	for d in "$etc/systemd/system.conf.d" "$etc/systemd/user.conf.d"; do
+		f=$d/$dropin_name
+		if [ -e "$f" ] && [ "$(sed -n 1p "$f" 2>/dev/null)" != "$marker" ]; then
+			warn "$f was not written by rog5-memory-tune, left alone"
+			failed=1
+			continue
+		fi
+		if [ "$1" = off ]; then
+			if [ -f "$f" ] && [ "$(dropin_text)" = "$(cat "$f")" ]; then continue; fi
+			tmp=
+			if mkdir -p "$d" && tmp=$(mktemp "$f.XXXXXX") && dropin_text >"$tmp" &&
+				chmod 0644 "$tmp" && mv -f "$tmp" "$f"; then
+				changed=1
+			else
+				[ -z "$tmp" ] || rm -f "$tmp"
+				warn "could not write $f"
+				failed=1
+			fi
+		elif [ -f "$f" ]; then
+			if rm -f "$f"; then changed=1; else warn "could not remove $f"; failed=1; fi
+		fi
+	done
+	[ "$changed" = 0 ] || echo changed
+	return "$failed"
+}
+
+# Masks: create the listed ones, remove ones this tool created earlier that
+# are no longer listed (only while they still point at /dev/null).
+set_masks() { # LIST...
+	dir=$etc/systemd/user
+	old=$(cat "$state" 2>/dev/null || true)
+	new=
+	for u in "$@"; do
+		f=$dir/$u
+		if [ -L "$f" ] && [ "$(readlink "$f")" = /dev/null ]; then
+			# ours if recorded; a mask the admin made stays theirs
+			case " $(echo $old) " in *" $u "*) new="$new $u" ;; esac
+			continue
+		fi
+		if [ -e "$f" ] || [ -L "$f" ]; then warn "$f exists, not masking $u"; continue; fi
+		mkdir -p "$dir"
+		ln -s /dev/null "$f"
+		new="$new $u"
+	done
+	for u in $old; do
+		case " $* " in *" $u "*) continue ;; esac
+		f=$dir/$u
+		if [ -L "$f" ] && [ "$(readlink "$f")" = /dev/null ]; then rm -f "$f"; fi
+	done
+	mkdir -p "$(dirname "$state")" && tmp=$(mktemp "$state.XXXXXX") &&
+		for u in $new; do echo "$u"; done >"$tmp" && mv -f "$tmp" "$state" ||
+		{ warn "could not record the masks in $state"; return 1; }
+	# User managers read unit files at login: running units keep running.
+	[ "$(echo $old)" = "$(echo $new)" ] ||
+		echo 'rog5-memory-tune: user unit masks changed; they take effect at the next login (or reboot)'
+}
+
+meminfo_kb() { awk -v k="$1:" '$1 == k { print $2; exit }' "$meminfo" 2>/dev/null; }
+
+case ${1:-status} in
+status)
+	echo "config: $conf"
+	echo "malloc_thp: $(malloc_thp) (drop-in: $([ -f "$etc/systemd/system.conf.d/$dropin_name" ] && echo present || echo absent); the running managers keep the environment they booted with)"
+	echo "thp_max_ptes_none: $(max_ptes_none) (live $(cat "$thp/khugepaged/max_ptes_none" 2>/dev/null || echo n/a), shrink_underused $(cat "$thp/shrink_underused" 2>/dev/null || echo n/a))"
+	echo "watermark_boost_factor: $(boost) (live $(cat "$procsys/vm/watermark_boost_factor" 2>/dev/null || echo n/a))"
+	echo "anon_mthp_64k: $(mthp64) (live $(sed -n 's/.*\[\(.*\)\].*/\1/p' "$thp/hugepages-64kB/enabled" 2>/dev/null || echo n/a))"
+	echo "mask_user_units: $(masks | tr '\n' ' ')(masked by this tool: $(tr '\n' ' ' <"$state" 2>/dev/null || true))"
+	echo "AnonHugePages: $(($(meminfo_kb AnonHugePages || echo 0) / 1024)) MiB, ShmemHugePages: $(($(meminfo_kb ShmemHugePages || echo 0) / 1024)) MiB"
+	echo "thp_underused_split_page: $(awk '$1 == "thp_underused_split_page" { print $2 }' "$vmstat" 2>/dev/null)"
+	;;
+apply)
+	rc=0
+	write_knob "$thp/khugepaged/max_ptes_none" "$(max_ptes_none)" || rc=1
+	write_knob "$thp/shrink_underused" 1 || rc=1
+	write_knob "$procsys/vm/watermark_boost_factor" "$(boost)" || rc=1
+	write_choice "$thp/hugepages-64kB/enabled" "$(mthp64)" || rc=1
+	m=$(malloc_thp)
+	[ "$m" = on ] && d=on || d=off
+	out=$(set_dropins "$d") || rc=1
+	[ -z "$out" ] || echo "rog5-memory-tune: malloc_thp=$m takes effect at the next boot"
+	# shellcheck disable=SC2046
+	set_masks $(masks) || rc=1
+	exit "$rc"
+	;;
+revert)
+	rc=0
+	write_knob "$thp/khugepaged/max_ptes_none" 511 || rc=1
+	write_knob "$procsys/vm/watermark_boost_factor" 15000 || rc=1
+	write_choice "$thp/hugepages-64kB/enabled" never || rc=1
+	out=$(set_dropins on) || rc=1
+	[ -z "$out" ] || echo 'rog5-memory-tune: malloc THP default restored at the next boot'
+	set_masks || rc=1
+	exit "$rc"
+	;;
+-h | --help) sed -n '2,17p' "$0" ;;
+*) echo "usage: rog5-memory-tune [status|apply|revert]" >&2; exit 2 ;;
+esac
