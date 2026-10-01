@@ -11,16 +11,16 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `main-k112-d10-261001a`, fallback `safe-k111-d10-261001a`.
+Installed: default `main-k112-d10-261001b`, fallback `safe-k111-d10-261001a`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k112-d10-261001b` | main | k112 | d10 | built | unknown |  | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |
-| `main-k112-d10-261001a` | main | k112 | d10 | installed-main | yes | 2026-10-01 15:36 | 0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits) | booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0) |
+| `main-k112-d10-261001b` | main | k112 | d10 | installed-main | yes | 2026-10-01 15:45 | return bundle after the safe-k111 fallback rehearsal (same content as 261001a) |  |
+| `main-k112-d10-261001a` | main | k112 | d10 | retired | yes | 2026-10-01 15:36 | 0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits) | booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0) |
 | `main-k111-d10-261001c` | main | k111 | d10 | retired | yes | 2026-10-01 13:52 | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
-| `safe-k111-d10-261001a` | safe | k111 | d10 | installed-fallback | unknown | 2026-10-01 13:52 | alpha kernel k111 as fallback (user request); same DTB as main | alpha kernel k111 as fallback at the user's request (Sol advised an independent kernel); not yet rehearsed |
+| `safe-k111-d10-261001a` | safe | k111 | d10 | installed-fallback | yes | 2026-10-01 13:52 | alpha kernel k111 as fallback (user request); same DTB as main | alpha kernel k111 as fallback (user request); rehearsed PASS 2026-10-01 15:42-15:47: reject main -> safe-k111 boot (running, Wi-Fi, memx, speaker protection, USB power seen via hub) -> reinstall main-k112-d10-261001b |
 | `main-k111-d10-261001b` | main | k111 | d10 | retired | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
 | `main-k111-d10-261001a` | main | k111 | d10 | retired | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
 | `production-7.2.7-r208` | main | k110 | d9 | retired | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |

@@ -288,9 +288,9 @@
       "source_commit": "b170a898c457",
       "changes": "alpha kernel k111 as fallback (user request); same DTB as main",
       "status": "installed-fallback",
-      "healthy": "unknown",
+      "healthy": "yes",
       "installed": "2026-10-01 13:52",
-      "notes": "alpha kernel k111 as fallback at the user's request (Sol advised an independent kernel); not yet rehearsed"
+      "notes": "alpha kernel k111 as fallback (user request); rehearsed PASS 2026-10-01 15:42-15:47: reject main -> safe-k111 boot (running, Wi-Fi, memx, speaker protection, USB power seen via hub) -> reinstall main-k112-d10-261001b"
     },
     {
       "name": "main-k111-d10-261001c",
@@ -319,7 +319,7 @@
       "package": "package-main-k112-d10-261001a",
       "source_commit": "c50a09ac5642",
       "changes": "0151 cs35l45 missed-pause recovery; 0152 msm GPU/GMU recovery (no ring writes without hw_init, bounded dump waits)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 15:36",
       "notes": "booted 15:37, committed healthy; uname 7.2.7-rog5-k112; 0 amp mailbox errors at boot (earlier boots had them ~57 s); both amp DSPs process audio; msm gpu_init_failures 0, inits_ok 8; rog5-gpu-watchdog + rog5-memory-tune active (GLIBC_TUNABLES malloc hugetlb=0)"
@@ -335,9 +335,9 @@
       "package": "package-main-k112-d10-261001b",
       "source_commit": "8202bb9a3d17",
       "changes": "return bundle after the safe-k111 fallback rehearsal (same content as 261001a)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 15:45",
       "notes": null
     }
   ]
