@@ -1,0 +1,197 @@
+#!/bin/bash
+# ROG5 GPU watchdog: reboot when the GPU stays dead.
+#
+# 2026-10-01 13:32 the GMU stopped answering, msm deadlocked in its own
+# recovery and the GPU never came back: phoc and Phosh hung, the phone
+# looked frozen, SSH filled up (MaxStartups) and the user had to hold the
+# power key. None of the existing watchdogs could see it: the persistent-root
+# emergency-reset watchdog only covers the boot (it is disarmed once the
+# current boot's P2 attestation and SSH identity are published), PID 1 kept
+# petting softdog, and the Haven watchdog only bites a stuck CPU.
+#
+# Kernel patch 0152 makes msm retry instead of deadlocking and publishes the
+# GPU's health without taking a lock: msm.gpu_init_failures (failed hardware
+# inits in a row; 0 once one succeeds), msm.gpu_recovering (the recover
+# worker runs) and the counters msm.gpu_inits_ok and msm.gpu_recoveries. This
+# daemon sleeps in a blocking read of the kernel log and wakes only for
+# GPU/GMU errors (GMU watchdog, OOB or HFI timeouts, GMU firmware fault,
+# hangcheck, failed init). GRACE seconds after the first one it reads the
+# parameters; if the GPU is not initialised or a recovery runs, it reads them
+# again CONFIRM seconds later. The GPU counts as dead only if inits kept
+# failing with no successful init in between, or the same recovery (no new
+# one started) was still running; two short recoveries do not count. Then it
+# dumps the blocked tasks (sysrq w) into the log and reboots cleanly
+# (systemctl reboot). A transient unit without shutdown dependencies that
+# survives the shutdown's final kill (SurviveFinalKillSignal, systemd 255+)
+# syncs, remounts read-only and resets through sysrq (s, u, b) if the reboot
+# has not happened FORCE_AFTER seconds later (a process stuck in the
+# driver). A GPU that recovers in time only logs.
+#
+# Without the parameters (a kernel without 0152) it exits: there is nothing
+# lock-free to read, and log lines alone would reboot on every recovered app
+# hang. ROG5_GPUWD_ACTION=log only logs.
+set -u
+PARAMS=${ROG5_GPUWD_PARAMS:-/sys/module/msm/parameters}
+KMSG=${ROG5_GPUWD_KMSG:-/dev/kmsg}
+SYSRQ=${ROG5_GPUWD_SYSRQ:-/proc/sysrq-trigger}
+seconds() {             # $1 = value, $2 = default: decimal seconds, at most 6 digits
+	case $1 in ''|*[!0-9]*) echo "$2" ;; *) [ ${#1} -le 6 ] && echo $((10#$1)) || echo "$2" ;; esac
+}
+GRACE=$(seconds "${ROG5_GPUWD_GRACE:-}" 60)
+CONFIRM=$(seconds "${ROG5_GPUWD_CONFIRM:-}" 10)
+FORCE_AFTER=$(seconds "${ROG5_GPUWD_FORCE_AFTER:-}" 120)
+ACTION=${ROG5_GPUWD_ACTION:-reboot}
+REBOOT_CMD=${ROG5_GPUWD_REBOOT_CMD:-systemctl reboot}
+FALLBACK=${ROG5_GPUWD_FALLBACK:-systemd-run}   # or "inline" (tests)
+# kernel messages that start a health check (msm, a6xx GMU/HFI, 0152)
+PATTERN='GMU watchdog expired|Timeout waiting for GMU OOB|GMU firmware fault|timed out waiting for response|hangcheck recover!|hangcheck detected gpu lockup|hardware init failed|GPU did not come back|GPU not initialised'
+
+log() { echo "rog5-gpu-watchdog: $*"; }
+
+now_s() {               # seconds since boot (counts suspend; no fork)
+	local up
+	read -r up _ </proc/uptime
+	now=${up%.*}
+}
+
+# Prints "failures recovering recoveries inits_ok" (e.g. "0 N 3 1200");
+# fails when unreadable.
+health() {
+	local f r n ok
+	{ read -r f <"$PARAMS/gpu_init_failures" && read -r r <"$PARAMS/gpu_recovering" &&
+	  read -r n <"$PARAMS/gpu_recoveries" && read -r ok <"$PARAMS/gpu_inits_ok"; } 2>/dev/null || return 1
+	case $f$n$ok in *[!0-9]*|'') return 1 ;; esac
+	echo "$f $r $n $ok"
+}
+
+healthy() {             # $1 = output of health()
+	set -- $1
+	[ "$1" = 0 ] && [ "$2" != Y ] && [ "$2" != y ] && [ "$2" != 1 ]
+}
+
+# $1, $2 = two samples CONFIRM apart: dead if inits failed throughout (no
+# success in between) or one recovery ran throughout (none started between).
+dead() {
+	local f1 r1 n1 ok1 f2 r2 n2 ok2
+	read -r f1 r1 n1 ok1 <<<"$1"
+	read -r f2 r2 n2 ok2 <<<"$2"
+	[ "$f1" -gt 0 ] && [ "$f2" -gt 0 ] && [ "$ok1" = "$ok2" ] && return 0
+	case $r1$r2 in YY|yy|11) [ "$n1" = "$n2" ] && return 0 ;; esac
+	return 1
+}
+
+# The kernel log from now on, one matching message per line. The highest
+# sequence number already in the buffer is skipped over; a reopen after an
+# overrun (EPIPE ends cat) does not repeat records either.
+kmsg_events() {
+	local last
+	last=$(dd if="$KMSG" iflag=nonblock bs=16384 2>/dev/null | awk -F'[,;]' '/^[0-9]/ { s = $2 } END { print s + 0 }')
+	# cat ends on an overrun (EPIPE) after reading and is restarted; a log
+	# that cannot be read (missing, or cat failing at once 10 times in a
+	# row) ends the reader, and with it this daemon (systemd restarts it)
+	{ fails=0
+	  while kill -0 $$ 2>/dev/null && [ -r "$KMSG" ] && [ "$fails" -lt 10 ]; do
+		start=$SECONDS
+		if cat "$KMSG" 2>/dev/null || [ $((SECONDS - start)) -ge 2 ]; then
+			fails=0
+		else
+			fails=$((fails + 1))
+		fi
+		sleep 1
+	  done; } |
+		awk -F';' -v last="$last" -v pat="$PATTERN" '
+		/^[0-9]/ {
+			split($1, h, ","); seq = h[2] + 0
+			if (seq <= last) next
+			last = seq
+			msg = substr($0, length($1) + 2)
+			if (msg ~ pat) { print msg; fflush() }
+		}'
+}
+
+# The fallback reset: sysrq s, u, b after $1 seconds into the file $2.
+RESET_SH='sleep "$1"
+echo "rog5-gpu-watchdog: reboot did not happen within $1 s: sync, read-only, reset"
+printf s >>"$2"; sleep 2; printf u >>"$2"; sleep 2; printf b >>"$2"'
+
+reboot_now() {
+	log "GPU dead for at least $CONFIRM s after $GRACE s ($1): rebooting"
+	printf w >>"$SYSRQ" 2>/dev/null   # blocked tasks into the log
+	sleep 1
+	# The fallback must outlive this service's stop and the final kill of
+	# the shutdown (a process stuck in the driver can stall it after that):
+	# a transient unit without shutdown dependencies that survives the
+	# final kill signal (Type=exec: started means the shell runs).
+	if [ "$FALLBACK" = systemd-run ]; then
+		if ! systemd-run --quiet --collect --expand-environment=no \
+			--unit=rog5-gpu-watchdog-reset -p Type=exec \
+			-p DefaultDependencies=no -p SurviveFinalKillSignal=yes \
+			/bin/sh -c "$RESET_SH" sh "$FORCE_AFTER" "$SYSRQ"; then
+			# systemd cannot even start a unit, so it will not reboot
+			# either: no clean reboot, reset now
+			log "fallback unit not started: sync, read-only, reset now"
+			/bin/sh -c "$RESET_SH" sh 0 "$SYSRQ"
+			sleep infinity
+		fi
+	else
+		/bin/sh -c "$RESET_SH" sh "$FORCE_AFTER" "$SYSRQ" </dev/null &   # tests
+	fi
+	$REBOOT_CMD
+	sleep infinity
+}
+
+check_health() {
+	local h h2
+	h=$(health) || { log "GPU health parameters unreadable"; return 0; }
+	healthy "$h" && { log "GPU recovered (init failures, recovering, recoveries, inits: $h)"; return 0; }
+	log "GPU not back after $GRACE s ($h); checking again in $CONFIRM s"
+	sleep "$CONFIRM"
+	h2=$(health) || return 0
+	dead "$h" "$h2" || { log "GPU recovered or recovering again ($h -> $h2)"; return 0; }
+	if [ "$ACTION" = reboot ]; then
+		reboot_now "$h -> $h2"
+	fi
+	log "GPU still dead ($h -> $h2); ROG5_GPUWD_ACTION=$ACTION, not rebooting"
+	return 0
+}
+
+main() {
+	local ev deadline= wait_s h fd
+	[ -r "$KMSG" ] || { log "cannot read $KMSG"; exit 1; }
+	if ! health >/dev/null; then
+		log "no msm.gpu_init_failures/gpu_recovering (kernel without patch 0152): nothing to watch"
+		exit 0
+	fi
+	exec {fd}< <(kmsg_events)
+	# a dead GPU at start (e.g. this daemon was restarted) counts as an error
+	h=$(health) && ! healthy "$h" && { now_s; deadline=$((now + GRACE)); log "GPU unhealthy at start ($h)"; }
+	while :; do
+		wait_s=
+		if [ -n "$deadline" ]; then
+			now_s
+			wait_s=$((deadline - now))
+			if [ "$wait_s" -le 0 ]; then
+				deadline=
+				check_health
+				continue
+			fi
+		fi
+		if [ -n "$wait_s" ]; then
+			IFS= read -r -t "$wait_s" -u "$fd" ev
+		else
+			IFS= read -r -u "$fd" ev
+		fi
+		case $? in
+		0) ;;
+		1) log "kernel log reader ended"; exit 1 ;;   # EOF
+		*) continue ;;                                   # timeout
+		esac
+		if [ -z "$deadline" ]; then
+			now_s
+			deadline=$((now + GRACE))
+			log "GPU error: $ev; health check in $GRACE s"
+		fi
+	done
+}
+
+[ -n "${ROG5_GPUWD_LIB:-}" ] || main

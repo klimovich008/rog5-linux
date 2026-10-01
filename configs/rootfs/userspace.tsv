@@ -46,6 +46,8 @@ file	scripts/device/rog5-desktop	/usr/local/bin/rog5-desktop	0755
 # Power: sleep policy, charge limit and bypass, performance mode, bad-memory retirement
 file	configs/systemd/rog5-sleep-policy.service	/etc/systemd/system/rog5-sleep-policy.service	0644
 file	scripts/device/rog5-sleep-policy	/usr/local/sbin/rog5-sleep-policy	0755
+file	configs/systemd/rog5-gpu-watchdog.service	/etc/systemd/system/rog5-gpu-watchdog.service	0644
+file	scripts/device/rog5-gpu-watchdog	/usr/local/sbin/rog5-gpu-watchdog	0755
 file	configs/systemd/rog5-charge-policy.service	/etc/systemd/system/rog5-charge-policy.service	0644
 file	scripts/device/rog5-charge-policy	/usr/local/sbin/rog5-charge-policy	0755
 conf	configs/rog5/charge-policy	/etc/rog5/charge-policy	0644
@@ -122,6 +124,7 @@ enable	system	rog5-phosh.service
 enable	system	rog5-session-boost.service
 enable	system	rog5-desktop-mode.service
 enable	system	rog5-sleep-policy.service
+enable	system	rog5-gpu-watchdog.service
 enable	system	rog5-charge-policy.service
 enable	system	rog5-perf-mode.service
 enable	system	rog5-sea-retire.service
