@@ -1,0 +1,843 @@
+From a5efc15fac3dcd04ad1b2c77e4db5d656fea03df Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 00:17:24 +0200
+Subject: [PATCH 3/5] media: iris: ROG5: contain fatal firmware errors instead
+ of reloading
+
+On the ROG Phone 5 (SM8350, OEM vpu20_4v firmware) every decode session
+ended with a firmware fatal error (k114 trial). The driver then reloaded
+the firmware from iris_sys_error_handler() while the instances stayed on
+the list with their old session ids: the reloaded firmware answered every
+later command with HFI_ERR_SESSION_INVALID_SESSION_ID (0x1004), waiters
+were never woken (later sessions hung in poll), the cycle repeated, and
+the phone hard-hung four minutes after the last fatal error.
+
+- A system error (dispatched by event type, whatever session id it
+  carries) or a firmware watchdog interrupt latches core->fatal for the
+  rest of this driver binding. iris_core_init() then fails with -EIO and
+  every command is refused; the error is contained from the work item
+  instead of reloading: every instance is set to ERROR, its vb2 queues are
+  errored and its completions woken (each under its own lock; never
+  inst->lock inside core->lock), then the firmware is shut down through
+  TrustZone. Only if that shutdown succeeds is the core powered off and the
+  shared memory freed; otherwise clocks, votes and memory stay (fw_held)
+  and the core is never reused. This also applies to iris_core_deinit().
+- Session commands go through iris_hfi_queue_session_cmd_write(), which
+  refuses them unless the session was opened on the firmware instance that
+  runs now (same core init attempt, no fatal error, core in INIT).
+- iris_wait_for_session_response() returns -EIO when the answer carried
+  an error (the handler set the instance to ERROR before completing) or
+  the wait was ended by a fatal error.
+- An event for an unknown session is logged, not treated as a system
+  error.
+- Interrupt and power ordering: iris_vpu_power_off() disables the IRQ
+  before the clocks go instead of after; the runtime PM callbacks quiesce
+  the IRQ outside core->lock like the teardown paths (the threaded
+  handler takes that lock and disable_irq() waits for it); the threaded
+  handler and the command path touch VPU registers only while
+  core->powered. NOC LPI handshake timeouts during power off are logged.
+- iris_remove() cancels the error work before tearing down.
+
+The driver must be rebound (modprobe -r qcom_iris; modprobe qcom_iris) to
+use the video core again after a fatal error.
+
+ROG5: patch 0159, kernel k115. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_core.c  | 119 +++++++++++++++++-
+ drivers/media/platform/qcom/iris/iris_core.h  |  12 ++
+ .../platform/qcom/iris/iris_hfi_common.c      |   6 +-
+ .../qcom/iris/iris_hfi_gen1_command.c         |  38 +++---
+ .../qcom/iris/iris_hfi_gen1_response.c        |  38 ++++--
+ .../media/platform/qcom/iris/iris_hfi_queue.c |  45 +++++++
+ .../media/platform/qcom/iris/iris_hfi_queue.h |   2 +
+ .../media/platform/qcom/iris/iris_instance.h  |   6 +
+ drivers/media/platform/qcom/iris/iris_probe.c |  20 ++-
+ drivers/media/platform/qcom/iris/iris_utils.c |   8 ++
+ drivers/media/platform/qcom/iris/iris_vidc.c  |   2 +
+ .../platform/qcom/iris/iris_vpu_common.c      |  28 +++--
+ 12 files changed, 276 insertions(+), 48 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index 3a6fe98..0b09883 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -9,6 +9,7 @@
+ 
+ #include "iris_core.h"
+ #include "iris_firmware.h"
++#include "iris_instance.h"
+ #include "iris_state.h"
+ #include "iris_vpu_common.h"
+ 
+@@ -96,8 +97,20 @@ static void iris_core_teardown(struct iris_core *core, bool powered)
+ 	int ret;
+ 
+ 	ret = iris_fw_unload(core);
+-	if (ret)
+-		dev_err(core->dev, "firmware shutdown (PAS) failed: %d\n", ret);
++	if (ret) {
++		/*
++		 * ROG5: the firmware may still run and access the queues and
++		 * buffers: keep clocks, votes and memory instead of pulling them
++		 * from under it, and never reuse this core.
++		 */
++		dev_err(core->dev,
++			"firmware shutdown (PAS) failed: %d; keeping the video core powered and its memory mapped\n",
++			ret);
++		core->fatal = true;
++		core->fw_held = true;
++		core->state = IRIS_CORE_ERROR;
++		return;
++	}
+ 
+ 	if (powered)
+ 		iris_vpu_power_off(core);
+@@ -124,13 +137,14 @@ static void __iris_core_deinit(struct iris_core *core, bool any, u32 attempt, in
+ 	disable_irq(core->irq);
+ 
+ 	mutex_lock(&core->lock);
+-	if (core->state != IRIS_CORE_DEINIT && (any || core->init_attempt == attempt)) {
++	if (core->state != IRIS_CORE_DEINIT && !core->fw_held &&
++	    (any || core->init_attempt == attempt)) {
+ 		if (!any) {
+ 			dev_err(core->dev, "firmware did not complete system init (%d), powering the core off\n",
+ 				err);
+ 			iris_core_dump_diag_locked(core, "core init", true);
+ 		}
+-		iris_core_teardown(core, !ret);
++		iris_core_teardown(core, core->powered);
+ 	}
+ 	mutex_unlock(&core->lock);
+ 
+@@ -139,6 +153,98 @@ static void __iris_core_deinit(struct iris_core *core, bool any, u32 attempt, in
+ 		pm_runtime_put_sync(core->dev);
+ }
+ 
++/*
++ * ROG5: the firmware reported a fatal system error or its watchdog fired.
++ * Called from the interrupt thread (no core lock held). Upstream reloaded
++ * the firmware right away; the instances kept their old session ids, and the
++ * reloaded firmware answered every later command with "invalid session id"
++ * (0x1004) until it failed again (ROG Phone 5 trial, k114). Latch the error
++ * for the rest of this binding instead and contain it from a work item.
++ */
++void iris_core_fatal(struct iris_core *core, const char *reason)
++{
++	mutex_lock(&core->lock);
++	if (!core->fatal)
++		dev_err(core->dev,
++			"fatal firmware error (%s): no reload; video stays unavailable until qcom_iris is reloaded\n",
++			reason);
++	core->fatal = true;
++	if (core->state == IRIS_CORE_INIT)
++		core->state = IRIS_CORE_ERROR;
++	mutex_unlock(&core->lock);
++
++	schedule_delayed_work(&core->sys_error_handler, 0);
++}
++
++static void iris_core_fail_instance(struct iris_inst *inst)
++{
++	mutex_lock(&inst->lock);
++	iris_inst_change_state(inst, IRIS_INST_ERROR);
++	/* wake poll() and every buffer wait; the context is gone once closing */
++	if (!inst->closing)
++		iris_vb2_queue_error(inst);
++	complete_all(&inst->completion);
++	complete_all(&inst->flush_completion);
++	mutex_unlock(&inst->lock);
++}
++
++/*
++ * ROG5: work item after a fatal error. First every instance is failed and
++ * woken (each under its own lock, never under core->lock, which the command
++ * paths take inside inst->lock). Then the interrupt is quiesced outside
++ * core->lock and the firmware shut down; only if TrustZone accepted the
++ * shutdown is the core powered off and the shared memory freed.
++ */
++void iris_core_contain_fatal(struct iris_core *core)
++{
++	struct iris_inst *inst;
++	bool powered;
++	int ret;
++
++	mutex_lock(&core->lock);
++	core->fatal = true;
++	if (core->state == IRIS_CORE_INIT)
++		core->state = IRIS_CORE_ERROR;
++	mutex_unlock(&core->lock);
++
++	for (;;) {
++		struct iris_inst *found = NULL;
++
++		mutex_lock(&core->lock);
++		list_for_each_entry(inst, &core->instances, list) {
++			if (!inst->fatal_notified) {
++				inst->fatal_notified = true;
++				kref_get(&inst->ref);
++				found = inst;
++				break;
++			}
++		}
++		mutex_unlock(&core->lock);
++		if (!found)
++			break;
++		iris_core_fail_instance(found);
++		iris_put_instance(found);
++	}
++
++	ret = pm_runtime_resume_and_get(core->dev);
++	disable_irq(core->irq);
++
++	mutex_lock(&core->lock);
++	complete_all(&core->core_init_done);
++	if (core->state != IRIS_CORE_DEINIT && !core->fw_held) {
++		powered = core->powered;
++		iris_core_dump_diag_locked(core, "fatal", false);
++		iris_core_teardown(core, powered);
++		if (core->state == IRIS_CORE_DEINIT)
++			dev_err(core->dev, "video core shut down after the fatal error\n");
++	}
++	mutex_unlock(&core->lock);
++
++	enable_irq(core->irq);
++	if (ret >= 0)
++		pm_runtime_put_sync(core->dev);
++}
++
+ void iris_core_deinit(struct iris_core *core)
+ {
+ 	__iris_core_deinit(core, true, 0, 0);
+@@ -183,6 +289,11 @@ int iris_core_init(struct iris_core *core)
+ 	int ret;
+ 
+ 	mutex_lock(&core->lock);
++	if (core->fatal) {
++		/* ROG5: latched until the driver is rebound */
++		ret = -EIO;
++		goto exit;
++	}
+ 	if (core->state == IRIS_CORE_INIT) {
+ 		ret = 0;
+ 		goto exit;
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index 2523658..192f470 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -96,6 +96,13 @@ struct qcom_ubwc_cfg_data;
+  * @fw_log_next: next slot in @fw_log
+  * @diag_jiffies: time of the last diagnostic dump (rate limit)
+  * @diag_pending: a system error asked for a dump once the debug queue is read
++ * @fatal: the firmware reported a fatal error (or its watchdog fired); latched
++ *	   until the driver is rebound: no reload, new opens and every session
++ *	   command fail with -EIO (ROG5)
++ * @fw_held: the firmware could not be shut down: clocks, votes and the
++ *	     shared memory stay in place (ROG5)
++ * @powered: the core's clocks and power domains are on (ROG5); gates MMIO
++ *	     from the interrupt thread and the command path
+  */
+ 
+ struct iris_core {
+@@ -149,6 +156,9 @@ struct iris_core {
+ 	u32					fw_log_next;
+ 	unsigned long				diag_jiffies;
+ 	bool					diag_pending;
++	bool					fatal;
++	bool					fw_held;
++	bool					powered;
+ };
+ 
+ int iris_core_init(struct iris_core *core);
+@@ -156,5 +166,7 @@ void iris_core_deinit(struct iris_core *core);
+ void iris_core_trace(struct iris_core *core, u32 dir, const void *pkt);
+ void iris_core_fw_log(struct iris_core *core, const u8 *msg, size_t len);
+ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool force);
++void iris_core_fatal(struct iris_core *core, const char *reason);
++void iris_core_contain_fatal(struct iris_core *core);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.c b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+index 8769ec6..ff94342 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+@@ -106,7 +106,11 @@ irqreturn_t iris_hfi_isr_handler(int irq, void *data)
+ 
+ 	mutex_lock(&core->lock);
+ 	pm_runtime_mark_last_busy(core->dev);
+-	iris_vpu_clear_interrupt(core);
++	/* ROG5: no register access once the clocks are off */
++	if (core->powered)
++		iris_vpu_clear_interrupt(core);
++	else
++		dev_warn_ratelimited(core->dev, "interrupt while powered off\n");
+ 	mutex_unlock(&core->lock);
+ 
+ 	core->hfi_sys_ops->sys_hfi_response_handler(core);
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 6e76f8b..81d2e0c 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -152,7 +152,7 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
+ 
+ 	reinit_completion(&inst->completion);
+ 
+-	ret = iris_hfi_queue_cmd_write(inst->core, &packet, packet.shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -174,12 +174,11 @@ static int iris_hfi_gen1_session_close(struct iris_inst *inst)
+ 
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SYS_SESSION_END);
+ 
+-	return iris_hfi_queue_cmd_write(inst->core, &packet, packet.shdr.hdr.size);
++	return iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ }
+ 
+ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ {
+-	struct iris_core *core = inst->core;
+ 	struct hfi_session_pkt packet;
+ 	int ret;
+ 
+@@ -192,7 +191,7 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	reinit_completion(&inst->completion);
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_LOAD_RESOURCES);
+ 
+-	ret = iris_hfi_queue_cmd_write(core, &packet, packet.shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -203,7 +202,7 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	reinit_completion(&inst->completion);
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_START);
+ 
+-	ret = iris_hfi_queue_cmd_write(core, &packet, packet.shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -217,7 +216,6 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ {
+ 	struct hfi_session_flush_pkt flush_pkt;
+-	struct iris_core *core = inst->core;
+ 	struct hfi_session_pkt pkt;
+ 	u32 flush_type = 0;
+ 	int ret = 0;
+@@ -236,7 +234,7 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ 			flush_pkt.shdr.session_id = inst->session_id;
+ 			flush_pkt.flush_type = flush_type;
+ 
+-			ret = iris_hfi_queue_cmd_write(core, &flush_pkt, flush_pkt.shdr.hdr.size);
++			ret = iris_hfi_queue_session_cmd_write(inst, &flush_pkt, flush_pkt.shdr.hdr.size);
+ 			if (!ret) {
+ 				inst->flush_responses_pending++;
+ 				ret = iris_wait_for_session_response(inst, true);
+@@ -244,14 +242,14 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ 		} else if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES) {
+ 			reinit_completion(&inst->completion);
+ 			iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_STOP);
+-			ret = iris_hfi_queue_cmd_write(core, &pkt, pkt.shdr.hdr.size);
++			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+ 			if (!ret)
+ 				ret = iris_wait_for_session_response(inst, false);
+ 
+ 			reinit_completion(&inst->completion);
+ 			iris_hfi_gen1_packet_session_cmd(inst, &pkt,
+ 							 HFI_CMD_SESSION_RELEASE_RESOURCES);
+-			ret = iris_hfi_queue_cmd_write(core, &pkt, pkt.shdr.hdr.size);
++			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+ 			if (!ret)
+ 				ret = iris_wait_for_session_response(inst, false);
+ 
+@@ -268,14 +266,14 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ 		    inst->state == IRIS_INST_ERROR) {
+ 			reinit_completion(&inst->completion);
+ 			iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_STOP);
+-			ret = iris_hfi_queue_cmd_write(core, &pkt, pkt.shdr.hdr.size);
++			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+ 			if (!ret)
+ 				ret = iris_wait_for_session_response(inst, false);
+ 
+ 			reinit_completion(&inst->completion);
+ 			iris_hfi_gen1_packet_session_cmd(inst, &pkt,
+ 							 HFI_CMD_SESSION_RELEASE_RESOURCES);
+-			ret = iris_hfi_queue_cmd_write(core, &pkt, pkt.shdr.hdr.size);
++			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+ 			if (!ret)
+ 				ret = iris_wait_for_session_response(inst, false);
+ 
+@@ -297,7 +295,7 @@ static int iris_hfi_gen1_session_continue(struct iris_inst *inst, u32 plane)
+ 
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_CONTINUE);
+ 
+-	return iris_hfi_queue_cmd_write(inst->core, &packet, packet.shdr.hdr.size);
++	return iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ }
+ 
+ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+@@ -319,7 +317,7 @@ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_
+ 		com_ip_pkt.filled_len = buf->data_size;
+ 		com_ip_pkt.input_tag = buf->index;
+ 		com_ip_pkt.packet_buffer = buf->device_addr;
+-		return iris_hfi_queue_cmd_write(inst->core, &com_ip_pkt,
++		return iris_hfi_queue_session_cmd_write(inst, &com_ip_pkt,
+ 						com_ip_pkt.shdr.hdr.size);
+ 	} else {
+ 		uncom_ip_pkt.shdr.hdr.size =
+@@ -337,7 +335,7 @@ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_
+ 		uncom_ip_pkt.filled_len = buf->data_size;
+ 		uncom_ip_pkt.input_tag = buf->index;
+ 		uncom_ip_pkt.packet_buffer = buf->device_addr;
+-		return iris_hfi_queue_cmd_write(inst->core, &uncom_ip_pkt,
++		return iris_hfi_queue_session_cmd_write(inst, &uncom_ip_pkt,
+ 						uncom_ip_pkt.shdr.hdr.size);
+ 	}
+ }
+@@ -362,7 +360,7 @@ static int iris_hfi_gen1_queue_output_buffer(struct iris_inst *inst, struct iris
+ 	else
+ 		op_pkt.stream_id = 0;
+ 
+-	return iris_hfi_queue_cmd_write(inst->core, &op_pkt, op_pkt.shdr.hdr.size);
++	return iris_hfi_queue_session_cmd_write(inst, &op_pkt, op_pkt.shdr.hdr.size);
+ }
+ 
+ static int iris_hfi_gen1_queue_internal_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+@@ -393,7 +391,7 @@ static int iris_hfi_gen1_queue_internal_buffer(struct iris_inst *inst, struct ir
+ 	}
+ 
+ 	int_pkt->buffer_type = buffer_type;
+-	ret = iris_hfi_queue_cmd_write(inst->core, int_pkt, int_pkt->shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, int_pkt, int_pkt->shdr.hdr.size);
+ 
+ exit:
+ 	kfree(int_pkt);
+@@ -465,7 +463,7 @@ static int iris_hfi_gen1_session_unset_buffers(struct iris_inst *inst, struct ir
+ 	pkt->response_req = true;
+ 	pkt->buffer_type = buffer_type;
+ 
+-	ret = iris_hfi_queue_cmd_write(inst->core, pkt, pkt->shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, pkt, pkt->shdr.hdr.size);
+ 	if (ret)
+ 		goto exit;
+ 
+@@ -490,7 +488,7 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+ 		ip_pkt.flags = HFI_BUFFERFLAG_EOS;
+ 		ip_pkt.packet_buffer = 0xdeadb000;
+ 
+-		return iris_hfi_queue_cmd_write(inst->core, &ip_pkt, ip_pkt.shdr.hdr.size);
++		return iris_hfi_queue_session_cmd_write(inst, &ip_pkt, ip_pkt.shdr.hdr.size);
+ 	}
+ 
+ 	if (inst->domain == ENCODER) {
+@@ -502,7 +500,7 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+ 		ip_pkt.flags = HFI_BUFFERFLAG_EOS;
+ 		ip_pkt.packet_buffer = 0xdeadb000;
+ 
+-		return iris_hfi_queue_cmd_write(inst->core, &ip_pkt, ip_pkt.shdr.hdr.size);
++		return iris_hfi_queue_session_cmd_write(inst, &ip_pkt, ip_pkt.shdr.hdr.size);
+ 	}
+ 
+ 	return -EINVAL;
+@@ -797,7 +795,7 @@ static int hfi_gen1_set_property(struct iris_inst *inst, u32 packet_type,
+ 	if (ret)
+ 		goto exit;
+ 
+-	ret = iris_hfi_queue_cmd_write(inst->core, pkt, pkt->shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, pkt, pkt->shdr.hdr.size);
+ 
+ exit:
+ 	kfree(pkt);
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index a24f996..b8d9657 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -11,6 +11,7 @@
+ #include "iris_instance.h"
+ #include "iris_vdec.h"
+ #include "iris_vpu_buffer.h"
++#include "iris_vpu_common.h"
+ 
+ static void iris_hfi_gen1_read_changed_params(struct iris_inst *inst,
+ 					      struct hfi_msg_event_notify_pkt *pkt)
+@@ -206,7 +207,7 @@ static void iris_hfi_gen1_event_seq_changed(struct iris_inst *inst,
+ 		flush_pkt.shdr.hdr.pkt_type = HFI_CMD_SESSION_FLUSH;
+ 		flush_pkt.shdr.session_id = inst->session_id;
+ 		flush_pkt.flush_type = HFI_FLUSH_OUTPUT;
+-		if (!iris_hfi_queue_cmd_write(inst->core, &flush_pkt, flush_pkt.shdr.hdr.size))
++		if (!iris_hfi_queue_session_cmd_write(inst, &flush_pkt, flush_pkt.shdr.hdr.size))
+ 			inst->flush_responses_pending++;
+ 	}
+ 
+@@ -218,7 +219,6 @@ static void
+ iris_hfi_gen1_sys_event_notify(struct iris_core *core, void *packet)
+ {
+ 	struct hfi_msg_event_notify_pkt *pkt = packet;
+-	struct iris_inst *instance;
+ 
+ 	if (pkt->event_id == HFI_EVENT_SYS_ERROR)
+ 		dev_err(core->dev, "sys error (type: %x, session id:%x, data1:%x, data2:%x)\n",
+@@ -228,14 +228,8 @@ iris_hfi_gen1_sys_event_notify(struct iris_core *core, void *packet)
+ 	/* ROG5: dumped after the debug queue is drained (response handler) */
+ 	core->diag_pending = true;
+ 
+-	core->state = IRIS_CORE_ERROR;
+-
+-	mutex_lock(&core->lock);
+-	list_for_each_entry(instance, &core->instances, list)
+-		iris_inst_change_state(instance, IRIS_INST_ERROR);
+-	mutex_unlock(&core->lock);
+-
+-	schedule_delayed_work(&core->sys_error_handler, msecs_to_jiffies(10));
++	/* ROG5: latch and contain instead of failing the instances and reloading */
++	iris_core_fatal(core, "sys error");
+ }
+ 
+ static void
+@@ -447,7 +441,7 @@ static void iris_hfi_gen1_session_ftb_done(struct iris_inst *inst, void *packet)
+ 		flush_pkt.shdr.hdr.pkt_type = HFI_CMD_SESSION_FLUSH;
+ 		flush_pkt.shdr.session_id = inst->session_id;
+ 		flush_pkt.flush_type = HFI_FLUSH_OUTPUT;
+-		if (!iris_hfi_queue_cmd_write(core, &flush_pkt, flush_pkt.shdr.hdr.size))
++		if (!iris_hfi_queue_session_cmd_write(inst, &flush_pkt, flush_pkt.shdr.hdr.size))
+ 			inst->flush_responses_pending++;
+ 
+ 		iris_inst_sub_state_change_drain_last(inst);
+@@ -643,6 +637,15 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 		break;
+ 	case HFI_MSG_EVENT_NOTIFY:
+ 		pkt = (struct hfi_session_pkt *)hdr;
++		/*
++		 * ROG5: a system error is a system error whatever session id it
++		 * carries, and an event for a session that no longer exists
++		 * (a late answer to a closed session) is not one.
++		 */
++		if (((struct hfi_msg_event_notify_pkt *)hdr)->event_id == HFI_EVENT_SYS_ERROR) {
++			iris_hfi_gen1_sys_event_notify(core, hdr);
++			break;
++		}
+ 		inst = iris_get_instance(core, pkt->shdr.session_id);
+ 		if (inst) {
+ 			mutex_lock(&inst->lock);
+@@ -650,7 +653,12 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 			mutex_unlock(&inst->lock);
+ 			iris_put_instance(inst);
+ 		} else {
+-			iris_hfi_gen1_sys_event_notify(core, hdr);
++			struct hfi_msg_event_notify_pkt *evt = (struct hfi_msg_event_notify_pkt *)hdr;
++
++			dev_warn_ratelimited(dev,
++					     "event %#x for unknown session %#x (data1 %#x, data2 %#x)\n",
++					     evt->event_id, pkt->shdr.session_id,
++					     evt->event_data1, evt->event_data2);
+ 		}
+ 
+ 		break;
+@@ -718,6 +726,12 @@ static void iris_hfi_gen1_flush_debug_queue(struct iris_core *core, u8 *packet)
+ 
+ void iris_hfi_gen1_response_handler(struct iris_core *core)
+ {
++	/* ROG5: a firmware watchdog is fatal even without an error packet */
++	if (iris_vpu_watchdog(core, core->intr_status)) {
++		core->diag_pending = true;
++		iris_core_fatal(core, "firmware watchdog");
++	}
++
+ 	memset(core->response_packet, 0, sizeof(struct hfi_pkt_hdr));
+ 	while (!iris_hfi_queue_msg_read(core, core->response_packet)) {
+ 		iris_hfi_gen1_handle_response(core, core->response_packet);
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_queue.c b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+index 85bc520..09029ff 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_queue.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+@@ -7,6 +7,7 @@
+ 
+ #include "iris_core.h"
+ #include "iris_hfi_queue.h"
++#include "iris_instance.h"
+ #include "iris_vpu_common.h"
+ 
+ static int iris_hfi_queue_write(struct iris_iface_q_info *qinfo, void *packet, u32 packet_size)
+@@ -113,9 +114,18 @@ int iris_hfi_queue_cmd_write_locked(struct iris_core *core, void *pkt, u32 pkt_s
+ {
+ 	struct iris_iface_q_info *q_info = &core->command_queue;
+ 
++	if (core->fatal)
++		return -EIO;
++
+ 	if (core->state == IRIS_CORE_ERROR || core->state == IRIS_CORE_DEINIT)
+ 		return -EINVAL;
+ 
++	if (!core->powered) {
++		dev_err_ratelimited(core->dev, "command %#x while powered off\n",
++				    ((u32 *)pkt)[1]);
++		return -EIO;
++	}
++
+ 	if (!iris_hfi_queue_write(q_info, pkt, pkt_size)) {
+ 		iris_core_trace(core, 't', pkt);
+ 		iris_vpu_raise_interrupt(core);
+@@ -153,6 +163,41 @@ exit:
+ 	return ret;
+ }
+ 
++/*
++ * ROG5: a session command reaches the firmware only if the session was
++ * opened on the firmware instance that runs now (no fatal error, same core
++ * init attempt). Commands for a session of an earlier firmware instance are
++ * what produced "invalid session id" (0x1004) after upstream's reload.
++ */
++int iris_hfi_queue_session_cmd_write(struct iris_inst *inst, void *pkt, u32 pkt_size)
++{
++	struct iris_core *core = inst->core;
++	int ret;
++
++	ret = pm_runtime_resume_and_get(core->dev);
++	if (ret < 0)
++		return ret;
++
++	mutex_lock(&core->lock);
++	if (core->fatal || core->state != IRIS_CORE_INIT ||
++	    inst->fw_gen != core->init_attempt)
++		ret = -EIO;
++	else
++		ret = iris_hfi_queue_cmd_write_locked(core, pkt, pkt_size);
++	mutex_unlock(&core->lock);
++	if (ret)
++		goto exit;
++
++	pm_runtime_put_autosuspend(core->dev);
++
++	return 0;
++
++exit:
++	pm_runtime_put_sync(core->dev);
++
++	return ret;
++}
++
+ int iris_hfi_queue_msg_read(struct iris_core *core, void *pkt)
+ {
+ 	struct iris_iface_q_info *q_info = &core->message_queue;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_queue.h b/drivers/media/platform/qcom/iris/iris_hfi_queue.h
+index 2174fc5..e5868b0 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_queue.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_queue.h
+@@ -7,6 +7,7 @@
+ #define __IRIS_HFI_QUEUE_H__
+ 
+ struct iris_core;
++struct iris_inst;
+ 
+ /*
+  * Max 64 Buffers ( 32 input buffers and 32 output buffers)
+@@ -176,6 +177,7 @@ void iris_hfi_queues_deinit(struct iris_core *core);
+ 
+ int iris_hfi_queue_cmd_write_locked(struct iris_core *core, void *pkt, u32 pkt_size);
+ int iris_hfi_queue_cmd_write(struct iris_core *core, void *pkt, u32 pkt_size);
++int iris_hfi_queue_session_cmd_write(struct iris_inst *inst, void *pkt, u32 pkt_size);
+ int iris_hfi_queue_msg_read(struct iris_core *core, void *pkt);
+ int iris_hfi_queue_dbg_read(struct iris_core *core, void *pkt);
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index 9cab0ce..d5f88e9 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -83,6 +83,10 @@ enum iris_fmt_type_cap {
+  *	 looked the instance up hold one (ROG5)
+  * @closing: close has started: responses only complete waits and no longer
+  *	     touch the m2m context, controls or formats (ROG5)
++ * @fatal_notified: failed and woken after a fatal firmware error (ROG5,
++ *		    protected by core->lock)
++ * @fw_gen: core init attempt (firmware instance) this session was opened
++ *	    on; session commands for another one are refused (ROG5)
+  */
+ 
+ struct iris_inst {
+@@ -132,6 +136,8 @@ struct iris_inst {
+ 	u32				hfi_layer_count;
+ 	struct kref			ref;
+ 	bool				closing;
++	bool				fatal_notified;
++	u32				fw_gen;
+ };
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index c2dcb50..5ec5991 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -200,6 +200,7 @@ static void iris_remove(struct platform_device *pdev)
+ 	if (!core)
+ 		return;
+ 
++	cancel_delayed_work_sync(&core->sys_error_handler);
+ 	iris_core_deinit(core);
+ 
+ 	video_unregister_device(core->vdev_dec);
+@@ -215,8 +216,8 @@ static void iris_sys_error_handler(struct work_struct *work)
+ 	struct iris_core *core =
+ 			container_of(work, struct iris_core, sys_error_handler.work);
+ 
+-	iris_core_deinit(core);
+-	iris_core_init(core);
++	/* ROG5: contain instead of reloading (see iris_core_fatal()) */
++	iris_core_contain_fatal(core);
+ }
+ 
+ static int iris_probe(struct platform_device *pdev)
+@@ -314,6 +315,13 @@ err_v4l2_unreg:
+ 	return ret;
+ }
+ 
++/*
++ * ROG5: both callbacks quiesce the interrupt before taking core->lock: the
++ * interrupt thread takes that lock, and the power-off path waits for it in
++ * disable_irq(). The extra disable is undone at the end, which leaves the
++ * depth power off/on set. After a fatal error the hardware is left to
++ * iris_core_contain_fatal().
++ */
+ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ {
+ 	struct iris_core *core;
+@@ -321,14 +329,16 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 
+ 	core = dev_get_drvdata(dev);
+ 
++	disable_irq(core->irq);
+ 	mutex_lock(&core->lock);
+-	if (core->state != IRIS_CORE_INIT)
++	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
+ 	ret = iris_hfi_pm_suspend(core);
+ 
+ exit:
+ 	mutex_unlock(&core->lock);
++	enable_irq(core->irq);
+ 
+ 	return ret;
+ }
+@@ -340,8 +350,9 @@ static int __maybe_unused iris_pm_resume(struct device *dev)
+ 
+ 	core = dev_get_drvdata(dev);
+ 
++	disable_irq(core->irq);
+ 	mutex_lock(&core->lock);
+-	if (core->state != IRIS_CORE_INIT)
++	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
+ 	ret = iris_hfi_pm_resume(core);
+@@ -349,6 +360,7 @@ static int __maybe_unused iris_pm_resume(struct device *dev)
+ 
+ exit:
+ 	mutex_unlock(&core->lock);
++	enable_irq(core->irq);
+ 
+ 	return ret;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index 60d3111..6b044e3 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -82,6 +82,14 @@ int iris_wait_for_session_response(struct iris_inst *inst, bool is_flush)
+ 		return -ETIMEDOUT;
+ 	}
+ 
++	/*
++	 * ROG5: an answer that carried an error (the handler set the instance
++	 * to ERROR before completing) or a wake-up after a fatal firmware
++	 * error is a failure, not a success.
++	 */
++	if (READ_ONCE(inst->core->fatal) || inst->state == IRIS_INST_ERROR)
++		return -EIO;
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 5451d45..5e32908 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -52,6 +52,8 @@ static void iris_add_session(struct iris_inst *inst)
+ 
+ 	if (count < core->iris_platform_data->max_session_count)
+ 		list_add_tail(&inst->list, &core->instances);
++	/* ROG5: the firmware instance this session belongs to */
++	inst->fw_gen = core->init_attempt;
+ 
+ 	mutex_unlock(&core->lock);
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index 819db75..4c6739e 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -187,23 +187,29 @@ int iris_vpu_power_off_controller(struct iris_core *core)
+ 
+ 		ret = readl_poll_timeout(core->reg_base + AON_WRAPPER_MVP_NOC_LPI_STATUS,
+ 					 val, val & BIT(0), 200, 2000);
+-		if (ret)
++		if (ret) {
++			dev_err(core->dev, "AON NOC LPI handshake timed out (%#x)\n", val);
+ 			goto disable_power;
++		}
+ 	}
+ 
+ 	writel(REQ_POWER_DOWN_PREP, core->reg_base + WRAPPER_IRIS_CPU_NOC_LPI_CONTROL);
+ 
+ 	ret = readl_poll_timeout(core->reg_base + WRAPPER_IRIS_CPU_NOC_LPI_STATUS,
+ 				 val, val & BIT(0), 200, 2000);
+-	if (ret)
++	if (ret) {
++		dev_err(core->dev, "CPU NOC LPI handshake timed out (%#x)\n", val);
+ 		goto disable_power;
++	}
+ 
+ 	writel(0x0, core->reg_base + WRAPPER_DEBUG_BRIDGE_LPI_CONTROL);
+ 
+ 	ret = readl_poll_timeout(core->reg_base + WRAPPER_DEBUG_BRIDGE_LPI_STATUS,
+ 				 val, val == 0, 200, 2000);
+-	if (ret)
++	if (ret) {
++		dev_err(core->dev, "debug bridge LPI handshake timed out (%#x)\n", val);
+ 		goto disable_power;
++	}
+ 
+ 	writel(CTL_AXI_CLK_HALT | CTL_CLK_HALT,
+ 	       core->reg_base + WRAPPER_TZ_CTL_AXI_CLOCK_CONFIG);
+@@ -231,13 +237,20 @@ void iris_vpu_power_off_hw(struct iris_core *core)
+ 
+ void iris_vpu_power_off(struct iris_core *core)
+ {
++	/*
++	 * ROG5: stop interrupt handling before the clocks go, not after: the
++	 * interrupt thread reads and clears VPU registers. Every caller has
++	 * already quiesced the line outside core->lock, so this does not wait.
++	 */
++	if (!iris_vpu_watchdog(core, core->intr_status))
++		disable_irq(core->irq);
++	core->powered = false;
++
+ 	iris_opp_set_rate(core->dev, 0);
+ 	core->iris_platform_data->vpu_ops->power_off_hw(core);
+-	core->iris_platform_data->vpu_ops->power_off_controller(core);
++	if (core->iris_platform_data->vpu_ops->power_off_controller(core))
++		dev_err(core->dev, "controller power off reported an error\n");
+ 	iris_unset_icc_bw(core);
+-
+-	if (!iris_vpu_watchdog(core, core->intr_status))
+-		disable_irq(core->irq);
+ }
+ 
+ int iris_vpu_power_on_controller(struct iris_core *core)
+@@ -487,6 +500,7 @@ int iris_vpu_power_on(struct iris_core *core)
+ 
+ 	iris_vpu_interrupt_init(core);
+ 	core->intr_status = 0;
++	core->powered = true;
+ 	enable_irq(core->irq);
+ 
+ 	return 0;

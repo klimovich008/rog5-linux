@@ -1,0 +1,147 @@
+From 3c9749f7095f89a699a826b95ffacaa6320f2baf Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 00:20:31 +0200
+Subject: [PATCH 5/5] media: iris: ROG5: switchable OEM-firmware experiments
+ (EOS buffer, power collapse)
+
+Two differences between upstream gen1 and the stock msm_vidc driver are
+candidates for the fatal error the ROG Phone 5's OEM firmware raises at the
+end of every decode session (k114 trial):
+
+- Decoder drain: upstream sends the EOS packet with the dummy address
+  0xdeadb000 and no length (Qualcomm made that the rule for all codecs
+  because supported firmware accepts it); stock allocates a real 4 KiB
+  buffer and sends its address and allocation length
+  (msm_vidc_common.c:4262-4270, 4339). The firmware's fatal marker,
+  0xdeadbead, is close to that dummy address, but nothing proves the link.
+- Inter-frame power collapse (HFI_PROPERTY_SYS_CODEC_POWER_PLANE_CTRL),
+  which upstream always enables at core init.
+
+Module parameters, both default to the upstream behaviour and are read
+when used, so a trial can switch them in /sys/module/qcom_iris/parameters
+without a rebuild: eos_buffer=1 allocates the EOS buffer per decoder
+session on its first drain (freed after SESSION_END, kept if the firmware
+could not be shut down) and ignores its EBD like the dummy one;
+interframe_pc=0 disables the power collapse at the next firmware load.
+
+ROG5: patch 0161, kernel k115. Not in upstream.
+---
+ .../qcom/iris/iris_hfi_gen1_command.c         | 38 ++++++++++++++++++-
+ .../qcom/iris/iris_hfi_gen1_response.c        |  3 +-
+ .../media/platform/qcom/iris/iris_instance.h  |  4 ++
+ drivers/media/platform/qcom/iris/iris_vidc.c  |  3 ++
+ 4 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index d08ee62..9a4ae8d 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -19,6 +19,27 @@ static unsigned int fw_debug = 0x18;
+ module_param(fw_debug, uint, 0644);
+ MODULE_PARM_DESC(fw_debug, "HFI firmware debug mask after SYS_INIT (0x18 = error|fatal, 0 = off)");
+ 
++/*
++ * ROG5 experiments for the SM8350 OEM firmware, both off by default so the
++ * driver behaves as upstream. Read when used, so they can be changed in
++ * /sys/module/qcom_iris/parameters between sessions without a rebuild.
++ *
++ * eos_buffer: decoder drain (V4L2_DEC_CMD_STOP) sends a real 4 KiB DMA
++ * buffer as the EOS packet, like the stock msm_vidc driver
++ * (msm_vidc_common.c:4339), instead of upstream's dummy address 0xdeadb000.
++ *
++ * interframe_pc: value of HFI_PROPERTY_SYS_CODEC_POWER_PLANE_CTRL sent at
++ * core init (firmware power collapse between frames); applies to the next
++ * firmware load.
++ */
++static bool eos_buffer;
++module_param(eos_buffer, bool, 0644);
++MODULE_PARM_DESC(eos_buffer, "decoder drain sends a real 4 KiB EOS buffer (stock behaviour) instead of 0xdeadb000");
++
++static bool interframe_pc = true;
++module_param(interframe_pc, bool, 0644);
++MODULE_PARM_DESC(interframe_pc, "enable firmware inter-frame power collapse at core init");
++
+ static u32 iris_hfi_gen1_buf_type_from_driver(enum iris_buffer_type buffer_type)
+ {
+ 	switch (buffer_type) {
+@@ -100,7 +121,7 @@ static int iris_hfi_gen1_sys_interframe_powercollapse(struct iris_core *core)
+ 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+ 	pkt->num_properties = 1;
+ 	pkt->data[0] = HFI_PROPERTY_SYS_CODEC_POWER_PLANE_CTRL;
+-	hfi->enable = true;
++	hfi->enable = READ_ONCE(interframe_pc);
+ 
+ 	ret = iris_hfi_queue_cmd_write_locked(core, pkt, pkt->hdr.size);
+ 	kfree(pkt);
+@@ -512,6 +533,21 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+ 		ip_pkt.flags = HFI_BUFFERFLAG_EOS;
+ 		ip_pkt.packet_buffer = 0xdeadb000;
+ 
++		if (READ_ONCE(eos_buffer)) {
++			struct iris_core *core = inst->core;
++
++			if (!inst->eos_vaddr)
++				inst->eos_vaddr = dma_alloc_attrs(core->dev, SZ_4K, &inst->eos_daddr,
++								  GFP_KERNEL, 0);
++			if (!inst->eos_vaddr)
++				return -ENOMEM;
++			ip_pkt.packet_buffer = lower_32_bits(inst->eos_daddr);
++			ip_pkt.alloc_len = SZ_4K;
++			ip_pkt.filled_len = 0;
++		}
++		dev_dbg(inst->core->dev, "session %#x: drain, EOS buffer %#x\n",
++			inst->session_id, ip_pkt.packet_buffer);
++
+ 		return iris_hfi_queue_session_cmd_write(inst, &ip_pkt, ip_pkt.shdr.hdr.size);
+ 	}
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index c98a4ad..b155b11 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -359,7 +359,8 @@ static void iris_hfi_gen1_session_etb_done(struct iris_inst *inst, void *packet)
+ 	bool found = false;
+ 
+ 	/* EOS buffer sent via drain won't be in v4l2 buffer list */
+-	if (pkt->packet_buffer == 0xdeadb000)
++	if (pkt->packet_buffer == 0xdeadb000 ||
++	    (inst->eos_vaddr && pkt->packet_buffer == lower_32_bits(inst->eos_daddr)))
+ 		return;
+ 
+ 	v4l2_m2m_for_each_src_buf_safe(m2m_ctx, m2m_buffer, n) {
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index a2df46d..de9098b 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -90,6 +90,8 @@ enum iris_fmt_type_cap {
+  * @expected_msg: HFI answer the current wait on @completion expects; other
+  *		  answers do not complete it (ROG5, gen1)
+  * @end_sent: SESSION_END was sent; close only waits for its answer (ROG5)
++ * @eos_vaddr: real EOS buffer for the decoder drain (eos_buffer parameter, ROG5)
++ * @eos_daddr: its device address
+  */
+ 
+ struct iris_inst {
+@@ -143,6 +145,8 @@ struct iris_inst {
+ 	u32				fw_gen;
+ 	u32				expected_msg;
+ 	bool				end_sent;
++	void				*eos_vaddr;
++	dma_addr_t			eos_daddr;
+ };
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index e2acaeb..207be7a 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -314,6 +314,9 @@ int iris_close(struct file *filp)
+ 	iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+ 	iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+ 	iris_remove_session(inst);
++	/* ROG5: after SESSION_END; kept if the firmware could not be shut down */
++	if (inst->eos_vaddr && !inst->core->fw_held)
++		dma_free_attrs(inst->core->dev, SZ_4K, inst->eos_vaddr, inst->eos_daddr, 0);
+ 	mutex_unlock(&inst->lock);
+ 	v4l2_ctrl_handler_free(&inst->ctrl_handler);
+ 	/* the memory goes with the last response handler's reference */

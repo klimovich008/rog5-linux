@@ -1,8 +1,12 @@
 # Hardware video decode/encode (Iris v2 on SM8350)
 
-Status 2026-10-01: trial bundle built, **not installed, nothing has run on the
-phone**. Kernel k114 (patch 0154, `rog5-video.fragment`), DTB d15 (d13 + the
-video overlay), bundle and exact steps in [Trial](#trial) below.
+Status 2026-10-02: the k114/d15 RAM trial (2026-10-01,
+[test-results/2026-10-01-video-iris-k114-ram-trial.md](../../test-results/2026-10-01-video-iris-k114-ram-trial.md))
+authenticated the OEM firmware and decoded H.264 bit-exactly, then hit a
+firmware fatal error at the end of every decode session; the driver's
+reload made it worse. Kernel k115 (patches 0157-0162, same firmware, DT d15
+and platform values) adds diagnostics and contains the error; its bundle is
+built, **not installed**. Trial sequence: [k115 trial](#k115-trial).
 
 ## The hardware
 
@@ -302,3 +306,113 @@ and the install (step 5).
 | `firmware did not complete system init (-110), powering the core off` | firmware started but never answered (0154 tore it down) |
 | `Unhandled context fault ... cbfrsynra=0x2100` / `Unexpected global fault` | DMA outside the domain (IOVA hole, unmapped buffer) |
 | hard reset during step 2 | likely the stream route: ramoops/`/sys/fs/pstore` after the reboot; the RAM trial means the next boot is the installed chain |
+
+## k115 trial
+
+Bundle `main-k115-d15-261002a` (k115 + d15); wrapper and package paths are
+in [bundles.md](../bundles.md) and the 2026-10-02 report. What k115 changes
+(patches 0157-0162, see their commit messages and
+[the review](../reviews/2026-10-02-gpt-6.1-sol-video-k115.md)):
+
+- diagnostics: on a fatal error the driver prints the firmware's SFR text,
+  the last 64 HFI packets in both directions and the firmware's own error
+  messages (HFI debug config 0x18, like stock);
+- containment: a fatal error or firmware watchdog is latched for the
+  binding: no reload, every waiter and poll() is woken with an error, the
+  firmware is shut down through TrustZone and only then is the core powered
+  off; new opens fail with -EIO until `modprobe -r qcom_iris`;
+- lifetime and buffers: instance reference counting, close order, no
+  double completion of vb2 buffers, STOP/RELEASE errors propagated, answers
+  matched to their command, one SESSION_END, firmware-visible memory kept
+  until the firmware let go of it;
+- IRQ and runtime PM no longer wait for each other; registers are only
+  touched while the core is powered;
+- experiments, off by default and switchable at run time in
+  `/sys/module/qcom_iris/parameters/`: `eos_buffer=1` (real 4 KiB EOS buffer
+  for the decoder drain, like stock) and `interframe_pc=0` (no firmware
+  power collapse; read when the firmware is loaded). `fw_debug` (default
+  24 = 0x18) sets the firmware message mask.
+
+### One decode per boot
+
+Each boot answers one question and ends at the first fatal error or kernel
+warning. Phone address in a RAM trial: `169.254.77.2`.
+
+1. RAM-boot the wrapper (`production-ram-trial.py to-fastboot`, then
+   `boot --wrapper <package>/boot-ram-128m.img --wrapper-sha256 <sha>
+   --evidence <new dir> --stage-receiver`).
+2. Before any firmware: `dmesg | grep -E 'video-modules|qcom-iris|S2CR'`
+   (expect `video-modules loaded videocc_sm8350 qcom_iris`, the
+   request_firmware -2 failures, no S2CR line);
+   `grep . /sys/module/qcom_iris/parameters/*` (expect `eos_buffer:N`,
+   `fw_debug:24`, `interframe_pc:Y`);
+   `for d in /sys/class/video4linux/video*; do echo $d $(cat $d/name); done`.
+3. Test clip and software reference, made before the firmware exists:
+   `ffmpeg -hide_banner -f lavfi -i testsrc2=size=1920x1080:rate=30:duration=10 -c:v libx264 -preset veryfast -pix_fmt yuv420p -y /var/tmp/t1080.mp4`
+   and `ffmpeg -hide_banner -i /var/tmp/t1080.mp4 -pix_fmt yuv420p -f framemd5 -y /var/tmp/sw.md5`.
+4. Keep the host from runtime-suspending the core (isolates host power
+   collapse; the firmware's own inter-frame collapse is `interframe_pc`):
+   `echo on > /sys/bus/platform/devices/aa00000.video-codec/power/control`.
+   For the variant boots set the parameter now, before the firmware loads:
+   boot B `echo 1 > /sys/module/qcom_iris/parameters/eos_buffer`,
+   boot C `echo 0 > /sys/module/qcom_iris/parameters/interframe_pc`.
+5. Firmware for this boot only:
+   `ssh root@169.254.77.2 sh -s -- --runtime < scripts/device/install-rog5-video-firmware`.
+6. Mark the log and decode once (the first open loads the firmware):
+   `echo 'rog5: decode 1' > /dev/kmsg; timeout 60 ffmpeg -hide_banner -c:v h264_v4l2m2m -i /var/tmp/t1080.mp4 -pix_fmt yuv420p -f framemd5 -y /var/tmp/hw.md5; echo rc=$?`
+   then `diff <(grep -v '^#' /var/tmp/sw.md5) <(grep -v '^#' /var/tmp/hw.md5) && echo IDENTICAL; grep -vc '^#' /var/tmp/hw.md5`
+   (300 frames expected).
+7. Wait 15 s idle, then `dmesg | grep -E 'qcom-iris|rog5: decode'` and save
+   `dmesg > /var/tmp/k115-dmesg.txt` (copy it into the evidence directory).
+   Stop this boot here if there is a `sys error`, `fatal firmware error`,
+   `watchdog`, `WARNING` or `Unhandled context fault`.
+8. Only after a clean step 6/7, same boot, one at a time, checking dmesg
+   after each:
+   - second decode (step 6 again);
+   - GStreamer with explicit framing:
+     `timeout 60 gst-launch-1.0 -e filesrc location=/var/tmp/t1080.mp4 ! qtdemux ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au ! v4l2h264dec ! video/x-raw,format=NV12 ! fakesink sync=false`;
+   - encode with NV12 input (yuv420p is not an Iris encoder format):
+     `timeout 60 ffmpeg -hide_banner -f lavfi -i testsrc2=size=1920x1080:rate=30:duration=10 -vf format=nv12 -pix_fmt nv12 -c:v h264_v4l2m2m -b:v 8M -an -y /var/tmp/enc.h264`,
+     then `ffmpeg -hide_banner -i /var/tmp/enc.h264 -f null -` (frame count) and PSNR
+     against the source;
+   - full compliance logs: `v4l2-compliance -d /dev/videoD > /var/tmp/compl-dec.txt 2>&1`
+     and the same for the encoder node (keep the whole files: k114 only had
+     the totals 41/48 and 42/48).
+9. `production-ram-trial.py fastboot-reboot` (or an ordinary reboot); the
+   runtime firmware copy is gone with the RAM boot.
+
+### Reading the diagnostics
+
+After a fatal error the log shows, in this order:
+`sys error (type: 1, session id:ff, data1:1, data2:...)`,
+`fatal firmware error (sys error): no reload ...`, then a block
+`diagnostics (sys error): state ..., attempt ...` with
+
+- `SFR (size word 0x1000): <text>`: the firmware's own failure reason (the
+  stock driver prints the same); `<empty>` means it wrote nothing;
+- 64 lines `hfi t|r -<age> us: w0 .. w13`, oldest first: `t` sent, `r`
+  received; `w0` packet size, `w1` packet type, `w2` session id (system
+  packets have none), then the payload (EMPTY_BUFFER: w5 flags, 0x1 = EOS,
+  w9 alloc_len, w10 filled_len, w11 input tag, w12 buffer address;
+  FILL_BUFFER: w3 stream id, w4 buffer address; see
+  `iris_hfi_gen1_defines.h`). Sent types:
+  0x10001 SYS_INIT, 0x10005 SYS_SET_PROPERTY, 0x10007 SESSION_INIT,
+  0x10008 SESSION_END, 0x11001 SET_PROPERTY, 0x11002 SET_BUFFERS,
+  0x211001 LOAD_RESOURCES, 0x211002 START, 0x211003 STOP, 0x211004
+  EMPTY_BUFFER (input; the drain's EOS packet has buffer 0xdeadb000, or the
+  EOS buffer's address with `eos_buffer=1`), 0x211005 FILL_BUFFER, 0x211008
+  FLUSH, 0x21100b RELEASE_BUFFERS, 0x21100c RELEASE_RESOURCES. Received:
+  0x20001 SYS_INIT done, 0x20006/0x20007 session init/end done, 0x21001
+  EVENT_NOTIFY (w3 event id: 0x1 system error, 0x2 session error,
+  0x1000003 sequence changed; w4/w5 its data), 0x221001-0x22100c the session answers (0x221007 EMPTY_BUFFER
+  done, 0x221008 FILL_BUFFER done);
+- `fw log: ...` lines: the firmware's last error messages (also printed
+  live as `fw: ...`).
+
+The last `t` lines before the first `r 21001` with w3 = 1 name the command
+the firmware failed on; that is the question for the next variant. Then
+`video core shut down after the fatal error` (TrustZone accepted the
+shutdown) or `firmware shutdown (PAS) failed ...; keeping the video core
+powered` (it did not: the core stays on until reboot). `modprobe -r
+qcom_iris; modprobe -d /run/rog5-modules qcom_iris` rebinds the driver for
+another attempt in the same boot; a fresh boot is the cleaner test.

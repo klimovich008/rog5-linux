@@ -1,0 +1,250 @@
+From 829a1ddf412aa6b25ba7eb06c2158209a7fb5f0f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 00:13:39 +0200
+Subject: [PATCH 2/5] media: iris: ROG5: instance lifetime across close and
+ in-flight responses
+
+The response handler looks an instance up by session id under core->lock,
+drops that lock and then takes inst->lock. iris_close() removes the
+instance from the list and frees it right after releasing inst->lock, so a
+handler that found the instance and waits for its lock then locks freed
+memory. Close also frees the controls first and the m2m context before
+SESSION_END, while buffer, sequence-change and session-error responses for
+that session can still arrive and walk the m2m lists, the controls and the
+formats (seen on the ROG Phone 5 trial: a vb2_buffer_done warning on the
+close of a killed process after a firmware error).
+
+- iris_get_instance() returns the instance with a reference (kref);
+  handlers drop it with iris_put_instance(). The open file holds the
+  first reference; the memory (locks, formats) goes with the last one.
+- iris_close() first marks the instance closing; responses for a closing
+  session only complete waits and record errors, and no longer touch the
+  m2m context, controls or formats. The controls are freed after the
+  session left the instance list.
+
+ROG5: patch 0158, kernel k115. Not in upstream.
+---
+ .../qcom/iris/iris_hfi_gen1_response.c        | 26 ++++++++++++++++---
+ .../qcom/iris/iris_hfi_gen2_response.c        |  2 ++
+ .../media/platform/qcom/iris/iris_instance.h  |  7 +++++
+ drivers/media/platform/qcom/iris/iris_utils.c | 22 ++++++++++++++++
+ drivers/media/platform/qcom/iris/iris_utils.h |  1 +
+ drivers/media/platform/qcom/iris/iris_vidc.c  | 22 +++++++++++-----
+ 6 files changed, 70 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index 8eca959..a24f996 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -273,6 +273,17 @@ static void iris_hfi_gen1_session_event_notify(struct iris_inst *inst, void *pac
+ {
+ 	struct hfi_msg_event_notify_pkt *pkt = packet;
+ 
++	/* ROG5: while closing, only record that the session failed */
++	if (inst->closing) {
++		if (pkt->event_id == HFI_EVENT_SESSION_ERROR) {
++			dev_err(inst->core->dev,
++				"session error while closing: event id:%x, command:%x, session id:%x\n",
++				pkt->event_data1, pkt->event_data2, pkt->shdr.session_id);
++			iris_inst_change_state(inst, IRIS_INST_ERROR);
++		}
++		return;
++	}
++
+ 	switch (pkt->event_id) {
+ 	case HFI_EVENT_SESSION_ERROR:
+ 		iris_hfi_gen1_event_session_error(inst, pkt);
+@@ -637,6 +648,7 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 			mutex_lock(&inst->lock);
+ 			iris_hfi_gen1_session_event_notify(inst, hdr);
+ 			mutex_unlock(&inst->lock);
++			iris_put_instance(inst);
+ 		} else {
+ 			iris_hfi_gen1_sys_event_notify(core, hdr);
+ 		}
+@@ -653,10 +665,15 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 		}
+ 
+ 		mutex_lock(&inst->lock);
+-		if (hdr->pkt_type == HFI_MSG_SESSION_EMPTY_BUFFER) {
+-			iris_hfi_gen1_session_etb_done(inst, hdr);
+-		} else if (hdr->pkt_type == HFI_MSG_SESSION_FILL_BUFFER) {
+-			iris_hfi_gen1_session_ftb_done(inst, hdr);
++		if (hdr->pkt_type == HFI_MSG_SESSION_EMPTY_BUFFER ||
++		    hdr->pkt_type == HFI_MSG_SESSION_FILL_BUFFER) {
++			/* ROG5: no m2m context any more while closing */
++			if (inst->closing)
++				;
++			else if (hdr->pkt_type == HFI_MSG_SESSION_EMPTY_BUFFER)
++				iris_hfi_gen1_session_etb_done(inst, hdr);
++			else
++				iris_hfi_gen1_session_ftb_done(inst, hdr);
+ 		} else {
+ 			struct hfi_msg_session_hdr_pkt *shdr;
+ 
+@@ -672,6 +689,7 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 			}
+ 		}
+ 		mutex_unlock(&inst->lock);
++		iris_put_instance(inst);
+ 
+ 		break;
+ 	}
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+index 50f23e1..98ed0a2 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+@@ -928,6 +928,7 @@ static int iris_hfi_gen2_handle_session_response(struct iris_core *core,
+ 	inst = iris_get_instance(core, hdr->session_id);
+ 	if (!inst)
+ 		return -EINVAL;
++	/* the lookup takes a reference (ROG5); dropped below */
+ 
+ 	mutex_lock(&inst->lock);
+ 	inst_hfi_gen2 = to_iris_inst_hfi_gen2(inst);
+@@ -966,6 +967,7 @@ static int iris_hfi_gen2_handle_session_response(struct iris_core *core,
+ 		iris_hfi_gen2_handle_dequeue_buffers(inst);
+ 
+ 	mutex_unlock(&inst->lock);
++	iris_put_instance(inst);
+ 
+ 	return ret;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index a770331..9cab0ce 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -6,6 +6,7 @@
+ #ifndef __IRIS_INSTANCE_H__
+ #define __IRIS_INSTANCE_H__
+ 
++#include <linux/kref.h>
+ #include <media/v4l2-ctrls.h>
+ 
+ #include "iris_buffer.h"
+@@ -78,6 +79,10 @@ enum iris_fmt_type_cap {
+  * @enc_scale_height: scale height for encoder instance
+  * @hfi_layer_type: hierarchical coding layer type
+  * @hfi_layer_count: hierarchical coding layer count
++ * @ref: reference count; the open file and every response handler that
++ *	 looked the instance up hold one (ROG5)
++ * @closing: close has started: responses only complete waits and no longer
++ *	     touch the m2m context, controls or formats (ROG5)
+  */
+ 
+ struct iris_inst {
+@@ -125,6 +130,8 @@ struct iris_inst {
+ 	u32				enc_scale_height;
+ 	u32				hfi_layer_type;
+ 	u32				hfi_layer_count;
++	struct kref			ref;
++	bool				closing;
+ };
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index ba5c8dc..60d3111 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -85,6 +85,11 @@ int iris_wait_for_session_response(struct iris_inst *inst, bool is_flush)
+ 	return 0;
+ }
+ 
++/*
++ * ROG5: the instance is returned with a reference (drop it with
++ * iris_put_instance()), so a response handler that waits for inst->lock
++ * while the file is being closed does not lock freed memory.
++ */
+ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id)
+ {
+ 	struct iris_inst *inst;
+@@ -92,6 +97,7 @@ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id)
+ 	mutex_lock(&core->lock);
+ 	list_for_each_entry(inst, &core->instances, list) {
+ 		if (inst->session_id == session_id) {
++			kref_get(&inst->ref);
+ 			mutex_unlock(&core->lock);
+ 			return inst;
+ 		}
+@@ -101,6 +107,22 @@ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id)
+ 	return NULL;
+ }
+ 
++static void iris_inst_release(struct kref *ref)
++{
++	struct iris_inst *inst = container_of(ref, struct iris_inst, ref);
++
++	mutex_destroy(&inst->ctx_q_lock);
++	mutex_destroy(&inst->lock);
++	kfree(inst->fmt_src);
++	kfree(inst->fmt_dst);
++	kfree(inst);
++}
++
++void iris_put_instance(struct iris_inst *inst)
++{
++	kref_put(&inst->ref, iris_inst_release);
++}
++
+ int iris_check_core_mbpf(struct iris_inst *inst)
+ {
+ 	struct iris_core *core = inst->core;
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.h b/drivers/media/platform/qcom/iris/iris_utils.h
+index 228a5f9..8683b04 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.h
++++ b/drivers/media/platform/qcom/iris/iris_utils.h
+@@ -48,6 +48,7 @@ bool iris_split_mode_enabled(struct iris_inst *inst);
+ bool iris_fmt_is_8bit(u32 pixelformat);
+ bool iris_fmt_is_10bit(u32 pixelformat);
+ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id);
++void iris_put_instance(struct iris_inst *inst);
+ void iris_helper_buffers_done(struct iris_inst *inst, unsigned int type,
+ 			      enum vb2_buffer_state state);
+ int iris_wait_for_session_response(struct iris_inst *inst, bool is_flush);
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 1c052ca..5451d45 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -164,6 +164,7 @@ int iris_open(struct file *filp)
+ 	inst->domain = session_type;
+ 	inst->session_id = hash32_ptr(inst);
+ 	inst->state = IRIS_INST_DEINIT;
++	kref_init(&inst->ref);
+ 
+ 	mutex_init(&inst->lock);
+ 	mutex_init(&inst->ctx_q_lock);
+@@ -285,7 +286,18 @@ int iris_close(struct file *filp)
+ {
+ 	struct iris_inst *inst = iris_get_inst(filp);
+ 
+-	v4l2_ctrl_handler_free(&inst->ctrl_handler);
++	/*
++	 * ROG5: from here on, responses for this session only complete waits
++	 * and record errors; they no longer touch the m2m context, the
++	 * controls or the formats. The m2m context is freed below while the
++	 * session still exists (SESSION_END comes after it), so a late buffer
++	 * or event response used to walk freed lists. The controls are freed
++	 * last, after the session left the instance list.
++	 */
++	mutex_lock(&inst->lock);
++	inst->closing = true;
++	mutex_unlock(&inst->lock);
++
+ 	v4l2_m2m_ctx_release(inst->m2m_ctx);
+ 	v4l2_m2m_release(inst->m2m_dev);
+ 	mutex_lock(&inst->lock);
+@@ -298,11 +310,9 @@ int iris_close(struct file *filp)
+ 	iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+ 	iris_remove_session(inst);
+ 	mutex_unlock(&inst->lock);
+-	mutex_destroy(&inst->ctx_q_lock);
+-	mutex_destroy(&inst->lock);
+-	kfree(inst->fmt_src);
+-	kfree(inst->fmt_dst);
+-	kfree(inst);
++	v4l2_ctrl_handler_free(&inst->ctrl_handler);
++	/* the memory goes with the last response handler's reference */
++	iris_put_instance(inst);
+ 
+ 	return 0;
+ }

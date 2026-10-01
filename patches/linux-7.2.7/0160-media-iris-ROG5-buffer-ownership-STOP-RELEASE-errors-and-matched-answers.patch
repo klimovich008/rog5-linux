@@ -1,0 +1,415 @@
+From 92a04d8a2437e7b7c97931093d0921777508384f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 00:19:42 +0200
+Subject: [PATCH 4/5] media: iris: ROG5: buffer ownership, STOP/RELEASE errors
+ and matched answers
+
+Found while analysing the ROG Phone 5 trial (vb2_buffer_done warning from
+iris_hfi_gen1_session_stop() on the close of a killed process):
+
+- iris_vb2_buf_queue() put the buffer on the m2m ready list and, when the
+  qbuf failed, completed it without taking it off that list; a later stop
+  found the stale entry and completed it again. Take it off first.
+- Buffers taken off the m2m lists are completed through
+  iris_m2m_buf_done(), which updates the iris ownership flags and only
+  completes buffers vb2 still owns as ACTIVE; anything else is reported,
+  not completed twice.
+- The decoder's STOP/RELEASE path completed the buffers of both queues;
+  each queue already returns its own in iris_vb2_stop_streaming(), and the
+  other queue had stopped earlier. Dropped for the decoder (the encoder
+  keeps it, now guarded).
+- STOP then RELEASE_RESOURCES: the first failure is the result; RELEASE
+  is only sent after a successful STOP (the STOP error used to be
+  overwritten).
+- Each command whose answer is waited for on inst->completion records the
+  answer it expects; another answer (a late one for an earlier command)
+  is logged and does not end the wait. RELEASE_BUFFERS now reinitialises
+  the completion before its command.
+- SESSION_END is sent once per session: a failed streamoff already sends
+  it (iris_kill_session()), and close then waits for that answer instead
+  of sending a second END.
+
+ROG5: patch 0160, kernel k115. Not in upstream.
+---
+ .../media/platform/qcom/iris/iris_buffer.c    |   4 +-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 100 +++++++++++-------
+ .../qcom/iris/iris_hfi_gen1_response.c        |   6 ++
+ .../media/platform/qcom/iris/iris_instance.h  |   5 +
+ drivers/media/platform/qcom/iris/iris_utils.c |  28 ++++-
+ drivers/media/platform/qcom/iris/iris_utils.h |   2 +
+ drivers/media/platform/qcom/iris/iris_vb2.c   |  17 ++-
+ drivers/media/platform/qcom/iris/iris_vidc.c  |  11 +-
+ 8 files changed, 124 insertions(+), 49 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index 246ad0a..aa7bd8f 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -963,7 +963,7 @@ int iris_vb2_buffer_done(struct iris_inst *inst, struct iris_buffer *buf)
+ 		state = VB2_BUF_STATE_ERROR;
+ 		vb2_set_plane_payload(vb2, 0, 0);
+ 		vb2->timestamp = 0;
+-		v4l2_m2m_buf_done(vbuf, state);
++		iris_m2m_buf_done(inst, vbuf, state);
+ 		return 0;
+ 	}
+ 
+@@ -987,7 +987,7 @@ int iris_vb2_buffer_done(struct iris_inst *inst, struct iris_buffer *buf)
+ 
+ 	state = VB2_BUF_STATE_DONE;
+ 	vb2->timestamp = buf->timestamp;
+-	v4l2_m2m_buf_done(vbuf, state);
++	iris_m2m_buf_done(inst, vbuf, state);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 81d2e0c..d08ee62 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -118,6 +118,13 @@ static int iris_hfi_gen1_sys_pc_prep(struct iris_core *core)
+ 	return iris_hfi_queue_cmd_write_locked(core, &pkt, pkt.hdr.size);
+ }
+ 
++/* ROG5: the next wait on inst->completion is for this answer only */
++static void iris_hfi_gen1_expect(struct iris_inst *inst, u32 msg)
++{
++	inst->expected_msg = msg;
++	reinit_completion(&inst->completion);
++}
++
+ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
+ {
+ 	struct hfi_session_open_pkt packet;
+@@ -150,7 +157,7 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
+ 
+ 	packet.session_codec = codec;
+ 
+-	reinit_completion(&inst->completion);
++	iris_hfi_gen1_expect(inst, HFI_MSG_SYS_SESSION_INIT);
+ 
+ 	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ 	if (ret)
+@@ -171,10 +178,20 @@ static void iris_hfi_gen1_packet_session_cmd(struct iris_inst *inst,
+ static int iris_hfi_gen1_session_close(struct iris_inst *inst)
+ {
+ 	struct hfi_session_pkt packet;
++	int ret;
++
++	/* ROG5: one SESSION_END per session (a failed streamoff already sends it) */
++	if (inst->end_sent)
++		return 0;
+ 
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SYS_SESSION_END);
++	iris_hfi_gen1_expect(inst, HFI_MSG_SYS_SESSION_END);
+ 
+-	return iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
++	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
++	if (!ret)
++		inst->end_sent = true;
++
++	return ret;
+ }
+ 
+ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+@@ -188,7 +205,7 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
+ 		return 0;
+ 
+-	reinit_completion(&inst->completion);
++	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_LOAD_RESOURCES);
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_LOAD_RESOURCES);
+ 
+ 	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+@@ -199,7 +216,7 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	if (ret)
+ 		return ret;
+ 
+-	reinit_completion(&inst->completion);
++	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_START);
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_START);
+ 
+ 	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+@@ -213,10 +230,40 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	return iris_inst_change_sub_state(inst, 0, IRIS_INST_SUB_LOAD_RESOURCES);
+ }
+ 
++/*
++ * ROG5: STOP, then RELEASE_RESOURCES only if STOP succeeded; the first
++ * failure is the result (it used to be overwritten by the second command).
++ */
++static int iris_hfi_gen1_stop_release(struct iris_inst *inst)
++{
++	struct hfi_session_pkt pkt;
++	int ret;
++
++	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_STOP);
++	iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_STOP);
++	ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
++	if (!ret)
++		ret = iris_wait_for_session_response(inst, false);
++
++	if (!ret) {
++		iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_RELEASE_RESOURCES);
++		iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_RELEASE_RESOURCES);
++		ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
++		if (!ret)
++			ret = iris_wait_for_session_response(inst, false);
++	}
++	if (ret)
++		dev_err(inst->core->dev, "session %#x: stop/release failed: %d\n",
++			inst->session_id, ret);
++
++	iris_inst_change_sub_state(inst, IRIS_INST_SUB_LOAD_RESOURCES, 0);
++
++	return ret;
++}
++
+ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ {
+ 	struct hfi_session_flush_pkt flush_pkt;
+-	struct hfi_session_pkt pkt;
+ 	u32 flush_type = 0;
+ 	int ret = 0;
+ 
+@@ -240,44 +287,19 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ 				ret = iris_wait_for_session_response(inst, true);
+ 			}
+ 		} else if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES) {
+-			reinit_completion(&inst->completion);
+-			iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_STOP);
+-			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+-			if (!ret)
+-				ret = iris_wait_for_session_response(inst, false);
+-
+-			reinit_completion(&inst->completion);
+-			iris_hfi_gen1_packet_session_cmd(inst, &pkt,
+-							 HFI_CMD_SESSION_RELEASE_RESOURCES);
+-			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+-			if (!ret)
+-				ret = iris_wait_for_session_response(inst, false);
+-
+-			iris_inst_change_sub_state(inst, IRIS_INST_SUB_LOAD_RESOURCES, 0);
+-
+-			iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+-						 VB2_BUF_STATE_ERROR);
+-			iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+-						 VB2_BUF_STATE_ERROR);
++			ret = iris_hfi_gen1_stop_release(inst);
++			/*
++			 * ROG5: each queue returns its own buffers in
++			 * iris_vb2_stop_streaming(); the other queue stopped
++			 * earlier, and completing it again here hit buffers vb2
++			 * no longer owned.
++			 */
+ 		}
+ 	} else {
+ 		if (inst->state == IRIS_INST_STREAMING ||
+ 		    inst->state == IRIS_INST_INPUT_STREAMING ||
+ 		    inst->state == IRIS_INST_ERROR) {
+-			reinit_completion(&inst->completion);
+-			iris_hfi_gen1_packet_session_cmd(inst, &pkt, HFI_CMD_SESSION_STOP);
+-			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+-			if (!ret)
+-				ret = iris_wait_for_session_response(inst, false);
+-
+-			reinit_completion(&inst->completion);
+-			iris_hfi_gen1_packet_session_cmd(inst, &pkt,
+-							 HFI_CMD_SESSION_RELEASE_RESOURCES);
+-			ret = iris_hfi_queue_session_cmd_write(inst, &pkt, pkt.shdr.hdr.size);
+-			if (!ret)
+-				ret = iris_wait_for_session_response(inst, false);
+-
+-			iris_inst_change_sub_state(inst, IRIS_INST_SUB_LOAD_RESOURCES, 0);
++			ret = iris_hfi_gen1_stop_release(inst);
+ 		}
+ 
+ 		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+@@ -463,6 +485,8 @@ static int iris_hfi_gen1_session_unset_buffers(struct iris_inst *inst, struct ir
+ 	pkt->response_req = true;
+ 	pkt->buffer_type = buffer_type;
+ 
++	/* ROG5: this wait had no reinit before; a stale completion satisfied it */
++	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_RELEASE_BUFFERS);
+ 	ret = iris_hfi_queue_session_cmd_write(inst, pkt, pkt->shdr.hdr.size);
+ 	if (ret)
+ 		goto exit;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index b8d9657..c98a4ad 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -692,7 +692,13 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 			if (pkt_info->pkt == HFI_MSG_SESSION_FLUSH) {
+ 				if (!(--inst->flush_responses_pending))
+ 					complete(&inst->flush_completion);
++			} else if (inst->expected_msg && hdr->pkt_type != inst->expected_msg) {
++				/* ROG5: a late answer must not end the wait for another one */
++				dev_warn(dev, "session %#x: answer %#x (error %#x) while waiting for %#x\n",
++					 pkt->shdr.session_id, hdr->pkt_type, shdr->error_type,
++					 inst->expected_msg);
+ 			} else {
++				inst->expected_msg = 0;
+ 				complete(&inst->completion);
+ 			}
+ 		}
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index d5f88e9..a2df46d 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -87,6 +87,9 @@ enum iris_fmt_type_cap {
+  *		    protected by core->lock)
+  * @fw_gen: core init attempt (firmware instance) this session was opened
+  *	    on; session commands for another one are refused (ROG5)
++ * @expected_msg: HFI answer the current wait on @completion expects; other
++ *		  answers do not complete it (ROG5, gen1)
++ * @end_sent: SESSION_END was sent; close only waits for its answer (ROG5)
+  */
+ 
+ struct iris_inst {
+@@ -138,6 +141,8 @@ struct iris_inst {
+ 	bool				closing;
+ 	bool				fatal_notified;
+ 	u32				fw_gen;
++	u32				expected_msg;
++	bool				end_sent;
+ };
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index 6b044e3..6d6ceda 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -52,6 +52,30 @@ bool iris_fmt_is_10bit(u32 pixelformat)
+ 		pixelformat == V4L2_PIX_FMT_QC10C;
+ }
+ 
++/*
++ * ROG5: complete a buffer that was just taken off the m2m list, but only if
++ * vb2 still owns it as ACTIVE. A stale list entry (for example one that was
++ * already completed on a failed qbuf) is dropped and reported instead of
++ * being completed a second time (vb2_buffer_done() warns on that).
++ */
++void iris_m2m_buf_done(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf,
++		       enum vb2_buffer_state state)
++{
++	struct iris_buffer *buf = to_iris_buffer(vbuf);
++
++	buf->attr &= ~(BUF_ATTR_QUEUED | BUF_ATTR_DEFERRED);
++	buf->attr |= BUF_ATTR_BUFFER_DONE;
++
++	if (vbuf->vb2_buf.state != VB2_BUF_STATE_ACTIVE) {
++		dev_warn_ratelimited(inst->core->dev,
++				     "buffer %u of queue %u is not active (state %d); not completing it again\n",
++				     vbuf->vb2_buf.index, vbuf->vb2_buf.type, vbuf->vb2_buf.state);
++		return;
++	}
++
++	v4l2_m2m_buf_done(vbuf, state);
++}
++
+ void iris_helper_buffers_done(struct iris_inst *inst, unsigned int type,
+ 			      enum vb2_buffer_state state)
+ {
+@@ -60,10 +84,10 @@ void iris_helper_buffers_done(struct iris_inst *inst, unsigned int type,
+ 
+ 	if (V4L2_TYPE_IS_OUTPUT(type)) {
+ 		while ((buf = v4l2_m2m_src_buf_remove(m2m_ctx)))
+-			v4l2_m2m_buf_done(buf, state);
++			iris_m2m_buf_done(inst, buf, state);
+ 	} else if (V4L2_TYPE_IS_CAPTURE(type)) {
+ 		while ((buf = v4l2_m2m_dst_buf_remove(m2m_ctx)))
+-			v4l2_m2m_buf_done(buf, state);
++			iris_m2m_buf_done(inst, buf, state);
+ 	}
+ }
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.h b/drivers/media/platform/qcom/iris/iris_utils.h
+index 8683b04..09229a4 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.h
++++ b/drivers/media/platform/qcom/iris/iris_utils.h
+@@ -51,6 +51,8 @@ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id);
+ void iris_put_instance(struct iris_inst *inst);
+ void iris_helper_buffers_done(struct iris_inst *inst, unsigned int type,
+ 			      enum vb2_buffer_state state);
++void iris_m2m_buf_done(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf,
++		       enum vb2_buffer_state state);
+ int iris_wait_for_session_response(struct iris_inst *inst, bool is_flush);
+ int iris_check_core_mbpf(struct iris_inst *inst);
+ int iris_check_core_mbps(struct iris_inst *inst);
+diff --git a/drivers/media/platform/qcom/iris/iris_vb2.c b/drivers/media/platform/qcom/iris/iris_vb2.c
+index a2ea2d6..42fa223 100644
+--- a/drivers/media/platform/qcom/iris/iris_vb2.c
++++ b/drivers/media/platform/qcom/iris/iris_vb2.c
+@@ -290,11 +290,13 @@ void iris_vb2_buf_queue(struct vb2_buffer *vb2)
+ 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb2);
+ 	struct v4l2_m2m_ctx *m2m_ctx;
+ 	struct iris_inst *inst;
++	bool listed = false;
+ 	int ret = 0;
+ 
+ 	inst = vb2_get_drv_priv(vb2->vb2_queue);
+ 
+ 	mutex_lock(&inst->lock);
++	m2m_ctx = inst->m2m_ctx;
+ 	if (inst->state == IRIS_INST_ERROR) {
+ 		ret = -EBUSY;
+ 		goto exit;
+@@ -303,8 +305,6 @@ void iris_vb2_buf_queue(struct vb2_buffer *vb2)
+ 	if (vbuf->field == V4L2_FIELD_ANY)
+ 		vbuf->field = V4L2_FIELD_NONE;
+ 
+-	m2m_ctx = inst->m2m_ctx;
+-
+ 	if (!vb2->planes[0].bytesused && V4L2_TYPE_IS_OUTPUT(vb2->type)) {
+ 		ret = -EINVAL;
+ 		goto exit;
+@@ -330,6 +330,7 @@ void iris_vb2_buf_queue(struct vb2_buffer *vb2)
+ 	}
+ 
+ 	v4l2_m2m_buf_queue(m2m_ctx, vbuf);
++	listed = true;
+ 
+ 	if (inst->domain == DECODER)
+ 		ret = iris_vdec_qbuf(inst, vbuf);
+@@ -339,7 +340,17 @@ void iris_vb2_buf_queue(struct vb2_buffer *vb2)
+ exit:
+ 	if (ret) {
+ 		iris_inst_change_state(inst, IRIS_INST_ERROR);
+-		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
++		/*
++		 * ROG5: take it off the m2m list it was just put on, so that a
++		 * later stop does not find it there and complete it again.
++		 */
++		if (listed) {
++			if (V4L2_TYPE_IS_OUTPUT(vb2->type))
++				v4l2_m2m_src_buf_remove_by_buf(m2m_ctx, vbuf);
++			else
++				v4l2_m2m_dst_buf_remove_by_buf(m2m_ctx, vbuf);
++		}
++		iris_m2m_buf_done(inst, vbuf, VB2_BUF_STATE_ERROR);
+ 	}
+ 	mutex_unlock(&inst->lock);
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 5e32908..e2acaeb 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -234,11 +234,14 @@ static void iris_session_close(struct iris_inst *inst)
+ 	if (inst->state == IRIS_INST_DEINIT)
+ 		return;
+ 
+-	reinit_completion(&inst->completion);
++	/* ROG5: if END already went out (failed streamoff), wait for its answer */
++	if (!inst->end_sent) {
++		reinit_completion(&inst->completion);
+ 
+-	ret = hfi_ops->session_close(inst);
+-	if (ret)
+-		wait_for_response = false;
++		ret = hfi_ops->session_close(inst);
++		if (ret)
++			wait_for_response = false;
++	}
+ 
+ 	if (wait_for_response)
+ 		iris_wait_for_session_response(inst, false);

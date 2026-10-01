@@ -118,3 +118,9 @@
 0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch
 0155-dt-bindings-media-qcom-venus-common-Allow-IOVA-reservation-memory-region.patch
 0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch
+0157-media-iris-ROG5-diagnostics-firmware-SFR-HFI-packet-trace-and-firmware-log.patch
+0158-media-iris-ROG5-instance-lifetime-across-close-and-in-flight-responses.patch
+0159-media-iris-ROG5-contain-fatal-firmware-errors-instead-of-reloading.patch
+0160-media-iris-ROG5-buffer-ownership-STOP-RELEASE-errors-and-matched-answers.patch
+0161-media-iris-ROG5-switchable-OEM-firmware-experiments-EOS-buffer-power-collapse.patch
+0162-media-iris-ROG5-review-fixes-for-0157-0161-PM-vs-IRQ-close-ownership-unwind-remove.patch

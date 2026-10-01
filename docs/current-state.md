@@ -12,7 +12,7 @@ Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components
 | Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
-Components: 39 ready, 10 partial, 9 needs a test, 16 missing.
+Components: 39 ready, 11 partial, 8 needs a test, 16 missing.
 
 Partial:
 
@@ -25,6 +25,7 @@ Partial:
 - Power / Idle background wakeups: desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending
 - Performance / Performance mode: rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet
 - Sensors & hardware / RGB logo LED
+- Sensors & hardware / Hardware video decode/encode: k114/d15 RAM trial 2026-10-01: OEM vpu20_4v accepted by TrustZone (PAS 9), H.264 1080p decode 300/300 frames bit-exact; but a firmware fatal error (sys error data2 0xdeadbead) at the end of every decode session, and the driver reload with stale sessions led to hangs and a hard SoC reset. k115 (0157-0162: SFR/HFI trace diagnostics, fatal containment without reload, lifetime/buffer fixes, EOS-buffer and power-collapse switches) built as main-k115-d15-261002a, not installed; one-decode-per-boot plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime
 - Apps / Steam (native arm64): title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending
 
 Needs a test:
@@ -37,7 +38,6 @@ Needs a test:
 - Power / Instruction-fetch aborts (SIGBUS): memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest
 - Audio / 24-bit playback: 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B
 - Audio / Bluetooth audio
-- Sensors & hardware / Hardware video decode/encode: trial bundle main-k114-d15-261001a built, not installed: upstream iris driver via the "qcom,sm8350-iris", "qcom,sm8250-venus" fallback, patches 0154-0156, DTB d15 (d13 + video overlay with IOVA hole), firmware = vendor_a vpu20_4v.mbn (OEM-signed, same root as the accepted ADSP image), installer scripts/device/install-rog5-video-firmware; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 Missing:
 

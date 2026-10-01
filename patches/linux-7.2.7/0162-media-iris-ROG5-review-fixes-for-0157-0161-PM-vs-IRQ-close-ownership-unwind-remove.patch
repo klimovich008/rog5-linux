@@ -1,0 +1,506 @@
+From f5bdef704a36dd92bdef01869763657c74d8811b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 00:33:21 +0200
+Subject: [PATCH] media: iris: ROG5: review fixes for 0157-0161 (PM vs IRQ,
+ close ownership, unwind, remove)
+
+Review of 0157-0161 (GPT-6.1-Sol, read-only) found:
+
+- Runtime PM against the interrupt thread: the PM callbacks synchronised
+  the IRQ, but the thread can wait for inst->lock held by a task that waits
+  for that same PM transition (pm_runtime_resume_and_get() on a command),
+  or call it itself. The PM callbacks no longer wait for the thread;
+  iris_vpu_power_off() masks the line with disable_irq_nosync() (its
+  callers hold core->lock), and the thread already touches registers only
+  while core->powered, checked under core->lock. The explicit teardown
+  paths (work item, deinit, init unwind) still synchronise the IRQ outside
+  core->lock while holding a runtime PM reference.
+- Close freed firmware-visible memory before the firmware let go of it:
+  after a fatal error the containment work is flushed before vb2 releases
+  the client buffers, and the internal buffers and the EOS buffer are only
+  freed when the firmware answered SESSION_END (any answer) or was shut
+  down by the containment; otherwise they are leaked on purpose.
+- The HFI ops were set after firmware boot, while power on had already
+  enabled the IRQ: set them before power on; the thread checks them.
+- The init-failure unwind ignored the PAS shutdown result: it now keeps
+  clocks, votes and memory (fw_held) like iris_core_teardown(), and leaves
+  a core the containment already took over alone.
+- Removal: containment work is scheduled under core->lock and not at all
+  once iris_remove() set core->removing, so the final cancel is reliable.
+- Nothing is sent after SESSION_END (the session command path refuses it,
+  and the expected-answer bookkeeping is left to END), so a second
+  streamoff cannot steal END's acknowledgement.
+- The HFI debug config packet is 28 bytes like stock (trailing word).
+
+Second review round:
+- Close keeps the client buffers and the m2m context too (leaked, logged)
+  when the containment could not shut the firmware down (fw_held).
+- A content-protection failure after a successful authentication shuts
+  the image down and, if TrustZone refuses that, records fw_held and
+  fatal, so the init unwind keeps power and memory as well.
+- iris_remove() disables the line after deinit (a held core keeps it
+  enabled) before the lock is destroyed.
+- gen2's system error goes through iris_core_fatal() too (latched,
+  honours removal; the work no longer reloads for either generation).
+
+Also: the HFI trace keeps 14 words per packet, so an EMPTY_BUFFER's
+flags, lengths and buffer address and an event's data words are visible.
+
+Not changed: gen2 response handling still walks the m2m context while a
+session closes, as upstream does (gen2 is not used on SM8350). Residual:
+a fatal error that arrives after close checked for it, while vb2 frees the
+client buffers, is not waited for.
+
+ROG5: patch 0162, kernel k115. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_core.c  | 29 ++++--
+ drivers/media/platform/qcom/iris/iris_core.h  |  4 +-
+ .../media/platform/qcom/iris/iris_firmware.c  | 12 ++-
+ .../platform/qcom/iris/iris_hfi_common.c      |  3 +-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 11 ++-
+ .../qcom/iris/iris_hfi_gen2_response.c        |  5 +-
+ .../media/platform/qcom/iris/iris_hfi_queue.c |  2 +-
+ drivers/media/platform/qcom/iris/iris_probe.c | 25 +++--
+ drivers/media/platform/qcom/iris/iris_vidc.c  | 95 +++++++++++++++----
+ .../platform/qcom/iris/iris_vpu_common.c      | 11 ++-
+ 10 files changed, 150 insertions(+), 47 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index 0b09883..ac44601 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -78,9 +78,10 @@ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool
+ 		if (!e->dir)
+ 			continue;
+ 		dev_err(core->dev,
+-			"hfi %c -%llu us: %08x %08x %08x %08x %08x %08x %08x %08x\n",
++			"hfi %c -%llu us: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
+ 			e->dir, div_u64(now - e->ns, NSEC_PER_USEC), e->w[0], e->w[1],
+-			e->w[2], e->w[3], e->w[4], e->w[5], e->w[6], e->w[7]);
++			e->w[2], e->w[3], e->w[4], e->w[5], e->w[6], e->w[7], e->w[8],
++			e->w[9], e->w[10], e->w[11], e->w[12], e->w[13]);
+ 	}
+ 
+ 	for (i = 0; i < IRIS_FW_LOG_LINES; i++) {
+@@ -171,9 +172,10 @@ void iris_core_fatal(struct iris_core *core, const char *reason)
+ 	core->fatal = true;
+ 	if (core->state == IRIS_CORE_INIT)
+ 		core->state = IRIS_CORE_ERROR;
++	/* under the lock, so iris_remove() can stop new work reliably */
++	if (!core->removing)
++		schedule_delayed_work(&core->sys_error_handler, 0);
+ 	mutex_unlock(&core->lock);
+-
+-	schedule_delayed_work(&core->sys_error_handler, 0);
+ }
+ 
+ static void iris_core_fail_instance(struct iris_inst *inst)
+@@ -316,6 +318,9 @@ int iris_core_init(struct iris_core *core)
+ 	if (ret)
+ 		goto error;
+ 
++	/* ROG5: before power on enables the IRQ (the thread uses the ops) */
++	core->iris_firmware_data->init_hfi_ops(core);
++
+ 	ret = iris_vpu_power_on(core);
+ 	if (ret)
+ 		goto error_queue_deinit;
+@@ -332,8 +337,6 @@ int iris_core_init(struct iris_core *core)
+ 	if (ret)
+ 		goto error_unload_fw;
+ 
+-	core->iris_firmware_data->init_hfi_ops(core);
+-
+ 	ret = iris_hfi_core_init(core);
+ 	if (ret)
+ 		goto error_unload_fw;
+@@ -356,12 +359,20 @@ error_power_off:
+ 	mutex_unlock(&core->lock);
+ 	disable_irq(core->irq);
+ 	mutex_lock(&core->lock);
+-	if (core->init_attempt != attempt || core->state != IRIS_CORE_ERROR) {
++	if (core->init_attempt != attempt || core->state != IRIS_CORE_ERROR ||
++	    core->fw_held) {
++		enable_irq(core->irq);
++		goto exit;
++	}
++	/* ROG5: same policy as iris_core_teardown(): keep all if PAS shutdown fails */
++	if (unload && iris_fw_unload(core)) {
++		dev_err(core->dev,
++			"firmware shutdown (PAS) failed after a failed boot; keeping the video core powered and its memory mapped\n");
++		core->fatal = true;
++		core->fw_held = true;
+ 		enable_irq(core->irq);
+ 		goto exit;
+ 	}
+-	if (unload)
+-		iris_fw_unload(core);
+ 	iris_vpu_power_off(core);
+ 	enable_irq(core->irq);
+ error_queue_deinit:
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index 192f470..f37f0d0 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -27,7 +27,7 @@ struct icc_info {
+ 
+ /* ROG5: bounded HFI packet trace and firmware log, dumped on fatal errors */
+ #define IRIS_TRACE_ENTRIES		64
+-#define IRIS_TRACE_WORDS		8
++#define IRIS_TRACE_WORDS		14
+ #define IRIS_FW_LOG_LINES		16
+ #define IRIS_FW_LOG_LEN			160
+ 
+@@ -103,6 +103,7 @@ struct qcom_ubwc_cfg_data;
+  *	     shared memory stay in place (ROG5)
+  * @powered: the core's clocks and power domains are on (ROG5); gates MMIO
+  *	     from the interrupt thread and the command path
++ * @removing: iris_remove() started: no new containment work (ROG5)
+  */
+ 
+ struct iris_core {
+@@ -159,6 +160,7 @@ struct iris_core {
+ 	bool					fatal;
+ 	bool					fw_held;
+ 	bool					powered;
++	bool					removing;
+ };
+ 
+ int iris_core_init(struct iris_core *core);
+diff --git a/drivers/media/platform/qcom/iris/iris_firmware.c b/drivers/media/platform/qcom/iris/iris_firmware.c
+index bea9e18..fccce63 100644
+--- a/drivers/media/platform/qcom/iris/iris_firmware.c
++++ b/drivers/media/platform/qcom/iris/iris_firmware.c
+@@ -102,7 +102,17 @@ int iris_fw_load(struct iris_core *core)
+ 						     cp_config->cp_nonpixel_size);
+ 		if (ret) {
+ 			dev_err(core->dev, "qcom_scm_mem_protect_video_var failed: %d\n", ret);
+-			qcom_scm_pas_shutdown(IRIS_PAS_ID);
++			/*
++			 * ROG5: the image already runs; if TrustZone does not
++			 * stop it, keep power and memory (iris_core_init()'s
++			 * unwind honours fw_held) like iris_core_teardown().
++			 */
++			if (qcom_scm_pas_shutdown(IRIS_PAS_ID)) {
++				dev_err(core->dev,
++					"firmware shutdown (PAS) failed; keeping the video core powered and its memory mapped\n");
++				core->fatal = true;
++				core->fw_held = true;
++			}
+ 			return ret;
+ 		}
+ 	}
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.c b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+index ff94342..a8a83c6 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+@@ -113,7 +113,8 @@ irqreturn_t iris_hfi_isr_handler(int irq, void *data)
+ 		dev_warn_ratelimited(core->dev, "interrupt while powered off\n");
+ 	mutex_unlock(&core->lock);
+ 
+-	core->hfi_sys_ops->sys_hfi_response_handler(core);
++	if (core->hfi_sys_ops)
++		core->hfi_sys_ops->sys_hfi_response_handler(core);
+ 
+ 	if (!iris_vpu_watchdog(core, core->intr_status))
+ 		enable_irq(irq);
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 9a4ae8d..1b72972 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -70,7 +70,8 @@ static int iris_hfi_gen1_sys_init(struct iris_core *core)
+ 		u32 num_properties;
+ 		u32 property;
+ 		struct hfi_debug_config cfg;
+-	} __packed dbg;
++		u32 reserved;	/* stock declares 28 bytes */
++	} __packed dbg = {};
+ 	int ret;
+ 
+ 	sys_init_pkt.hdr.size = sizeof(sys_init_pkt);
+@@ -139,9 +140,15 @@ static int iris_hfi_gen1_sys_pc_prep(struct iris_core *core)
+ 	return iris_hfi_queue_cmd_write_locked(core, &pkt, pkt.hdr.size);
+ }
+ 
+-/* ROG5: the next wait on inst->completion is for this answer only */
++/*
++ * ROG5: the next wait on inst->completion is for this answer only. After
++ * SESSION_END nothing else is sent (iris_hfi_queue_session_cmd_write()
++ * refuses it), so its expectation and completion are left alone for close.
++ */
+ static void iris_hfi_gen1_expect(struct iris_inst *inst, u32 msg)
+ {
++	if (inst->end_sent)
++		return;
+ 	inst->expected_msg = msg;
+ 	reinit_completion(&inst->completion);
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+index 98ed0a2..a2a0064 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen2_response.c
+@@ -280,14 +280,13 @@ static int iris_hfi_gen2_handle_system_error(struct iris_core *core,
+ 	if (pkt)
+ 		dev_err(core->dev, "received system error of type %#x\n", pkt->type);
+ 
+-	core->state = IRIS_CORE_ERROR;
+-
+ 	mutex_lock(&core->lock);
+ 	list_for_each_entry(instance, &core->instances, list)
+ 		iris_inst_change_state(instance, IRIS_INST_ERROR);
+ 	mutex_unlock(&core->lock);
+ 
+-	schedule_delayed_work(&core->sys_error_handler, msecs_to_jiffies(10));
++	/* ROG5: latch and contain like gen1 (sets ERROR, honours removal) */
++	iris_core_fatal(core, "sys error");
+ 
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_queue.c b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+index 09029ff..40ad3cb 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_queue.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+@@ -180,7 +180,7 @@ int iris_hfi_queue_session_cmd_write(struct iris_inst *inst, void *pkt, u32 pkt_
+ 
+ 	mutex_lock(&core->lock);
+ 	if (core->fatal || core->state != IRIS_CORE_INIT ||
+-	    inst->fw_gen != core->init_attempt)
++	    inst->fw_gen != core->init_attempt || inst->end_sent)
+ 		ret = -EIO;
+ 	else
+ 		ret = iris_hfi_queue_cmd_write_locked(core, pkt, pkt_size);
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index 5ec5991..9edc03c 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -200,8 +200,17 @@ static void iris_remove(struct platform_device *pdev)
+ 	if (!core)
+ 		return;
+ 
++	/* ROG5: no containment work may start or run after this */
++	mutex_lock(&core->lock);
++	core->removing = true;
++	mutex_unlock(&core->lock);
+ 	cancel_delayed_work_sync(&core->sys_error_handler);
+ 	iris_core_deinit(core);
++	/*
++	 * ROG5: a core whose firmware could not be shut down keeps its line
++	 * enabled; no handler may run once the lock below is destroyed.
++	 */
++	disable_irq(core->irq);
+ 
+ 	video_unregister_device(core->vdev_dec);
+ 	video_unregister_device(core->vdev_enc);
+@@ -316,11 +325,13 @@ err_v4l2_unreg:
+ }
+ 
+ /*
+- * ROG5: both callbacks quiesce the interrupt before taking core->lock: the
+- * interrupt thread takes that lock, and the power-off path waits for it in
+- * disable_irq(). The extra disable is undone at the end, which leaves the
+- * depth power off/on set. After a fatal error the hardware is left to
+- * iris_core_contain_fatal().
++ * ROG5: the PM callbacks never wait for the interrupt thread: that thread
++ * can wait for inst->lock held by a task that waits for this very runtime PM
++ * transition (pm_runtime_resume_and_get() on a command), or call it itself.
++ * iris_vpu_power_off() therefore only disables the line without waiting,
++ * and the thread touches VPU registers only while core->powered (checked
++ * under core->lock, which power off holds). After a fatal error the hardware
++ * is left to iris_core_contain_fatal().
+  */
+ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ {
+@@ -329,7 +340,6 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 
+ 	core = dev_get_drvdata(dev);
+ 
+-	disable_irq(core->irq);
+ 	mutex_lock(&core->lock);
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+@@ -338,7 +348,6 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 
+ exit:
+ 	mutex_unlock(&core->lock);
+-	enable_irq(core->irq);
+ 
+ 	return ret;
+ }
+@@ -350,7 +359,6 @@ static int __maybe_unused iris_pm_resume(struct device *dev)
+ 
+ 	core = dev_get_drvdata(dev);
+ 
+-	disable_irq(core->irq);
+ 	mutex_lock(&core->lock);
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+@@ -360,7 +368,6 @@ static int __maybe_unused iris_pm_resume(struct device *dev)
+ 
+ exit:
+ 	mutex_unlock(&core->lock);
+-	enable_irq(core->irq);
+ 
+ 	return ret;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 207be7a..f3301af 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -225,14 +225,14 @@ fail_v4l2_fh_deinit:
+ 	return ret;
+ }
+ 
+-static void iris_session_close(struct iris_inst *inst)
++/* ROG5: 0 when the firmware acknowledged the end of the session (or never had one) */
++static int iris_session_close(struct iris_inst *inst)
+ {
+ 	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+-	bool wait_for_response = true;
+ 	int ret;
+ 
+ 	if (inst->state == IRIS_INST_DEINIT)
+-		return;
++		return 0;
+ 
+ 	/* ROG5: if END already went out (failed streamoff), wait for its answer */
+ 	if (!inst->end_sent) {
+@@ -240,11 +240,49 @@ static void iris_session_close(struct iris_inst *inst)
+ 
+ 		ret = hfi_ops->session_close(inst);
+ 		if (ret)
+-			wait_for_response = false;
++			return ret;
+ 	}
+ 
+-	if (wait_for_response)
+-		iris_wait_for_session_response(inst, false);
++	/*
++	 * Any answer to END counts as the firmware letting go of the session,
++	 * also one with an error code; only a timeout or a wake-up by the
++	 * fatal-error containment does not.
++	 */
++	mutex_unlock(&inst->lock);
++	ret = wait_for_completion_timeout(&inst->completion,
++					  msecs_to_jiffies(HW_RESPONSE_TIMEOUT_VALUE));
++	mutex_lock(&inst->lock);
++	if (!ret) {
++		iris_inst_change_state(inst, IRIS_INST_ERROR);
++		return -ETIMEDOUT;
++	}
++
++	return READ_ONCE(inst->core->fatal) ? -EIO : 0;
++}
++
++/*
++ * ROG5: may the session's firmware-visible memory (internal buffers, EOS
++ * buffer) be freed? Only once the firmware acknowledged SESSION_END, or the
++ * firmware was shut down after a fatal error. Otherwise it may still run and
++ * access them, and they are leaked on purpose.
++ */
++static bool iris_session_memory_released(struct iris_inst *inst, int end_ret)
++{
++	struct iris_core *core = inst->core;
++	bool released;
++
++	if (!end_ret)
++		return true;
++
++	mutex_lock(&core->lock);
++	released = core->fatal && !core->fw_held && core->state == IRIS_CORE_DEINIT;
++	mutex_unlock(&core->lock);
++	if (!released)
++		dev_err(core->dev,
++			"session %#x: no end acknowledgement (%d) and the firmware is not shut down; leaking its buffers\n",
++			inst->session_id, end_ret);
++
++	return released;
+ }
+ 
+ static void iris_check_num_queued_internal_buffers(struct iris_inst *inst, u32 plane)
+@@ -290,6 +328,8 @@ static void iris_check_num_queued_internal_buffers(struct iris_inst *inst, u32 p
+ int iris_close(struct file *filp)
+ {
+ 	struct iris_inst *inst = iris_get_inst(filp);
++	bool fw_held;
++	int end_ret;
+ 
+ 	/*
+ 	 * ROG5: from here on, responses for this session only complete waits
+@@ -303,20 +343,43 @@ int iris_close(struct file *filp)
+ 	inst->closing = true;
+ 	mutex_unlock(&inst->lock);
+ 
+-	v4l2_m2m_ctx_release(inst->m2m_ctx);
+-	v4l2_m2m_release(inst->m2m_dev);
++	/*
++	 * ROG5: after a fatal error, let the containment shut the firmware
++	 * down before vb2 releases the client buffers it may still access
++	 * (the work takes inst->lock, so no instance lock may be held here).
++	 */
++	if (READ_ONCE(inst->core->fatal))
++		flush_delayed_work(&inst->core->sys_error_handler);
++
++	/*
++	 * ROG5: if the firmware could not be shut down it may still access
++	 * the client buffers: keep them (and the m2m context) instead.
++	 */
++	mutex_lock(&inst->core->lock);
++	fw_held = inst->core->fw_held;
++	mutex_unlock(&inst->core->lock);
++	if (!fw_held) {
++		v4l2_m2m_ctx_release(inst->m2m_ctx);
++		v4l2_m2m_release(inst->m2m_dev);
++	} else {
++		dev_err(inst->core->dev,
++			"session %#x: firmware still held; leaking its client buffers\n",
++			inst->session_id);
++	}
+ 	mutex_lock(&inst->lock);
+-	iris_session_close(inst);
++	end_ret = iris_session_close(inst);
+ 	iris_inst_change_state(inst, IRIS_INST_DEINIT);
+ 	iris_v4l2_fh_deinit(inst, filp);
+-	iris_destroy_all_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+-	iris_destroy_all_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+-	iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+-	iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++	if (iris_session_memory_released(inst, end_ret)) {
++		iris_destroy_all_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++		iris_destroy_all_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++		iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++		iris_check_num_queued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++		if (inst->eos_vaddr)
++			dma_free_attrs(inst->core->dev, SZ_4K, inst->eos_vaddr,
++				       inst->eos_daddr, 0);
++	}
+ 	iris_remove_session(inst);
+-	/* ROG5: after SESSION_END; kept if the firmware could not be shut down */
+-	if (inst->eos_vaddr && !inst->core->fw_held)
+-		dma_free_attrs(inst->core->dev, SZ_4K, inst->eos_vaddr, inst->eos_daddr, 0);
+ 	mutex_unlock(&inst->lock);
+ 	v4l2_ctrl_handler_free(&inst->ctrl_handler);
+ 	/* the memory goes with the last response handler's reference */
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index 4c6739e..ab0c65d 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -238,12 +238,15 @@ void iris_vpu_power_off_hw(struct iris_core *core)
+ void iris_vpu_power_off(struct iris_core *core)
+ {
+ 	/*
+-	 * ROG5: stop interrupt handling before the clocks go, not after: the
+-	 * interrupt thread reads and clears VPU registers. Every caller has
+-	 * already quiesced the line outside core->lock, so this does not wait.
++	 * ROG5: mask the line before the clocks go, not after, and without
++	 * waiting for the interrupt thread (callers hold core->lock, and the
++	 * runtime PM callbacks must not wait for the thread at all). A thread
++	 * that is already running sees core->powered false under core->lock
++	 * and leaves the registers alone; its final enable_irq() balances the
++	 * hard handler's disable as before.
+ 	 */
+ 	if (!iris_vpu_watchdog(core, core->intr_status))
+-		disable_irq(core->irq);
++		disable_irq_nosync(core->irq);
+ 	core->powered = false;
+ 
+ 	iris_opp_set_rate(core->dev, 0);
