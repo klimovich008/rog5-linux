@@ -165,10 +165,10 @@
       "package": "package-7.2.7-safe-r8",
       "source_commit": null,
       "changes": "k69 + d3 (d2 + memx) with the current init (v2 restore, update kit), r69 module list from 4980520d, speakers at -12 dB",
-      "status": "installed-fallback",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-09-30 18:18 (with r205)",
-      "notes": "Fallback rehearsal PASS 2026-09-30 22:31 (booted, Wi-Fi, SSH; reinstalled r208 from it). On k69 with the MSI monitor on the side port battmgr USB is offline: have a plain charger at hand."
+      "notes": "previous fallback (k69), rehearsed PASS 2026-09-30; still on p24, can be reinstalled as fallback"
     },
     {
       "name": "production-7.2.7-r205",
@@ -261,7 +261,7 @@
       "package": "package-main-k111-d10-261001b",
       "source_commit": "914217cc0d34",
       "changes": "trial: device profile + overlay cap from userdata size (99620823)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 12:50",
       "notes": "trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state"
@@ -277,10 +277,10 @@
       "package": "package-safe-k111-d10-261001a",
       "source_commit": "b170a898c457",
       "changes": "alpha kernel k111 as fallback (user request); same DTB as main",
-      "status": "built",
+      "status": "installed-fallback",
       "healthy": "unknown",
-      "installed": null,
-      "notes": null
+      "installed": "2026-10-01 13:52",
+      "notes": "alpha kernel k111 as fallback at the user's request (Sol advised an independent kernel); not yet rehearsed"
     },
     {
       "name": "main-k111-d10-261001c",
@@ -293,9 +293,9 @@
       "package": "package-main-k111-d10-261001c",
       "source_commit": "b170a898c457",
       "changes": "companion default for installing safe-k111 (same content as 261001b)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-01 13:52",
       "notes": "built from HEAD while the working tree had uncommitted changes"
     }
   ]

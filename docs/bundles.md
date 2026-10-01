@@ -11,21 +11,21 @@ report `7.2.7-rog5-production`. Bundles made before the scheme keep their names.
 Build one with `scripts/host/rog5-make-bundle.py --role main|safe --kernel kNNN --dtb dN`
 (see "Bundle names and the bundle tool" in [development.md](development.md)).
 
-Installed: default `main-k111-d10-261001b`, fallback `production-7.2.7-safe-r8`.
+Installed: default `main-k111-d10-261001c`, fallback `safe-k111-d10-261001a`.
 
 ## Bundles
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `main-k111-d10-261001c` | main | k111 | d10 | built | unknown |  | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
-| `safe-k111-d10-261001a` | safe | k111 | d10 | built | unknown |  | alpha kernel k111 as fallback (user request); same DTB as main |  |
-| `main-k111-d10-261001b` | main | k111 | d10 | installed-main | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
+| `main-k111-d10-261001c` | main | k111 | d10 | installed-main | yes | 2026-10-01 13:52 | companion default for installing safe-k111 (same content as 261001b) | built from HEAD while the working tree had uncommitted changes |
+| `safe-k111-d10-261001a` | safe | k111 | d10 | installed-fallback | unknown | 2026-10-01 13:52 | alpha kernel k111 as fallback (user request); same DTB as main | alpha kernel k111 as fallback at the user's request (Sol advised an independent kernel); not yet rehearsed |
+| `main-k111-d10-261001b` | main | k111 | d10 | retired | yes | 2026-10-01 12:50 | trial: device profile + overlay cap from userdata size (99620823) | trial of 99620823 (device profile, overlay cap from userdata size): booted 12:52, p2-attest PASS, committed healthy; ramdisk differs from 261001a only in init, rog5-p2-attest, rog5-persistent-state |
 | `main-k111-d10-261001a` | main | k111 | d10 | retired | yes | 2026-10-01 00:32 | 0102 GMU lifetime fix; 0148 USB DDR vote follows attached devices; d10 L11 off; uname 7.2.7-rog5-k111 | booted 00:34, committed healthy; uname 7.2.7-rog5-k111; L11 disabled at 33.8 s; bottom stick auto; side HDMI hub (no sink) enumerated after the 30 s DP wait |
 | `production-7.2.7-r208` | main | k110 | d9 | retired | yes | 2026-09-30 22:35 | r207 content with a fresh descriptor, installed from the safe-r8 fallback | Committed healthy 22:37. |
 | `production-7.2.7-r207` | main | k110 | d9 | retired | yes | 2026-09-30 20:51 | 0146 TCPM (stick attached at boot), 0147 dp_min_bpc, halved DP mode clock check by default | Rejected on purpose at 22:29 for the safe-r8 fallback rehearsal. |
 | `production-7.2.7-r206` | main | k109 | d9 | retired | yes | 2026-09-30 19:06 | 0145 DP link policy | The stage reported FAIL (p24 read-only remount: mount point busy) after the selector exchange; the bundle booted and committed healthy. Led to the never-unlink installer fix (cc090781). |
 | `production-7.2.7-r205` | main | k108 | d9 | retired | yes | 2026-09-30 18:18 | r204 kernel and DTB, newer init (audio route 0 dB only behind the protection DSP, charge policy); installed together with fallback safe-r8 |  |
-| `production-7.2.7-safe-r8` | safe | k69 | d3 | installed-fallback | yes | 2026-09-30 18:18 (with r205) | k69 + d3 (d2 + memx) with the current init (v2 restore, update kit), r69 module list from 4980520d, speakers at -12 dB | Fallback rehearsal PASS 2026-09-30 22:31 (booted, Wi-Fi, SSH; reinstalled r208 from it). On k69 with the MSI monitor on the side port battmgr USB is offline: have a plain charger at hand. |
+| `production-7.2.7-safe-r8` | safe | k69 | d3 | retired | yes | 2026-09-30 18:18 (with r205) | k69 + d3 (d2 + memx) with the current init (v2 restore, update kit), r69 module list from 4980520d, speakers at -12 dB | previous fallback (k69), rehearsed PASS 2026-09-30; still on p24, can be reinstalled as fallback |
 | `production-7.2.7-r204` | main | k108 | d9 | retired | yes | 2026-09-30 17:09 | 0144 (bottom USB-C 5 V on attach), memx no-map (d9), DP v4 fixes |  |
 | `production-7.2.7-r203` | main | k104 | d7 | not-installed | n/a |  | r201 content with a fresh descriptor: rollback option for r202 | Preflight only; never staged. |
 | `production-7.2.7-r202` | main | k105 | d8 | retired | yes | 2026-09-30 13:58 | 4-lane DP (4 x HBR2 both orientations after a replug), q6asm 24-bit, bottom USB-C stage B DT | In use 13:58-17:09. cs35l45 mailbox errors on every speaker stop; stage B ALERT never fired (k105 lacks 0144). |
