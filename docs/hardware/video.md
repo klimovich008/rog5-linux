@@ -195,3 +195,102 @@ WW33 vendor_a partition (read-only on 2026-10-01).
 ## Trial
 
 Not run. Bundle, install, firmware and test steps: [Trial plan](#trial-plan).
+
+## Trial plan
+
+Bundle `main-k114-d14-261001a` (k114 + d14, try-once main; package under
+`~/.local/state/rog5-production-boot-20260923/package-main-k114-d14-261001a/`).
+Fallback stays `safe-k111-d10-261001a` (its DTB has no video node). Every
+step below is read-only on the phone except the firmware installer (step 3)
+and the install (step 5).
+
+1. **RAM trial without firmware** (`production-ram-trial.py to-fastboot`, then
+   `boot --wrapper <package>/boot-ram-128m.img --wrapper-sha256 <sha> --evidence <new dir> --stage-receiver`).
+   Expect:
+   - `rog5-platform-modules: video-modules loaded videocc_sm8350 qcom_iris`
+     (after the audio and sensor lists) and `systemctl status rog5-video` active;
+   - no `arm-smmu 15000000.iommu: S2CR... the hypervisor did not take the route`
+     line (patch 0156; if it names SMR id 0x2100: stop, do not install
+     firmware, see Risks);
+   - `/sys/bus/platform/drivers/qcom-iris/aa00000.video-codec` and
+     `/sys/bus/platform/drivers/sm8350-videocc/abf0000.clock-controller` exist,
+     `/sys/class/video4linux/video*/name` = `qcom-iris-decoder`, `qcom-iris-encoder`;
+   - `dmesg | grep 'sync_state() pending'` never names `aa00000.video-codec` or
+     `abf0000.clock-controller` after rog5-video ran, and
+     `/sys/kernel/debug/devices_deferred` does not list them;
+   - udev's v4l_id open fails cleanly: `qcom-iris aa00000.video-codec:
+     qcom/sm8350/vpu20_4v.mbn: request_firmware failed: -2`, `firmware download
+     failed: -2`, `core init failed`; `video_cc_mvs0c_clk` and
+     `video_cc_mvs0_clk` stay at enable count 0 in
+     `/sys/kernel/debug/clk/clk_summary`;
+   - the usual k113 checks (Wi-Fi up, audio, sensors, display, s2idle).
+2. **Firmware for this boot only**, still in the RAM trial:
+   `ssh root@169.254.77.2 sh -s -- --runtime < scripts/device/install-rog5-video-firmware`
+   (copies vendor_a `vpu20_4v.mbn`, SHA-256 `16d8258c...e69d`, into the tmpfs
+   firmware path), then `v4l2-ctl --list-devices`. Expect, in order:
+   `vpu20_4v.mbn authenticated and out of reset (PAS 9)`, no
+   `qcom_scm_mem_protect_video_var failed`, no uc_region / boot / system-init
+   error, and `v4l2-ctl --list-devices` listing `qcom-iris` with both nodes.
+   The core powers off 1.5 s after the last close (clk_summary enable
+   counts back to 0, `pm_genpd_summary` `mvs0c_gdsc`/`mvs0_gdsc` off).
+3. **Functional tests** (same boot; clips in `/var/tmp`, removed afterwards):
+   - `v4l2-ctl -d /dev/videoD --all --list-formats-out --list-formats` for the
+     decoder (OUTPUT H264/HEVC/VP9, CAPTURE NV12/QC08C) and the encoder
+     (OUTPUT NV12/QC08C, CAPTURE H264/HEVC); `v4l2-compliance -d /dev/videoD`
+     and `-d /dev/videoE` (upstream SM8350: 48/48 on the decoder).
+   - Clips: `ffmpeg -f lavfi -i testsrc2=size=1920x1080:rate=30:duration=20`
+     encoded with libx264 veryfast, libx265 ultrafast, libvpx-vp9 realtime, and
+     a 3840x2160 H.264/HEVC pair.
+   - Decode speed: `ffmpeg -hide_banner -benchmark -c:v h264_v4l2m2m -i clip -f null -`
+     (then `hevc_v4l2m2m`, `vp9_v4l2m2m`), against the CPU baseline of
+     2026-10-01 (1080p H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime).
+   - Decode correctness: `-pix_fmt yuv420p -f framemd5` from `h264_v4l2m2m`
+     and from the software decoder must match frame for frame (H.264/HEVC
+     decoding is bit-exact).
+   - Encode: `ffmpeg -f lavfi -i testsrc2=size=1920x1080:rate=30:duration=20 -pix_fmt nv12 -c:v h264_v4l2m2m -b:v 8M out.mp4`
+     (and `hevc_v4l2m2m`), fps against x264 veryfast 57 fps / x265 ultrafast
+     31 fps, quality with `ffmpeg -i out.mp4 -i ref.y4m -lavfi psnr -f null -`.
+   - GStreamer: `gst-inspect-1.0 video4linux2` lists `v4l2h264dec`,
+     `v4l2h265dec`, `v4l2vp9dec`, `v4l2h264enc`, `v4l2h265enc`;
+     `gst-launch-1.0 filesrc location=clip.mp4 ! qtdemux ! h264parse ! v4l2h264dec ! fakesink sync=false`;
+     `gst-launch-1.0 videotestsrc num-buffers=600 ! video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! v4l2h264enc ! h264parse ! mp4mux ! filesink location=gst.mp4`.
+   - mpv: `mpv --hwdec=v4l2m2m-copy --vo=null --frames=600 clip.mp4` must log
+     `Using hardware decoding (v4l2m2m-copy)`; then on screen in Phosh.
+   - Concurrency (the IOVA bug upstream reproduced with several browser tabs):
+     four parallel `h264_v4l2m2m` decodes; no `Unhandled context fault`.
+   - Cost: the same 60 s 1080p30 playback with `--hwdec=no` and
+     `--hwdec=v4l2m2m-copy`, CPU from `/proc/stat` and, unplugged, battery
+     current (`rog5-idle-power-sample`); interconnect votes in
+     `/sys/kernel/debug/interconnect/interconnect_summary` (video-mem) during
+     and after playback.
+   - One s2idle cycle with the firmware resident, then decode again.
+4. **Back to the installed chain**: `production-ram-trial.py fastboot-reboot`
+   (or an ordinary reboot); the runtime firmware copy is gone with the RAM
+   boot.
+5. **Install** (only after a clean step 1-3), from a clean checkout of this
+   branch: `python3 scripts/host/install-default-kernel.py --bundle-dir <package>/bundles/main-k114-d14-261001a --descriptor <trial dir>/descriptor --trust-key <raw key> --evidence <state>/install-main-k114-d14-261001a-preflight --address 10.77.0.2`
+   (preflight), then the same with `--stage` and a new evidence directory;
+   reboot, `PASS main-k114-d14-261001a committed healthy`, reboot again.
+   Then the persistent firmware:
+   `ssh root@10.77.0.2 sh -s < scripts/device/install-rog5-video-firmware`
+   and one more reboot to see the boot-time load (`authenticated and out of
+   reset` shortly after rog5-video.service).
+6. **Back-out**: the firmware alone: `install-rog5-video-firmware --uninstall`
+   (the drivers stay bound, the core stays off). The bundle: it is a try-once
+   main, so a boot that does not commit falls back to safe-k111-d10; a
+   committed install goes back by the selector (`selector.rollback-main-k114-d14-261001a`)
+   or a fresh `rog5-make-bundle.py --role main --kernel k113 --dtb d13`.
+
+### What a failure looks like
+
+| Sign (dmesg) | Meaning |
+|---|---|
+| `arm-smmu ...: S2CR<n> (SMR id 0x2100 ...) ... the hypervisor did not take the route` | the hypervisor refused SID 0x2100 on the bank Linux picked; do not load firmware. Fix: add 0x2100 to `qcom_sm8350_dsp_sids` (banks >= 20, patch 0051) |
+| `request_firmware failed: -2` | firmware not installed (expected before step 2) |
+| `loading into 0x0000000085700000 (PAS 9 init/mem setup) failed: -22` (with qcom_scm errors) | TrustZone rejected the metadata or the memory region (what the CDSP got, `0x30001f`) |
+| `auth and reset failed: <err>` | TrustZone rejected the image signature or the PAS state |
+| `qcom_scm_mem_protect_video_var failed: <err>` | content-protection call refused; the image is shut down again |
+| `invalid setting for uc_region` / `error booting up iris firmware` | the core did not accept its memory map / never raised CTRL_STATUS |
+| `firmware did not complete system init (-110), powering the core off` | firmware started but never answered (0154 tore it down) |
+| `Unhandled context fault ... cbfrsynra=0x2100` / `Unexpected global fault` | DMA outside the domain (IOVA hole, unmapped buffer) |
+| hard reset during step 2 | likely the stream route: ramoops/`/sys/fs/pstore` after the reboot; the RAM trial means the next boot is the installed chain |

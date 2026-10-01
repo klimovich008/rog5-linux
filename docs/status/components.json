@@ -433,9 +433,9 @@
         },
         {
           "name": "Hardware video decode/encode",
-          "status": "missing",
+          "status": "untested",
           "weight": 1,
-          "note": "no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)"
+          "note": "trial bundle main-k114-d14-261001a built, not installed: upstream iris driver via the \"qcom,sm8350-iris\", \"qcom,sm8250-venus\" fallback, patches 0154-0156, DTB d14 (d13 + video overlay with IOVA hole), firmware = vendor_a vpu20_4v.mbn (OEM-signed, same root as the accepted ADSP image), installer scripts/device/install-rog5-video-firmware; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)"
         }
       ]
     },

@@ -72,3 +72,20 @@ Changed since:
    scripts/device/build-persistent-root-standalone-initramfs.sh (all-or-nothing video list), and
    scripts/device/install-rog5-video-firmware (device-side installer). Look for real bugs only.
 Answer with concrete findings (file:line), most important first; say explicitly if you find nothing blocking. Do not modify anything.
+
+
+## Round 3 brief
+
+Third, short review (read-only) of two reworked kernel patches in this worktree, after your round-2 findings
+(/tmp/claude-1000/-home-deck-Projects-rog-phone-linux-migration/2cc1c994-1a4f-4a0b-aca7-41804577680f/scratchpad/video-review-sol-r2.md).
+Kernel source with 0001-0153 applied: /home/deck/.local/state/rog5-kernel-7.2.7-build-r113/source.
+1. patches/linux-7.2.7/0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch: __iris_core_deinit()
+   now quiesces the IRQ outside core->lock for every teardown (iris_core_deinit and the init-failure path);
+   iris_wait_for_system_response() takes the result under the lock for its attempt; an open that finds IRIS_CORE_ERROR
+   now returns -EINVAL via the exit label without changing the state. Check for regressions: can any path now leave the
+   core in IRIS_CORE_ERROR forever with nobody to tear it down (list every place that sets IRIS_CORE_ERROR and who cleans
+   up); IRQ depth at iris_remove() (probe requests the IRQ with IRQF_NO_AUTOEN); the sys error handler calling
+   iris_core_deinit() then iris_core_init(); and anything else that is a real bug.
+2. patches/linux-7.2.7/0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch: now only
+   reads back entries with s2cr->type == S2CR_TYPE_TRANS && s2cr->count. Correct and quiet at boot?
+Answer briefly with concrete blocking findings (file:line) or say there are none. Do not modify anything.

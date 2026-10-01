@@ -1,4 +1,4 @@
-From c5ca62514953bfd788fb6f41e559533caf254b70 Mon Sep 17 00:00:00 2001
+From 504bd3a88031d7ef3262c2607954aa8904a84e56 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Thu, 1 Oct 2026 22:22:51 +0200
 Subject: [PATCH] media: iris: power the core off when the firmware does not
@@ -38,7 +38,11 @@ uptime.
   pending deadlocked; this also covers the existing callers,
   iris_sys_error_handler() and iris_remove(). The extra disable/enable
   pair leaves the depth as power off/on expect it, including after a
-  watchdog interrupt (which keeps the line disabled).
+  watchdog interrupt (which keeps the line disabled). The synchronous
+  unwind in iris_core_init() after power on (firmware load, boot or
+  HFI init failure) does the same with the lock dropped; other openers
+  see IRIS_CORE_ERROR meanwhile, and if sys error recovery took the
+  core over in that window the unwind leaves it alone.
 - A failed PAS shutdown is logged instead of ignored.
 - The gen1 and gen2 system-init-done handlers complete core_init_done
   on failure too; the waiter checks the state.
@@ -57,23 +61,23 @@ first init is still pending sees IRIS_CORE_INIT and proceeds, and
 iris_sys_error_handler() holds no runtime PM reference across its
 deinit/init.
 
-Reviewed (read-only, two rounds): GPT-6.1-Sol,
+Reviewed (read-only, three rounds): GPT-6.1-Sol,
 docs/reviews/2026-10-01-gpt-6.1-sol-video-iris.md.
 ROG5: patch 0154, kernel k114. Not in upstream.
 ---
- drivers/media/platform/qcom/iris/iris_core.c  | 98 ++++++++++++++-----
- drivers/media/platform/qcom/iris/iris_core.h  |  2 +
- .../media/platform/qcom/iris/iris_firmware.c  | 14 ++-
- .../qcom/iris/iris_hfi_gen1_response.c        |  5 +-
- .../qcom/iris/iris_hfi_gen2_response.c        |  5 +-
- .../platform/qcom/iris/iris_vpu_common.c      |  2 +-
- 6 files changed, 94 insertions(+), 32 deletions(-)
+ drivers/media/platform/qcom/iris/iris_core.c  | 119 ++++++++++++++----
+ drivers/media/platform/qcom/iris/iris_core.h  |   2 +
+ .../media/platform/qcom/iris/iris_firmware.c  |  14 ++-
+ .../qcom/iris/iris_hfi_gen1_response.c        |   5 +-
+ .../qcom/iris/iris_hfi_gen2_response.c        |   5 +-
+ .../platform/qcom/iris/iris_vpu_common.c      |   2 +-
+ 6 files changed, 114 insertions(+), 33 deletions(-)
 
 diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
-index 8c335db..38e73ee 100644
+index 8c335db..194b334 100644
 --- a/drivers/media/platform/qcom/iris/iris_core.c
 +++ b/drivers/media/platform/qcom/iris/iris_core.c
-@@ -10,47 +10,93 @@
+@@ -10,47 +10,94 @@
  #include "iris_state.h"
  #include "iris_vpu_common.h"
  
@@ -93,15 +97,13 @@ index 8c335db..38e73ee 100644
 -		iris_fw_unload(core);
 +	if (powered)
 +		iris_vpu_power_off(core);
- 
--		if (!ret)
--			iris_vpu_power_off(core);
++
 +	iris_hfi_queues_deinit(core);
 +	core->state = IRIS_CORE_DEINIT;
 +}
  
--		iris_hfi_queues_deinit(core);
--		core->state = IRIS_CORE_DEINIT;
+-		if (!ret)
+-			iris_vpu_power_off(core);
 +/*
 + * Unload the firmware and power the core off. The interrupt is quiesced
 + * first and outside core->lock: the threaded handler takes that lock, and
@@ -115,7 +117,9 @@ index 8c335db..38e73ee 100644
 +static void __iris_core_deinit(struct iris_core *core, bool any, u32 attempt, int err)
 +{
 +	int ret;
-+
+ 
+-		iris_hfi_queues_deinit(core);
+-		core->state = IRIS_CORE_DEINIT;
 +	ret = pm_runtime_resume_and_get(core->dev);
 +	disable_irq(core->irq);
 +
@@ -164,8 +168,7 @@ index 8c335db..38e73ee 100644
 +	answered = core->state != IRIS_CORE_ERROR &&
 +		   wait_for_completion_timeout(&core->core_init_done,
 +					       msecs_to_jiffies(HW_RESPONSE_TIMEOUT_VALUE));
- 
--	return 0;
++
 +	mutex_lock(&core->lock);
 +	if (core->init_attempt != attempt)
 +		ret = -EIO;	/* superseded by sys error recovery */
@@ -177,17 +180,19 @@ index 8c335db..38e73ee 100644
 +
 +	if (ret)
 +		__iris_core_deinit(core, false, attempt, ret);
-+
+ 
+-	return 0;
 +	return ret;
  }
  
  int iris_core_init(struct iris_core *core)
  {
++	bool unload = false;
 +	u32 attempt;
  	int ret;
  
  	mutex_lock(&core->lock);
-@@ -58,11 +104,19 @@ int iris_core_init(struct iris_core *core)
+@@ -58,11 +105,19 @@ int iris_core_init(struct iris_core *core)
  		ret = 0;
  		goto exit;
  	} else if (core->state == IRIS_CORE_ERROR) {
@@ -208,7 +213,7 @@ index 8c335db..38e73ee 100644
  
  	ret = iris_hfi_queues_init(core);
  	if (ret)
-@@ -92,7 +146,7 @@ int iris_core_init(struct iris_core *core)
+@@ -92,12 +147,30 @@ int iris_core_init(struct iris_core *core)
  
  	mutex_unlock(&core->lock);
  
@@ -216,7 +221,31 @@ index 8c335db..38e73ee 100644
 +	return iris_wait_for_system_response(core, attempt);
  
  error_unload_fw:
- 	iris_fw_unload(core);
+-	iris_fw_unload(core);
++	unload = true;
+ error_power_off:
++	/*
++	 * The IRQ is live since power on and its threaded handler takes
++	 * core->lock, while iris_vpu_power_off() waits for it in
++	 * disable_irq(): quiesce it with the lock dropped. Other openers see
++	 * IRIS_CORE_ERROR meanwhile; if sys error recovery tore the core down
++	 * or started a new attempt in that window, it owns the core now.
++	 */
++	core->state = IRIS_CORE_ERROR;
++	mutex_unlock(&core->lock);
++	disable_irq(core->irq);
++	mutex_lock(&core->lock);
++	if (core->init_attempt != attempt || core->state != IRIS_CORE_ERROR) {
++		enable_irq(core->irq);
++		goto exit;
++	}
++	if (unload)
++		iris_fw_unload(core);
+ 	iris_vpu_power_off(core);
++	enable_irq(core->irq);
+ error_queue_deinit:
+ 	iris_hfi_queues_deinit(core);
+ error:
 diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
 index 24da604..78dd70d 100644
 --- a/drivers/media/platform/qcom/iris/iris_core.h

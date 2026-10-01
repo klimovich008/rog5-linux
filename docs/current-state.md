@@ -12,7 +12,7 @@ Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components
 | Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
-Components: 39 ready, 10 partial, 8 needs a test, 17 missing.
+Components: 39 ready, 10 partial, 9 needs a test, 16 missing.
 
 Partial:
 
@@ -37,6 +37,7 @@ Needs a test:
 - Power / Instruction-fetch aborts (SIGBUS): memx no-map 64 MiB at 0x34a000000 in d9/d10 and safe-r8 + rog5-sea-retire; no new aborts seen since; Dota 2 under FEX to retest
 - Audio / 24-bit playback: 0125-0127 (V4 Q23 front end) in r108; PipeWire stays S16LE until a loudness A/B
 - Audio / Bluetooth audio
+- Sensors & hardware / Hardware video decode/encode: trial bundle main-k114-d14-261001a built, not installed: upstream iris driver via the "qcom,sm8350-iris", "qcom,sm8250-venus" fallback, patches 0154-0156, DTB d14 (d13 + video overlay with IOVA hole), firmware = vendor_a vpu20_4v.mbn (OEM-signed, same root as the accepted ADSP image), installer scripts/device/install-rog5-video-firmware; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 Missing:
 
@@ -56,7 +57,6 @@ Missing:
 - Sensors & hardware / Cameras
 - Sensors & hardware / Fingerprint
 - Sensors & hardware / AirTriggers
-- Sensors & hardware / Hardware video decode/encode: no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 <!-- END GENERATED -->
 

@@ -83,6 +83,15 @@
       "created": "2026-10-01",
       "kernel_requires": "",
       "notes": "RAM trials A-C passed 2026-10-01; default main DTB: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each)"
+    },
+    "d14": {
+      "path": "platform-d13-video-dtb-d14/board.dtb",
+      "sha256": "8830a396fdb5538832efc2998fb4f6058e36bd422caecd0b4ae0c7f81653b4d3",
+      "features": "touch,bluetooth,cpuidle,gpubw,bwmon,ddrscale,periph,audio,slpi,usbotg,osi,aoss,qupicc,dp,l3,skin,acd,cpucap,usbbtm,mic,usbbtmtc,memx,l11off,video",
+      "base": "d13",
+      "created": "2026-10-01",
+      "kernel_requires": "0154-0156, rog5-video.fragment (k114); video-modules kit",
+      "notes": "TRIAL: d13 + compose-video-dtb.sh (dts/qcom/sm8350-asus-rog-phone5-video.dtso): Iris v2 video-codec@aa00000 (qcom,sm8350-iris + sm8250-venus fallback, firmware qcom/sm8350/vpu20_4v.mbn), videocc@abf0000, /reserved-memory/iris-iova (IOVA [0, 0x25800000)); the tree is otherwise d13 byte for byte"
     }
   }
 }
