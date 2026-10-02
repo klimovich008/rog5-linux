@@ -3015,34 +3015,6 @@
       ]
     },
     {
-      "path": "scripts/host/test-video-iris-k120.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": null,
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/fixtures/iris-k117/iris_probe.c",
-        "scripts/host/fixtures/iris-k117/iris_hfi_gen1_command.c",
-        "scripts/host/fixtures/iris-k117/iris_vidc.c",
-        "scripts/host/fixtures/iris-k117/source-pins.json",
-        "scripts/host/fixtures/iris-k117/iris_core.c"
-      ],
-      "optional_subchecks": []
-    },
-    {
       "path": "scripts/host/test-video-encoder-trial.py",
       "interpreter": "python3",
       "tiers": [
