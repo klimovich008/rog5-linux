@@ -469,7 +469,7 @@
       "package": "package-main-k113-d13-261001a",
       "source_commit": "defc52dbea98",
       "changes": "0153 SWIOTLB 64 -> 4 MiB + dynamic pools (trial, +60 MiB)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-01 18:30",
       "notes": "SWIOTLB 4 MiB: hiwater 4 slabs after Wi-Fi bulk, pressure, 15 s2idle; one unreproduced WCN6855 RDDM on resume (Wi-Fi dead until reboot); USB storage/DP/game not yet on k113"
@@ -629,10 +629,10 @@
       "package": "package-main-k116-d15-261002e",
       "source_commit": "a84042f1605b",
       "changes": "hardware video decode: Iris on SM8350 (H.264/HEVC, encoder hidden, VP9 off); k116 = k113 + 0154-0168",
-      "status": "built",
-      "healthy": "unknown",
+      "status": "retired",
+      "healthy": "yes",
       "installed": null,
-      "notes": null
+      "notes": "Default 2026-10-02 14:02 - 2026-10-03 00:12 (H.264/HEVC hardware decode); replaced by main-k123-d15-261002b. Chromium wedged it (FLUSH_OUTPUT on close), fixed in k123."
     },
     {
       "name": "main-k117-d15-261002a",
@@ -757,10 +757,10 @@
       "package": "package-main-k123-d15-261002b",
       "source_commit": "8e584ea275a4",
       "changes": "k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": null
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-03 00:12",
+      "notes": "Installed as default over main-k116-d15-261002e (fallback safe-k111-d10-261001a); first boot committed healthy. Same content as main-k123-d15-261002a (RAM-trial PASS)."
     }
   ]
 }

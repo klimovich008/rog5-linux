@@ -239,16 +239,16 @@ Measured 2026-10-02 on k116 (H.264/HEVC decoder exposed):
   the time and the renderer dropped from ~120% to ~55% CPU. chrome://gpu
   still says "Video Decode: Software only" (ANGLE reports vendor 0x0000), so
   check the DevTools Media panel (`V4L2VideoDecoder`) instead.
-- **Not enabled by default: the firmware wedges under YouTube.** After ~15 s
-  of YouTube 1080p60 (20:32:11, k116) a STOP/RELEASE answer carried an HFI
-  error (`stop/release failed: -5`; the error code is not logged), then every
-  new session failed to open, END was never acknowledged (`no end
-  acknowledgement (-110) ... leaking its buffers`) and the core could not
-  power-collapse (`failed to suspend` every 2 s) until reboot. Chromium fell
-  back to software decoding without a visible error. The installer therefore
-  does not ship `chromium-flags.conf` yet; a single local clip played cleanly,
-  so the trigger is likely YouTube's quality switches or its many short
-  decoder sessions.
+- **Enabled by default since k123 (2026-10-03).** On k116 the firmware wedged
+  under YouTube: Chromium closes its decoder CAPTURE-first, the driver sent
+  FLUSH_OUTPUT while input was streaming, and the firmware never answered
+  (sessions then failed to open and the core stayed powered until reboot).
+  0211 sends FLUSH_ALL for an ordinary streamoff (as venus does) and 0210
+  contains any later teardown failure; k123 passed the local and YouTube
+  stress runs ([k116/k122/k123 trials](../../test-results/2026-10-02-video-iris-k123-ram-trial.md)).
+  The installer ships `/etc/chromium-flags.conf` and `/etc/mpv/mpv.conf`
+  (`hwdec=v4l2m2m-copy`); GStreamer apps (Showtime, WebKitGTK) already pick
+  `v4l2h264dec`/`v4l2h265dec` by rank. Firefox is not configured yet.
 - VP9 and AV1 streams still decode in software (VP9 is not exposed until it
   passes its trial; an extension such as enhanced-h264ify makes YouTube pick
   H.264). AV1 has no
