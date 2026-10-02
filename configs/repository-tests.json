@@ -1732,7 +1732,17 @@
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v1/SHA256SUMS",
+        "artifacts/persistent-trial-state-v1/build-meta.txt",
+        "artifacts/persistent-trial-state-v2/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v2/SHA256SUMS",
+        "artifacts/persistent-trial-state-v2/build-meta.txt",
+        "artifacts/persistent-trial-state-v3/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v3/SHA256SUMS",
+        "artifacts/persistent-trial-state-v3/build-meta.txt"
+      ],
       "optional_subchecks": [
         {
           "id": "optional-1",
@@ -2142,7 +2152,11 @@
       "exclusivity_group": "repository",
       "python_optimized": true,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "scripts/host/check-production-build-diagnostics.py",
+        "scripts/host/draft-warning-policy.py",
+        "configs/kernel/rog5-production-warning-policy-7.2.7.json"
+      ],
       "optional_subchecks": []
     },
     {
@@ -2545,7 +2559,8 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "sh"
+        "sh",
+        "setsid"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -2753,7 +2768,8 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "sh"
+        "sh",
+        "setsid"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -2782,7 +2798,10 @@
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "scripts/host/check-repository-static.py",
+        "configs/repository-tests.json"
+      ],
       "optional_subchecks": []
     },
     {

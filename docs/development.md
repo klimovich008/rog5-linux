@@ -15,8 +15,18 @@ tiers, deadline, prerequisites, resource class and declared optional
 subchecks. `bash scripts/host/test-repository-linux.sh --list TIER` prints a
 tier; `scripts/host/test-repository-linux.sh TIER` runs it (see CLAUDE.md for
 the recorded environment). Every tier first runs
-`python3 scripts/host/check-repository-static.py` (context entry points, local
-Markdown links in the live docs, shell/Python syntax, secret scan).
+`python3 scripts/host/check-repository-static.py` (context entry points, tracked
+test suites and required inputs, local Markdown links in the live docs,
+shell/Python syntax, secret scan).
+
+After preparing a public export, run that static check in the exported Git
+checkout before publishing. Keep every registered suite and required input,
+including extensionless host tools such as `scripts/host/rog5-device-profile`
+and the tracked binaries, hashes and metadata in
+`artifacts/persistent-trial-state-v{1,2,3}/`. The ignored `artifacts/` parent
+does not make those tracked source inputs disposable. Test the clean exported
+checkout with the workflow's boot-tool bootstrap and the selected tier;
+ignored files in a private worktree must not supply missing publication inputs.
 
 The runner writes per-suite logs plus `summary.json` and JUnit `summary.xml`
 under `build/test-reports/` (or a fresh `ROG5_TEST_REPORT_DIR`). Missing
@@ -594,4 +604,3 @@ The native RAM loader and transaction are
 `scripts/device/execute-native-ram-bundle-transaction.sh`; host admission must
 precede them. Neither this command front door nor packaging consumes a claim.
 Never retry an ambiguous or post-COMMIT experimental target.
-

@@ -2,7 +2,21 @@
 # Offline test of rog5-sleep-policy --once decisions with a fake sysfs.
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
-t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+t=$(mktemp -d)
+pid=
+stop_loop() {
+	[ -z "$pid" ] || {
+		# The fixture owns this session, including the daemon's poll sleep.
+		/bin/kill -KILL -- "-$pid" 2>/dev/null || true
+		wait "$pid" 2>/dev/null || true
+		pid=
+	}
+}
+cleanup() { stop_loop; rm -rf "$t"; }
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 export ROG5_SLEEP_WIFI_PS=0 ROG5_SLEEP_MODE=suspend ROG5_SLEEP_USB=$t/usb ROG5_SLEEP_DPMS=$t/dpms ROG5_SLEEP_STAY=$t/stay ROG5_SLEEP_USB_DEVICES=$t/usbdev ROG5_SLEEP_SSH_BLOCKS=0 ROG5_SLEEP_KMSG=/dev/null ROG5_SLEEP_EXT_DISPLAYS=$t/dp \
 	ROG5_SLEEP_SUPPLIES=$t/supply ROG5_SLEEP_CHG_BEHAVIOUR=$t/chg ROG5_SLEEP_TYPEC=$t/typec ROG5_SLEEP_ASOUND=$t/asound \
 	ROG5_SLEEP_INHIBITORS_CMD="cat $t/inhibitors"
@@ -82,9 +96,7 @@ chmod +x $t/fake-suspend
 ROG5_SLEEP_IDLE=1 ROG5_SLEEP_AWAKE=1 ROG5_SLEEP_POLL=1 ROG5_SLEEP_STATE=$t/state \
 ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep ROG5_SLEEP_STATS=$t/stats ROG5_SLEEP_WAKE_IRQ=$t/wake \
 ROG5_SLEEP_SUSPEND_CMD=$t/fake-suspend setsid "$here/rog5-sleep-policy" & pid=$!
-sleep 9; kill $pid; wait $pid 2>/dev/null || true; sleep 2
-# The daemon's own process group: its last poll sleep outlives it.
-kill -- -"$pid" 2>/dev/null || true
+sleep 9; stop_loop; sleep 2
 calls=$(wc -l <$t/calls); ok=$(cat $t/stats/success)
 [ "$calls" -ge 2 ] || { echo "FAIL loop suspended $calls times"; exit 1; }
 [ "$calls" -le "$ok" ] || [ "$calls" -eq $((ok + 1)) ] || { echo "FAIL $calls suspend calls for $ok kernel suspends"; exit 1; }
@@ -113,8 +125,8 @@ chmod +x $b/*
 rm -f $t/stay; echo 0 >$t/usb; echo Off >$t/dpms
 PATH=$b:$PATH ROG5_SLEEP_WIFI_PS=1 ROG5_SLEEP_WIFI_PS_HOLD=3 ROG5_SLEEP_MODE=reachable ROG5_SLEEP_POLL=1 \
 ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep setsid "$here/rog5-sleep-policy" & pid=$!
-sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { kill -- -"$pid"; echo "FAIL power save not on after the hold"; exit 1; }
+sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { echo "FAIL power save not on after the hold"; exit 1; }
 for i in 1 2 3; do : >$t/client; sleep 1.2; rm -f $t/client; sleep 1.2; done
-sleep 5; kill $pid; wait $pid 2>/dev/null || true; kill -- -"$pid" 2>/dev/null || true
+sleep 5; stop_loop
 [ "$(tr '\n' ' ' <$t/ps)" = "on off on " ] || { echo "FAIL power save toggles: $(tr '\n' ' ' <$t/ps)"; exit 1; }
 echo PASS rog5-sleep-policy

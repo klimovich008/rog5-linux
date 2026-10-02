@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static repository checks: context entry points, local Markdown links,
+"""Static repository checks: context entry points, tracked test inputs, local Markdown links,
 shell/Python syntax of every tracked script, and a private-key/API-key scan.
 
 One standalone command (no network, no build, a few seconds):
@@ -7,6 +7,7 @@ One standalone command (no network, no build, a few seconds):
 The repository test runner calls it before any suite.
 """
 import argparse
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -34,6 +35,28 @@ def tracked(repo, *patterns):
 def check_entry_points(repo):
     missing = [entry for entry in ENTRY_POINTS if not (repo / entry).is_file()]
     return [f"missing context entry point: {entry}" for entry in missing]
+
+
+def check_test_inputs(repo):
+    """A working tree's ignored files must not hide an incomplete publication."""
+    registry = repo / 'configs/repository-tests.json'
+    try:
+        rows = json.loads(registry.read_text())['tests']
+        names = {'configs/repository-tests.json'}
+        for row in rows:
+            names.add(row['path'])
+            names.update(row['required_inputs'])
+        tracked_names = set(tracked(repo))
+        errors = []
+        for name in sorted(names):
+            path = repo / name
+            if name not in tracked_names:
+                errors.append(f'untracked repository test input: {name}')
+            if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(repo):
+                errors.append(f'missing or unsafe repository test input: {name}')
+        return errors
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return [f'invalid repository test registry: {error}']
 
 
 def check_links(repo):
@@ -75,7 +98,11 @@ def check_syntax(repo):
     shell_count = 0
     for name in tracked(repo, "*.py", "*.sh"):
         path = repo / name
-        source = path.read_bytes()
+        try:
+            source = path.read_bytes()
+        except OSError as error:
+            errors.append(f'{name}: cannot read tracked script: {error}')
+            continue
         first_line = source.partition(b"\n")[0]
         if path.suffix == ".py" or first_line == ISOLATED_PYTHON_SHEBANG:
             try:
@@ -114,7 +141,7 @@ def main():
     parser.add_argument("--skip-syntax", action="store_true", help="skip the shell/Python syntax pass")
     args = parser.parse_args()
     repo = args.repo.resolve()
-    failures = check_entry_points(repo)
+    failures = check_entry_points(repo) + check_test_inputs(repo)
     broken, documents = check_links(repo)
     failures += broken
     if not args.skip_syntax:
@@ -124,7 +151,7 @@ def main():
         print("FAIL " + failure, file=sys.stderr)
     if failures:
         return 1
-    print(f"PASS static: entry points, links in {documents} Markdown files, "
+    print(f"PASS static: entry points, tracked test inputs, links in {documents} Markdown files, "
           + ("" if args.skip_syntax else "shell/Python syntax, ") + "secret scan")
     return 0
 

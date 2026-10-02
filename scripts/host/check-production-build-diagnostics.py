@@ -31,9 +31,15 @@ def normalize(line,source,objects):
     ccache with CCACHE_BASEDIR (local builds) by a path relative to the object
     directory, the compiler's working directory (../source/...). Both forms
     name the same file, so a reviewed message must match either build."""
-    text=line.replace(str(source.resolve())+'/','')
+    prefix='Warning: ' if line.startswith('Warning: ') else ''
+    text=line[len(prefix):]
+    absolute=str(source.resolve())+'/'
     relative=os.path.relpath(source.resolve(),objects.resolve())+'/'
-    return text[len(relative):] if text.startswith(relative) else text
+    for path in (absolute,relative):
+        if text.startswith(path):
+            text=text[len(path):]
+            break
+    return prefix+text
 
 def diagnostics(text,stage,source,objects,policy):
     """Never treat dt-validate or depmod's zero exit status as silent success."""

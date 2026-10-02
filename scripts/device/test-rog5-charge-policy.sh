@@ -4,7 +4,21 @@
 # kernel's ("[auto] inhibit-charge force-discharge") after each write.
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
-t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+t=$(mktemp -d)
+pid=
+stop_loop() {
+	[ -z "$pid" ] || {
+		# The fixture owns this session, including the daemon's poll sleep.
+		/bin/kill -KILL -- "-$pid" 2>/dev/null || true
+		wait "$pid" 2>/dev/null || true
+		pid=
+	}
+}
+cleanup() { stop_loop; rm -rf "$t"; }
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 b=$t/bat u=$t/usb
 export ROG5_CHG_BAT=$b ROG5_CHG_USB=$u ROG5_CHG_PARTNER=$t/port0-partner ROG5_CHG_ZONES=$t/zones \
 	ROG5_CHG_CONF=$t/charge-policy ROG5_CHG_STATE=$t/state ROG5_CHG_KMSG=$t/log
@@ -214,6 +228,6 @@ rm -rf $t/state
 # Own process group: the daemon's poll sleep outlives the daemon itself.
 ROG5_CHG_POLL=1 setsid "$here/rog5-charge-policy" & pid=$!
 sleep 2
-kill $pid; wait $pid 2>/dev/null || true; kill -- -"$pid" 2>/dev/null || true
+stop_loop
 [ "$(cat $b/charge_control_end_threshold)" = 80 ] || { echo 'FAIL loop did not apply the limit'; exit 1; }
 echo PASS rog5-charge-policy

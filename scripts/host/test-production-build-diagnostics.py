@@ -74,6 +74,16 @@ class Diagnostics(unittest.TestCase):
         self.assertTrue(self.check(relative)[0]['allowed'])
         self.assertFalse(self.check(relative.replace('../source/','../other/'))[0]['allowed'])
         self.assertFalse(self.check('x/'+relative)[0]['allowed'])
+    def test_normalization_preserves_message_contents_and_dtc_prefix(self):
+        absolute=str(self.source)+'/'
+        relative='../source/'
+        for prefix in ('', 'Warning: '):
+            with self.subTest(prefix=prefix):
+                message='table.c:1:2: warning: mentions '+absolute+'support.h'
+                self.assertEqual(checker.normalize(prefix+absolute+message,self.source,self.objects),prefix+message)
+                self.assertEqual(checker.normalize(prefix+relative+message,self.source,self.objects),prefix+message)
+        self.assertEqual(checker.normalize('x/'+absolute+'table.c:1:2: warning: bad path',self.source,self.objects),
+                         'x/'+absolute+'table.c:1:2: warning: bad path')
     def test_repository_policy_keys_are_source_relative_and_unique(self):
         # The checker uses the first entry that names a message, so a stale
         # duplicate or an unnormalised key silently disables a review.
@@ -94,6 +104,106 @@ class Diagnostics(unittest.TestCase):
         self.assertTrue(self.check(self.warning)[0]['allowed'])
         self.assertFalse(self.check(self.warning.replace(':1:2:',':2:2:'))[0]['allowed'])
         self.assertEqual([x['allowed'] for x in self.check(self.warning+'\n'+self.warning)],[True,False])
+
+class PolicyDraft(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name);self.build=self.root/'build'
+        self.source=self.build/'source';self.objects=self.build/'objects'
+        self.source.mkdir(parents=True);self.objects.mkdir()
+        (self.source/'table.c').write_text('constant designated initializer table\n')
+        (self.source/'support.h').write_text('current support header\n')
+        self.message='table.c:12:3: '+checker.INITIALIZER
+        self.patch_dir=self.root/'patches';self.patch_dir.mkdir()
+        self.base=self.root/'base.json';self.previous=self.root/'previous.json'
+        self.output=self.root/'draft.json'
+        self.base.write_text(json.dumps({'base_commit':'base','patch_dir':str(self.patch_dir)}))
+        (self.build/'result.json').write_text(json.dumps({'linux_base':'base','stages':{
+            stage:{'status':'PASS'} for stage in ('kernel-build','modules-install','depmod','dtbs-check')}}))
+        self.policy={'base_commit':'old','initializer_overrides':[],'reviewed_messages':[]}
+        for stage in ('kernel-build','modules-install','depmod','dtbs-check'):
+            (self.build/(stage+'.log')).write_text('')
+    def draft(self,lines):
+        self.previous.write_text(json.dumps(self.policy))
+        (self.build/'kernel-build.log').write_text(lines+'\n')
+        return subprocess.run([sys.executable,str(HERE/'draft-warning-policy.py'),
+            '--build',str(self.build),'--build-policy',str(self.base),
+            '--previous',str(self.previous),'--output',str(self.output)],capture_output=True,text=True)
+    def review(self,message):
+        return {'path':'table.c','sha256':checker.sha(self.source/'table.c'),'messages':{message:1},
+                'dependencies':[{'path':'support.h','sha256':checker.sha(self.source/'support.h')}],
+                'config_guards':{},'reason':'Reviewed constant initializers and support header.'}
+    def test_old_relative_review_is_kept_once_for_absolute_ci_log(self):
+        self.policy['reviewed_messages']=[self.review('../source/'+self.message)]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertEqual(result.returncode,0,result.stderr)
+        policy=json.loads(self.output.read_text())
+        self.assertEqual(len(policy['reviewed_messages']),1)
+        self.assertEqual(policy['reviewed_messages'][0]['messages'],{self.message:1})
+        self.assertEqual(policy['review_evidence']['drafted_messages'],0)
+        for prefix in (str(self.source)+'/', '../source/'):
+            self.assertTrue(checker.diagnostics(prefix+self.message,'kernel-build',self.source,self.objects,policy)[0]['allowed'])
+    def test_changed_support_header_discards_stale_review(self):
+        pin=self.review(self.message);pin['dependencies'][0]['sha256']='0'*64
+        self.policy['reviewed_messages']=[pin]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertEqual(result.returncode,0,result.stderr)
+        policy=json.loads(self.output.read_text())
+        self.assertEqual(policy['review_evidence']['kept_reviewed_files'],0)
+        self.assertEqual(len(policy['reviewed_messages']),1)
+        self.assertEqual(policy['reviewed_messages'][0]['messages'],{self.message:1})
+    def test_path_aliases_do_not_increase_a_reviewed_count(self):
+        pin=self.review(self.message);pin['messages']['../source/'+self.message]=1
+        self.policy['reviewed_messages']=[pin]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertEqual(result.returncode,0,result.stderr)
+        policy=json.loads(self.output.read_text())
+        self.assertEqual(policy['reviewed_messages'][0]['messages'],{self.message:1})
+        self.assertEqual([e['allowed'] for e in checker.diagnostics(
+            '\n'.join([str(self.source)+'/'+self.message]*2),'kernel-build',self.source,self.objects,policy)],
+            [True,False])
+    def test_conflicting_alias_counts_require_review(self):
+        pin=self.review(self.message);pin['messages']['../source/'+self.message]=2
+        self.policy['reviewed_messages']=[pin]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('conflicting counts',result.stderr)
+        self.assertFalse(self.output.exists())
+    def test_legacy_drafted_duplicate_keeps_original_review_and_ceiling(self):
+        original=self.review(self.message);duplicate=self.review('../source/'+self.message)
+        duplicate['reason']='Later generic draft';duplicate['messages']['../source/'+self.message]=2
+        self.policy['reviewed_messages']=[original,duplicate]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(json.loads(self.output.read_text())['reviewed_messages'],[original])
+    def test_missing_generated_table_dependency_discards_pin(self):
+        (self.objects/'table.h').write_text('generated entries\n')
+        self.policy['initializer_overrides']=[{'root':'objects','path':'table.h',
+            'sha256':checker.sha(self.objects/'table.h'),'maximum_count':1,
+            'dependencies':[{'root':'source','path':'absent.h','sha256':'0'*64}]}]
+        result=self.draft(str(self.source)+'/'+self.message)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(json.loads(self.output.read_text())['initializer_overrides'],[])
+    def test_drafter_refuses_series_files_schema_and_depmod(self):
+        for mode in ('series','schema','depmod'):
+            with self.subTest(mode=mode):
+                if mode=='series':
+                    (self.patch_dir/'0001.patch').write_text('+++ b/table.c\n')
+                elif mode=='depmod':
+                    (self.build/'depmod.log').write_text('depmod: WARNING: unknown symbol\n')
+                message='board.dtb: missing required property' if mode=='schema' else str(self.source)+'/'+self.message
+                result=self.draft(message)
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn('diagnostics that cannot be drafted',result.stderr)
+                self.assertFalse(self.output.exists())
+                (self.patch_dir/'0001.patch').unlink(missing_ok=True)
+    def test_parser_uses_actual_object_to_source_relative_path(self):
+        spec=importlib.util.spec_from_file_location('drafter',HERE/'draft-warning-policy.py')
+        drafter=importlib.util.module_from_spec(spec);spec.loader.exec_module(drafter)
+        source=self.root/'linux';objects=self.root/'out/arm64'
+        for prefix in (str(source)+'/', '../../linux/'):
+            self.assertEqual(drafter.source_path(prefix+self.message,source,objects),'table.c')
+            self.assertEqual(drafter.source_path('Warning: '+prefix+self.message,source,objects),'table.c')
 
 class ModuleClosure(unittest.TestCase):
     def setUp(self):
