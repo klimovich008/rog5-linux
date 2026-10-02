@@ -16,8 +16,10 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -977,12 +979,17 @@ class Run(Base):
         self.assertEqual(sorted(p.name for p in (self.state/'snapshots').iterdir()),
                          sorted([old.name, uid]))
 
-    def test_an_interrupted_snapshot_lock_is_released_only_when_it_is_ours(self):
+    TOKEN = '0123456789abcdef0123456789abcdef'
+
+    def stale_lock(self, content):
         lock = self.root/'var/lib/pacman/db.lck'
-        lock.touch()
-        identity = subprocess.run(['stat', '-c', '%i %z', str(lock)], capture_output=True,
-                                  text=True, check=True).stdout.strip()
-        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v1', f'lock={identity}'])
+        lock.write_text(content)
+        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v2', f'token={self.TOKEN}'])
+        return lock
+
+    def test_an_interrupted_snapshot_lock_is_released_only_when_it_is_ours(self):
+        self.stale_lock(self.TOKEN + '\n')
+        (self.root/'var/lib/pacman/.rog5-update-lock').write_text(self.TOKEN + '\n')
         stale = self.state/'snapshots/.tmp-20260101T000000Z-00000000/upper'
         stale.mkdir(parents=True)
         (self.state/'snapshots').chmod(0o700)
@@ -991,12 +998,18 @@ class Run(Base):
         self.assertIn('released the pacman lock of an interrupted snapshot copy', self.kmsg())
         self.assertFalse(stale.parent.exists())
         self.assertFalse((self.udir/'snapshot-lock').exists())
+        self.assertFalse((self.root/'var/lib/pacman/.rog5-update-lock').exists())
         self.assertIn('pacman -Su --noconfirm', self.calls())
 
+    def test_the_recovery_does_not_wait_for_the_next_interval(self):
+        lock = self.stale_lock(self.TOKEN + '\n')
+        self.write(self.udir/'last-check', '9999999999\n')
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertFalse(lock.exists())
+        self.assertNotIn('pacman -Sy --noconfirm', self.calls())
+
     def test_a_lock_that_is_not_the_recorded_one_is_kept(self):
-        lock = self.root/'var/lib/pacman/db.lck'
-        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v1', 'lock=1 2020-01-01 00:00:00.0 +0000'])
-        lock.touch()   # pacman's own lock, taken after the copy died
+        lock = self.stale_lock('')   # pacman's own lock, taken after the copy died
         self.assertEqual(self.start(), 0, self.kmsg())
         self.assertIn('SKIP pacman is locked', self.kmsg())
         self.assertTrue(lock.exists())
@@ -1004,18 +1017,73 @@ class Run(Base):
         self.assertNotIn('pacman -Sy --noconfirm', self.calls())
 
     def test_an_inexact_lock_record_stops_the_run(self):
-        self.record('snapshot-lock', ['format=other', 'lock=1'])
+        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v2', 'token=xyz'])
         self.assertEqual(self.start(), 1)
         self.assertIn('cannot clean up an interrupted snapshot copy', self.kmsg())
         self.assertNotIn('pacman -Sy --noconfirm', self.calls())
 
-    def test_the_snapshot_copy_releases_its_lock_on_a_signal(self):
+    def killed_copy(self, during):
+        """Run an update whose snapshot copy is stopped with SIGTERM (as
+        systemd stops the unit); during(lock) runs while the copy is busy."""
+        self.write(self.dir/'plan', PLAN)
+        real_tar = shutil.which('tar')
+        self.stub('tar', 'case "$*" in\n\t*--create*) : >$D/tar-started; sleep 30 ;;\n'
+                         '\t*--extract*) cat >/dev/null ;;\n'
+                         f'\t*) exec {real_tar} "$@" ;;\nesac')
+        env = dict(os.environ, PATH=f'{self.bin}:{os.environ["PATH"]}', ROG5_UPDATE_ROOT=str(self.root),
+                   ROG5_UPDATE_LOWER=str(self.lower), ROG5_UPDATE_STATE=str(self.state),
+                   ROG5_UPDATE_RUN=str(self.run), ROG5_UPDATE_SYS=str(self.sys),
+                   ROG5_UPDATE_PROC=str(self.proc), ROG5_UPDATE_MOUNTS=str(self.dir/'mounts'),
+                   ROG5_UPDATE_KMSG=str(self.dir/'kmsg'), ROG5_UPDATE_RESERVE_MIB='1',
+                   ROG5_UPDATE_INHIBIT_CMD='', ROG5_UPDATE_REBOOT_WINDOW='')
+        process = subprocess.Popen(['unshare', '-r', 'sh', str(self.update), 'run'], env=env,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   start_new_session=True)
+        try:
+            for _ in range(1200):
+                if (self.dir/'tar-started').exists() or process.poll() is not None:
+                    break
+                time.sleep(0.05)
+            self.assertTrue((self.dir/'tar-started').exists(), (process.poll(), self.kmsg(), self.calls()))
+            lock = self.root/'var/lib/pacman/db.lck'
+            self.assertTrue(lock.exists())
+            during(lock)
+            os.killpg(process.pid, signal.SIGTERM)
+            code = process.wait(timeout=30)
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait()
+        return code, lock
+
+    def test_a_signal_during_the_copy_releases_the_lock(self):
+        code, lock = self.killed_copy(lambda lock: None)
+        self.assertNotEqual(code, 0)
+        self.assertFalse(lock.exists())
+        self.assertFalse((self.udir/'snapshot-lock').exists())
+        self.assertFalse((self.udir/'pending').exists())
+
+    def test_a_signal_never_removes_a_lock_that_is_not_the_copys(self):
+        # Models pacman locking again once the copy released its lock.
+        def replace(lock):
+            lock.unlink()
+            lock.write_text('')
+        code, lock = self.killed_copy(replace)
+        self.assertNotEqual(code, 0)
+        self.assertTrue(lock.exists())
+
+    def test_the_lock_record_is_durable_before_the_lock_exists(self):
         text = UPDATE.read_text()
         body = text[text.index('make_snapshot() {'):]
         body = body[:body.index('\n}\n')]
         self.assertLess(body.index('write_record "$snapshot_lock"'),
-                        body.index("trap 'rm -f \"$pacman_lock\" \"$snapshot_lock\"; exit 1' HUP INT TERM"))
-        self.assertLess(body.index('rm -f "$snapshot_lock"'), body.index('trap - HUP INT TERM'))
+                        body.index('ln -- "$snapshot_lock_tmp" "$pacman_lock"'))
+        self.assertLess(body.index("trap 'release_snapshot_lock"),
+                        body.index('ln -- "$snapshot_lock_tmp" "$pacman_lock"'))
+        normal = body[body.index('extracted=$?'):]
+        self.assertLess(normal.index('trap - HUP INT TERM'), normal.index('release_snapshot_lock'))
 
     def test_keyring_is_upgraded_first(self):
         self.start('archlinuxarm-keyring 20260901-1\n' + PLAN)
@@ -1136,6 +1204,24 @@ class Commit(Base):
         self.assertEqual(self.fields('pending')['action'], 'restore')
         self.assertEqual(self.rollback(BOOT2), 0)
         self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v0\n')
+
+    def test_manual_rollback_follows_the_last_good_record(self):
+        # An orphaned sealed snapshot (published, never armed) next to the
+        # last committed one must not make the rollback ambiguous.
+        self.booted_update()
+        self.ready()
+        self.assertEqual(self.updater('commit'), 0, self.kmsg())
+        self.assertEqual(self.fields('last-good')['update_id'], UID)
+        self.snapshot('20270101T000000Z-11111111')
+        self.assertEqual(self.updater('rollback'), 0, self.kmsg())
+        self.assertEqual(self.fields('pending')['update_id'], UID)
+
+    def test_manual_rollback_refuses_a_consumed_last_good(self):
+        self.snapshot()
+        self.record('last-good', ['format=rog5-update-last-good-v1', f'update_id={UID}'])
+        (self.state/'snapshots'/UID/'failed-upper').mkdir()
+        self.assertEqual(self.updater('rollback'), 1)
+        self.assertIn('already used by a rollback', self.kmsg())
 
     def test_manual_rollback_skips_snapshots_consumed_by_a_rollback(self):
         # Update A rolled back (seal + failed-upper, no upper); update B then

@@ -163,4 +163,7 @@ sleep 2.5; kill $pid; wait $pid 2>/dev/null || true
 # (the failed "on" is retried every poll until the client returns)
 tr '\n' ' ' <$t/ps3 | grep -Eqx 'wlan0 off wlan1 off (wlan0 on )+wlan0 off wlan1 off ' ||
 	{ echo "FAIL partial power-save update: $(tr '\n' ' ' <$t/ps3)"; exit 1; }
+# A killed loop leaves its current `sleep $ROG5_SLEEP_POLL` (1 s) behind;
+# let it end so the runner sees no background descendants.
+sleep 2
 echo PASS rog5-sleep-policy

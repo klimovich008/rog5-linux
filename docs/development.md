@@ -357,9 +357,13 @@ trial descriptor:
    for this release), `rog5-platform-modules.service` succeeded (its failure
    fails the commit at once), and the local shell reached its lock screen
    once: the logind session led by `rog5-phosh.service` with
-   `LockedHint=yes` (needs packages/phosh 0002; latched, so an unlock or a
-   desktop-mode switch afterwards does not matter). A GNOME Mobile boot
-   needs GDM and `rog5-shell-watchdog` active instead. Trade-off for server
+   `LockedHint=yes` (needs packages/phosh 0002). The unit is not ordered
+   after the SSH services, so it polls before Phosh can lock; the lock is
+   latched in `/run/rog5-production-trial-shell` (boot-bound), so an unlock,
+   a desktop-mode switch or a unit restart afterwards does not matter. A
+   GNOME Mobile boot needs GDM active and the boot-bound
+   `/run/rog5-shell/mobile-ready` that `rog5-shell watchdog` writes once the
+   greeter's shell answers, holds the touchscreen and lit the panel. Trade-off for server
    use: a boot whose display or Phosh fails while SSH works stays pending,
    so the next boot takes the fallback (which also gives SSH). A headless
    phone (`systemctl disable rog5-phosh.service`, or no Phosh installed)
@@ -431,10 +435,13 @@ that upper without user data:
   off (`ROG5_UPDATE_REBOOT=idle|now|never`). On any failure the restore
   stays armed and the phone reboots at once: unchanged package versions do
   not prove unchanged files (a PreTransaction hook with `AbortOnFail`).
-  The previous good snapshot stays until the new update commits. The copy
-  records the `db.lck` it took (`rog5-update/snapshot-lock`, inode and
-  change time) and releases it on a signal; a later run releases exactly
-  that file after a kill or power loss and removes stale `.tmp-*` copies.
+  The previous good snapshot stays until the new update commits, and a
+  commit names its snapshot in `rog5-update/last-good` (the target of a
+  manual `rollback`). The copy's `db.lck` holds a random token that is
+  recorded durably in `rog5-update/snapshot-lock` before the lock is linked
+  into place; a signal, and after a kill or power loss the next run (before
+  any admission check), removes only a `db.lck` holding that token, never
+  pacman's own lock, and stale `.tmp-*` copies go too.
 - **Init.** Before the overlay mounts, the first boot with a `verify` pending
   record writes `attempt`. A second boot without a commit, or any `restore`
   record, renames the sealed snapshot into place. It keeps the old upper as
@@ -462,8 +469,9 @@ that upper without user data:
 - **Operate:** `/run/rog5-update/rog5-update status|verify-root|resume|rollback`.
   After two failed updates in a row, the same plan waits for new package
   versions. After three, updates pause until `resume`. `rollback` arms a
-  manual restore to the kept snapshot (a snapshot consumed by a rollback,
-  with `failed-upper` and no `upper`, does not count).
+  manual restore to the `last-good` snapshot (without that record, to the
+  single kept snapshot; one consumed by a rollback, with `failed-upper` and
+  no `upper`, does not count).
 
 `verify-root` checks the merged-root conditions that the next boot enforces.
 A package can trip them:

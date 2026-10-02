@@ -30,6 +30,7 @@ os.environ.update({
     'ROG5_SHELL_GDM_BIN': str(TMP / 'usr/bin/gdm'),
     'ROG5_SHELL_GREETER_MONITORS': str(TMP / 'etc/xdg/monitors.xml'),
     'ROG5_SHELL_KMSG': str(TMP / 'kmsg'),
+    'ROG5_SHELL_BOOT_ID': str(TMP / 'boot_id'),
     'ROG5_SHELL_PHONE_USER': __import__('pwd').getpwuid(os.getuid()).pw_name,
 })
 loader = importlib.machinery.SourceFileLoader('rog5_shell', str(HERE / 'rog5-shell'))
@@ -324,6 +325,9 @@ class WatchdogStartup(unittest.TestCase):
         self.assertIn('touchscreen', (rs.STATE_DIR / 'shell-fallback').read_text())
 
     def test_ready_then_supervises_quietly(self):
+        (TMP / 'boot_id').write_text('0d5c1d8e-2a4f-4b61-9d0e-3f1a2b3c4d5e\n')
+        ready = rs.RUN_DIR / 'mobile-ready'
+        ready.unlink(missing_ok=True)
         f = FakeSystem()
         mobile_up(f)
         wd = rs.Watchdog(f)
@@ -331,6 +335,16 @@ class WatchdogStartup(unittest.TestCase):
             self.assertIsNone(wd.step())
             f.sleep(rs.POLL_S)
         self.assertTrue(wd.ready)
+        self.assertEqual(ready.read_text(), 'boot_id=0d5c1d8e-2a4f-4b61-9d0e-3f1a2b3c4d5e\n')
+
+    def test_never_ready_records_no_readiness(self):
+        ready = rs.RUN_DIR / 'mobile-ready'
+        ready.unlink(missing_ok=True)
+        f = FakeSystem()
+        mobile_up(f)
+        f.touch_pids = set()
+        run_watchdog(f)
+        self.assertFalse(ready.exists())
 
     def test_late_greeter_within_window(self):
         f = FakeSystem()

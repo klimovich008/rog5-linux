@@ -165,7 +165,18 @@ force_rollback
             self.assertLess(time.monotonic() - started, 10)
             self.assertTrue((root / "helper.started").exists(), err)
             self.assertEqual((root / "sysrq").read_text(), "b")
-            self.assertIn("did not complete; forcing emergency reset", (root / "log").read_text())
+            self.assertFalse((root / "log").exists() and
+                             "did not complete" in (root / "log").read_text())
+
+    def test_reset_precedes_every_diagnostic_after_the_grace(self):
+        # A stalled printk path must not keep SysRq b from being written.
+        source = INIT.read_text()
+        backstop = function(source, "watchdog_backstop")
+        self.assertLess(backstop.index("printf b >&9"), backstop.index(">&8"))
+        rollback = function(source, "force_rollback")
+        grace = rollback.index('sleep "$reboot_helper_grace"')
+        self.assertLess(rollback.index("printf b >/proc/sysrq-trigger", grace),
+                        rollback.index("\tlog '", grace))
 
 
 class BootWatchdog(unittest.TestCase):

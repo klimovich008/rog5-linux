@@ -134,6 +134,19 @@ class Commit(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(f'Leader={leader}\nState={state}\nLockedHint={locked}\n')
 
+    def mobile(self, gdm=True, ready=BOOT):
+        (self.run/'rog5-shell').mkdir()
+        (self.run/'rog5-shell/effective').write_text('gnome-mobile\n')
+        if gdm:
+            self.unit('active', 'gdm.service')
+        if ready:
+            (self.run/'rog5-shell/mobile-ready').write_text(f'boot_id={ready}\n')
+
+    def latch(self, boot=BOOT, shell='2'):
+        path = self.run/'rog5-production-trial-shell'
+        path.write_text(f'boot_id={boot}\nshell={shell}\n')
+        path.chmod(0o444)
+
     def ready(self, boot=BOOT, status='PASS'):
         for name, text in (('rog5-p2-ready', f'status={status}\nattested_boot_id={boot}\n'),
                            ('rog5-persistent-ssh-identity.record', f'identity_boot_id={boot}\n')):
@@ -226,9 +239,10 @@ class Commit(unittest.TestCase):
             ('locked session of another leader', lambda: self.session('2', 4243, 'yes')),
             ('locked session closing', lambda: self.session('2', 4242, 'yes', state='closing')),
             ('no session', lambda: (self.systemd/'sessions/2').unlink()),
-            ('gnome-mobile without gdm', lambda: (
-                (self.run/'rog5-shell').mkdir(), (self.run/'rog5-shell/effective').write_text('gnome-mobile\n'),
-                self.unit('active', 'rog5-shell-watchdog.service'))),
+            ('gnome-mobile without gdm', lambda: self.mobile(gdm=False)),
+            ('gnome-mobile not ready', lambda: self.mobile(ready=None)),
+            ('gnome-mobile ready in another boot', lambda: self.mobile(ready='1' + BOOT[1:])),
+            ('stale shell latch', lambda: (self.session('2', 4242, 'no'), self.latch('1' + BOOT[1:]))),
         ]
         for why, breakit in cases:
             with self.subTest(why):
@@ -272,14 +286,27 @@ class Commit(unittest.TestCase):
         self.assertNotIn('after 0 s', kmsg)
         self.assertEqual((self.systemd/'list-count').read_text().strip(), '1')
 
+    def test_the_latch_survives_a_restart_of_the_unit(self):
+        identity = self.run/'rog5-persistent-ssh-identity.record'
+        identity.chmod(0o644)
+        identity.unlink()
+        code, kmsg = self.commit(wait=2)          # locked seen, SSH not up
+        self.assertEqual(code, 1, kmsg)
+        latch = self.run/'rog5-production-trial-shell'
+        self.assertEqual(latch.read_text(), f'boot_id={BOOT}\nshell=2\n')
+        self.assertEqual(latch.stat().st_mode & 0o777, 0o444)
+        self.session('2', 4242, 'no')             # unlocked meanwhile
+        self.ready()
+        code, kmsg = self.commit()
+        self.assertEqual(code, 0, kmsg)
+        self.assertIn('(local shell: 2)', kmsg)
+
     def test_headless_and_alternative_shells(self):
         cases = [
             ('phosh disabled', lambda: self.unit('enabled', 'rog5-phosh.service', 'disabled\n'), 'none'),
             ('phosh masked', lambda: self.unit('enabled', 'rog5-phosh.service', 'masked\n'), 'none'),
             ('phosh not installed', lambda: (self.root/'usr/bin/phosh-session').unlink(), 'none'),
-            ('gnome-mobile', lambda: (
-                (self.run/'rog5-shell').mkdir(), (self.run/'rog5-shell/effective').write_text('gnome-mobile\n'),
-                self.unit('active', 'gdm.service'), self.unit('active', 'rog5-shell-watchdog.service')), 'gdm'),
+            ('gnome-mobile', lambda: self.mobile(), 'gdm'),
         ]
         for why, setup, shell in cases:
             with self.subTest(why):
@@ -386,8 +413,12 @@ class Unit(unittest.TestCase):
     def test_unit_orders_after_the_health_gate_and_runs_the_kit(self):
         text = UNIT.read_text()
         self.assertIn('ExecStart=/run/rog5-production-trial/commit\n', text)
-        for unit in ('rog5-persistent-state.service', 'rog5-persistent-ssh-identity.service'):
-            self.assertIn(unit, re.search(r'^After=(.*)$', text, re.M).group(1).split())
+        after = re.search(r'^After=(.*)$', text, re.M).group(1).split()
+        self.assertIn('rog5-persistent-state.service', after)
+        # It polls for SSH itself and must already run when Phosh locks.
+        for unit in ('rog5-persistent-ssh-identity.service', 'rog5-early-sshd.service',
+                     'rog5-phosh.service', 'multi-user.target'):
+            self.assertNotIn(unit, after)
         timeout = int(re.search(r'^TimeoutStartSec=(\d+)$', text, re.M).group(1))
         wait = int(re.search(r'ROG5_TRIAL_WAIT:-(\d+)', COMMIT.read_text()).group(1))
         self.assertGreater(timeout, wait+30)

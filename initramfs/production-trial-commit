@@ -67,20 +67,43 @@ esac
 # The phone's local shell must have reached its lock screen once during this
 # boot: the logind session led by rog5-phosh.service's main process with
 # LockedHint=yes (Phosh publishes its startup lock with packages/phosh 0002).
-# That needs msm, the panel, phoc and Phosh. It is latched for this run, so
-# a later unlock by the user, a desktop-mode switch or a Phosh restart does
-# not hold the commit back. A GNOME Mobile boot (/run/rog5-shell/effective)
-# needs GDM and its rog5-shell watchdog active instead (the GDM greeter is
-# the lock there). A boot without Phosh (not installed, or rog5-phosh.service
-# disabled or masked: a headless server) commits without a local shell.
+# That needs msm, the panel, phoc and Phosh. The unit starts before Phosh can
+# (it is not ordered after the SSH services; ready() waits for them), so the
+# first poll precedes the startup lock and a PIN cannot be entered between
+# two polls. Once seen it is latched in $shell_latch for this boot, so an
+# unlock, a desktop-mode switch, a Phosh restart or a restart of this unit
+# does not hold the commit back. A GNOME Mobile boot
+# (/run/rog5-shell/effective) needs GDM active and the boot-bound readiness
+# record of its rog5-shell watchdog (answering shell, touchscreen, lit
+# panel; the GDM greeter is the lock there). A boot without Phosh (not
+# installed, or rog5-phosh.service disabled or masked: a headless server)
+# commits without a local shell.
+shell_latch=$run/rog5-production-trial-shell
 locked_session=
+latch_shell() {
+	locked_session=$1
+	printf 'boot_id=%s\nshell=%s\n' "$boot_id" "$locked_session" \
+		>"$shell_latch.next" && chmod 0444 "$shell_latch.next" &&
+		mv -f "$shell_latch.next" "$shell_latch" ||
+		log "WARN could not record the local shell latch"
+}
+
+if [ -f "$shell_latch" ] && [ ! -L "$shell_latch" ] &&
+	[ "$(stat -c '%u:%a' "$shell_latch")" = 0:444 ] &&
+	[ "$(sed -n 1p "$shell_latch")" = "boot_id=$boot_id" ]; then
+	locked_session=$(sed -n 's/^shell=\([A-Za-z0-9_-]\{1,64\}\)$/\1/p' "$shell_latch")
+fi
+
 local_shell_ready() {
 	[ -z "$locked_session" ] || return 0
 	effective=$(cat "$run/rog5-shell/effective" 2>/dev/null) || effective=phosh
 	if [ "$effective" = gnome-mobile ]; then
-		"$systemctl" is-active --quiet gdm.service &&
-			"$systemctl" is-active --quiet rog5-shell-watchdog.service || return 1
-		locked_session=gdm
+		mobile=$run/rog5-shell/mobile-ready
+		[ -f "$mobile" ] && [ ! -L "$mobile" ] &&
+			[ "$(stat -c %u "$mobile")" = 0 ] &&
+			[ "$(cat "$mobile")" = "boot_id=$boot_id" ] || return 1
+		"$systemctl" is-active --quiet gdm.service || return 1
+		latch_shell gdm
 		return 0
 	fi
 	[ -x "$rootfs/usr/bin/phosh-session" ] || { locked_session=none; return 0; }
@@ -97,7 +120,7 @@ local_shell_ready() {
 		printf '%s\n' "$properties" | grep -Fxq "Leader=$leader" || continue
 		printf '%s\n' "$properties" | grep -Fxq 'State=closing' && continue
 		printf '%s\n' "$properties" | grep -Fxq 'LockedHint=yes' || continue
-		locked_session=$session
+		latch_shell "$session"
 		return 0
 	done
 	return 1

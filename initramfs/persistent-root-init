@@ -232,9 +232,10 @@ force_rollback() {
 		"$reboot_helper" &
 		sleep "$reboot_helper_grace" || true
 	fi
-	log 'bootloader restart did not complete; forcing emergency reset'
+	# Reset first, log after: a stalled console must not delay the reset.
 	while :; do
 		printf b >/proc/sysrq-trigger 2>/dev/null || true
+		log 'bootloader restart did not complete; forcing emergency reset'
 		sleep 5
 	done
 }
@@ -357,8 +358,9 @@ watchdog_backstop() {
 		[ "$watchdog_line" = expired ] || continue
 		watchdog_bb sleep "$reboot_helper_grace" ||
 			sleep "$reboot_helper_grace" || true
-		printf '%s\n' 'rog5-persistent-root: restart2 did not complete; watchdog emergency reset' >&8
+		# Reset first, log after: a stalled console must not delay it.
 		printf b >&9
+		printf '%s\n' 'rog5-persistent-root: restart2 did not complete; watchdog emergency reset returned' >&8
 		return 1
 	done
 	return 0
