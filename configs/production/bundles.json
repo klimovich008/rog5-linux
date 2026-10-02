@@ -661,6 +661,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k117-d15-261002d",
+      "role": "main",
+      "kernel": "k117",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k117",
+      "manifest_sha256": "2d58acca0914283f55246714698fc05eec9bd312c17e189bb284632197ce6e5b",
+      "package": "package-main-k117-d15-261002d",
+      "source_commit": "f8362e936b18",
+      "changes": "k117 RAM trial wrapper, spare (same content as main-k117-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
