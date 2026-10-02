@@ -13,6 +13,11 @@ for c in systemctl systemd-run ip; do
 #!/bin/sh
 echo "$c \$*" >>"$t/calls"
 [ "$c" = systemd-run ] && [ -e "$t/systemd-run-fails" ] && exit 1
+# systemctl list-jobs: the queued jobs of the test ("jobs-fail": no bus).
+if [ "$c" = systemctl ] && [ "\$1" = list-jobs ]; then
+	[ -e "$t/jobs-fail" ] && exit 1
+	cat "$t/jobs" 2>/dev/null
+fi
 exit 0
 EOS
 done
@@ -79,7 +84,7 @@ export ROG5_USB_HOST_SETTLE=7 ROG5_USB_HOST_WAIT=1 ROG5_USB_HOST_RETRY_S=35 ROG5
 reset() {
 	rm -rf "$t/sys" "$t/run" "$t/kmsg" "$t/calls" "$t/sleeping" "$t/settle-role" "$t/settle-typec" "$t/settle-unplug" "$t/systemd-run-fails" \
 		"$t/flip-host" "$t/flip-at" "$t/event-during" "$t/event-suspend" "$t/kick-result" "$t/kick-dp" \
-		"$t/kick-suspend" "$t/hub-after-hpd" "$t/dmesg" "$t/lit-at"
+		"$t/kick-suspend" "$t/hub-after-hpd" "$t/dmesg" "$t/lit-at" "$t/jobs" "$t/jobs-fail"
 	mkdir -p "$t/run" "$t/sys/class/usb_role/a600000.usb-role-switch" "$t/sys/class/typec/port0" \
 		"$t/sys/bus/platform/drivers/dwc3" "$t/sys/bus/platform/devices/a600000.usb/power" \
 		"$t/sys/bus/platform/devices/a600000.usb/driver" "$t/sys/bus/platform/drivers/xhci-hcd"
@@ -106,6 +111,24 @@ reconnect
 [ ! -e "$t/run/rog5-usb-suspending" ] || fail 'stale marker kept'
 grep -q 'stale suspend marker' "$t/kmsg" || fail 'stale marker not logged'
 [ ! -s "$t/sys/bus/platform/drivers/dwc3/unbind" ] || fail 're-init although a device is enumerated'
+
+# 2b The admission ran (marker) and the suspend job is queued, but
+# systemd-sleep has not started yet: the marker is live.
+reset; : >"$t/run/rog5-usb-suspending"; printf '%s\n' '4711 systemd-suspend.service start waiting' '4710 suspend.target start waiting' >"$t/jobs"
+reconnect
+[ -e "$t/run/rog5-usb-suspending" ] || fail 'marker of a queued suspend removed'
+[ -e "$t/run/rog5-usb-reconnect.skipped" ] || fail 'run skipped for a queued suspend not recorded'
+[ ! -s "$t/sys/bus/platform/drivers/dwc3/unbind" ] || fail 'unbound while a suspend was queued'
+# ... another job does not keep a marker alive (hybrid sleep and
+# suspend-then-hibernate are disabled by sleep.conf.d/50-rog5.conf)
+reset; : >"$t/run/rog5-usb-suspending"; echo '12 systemd-suspend-then-hibernate.service start waiting' >"$t/jobs"; mkdir -p "$t/sys/bus/platform/devices/a600000.usb/xhci-hcd.1.auto/usb1/1-1"
+reconnect
+[ ! -e "$t/run/rog5-usb-suspending" ] || fail 'marker kept for an unrelated job'
+# ... and an unreadable job list counts as a live suspend
+reset; : >"$t/run/rog5-usb-suspending"; : >"$t/jobs-fail"
+reconnect
+[ -e "$t/run/rog5-usb-suspending" ] || fail 'marker removed although the job list was unreadable'
+[ ! -s "$t/sys/bus/platform/drivers/dwc3/unbind" ] || fail 'unbound with an unreadable job list'
 
 # 3 Unplug during the settle: UCSI sets "none"; the helper must not force
 # host mode, clears its retry count and schedules a fresh look.
@@ -191,6 +214,77 @@ ROG5_USB_SLEEP_LOCK_WAIT=1 "$here/rog5-usb-sleep" pre || true
 grep -q 'FAIL reconnect lock still held' "$t/kmsg" || fail 'held lock not reported'
 ! grep -q a600000.usb "$t/sys/bus/platform/drivers/dwc3/bind" || fail 'bound without the lock'
 kill $holder 2>/dev/null; wait $holder 2>/dev/null || true
+
+# 11b Admission (rog5-usb-suspend-admit.service): lock free -> admitted,
+# marker set, an old skipped record dropped, no controller access, no kill.
+reset; : >"$t/run/rog5-usb-reconnect.skipped"
+"$here/rog5-usb-sleep" admit || fail 'admission refused with a free lock'
+[ -e "$t/run/rog5-usb-suspending" ] || fail 'admission did not mark the suspend'
+[ ! -e "$t/run/rog5-usb-reconnect.skipped" ] || fail 'old skipped record kept by the admission'
+! grep -q 'systemctl kill' "$t/calls" || fail 'admission stopped a reconnect run'
+# ... then pre/post as before: post clears the marker
+"$here/rog5-usb-sleep" pre; "$here/rog5-usb-sleep" post
+[ ! -e "$t/run/rog5-usb-suspending" ] || fail 'marker left after admit/pre/post'
+
+# 11b2 A run that read the job list before the suspend was queued removes
+# the admission's marker as stale while admit waits: admit restores it under
+# the lock before it admits the suspend.
+reset
+( flock "$t/run/rog5-usb-reconnect.lock" sh -c "/bin/sleep 0.6; rm -f '$t/run/rog5-usb-suspending'; /bin/sleep 0.5" ) & holder=$!
+/bin/sleep 0.3
+ROG5_USB_SLEEP_LOCK_WAIT=5 "$here/rog5-usb-sleep" admit || fail 'admission refused after a stale-marker race'
+wait $holder
+[ -e "$t/run/rog5-usb-suspending" ] || fail 'admission succeeded without its marker'
+
+# 11c Admission waits for a run that finishes within the wait.
+reset
+( flock "$t/run/rog5-usb-reconnect.lock" /bin/sleep 2 ) & holder=$!
+/bin/sleep 0.3
+start=$(date +%s)
+ROG5_USB_SLEEP_LOCK_WAIT=5 "$here/rog5-usb-sleep" admit || fail 'admission refused although the run finished in time'
+[ $(( $(date +%s) - start )) -ge 1 ] || fail 'admission did not wait for the lock'
+wait $holder
+
+# 11d Admission with a run that keeps the lock: refused (non-zero, so
+# systemd-suspend.service fails its dependency), marker removed, the run is
+# neither killed nor its controller touched, a skipped event is replayed.
+reset; rmdir "$t/sys/bus/platform/devices/a600000.usb/driver"
+( flock "$t/run/rog5-usb-reconnect.lock" /bin/sleep 3 ) & holder=$!
+/bin/sleep 0.3
+if ROG5_USB_SLEEP_LOCK_WAIT=1 "$here/rog5-usb-sleep" admit; then fail 'admission granted with the lock held'; fi
+[ ! -e "$t/run/rog5-usb-suspending" ] || fail 'marker left after a refused admission'
+grep -q 'FAIL rog5-usb-reconnect still running after 1s; refusing suspend' "$t/kmsg" || fail 'refusal not logged'
+! grep -q 'systemctl kill' "$t/calls" || fail 'refused admission killed the reconnect run'
+[ ! -s "$t/sys/bus/platform/drivers/dwc3/bind" ] && [ ! -s "$t/sys/bus/platform/drivers/dwc3/unbind" ] || fail 'refused admission touched dwc3'
+wait $holder
+reset
+( flock "$t/run/rog5-usb-reconnect.lock" sh -c "/bin/sleep 0.6; : >'$t/run/rog5-usb-reconnect.skipped'; /bin/sleep 2.4" ) & holder=$!
+/bin/sleep 0.3
+ROG5_USB_SLEEP_LOCK_WAIT=1 "$here/rog5-usb-sleep" admit && fail 'admission granted with the lock held (skipped case)'
+grep -q 'systemctl --no-block start rog5-usb-reconnect.service' "$t/calls" || fail 'skipped event not replayed after a refused admission'
+[ ! -e "$t/run/rog5-usb-reconnect.skipped" ] || fail 'skipped record kept after its replay'
+wait $holder
+
+# 11e Units: the suspend job requires and follows the admission, which runs
+# the installed hook, reruns every time and cleans the marker on failure.
+units=$here/../../configs/systemd
+dropin=$units/systemd-suspend.service.d/50-rog5-usb.conf
+grep -qx 'Requires=rog5-usb-suspend-admit.service' "$dropin" && grep -qx 'After=rog5-usb-suspend-admit.service' "$dropin" || fail 'suspend drop-in'
+admit_unit=$units/rog5-usb-suspend-admit.service
+grep -qx 'ExecStart=/usr/lib/systemd/system-sleep/rog5-usb-sleep admit' "$admit_unit" || fail 'admission ExecStart'
+grep -qx 'Type=oneshot' "$admit_unit" && ! grep -q "^RemainAfterExit" "$admit_unit" || fail 'admission must rerun on every suspend'
+grep -qF "\"\$\$SERVICE_RESULT\" = success ] || rm -f /run/rog5-usb-suspending" "$admit_unit" || fail 'admission cleanup'
+sleepconf=$units/sleep.conf.d/50-rog5.conf
+for k in AllowHibernation=no AllowSuspendThenHibernate=no AllowHybridSleep=no MemorySleepMode=s2idle; do
+	grep -qx "$k" "$sleepconf" || fail "sleep.conf.d: no $k"
+done
+manifest=$here/../../configs/rootfs/userspace.tsv
+for row in 'scripts/device/rog5-usb-sleep	/usr/lib/systemd/system-sleep/rog5-usb-sleep' \
+	'configs/systemd/rog5-usb-suspend-admit.service	/etc/systemd/system/rog5-usb-suspend-admit.service' \
+	'configs/systemd/systemd-suspend.service.d/50-rog5-usb.conf	/etc/systemd/system/systemd-suspend.service.d/50-rog5-usb.conf' \
+	'configs/systemd/sleep.conf.d/50-rog5.conf	/etc/systemd/sleep.conf.d/50-rog5.conf'; do
+	grep -qF "$row" "$manifest" || fail "not installed: $row"
+done
 
 # 12a The 19:00 monitor (2026-09-30): the supply reports SDP first, the
 # run waits for the gadget, UCSI switches the port to host a second later

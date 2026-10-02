@@ -15,14 +15,23 @@
 # A device unplugged while asleep costs a harmless rebind.
 #
 # It also keeps rog5-usb-reconnect (which unbinds and binds dwc3) away from
-# suspend: "pre" marks the suspend and waits for a reconnect run in progress
-# to finish (it holds the reconnect lock for its whole transaction); runs
-# that start later see the marker and exit. A run that is still busy after
-# $lock_wait s is stopped, and the side controller bound to dwc3 again if the
-# run left it unbound (only once it holds the lock; a hook cannot veto the
-# suspend, so a run that holds on is only logged). "post" does its recovery
-# under the same lock, then
-# clears the marker and, if a reconnect run was skipped meanwhile, starts one.
+# suspend. systemd ignores a sleep hook's exit status, so a hook cannot veto
+# a suspend; the veto is "admit", run by rog5-usb-suspend-admit.service,
+# which the drop-in systemd-suspend.service.d/50-rog5-usb.conf Requires= and
+# orders After=. "admit" marks the suspend ($suspending) and waits up to
+# $lock_wait s for a reconnect run in progress to finish (it holds the
+# reconnect lock for its whole transaction). If the lock stays busy it
+# clears the marker and fails: systemd-suspend.service then fails with a
+# dependency error and the system does not suspend (rog5-sleep-policy sees
+# no suspend attempt and tries again later). Runs that start while the
+# marker is set and a suspend job is queued exit without touching the
+# controller and leave $skipped for "post".
+# "pre" (inside systemd-sleep) takes the lock again and records the attached
+# devices. It only repeats the old fallback (stop the run, bind the side
+# controller again if the run left it unbound, only once it holds the lock)
+# when the admission was bypassed, e.g. systemd-sleep run by hand.
+# "post" does its recovery under the same lock, then clears the marker and,
+# if a reconnect run was skipped meanwhile, starts one.
 # systemd-sleep gives each hook 90 s.
 set -u
 sys=${ROG5_USB_SYS:-/sys}
@@ -57,9 +66,34 @@ bind_side() {
 		log "WARN could not bind $udc"
 }
 
-case ${1-} in
-pre)
+# A reconnect run that was skipped meanwhile gets its look now.
+replay_skipped() {
+	[ -e "$skipped" ] || return 0
 	rm -f "$skipped"
+	systemctl --no-block start rog5-usb-reconnect.service 2>/dev/null || true
+}
+
+case ${1-} in
+admit)
+	rm -f "$skipped"
+	# The marker comes first: a run that starts from now on sees it (and the
+	# queued suspend job) and stays away from the controller.
+	: >"$suspending" || { log 'FAIL could not create the suspend marker; refusing suspend'; exit 1; }
+	exec 9>"$lock"
+	if ! flock -w "$lock_wait" 9; then
+		log "FAIL rog5-usb-reconnect still running after ${lock_wait}s; refusing suspend"
+		rm -f "$suspending"
+		replay_skipped
+		exit 1
+	fi
+	# Again under the lock: a run that read the job list before this
+	# suspend was queued may have removed the marker as stale meanwhile.
+	# From here on every run sees the marker and the queued job.
+	: >"$suspending" && [ -e "$suspending" ] ||
+		{ log 'FAIL could not keep the suspend marker; refusing suspend'; rm -f "$suspending"; exit 1; }
+	exit 0
+	;;
+pre)
 	: >"$suspending"
 	exec 9>"$lock"
 	if ! flock -w "$lock_wait" 9; then
@@ -67,8 +101,9 @@ pre)
 		# "post" replays the interrupted run.
 		: >"$skipped"
 		systemctl kill --signal=TERM rog5-usb-reconnect.service 2>/dev/null
-		# Never touch the controller without the lock. A hook cannot veto
-		# the suspend (systemd ignores its exit status); log loudly.
+		# Never touch the controller without the lock. Only reachable when
+		# the admission unit was bypassed: a hook cannot veto the suspend
+		# (systemd ignores its exit status); log loudly.
 		flock -w 10 9 || { log 'FAIL reconnect lock still held at suspend entry'; exit 1; }
 		bind_side
 	fi
@@ -80,7 +115,7 @@ pre)
 post)
 	exec 9>"$lock"
 	# Without the lock: no recovery; the marker goes stale (the helper drops
-	# it once systemd-sleep has exited).
+	# it once no suspend job and no systemd-sleep are left).
 	flock -w "$lock_wait" 9 || { log 'FAIL reconnect lock busy after resume'; exit 1; }
 	if [ -s "$list" ]; then
 		sleep "$settle"
@@ -94,10 +129,7 @@ post)
 	rm -f "$list" "$suspending"
 	exec 9>&-
 	# A plug or role change while the marker was set was ignored: look now.
-	if [ -e "$skipped" ]; then
-		rm -f "$skipped"
-		systemctl --no-block start rog5-usb-reconnect.service 2>/dev/null || true
-	fi
+	replay_skipped
 	;;
 esac
 exit 0

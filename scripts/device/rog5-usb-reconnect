@@ -43,8 +43,11 @@
 # end of "post") exits without touching the controller. "post" does its own
 # recovery under $lock, removes $suspending and, if a run was skipped
 # meanwhile ($skipped), starts this service once more. $suspending is only
-# honoured while systemd-sleep runs, so a marker left behind by a killed hook
-# can't disable this helper until the next boot.
+# honoured while a systemd-suspend.service job is queued or systemd-sleep
+# runs, so a marker left behind by a killed hook or an aborted suspend can't
+# disable this helper until the next boot. The admission
+# (rog5-usb-sleep admit, before systemd-sleep) creates the marker and waits
+# for the lock, and refuses the suspend if a run keeps it.
 set -u
 sys=${ROG5_USB_SYS:-/sys}
 run=${ROG5_USB_RUN:-/run}
@@ -65,10 +68,22 @@ exec 9>"$lock"
 # during a suspend, "post" is told to look again.
 flock -n 9 || { [ -e "$suspending" ] && : >"$skipped"; exit 0; }
 
+# A suspend is live from the admission (rog5-usb-suspend-admit.service, a
+# Requires= of systemd-suspend.service) until "post" returns: the
+# systemd-suspend.service job is queued or running all that time, and
+# systemd-sleep runs inside it. If the job list cannot be read the marker
+# counts as live (the next suspend's "post" or a later run clears it).
+suspend_job() {
+	jobs=$(systemctl list-jobs --no-legend --no-pager 2>/dev/null) || return 0
+	printf '%s\n' "$jobs" | grep -q '[[:space:]]systemd-suspend\.service[[:space:]]'
+}
 suspend_in_progress() {
 	[ -e "$suspending" ] || return 1
-	pgrep -x systemd-sleep >/dev/null 2>&1 && { : >"$skipped"; return 0; }
-	log 'stale suspend marker (no systemd-sleep running); removing it'
+	if pgrep -x systemd-sleep >/dev/null 2>&1 || suspend_job; then
+		: >"$skipped"
+		return 0
+	fi
+	log 'stale suspend marker (no suspend job, no systemd-sleep); removing it'
 	rm -f "$suspending"
 	return 1
 }

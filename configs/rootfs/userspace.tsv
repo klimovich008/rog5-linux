@@ -98,6 +98,9 @@ file	configs/udev/91-rog5-usb-runtime-pm.rules	/etc/udev/rules.d/91-rog5-usb-run
 file	configs/udev/93-rog5-usb-bottom.rules	/etc/udev/rules.d/93-rog5-usb-bottom.rules	0644
 file	scripts/device/rog5-usb-bottom	/usr/local/sbin/rog5-usb-bottom	0755
 file	scripts/device/rog5-usb-sleep	/usr/lib/systemd/system-sleep/rog5-usb-sleep	0755
+file	configs/systemd/rog5-usb-suspend-admit.service	/etc/systemd/system/rog5-usb-suspend-admit.service	0644
+file	configs/systemd/systemd-suspend.service.d/50-rog5-usb.conf	/etc/systemd/system/systemd-suspend.service.d/50-rog5-usb.conf	0644
+file	configs/systemd/sleep.conf.d/50-rog5.conf	/etc/systemd/sleep.conf.d/50-rog5.conf	0644
 file	configs/systemd/rog5-usb-storage@.service	/etc/systemd/system/rog5-usb-storage@.service	0644
 file	configs/udev/94-rog5-usb-storage.rules	/etc/udev/rules.d/94-rog5-usb-storage.rules	0644
 file	scripts/device/rog5-usb-storage	/usr/local/sbin/rog5-usb-storage	0755
