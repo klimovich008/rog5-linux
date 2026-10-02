@@ -3013,6 +3013,72 @@
           ]
         }
       ]
+    },
+    {
+      "path": "scripts/device/test-production-audio-route.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-audio-route",
+        "configs/udev/89-rog5-alsa-state.rules",
+        "configs/udev/91-rog5-audio-route.rules",
+        "configs/rootfs/userspace.tsv"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-alsa-probe.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/alsa_probe/rog5-alsa-probe.c"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "no clang for the AArch64 build check",
+          "scope": "subcheck",
+          "reason": "The freestanding AArch64 compile needs clang with the aarch64 target; the host build with fake syscalls covers the control checks, so a skip proves nothing about the target build.",
+          "inputs": [
+            "clang"
+          ],
+          "test_ids": [
+            "Target.test_freestanding_aarch64_build"
+          ]
+        }
+      ]
     }
   ]
 }
