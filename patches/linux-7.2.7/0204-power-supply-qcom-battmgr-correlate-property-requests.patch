@@ -137,7 +137,7 @@ diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_bat
  			break;
  		}
  		break;
-@@ -2267,26 +2298,67 @@
+@@ -2267,26 +2298,68 @@
  		break;
  	default:
  		dev_warn(battmgr->dev, "unknown message %#x\n", opcode);
@@ -147,6 +147,7 @@ diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_bat
  
  out_complete:
 -	complete(&battmgr->ack);
++	return;
  }
  
  static void qcom_battmgr_callback(const void *data, size_t len, void *priv)

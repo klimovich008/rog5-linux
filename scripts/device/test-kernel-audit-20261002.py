@@ -182,6 +182,10 @@ class KernelAudit(unittest.TestCase):
                 ('READ_ONCE(dwc->requested_role) != USB_ROLE_DEVICE', 'false')])
 
     def test_battery_reply_correlation_boost_unknown_and_suspend(self):
+        # The callback parser's completion label must have a C11 statement.
+        # Clang W=1 rejects a bare end-of-function label as a C23 extension.
+        self.assertNotIn('\nout_complete:\n}\n',
+                         self.sources['drivers/power/supply/qcom_battmgr.c'])
         self.case('power.c', {'drivers/power/supply/qcom_battmgr.c': [
             'qcom_battmgr_callback', 'qcom_battmgr_btm_otg_send_locked',
             'qcom_battmgr_btm_otg_is_enabled', 'qcom_battmgr_suspend']}, [
