@@ -645,6 +645,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k117-d15-261002c",
+      "role": "main",
+      "kernel": "k117",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k117",
+      "manifest_sha256": "33f2efa9b8c5a5eeb55a1d077df49cba3d24721dab5de089599bcdf84096360c",
+      "package": "package-main-k117-d15-261002c",
+      "source_commit": "fc61edf17079",
+      "changes": "k117 RAM trial wrapper F3 (staged encoder via /etc/modprobe.d experimental_encoder=1 and scripts/device/rog5-video-encoder-trial; same content as main-k117-d15-261002a)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }

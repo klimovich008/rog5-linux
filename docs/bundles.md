@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k117-d15-261002c` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper F3 (staged encoder via /etc/modprobe.d experimental_encoder=1 and scripts/device/rog5-video-encoder-trial; same content as main-k117-d15-261002a) |  |
 | `main-k117-d15-261002b` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper F2 (VP9 via /etc/modprobe.d experimental_vp9=1; same content as main-k117-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k117-d15-261002a` | main | k117 | d15 | built | unknown |  | TRIAL video round 4 (F1 regression + safe reload): k116 + 0169-0171 (iris probe publication race fixed, module pinned while firmware runs + firmware_unload, PM fixes; SM8350 stock-sized DPBs for VP9, luma 512, +25 % VP9/HEVC input; stock_buf_counts/enc_stop_before/marker_delay_ms/dpb_pad_kib knobs); d15 unchanged |  |
 | `main-k116-d15-261002e` | main | k116 | d15 | built | unknown |  | hardware video decode: Iris on SM8350 (H.264/HEVC, encoder hidden, VP9 off); k116 = k113 + 0154-0168 |  |
