@@ -1,0 +1,161 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] media-iris-ROG5-bracket-remove-and-deinit-with-never-powered-trial
+
+Bracket every remove and core-deinit boundary without reordering teardown.
+The load-time probe_no_video switch on SM8350 performs normal resources,
+DMA and runtime-PM setup, then returns before V4L2 registration. This avoids
+udev opening a node and loading firmware in the never-powered G1 control.
+The NULL nodes and unregistered V4L2 device are handled on remove. Explicit
+module exit reports platform unregister completion separately from reprobe.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -3,6 +3,7 @@
+  * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  */
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/clk.h>
+ #include <linux/interconnect.h>
+ #include <linux/module.h>
+@@ -20,6 +21,10 @@
+  * the encoder hung the SoC at session start in the k115 trial, and VP9 failed
+  * with a session error before HFI_PROPERTY_PARAM_SECURE_SESSION was sent.
+  */
++static bool probe_no_video;
++module_param(probe_no_video, bool, 0444);
++MODULE_PARM_DESC(probe_no_video, "SM8350: set up resources without publishing video nodes (remove trial)");
++
+ static bool experimental_encoder;
+ module_param(experimental_encoder, bool, 0444);
+ MODULE_PARM_DESC(experimental_encoder, "SM8350: register the encoder node (can hang the SoC)");
+@@ -216,26 +221,38 @@
+ 	core = platform_get_drvdata(pdev);
+ 	if (!core)
+ 		return;
++	rog5_iris_remove_trace_set(READ_ONCE(iris_markers), READ_ONCE(iris_marker_delay_ms));
+ 	iris_mark(core, "remove");
++	iris_mark(core, "remove: lock begin");
+ 
+ 	/* ROG5: no containment work may start or run after this */
+ 	mutex_lock(&core->lock);
+ 	core->removing = true;
++	iris_mark(core, "remove state: state=%d powered=%d held=%d pinned=%d openers=%d empty=%d",
++		  core->state, core->powered, core->fw_held, core->fw_pinned,
++		  atomic_read(&core->openers), list_empty(&core->instances));
+ 	mutex_unlock(&core->lock);
++	iris_mark(core, "remove: lock done; cancel begin");
+ 	cancel_delayed_work_sync(&core->sys_error_handler);
++	iris_mark(core, "remove: cancel done; deinit begin");
+ 	iris_core_deinit(core);
++	iris_mark(core, "remove: deinit done; irq disable begin");
+ 	/*
+ 	 * ROG5: a core whose firmware could not be shut down keeps its line
+ 	 * enabled; no handler may run once the lock below is destroyed.
+ 	 */
+ 	disable_irq(core->irq);
+-
++	iris_mark(core, "remove: irq disable done; decoder unregister begin");
+ 	video_unregister_device(core->vdev_dec);
++	iris_mark(core, "remove: decoder done; encoder unregister begin");
+ 	video_unregister_device(core->vdev_enc);
+-
+-	v4l2_device_unregister(&core->v4l2_dev);
+-
++	iris_mark(core, "remove: encoder done; v4l2 unregister begin");
++	/* probe_no_video never registered the V4L2 device either. */
++	if (core->v4l2_dev.dev)
++		v4l2_device_unregister(&core->v4l2_dev);
++	iris_mark(core, "remove: v4l2 done; mutex destroy begin");
+ 	mutex_destroy(&core->lock);
++	iris_mark(core, "remove: callback done");
+ }
+ 
+ static void iris_sys_error_handler(struct work_struct *work)
+@@ -258,6 +275,8 @@
+ 	if (!core)
+ 		return -ENOMEM;
+ 	core->dev = dev;
++	/* End diagnostics from the preceding removal, including its workers. */
++	rog5_iris_remove_trace_set(false, 0);
+ 
+ 	core->state = IRIS_CORE_DEINIT;
+ 	mutex_init(&core->lock);
+@@ -337,6 +356,11 @@
+ 	ret = devm_pm_runtime_enable(core->dev);
+ 	if (ret)
+ 		return ret;
++
++	if (core->iris_platform_data->oem && probe_no_video) {
++		iris_mark(core, "probe done: no video nodes (never-powered remove trial)");
++		return 0;
++	}
+ 
+ 	ret = v4l2_device_register(dev, &core->v4l2_dev);
+ 	if (ret)
+@@ -518,6 +542,20 @@
+ 	},
+ };
+ 
+-module_platform_driver(qcom_iris_driver);
++static int __init iris_driver_init(void)
++{
++	return platform_driver_register(&qcom_iris_driver);
++}
++module_init(iris_driver_init);
++
++static void __exit iris_driver_exit(void)
++{
++	platform_driver_unregister(&qcom_iris_driver);
++	if (READ_ONCE(iris_markers)) {
++		pr_warn("qcom-iris: mark: module exit done\n");
++		iris_mark_settle();
++	}
++}
++module_exit(iris_driver_exit);
+ MODULE_DESCRIPTION("Qualcomm iris video driver");
+ MODULE_LICENSE("GPL");
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -182,10 +182,15 @@
+ {
+ 	int ret;
+ 
++	iris_mark(core, "deinit: runtime get begin");
+ 	ret = pm_runtime_resume_and_get(core->dev);
++	iris_mark(core, "deinit: runtime get done: %d; irq disable begin", ret);
+ 	disable_irq(core->irq);
+-
+-	mutex_lock(&core->lock);
++	iris_mark(core, "deinit: irq disable done; lock begin");
++
++	mutex_lock(&core->lock);
++	iris_mark(core, "deinit: lock done; state=%d powered=%d held=%d",
++		  core->state, core->powered, core->fw_held);
+ 	if (core->state != IRIS_CORE_DEINIT && !core->fw_held &&
+ 	    (any || core->init_attempt == attempt)) {
+ 		if (!any) {
+@@ -193,13 +198,19 @@
+ 				err);
+ 			iris_core_dump_diag_locked(core, "core init", true);
+ 		}
++		iris_mark(core, "deinit: teardown begin");
+ 		iris_core_teardown(core, core->powered);
+-	}
+-	mutex_unlock(&core->lock);
++		iris_mark(core, "deinit: teardown done");
++	}
++	iris_mark(core, "deinit: teardown/skip done; unlock begin");
++	mutex_unlock(&core->lock);
++	iris_mark(core, "deinit: unlock done; irq enable begin");
+ 
+ 	enable_irq(core->irq);
++	iris_mark(core, "deinit: irq enable done; runtime put begin");
+ 	if (!ret)
+ 		pm_runtime_put_sync(core->dev);
++	iris_mark(core, "deinit: runtime put/skip done");
+ }
+ 
+ /*

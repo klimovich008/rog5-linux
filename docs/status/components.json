@@ -435,7 +435,7 @@
           "name": "Hardware video decode/encode",
           "status": "partial",
           "weight": 1,
-          "note": "k116 (0154-0168) is the installed default since 2026-10-02: H.264 and HEVC 1080p decode bit-exact (also on the installed system), v4l2-compliance 48/48, clean power off, 5 min idle OK; VP9 behind experimental_vp9: CP errors gone, but the firmware rejects every reference buffer (k116 E2); encoder behind experimental_encoder, hard-hung the SoC at session start in k115; a module reload reset the phone (k116 E2). k117 (0169-0171: probe publication race fixed, module pinned while firmware runs, PM fixes; stock-sized DPBs for VP9; staged-encoder knobs) built as RAM wrappers main-k117-d15-261002a-d, not installed; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
+          "note": "k116 remains the installed default. k117 F1: H.264/HEVC 300/300 bit-exact, compliance 48/48, clean power off and 5 min idle PASS, but removal hard-hangs after mark: remove. F2r: VP9 stock-sized stream-0 DPBs still rejected (0x1003); stock counts do not help; third error contained. Encoder F3 unrun (k115 hung at start). Host-only k120 (0172-0178, d15): detailed callback/devres/genpd/IOMMU markers, opt-in remove_quiesce and VP9 shared extradata, never-powered probe control, encoder tooling/tests; G1/G2/G3 plan in docs/hardware/video.md. No k120 phone qualification. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
         }
       ]
     },

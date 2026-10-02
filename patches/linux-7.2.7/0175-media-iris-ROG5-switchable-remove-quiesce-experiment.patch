@@ -1,0 +1,94 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] media-iris-ROG5-switchable-remove-quiesce-experiment
+
+remove_quiesce defaults off. Only on SM8350, skip deinit if the locked core
+is already DEINIT, unpowered, unheld, unpinned and has no openers/instances.
+Retain final IRQ synchronization. Consume the Iris-owned PM disable action
+once before destroying the mutex. The off path preserves the old release
+order and the same runtime-PM disable semantics. This repairs a demonstrated
+lock-lifetime weakness, but its relation to the k117 hang is not proven.
+Do not alter VIDEOCC supply votes, GDSC flags, SMMU routes or IOVA reservation.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -21,6 +21,10 @@
+  * the encoder hung the SoC at session start in the k115 trial, and VP9 failed
+  * with a session error before HFI_PROPERTY_PARAM_SECURE_SESSION was sent.
+  */
++static bool remove_quiesce;
++module_param(remove_quiesce, bool, 0644);
++MODULE_PARM_DESC(remove_quiesce, "SM8350: skip redundant deinit of an off core and disable runtime PM before lock destruction");
++
+ static bool probe_no_video;
+ module_param(probe_no_video, bool, 0444);
+ MODULE_PARM_DESC(probe_no_video, "SM8350: set up resources without publishing video nodes (remove trial)");
+@@ -214,9 +218,20 @@
+ 	return ret;
+ }
+ 
++static void iris_runtime_disable(void *data)
++{
++	struct iris_core *core = data;
++
++	iris_mark(core, "runtime disable action begin");
++	pm_runtime_dont_use_autosuspend(core->dev);
++	pm_runtime_disable(core->dev);
++	iris_mark(core, "runtime disable action done");
++}
++
+ static void iris_remove(struct platform_device *pdev)
+ {
+ 	struct iris_core *core;
++	bool quiesce, skip_deinit;
+ 
+ 	core = platform_get_drvdata(pdev);
+ 	if (!core)
+@@ -228,6 +243,10 @@
+ 	/* ROG5: no containment work may start or run after this */
+ 	mutex_lock(&core->lock);
+ 	core->removing = true;
++	quiesce = core->iris_platform_data->oem && READ_ONCE(remove_quiesce);
++	skip_deinit = quiesce && core->state == IRIS_CORE_DEINIT &&
++		!core->powered && !core->fw_held && !core->fw_pinned &&
++		!atomic_read(&core->openers) && list_empty(&core->instances);
+ 	iris_mark(core, "remove state: state=%d powered=%d held=%d pinned=%d openers=%d empty=%d",
+ 		  core->state, core->powered, core->fw_held, core->fw_pinned,
+ 		  atomic_read(&core->openers), list_empty(&core->instances));
+@@ -235,7 +254,10 @@
+ 	iris_mark(core, "remove: lock done; cancel begin");
+ 	cancel_delayed_work_sync(&core->sys_error_handler);
+ 	iris_mark(core, "remove: cancel done; deinit begin");
+-	iris_core_deinit(core);
++	if (skip_deinit)
++		iris_mark(core, "remove: skipping deinit of an already off core");
++	else
++		iris_core_deinit(core);
+ 	iris_mark(core, "remove: deinit done; irq disable begin");
+ 	/*
+ 	 * ROG5: a core whose firmware could not be shut down keeps its line
+@@ -250,7 +272,10 @@
+ 	/* probe_no_video never registered the V4L2 device either. */
+ 	if (core->v4l2_dev.dev)
+ 		v4l2_device_unregister(&core->v4l2_dev);
+-	iris_mark(core, "remove: v4l2 done; mutex destroy begin");
++	iris_mark(core, "remove: v4l2 done; optional runtime disable begin");
++	if (quiesce)
++		devm_release_action(core->dev, iris_runtime_disable, core);
++	iris_mark(core, "remove: runtime disable/skip done; mutex destroy begin");
+ 	mutex_destroy(&core->lock);
+ 	iris_mark(core, "remove: callback done");
+ }
+@@ -353,7 +378,11 @@
+ 
+ 	pm_runtime_set_autosuspend_delay(core->dev, AUTOSUSPEND_DELAY_VALUE);
+ 	pm_runtime_use_autosuspend(core->dev);
+-	ret = devm_pm_runtime_enable(core->dev);
++	/* Same PM disable semantics as devm_pm_runtime_enable, owned by Iris so
++	 * the diagnostic switch can consume the action before destroying locks.
++	 */
++	pm_runtime_enable(core->dev);
++	ret = devm_add_action_or_reset(core->dev, iris_runtime_disable, core);
+ 	if (ret)
+ 		return ret;
+ 

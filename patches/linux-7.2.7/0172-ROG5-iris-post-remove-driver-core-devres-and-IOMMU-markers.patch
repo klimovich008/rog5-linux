@@ -1,0 +1,223 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] ROG5-iris-post-remove-driver-core-devres-and-IOMMU-markers
+
+Keep the normal cleanup order. Arm built-in diagnostics from Iris removal,
+copying markers and marker_delay_ms while the module still exists. Logging
+never dereferences its core or calls module text after managed core release.
+Bracket every devres callback and action (including PM/OPP/ICC/clocks/resets,
+IRQ and mappings), DMA ownership, and driver-core cleanup. Only the SM8350
+Iris OF node, including its virtual domain devices, matches. No logging by
+default. Sleep only in non-atomic contexts. Domain logging remains armed
+until the next Iris probe, to include asynchronous detach workers.
+
+diff --git a/include/linux/rog5_iris_trace.h b/include/linux/rog5_iris_trace.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/rog5_iris_trace.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _LINUX_ROG5_IRIS_TRACE_H
++#define _LINUX_ROG5_IRIS_TRACE_H
++#include <linux/device.h>
++
++/* Built-in diagnostics survive qcom_iris and its devres allocations. */
++void rog5_iris_remove_trace_set(bool enabled, unsigned int delay_ms);
++void rog5_iris_remove_mark(struct device *dev, const char *fmt, ...) __printf(2, 3);
++void rog5_iris_domain_mark(const char *name, const char *step, bool settle);
++#endif
+diff --git a/drivers/base/rog5_iris_trace.c b/drivers/base/rog5_iris_trace.c
+new file mode 100644
+--- /dev/null
++++ b/drivers/base/rog5_iris_trace.c
+@@ -0,0 +1,56 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* ROG5: removal diagnostics only; no module callbacks or retained core pointer. */
++#include <linux/delay.h>
++#include <linux/export.h>
++#include <linux/of.h>
++#include <linux/preempt.h>
++#include <linux/string.h>
++#include <linux/rog5_iris_trace.h>
++
++static bool trace_enabled;
++static unsigned int trace_delay_ms;
++
++void rog5_iris_remove_trace_set(bool enabled, unsigned int delay_ms)
++{
++	WRITE_ONCE(trace_delay_ms, min(delay_ms, 1000U));
++	WRITE_ONCE(trace_enabled, enabled);
++}
++EXPORT_SYMBOL_GPL(rog5_iris_remove_trace_set);
++
++static void rog5_iris_trace_settle(void)
++{
++	unsigned int ms = READ_ONCE(trace_delay_ms);
++
++	/* Provider locks may be spinlocks. Never sleep or busy-wait there. */
++	if (ms && !in_atomic() && !irqs_disabled())
++		msleep(ms);
++}
++
++void rog5_iris_remove_mark(struct device *dev, const char *fmt, ...)
++{
++	struct va_format vaf;
++	va_list args;
++
++	if (!READ_ONCE(trace_enabled) || !dev ||
++	    !of_device_is_compatible(dev->of_node, "qcom,sm8350-iris"))
++		return;
++	va_start(args, fmt);
++	vaf.fmt = fmt;
++	vaf.va = &args;
++	dev_warn(dev, "mark: cleanup: %pV\n", &vaf);
++	va_end(args);
++	rog5_iris_trace_settle();
++}
++EXPORT_SYMBOL_GPL(rog5_iris_remove_mark);
++
++void rog5_iris_domain_mark(const char *name, const char *step, bool settle)
++{
++	if (!READ_ONCE(trace_enabled) || !name ||
++	    (strcmp(name, "mvs0_gdsc") && strcmp(name, "mvs0c_gdsc") &&
++	     strcmp(name, "mx") && strcmp(name, "mmcx")))
++		return;
++	pr_warn("rog5-iris: mark: domain %s: %s\n", name, step);
++	if (settle)
++		rog5_iris_trace_settle();
++}
++EXPORT_SYMBOL_GPL(rog5_iris_domain_mark);
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -9,6 +9,7 @@
+ 			   swnode.o faux.o
+ obj-$(CONFIG_AUXILIARY_BUS) += auxiliary.o
+ obj-$(CONFIG_DEVTMPFS)	+= devtmpfs.o
++obj-y			+= rog5_iris_trace.o
+ obj-y			+= power/
+ obj-$(CONFIG_ISA_BUS_API)	+= isa.o
+ obj-y				+= firmware_loader/
+diff --git a/drivers/base/dd.c b/drivers/base/dd.c
+--- a/drivers/base/dd.c
++++ b/drivers/base/dd.c
+@@ -16,6 +16,7 @@
+  * Copyright (c) 2007-2009 Novell Inc.
+  */
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/debugfs.h>
+ #include <linux/device.h>
+ #include <linux/delay.h>
+@@ -594,17 +595,26 @@
+ {
+ 	if (dev->driver->p_cb.post_unbind_rust)
+ 		dev->driver->p_cb.post_unbind_rust(dev);
++	rog5_iris_remove_mark(dev, "devres begin");
+ 	devres_release_all(dev);
++	rog5_iris_remove_mark(dev, "devres done; arch DMA teardown begin");
+ 	arch_teardown_dma_ops(dev);
++	rog5_iris_remove_mark(dev, "arch DMA teardown done; DMA ranges free begin");
+ 	kfree(dev->dma_range_map);
+ 	dev->dma_range_map = NULL;
++	rog5_iris_remove_mark(dev, "DMA ranges free done; driver data clear begin");
+ 	device_set_driver(dev, NULL);
+ 	dev_set_drvdata(dev, NULL);
++	rog5_iris_remove_mark(dev, "driver data clear done; PM domain detach begin");
+ 	dev_pm_domain_detach(dev, dev->power.detach_power_off);
++	rog5_iris_remove_mark(dev, "PM domain detach done; dismiss begin");
+ 	if (dev->pm_domain && dev->pm_domain->dismiss)
+ 		dev->pm_domain->dismiss(dev);
++	rog5_iris_remove_mark(dev, "dismiss done; runtime reinit begin");
+ 	pm_runtime_reinit(dev);
++	rog5_iris_remove_mark(dev, "runtime reinit done; driver flags clear begin");
+ 	dev_pm_set_driver_flags(dev, 0);
++	rog5_iris_remove_mark(dev, "unbind cleanup done");
+ }
+ 
+ static void device_remove(struct device *dev)
+@@ -1347,18 +1357,26 @@
+ 		pm_runtime_put_sync(dev);
+ 
+ 		device_remove(dev);
++		rog5_iris_remove_mark(dev, "callback returned; bus DMA cleanup begin");
+ 
+ 		if (dev->bus && dev->bus->dma_cleanup)
+ 			dev->bus->dma_cleanup(dev);
+ 
++		rog5_iris_remove_mark(dev, "bus DMA cleanup done; unbind cleanup begin");
+ 		device_unbind_cleanup(dev);
++		rog5_iris_remove_mark(dev, "device links cleanup begin");
+ 		device_links_driver_cleanup(dev);
++		rog5_iris_remove_mark(dev, "device links cleanup done; klist remove begin");
+ 
+ 		klist_remove(&dev->p->knode_driver);
++		rog5_iris_remove_mark(dev, "klist remove done; PM callbacks check begin");
+ 		device_pm_check_callbacks(dev);
++		rog5_iris_remove_mark(dev, "PM callbacks check done; unbound notify begin");
+ 
+ 		bus_notify(dev, BUS_NOTIFY_UNBOUND_DRIVER);
++		rog5_iris_remove_mark(dev, "unbound notify done; uevent begin");
+ 		kobject_uevent(&dev->kobj, KOBJ_UNBIND);
++		rog5_iris_remove_mark(dev, "driver release done");
+ 	}
+ }
+ 
+diff --git a/drivers/base/devres.c b/drivers/base/devres.c
+--- a/drivers/base/devres.c
++++ b/drivers/base/devres.c
+@@ -6,6 +6,7 @@
+  * Copyright (c) 2006  Tejun Heo <teheo@suse.de>
+  */
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/device.h>
+ #include <linux/module.h>
+ #include <linux/slab.h>
+@@ -543,8 +544,11 @@
+ 
+ 	list_for_each_entry_safe_reverse(node, tmp, todo, entry) {
+ 		devres_log(dev, node, "REL");
++		rog5_iris_remove_mark(dev, "devres %ps begin", node->release);
+ 		node->release(dev, node);
++		rog5_iris_remove_mark(dev, "devres %ps done; node free begin", node->release);
+ 		free_node(node);
++		rog5_iris_remove_mark(dev, "devres node free done");
+ 	}
+ }
+ 
+@@ -767,7 +771,9 @@
+ {
+ 	struct devres_action *devres = container_of(node, struct devres_action, node);
+ 
++	rog5_iris_remove_mark(dev, "action %ps begin", devres->action.action);
+ 	devres->action.action(devres->action.data);
++	rog5_iris_remove_mark(dev, "action %ps done", devres->action.action);
+ }
+ 
+ static void devm_action_free(struct devres_node *node)
+diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
+--- a/drivers/iommu/iommu.c
++++ b/drivers/iommu/iommu.c
+@@ -6,6 +6,7 @@
+ 
+ #define pr_fmt(fmt)    "iommu: " fmt
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/amba/bus.h>
+ #include <linux/device.h>
+ #include <linux/kernel.h>
+@@ -3359,11 +3360,14 @@
+ 	if (!group)
+ 		return;
+ 
++	rog5_iris_remove_mark(dev, "IOMMU group lock begin");
+ 	mutex_lock(&group->mutex);
++	rog5_iris_remove_mark(dev, "IOMMU group lock done; ownership put begin");
+ 	if (!WARN_ON(!group->owner_cnt || !xa_empty(&group->pasid_array)))
+ 		group->owner_cnt--;
+ 
+ 	mutex_unlock(&group->mutex);
++	rog5_iris_remove_mark(dev, "IOMMU ownership put and group unlock done");
+ }
+ 
+ static int __iommu_group_alloc_blocking_domain(struct iommu_group *group)

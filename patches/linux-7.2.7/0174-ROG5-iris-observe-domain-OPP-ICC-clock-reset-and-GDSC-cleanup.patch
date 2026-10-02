@@ -1,0 +1,266 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] ROG5-iris-observe-domain-OPP-ICC-clock-reset-and-GDSC-cleanup
+
+Retain all normal resource helpers and their order. Mark each domain-list
+OPP-token clear, link deletion, detach, runtime disable, default pstate,
+genpd removal, work queue and virtual-device unregister. Do not access the
+virtual device after unregister. Mark asynchronous power-off work and GDSC
+callback entry/exit. Domain/provider-lock markers never delay; worker entry
+and exit settle outside those locks. Shared MX/MMCX records can reflect
+other consumers and are contextual observations, not proof of codec MMIO.
+Managed clock/reset/ICC bulk and OPP-table releases have explicit names;
+OPP config action is identified by the devres action markers in 0172.
+
+diff --git a/drivers/base/power/common.c b/drivers/base/power/common.c
+--- a/drivers/base/power/common.c
++++ b/drivers/base/power/common.c
+@@ -4,6 +4,7 @@
+  *
+  * Copyright (C) 2011 Rafael J. Wysocki <rjw@sisk.pl>, Renesas Electronics Corp.
+  */
++#include <linux/rog5_iris_trace.h>
+ #include <linux/kernel.h>
+ #include <linux/device.h>
+ #include <linux/export.h>
+@@ -382,9 +383,14 @@
+ 		return;
+ 
+ 	for (i = 0; i < list->num_pds; i++) {
++		rog5_iris_remove_mark(list->pd_devs[i], "PD[%d] OPP token %u clear begin",
++				      i, list->opp_tokens[i]);
+ 		dev_pm_opp_clear_config(list->opp_tokens[i]);
++		rog5_iris_remove_mark(list->pd_devs[i], "PD[%d] OPP token clear done; link delete begin", i);
+ 		if (list->pd_links[i])
+ 			device_link_del(list->pd_links[i]);
++		rog5_iris_remove_mark(list->pd_devs[i], "PD[%d] link delete done; detach begin", i);
++		/* detach unregisters the virtual device: do not log through it afterwards. */
+ 		dev_pm_domain_detach(list->pd_devs[i], true);
+ 	}
+ 
+diff --git a/drivers/pmdomain/core.c b/drivers/pmdomain/core.c
+--- a/drivers/pmdomain/core.c
++++ b/drivers/pmdomain/core.c
+@@ -6,6 +6,7 @@
+  */
+ #define pr_fmt(fmt) "PM: " fmt
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/delay.h>
+ #include <linux/idr.h>
+ #include <linux/kernel.h>
+@@ -894,7 +895,9 @@
+ 
+ 	timed = timed && genpd->gd && !genpd->states[state_idx].fwnode;
+ 	if (!timed) {
++		rog5_iris_domain_mark(genpd->name, "provider power-off begin", false);
+ 		ret = genpd->power_off(genpd);
++		rog5_iris_domain_mark(genpd->name, "provider power-off returned", false);
+ 		if (ret)
+ 			goto busy;
+ 
+@@ -902,7 +905,9 @@
+ 	}
+ 
+ 	time_start = ktime_get();
++	rog5_iris_domain_mark(genpd->name, "timed provider power-off begin", false);
+ 	ret = genpd->power_off(genpd);
++	rog5_iris_domain_mark(genpd->name, "timed provider power-off returned", false);
+ 	if (ret)
+ 		goto busy;
+ 
+@@ -1147,9 +1152,15 @@
+ 
+ 	genpd = container_of(work, struct generic_pm_domain, power_off_work);
+ 
++	rog5_iris_domain_mark(genpd->name, "power-off work lock begin", true);
+ 	genpd_lock(genpd);
++	rog5_iris_domain_mark(genpd->name,
++		genpd->status == GENPD_STATE_OFF ? "work: cached OFF; power-off begin" :
++		"work: cached ON; power-off begin", false);
+ 	genpd_power_off(genpd, false, 0);
++	rog5_iris_domain_mark(genpd->name, "work: power-off done; unlock begin", false);
+ 	genpd_unlock(genpd);
++	rog5_iris_domain_mark(genpd->name, "power-off work done", true);
+ }
+ 
+ /**
+@@ -3257,6 +3268,7 @@
+ {
+ 	struct generic_pm_domain *pd;
+ 	bool is_virt_dev;
++	const char *name;
+ 	unsigned int i;
+ 	int ret = 0;
+ 
+@@ -3264,7 +3276,9 @@
+ 	if (IS_ERR(pd))
+ 		return;
+ 
+-	dev_dbg(dev, "removing from PM domain %s\n", pd->name);
++	name = pd->name;
++	rog5_iris_remove_mark(dev, "genpd %s detach: runtime disable begin", name);
++	dev_dbg(dev, "removing from PM domain %s\n", name);
+ 
+ 	/* Check if the device was created by genpd at attach. */
+ 	is_virt_dev = dev->bus == &genpd_bus_type;
+@@ -3272,6 +3286,8 @@
+ 	/* Disable runtime PM if we enabled it at attach. */
+ 	if (is_virt_dev)
+ 		pm_runtime_disable(dev);
++
++	rog5_iris_remove_mark(dev, "genpd %s: runtime disable done; default pstate clear begin", name);
+ 
+ 	/* Drop the default performance state */
+ 	if (dev_gpd_data(dev)->default_pstate) {
+@@ -3279,6 +3295,8 @@
+ 		dev_gpd_data(dev)->default_pstate = 0;
+ 	}
+ 
++	rog5_iris_remove_mark(dev, "genpd %s: pstate clear done; remove device begin", name);
++
+ 	for (i = 1; i < GENPD_RETRY_MAX_MS; i <<= 1) {
+ 		ret = genpd_remove_device(pd, dev);
+ 		if (ret != -EAGAIN)
+@@ -3288,6 +3306,7 @@
+ 		cond_resched();
+ 	}
+ 
++	rog5_iris_remove_mark(dev, "genpd %s: remove device returned %d", name, ret);
+ 	if (ret < 0) {
+ 		dev_err(dev, "failed to remove from PM domain %s: %d",
+ 			pd->name, ret);
+@@ -3295,11 +3314,15 @@
+ 	}
+ 
+ 	/* Check if PM domain can be powered off after removing this device. */
++	rog5_iris_remove_mark(dev, "genpd %s: power-off work queue begin", name);
+ 	genpd_queue_power_off_work(pd);
++	rog5_iris_remove_mark(dev, "genpd %s: work queued; virtual unregister begin", name);
+ 
+ 	/* Unregister the device if it was created by genpd. */
+ 	if (is_virt_dev)
+ 		device_unregister(dev);
++	/* The domain outlives this virtual device. */
++	rog5_iris_domain_mark(name, "detach: virtual unregister done", true);
+ }
+ 
+ static void genpd_dev_pm_sync(struct device *dev)
+diff --git a/drivers/clk/qcom/gdsc.c b/drivers/clk/qcom/gdsc.c
+--- a/drivers/clk/qcom/gdsc.c
++++ b/drivers/clk/qcom/gdsc.c
+@@ -3,6 +3,7 @@
+  * Copyright (c) 2015, 2017-2018, 2022, The Linux Foundation. All rights reserved.
+  */
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/bitops.h>
+ #include <linux/delay.h>
+ #include <linux/err.h>
+@@ -340,7 +341,7 @@
+ 	return 0;
+ }
+ 
+-static int gdsc_disable(struct generic_pm_domain *domain)
++static int __gdsc_disable(struct generic_pm_domain *domain)
+ {
+ 	struct gdsc *sc = domain_to_gdsc(domain);
+ 	int ret;
+@@ -387,6 +388,17 @@
+ 		gdsc_assert_clamp_io(sc);
+ 
+ 	return 0;
++}
++
++static int gdsc_disable(struct generic_pm_domain *domain)
++{
++	int ret;
++
++	/* No delay while a provider/domain lock may be held. */
++	rog5_iris_domain_mark(domain->name, "GDSC disable MMIO begin", false);
++	ret = __gdsc_disable(domain);
++	rog5_iris_domain_mark(domain->name, "GDSC disable MMIO returned", false);
++	return ret;
+ }
+ 
+ static int gdsc_set_hwmode(struct generic_pm_domain *domain, struct device *dev, bool mode)
+diff --git a/drivers/clk/clk-devres.c b/drivers/clk/clk-devres.c
+--- a/drivers/clk/clk-devres.c
++++ b/drivers/clk/clk-devres.c
+@@ -1,4 +1,5 @@
+ // SPDX-License-Identifier: GPL-2.0
++#include <linux/rog5_iris_trace.h>
+ #include <linux/clk.h>
+ #include <linux/device.h>
+ #include <linux/export.h>
+@@ -241,7 +242,9 @@
+ {
+ 	struct clk_bulk_devres *devres = res;
+ 
++	rog5_iris_remove_mark(dev, "clock bulk put begin: %d handles", devres->num_clks);
+ 	clk_bulk_put_all(devres->num_clks, devres->clks);
++	rog5_iris_remove_mark(dev, "clock bulk put done");
+ }
+ 
+ int __must_check devm_clk_bulk_get_all(struct device *dev,
+diff --git a/drivers/reset/core.c b/drivers/reset/core.c
+--- a/drivers/reset/core.c
++++ b/drivers/reset/core.c
+@@ -5,6 +5,7 @@
+  * Copyright 2013 Philipp Zabel, Pengutronix
+  */
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/acpi.h>
+ #include <linux/atomic.h>
+ #include <linux/auxiliary_bus.h>
+@@ -1373,7 +1374,9 @@
+ {
+ 	struct reset_control_bulk_devres *devres = res;
+ 
++	rog5_iris_remove_mark(dev, "reset bulk put begin: %u handles", devres->num_rstcs);
+ 	reset_control_bulk_put(devres->num_rstcs, devres->rstcs);
++	rog5_iris_remove_mark(dev, "reset bulk put done");
+ }
+ 
+ static void devm_reset_control_bulk_release_deasserted(struct device *dev, void *res)
+diff --git a/drivers/interconnect/bulk.c b/drivers/interconnect/bulk.c
+--- a/drivers/interconnect/bulk.c
++++ b/drivers/interconnect/bulk.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/interconnect-provider.h>
+ #include <linux/device.h>
+ #include <linux/export.h>
+@@ -125,7 +126,9 @@
+ {
+ 	struct icc_bulk_devres *devres = res;
+ 
++	rog5_iris_remove_mark(dev, "ICC bulk put begin: %d paths", devres->num_paths);
+ 	icc_bulk_put(devres->num_paths, devres->paths);
++	rog5_iris_remove_mark(dev, "ICC bulk put done");
+ }
+ 
+ /**
+diff --git a/drivers/opp/of.c b/drivers/opp/of.c
+--- a/drivers/opp/of.c
++++ b/drivers/opp/of.c
+@@ -10,6 +10,7 @@
+ 
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ 
++#include <linux/rog5_iris_trace.h>
+ #include <linux/cpu.h>
+ #include <linux/errno.h>
+ #include <linux/device.h>
+@@ -1100,7 +1101,9 @@
+ 
+ static void devm_pm_opp_of_table_release(void *data)
+ {
++	rog5_iris_remove_mark(data, "OPP table remove begin");
+ 	dev_pm_opp_of_remove_table(data);
++	rog5_iris_remove_mark(data, "OPP table remove done");
+ }
+ 
+ static int _devm_of_add_table_indexed(struct device *dev, int index)

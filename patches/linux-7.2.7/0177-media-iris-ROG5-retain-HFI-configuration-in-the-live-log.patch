@@ -1,0 +1,40 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] media-iris-ROG5-retain-HFI-configuration-in-the-live-log
+
+The 64-entry ring loses setup properties behind DPB and client FTB traffic
+before VP9 reports its first error. trace_config (off by default) prints all
+sent non-ETB/FTB packets with the same 16-word representation as the ring.
+No delay; setup is captured even if all buffers fail later. Current gen1
+setup properties fit 16 words. Larger future packets would be truncated.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -15,6 +15,10 @@
+ #include "iris_instance.h"
+ #include "iris_state.h"
+ #include "iris_vpu_common.h"
++
++static bool trace_config;
++module_param(trace_config, bool, 0644);
++MODULE_PARM_DESC(trace_config, "print every sent non-ETB/FTB HFI packet (first 16 words, no settle delay)");
+ 
+ bool iris_markers;
+ module_param_named(markers, iris_markers, bool, 0644);
+@@ -51,6 +55,16 @@
+ 	e->dir = dir;
+ 	memset(e->w, 0, sizeof(e->w));
+ 	memcpy(e->w, pkt, min_t(u32, size, sizeof(e->w)));
++	/* Preserve the complete setup transaction before buffer traffic replaces
++	 * the ring. Do not impose marker_delay_ms on HFI packet transmission.
++	 */
++	if (READ_ONCE(trace_config) && dir == 't' &&
++	    e->w[1] != 0x211004 && e->w[1] != 0x211005)
++		dev_warn(core->dev,
++			 "hfi config t: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
++			 e->w[0], e->w[1], e->w[2], e->w[3], e->w[4], e->w[5],
++			 e->w[6], e->w[7], e->w[8], e->w[9], e->w[10], e->w[11],
++			 e->w[12], e->w[13], e->w[14], e->w[15]);
+ }
+ 
+ /* ROG5: one firmware debug-queue message (not NUL-terminated) */

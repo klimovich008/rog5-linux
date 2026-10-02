@@ -1,0 +1,113 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] media-iris-ROG5-switchable-stock-VP9-DPB-extradata
+
+F2r rejects stream-0 buffers despite stock 0x312000 allocation size, highly
+aligned IOVAs, and SECURE_SESSION=0. Stock msm_comm_queue_dpb_only_buffers
+supplies a shared 16 KiB extradata allocation with every DPB FTB; Iris sends
+zero address/size. vp9_dpb_extra defaults off, is load-time only, and is
+limited to SM8350 VP9 split decoding. Supply that pair without altering the
+stream, counts, UBWC pixel/metadata layout, or secure routing. Check its DMA
+range; propagate allocation failure before sending the FTB; free it only
+inside the existing confirmed-firmware-release guard. Keep it stable over
+resolution changes. The proprietary firmware's validation code is not
+available: this is the best supported remaining packet difference, not a
+proven fix. BUFFER_SIZE_MINIMUM in stock and BUFFER_SIZE_ACTUAL in Iris
+are both wire property 0x20100c, so changing that name would test nothing.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -39,6 +39,13 @@
+ static bool eos_buffer;
+ module_param(eos_buffer, bool, 0644);
+ MODULE_PARM_DESC(eos_buffer, "drain with a real 4 KiB EOS buffer instead of 0xdeadb000 (always on for SM8350)");
++
++/* Stock split-mode DPBs carry a shared VENUS_EXTRADATA_SIZE allocation.
++ * Load-time only so a session cannot change its buffer contract midstream.
++ */
++static bool vp9_dpb_extra;
++module_param(vp9_dpb_extra, bool, 0444);
++MODULE_PARM_DESC(vp9_dpb_extra, "SM8350 VP9 split DPBs: supply the stock shared 16 KiB extradata buffer");
+ 
+ static bool ubwc_config;
+ module_param(ubwc_config, bool, 0644);
+@@ -564,9 +571,35 @@
+ 	}
+ }
+ 
++static bool iris_hfi_gen1_vp9_dpb_extra(struct iris_inst *inst)
++{
++	return vp9_dpb_extra && inst->core->iris_platform_data->oem &&
++		inst->domain == DECODER && inst->fmt_src->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_VP9 &&
++		iris_split_mode_enabled(inst);
++}
++
++static int iris_hfi_gen1_get_dpb_extra(struct iris_inst *inst)
++{
++	struct iris_core *core = inst->core;
++
++	/* Stock msm_vidc_utils.h: VENUS_EXTRADATA_SIZE is 16 KiB for all sizes.
++	 * Keep the single allocation until SESSION_END or confirmed PAS shutdown,
++	 * including across resolution changes: old DPBs can still refer to it.
++	 */
++	if (!inst->dpb_extra_vaddr)
++		inst->dpb_extra_vaddr = dma_alloc_attrs(core->dev, SZ_16K,
++						     &inst->dpb_extra_daddr, GFP_KERNEL, 0);
++	if (!inst->dpb_extra_vaddr)
++		return -ENOMEM;
++	if (!iris_dma_range_ok(core, inst->dpb_extra_daddr, SZ_16K, "DPB extradata"))
++		return -EINVAL;
++	return 0;
++}
++
+ static int iris_hfi_gen1_queue_output_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+ {
+ 	struct hfi_session_fill_buffer_pkt op_pkt = {};
++	int ret;
+ 
+ 	if (!iris_dma_range_ok(inst->core, buf->device_addr, buf->buffer_size, "output buffer"))
+ 		return -EINVAL;
+@@ -586,6 +619,18 @@
+ 		op_pkt.stream_id = 1;
+ 	else
+ 		op_pkt.stream_id = 0;
++
++	if (buf->type == BUF_DPB && iris_hfi_gen1_vp9_dpb_extra(inst)) {
++		ret = iris_hfi_gen1_get_dpb_extra(inst);
++		if (ret)
++			return ret;
++		op_pkt.extradata_buffer = lower_32_bits(inst->dpb_extra_daddr);
++		op_pkt.data = SZ_16K;
++	}
++	if (buf->type == BUF_DPB)
++		iris_mark(inst->core, "DPB FTB: stream=%u type=OUTPUT addr=%#x alloc=%#x extra=%#x/%#x tag=%u",
++			  op_pkt.stream_id, op_pkt.packet_buffer, op_pkt.alloc_len,
++			  op_pkt.extradata_buffer, op_pkt.data, op_pkt.output_tag);
+ 
+ 	return iris_hfi_queue_session_cmd_write(inst, &op_pkt, op_pkt.shdr.hdr.size);
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -149,6 +149,8 @@
+ 	bool				end_sent;
+ 	void				*eos_vaddr;
+ 	dma_addr_t			eos_daddr;
++	void				*dpb_extra_vaddr;
++	dma_addr_t			dpb_extra_daddr;
+ 	bool				enc_start_deferred;
+ };
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -392,6 +392,9 @@
+ 		if (inst->eos_vaddr)
+ 			dma_free_attrs(inst->core->dev, SZ_4K, inst->eos_vaddr,
+ 				       inst->eos_daddr, 0);
++		if (inst->dpb_extra_vaddr)
++			dma_free_attrs(inst->core->dev, SZ_16K, inst->dpb_extra_vaddr,
++				       inst->dpb_extra_daddr, 0);
+ 	}
+ 	iris_remove_session(inst);
+ 	mutex_unlock(&inst->lock);

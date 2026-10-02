@@ -1,5 +1,13 @@
 # Hardware video decode/encode (Iris v2 on SM8350)
 
+Status 2026-10-02 (k120 preparation): k117 F1 passed H.264/HEVC 300/300,
+compliance 48/48 and idle, but removal still hard-hung after `mark: remove`.
+F2r still rejected stock-sized VP9 references (0x1003); F3 is unrun. Host-only
+successor patches 0172-0178 add removal instrumentation and isolated opt-in
+experiments. [Stock comparison/review](../reviews/2026-10-02-video-iris-k120.md),
+[host results](../../test-results/2026-10-02-video-iris-k120-host.md),
+[k120 trials](#k120-trials). No successor phone result is claimed.
+
 Status 2026-10-02 (k117): k116 is the installed default (H.264/HEVC decode
 bit-exact, compliance 48/48; [k116 trials](../../test-results/2026-10-02-video-iris-k116-ram-trials.md)).
 Its trials left VP9 with every reference buffer rejected and a phone reset
@@ -730,3 +738,152 @@ Each is a separate experiment or larger change; ordered by expected value.
   driver-owned DPBs after a flush (seek); bounded sequence-change parsing;
   decoder QBUF ignoring power-vote errors; session admission (the 17th
   open is silently not listed); Lahaina core limits and clock model; DCVS.
+
+## k120 trials
+
+k120 uses d15 unchanged. Package root is
+`~/.local/state/rog5-production-boot-20260923/package-<bundle>/`; the wrapper
+is `boot-ram-128m.img`, the signed bundle is `bundles/<bundle>/`, and the
+one-use descriptor is under the sibling `trial-<bundle>/descriptor`.
+The wrapper hashes will be recorded here after the clean build and packaging.
+
+This is a plan for a later admitted operator session. No phone commands were
+run during host preparation. Use the existing production RAM-trial controller
+and its identity/power/thermal/fallback/one-use checks; one fresh wrapper per
+boot. Do not flash, change slots, install k120, or recursively unload dependencies.
+Stop at the first kernel/SMMU fault, firmware session/system error, or lost
+transport; do not perform repeated VP9 failures on a latched core. Keep live
+logs on the host. A hard hang needs the [manual rescue](../development.md#manual-rescue-hard-hang-no-usb-dark-screen),
+then lands on the installed default. A timeout does not authorize replaying
+the same wrapper.
+
+### Shared preparation and boot
+
+1. Before each boot, stage only that boot's load options in
+   `/etc/modprobe.d/rog5-video-trial.conf` through the admitted connection.
+   Remove that file after landing back on the installed system. These are
+   temporary persistent options, so verify they are removed even after rescue.
+   Do not reload Iris to select VP9/encoder/probe options.
+2. On the host, create a fresh evidence directory and start
+   `socat -u UDP-RECV:6666 - > <evidence>/netconsole.log` before hazardous work.
+   Use the controller's stage receiver for the boot. The boot commands from
+   the repository are:
+
+   ```sh
+   python3 scripts/host/production-ram-trial.py to-fastboot
+   python3 scripts/host/production-ram-trial.py boot \
+     --wrapper "$PACKAGE/boot-ram-128m.img" --wrapper-sha256 "$WRAPPER_SHA256" \
+     --evidence "$NEW_BOOT_EVIDENCE" --stage-receiver
+   ```
+
+   Substitute the exact package and hash from the table. Never reuse an
+   evidence directory or consumed descriptor. After boot require
+   `uname -r = 7.2.7-rog5-k120`, correct d15/video binding, no SID 0x2100
+   route refusal, no warnings/faults, and expected module parameters.
+3. On the host, start a live capture **before firmware/teardown**:
+   `ssh root@PHONE 'dmesg -w' > <evidence>/live-dmesg-w.txt`. In parallel retain
+   a timestamped host heartbeat through the admitted observer. USB NCM and
+   ACM are useful redundant channels but share USB hardware. Discover the
+   phone NCM interface; load netconsole with
+   `modprobe -d /run/rog5-modules netconsole "netconsole=@/IF,6666@169.254.77.1/"`
+   and set `dmesg -n 8`. All `PHONE` commands below are future phone commands.
+4. For decoder/encoder boots, run the pinned firmware installer `--runtime`,
+   then `--check`; require its effective-image SHA/size match. Use
+   `scripts/device/install-rog5-video-firmware` via the admitted connection.
+   Firmware on the installed default can be persistent; verify the effective
+   copy rather than assuming it is absent before this step.
+
+### G1: locate removal (wrapper a)
+
+Boot options: `options qcom_iris markers=1 remove_quiesce=0`.
+Keep `marker_delay_ms=0` during decode. Repeat F1 H.264/HEVC 1080p30 software
+framemd5 comparisons (300 identical frames each), decoder compliance 48/48,
+clean power-off markers and five-minute idle/decode. Identify `/dev/videoN`
+from its `qcom-iris-decoder` name. Close every video client; require `fuser`
+shows none. The module is pinned while firmware is resident.
+
+With live dmesg/UDP capture already armed, execute on the phone in order:
+
+```sh
+echo 1 > /sys/bus/platform/devices/aa00000.video-codec/firmware_unload
+# Require success and clean PAS/power-off; stop if it fails.
+cat /sys/module/qcom_iris/refcnt
+echo 200 > /sys/module/qcom_iris/parameters/marker_delay_ms
+echo 1 > /sys/module/qcom_iris/parameters/markers
+printf 'rog5-G1: remove once\n' > /dev/kmsg
+rmmod qcom_iris
+printf 'rog5-G1: rmmod returned\n' > /dev/kmsg
+```
+
+Require refcnt zero before removal. Remove **only Iris** once. Do not chain
+reprobe after it. Expected progress: lock/cancel/deinit/IRQ/node/unregister,
+`callback done`, IOMMU group ownership, each devres release/action, domain
+work/GDSC provider markers, driver links/uevent, `module exit done`, then
+`rmmod returned`. After success retain another ten seconds of logs for late
+work and heartbeat, save dmesg, and end the trial through the ordinary accepted
+return path. If responsive during a stall, use the admitted observer to obtain
+SysRq blocked-task/all-CPU stacks; do not create a second device coordinator.
+
+Wrapper d is a fresh G1 discriminator selected **after reviewing a's last
+marker**, not an automatic retry:
+
+- If a stops in redundant deinit or PM disable, repeat the powered F1/unload
+  preparation with `remove_quiesce=1`; compare the last boundary and expected
+  `skipping deinit` plus early `runtime disable action` markers. This changes
+  only the optional correction, with the same decode/firmware history.
+- If a points elsewhere, use `options qcom_iris probe_no_video=1 markers=1
+  remove_quiesce=0` for a never-powered resource-control boot. Require no Iris
+  video nodes and no firmware-auth marker; do not run any video tool or install
+  firmware. Set delay 200 and remove Iris once under the same live capture.
+  This distinguishes generic cleanup from a firmware-used core.
+
+If the failing boundary needs a different provider fix, preserve d unused and
+prepare a reviewed successor; the current code does not guess GDSC/SMMU changes.
+
+### G2: VP9 extradata (wrapper b)
+
+Boot options: `options qcom_iris experimental_vp9=1 vp9_dpb_extra=1 markers=1
+trace_config=1`. Require `stock_buf_counts=0`, `dpb_pad_kib=0`, `ubwc_config=0`,
+`remove_quiesce=0`, `probe_no_video=0`; `marker_delay_ms=0` throughout decoding.
+After firmware check, one H.264 control decode must match software and power
+off cleanly. Prepare the 10-second 1920x1080/30 VP9 profile-0 clip with
+`libvpx-vp9 -deadline realtime -cpu-used 8 -pix_fmt yuv420p` and its software
+framemd5 before the hardware decode. Run exactly one hardware attempt:
+
+```sh
+timeout 60 ffmpeg -hide_banner -nostdin -c:v vp9_v4l2m2m \
+  -i /var/tmp/t1080.webm -pix_fmt yuv420p -f framemd5 -y /var/tmp/vp9-hw.md5
+```
+
+Require 300 identical frame rows versus the software reference, no 0x1003,
+`Buffer validation failed`, system error, watchdog or SMMU fault, and clean
+idle power-off. DPB markers must show stream 0, size 0x312000, and the **same**
+nonzero, in-window extradata address/0x4000 on every DPB; CAPTURE stays stream
+1. Keep setup packets (`hfi config t`) and complete live logs, raw files, module
+parameters and exit status. If it fails, stop the boot without changing counts,
+padding or UBWC settings and without module reload. Further variants require
+fresh wrappers, preserving causal separation from the F2r baseline.
+
+### G3: staged encoder (wrapper c)
+
+Boot options: `options qcom_iris experimental_encoder=1`; VP9 and its extradata
+switch stay off. Fresh boot with **no decoder session** before the encoder.
+After firmware `--check`, require an encoder node and no video openers. Arm
+live dmesg and UDP first, then stream the checked-in helper through the admitted
+connection:
+
+```sh
+ssh root@PHONE sh -s -- --netconsole IF --unbind-uart --delay 50 \
+  < scripts/device/rog5-video-encoder-trial
+```
+
+The helper pads ramoops, then visits stops 0x11002, 0x211001, 0x211002,
+0x211004, 0x211005 and full encode (0). Each stopped stage needs that
+invocation's driver stop marker and natural ffmpeg exit; any timeout,
+firmware error or kernel/SMMU fault ends the run. Full encode requires 60
+software-decodable frames and `done: PASS`. Save `/var/tmp/rog5-enc-trial/`
+(including raw dmesg and stage-local kmsg) and the external capture. After a
+hang, read raw ramoops only through the existing read-only ramdump module
+built for the **actual installed landing kernel**, never the k120 module
+on a different release. Confirm its vermagic before use. No encoder hardware
+fix or performance qualification is claimed by this host work.

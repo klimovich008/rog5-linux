@@ -1,0 +1,25 @@
+From: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+Subject: [PATCH] media-iris-reject-core-initialization-after-remove-starts
+
+Close the independent lifecycle gap identified in the remove analysis:
+under core->lock, reject init with -ENODEV once removing is set, before the
+INIT fast path or any queue/power/firmware work. Ordinary module ownership
+already prevents most remove/open overlap, so this does not establish the
+cause of the k117 hang. Keep this small guard separate from diagnostic and
+remove_quiesce experiments. It does not change normal decoding.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -433,6 +433,11 @@
+ 	int ret;
+ 
+ 	mutex_lock(&core->lock);
++	/* Removal is terminal for this binding, even before fatal is latched. */
++	if (core->removing) {
++		ret = -ENODEV;
++		goto exit;
++	}
+ 	if (core->fatal) {
+ 		/* ROG5: latched until the driver is rebound */
+ 		ret = -EIO;

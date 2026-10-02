@@ -133,3 +133,10 @@
 0169-media-iris-ROG5-safe-publication-reload-and-PM-reference-fixes.patch
 0170-media-iris-ROG5-SM8350-decoder-buffers-as-the-stock-driver-sizes-them.patch
 0171-media-iris-ROG5-encoder-VP9-bring-up-knobs-marker-delay-staged-stop-DPB-pad.patch
+0172-ROG5-iris-post-remove-driver-core-devres-and-IOMMU-markers.patch
+0173-media-iris-ROG5-bracket-remove-and-deinit-with-never-powered-trial.patch
+0174-ROG5-iris-observe-domain-OPP-ICC-clock-reset-and-GDSC-cleanup.patch
+0175-media-iris-ROG5-switchable-remove-quiesce-experiment.patch
+0176-media-iris-ROG5-switchable-stock-VP9-DPB-extradata.patch
+0177-media-iris-ROG5-retain-HFI-configuration-in-the-live-log.patch
+0178-media-iris-reject-core-initialization-after-remove-starts.patch

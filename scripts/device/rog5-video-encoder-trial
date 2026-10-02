@@ -62,6 +62,19 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
+case $delay in
+	''|*[!0-9]*) echo 'delay must be 0..1000 milliseconds' >&2; exit 2 ;;
+esac
+[ "$delay" -le 1000 ] || { echo 'delay must be 0..1000 milliseconds' >&2; exit 2; }
+# Accept only the reviewed boundaries; each can still be selected separately.
+[ -n "$stages" ] || { echo 'stages must not be empty' >&2; exit 2; }
+for stop in $stages; do
+	case $stop in
+	0x11002|0x211001|0x211002|0x211004|0x211005|0) ;;
+	*) echo "unsupported encoder stop boundary $stop" >&2; exit 2 ;;
+	esac
+done
+
 [ "$(id -u)" = 0 ] || { echo 'run as root' >&2; exit 1; }
 param=/sys/module/qcom_iris/parameters
 [ -d "$param" ] || { echo 'qcom_iris is not loaded' >&2; exit 1; }
@@ -130,8 +143,20 @@ for stop in $stages; do
 		-y "$out/enc.h264" >"$out/stage-$stop.log" 2>&1 || rc=$?
 	sleep 6	# let the core power down between stages
 	dmesg >"$out/dmesg-$stop.txt"
+	# Keep raw dmesg, but only this invocation can satisfy its stop marker.
+	# This also avoids attributing a previous stage's diagnostics to this one.
+	awk -v marker="rog5-enc: stage stop_before=$stop: encode" '
+		index($0, marker) { seen=1; text=""; next }
+		seen { text=text $0 "\n" }
+		END { printf "%s", text }
+	' "$out/dmesg-$stop.txt" >"$out/kmsg-$stop.txt"
 	log "stage stop_before=$stop: ffmpeg rc=$rc"
-	if grep -qE 'fatal firmware error|sys error|video core held|session error|stop/release failed|release after the cancelled START failed|no end acknowledgement|power off reported an error|not released|leaking' "$out/dmesg-$stop.txt"; then
+	if [ ! -s "$out/kmsg-$stop.txt" ]; then
+		log "stage stop_before=$stop: no current-stage kernel evidence; stopping"
+		fail=1
+		break
+	fi
+	if grep -qE 'WARNING:|BUG:|Oops:|Unhandled context fault|Unexpected global fault|fatal firmware error|sys error|video core held|session error|stop/release failed|release after the cancelled START failed|no end acknowledgement|power off reported an error|not released|leaking' "$out/kmsg-$stop.txt"; then
 		log "stage stop_before=$stop: firmware error or unclean teardown; stopping"
 		fail=1
 		break
@@ -142,7 +167,7 @@ for stop in $stages; do
 		break
 	fi
 	if [ "$stop" != 0 ]; then
-		if ! grep -q "mark: encoder stopped before command $stop" "$out/dmesg-$stop.txt"; then
+		if ! grep -q "mark: encoder stopped before command $stop" "$out/kmsg-$stop.txt"; then
 			log "stage stop_before=$stop: the driver never reached that command; stopping"
 			fail=1
 			break
