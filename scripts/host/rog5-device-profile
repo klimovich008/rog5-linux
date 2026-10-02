@@ -336,6 +336,16 @@ def plan(inv: dict, root_bytes: int = ROOT_BYTES_DEFAULT) -> dict:
     start, size = int(ud['start']), int(ud['sectors'])
     if 'arch_root_a' in inv['parts']:
         raise ProfileError('arch_root_a already exists; this phone is already partitioned')
+    # Checked before any division: 4097 bytes must not become 4096, and a
+    # zero or negative size must not move userdata's end past the disk.
+    if not isinstance(root_bytes, int) or root_bytes < 8 * GIB or root_bytes % 4096:
+        raise ProfileError('p24 size must be at least 8 GiB and a multiple of 4096 bytes')
+    # The last 40 sectors (5 blocks of 4 KiB) hold the backup GPT; partition
+    # boundaries are 4 KiB aligned.
+    if start <= 0 or size <= 0 or start + size > disk_sectors - 40:
+        raise ProfileError('the inventory\'s userdata does not end before the backup GPT')
+    if start % 8 or size % 8:
+        raise ProfileError('the inventory\'s userdata is not 4 KiB aligned')
     # The GPT backup takes the last 5 blocks of 4 KiB (one header + four
     # entry blocks for 128 entries); stock userdata ends right before them.
     usable_end = start + size
@@ -345,6 +355,8 @@ def plan(inv: dict, root_bytes: int = ROOT_BYTES_DEFAULT) -> dict:
     root_start = (usable_end - root_sectors) // 8 * 8
     root_sectors = usable_end - root_start
     new_ud = root_start - start
+    if not start < root_start < usable_end or root_start + root_sectors != usable_end:
+        raise ProfileError('the planned p24 does not fit inside the stock userdata')
     if new_ud * SECTOR < 40 * GIB:
         raise ProfileError('less than 40 GiB would be left for userdata')
     boot_max, default = overlay_limits(new_ud * SECTOR)

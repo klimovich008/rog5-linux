@@ -288,6 +288,18 @@ def source_sha256(base: list[str], boot_id: str, record: dict[str, object]) -> s
     return digest
 
 
+def stop_child(process: subprocess.Popen) -> None:
+    """Terminate, then kill, and always reap a streaming SSH child, so it
+    cannot keep reading the phone into an already unlinked partial file."""
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+
+
 def stream_partition(
     base: list[str], boot_id: str, record: dict[str, object], output: Path
 ) -> None:
@@ -304,7 +316,11 @@ def stream_partition(
                 stdout=stream,
                 stderr=subprocess.PIPE,
             )
-            _, stderr = process.communicate(timeout=240)
+            try:
+                _, stderr = process.communicate(timeout=240)
+            except BaseException:
+                stop_child(process)
+                raise
             if process.returncode != 0:
                 raise BackupError(
                     f"partition stream failed for {record['label']}: "
@@ -474,7 +490,11 @@ def stream_gpt(
                 stdout=stream,
                 stderr=subprocess.PIPE,
             )
-            _, stderr = process.communicate(timeout=60)
+            try:
+                _, stderr = process.communicate(timeout=60)
+            except BaseException:
+                stop_child(process)
+                raise
             if process.returncode != 0:
                 raise BackupError(
                     f"GPT stream failed for {record['disk']} {record['role']}: "

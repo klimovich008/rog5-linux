@@ -7,4 +7,7 @@
 # restored coefficients (CSPL_COMMAND, UPDATE_PARAMS_CONFIG) would be written
 # into a running one; rog5-audio-route owns those controls and sets them after
 # the restore (91-rog5-audio-route.rules). Prints nothing, always exits 0.
-ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", KERNELS!="card*", ATTRS{id}=="ASUSROGPhone5", TEST=="/run/rog5-platform/audio-route", IMPORT{program}="/run/rog5-platform/audio-route --sanitize-alsa-state"
+# ATTRS{} keys must all match one ancestor: the card's "id" is on cardN, so
+# a KERNELS!="card*" next to it (as in 90-alsa-restore.rules, which has no
+# ATTRS) never matched and the sanitizer never ran (audit 2026-10-02).
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", ATTRS{id}=="ASUSROGPhone5", TEST=="/run/rog5-platform/audio-route", IMPORT{program}="/run/rog5-platform/audio-route --sanitize-alsa-state"

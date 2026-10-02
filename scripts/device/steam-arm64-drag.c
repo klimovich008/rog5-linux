@@ -72,6 +72,7 @@ static bool is_browser_process(void)
 	close(fd);
 	if (n <= 0)
 		return false;
+	args[n] = 0;	/* a truncated read may end inside an argument */
 	for (ssize_t i = 0; i < n; i += strlen(args + i) + 1)
 		if (!strncmp(args + i, "--type=", 7))
 			return false; /* renderer, GPU, zygote, ... */
