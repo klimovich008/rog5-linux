@@ -62,9 +62,14 @@ class Finalization(unittest.TestCase):
                 if automatic:
                     (runtime/'automatic').write_text('rog5-native-wifi-boot-v1\n')
                     (runtime/'runtime').write_text('#!/bin/sh\n'); (runtime/'runtime').chmod(0o755)
+                # An executable stub: a hyphenated shell function name is not
+                # POSIX and dash (Ubuntu /bin/sh) rejects it.
+                stub = root/'stub-bin'; stub.mkdir(exist_ok=True)
+                (stub/'systemd-run').write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n'); (stub/'systemd-run').chmod(0o755)
                 result = subprocess.run(['sh', '-c', 'set -eu\nroot='+str(runtime)+
-                    '\nfail() { exit 1; }\nsystemd-run() { printf "%s\n" "$@"; }\n'+actual],
-                    capture_output=True, text=True, timeout=5)
+                    '\nfail() { exit 1; }\n'+actual],
+                    capture_output=True, text=True, timeout=5,
+                    env=dict(os.environ, PATH=str(stub)+os.pathsep+os.environ.get('PATH', '')))
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout.splitlines()[-2:],
                     [str(runtime/'runtime'), 'rollback'] if automatic else ['/usr/bin/systemctl', 'reboot'])

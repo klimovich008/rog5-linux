@@ -91,8 +91,9 @@ class ProductionR10Test(unittest.TestCase):
 class SeriesTest(unittest.TestCase):
     def test_0148_follows_0147_and_touches_only_the_legacy_glue(self):
         names = [l for l in SERIES.read_text().split() if not l.startswith('#')]
-        self.assertEqual(names[-2:][1], PATCH)
-        self.assertTrue(names[-2].startswith('0147-'))
+        # Later patches append to the series; 0148 stays right after 0147.
+        index = names.index(PATCH)
+        self.assertTrue(names[index-1].startswith('0147-'))
         text = (SERIES.parent / PATCH).read_text()
         self.assertEqual(sorted({l[6:] for l in text.splitlines() if l.startswith('+++ b/')}),
                          ['drivers/usb/dwc3/dwc3-qcom-legacy.c'])

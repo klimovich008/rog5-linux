@@ -114,6 +114,18 @@ case $1 in show) echo not-found ;; is-active) [ -e $S/timer ] ;; *) rm -f $S/tim
 }
 
 
+# The target has util-linux exch (RENAME_EXCHANGE); older hosts (util-linux
+# < 2.40, e.g. Ubuntu 24.04 CI runners) do not. The same syscall stands in.
+EXCH_FALLBACK = """#!/usr/bin/env python3
+import ctypes, os, sys
+if len(sys.argv) != 3:
+    sys.exit('usage: exch path1 path2')
+libc = ctypes.CDLL(None, use_errno=True)
+if libc.renameat2(-100, os.fsencode(sys.argv[1]), -100, os.fsencode(sys.argv[2]), 2):
+    sys.exit('exch: ' + os.strerror(ctypes.get_errno()))
+"""
+
+
 def unshare_ok():
     return subprocess.run(['unshare', '-r', 'true'], capture_output=True).returncode == 0
 
@@ -127,6 +139,12 @@ class Target(unittest.TestCase):
         for name, body in STUBS.items():
             (self.stub/'bin'/name).write_text(f'#!/bin/sh\nS={self.stub}\n{body}\n')
             (self.stub/'bin'/name).chmod(0o755)
+        self.exch = shutil.which('exch', path='/usr/bin:/bin')
+        if self.exch is None:
+            self.exch = str(self.stub/'host-exch')
+            Path(self.exch).write_text(EXCH_FALLBACK)
+            Path(self.exch).chmod(0o755)
+            (self.stub/'bin/exch').symlink_to(self.exch)
         (self.stub/'p24-mount').write_text('ro\n')
         (self.stub/'drop_caches').write_text('')
         for disk, ro in (('sda', 0), ('sda23', 0), ('sda24', 1), ('sdb', 1)):
@@ -357,7 +375,8 @@ class Target(unittest.TestCase):
 
     def exch_then(self, command):
         """An exch that also runs a shell command after a successful swap."""
-        (self.stub/'bin/exch').write_text(f'#!/bin/sh\n/usr/bin/exch "$@" || exit\n{command}\n')
+        (self.stub/'bin/exch').unlink(missing_ok=True)
+        (self.stub/'bin/exch').write_text(f'#!/bin/sh\n{self.exch} "$@" || exit\n{command}\n')
         (self.stub/'bin/exch').chmod(0o755)
 
     def test_relock_failure_after_activation_keeps_the_record_if_p24_does_not_verify(self):

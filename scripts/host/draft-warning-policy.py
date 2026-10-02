@@ -42,10 +42,9 @@ def touched_files(patch_dir):
     return files
 
 
-def source_path(line, source):
+def source_path(line, source, objects):
     """Source-relative file named by a diagnostic line, or None."""
-    text = line.replace(str(source)+'/', '')
-    text = re.sub(r'^(?:\.\./)+source/', '', text)
+    text = D.normalize(line, source, objects)
     text = re.sub(r'^Warning: ', '', text)
     match = re.match(r'([A-Za-z0-9_./+-]+\.(?:c|h|S|dtsi|dts|dtso|rs)):', text)
     return match.group(1) if match else None
@@ -82,23 +81,38 @@ def main():
     for pin in previous['initializer_overrides']:
         root = source if pin['root'] == 'source' else build/'objects'
         if (root/pin['path']).is_file() and sha(root/pin['path']) == pin['sha256'] and all(
+                ((source if d['root'] == 'source' else build/'objects')/d['path']).is_file() and
                 sha((source if d['root'] == 'source' else build/'objects')/d['path']) == d['sha256'] for d in pin['dependencies']):
             policy['initializer_overrides'].append(pin)
+    # A reviewed site's reason also rests on its pinned dependencies (headers).
+    owned_messages = set()
     for pin in previous['reviewed_messages']:
-        if (source/pin['path']).is_file() and sha(source/pin['path']) == pin['sha256']:
-            policy['reviewed_messages'].append(pin)
+        if (source/pin['path']).is_file() and sha(source/pin['path']) == pin['sha256'] and all(
+                (source/d['path']).is_file() and sha(source/d['path']) == d['sha256'] for d in pin['dependencies']):
+            messages = {}
+            for message, count in pin['messages'].items():
+                key = D.normalize(message, source, build/'objects')
+                need(key not in messages or messages[key] == count, 'conflicting counts for '+key)
+                messages[key] = count
+            # The checker uses the first review naming a message. Legacy drafts
+            # repeated retained reviews under ../source/ aliases; keep the
+            # original reason/guards/ceiling rather than a second owner.
+            messages = {key: count for key, count in messages.items() if key not in owned_messages}
+            if messages:
+                owned_messages.update(messages)
+                policy['reviewed_messages'].append(dict(pin, messages=messages))
     kept = (len(policy['initializer_overrides']), len(policy['reviewed_messages']))
     refused, drafted = [], collections.defaultdict(collections.Counter)
     for entry in check(build, policy):
         if entry['allowed']:
             continue
         line = entry['line']
-        path = source_path(line, source)
+        path = source_path(line, source, build/'objects')
         if entry['kind'] != 'compiler-or-tool' or entry['stage'] == 'depmod' or path is None or path in touched \
                 or not (source/path).is_file():
             refused.append(dict(stage=entry['stage'], line=line[:400], path=path, series_file=path in touched))
             continue
-        drafted[path][line.replace(str(source)+'/', '')] += 1
+        drafted[path][D.normalize(line, source, build/'objects')] += 1
     need(not refused, 'diagnostics that cannot be drafted:\n'+'\n'.join(json.dumps(r) for r in refused[:40]))
     reason = ('Upstream '+base['base_commit'][:12]+' W=1 diagnostic in a file the ROG5 series does not modify; '
               'exact file hash and message count drafted by draft-warning-policy.py.')
