@@ -629,6 +629,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k117-d15-261002b",
+      "role": "main",
+      "kernel": "k117",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k117",
+      "manifest_sha256": "6184ea8198e059ce90fedc3fe555adbf6a9174bb8fd5857f576c9ecf5bda32ee",
+      "package": "package-main-k117-d15-261002b",
+      "source_commit": "5143d6c89afc",
+      "changes": "k117 RAM trial wrapper F2 (VP9 via /etc/modprobe.d experimental_vp9=1; same content as main-k117-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
