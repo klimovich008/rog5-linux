@@ -18,8 +18,9 @@ mount, and refuse the rest before anything is mounted.
    check, mounts the overlay and requires a read-write mount, an empty
    work/work and intact upper data; then it shows that each refused shape
    either is refused by the check or makes the kernel mount read-only.
-   The host finally runs e2fsck -fn on the disk. Needs podman and the
-   localhost/rog5-qemu-gate:ubuntu-24.04 image (qemu-system-aarch64).
+   The host finally runs e2fsck -fn on the disk. Uses podman and the
+   localhost/rog5-qemu-gate:ubuntu-24.04 image, or a direct QEMU executable
+   supplied as ROG5_OVERLAY_QEMU (no guest NIC in either case).
 No phone, no host block device and no root are used.
 """
 import gzip
@@ -41,6 +42,7 @@ STATE = Path.home()/'.local/state'
 KERNEL = Path(os.environ.get('ROG5_OVERLAY_KERNEL', STATE/'rog5-kernel-7.2.7-build-r113/objects/arch/arm64/boot/Image'))
 ARCHIVE = Path(os.environ.get('ROG5_OVERLAY_ARCHIVE', STATE/'rog5-production-boot-20260923/ramdisk-main-k113-d13-261001a/target.cpio.gz'))
 QEMU_IMAGE = 'localhost/rog5-qemu-gate:ubuntu-24.04'
+QEMU = os.environ.get('ROG5_OVERLAY_QEMU')
 
 
 def function(text, name):
@@ -97,7 +99,7 @@ class Predicate(unittest.TestCase):
 
     def sock(self, path):
         """A socket node (copy-up of a socket creates one with mknod)."""
-        return (f"python3 -c 'import socket,sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "
+        return (f"python3 -c 'import os,stat,sys; os.mknod(sys.argv[1], stat.S_IFSOCK | 0o600)' "
                 f"'{path}'\n")
 
     def test_empty_states_pass(self):
@@ -214,6 +216,8 @@ if [ "$phase" = 1 ]; then
 	mknod "$W/#17" c 1 3
 	mknod "$W/#ffffffff" c 0 0
 	ln -s /state "$W/#18"
+	cp -a /socket "$W/#19"
+	result socket-residue "$(stat -c %F "$W/#19")"
 	result residue-count "$(find "$W" -mindepth 1 | wc -l)"
 	result shared-whiteout "$(find "$W" -maxdepth 1 -type c -links +1 | wc -l)"
 	sync
@@ -299,12 +303,16 @@ def archive_member(archive, wanted):
 def qemu_ready():
     if not (KERNEL.is_file() and ARCHIVE.is_file()):
         return 'private kernel Image or target archive not present'
-    for tool in ('podman', 'mkfs.ext4', 'e2fsck'):
+    for tool in ('mkfs.ext4', 'e2fsck'):
         if shutil.which(tool) is None:
             return f'{tool} not installed'
+    if QEMU:
+        return None if shutil.which(QEMU) else f'{QEMU} not executable'
+    if shutil.which('podman') is None:
+        return 'podman not installed (or set ROG5_OVERLAY_QEMU)'
     image = subprocess.run(['podman', 'image', 'exists', QEMU_IMAGE], capture_output=True)
     if image.returncode != 0:
-        return f'{QEMU_IMAGE} not installed'
+        return f'podman cannot access {QEMU_IMAGE}: {image.stderr.decode(errors="replace").strip()}'
     return None
 
 
@@ -318,13 +326,16 @@ class Kernel(unittest.TestCase):
             self.skipTest('kernel cases need private inputs')
 
     def boot(self, work, phase):
-        argv = ['podman', 'run', '--rm', '--network=none', '-v', f'{work}:/w',
-                QEMU_IMAGE, 'qemu-system-aarch64', '-M', 'virt', '-cpu', 'cortex-a76', '-smp', '2',
+        prefix = [QEMU] if QEMU else ['podman', 'run', '--rm', '--network=none', '-v', f'{work}:/w',
+                                      QEMU_IMAGE, 'qemu-system-aarch64']
+        guest_work = str(work) if QEMU else '/w'
+        argv = prefix + ['-M', 'virt', '-cpu', 'cortex-a76', '-smp', '2',
                 '-m', '1024', '-nographic', '-no-reboot', '-nic', 'none',
-                '-kernel', '/w/Image', '-initrd', '/w/initrd.gz',
+                '-kernel', guest_work+'/Image', '-initrd', guest_work+'/initrd.gz',
                 '-append', f'console=ttyAMA0 rdinit=/init panic=-1 loglevel=4 rog5test.phase={phase}',
-                '-drive', 'file=/w/disk.ext4,if=virtio,format=raw']
+                '-drive', f'file={guest_work}/disk.ext4,if=virtio,format=raw']
         run = subprocess.run(argv, capture_output=True, text=True, errors='replace', timeout=240)
+        self.assertEqual(run.returncode, 0, run.stderr + run.stdout[-4000:])
         results = dict(line.split(' ', 2)[1:] for line in run.stdout.splitlines()
                        if line.startswith('RESULT ') and line.count(' ') >= 2)
         return results, run.stdout[-4000:]
@@ -339,6 +350,7 @@ class Kernel(unittest.TestCase):
                        ('bin/busybox', 0o100755, busybox),
                        ('lib/ld-musl-aarch64.so.1', 0o100755, musl),
                        ('lib.sh', 0o100644, LIBRARY.encode()),
+                       ('socket', 0o140600, b''),
                        ('init', 0o100755, GUEST.encode())]
             (work/'initrd.gz').write_bytes(gzip.compress(newc(members), 1))
             disk = work/'disk.ext4'
@@ -349,6 +361,7 @@ class Kernel(unittest.TestCase):
             first, log1 = self.boot(work, 1)
             self.assertEqual(first.get('phase1-overlay'), 'rw', log1)
             self.assertEqual(first.get('shared-whiteout'), '1', log1)
+            self.assertEqual(first.get('socket-residue'), 'socket', log1)
             self.assertNotIn('guest-exit', first, log1)  # reset, not a clean exit
 
             second, log2 = self.boot(work, 2)

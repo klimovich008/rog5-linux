@@ -5,8 +5,9 @@
 # try-once record (userdata /rog5/boot/wifi-trial-state) is absent or healthy,
 # and re-arms it to pending on every primary boot. Without this commit, the
 # next boot takes the fallback bundle (V11). A boot that is not the selected
-# trial (a RAM trial, or the fallback) finds a different record and changes
-# nothing. Any failure leaves the record pending.
+# trial finds a different record and changes nothing. RAM execution is
+# explicitly excluded even when its descriptor matches. Any failure leaves
+# the record pending.
 #
 # Health is: current-boot P2 and SSH identity, sshd listening, only the
 # userdata write window writable, battery below 45 C, the production module
@@ -38,6 +39,11 @@ fail() {
 	exit 1
 }
 
+command_line=$(cat "$proc/cmdline") || fail 'boot origin unavailable'
+case " $command_line " in
+	*' rog5.boot_origin=ram '*) log 'SKIP RAM boot cannot commit a persistent trial'; exit 0 ;;
+esac
+
 [ -f "$descriptor" ] && [ ! -L "$descriptor" ] || fail 'trial descriptor missing'
 [ "$(wc -l <"$descriptor")" -eq 4 ] &&
 	[ "$(sed -n 1p "$descriptor")" = format=rog5-persistent-wifi-health-v1 ] &&
@@ -67,10 +73,12 @@ esac
 # The phone's local shell must have reached its lock screen once during this
 # boot: the logind session led by rog5-phosh.service's main process with
 # LockedHint=yes (Phosh publishes its startup lock with packages/phosh 0002).
-# That needs msm, the panel, phoc and Phosh. The unit starts before Phosh can
-# (it is not ordered after the SSH services; ready() waits for them), so the
-# first poll precedes the startup lock and a PIN cannot be entered between
-# two polls. Once seen it is latched in $shell_latch for this boot, so an
+# That needs msm, the panel, phoc and Phosh. The unit polls while SSH is
+# starting (ready() waits for it), so it normally sees the startup lock.
+# If an early unlock beats the
+# observer, request a lock once per session and require its acknowledgement;
+# never infer readiness from an unlocked session. Once seen with a lit panel
+# it is latched in $shell_latch for this boot, so an
 # unlock, a desktop-mode switch, a Phosh restart or a restart of this unit
 # does not hold the commit back. A GNOME Mobile boot
 # (/run/rog5-shell/effective) needs GDM active and the boot-bound readiness
@@ -80,6 +88,7 @@ esac
 # commits without a local shell.
 shell_latch=$run/rog5-production-trial-shell
 locked_session=
+lock_requested=
 latch_shell() {
 	locked_session=$1
 	printf 'boot_id=%s\nshell=%s\n' "$boot_id" "$locked_session" \
@@ -89,10 +98,27 @@ latch_shell() {
 }
 
 if [ -f "$shell_latch" ] && [ ! -L "$shell_latch" ] &&
-	[ "$(stat -c '%u:%a' "$shell_latch")" = 0:444 ] &&
+	[ "$(stat -c '%u:%g:%a:%h' "$shell_latch")" = 0:0:444:1 ] &&
+	[ "$(wc -l <"$shell_latch")" -eq 2 ] &&
 	[ "$(sed -n 1p "$shell_latch")" = "boot_id=$boot_id" ]; then
 	locked_session=$(sed -n 's/^shell=\([A-Za-z0-9_-]\{1,64\}\)$/\1/p' "$shell_latch")
 fi
+
+panel_lit() {
+	panel_enabled=0
+	for connector in "$sys"/class/drm/card*-DSI-*; do
+		[ "$(cat "$connector/enabled" 2>/dev/null)" = enabled ] &&
+			[ "$(cat "$connector/dpms" 2>/dev/null)" = On ] || continue
+		panel_enabled=1
+	done
+	[ "$panel_enabled" -eq 1 ] || return 1
+	for brightness in "$sys"/class/backlight/*/actual_brightness; do
+		value=$(cat "$brightness" 2>/dev/null) || continue
+		case $value in ''|*[!0-9]*) continue ;; esac
+		[ "$value" -gt 0 ] && return 0
+	done
+	return 1
+}
 
 local_shell_ready() {
 	[ -z "$locked_session" ] || return 0
@@ -119,7 +145,19 @@ local_shell_ready() {
 			-p Leader -p State -p LockedHint 2>/dev/null) || continue
 		printf '%s\n' "$properties" | grep -Fxq "Leader=$leader" || continue
 		printf '%s\n' "$properties" | grep -Fxq 'State=closing' && continue
-		printf '%s\n' "$properties" | grep -Fxq 'LockedHint=yes' || continue
+		if ! printf '%s\n' "$properties" | grep -Fxq 'LockedHint=yes'; then
+			case " $lock_requested " in
+				*" $session "*) ;;
+				*)
+					# Requesting a lock is not evidence of a locked display.
+					if "$loginctl" lock-session "$session"; then
+						lock_requested="$lock_requested $session"
+					fi
+					;;
+			esac
+			continue
+		fi
+		panel_lit || continue
 		latch_shell "$session"
 		return 0
 	done
@@ -176,4 +214,8 @@ until ready; do
 done
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail "trial commit result $result" ;; esac
+printf 'boot_id=%s\n' "$boot_id" >"$run/rog5-production-health.next" &&
+	chmod 0444 "$run/rog5-production-health.next" &&
+	mv -f "$run/rog5-production-health.next" "$run/rog5-production-health" ||
+	fail 'health record publication'
 log "PASS $primary committed $result for boot $boot_id after $waited s (local shell: $locked_session)"

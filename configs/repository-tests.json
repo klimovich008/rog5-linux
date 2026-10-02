@@ -223,7 +223,22 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "sandbox-local-tcp",
+          "inputs": [
+            "permission to create local TCP sockets"
+          ],
+          "kind": "unittest",
+          "message": "local TCP sockets are prohibited by the sandbox",
+          "reason": "Only the loopback receiver cases need sockets; claim durability and cleanup use local stubs.",
+          "scope": "subcheck",
+          "test_ids": [
+            "Stages.test_receiver_records_distinct_stage_records_from_the_peer",
+            "Stages.test_receiver_ignores_other_peers"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/host/test-module-loop.py",
@@ -3081,6 +3096,29 @@
           ]
         }
       ]
+    },
+    {
+      "path": "scripts/device/test-rog5-dp-power-measure.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
     }
   ]
 }

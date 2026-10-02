@@ -69,12 +69,18 @@ class BootModules(Base):
         release = subprocess.run(['uname', '-r'], capture_output=True, text=True).stdout.strip()
         (self.dir/'tree/lib/modules'/release).mkdir(parents=True)
         self.stub('modprobe', 'echo "modprobe $*" >>$D/calls; [ ! -e "$D/fail-$3" ]')
+        gmu = self.dir/'sys/bus/platform/devices/3d6a000.gmu'
+        gmu.mkdir(parents=True)
+        driver = self.dir/'sys/bus/platform/drivers/rog5-gmu-bind'
+        driver.mkdir(parents=True)
+        (gmu/'driver').symlink_to(driver)
 
     def load(self, *args):
         (self.dir/'ignore_loglevel').write_text('Y\n')
         (self.dir/'shmem_enabled').write_text('never\n')
         return self.run_script(MODULES, *args, ROG5_PLATFORM_KIT=str(self.kit), ROG5_PLATFORM_MODULES=str(self.dir/'tree'),
                                ROG5_PLATFORM_KMSG=str(self.dir/'kmsg'),
+                               ROG5_PLATFORM_SYS=str(self.dir/'sys'),
                                ROG5_PLATFORM_PRINTK=str(self.dir/'ignore_loglevel'),
                                ROG5_PLATFORM_SHMEM_THP=str(self.dir/'shmem_enabled'))
 
@@ -104,6 +110,26 @@ class BootModules(Base):
         self.assertEqual(code, 1)
         self.assertIn('FAIL modprobe rtc_pm8xxx', kmsg)
         self.assertEqual(len(self.calls()), 24)
+
+    def test_gmu_failure_stops_before_loading_its_consumers(self):
+        (self.dir/'fail-rog5_gmu_bind').touch()
+        code, kmsg = self.load()
+        self.assertEqual(code, 1, kmsg)
+        self.assertEqual(len(self.calls()), 3)
+
+    def test_modprobe_success_without_gmu_binding_cannot_load_msm(self):
+        driver = self.dir/'sys/bus/platform/devices/3d6a000.gmu/driver'
+        for wrong in (None, self.dir/'sys/bus/platform/drivers/other'):
+            with self.subTest(wrong=wrong):
+                driver.unlink(missing_ok=True)
+                if wrong:
+                    wrong.mkdir()
+                    driver.symlink_to(wrong)
+                (self.dir/'calls').unlink(missing_ok=True)
+                code, kmsg = self.load()
+                self.assertEqual(code, 1, kmsg)
+                self.assertIn('GMU not bound before msm', kmsg)
+                self.assertFalse(any(' msm ' in c for c in self.calls()))
 
     def test_audio_list_loads_without_boot_settings(self):
         shutil.copy(AUDIO_LIST, self.kit/'audio-modules')

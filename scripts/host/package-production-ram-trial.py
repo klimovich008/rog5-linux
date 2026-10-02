@@ -223,7 +223,7 @@ def package(args):
                   wrapper=dict(path=str(wrapper), sha256=sha(wrapper), size=IMAGE_SIZE),
                   recovery_sha256=sha(recovery),
                   inputs={name: dict(path=str(path), sha256=sha(path)) for name, path in inputs.items()},
-                  cmdline=re.search(r'^cmdline=(.*)$', plan, re.M)[1],
+                  cmdline=re.search(r'^cmdline=(.*)$', plan, re.M)[1]+' rog5.boot_origin=ram',
                   physical='NOT RUN', flash='forbidden')
     (out/'result.json').write_text(json.dumps(result, indent=2)+'\n')
     return result

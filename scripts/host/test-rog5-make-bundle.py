@@ -672,6 +672,28 @@ class MakeBundle(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'bundle-inputs.json differs from HEAD'):
             f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
 
+    def test_registries_in_the_repository_must_be_committed(self):
+        f = self.f
+        inside = f.source/'configs/production'
+        for name in ('dtbs.json', 'bundles.json'):
+            shutil.copyfile(f.config/name, inside/name)
+        f.config = inside
+        git = ['git', '-C', str(f.source), '-c', 'user.name=t', '-c', 'user.email=t@t']
+        subprocess.run(git+['add', '-A'], check=True)
+        subprocess.run(git+['commit', '-qm', 'registries'], check=True)
+        for name in ('dtbs.json', 'bundles.json'):
+            path = inside/name
+            original = path.read_bytes()
+            path.write_bytes(original+b'\n')
+            with self.assertRaisesRegex(ValueError, name.replace('.', r'\.')+' differs from HEAD'):
+                f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+            self.assertFalse(list(f.state.glob('package-*')))
+            path.write_bytes(original)
+        expected = {str(inside/name): sha((inside/name).read_bytes()) for name in ('dtbs.json', 'bundles.json')}
+        f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        record = json.loads(next(f.state.glob('package-*/make-bundle.json')).read_text())
+        self.assertEqual(record['registry_inputs_sha256'], expected)
+
     def test_changed_external_module_sources_give_a_new_module_package(self):
         f = self.f
         self.assertIn('modules modules-k111 (new)', f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9'))

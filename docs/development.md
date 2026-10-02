@@ -247,7 +247,9 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   The package must hold exactly the selection's board and external modules
   (a legacy package: only provenance-matching ones) and every module the
   DTB `requires`; the ramdisk builder gets a private checked copy.
-  `bundle-inputs.json` must equal HEAD's copy. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
+  `bundle-inputs.json` and registries inside the source repository must equal
+  HEAD's copies. Their hashes are recorded, including explicit external
+  registry overrides. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
   `ROG5_*` or `PYTHON*` variables. The ramdisk is built with the pinned inputs of
   `configs/production/bundle-inputs.json` and must carry exactly the new
   descriptor (main) or none (safe), plus the current init. Then
@@ -324,8 +326,10 @@ trial descriptor:
    `PRODUCTION_TRIAL_DESCRIPTOR=<file> PRODUCTION_TRIAL_DESCRIPTOR_SHA256=<sha>`
    and packages it with `--bundle <new bundle>`.
 2. RAM-trial that wrapper. `rog5-production-trial-commit.service` must log
-   `rog5-production-trial: SKIP …` (the record belongs to another trial) and
-   leave the record unchanged.
+   `rog5-production-trial: SKIP RAM boot …` and leave the record unchanged.
+   The trusted wrapper loader appends `rog5.boot_origin=ram` to the verified
+   command line; even a matching installed descriptor cannot commit in RAM.
+   Rebuild the wrapper to obtain this guard; an older wrapper does not add it.
 3. `install-default-kernel.py --bundle-dir <package>/bundles/<bundle>
    --descriptor <file> --trust-key <raw loader key> --evidence <new dir>`
    from any booted ROG5 system. It verifies both bundles with the trust key
@@ -357,8 +361,11 @@ trial descriptor:
    for this release), `rog5-platform-modules.service` succeeded (its failure
    fails the commit at once), and the local shell reached its lock screen
    once: the logind session led by `rog5-phosh.service` with
-   `LockedHint=yes` (needs packages/phosh 0002). The unit is not ordered
-   after the SSH services, so it polls before Phosh can lock; the lock is
+   `LockedHint=yes` (needs packages/phosh 0002), a DSI connector enabled with
+   DPMS On, and nonzero actual backlight brightness. The unit polls before
+   SSH readiness; if an early unlock beats its first observation, it requests
+   one lock per session and waits for `LockedHint=yes`. This can cause one
+   extra unlock during early boot. Once observed, the lock is
    latched in `/run/rog5-production-trial-shell` (boot-bound), so an unlock,
    a desktop-mode switch or a unit restart afterwards does not matter. A
    GNOME Mobile boot needs GDM active and the boot-bound
@@ -462,7 +469,9 @@ that upper without user data:
   snapshot that matches its seal. Anything else leaves upper as it is. All
   the existing checks then run on the result.
 - **commit** runs after the trial commit and after `systemd-update-done`. It
-  waits for the trial commit's health gate, then reruns `verify-root`. On a
+  requires the current-boot `/run/rog5-production-health` record when the
+  trial kit is present (ordering alone does not propagate a failed unit),
+  then reruns `verify-root`. On a
   pass it records `committed`, keeps only this update's snapshot as the last
   good root, and empties the package cache. A root that fails is armed for
   restore and rebooted.
@@ -477,8 +486,9 @@ that upper without user data:
 A package can trip them:
 
 - **`filesystem`, `shadow`, `systemd` (sysusers):** `/etc/shadow` must be
-  0:0 600 with one hard link and exactly `root:x:<n>::::::` (P2). A root
-  crypt hash passes the init but fails P2.
+  0:0 600 with one hard link and exactly `root:x:<n>::::::`, consistently
+  in init, P2 and `verify-root`. Root crypt passwords are rejected; the Phosh
+  PIN belongs to the separate `phone` account.
 - **`openssh`:** the effective `sshd -T` policy must still be key-only root
   with `usepam no`. `ssh-keygen -y` and `-lf` must work. `/usr/bin/sshd`
   must stay the listener. The `10-rog5-server.conf` drop-in is unowned and
@@ -639,4 +649,3 @@ The native RAM loader and transaction are
 `scripts/device/execute-native-ram-bundle-transaction.sh`; host admission must
 precede them. Neither this command front door nor packaging consumes a claim.
 Never retry an ambiguous or post-COMMIT experimental target.
-

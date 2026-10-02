@@ -606,6 +606,12 @@ esac
 fi # storage-selector path; RAM mode bypasses mounts and trial writes
 command_line=$(sed -n 's/^cmdline=//p' "$plan")
 [ -n "$command_line" ] || fail empty_cmdline
+# Execution origin is supplied by this trusted loader, after signature
+# verification. Even an embedded copy of the installed primary must never
+# commit its persistent try-once record during a RAM experiment.
+if [ -n "$ram_bundle" ]; then
+	command_line="$command_line rog5.boot_origin=ram"
+fi
 set_stage S60 PASS bundle_verified
 
 payload=$bundle_root/$bundle

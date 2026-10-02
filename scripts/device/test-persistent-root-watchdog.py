@@ -155,7 +155,7 @@ set -u
 FIXTURE_SYSRQ={root}/sysrq
 reboot_helper={helper}
 reboot_helper_grace=1
-log() {{ printf '%s\\n' "$*" >>{root}/log; }}
+log() {{ printf '%s\\n' "$*" >>{root}/log; sleep 1000; }}
 {source}
 force_rollback
 """

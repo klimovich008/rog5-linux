@@ -93,6 +93,7 @@ class Source(unittest.TestCase):
         init = INIT.read_text()
         self.assertLess(init.index('IFS= read -r running_kernel_release'),
                         init.index('if deferred_ufs_modules_present; then'))
+        self.assertIn("publish_production_modules || fail_local_stage runtime 'production module tree publication failed'", init)
 
     def test_init_dispatches_production_ufs_only_without_loose_modules(self):
         text = INIT.read_text()
@@ -289,6 +290,19 @@ class Loaders(unittest.TestCase):
         self.assertIn('PUBLISH=0', result.stdout)
         self.assertFalse((self.root/'run/rog5-modules').exists())
         (self.root/'rog5-ufs-modules').rmdir()
+
+    def test_failed_module_publication_never_publishes_readiness(self):
+        for command in ('cp', 'chmod', 'mv'):
+            with self.subTest(command=command):
+                shutil.rmtree(self.root/'run', ignore_errors=True)
+                (self.root/'run').mkdir()
+                body = ('IFS= read -r running_kernel_release </proc/sys/kernel/osrelease\nlog() { :; }\n'
+                        + function(self.init, 'publish_production_modules')
+                        + command+'() { return 1; }\n'
+                        + 'publish_production_modules && echo PUBLISH=0 || echo PUBLISH=$?\n')
+                result, _ = self.run_case(body)
+                self.assertIn('PUBLISH=1', result.stdout, result.stdout+result.stderr)
+                self.assertFalse((self.root/'run/rog5-production-modules.record').exists())
 
     def test_ufs_legacy_archive_keeps_insmod(self):
         legacy = self.root/'rog5-ufs-modules'

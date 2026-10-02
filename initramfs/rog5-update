@@ -650,8 +650,15 @@ overlay_ok() {
 	fi
 }
 
-# The health gate of production-trial-commit.
+# The common baseline plus the phone health gate when the trial kit exists.
+# After= orders jobs but does not propagate a failed trial-commit service.
 ready() {
+	if [ -e "$run/rog5-production-trial" ] || [ -L "$run/rog5-production-trial" ]; then
+		health=$run/rog5-production-health
+		[ -f "$health" ] && [ ! -L "$health" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$health")" = 0:0:444:1 ] &&
+			[ "$(cat "$health")" = "boot_id=$boot_id" ] || return 1
+	fi
 	p2=$run/rog5-p2-ready
 	identity=$run/rog5-persistent-ssh-identity.record
 	[ -f "$p2" ] && [ ! -L "$p2" ] && [ "$(stat -c '%u:%g:%a' "$p2")" = 0:0:444 ] &&
@@ -882,14 +889,16 @@ action_commit() {
 		: >"$commit_failed"
 		exit 1
 	fi
+	# Publish the rollback target before clearing pending or pruning anything.
+	# A failed pointer write must keep both recovery and the previous good root.
+	write_record "$last_good" format=rog5-update-last-good-v1 "update_id=$id" ||
+		fail 'cannot record the last good snapshot'
 	write_record "$dir/last-result" format=rog5-update-result-v1 "update_id=$id" \
 		result=committed reason=healthy "boot_id=$boot_id" || fail 'result record'
 	bb rm -f "$dir/pending" "$dir/attempt" "$dir/targets" "$dir/failed-targets" \
 		"$dir/failures" "$dir/packages-before" "$dir/packages-after" || fail 'cannot clear the update'
 	bb sync
 	# Keep this update's snapshot as the last good root for a manual rollback.
-	write_record "$last_good" format=rog5-update-last-good-v1 "update_id=$id" ||
-		log 'could not record the last good snapshot'
 	prune_snapshots "$id" || log 'older snapshots could not be removed'
 	find "$root/var/cache/pacman/pkg" -maxdepth 1 -type f -name '*.pkg.tar*' -delete 2>/dev/null || true
 	log "PASS update $id committed healthy after $waited s"

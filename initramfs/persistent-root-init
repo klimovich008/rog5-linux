@@ -225,7 +225,6 @@ fail_local_stage() {
 }
 
 force_rollback() {
-	log 'requesting storage-quiescent bootloader restart'
 	if [ -x "$reboot_helper" ]; then
 		# Never wait for restart2: a blocked request must not hold off the
 		# emergency reset below.
@@ -2337,24 +2336,14 @@ prepare_volatile_root_account() {
 	case $root_password in !*) ;; *) return 1 ;; esac
 	merged_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow") ||
 		return 1
-	user_password=0
 	case $merged_password in
 		"$root_password") sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1 ;;
 		x) [ "$expected_persistent_overlay_mode" -eq 1 ] || return 1 ;;
-		# A crypt hash the phone's user set (passwd/chpasswd) for the Denial
-		# lock screen and local console, kept only on the persistent overlay.
-		# SSH stays key-only: the volatile sshd policy adds UsePAM no.
-		'$'*)
-			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
-			user_password=1
-			;;
 		*) return 1 ;;
 	esac
-	if [ "$user_password" -eq 1 ]; then
-		grep -Eq '^root:[$][^:]+:[0-9]*:([^:]*:){5}[^:]*$' "$shadow" || return 1
-	else
-		grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
-	fi
+	# P2 and verify-root enforce the same key-only root account contract.
+	# The phone user's Phosh PIN belongs to a separate unprivileged account.
+	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
 	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
 		return 1
 	[ "$root_password_after" = "$root_password" ]
@@ -3353,11 +3342,9 @@ if ! verify_ufs_health; then
 		"$final_storage_detail"
 fi
 publish_or_rollback final-storage PASS
-# Not fatal here: a failed init lands in fastboot and needs a button press,
-# while this boot stays reachable over SSH. The try-once commit requires the
-# publication record, so the record stays pending and the next boot takes
-# the fallback on its own.
-publish_production_modules || log 'production module tree publication failed'
+# A partial or failed copy cannot provide the trusted post-boot module tree.
+# Refuse handoff so this boot stays pending and the next boot takes fallback.
+publish_production_modules || fail_local_stage runtime 'production module tree publication failed'
 
 run_pre_switch_display_observer
 

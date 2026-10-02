@@ -61,6 +61,10 @@ case $1 in
 		[ -d "$D/sessions-sequence/$n" ] && { rm -rf "$D/sessions"; cp -r "$D/sessions-sequence/$n" "$D/sessions"; }
 		for f in "$D"/sessions/*; do [ -e "$f" ] && echo "   ${f##*/} 1000 phone seat0 tty7 active no -"; done ;;
 	show-session) cat "$D/sessions/$2" ;;
+	lock-session)
+		echo "$2" >>"$D/lock-requests"
+		[ ! -e "$D/ack-lock" ] || sed -i 's/LockedHint=no/LockedHint=yes/' "$D/sessions/$2"
+		;;
 	*) exit 1 ;;
 esac
 """
@@ -74,7 +78,7 @@ def target_shell(workdir):
     qemu, busybox = os.environ['ROG5_TEST_QEMU'], os.environ['ROG5_TEST_BUSYBOX']
     applets = Path(workdir)/'applets'
     applets.mkdir()
-    for name in ('cat', 'cp', 'cut', 'dirname', 'grep', 'ln', 'mkdir', 'sed', 'sha256sum', 'sleep', 'stat', 'wc'):
+    for name in ('awk', 'cat', 'chmod', 'cp', 'cut', 'dirname', 'grep', 'ln', 'mkdir', 'mv', 'readlink', 'sed', 'sha256sum', 'sleep', 'stat', 'wc'):
         (applets/name).write_text(f'#!/bin/sh\nexec {qemu} {busybox} {name} "$@"\n')
         (applets/name).chmod(0o755)
     return [qemu, busybox, 'sh'], {'PATH': f'{applets}:{os.environ["PATH"]}'}
@@ -99,6 +103,14 @@ class Commit(unittest.TestCase):
         (self.kit/'state').write_text('pending\n')
         (self.proc/'sys/kernel/random/boot_id').write_text(BOOT+'\n')
         (self.proc/'sys/kernel/osrelease').write_text(RELEASE+'\n')
+        (self.proc/'cmdline').write_text('rog5.persistent_ro=1\n')
+        panel = self.sys/'class/backlight/panel/actual_brightness'
+        panel.parent.mkdir(parents=True)
+        panel.write_text('50\n')
+        dsi = self.sys/'class/drm/card1-DSI-1'
+        dsi.mkdir(parents=True)
+        (dsi/'enabled').write_text('enabled\n')
+        (dsi/'dpms').write_text('On\n')
         self.bin, self.systemd, self.root = d/'bin', d/'systemd', d/'root'
         for path in (self.bin, self.root/'usr/bin'):
             path.mkdir(parents=True)
@@ -180,6 +192,51 @@ class Commit(unittest.TestCase):
         self.assertEqual(self.state(), 'healthy')
         self.assertIn('rog5-production-trial: PASS production-7.2.7-r3 committed healthy', kmsg)
         self.assertEqual(self.calls(), [f'state {TRIAL} production-7.2.7-r3', f'healthy {TRIAL} production-7.2.7-r3'])
+        self.assertEqual((self.run/'rog5-production-health').read_text(), f'boot_id={BOOT}\n')
+
+    def test_matching_pending_ram_boot_never_calls_the_state_helper(self):
+        (self.proc/'cmdline').write_text('rog5.persistent_ro=1 rog5.boot_origin=ram\n')
+        code, kmsg = self.commit()
+        self.assertEqual(code, 0, kmsg)
+        self.assertIn('SKIP RAM boot', kmsg)
+        self.assertEqual(self.state(), 'pending')
+        self.assertEqual(self.calls(), [])
+        self.assertFalse((self.run/'rog5-production-health').exists())
+
+    def test_an_early_unlock_is_relocked_once_then_acknowledged(self):
+        self.session('2', 4242, 'no')
+        (self.systemd/'ack-lock').touch()
+        code, kmsg = self.commit(wait=5)
+        self.assertEqual(code, 0, kmsg)
+        self.assertEqual((self.systemd/'lock-requests').read_text(), '2\n')
+        self.assertEqual(self.state(), 'healthy')
+
+    def test_a_lock_request_without_acknowledgement_never_commits(self):
+        self.session('2', 4242, 'no')
+        self.assert_stays_pending('unacknowledged lock request')
+        self.assertEqual((self.systemd/'lock-requests').read_text(), '2\n')
+        self.assertFalse((self.run/'rog5-production-health').exists())
+
+    def test_locked_shell_without_a_lit_panel_never_commits(self):
+        (self.sys/'class/backlight/panel/actual_brightness').write_text('0\n')
+        self.assert_stays_pending('panel dark')
+
+    def test_backlight_without_a_live_dsi_modeset_never_commits(self):
+        (self.sys/'class/drm/card1-DSI-1/enabled').write_text('disabled\n')
+        self.assert_stays_pending('DSI disabled')
+
+    def test_hardlinked_or_malformed_shell_latch_is_not_evidence(self):
+        self.session('2', 4242, 'no')
+        self.latch(BOOT)
+        latch = self.run/'rog5-production-trial-shell'
+        os.link(latch, self.run/'extra-link')
+        self.assert_stays_pending('hardlinked latch')
+        (self.run/'extra-link').unlink()
+        latch.chmod(0o644)
+        latch.write_text(f'boot_id={BOOT}\nshell=2\nextra=1\n')
+        latch.chmod(0o444)
+        (self.kit/'calls').unlink()
+        self.assert_stays_pending('extra latch field')
 
     def test_already_healthy_is_a_pass(self):
         (self.kit/'state').write_text('healthy\n')

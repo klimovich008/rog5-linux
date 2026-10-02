@@ -341,9 +341,14 @@ class Stages(unittest.TestCase):
             (bin_dir/name).write_text('#!/bin/sh\nprintf "%s %s\\n" "$(basename "$0")" "$*" >>"$FAKE_LOG"\n'
                                       'case "$*" in *"device show"*) echo rog5-standalone-shared ;; esac\n')
             (bin_dir/name).chmod(0o755)
-        with socket.socket() as probe:
-            probe.bind(('127.0.0.1', 0))
-            self.port = probe.getsockname()[1]
+        self.port = 18079   # Non-receiver tests use only stubbed commands.
+        if self._testMethodName.startswith('test_receiver_'):
+            try:
+                with socket.socket() as probe:
+                    probe.bind(('127.0.0.1', 0))
+                    self.port = probe.getsockname()[1]
+            except PermissionError:
+                self.skipTest('local TCP sockets are prohibited by the sandbox')
         env = dict(ROG5_TRIAL_NMCLI=str(bin_dir/'nmcli'), ROG5_TRIAL_FIREWALL=str(bin_dir/'firewall-cmd'),
                    ROG5_TRIAL_STAGE_BIND='127.0.0.1', ROG5_TRIAL_STAGE_PEER='127.0.0.1',
                    ROG5_TRIAL_STAGE_PORT=str(self.port), FAKE_LOG=str(self.log))

@@ -5,8 +5,9 @@
 # for rog5-video.service); the one-time
 # boot settings below apply to boot-modules.
 # Modules come only from the published tree /run/rog5-modules (the root's
-# /lib/modules stays empty, so nothing autoloads). A failed module is logged
-# and the rest still load; the unit fails if any module failed.
+# /lib/modules stays empty, so nothing autoloads). Peripheral failures are
+# logged and the remaining modules load; a failed or unbound GMU predecessor
+# stops before msm. The unit fails if any module failed.
 set -u
 kit=${ROG5_PLATFORM_KIT:-/run/rog5-platform}
 tree=${ROG5_PLATFORM_MODULES:-/run/rog5-modules}
@@ -35,14 +36,31 @@ if [ "$list" = boot-modules ]; then
 fi
 status=0
 loaded=
+gmu_driver=${ROG5_PLATFORM_SYS:-/sys}/bus/platform/devices/3d6a000.gmu/driver
 while read -r name params; do
 	case $name in ''|'#'*) continue ;; esac
 	case $name in *[!A-Za-z0-9_-]*) log "FAIL bad module name $name"; status=1; continue ;; esac
+	if [ "$list" = boot-modules ] && [ "$name" = msm ]; then
+		# A successful modprobe can leave the GMU probe deferred. msm puts
+		# devm resources on it, after which the driver core refuses that
+		# probe permanently. Establish the actual binding before msm.
+		tries=0
+		while [ "$(readlink -f "$gmu_driver" 2>/dev/null)" != \
+			"${ROG5_PLATFORM_SYS:-/sys}/bus/platform/drivers/rog5-gmu-bind" ]; do
+			tries=$((tries + 1))
+			[ "$tries" -lt 20 ] || { log 'FAIL GMU not bound before msm'; exit 1; }
+			sleep 0.1
+		done
+	fi
 	# shellcheck disable=SC2086 # parameters are separate words
 	if modprobe -d "$tree" "$name" $params; then
 		loaded="$loaded $name"
 	else
 		log "FAIL modprobe $name"
+		if [ "$list" = boot-modules ] && [ "$name" = rog5_gmu_bind ]; then
+			# Never let the consumer make this predecessor unrecoverable.
+			exit 1
+		fi
 		status=1
 	fi
 done <"$kit/$list" || { log "FAIL cannot read module list $list"; exit 1; }

@@ -712,8 +712,7 @@ class VerifyRootMatchesTheBootVerifiers(Base):
                 init, attestor = self.init_accepts()
                 self.assertEqual(self.updater('verify-root') == 0, init and attestor)
                 self.assertEqual(init and attestor, expected)
-                # The init alone keeps a user crypt hash; only P2 rejects it.
-                self.assertEqual(init, expected or 'attestor' in label)
+                self.assertEqual(init, expected)
 
     def test_absent_markers_are_accepted(self):
         # The init creates both on the overlay; separate fake trees cannot show it.
@@ -1173,6 +1172,28 @@ class Run(Base):
 
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
 class Commit(Base):
+    def test_failed_last_good_publication_keeps_pending_and_old_snapshots(self):
+        self.booted_update()
+        self.ready()
+        (self.udir/'last-good.next').mkdir()
+        self.assertEqual(self.updater('commit'), 1)
+        self.assertIn('cannot record the last good snapshot', self.kmsg())
+        self.assertTrue((self.udir/'pending').exists())
+        self.assertTrue((self.state/'snapshots/20260101T000000Z-00000000').is_dir())
+        self.assertTrue((self.state/'snapshots'/UID/'upper').is_dir())
+
+    def test_phone_update_keeps_recovery_when_trial_health_failed(self):
+        self.booted_update()
+        self.ready()
+        (self.run/'rog5-production-trial').mkdir()
+        self.assertEqual(self.updater('commit', ROG5_UPDATE_WAIT='2'), 1)
+        self.assertTrue((self.udir/'pending').exists())
+        self.assertTrue((self.state/'snapshots'/UID/'upper').is_dir())
+        self.write(self.run/'rog5-production-health', f'boot_id={BOOT2}\n', 0o444)
+        self.assertEqual(self.updater('commit', ROG5_UPDATE_WAIT='2'), 1)
+        self.write(self.run/'rog5-production-health', f'boot_id={BOOT}\n', 0o444)
+        self.assertEqual(self.updater('commit'), 0, self.kmsg())
+
     def ready(self):
         self.write(self.run/'rog5-p2-ready', f'status=PASS\nattested_boot_id={BOOT}\n', 0o444)
         self.write(self.run/'rog5-persistent-ssh-identity.record',

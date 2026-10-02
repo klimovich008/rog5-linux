@@ -382,6 +382,11 @@ def check_ramdisk(ramdisk, descriptor):
 def plan(args):
     registry = REG.Registry(args.config, args.doc)
     registry.validate()
+    registry_inputs = {}
+    for path, parsed in ((registry.dtbs_path, registry.dtbs), (registry.bundles_path, registry.data)):
+        data = path.read_bytes()
+        need(json.loads(data) == parsed, f'{path} changed while planning')
+        registry_inputs[str(path)] = hashlib.sha256(data).hexdigest()
     inputs_bytes = args.inputs.read_bytes()
     inputs = json.loads(inputs_bytes)
     need(inputs.get('format') == 'rog5-bundle-inputs-v1', 'bundle-inputs format')
@@ -407,7 +412,7 @@ def plan(args):
     need(key.is_absolute() and key.is_file() and not key.is_symlink(), f'signing key {key} missing')
     return dict(registry=registry, inputs=inputs, state=state, build=build, result=result, image=image,
                 release=release, dtb=dtb, dtb_entry=dtb_entry, name=name, key=key, requirements=requirements,
-                inputs_sha256=hashlib.sha256(inputs_bytes).hexdigest())
+                inputs_sha256=hashlib.sha256(inputs_bytes).hexdigest(), registry_inputs=registry_inputs)
 
 
 def build_bundle(args, p):
@@ -421,13 +426,16 @@ def build_bundle(args, p):
     # The pinned inputs were read from the working tree before the snapshot
     # existed; the bundle's source record names HEAD, so they must be HEAD's.
     # Lexical paths: a symlink in the repository must not lead the check away.
-    inputs_path, source_root = Path(os.path.abspath(args.inputs)), Path(os.path.abspath(args.source_repo))
-    if inputs_path.is_relative_to(source_root) or args.inputs.resolve().is_relative_to(source_root.resolve()):
-        need(not inputs_path.is_symlink(), f'{args.inputs} must not be a symlink')
-        relative = (inputs_path.relative_to(source_root) if inputs_path.is_relative_to(source_root)
-                    else args.inputs.resolve().relative_to(source_root.resolve()))
-        need((src/relative).is_file() and sha256(src/relative) == p['inputs_sha256'],
-             f'{relative} differs from HEAD; commit it before building a bundle')
+    source_root = Path(os.path.abspath(args.source_repo))
+    for path, digest in [(args.inputs, p['inputs_sha256']),
+                         *((Path(path), digest) for path, digest in p['registry_inputs'].items())]:
+        inputs_path = Path(os.path.abspath(path))
+        if inputs_path.is_relative_to(source_root) or path.resolve().is_relative_to(source_root.resolve()):
+            need(not inputs_path.is_symlink(), f'{path} must not be a symlink')
+            relative = (inputs_path.relative_to(source_root) if inputs_path.is_relative_to(source_root)
+                        else path.resolve().relative_to(source_root.resolve()))
+            need((src/relative).is_file() and sha256(src/relative) == digest,
+                 f'{relative} differs from HEAD; commit it before building a bundle')
     image_sha256 = sha256(p['image'])
     package, modules, how = module_package(steps, src, state, args.kernel, p['build'], image_sha256,
                                            p['release'], args.fresh_modules)
@@ -487,6 +495,7 @@ def build_bundle(args, p):
                   module_package_source=how, module_selection_current=selection_current,
                   module_provenance=provenance, dtb_kernel_requirements=p['requirements'],
                   bundle_inputs=str(args.inputs), bundle_inputs_sha256=p['inputs_sha256'],
+                  registry_inputs_sha256=p['registry_inputs'],
                   device_profile_sha256=(sha256(device_profile(inputs, state))
                                          if device_profile(inputs, state) is not None else None),
                   boot_modules_from=boot_modules,
