@@ -5,7 +5,7 @@ host-tested source, not installed-phone evidence. No phone operation is part of
 this work. The installed component status and accepted bundles stay unchanged.
 
 The inherited commits are `d6003bd2`, `daaf7360` and `e911cc06`. They corrected
-0070/0152 in place and added 0180–0197. This continuation adds 0198–0206;
+0070/0152 in place and added 0180–0197. This continuation adds 0198–0207;
 0154–0179 are unchanged. Every new entry is appended to `series.production`.
 
 ## Patch inventory and provenance
@@ -46,6 +46,7 @@ that the whole proposal has merged. Hardware case names refer to the steps below
 | 0204 | Ordinary reply opcode/property/generation correlation and timeout poison | Local | P1 |
 | 0205 | Desired/confirmed/unknown boost; best-effort OFF; pause limited charging before sleep | Local | P1, P3 |
 | 0206 | Coherent buffers hold the DMA device through final free | Local F2 follow-up | A1 |
+| 0207 | Permit bypassed readback of the four restored operating-point registers | Local; ASUS WW33 readable-register policy | A3 |
 
 ## Host evidence and its limits
 
@@ -146,7 +147,7 @@ public fault-control interfaces. Do not use unrestricted I2C/register pokes.
    Inject SENARY bitclock/format/TDM and VA regcache-sync errors separately; require
    the startup/resume error, balanced clocks and successful uninjected retry.
 10. **A5 — PCM:** On the actual discovered FE, run S16_LE, S24_LE and S32_LE
-    playback/capture, then 100 prepare/drop/reprepare/close cycles including a
+    playback and supported S16_LE/S32_LE capture, then 100 prepare/drop/reprepare/close cycles including a
     prepared-but-never-started stream. Inject format rejection and map/open/close/
     unmap timeout one at a time. A confirmed cleanup permits reuse; uncertain
     cleanup must retain DMA and reject reopening that FE with EBUSY. Close ALSA

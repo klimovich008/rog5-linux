@@ -128,6 +128,16 @@ class KernelAudit(unittest.TestCase):
                 ('if (cs35l45->reset_held)', 'if (false && cs35l45->reset_held)'),
                 ('regmap_read_bypassed(', 'regmap_read_cached(')])
 
+    def test_amplifier_readback_register_allowlist(self):
+        if self.exact:
+            header = (Path(self.exact) / 'sound/soc/codecs/cs35l45.h').read_text()
+            for line in (FIXTURE / 'readable-registers.h').read_text().splitlines():
+                if line.startswith('#define '):
+                    self.assertIn(line, header, 'register address differs from exact source')
+        self.case('readable.c', {'sound/soc/codecs/cs35l45-tables.c': [
+            'cs35l45_readable_reg']}, [
+                ('case CS35L45_BOOST_LPMODE_CFG:', 'case 0xdeadbeef:')])
+
     def test_lpass_reply_token_payload_and_timeout_state(self):
         self.case('lpass.c', {'sound/soc/qcom/qdsp6/q6afe.c': [
             'q6afe_hw_vote_reply', 'q6afe_hw_vote_send',

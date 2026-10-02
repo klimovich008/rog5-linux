@@ -157,3 +157,4 @@
 0204-power-supply-qcom-battmgr-correlate-property-requests.patch
 0205-power-supply-qcom-battmgr-retain-boost-uncertainty-and-pause-before-sleep.patch
 0206-misc-fastrpc-retain-the-DMA-device-for-buffer-lifetime.patch
+0207-ASoC-cs35l45-allow-hardware-readback-of-restored-operating-point.patch
