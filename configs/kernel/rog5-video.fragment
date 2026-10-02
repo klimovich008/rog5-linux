@@ -11,3 +11,9 @@
 # iris enabled venus no longer matches the SM8250-class compatible.
 CONFIG_SM_VIDEOCC_8350=m
 CONFIG_VIDEO_QCOM_IRIS=m
+
+# Encoder bring-up (k116): the iris "markers" parameter prints a line before
+# and after each risky step; netconsole, loaded by hand during such a trial,
+# sends them to another machine before a hard hang (the RAM-trial console
+# zone does not survive the reset through the ASUS wrapper).
+CONFIG_NETCONSOLE=m

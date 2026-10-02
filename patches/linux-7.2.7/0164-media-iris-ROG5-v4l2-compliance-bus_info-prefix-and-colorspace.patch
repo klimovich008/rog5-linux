@@ -1,0 +1,172 @@
+From 6c13aed342a45ca40f5786cb94c11a300a346d96 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 02:26:22 +0200
+Subject: [PATCH 2/3] media: iris: ROG5: v4l2-compliance: bus_info prefix and
+ colorspace
+
+From the k115 trial's v4l2-compliance runs (decoder 40/48, encoder 41/48):
+
+- QUERYCAP reported bus_info "plat:<dev>:dec"; compliance requires the
+  "platform:" prefix and stops classifying the node as m2m without it,
+  which also fails the decoder's SOURCE_CHANGE test. Report
+  "platform:<dev>" (fits the 32-byte field).
+- Formats reported V4L2_COLORSPACE_DEFAULT ("no colorspace set"): the
+  decoder's OUTPUT format had none at all, TRY_FMT never resolved it and a
+  stream without VUI reset CAPTURE to DEFAULT. iris_fill_colorspace() keeps
+  a caller's or the stream's valid value and turns an unspecified one into
+  REC709 (720 lines and more) or SMPTE170M, at init, in TRY_FMT and after
+  a sequence change; the encoder keeps its REC709-only policy with the same
+  fallback.
+
+The REQBUFS/EXPBUF failures of that run followed a firmware that no longer
+answered and are not addressed here.
+
+ROG5: patch 0164, kernel k116. Not in upstream.
+---
+ .../platform/qcom/iris/iris_hfi_gen1_response.c      |  1 +
+ drivers/media/platform/qcom/iris/iris_utils.c        | 12 ++++++++++++
+ drivers/media/platform/qcom/iris/iris_utils.h        |  1 +
+ drivers/media/platform/qcom/iris/iris_vdec.c         |  3 +++
+ drivers/media/platform/qcom/iris/iris_venc.c         |  4 ++++
+ drivers/media/platform/qcom/iris/iris_vidc.c         | 12 ++++--------
+ 6 files changed, 25 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index b155b11..30410a7 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -139,6 +139,7 @@ static void iris_hfi_gen1_read_changed_params(struct iris_inst *inst,
+ 		}
+ 	}
+ 
++	iris_fill_colorspace(pixmp_op);	/* ROG5: no DEFAULT after a stream without VUI */
+ 	pixmp_ip->colorspace = pixmp_op->colorspace;
+ 	pixmp_ip->xfer_func = pixmp_op->xfer_func;
+ 	pixmp_ip->ycbcr_enc = pixmp_op->ycbcr_enc;
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index 6d6ceda..e6c1500 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -40,6 +40,18 @@ bool iris_split_mode_enabled(struct iris_inst *inst)
+ 		inst->fmt_dst->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_QC10C;
+ }
+ 
++/*
++ * ROG5: never report V4L2_COLORSPACE_DEFAULT (v4l2-compliance: "no
++ * colorspace set"); a caller's or stream's valid value is kept, an
++ * unspecified one becomes the usual default for the size.
++ */
++void iris_fill_colorspace(struct v4l2_pix_format_mplane *pixmp)
++{
++	if (pixmp->colorspace == V4L2_COLORSPACE_DEFAULT)
++		pixmp->colorspace = pixmp->height >= 720 ? V4L2_COLORSPACE_REC709 :
++							  V4L2_COLORSPACE_SMPTE170M;
++}
++
+ bool iris_fmt_is_8bit(u32 pixelformat)
+ {
+ 	return pixelformat == V4L2_PIX_FMT_NV12 ||
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.h b/drivers/media/platform/qcom/iris/iris_utils.h
+index 09229a4..15000c5 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.h
++++ b/drivers/media/platform/qcom/iris/iris_utils.h
+@@ -46,6 +46,7 @@ bool iris_res_is_less_than(u32 width, u32 height,
+ int iris_get_mbpf(struct iris_inst *inst);
+ bool iris_split_mode_enabled(struct iris_inst *inst);
+ bool iris_fmt_is_8bit(u32 pixelformat);
++void iris_fill_colorspace(struct v4l2_pix_format_mplane *pixmp);
+ bool iris_fmt_is_10bit(u32 pixelformat);
+ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id);
+ void iris_put_instance(struct iris_inst *inst);
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index a1a35dd..b838883 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -36,6 +36,7 @@ int iris_vdec_inst_init(struct iris_inst *inst)
+ 	f->fmt.pix_mp.plane_fmt[0].bytesperline = 0;
+ 	f->fmt.pix_mp.plane_fmt[0].sizeimage = iris_get_buffer_size(inst, BUF_INPUT);
+ 	f->fmt.pix_mp.field = V4L2_FIELD_NONE;
++	iris_fill_colorspace(&f->fmt.pix_mp);
+ 	inst->buffers[BUF_INPUT].min_count = iris_vpu_buf_count(inst, BUF_INPUT);
+ 	inst->buffers[BUF_INPUT].size = f->fmt.pix_mp.plane_fmt[0].sizeimage;
+ 
+@@ -52,6 +53,7 @@ int iris_vdec_inst_init(struct iris_inst *inst)
+ 	f->fmt.pix_mp.xfer_func = V4L2_XFER_FUNC_DEFAULT;
+ 	f->fmt.pix_mp.ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
+ 	f->fmt.pix_mp.quantization = V4L2_QUANTIZATION_DEFAULT;
++	iris_fill_colorspace(&f->fmt.pix_mp);
+ 	inst->buffers[BUF_OUTPUT].min_count = iris_vpu_buf_count(inst, BUF_OUTPUT);
+ 	inst->buffers[BUF_OUTPUT].size = f->fmt.pix_mp.plane_fmt[0].sizeimage;
+ 	inst->frame_rate = MAXIMUM_FPS;
+@@ -200,6 +202,7 @@ int iris_vdec_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		pixmp->field = V4L2_FIELD_NONE;
+ 
+ 	pixmp->num_planes = 1;
++	iris_fill_colorspace(pixmp);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_venc.c b/drivers/media/platform/qcom/iris/iris_venc.c
+index a945992..ba6b58d 100644
+--- a/drivers/media/platform/qcom/iris/iris_venc.c
++++ b/drivers/media/platform/qcom/iris/iris_venc.c
+@@ -41,6 +41,7 @@ int iris_venc_inst_init(struct iris_inst *inst)
+ 	f->fmt.pix_mp.xfer_func = V4L2_XFER_FUNC_DEFAULT;
+ 	f->fmt.pix_mp.ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
+ 	f->fmt.pix_mp.quantization = V4L2_QUANTIZATION_DEFAULT;
++	iris_fill_colorspace(&f->fmt.pix_mp);
+ 	inst->buffers[BUF_OUTPUT].min_count = iris_vpu_buf_count(inst, BUF_OUTPUT);
+ 	inst->buffers[BUF_OUTPUT].size = f->fmt.pix_mp.plane_fmt[0].sizeimage;
+ 
+@@ -57,6 +58,7 @@ int iris_venc_inst_init(struct iris_inst *inst)
+ 	f->fmt.pix_mp.xfer_func = V4L2_XFER_FUNC_DEFAULT;
+ 	f->fmt.pix_mp.ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
+ 	f->fmt.pix_mp.quantization = V4L2_QUANTIZATION_DEFAULT;
++	iris_fill_colorspace(&f->fmt.pix_mp);
+ 	inst->buffers[BUF_INPUT].min_count = iris_vpu_buf_count(inst, BUF_INPUT);
+ 	inst->buffers[BUF_INPUT].size = f->fmt.pix_mp.plane_fmt[0].sizeimage;
+ 
+@@ -199,6 +201,7 @@ int iris_venc_try_fmt(struct iris_inst *inst, struct v4l2_format *f)
+ 		pixmp->field = V4L2_FIELD_NONE;
+ 
+ 	pixmp->num_planes = 1;
++	iris_fill_colorspace(pixmp);	/* ROG5 */
+ 
+ 	return 0;
+ }
+@@ -238,6 +241,7 @@ static int iris_venc_s_fmt_output(struct iris_inst *inst, struct v4l2_format *f)
+ 	if (f->fmt.pix_mp.colorspace != V4L2_COLORSPACE_DEFAULT &&
+ 	    f->fmt.pix_mp.colorspace != V4L2_COLORSPACE_REC709)
+ 		f->fmt.pix_mp.colorspace = V4L2_COLORSPACE_DEFAULT;
++	iris_fill_colorspace(&f->fmt.pix_mp);	/* ROG5 */
+ 	fmt->fmt.pix_mp.colorspace = f->fmt.pix_mp.colorspace;
+ 	fmt->fmt.pix_mp.xfer_func = f->fmt.pix_mp.xfer_func;
+ 	fmt->fmt.pix_mp.ycbcr_enc = f->fmt.pix_mp.ycbcr_enc;
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index 4bc0473..0ee1a7a 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -546,19 +546,15 @@ static int iris_querycap(struct file *filp, void *fh, struct v4l2_capability *ca
+ {
+ 	struct iris_core *core = video_drvdata(filp);
+ 	struct iris_inst *inst = iris_get_inst(filp);
+-	char *info;
+ 
+ 	strscpy(cap->driver, IRIS_DRV_NAME, sizeof(cap->driver));
+ 
+-	if (inst->domain == DECODER) {
++	if (inst->domain == DECODER)
+ 		strscpy(cap->card, "Iris Decoder", sizeof(cap->card));
+-		info = "dec";
+-	} else {
++	else
+ 		strscpy(cap->card, "Iris Encoder", sizeof(cap->card));
+-		info = "enc";
+-	}
+-	snprintf(cap->bus_info, sizeof(cap->bus_info),
+-		 "plat:%s:%s", dev_name(core->dev), info);
++	/* ROG5: v4l2-compliance requires the "platform:" prefix */
++	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s", dev_name(core->dev));
+ 
+ 	return 0;
+ }

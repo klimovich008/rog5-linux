@@ -124,3 +124,6 @@
 0160-media-iris-ROG5-buffer-ownership-STOP-RELEASE-errors-and-matched-answers.patch
 0161-media-iris-ROG5-switchable-OEM-firmware-experiments-EOS-buffer-power-collapse.patch
 0162-media-iris-ROG5-review-fixes-for-0157-0161-PM-vs-IRQ-close-ownership-unwind-remove.patch
+0163-media-iris-ROG5-SM8350-OEM-firmware-platform-data-secure-session-EOS-power-off-gating.patch
+0164-media-iris-ROG5-v4l2-compliance-bus_info-prefix-and-colorspace.patch
+0165-media-iris-ROG5-encoder-bring-up-guards-markers-DMA-window-errors-start-gating.patch

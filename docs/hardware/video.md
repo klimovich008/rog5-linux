@@ -1,5 +1,11 @@
 # Hardware video decode/encode (Iris v2 on SM8350)
 
+Status 2026-10-02 (k116): k115's trials found the cause of the decode-end
+crash (the dummy EOS address) and made H.264 and HEVC decode work
+bit-exactly ([test-results/2026-10-02-video-iris-k115-ram-trials.md](../../test-results/2026-10-02-video-iris-k115-ram-trials.md));
+kernel k116 makes that the SM8350 default and keeps VP9 and the encoder
+behind load-time switches: [k116 trials](#k116-trials). Earlier:
+
 Status 2026-10-02: the k114/d15 RAM trial (2026-10-01,
 [test-results/2026-10-01-video-iris-k114-ram-trial.md](../../test-results/2026-10-01-video-iris-k114-ram-trial.md))
 authenticated the OEM firmware and decoded H.264 bit-exactly, then hit a
@@ -419,3 +425,85 @@ shutdown) or `firmware shutdown (PAS) failed ...; keeping the video core
 powered` (it did not: the core stays on until reboot). `modprobe -r
 qcom_iris; modprobe -d /run/rog5-modules qcom_iris` rebinds the driver for
 another attempt in the same boot; a fresh boot is the cleaner test.
+
+## k116 trials
+
+Kernel k116 = k115 + patches 0163-0165, DTB d15 unchanged, three RAM
+wrappers built up front (the RAM-trial launcher takes one boot per
+wrapper): `main-k116-d15-261002a`, `-b`, `-c` (paths and SHA-256 in
+[bundles.md](../bundles.md) and the 2026-10-02 report). What changed for
+SM8350 (only for the `qcom,sm8350-iris` compatible, through its own
+platform data):
+
+- `HFI_PROPERTY_PARAM_SECURE_SESSION = 0` right after SESSION_INIT, before
+  any buffer (stock does this; VP9 failed without it);
+- real 4 KiB EOS buffer for every drain, decoder and encoder (no dummy);
+- the stock Iris2 controller power off (X2RPMh, AON MVP NOC, debug bridge
+  7 then 0) instead of the CPU-NOC handshake that always timed out;
+- firmware inter-frame power collapse always on (the `interframe_pc`
+  switch is gone); opening the decoder is refused while
+  `power/control` is `on` (pinned runtime PM hung the SoC idle);
+- encoder node only with `experimental_encoder=1`, VP9 only with
+  `experimental_vp9=1` (both module load time, 0444);
+- `ubwc_config=1` (run time, applies at the next firmware load) sends the
+  stock LPDDR5 UBWC config; off by default;
+- compliance: bus_info `platform:aa00000.video-codec`, no DEFAULT
+  colorspace in formats;
+- bring-up guards: `markers=1` prints a line before/after every risky
+  step (for netconsole), 16-word HFI trace, DMA window
+  [0x25800000, 0xe0000000) enforced for every firmware-visible buffer,
+  property and power-vote failures fail the stream-on.
+
+Do not write `power/control` in these trials (leave it `auto`).
+
+### Boot E1: defaults (wrapper a)
+
+1. RAM-boot wrapper `a`. Before the firmware: `dmesg | grep -E
+   'video-modules|qcom-iris|S2CR'` (expect `SM8350 OEM firmware mode:
+   encoder off, VP9 off`); `ls /sys/class/video4linux/` (one node, the
+   decoder); `grep . /sys/module/qcom_iris/parameters/*`.
+2. Clips and references (software, before the firmware): the 1080p30 H.264
+   clip as before and an HEVC one
+   (`-c:v libx265 -preset ultrafast -pix_fmt yuv420p -y /var/tmp/t1080.hevc.mp4`),
+   framemd5 of each with the software decoder.
+3. `install-rog5-video-firmware --runtime`, then H.264 decode, compare
+   (expect `IDENTICAL`, 300 frames); HEVC decode, compare; H.264 again.
+4. Power off clean? `dmesg | grep -E 'NOC|debug bridge|controller power off'`
+   should print nothing after each idle power-down (k115: `CPU NOC LPI
+   handshake timed out` every time).
+5. GStreamer `v4l2h264dec` with byte-stream/au caps (as in the k115 plan)
+   and `v4l2h265dec`.
+6. `v4l2-compliance -d /dev/videoN > /var/tmp/compl-dec.txt 2>&1` on a
+   fresh session (expect the bus_info, colorspace and SOURCE_CHANGE
+   failures gone).
+7. 5 minutes idle with runtime PM auto, then one more decode; save
+   `dmesg`.
+
+### Boot E2: VP9 (wrapper b)
+
+Load-time switch: the module is loaded by `rog5-video.service` at boot, so
+reload it before the firmware is installed:
+`modprobe -r qcom_iris && modprobe -d /run/rog5-modules qcom_iris experimental_vp9=1`
+(expect `VP9 EXPERIMENTAL`), then the firmware, an H.264 decode as a
+control, and a VP9 clip
+(`-c:v libvpx-vp9 -deadline realtime -cpu-used 8 -pix_fmt yuv420p -y /var/tmp/t1080.webm`)
+with `ffmpeg -c:v vp9_v4l2m2m ... -f framemd5`. Watch for `session error`
+and `CP mode` / `CP breached` in the firmware log; SECURE_SESSION=0 is in
+the HFI trace as `00011001 ... 00001011 00000000`. Optionally a second VP9
+decode after `echo 1 > /sys/module/qcom_iris/parameters/ubwc_config`
+needs a firmware reload: rebind the module first.
+
+### Later: encoder (wrapper c, dedicated boot)
+
+Only with an external log: on the host
+`socat -u UDP-RECV:6666 - | tee encoder-netconsole.log` (or `nc -lu 6666`,
+and allow UDP 6666 in the host firewall); on the phone
+`modprobe -d /run/rog5-modules netconsole netconsole=@/<ncm-if>,6666@169.254.77.1/`
+(`<ncm-if>` = the USB NCM interface, see `ip -br link`; target MAC defaults
+to broadcast) and `dmesg -n 8`. Then
+`modprobe -r qcom_iris && modprobe -d /run/rog5-modules qcom_iris experimental_encoder=1 markers=1`,
+the firmware, and one encode with NV12 input:
+`timeout 60 ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30:duration=5 -vf format=nv12 -pix_fmt nv12 -c:v h264_v4l2m2m -b:v 4M -an -y /var/tmp/enc.h264`.
+The last `mark:` line received before a hang names the step. Consider
+`ubwc_config=1` in a following encoder boot (stock sends it; the encoder
+writes UBWC reference frames).
