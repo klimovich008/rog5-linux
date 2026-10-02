@@ -783,10 +783,10 @@
       "package": "package-main-k124-d15-261003a",
       "source_commit": "4dc726533da3",
       "changes": "k124 RAM trial: k123 + 0212 VP9 stock-sized display buffers and per-buffer extradata (VP9 G3 trial)",
-      "status": "built",
-      "healthy": "unknown",
+      "status": "ram-trial-pass",
+      "healthy": "yes",
       "installed": null,
-      "notes": null
+      "notes": "2026-10-03 01:43 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1): ffmpeg vp9_v4l2m2m 1080p 300/300 frames bit-exact with libvpx (0212 fixed BAD_POINTER). Chromium YouTube VP9: ~22 s decode, then firmware Err_Fatal vpx_decoder.c:1132 at a resolution change after a second SCRATCH RELEASE_BUFFERS; contained (engine off). VP9 stays off by default. Wi-Fi radio failed at boot on a battery-temperature read race (retry fixed it)."
     }
   ]
 }

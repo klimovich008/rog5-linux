@@ -62,8 +62,14 @@ hot_zone() {
 
 guard() {
 	[ "$(cat "$power/qcom-battmgr-bat/health")" = Good ] || fail 'battery health'
-	temp=$(cat "$power/qcom-battmgr-bat/temp") && number "$temp" && [ "$temp" -lt 400 ] ||
-		fail 'battery temperature'
+	# battmgr can answer health before temp at early boot (k124, 29 s): retry 10 s
+	tries=0
+	until temp=$(cat "$power/qcom-battmgr-bat/temp" 2>/dev/null) && number "$temp"; do
+		[ "$tries" -lt 10 ] || fail 'battery temperature unreadable'
+		sleep 1
+		tries=$((tries + 1))
+	done
+	[ "$temp" -lt 400 ] || fail "battery temperature $temp"
 	waited=0
 	while hot=$(hot_zone); [ -n "$hot" ]; do
 		[ "$waited" -lt "$cool_wait" ] || fail "thermal zone $hot after ${waited}s"
