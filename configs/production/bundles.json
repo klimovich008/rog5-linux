@@ -151,6 +151,16 @@
       "source_commit": "c3d7fa2cdf4f",
       "source_dirty": false,
       "changes": ""
+    },
+    "k124": {
+      "build": "rog5-kernel-7.2.7-build-r124",
+      "release": "7.2.7-rog5-k124",
+      "date": "2026-10-02",
+      "series": "163 patches, 0001-0212",
+      "image_sha256": "2ce022765a403c6e5a28432d66daad71e847cd91eb7af9b4baac5eb03da01749",
+      "source_commit": "4dc726533da3",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -761,6 +771,22 @@
       "healthy": "yes",
       "installed": "2026-10-03 00:12",
       "notes": "Installed as default over main-k116-d15-261002e (fallback safe-k111-d10-261001a); first boot committed healthy. Same content as main-k123-d15-261002a (RAM-trial PASS)."
+    },
+    {
+      "name": "main-k124-d15-261003a",
+      "role": "main",
+      "kernel": "k124",
+      "dtb": "d15",
+      "date": "2026-10-03",
+      "release": "7.2.7-rog5-k124",
+      "manifest_sha256": "b40dbc0a102b901414b245ca2901783de6b3b77adc2202419c21cf741def73fc",
+      "package": "package-main-k124-d15-261003a",
+      "source_commit": "4dc726533da3",
+      "changes": "k124 RAM trial: k123 + 0212 VP9 stock-sized display buffers and per-buffer extradata (VP9 G3 trial)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
