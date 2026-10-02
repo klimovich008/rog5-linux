@@ -31,41 +31,99 @@ import_network() {
 	python3 - "$secret" "$connections" <<'EOF'
 import os, re, sys, uuid
 source, target = sys.argv[1], sys.argv[2]
-text = open(source).read()
-block = re.search(r'network\s*=\s*\{(.*?)\}', text, re.S)
-if not block:
-    sys.exit('no network block in the saved config')
-fields = {}
-for line in block.group(1).splitlines():
-    line = line.strip()
-    if '=' in line and not line.startswith('#'):
+try:
+    text = open(source, encoding='utf-8').read()
+except (OSError, UnicodeDecodeError) as e:
+    sys.exit(f'cannot read the saved network: {type(e).__name__}')
+
+
+def first_network(text):
+    """Fields of the first network={...} block, parsed by lines as
+    wpa_supplicant does: only a line that is just "}" ends the block, so a
+    "}" inside a quoted value (an SSID or passphrase) is kept."""
+    fields, inside = {}, False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not inside:
+            inside = re.fullmatch(r'network\s*=\s*\{', line) is not None
+            continue
+        if line == '}':
+            return fields
+        if not line or line.startswith('#'):
+            continue
+        if '=' not in line:
+            sys.exit('unexpected line in the network block')
         key, value = line.split('=', 1)
         fields[key.strip()] = value.strip()
-ssid = fields.get('ssid', '')
-if ssid.startswith('"') and ssid.endswith('"'):
-    ssid = ssid[1:-1]
-else:
+    sys.exit('no complete network block in the saved config')
+
+
+def quoted(value):
+    """The text between the first and the last double quote (wpa_supplicant's
+    string syntax), or None if VALUE is not a quoted string."""
+    if len(value) >= 2 and value[0] == '"' and value.rfind('"') > 0:
+        if value.rfind('"') != len(value) - 1:
+            return None
+        return value[1:-1]
+    return None
+
+
+def keyfile_value(text):
+    """A GLib key-file string value (NetworkManager keyfile syntax)."""
+    if any(ord(c) < 0x20 and c not in '\t' for c in text):
+        sys.exit('a control character cannot be written to a keyfile safely')
+    out = text.replace('\\', '\\\\').replace('\t', '\\t')
+    if out.startswith(' '):
+        out = '\\s' + out[1:]
+    return out
+
+
+fields = first_network(text)
+raw_ssid = fields.get('ssid', '')
+ssid = quoted(raw_ssid)
+if ssid is None:
     # wpa_supplicant writes non-ASCII or special SSIDs as hex.
     try:
-        ssid = bytes.fromhex(ssid).decode('utf-8')
+        ssid = bytes.fromhex(raw_ssid).decode('utf-8')
     except ValueError:
         sys.exit('ssid is neither quoted nor UTF-8 hex')
-if not ssid or any(c in ssid for c in '\n;'):
+# NM reads ssid= raw (";" would make it a byte list, escapes are not
+# undone): refuse what would change its meaning; add such a network in the
+# Phosh settings instead.
+if not ssid or len(ssid.encode()) > 32 or any(c in ssid for c in '\n\r\t;\0\\') or ssid[0] == ' ':
     sys.exit('ssid cannot be written to a keyfile safely')
-psk = fields.get('psk', '')
-psk = psk[1:-1] if psk.startswith('"') else psk
+raw_psk = fields.get('psk', '')
+psk = quoted(raw_psk)
+if psk is not None:
+    # a passphrase: 8..63 printable ASCII characters
+    if not 8 <= len(psk) <= 63 or not all(0x20 <= ord(c) < 0x7f for c in psk):
+        sys.exit('the saved passphrase is not 8..63 printable ASCII characters')
+elif raw_psk:
+    if not re.fullmatch(r'[0-9a-fA-F]{64}', raw_psk):
+        sys.exit('the saved psk is neither a quoted passphrase nor 64 hex digits')
+    psk = raw_psk
+else:
+    psk = ''
 key_mgmt = fields.get('key_mgmt', 'WPA-PSK').split()
+if key_mgmt == ['NONE']:
+    if psk or any(k.startswith('wep_') for k in fields):
+        sys.exit('WEP or contradictory open-network credentials cannot be imported safely')
+elif not key_mgmt or not set(key_mgmt) <= {'WPA-PSK', 'SAE'} or not psk:
+    sys.exit('unsupported or incomplete Wi-Fi security settings; saved network kept')
 security = 'sae' if key_mgmt == ['SAE'] else 'wpa-psk'
+if security == 'sae' and re.fullmatch(r'[0-9a-fA-F]{64}', psk):
+    sys.exit('a derived WPA2 PSK cannot be used as an SAE passphrase')
 name = re.sub(r'[^A-Za-z0-9._-]', '_', ssid) or 'wifi'
 path = os.path.join(target, name + '.nmconnection')
-if os.path.exists(path):
+if os.path.exists(path) or os.path.islink(path):
     print('keyfile exists, kept:', os.path.basename(path))
     sys.exit(0)
-lines = ['[connection]', 'id=' + ssid, 'uuid=' + str(uuid.uuid4()), 'type=wifi', 'autoconnect=true', '',
-         '[wifi]', 'mode=infrastructure', 'ssid=' + ssid,
+lines = ['[connection]', 'id=' + keyfile_value(ssid), 'uuid=' + str(uuid.uuid4()), 'type=wifi',
+         'autoconnect=true', '',
+         '[wifi]', 'mode=infrastructure', 'ssid=' + keyfile_value(ssid),
          'hidden=true' if fields.get('scan_ssid') == '1' else 'hidden=false', '']
 if psk:
-    lines += ['[wifi-security]', 'key-mgmt=' + security, 'psk=' + psk]
+    lines += ['[wifi-security]', 'key-mgmt=' + security, 'psk=' + keyfile_value(psk)]
     # A 64-hex PSK is the derived key, not the passphrase: WPA3-SAE (which NM
     # offers alongside WPA2 for wpa-psk) cannot use it and fails to
     # authenticate. SAE needs PMF, so disabling PMF keeps NM on WPA2-PSK.
@@ -73,7 +131,7 @@ if psk:
         lines += ['pmf=1']
     lines += ['']
 lines += ['[ipv4]', 'method=auto', '', '[ipv6]', 'method=auto', '']
-fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
 with os.fdopen(fd, 'w') as out:
     out.write('\n'.join(lines))
 print('imported', 'secured' if psk else 'open', 'network as', os.path.basename(path))
@@ -121,12 +179,32 @@ wifi.powersave=2
 wifi.scan-rand-mac-address=no
 EOF
 	printf 'wifi.backend=%s\n' "$backend" >>"$conf"
+	# a failed import (e.g. a passphrase it cannot carry over) stops here,
+	# before the working link is touched
 	import_network
 	: >"$marker"
 	systemctl stop rog5-wifi-dhcp.service rog5-wifi-wpa.service 2>/dev/null || true
 	systemctl mask rog5-wifi-dhcp.service rog5-wifi-wpa.service
-	[ "$backend" != iwd ] || systemctl enable --now iwd.service
-	systemctl enable --now NetworkManager.service
+	if [ "$backend" = iwd ]; then
+		backend_ok() { systemctl enable --now iwd.service; }
+	else
+		# NetworkManager drives wpa_supplicant itself; an iwd from an
+		# earlier "apply" must not hold the interface
+		backend_ok() { systemctl disable --now iwd.service 2>/dev/null || true; }
+	fi
+	# restart, not just start: a running NetworkManager keeps its old
+	# backend and does not read the new keyfile on "enable --now"
+	if ! backend_ok || ! systemctl enable NetworkManager.service ||
+		! systemctl restart NetworkManager.service; then
+		echo 'NetworkManager did not start: back to rog5-wifi-wpa/-dhcp' >&2
+		systemctl disable --now NetworkManager.service 2>/dev/null || true
+		# iwd (started for the iwd backend) must not hold the interface
+		systemctl disable --now iwd.service 2>/dev/null || true
+		systemctl unmask rog5-wifi-dhcp.service rog5-wifi-wpa.service
+		rm -f "$marker"
+		systemctl restart rog5-wifi-wpa.service rog5-wifi-dhcp.service || true
+		exit 1
+	fi
 	;;
 revert)
 	systemctl disable --now NetworkManager.service || true

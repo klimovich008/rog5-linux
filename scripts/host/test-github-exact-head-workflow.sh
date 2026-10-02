@@ -21,7 +21,7 @@ for token in \
 	'merge-compat:' \
 	'ref: ${{ github.sha }}' \
 	'expected=${{ github.sha }}' \
-	'uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6' \
+	'uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1' \
 	'if-no-files-found: error'; do
 	grep -Fq "$token" "$workflow" || {
 		echo "FAIL exact-head workflow contract missing: $token" >&2

@@ -1,10 +1,25 @@
 # /etc/udev/rules.d/89-rog5-alsa-state.rules
-# Before 90-alsa-restore.rules runs "alsactl restore" for the ROG5 card (an
-# IMPORT{program}, which runs while the rules are processed, so this one must
-# be an IMPORT too), drop the card's speaker-DSP entries (DSP1 Preload Switch,
-# DSP1 Firmware, DSP1 coefficient controls), DSP_RXn Source and DACPCM Source
-# from /var/lib/alsa/asound.state. A restored preload would start a DSP, and
-# restored coefficients (CSPL_COMMAND, UPDATE_PARAMS_CONFIG) would be written
-# into a running one; rog5-audio-route owns those controls and sets them after
-# the restore (91-rog5-audio-route.rules). Prints nothing, always exits 0.
-ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", KERNELS!="card*", ATTRS{id}=="ASUSROGPhone5", TEST=="/run/rog5-platform/audio-route", IMPORT{program}="/run/rog5-platform/audio-route --sanitize-alsa-state"
+# Before 90-alsa-restore.rules runs "alsactl restore" for the ROG5 card (and
+# before alsa-restore.service, which the card's "change" event, queued behind
+# this one, pulls in), sanitize /var/lib/alsa/asound.state: drop the card's
+# speaker-DSP entries (DSP1 Preload Switch, DSP1 Firmware, DSP1 coefficient
+# controls), DSP_RXn Source and DACPCM Source, and rewrite its Digital PCM
+# Volume to -12 dB and its AMP Enable Switches to off. A restored preload would
+# start a DSP, restored coefficients (CSPL_COMMAND, UPDATE_PARAMS_CONFIG) would
+# be written into a running one, and a restored 0 dB with the amplifier on
+# would play unprotected (DACPCM resets to ASP_RX1) until the route runs.
+# rog5-audio-route owns those controls and sets them after the restore
+# (91-rog5-audio-route.rules). A file it cannot check is moved aside. Prints
+# nothing, always exits 0; it is an IMPORT so it finishes before any RUN.
+#
+# The match: in Linux 7.2 controlC0's parent is card0 (snd_device_alloc) and
+# "id" is an attribute of card0 only. ATTRS and KERNELS must match the same
+# ancestor, so there is no KERNELS!="card*" here: with it the rule never
+# matched. Only positive parent matches (a negated ATTRS is true on any
+# ancestor without the attribute).
+#
+# The root's copy of the script (rog5-install-userspace) is used whatever
+# bundle booted; the boot kit's copy only when the root has none.
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", ATTRS{id}=="ASUSROGPhone5", TEST=="/usr/local/libexec/rog5-audio-route", IMPORT{program}="/usr/local/libexec/rog5-audio-route --sanitize-alsa-state", GOTO="rog5_alsa_state_end"
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="controlC*", ATTRS{id}=="ASUSROGPhone5", TEST!="/usr/local/libexec/rog5-audio-route", TEST=="/run/rog5-platform/audio-route", IMPORT{program}="/run/rog5-platform/audio-route --sanitize-alsa-state"
+LABEL="rog5_alsa_state_end"

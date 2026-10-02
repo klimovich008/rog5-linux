@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """check-repository-static.py fails on a broken link, bad syntax or a key header, and passes a clean tree."""
 from pathlib import Path
+import json
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,10 @@ class StaticCheck(unittest.TestCase):
         (root / "ROADMAP.md").write_text("[web](https://example.org)\n")
         (root / "ok.sh").write_text("#!/bin/sh\necho ok\n")
         (root / "ok.py").write_text("print('ok')\n")
+        (root / 'configs').mkdir()
+        (root / 'input.txt').write_text('tracked fixture\n')
+        (root / 'configs/repository-tests.json').write_text(json.dumps({
+            'tests': [{'path': 'ok.py', 'required_inputs': ['input.txt']}]}))
         subprocess.run(["git", "init", "-q", str(root)], check=True)
         self.add(root)
 
@@ -44,6 +49,14 @@ class StaticCheck(unittest.TestCase):
             "shell syntax": ("bad.sh", "#!/bin/sh\nif then\n", "sh -n"),
             "shebang": ("noshebang.sh", "set -eu\n", "unsupported tracked shell shebang"),
             "key": ("key.txt", "-----BEGIN OPENSSH " + "PRIVATE KEY-----\n", "private-key header"),
+            "pkcs8 key": ("k8.pem", "-----BEGIN " + "PRIVATE KEY-----\n", "private-key header"),
+            "encrypted key": ("k9.pem", "-----BEGIN ENCRYPTED " + "PRIVATE KEY-----\n", "private-key header"),
+            "openai key": ("env", "OPENAI_API_KEY" + "=abcdefghijklmnopqrstuvwxyz\n", "API key"),
+            "sk token": ("conf", "token: s" + "k-proj-ABCDEFGHIJKLMNOPQRSTUV0123\n", "API key"),
+            "github token": ("gh", "g" + "hp_" + "a" * 36 + "\n", "API key"),
+            "extensionless shell": ("tool", "#!/bin/sh\nif then\n", "sh -n"),
+            "extensionless python": ("pytool", "#!/usr/bin/env python3\ndef (:\n", "Python syntax"),
+            "dsa key": ("k10.pem", "-----BEGIN DSA " + "PRIVATE KEY-----\n", "private-key header"),
             "entry point": ("docs/active-context.md", None, "missing context entry point"),
         }
         for label, (name, content, message) in cases.items():
@@ -59,6 +72,26 @@ class StaticCheck(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout)
                 self.assertIn(message, result.stderr)
 
+    def test_secret_values_are_not_printed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            value = "s" + "k-or-v1-" + "Z" * 40
+            (root / "leak.txt").write_text("x\nkey = " + value + "\n")
+            self.add(root)
+            result = run(root)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("leak.txt:2", result.stderr)
+            self.assertNotIn(value, result.stderr + result.stdout)
+
+    def test_words_ending_in_sk_are_not_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            (root / "series").write_text("0115-ASoC-cs35l45-ROG5-mask-unused-IRQ-sources-and-the-PLL\n")
+            self.add(root)
+            self.assertEqual(run(root).returncode, 0)
+
     def test_skip_syntax_skips_only_syntax(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -68,6 +101,50 @@ class StaticCheck(unittest.TestCase):
             self.assertEqual(run(root, "--skip-syntax").returncode, 0)
             (root / "README.md").write_text("[gone](missing.md)\n")
             self.assertEqual(run(root, "--skip-syntax").returncode, 1)
+
+    def test_publication_cannot_drop_a_suite_or_required_input(self):
+        for name in ('ok.py', 'input.txt', 'configs/repository-tests.json'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                self.make(root)
+                (root / name).unlink()
+                self.add(root)
+                result = run(root, '--skip-syntax')
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn(name, result.stderr)
+                self.assertNotIn('Traceback', result.stderr)
+
+    def test_ignored_local_input_cannot_mask_a_missing_tracked_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            subprocess.run(['git', '-C', str(root), 'rm', '--cached', 'input.txt'], check=True,
+                           capture_output=True)
+            (root / '.gitignore').write_text('input.txt\n')
+            result = run(root)
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('untracked repository test input: input.txt', result.stderr)
+
+    def test_missing_tracked_script_is_reported_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            (root / 'ok.py').unlink()
+            result = run(root)
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('missing or unsafe repository test input: ok.py', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_linked_input_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            (root / 'input.txt').unlink()
+            (root / 'input.txt').symlink_to('ok.py')
+            self.add(root)
+            result = run(root)
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('missing or unsafe repository test input: input.txt', result.stderr)
 
 
 if __name__ == "__main__":

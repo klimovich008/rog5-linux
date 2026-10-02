@@ -131,10 +131,13 @@ set_dropins() { # on|off
 
 # Masks: create the listed ones, remove ones this tool created earlier that
 # are no longer listed (only while they still point at /dev/null).
+# A mask is recorded only once it exists; one whose removal failed stays
+# recorded (still ours, retried next time); any failure returns 1.
 set_masks() { # LIST...
 	dir=$etc/systemd/user
 	old=$(cat "$state" 2>/dev/null || true)
 	new=
+	mask_failed=0
 	for u in "$@"; do
 		f=$dir/$u
 		if [ -L "$f" ] && [ "$(readlink "$f")" = /dev/null ]; then
@@ -143,14 +146,23 @@ set_masks() { # LIST...
 			continue
 		fi
 		if [ -e "$f" ] || [ -L "$f" ]; then warn "$f exists, not masking $u"; continue; fi
-		mkdir -p "$dir"
-		ln -s /dev/null "$f"
-		new="$new $u"
+		if mkdir -p "$dir" && ln -s /dev/null "$f"; then
+			new="$new $u"
+		else
+			warn "could not mask $u ($f)"
+			mask_failed=1
+		fi
 	done
 	for u in $old; do
 		case " $* " in *" $u "*) continue ;; esac
 		f=$dir/$u
-		if [ -L "$f" ] && [ "$(readlink "$f")" = /dev/null ]; then rm -f "$f"; fi
+		if [ -L "$f" ] && [ "$(readlink "$f")" = /dev/null ]; then
+			if ! rm -f "$f" || [ -L "$f" ]; then
+				warn "could not remove the mask $f"
+				new="$new $u"
+				mask_failed=1
+			fi
+		fi
 	done
 	mkdir -p "$(dirname "$state")" && tmp=$(mktemp "$state.XXXXXX") &&
 		for u in $new; do echo "$u"; done >"$tmp" && mv -f "$tmp" "$state" ||
@@ -158,6 +170,7 @@ set_masks() { # LIST...
 	# User managers read unit files at login: running units keep running.
 	[ "$(echo $old)" = "$(echo $new)" ] ||
 		echo 'rog5-memory-tune: user unit masks changed; they take effect at the next login (or reboot)'
+	return "$mask_failed"
 }
 
 meminfo_kb() { awk -v k="$1:" '$1 == k { print $2; exit }' "$meminfo" 2>/dev/null; }

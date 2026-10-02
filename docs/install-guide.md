@@ -336,12 +336,15 @@ kernel base" in [development](development.md).
    and writes a 32 GiB ext4 image.
 
 ```sh
-openssl passwd -6 > ~/.config/rog5/phone-password.hash      # the Phosh unlock PIN, digits
+(umask 077; openssl passwd -6 > ~/.config/rog5/phone-password.hash)   # the Phosh unlock PIN, digits
 scripts/host/rog5-build-rootfs --work ~/rog5-rootfs \
     --ssh-key ~/.ssh/id_ed25519.pub \
     --phone-password-hash-file ~/.config/rog5/phone-password.hash
 ```
 
+The hash file must be private (mode 0600, the builder refuses it
+otherwise); the builder hands the hash to `chpasswd` on standard input and
+masks it in its log, so it never appears in a command line or build log.
 Options: `--skip-custom resources,mesa` (build those later on the phone,
 where it takes minutes), `--steps NAME[,NAME]` to redo steps, and
 `--image-bytes` if your partition 24 differs from 34359717888 bytes.
@@ -673,7 +676,16 @@ step 5; a bootstrap bundle that boots without them is not defined yet.
 - **Desktop mode.** With a monitor or hub attached and the phone unlocked,
   tap *Desktop mode* in the app grid: GNOME starts on the monitor and the
   phone screen becomes a touchpad; *Phone mode* returns. Switching closes
-  running apps.
+  running apps. GNOME has no lock screen here, so only `rog5-desktop-mode`
+  starts it, and only after it has seen the phone locked and then unlocked
+  with the PIN (a tap on a phone it has not seen unlocked, e.g. right after
+  restarting the switcher, is refused with a notification: lock and unlock
+  once). Manual is the default when `/var/lib/rog5/desktop-mode` is absent
+  or empty; keep `manual` in that root-owned file for manual operation.
+  The switcher also requires Phosh's actual lock property (patched Phosh
+  0.57.0-1.4); deploy the package with the switcher. An older package or an
+  unreadable property refuses the request. Stopping or restarting
+  `rog5-desktop-mode` ends desktop mode; its watchdog stops a stuck supervisor.
 - **Optional:** `pacman -S tailscale && systemctl enable --now tailscaled && tailscale up`.
 - **Patched packages you skipped:** in a checkout on the phone, as `phone`,
   `cd packages/<dir> && makepkg <flags from configs/rootfs/custom-packages.txt>`
@@ -721,7 +733,13 @@ Proton:
   boot bundle) snapshots the system part of the overlay, runs
   `pacman -Syu`, checks the result and reboots only when idle (01:00-06:00,
   no remote client, no sound). A failed update arms a restore of the snapshot
-  on the next boot; your files are never rolled back. The restore passed
+  on the next boot. Only `/home`, `/usr/share/guestos`, `/var/lib/flatpak`,
+  `/var/lib/systemd/coredump`, `/var/log/journal` and
+  `/var/cache/pacman/pkg` are kept out of the snapshot and survive a
+  rollback as they are; everything else, including service data under other
+  `/var/lib` paths (databases, container volumes), goes back to the snapshot,
+  which was copied while those services ran (not a consistent database
+  backup). Keep such data under `/home` or back it up separately. The restore passed
   fault-injection tests but has not yet been needed for real. Commands:
   `/run/rog5-update/rog5-update status|verify-root|resume|rollback`. After a
   manual upgrade run `verify-root`: `openssh`, `systemd` and `shadow` updates

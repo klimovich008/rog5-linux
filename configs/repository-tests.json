@@ -3,63 +3,53 @@
   "selection_migration": "the registry is the only tier list; scripts/host/test-repository-linux.sh --list TIER prints it",
   "tests": [
     {
-      "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+      "path": "scripts/device/test-ams678-lp-brightness.py",
       "interpreter": "python3",
       "tiers": [
         "active",
+        "board",
         "ci",
         "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-ncm-tx-timer.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-session-carry.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
+        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
       "deadline_seconds": 120,
       "prerequisites": [
-        "python3"
+        "python3",
+        "cc",
+        "git"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "patches/linux-7.2.7/0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch",
+        "scripts/device/test-ams678-lifecycle.py",
+        "scripts/device/fixtures/ams678/backlight-v7.2.7.c",
+        "scripts/device/fixtures/ams678/cases.c",
+        "scripts/device/fixtures/ams678/drm-brightness-v7.2.7.c",
+        "scripts/device/fixtures/ams678/drm-panel-v7.2.7.c",
+        "scripts/device/fixtures/ams678/stubs.h"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-ams678-panel-patch.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -69,37 +59,43 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-rog5-shell.py",
+      "path": "scripts/device/test-ams678-regulator-errors.py",
       "interpreter": "python3",
       "tiers": [
         "active",
+        "board",
         "ci",
         "nightly",
+        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 300,
+      "deadline_seconds": 60,
       "prerequisites": [
         "python3",
-        "sh",
-        "grep",
-        "awk"
+        "cc"
       ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "scripts/device/fixtures/ams678-regulator/cases.c",
+        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
+        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.2.7.c"
+      ],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-startup-observer.py",
+      "path": "scripts/device/test-asus-s12-oem-point.py",
       "interpreter": "python3",
       "tiers": [
         "active",
         "ci",
         "nightly",
+        "probe",
         "quick",
         "rootfs"
       ],
@@ -116,48 +112,35 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-persistent-ssh-key-files.py",
-      "interpreter": "python3",
+      "path": "scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh",
+      "interpreter": "bash",
       "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
+        "nightly"
       ],
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "python3"
+        "bash"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-source-teardown-observation.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "line",
+          "message": "SKIP retained Generation 41 source integration; committed patch contract passed",
+          "scope": "subcheck",
+          "reason": "Committed patch identity, markers and forbidden-operation checks run before this branch; exact historical source integration is optional only when no explicit source was supplied.",
+          "inputs": [
+            "ROG5_LINUX_SOURCE",
+            "${ROG5_LINUX_SOURCE:-/home/deck/.local/state/rog5-qmp-ufs-first-clock-name-stage-20260813-r1/linux-source}"
+          ],
+          "test_ids": []
+        }
+      ]
     },
     {
       "path": "scripts/device/test-cpu-frequency-cap.py",
@@ -173,6 +156,27 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-display-post-switch-report.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -201,158 +205,25 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-production-ram-trial.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-module-loop.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "git"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/module-loop.py",
-        "scripts/host/production-ram-trial.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rog5-make-bundle.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "git",
-        "tar",
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/rog5-make-bundle.py",
-        "scripts/host/rog5-bundle-registry.py",
-        "configs/production/bundles.json",
-        "configs/production/dtbs.json",
-        "docs/bundles.md"
-      ],
       "optional_subchecks": [
         {
           "id": "optional-1",
           "kind": "unittest",
-          "message": "private DTB directory not present",
+          "message": "host systemd lacks PrivateTmp=disconnected; exact target graph/sandbox qualification still required",
           "scope": "subcheck",
-          "reason": "The registered board.dtb files and their features files live in the private production state directory; the fixture covers the checks, so a skip proves nothing about the real DTBs.",
+          "reason": "systemd-analyze verify of the target units needs systemd >= 256 (PrivateTmp=disconnected); Ubuntu 24.04 runners have 255. The unit text and policy checks stay mandatory; a skip proves nothing about the target unit graph.",
           "inputs": [
-            "~/.local/state/rog5-production-boot-20260923/<dtb dir>/board.dtb and features"
+            "systemd-analyze from systemd >= 256"
           ],
           "test_ids": [
-            "Registries.test_private_dtb_files_match_the_registry_when_present"
+            "Tests.test_legacy_fixture_reproduces_hidden_dependency",
+            "Tests.test_no_implicit_tmpfiles_delay_and_namespace_retained"
           ]
         }
       ]
     },
     {
-      "path": "scripts/host/test-install-default-kernel.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "unshare",
-        "exch"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/install-default-kernel.py",
-        "scripts/device/install-default-kernel-on-target.sh",
-        "scripts/host/build-persistent-wifi-selector.py",
-        "scripts/host/production-ram-trial.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-package-production-modules.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/package-production-modules.py",
-        "configs/kernel/rog5-production-modules.json"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rebase-kernel-series.py",
+      "path": "scripts/device/test-hexagonrpcd-listener.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -365,241 +236,21 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "python3",
-        "git"
+        "cc",
+        "patch"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [
-        "scripts/host/rebase-kernel-series.py"
+        "third_party/hexagonrpc/hexagonrpc-598b591.tar.gz",
+        "third_party/hexagonrpc/0002-hexagonrpcd-validate-output-buffer-counts-and-sizes.patch",
+        "scripts/device/fixtures/hexagonrpc/listener-test.c",
+        "scripts/device/install-rog5-sensors.sh",
+        "configs/systemd/rog5-sensors.service"
       ],
       "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-slotb-ram-bundle.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-standalone-rescue-composition.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-root-watchdog.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-persistent-trial-state.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "unittest",
-          "message": "requires explicit retained ARM binary replay",
-          "scope": "subcheck",
-          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
-          "inputs": [
-            "ROG5_TRIAL_TEST_ARM64=1",
-            "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
-          ],
-          "test_ids": [
-            "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
-          ]
-        }
-      ]
-    },
-    {
-      "path": "scripts/host/test-build-persistent-wifi-selector.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rpmh-readback.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-power-readiness.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-standby-bisect.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "dtc",
-        "fdtget",
-        "fdtput",
-        "awk"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "unittest",
-          "message": "requires the private production DTB r9",
-          "scope": "subcheck",
-          "reason": "The real r9 bytes are private build output; the synthetic r9-shaped fixture covers the composition logic, so a skip proves nothing about the installed DTB.",
-          "inputs": [
-            "~/.local/state/rog5-production-boot-20260923/platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb (or ROG5_BISECT_R9_DTB)"
-          ],
-          "test_ids": [
-            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
-          ]
-        },
-        {
-          "id": "optional-2",
-          "kind": "unittest",
-          "message": "requires python libfdt",
-          "scope": "subcheck",
-          "reason": "The dangling-reference walk over the real r9 tree needs the libfdt Python binding.",
-          "inputs": [
-            "python libfdt module"
-          ],
-          "test_ids": [
-            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
-          ]
-        }
-      ]
     },
     {
       "path": "scripts/device/test-idle-power-votes.py",
@@ -646,20 +297,46 @@
       ]
     },
     {
-      "path": "scripts/device/test-production-modprobe-loaders.py",
-      "interpreter": "python3",
+      "path": "scripts/device/test-load-native-ram-bundle.sh",
+      "interpreter": "sh",
       "tiers": [
-        "active",
         "ci",
         "nightly",
-        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "python3"
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-memslim-dtb.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "dtc",
+        "fdtget",
+        "fdtput",
+        "awk",
+        "sha256sum"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -669,92 +346,94 @@
       "optional_subchecks": [
         {
           "id": "optional-1",
-          "kind": "unittest",
-          "message": "target busybox modprobe replay needs the private archive, module tree, qemu and user namespaces",
-          "scope": "subcheck",
-          "reason": "Replays the loaders under the target ARM64 BusyBox against the private 7.1.4-rog5-production depmod tree; source checks stay mandatory.",
           "inputs": [
-            "ROG5_TEST_TARGET_ARCHIVE",
-            "ROG5_TEST_MODULE_TREE"
+            "~/.local/state/rog5-production-boot-20260923/platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb (or ROG5_MEMSLIM_D10_DTB)"
           ],
+          "kind": "unittest",
+          "message": "requires the private production DTB d10",
+          "reason": "The real d10 bytes are private build output; the synthetic d10-shaped fixture covers the composition logic and refusals, so a skip proves nothing about the installed DTB or the loader check.",
+          "scope": "subcheck",
           "test_ids": [
-            "Loaders.test_power_tree_loads_mdt_loader_first_then_historical_order",
-            "Loaders.test_power_tree_accepts_kernel_autoloaded_closure_module",
-            "Loaders.test_power_legacy_still_refuses_preloaded_module",
-            "Loaders.test_power_tree_refuses_module_absent_from_tree",
-            "Loaders.test_power_tree_insertion_failure_and_unobservable_module",
-            "Loaders.test_power_legacy_archive_keeps_insmod_without_mdt_loader",
-            "Loaders.test_power_legacy_inventory_must_stay_fifteen",
-            "Loaders.test_ufs_tree_loads_four_modules_in_order",
-            "Loaders.test_ufs_tree_refuses_preloaded_or_failed_module",
-            "Loaders.test_ufs_gate_under_target_busybox",
-            "Loaders.test_production_tree_is_published_to_run_for_post_boot_steps",
-            "Loaders.test_ufs_legacy_archive_keeps_insmod"
+            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
+          ]
+        },
+        {
+          "id": "optional-2",
+          "inputs": [
+            "cc with OpenSSL and zlib headers"
+          ],
+          "kind": "unittest",
+          "message": "requires cc with OpenSSL and zlib headers for the loader check",
+          "reason": "The loader check compiles verify_fdt from tools/recovery_control/rog5-bundle-verify.c.",
+          "scope": "subcheck",
+          "test_ids": [
+            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
           ]
         }
       ]
     },
     {
-      "path": "scripts/device/test-s12-ufs-vote.py",
+      "path": "scripts/device/test-mobile-dt-guards.py",
       "interpreter": "python3",
       "tiers": [
         "active",
         "ci",
         "nightly",
-        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 300,
+      "deadline_seconds": 30,
       "prerequisites": [
         "python3"
       ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "scripts/device/test-mobile-dt-composition.py"
+      ],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-asus-s12-oem-point.py",
+      "path": "scripts/device/test-mobile-touch-providers.py",
       "interpreter": "python3",
       "tiers": [
         "active",
         "ci",
         "nightly",
-        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 300,
+      "deadline_seconds": 30,
       "prerequisites": [
         "python3"
       ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "scripts/device/verify-mobile-touch-providers.py"
+      ],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-native-wifi-pcie-trace.py",
+      "path": "scripts/device/test-native-kexec-shutdown.py",
       "interpreter": "python3",
       "tiers": [
-        "active",
         "ci",
         "nightly",
-        "probe",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "python3"
+        "python3",
+        "qemu-aarch64-static"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -765,52 +444,6 @@
     },
     {
       "path": "scripts/device/test-native-wifi-activation.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-native-wifi-wpa-start.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-native-wifi-network-restart.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -856,13 +489,11 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-rog5-front-touch.py",
+      "path": "scripts/device/test-native-wifi-dtb.py",
       "interpreter": "python3",
       "tiers": [
-        "active",
         "ci",
         "nightly",
-        "probe",
         "quick",
         "rootfs"
       ],
@@ -879,7 +510,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-optional-display-runtime.py",
+      "path": "scripts/device/test-native-wifi-finalization.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -925,7 +556,30 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-native-wifi-finalization.py",
+      "path": "scripts/device/test-native-wifi-network-restart.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-native-wifi-pcie-trace.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -971,7 +625,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-pmic-pon-reader.py",
+      "path": "scripts/device/test-native-wifi-wpa-start.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -994,7 +648,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-rog5-healthd.py",
+      "path": "scripts/device/test-ncm-tx-timer.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -1016,7 +670,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-select-repository-test-tier.py",
+      "path": "scripts/device/test-optional-display-runtime.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -1031,15 +685,15 @@
       "prerequisites": [
         "python3"
       ],
-      "resource_class": "isolated",
-      "exclusivity_group": null,
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-run-sealed-busybox.py",
+      "path": "scripts/device/test-overlay-workdir-residue.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -1049,11 +703,94 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 300,
+      "deadline_seconds": 600,
       "prerequisites": [
-        "bwrap",
         "python3",
-        "qemu-aarch64-static"
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/persistent-root-init"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "kernel cases need private inputs",
+          "scope": "subcheck",
+          "reason": "The kernel cases boot the private production kernel Image with the target archive's busybox in the local rog5-qemu-gate QEMU container on a disposable ext4 disk; the predicate cases still run, so a skip proves nothing about the kernel's own workdir cleanup.",
+          "inputs": [
+            "~/.local/state/rog5-kernel-7.2.7-build-r113/objects/arch/arm64/boot/Image (ROG5_OVERLAY_KERNEL)",
+            "~/.local/state/rog5-production-boot-20260923/ramdisk-main-k113-d13-261001a/target.cpio.gz (ROG5_OVERLAY_ARCHIVE)",
+            "podman image localhost/rog5-qemu-gate:ubuntu-24.04"
+          ],
+          "test_ids": [
+            "Kernel.test_kernel_cleans_accepted_residue_and_refuses_the_rest"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-persistent-power-readiness.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-persistent-root-handoff.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-persistent-root-initramfs.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1063,22 +800,42 @@
       "optional_subchecks": [
         {
           "id": "optional-1",
-          "kind": "unittest",
-          "message": "requires an ARM64 target archive (ROG5_TEST_TARGET_ARCHIVE) and isolated ARM userspace tools",
+          "kind": "line",
+          "message": "SKIP retained persistent-root binary integration; source contract remains active",
           "scope": "subcheck",
-          "reason": "The ARM64 busybox archive is private (the V9 base ramdisk); the pure-Python extraction checks stay mandatory.",
+          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
           "inputs": [
-            "ROG5_TEST_TARGET_ARCHIVE"
+            "artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz",
+            "artifacts/persistent-root-verifier-build-a/persistent-root-verify",
+            "artifacts/persistent-root-p2/config-7.1.4-persistent-root"
           ],
-          "test_ids": [
-            "Extraction.test_shell_children_keep_target_release",
-            "Extraction.test_actual_archive_ownership_is_root_inside_namespace"
-          ]
+          "test_ids": []
         }
       ]
     },
     {
-      "path": "scripts/host/test-repository-test-report.py",
+      "path": "scripts/device/test-persistent-root-overlay-runtime.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-persistent-root-storage-resolution.py",
       "interpreter": "python3",
       "tiers": [
         "ci",
@@ -1099,9 +856,10 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-ufs-storage-trust-boundary.py",
+      "path": "scripts/device/test-persistent-root-watchdog.py",
       "interpreter": "python3",
       "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -1120,7 +878,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-repository-linux-runner-contract.sh",
+      "path": "scripts/device/test-persistent-service-state-runtime.sh",
       "interpreter": "sh",
       "tiers": [
         "ci",
@@ -1183,9 +941,10 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-persistent-root-overlay-runtime.sh",
-      "interpreter": "sh",
+      "path": "scripts/device/test-persistent-ssh-key-files.py",
+      "interpreter": "python3",
       "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -1194,28 +953,7 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-service-state-runtime.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1243,6 +981,1244 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-persistent-ufs-module-profile.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "line",
+          "message": "SKIP retained UFS binary profile fixtures are absent",
+          "scope": "subcheck",
+          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+          "inputs": [
+            "READ_ONLY_ARCHIVE (default artifacts/persistent-native-root-v4/initramfs.cpio.gz)",
+            "LOCAL_WRITE_ARCHIVE (default artifacts/local-image-direct-v49/initramfs.cpio.gz)"
+          ],
+          "test_ids": []
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-pmic-pon-reader.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-power-buttond.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-audio-route.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-audio-route",
+        "configs/udev/89-rog5-alsa-state.rules",
+        "configs/udev/91-rog5-audio-route.rules",
+        "configs/rootfs/userspace.tsv"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-modprobe-loaders.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "target busybox modprobe replay needs the private archive, module tree, qemu and user namespaces",
+          "scope": "subcheck",
+          "reason": "Replays the loaders under the target ARM64 BusyBox against the private 7.1.4-rog5-production depmod tree; source checks stay mandatory.",
+          "inputs": [
+            "ROG5_TEST_TARGET_ARCHIVE",
+            "ROG5_TEST_MODULE_TREE"
+          ],
+          "test_ids": [
+            "Loaders.test_power_tree_loads_mdt_loader_first_then_historical_order",
+            "Loaders.test_power_tree_accepts_kernel_autoloaded_closure_module",
+            "Loaders.test_power_legacy_still_refuses_preloaded_module",
+            "Loaders.test_power_tree_refuses_module_absent_from_tree",
+            "Loaders.test_power_tree_insertion_failure_and_unobservable_module",
+            "Loaders.test_power_legacy_archive_keeps_insmod_without_mdt_loader",
+            "Loaders.test_power_legacy_inventory_must_stay_fifteen",
+            "Loaders.test_ufs_tree_loads_four_modules_in_order",
+            "Loaders.test_ufs_tree_refuses_preloaded_or_failed_module",
+            "Loaders.test_ufs_gate_under_target_busybox",
+            "Loaders.test_production_tree_is_published_to_run_for_post_boot_steps",
+            "Loaders.test_ufs_legacy_archive_keeps_insmod"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-production-platform-kit.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-platform-modules",
+        "initramfs/production-rtc-time",
+        "initramfs/persistent-root-init",
+        "configs/production/boot-modules.list",
+        "configs/systemd/rog5-rtc-time.service",
+        "configs/kernel/rog5-production-modules.json"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-trial-commit.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-trial-commit",
+        "initramfs/persistent-root-init",
+        "configs/systemd/rog5-production-trial-commit.service"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-production-wifi.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/production-wifi",
+        "initramfs/persistent-root-init",
+        "configs/systemd/rog5-wifi-radio.service"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-qcom-battmgr-charge-units.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-alsa-probe.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/alsa_probe/rog5-alsa-probe.c"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "no clang for the AArch64 build check",
+          "scope": "subcheck",
+          "reason": "The freestanding AArch64 compile needs clang with the aarch64 target; the host build with fake syscalls covers the control checks, so a skip proves nothing about the target build.",
+          "inputs": [
+            "clang"
+          ],
+          "test_ids": [
+            "Target.test_freestanding_aarch64_build"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-charge-policy.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "setsid"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-desktop-mode-events.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash",
+        "awk",
+        "mkfifo",
+        "timeout"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-desktop-mode-lock.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash",
+        "sed",
+        "mktemp"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-dp-power-measure.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-front-touch.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-geni-mode.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/fixtures/geni-mode/buffer-select.inc",
+        "scripts/device/fixtures/geni-mode/buffer.inc",
+        "scripts/device/fixtures/geni-mode/cases.c",
+        "scripts/device/fixtures/geni-mode/firmware.inc",
+        "scripts/device/fixtures/geni-mode/protocol.inc",
+        "scripts/device/fixtures/geni-mode/setup.inc"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-gpu-watchdog.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash",
+        "awk",
+        "dd",
+        "setsid",
+        "timeout"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-healthd.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-hotspot-uplink.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-install-userspace.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-install-userspace",
+        "configs/rootfs/userspace.tsv"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "needs unshare --map-auto --map-root-user (subordinate ids)",
+          "scope": "subcheck",
+          "reason": "The install runs as root in a user namespace with subordinate ids; runners without newuidmap/subuid entries (or with unprivileged user namespaces restricted) cannot map them. The planning tests stay mandatory; a skip proves nothing about the installer's file operations.",
+          "inputs": [
+            "unshare --map-auto --map-root-user",
+            "/etc/subuid and /etc/subgid entries"
+          ],
+          "test_ids": [
+            "Install.test_a_link_in_the_home_is_never_followed",
+            "Install.test_install_check_and_kept_local_edit"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-mem-report.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "executes an aarch64 RET on a real PFN (root on the phone)",
+          "scope": "subcheck",
+          "reason": "Executes code on a real physical page; it runs only as root on the AArch64 phone. The parser and report tests stay mandatory on every host.",
+          "inputs": [
+            "aarch64 host",
+            "root"
+          ],
+          "test_ids": [
+            "MemReportTest.test_exec_pages_native"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-memory-tune.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-perf-mode.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-phosh-lock-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "bash",
+        "awk",
+        "timeout"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-desktop-mode",
+        "packages/phosh/0003-export-real-lock-state.patch",
+        "packages/phosh/PKGBUILD"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "property-skeleton",
+          "kind": "unittest",
+          "message": "needs gdbus-codegen and gio-2.0 development files",
+          "scope": "subcheck",
+          "reason": "Probe behavior and package patch pins run everywhere; generated GObject skeleton compilation requires GLib development tools unavailable on some hosts.",
+          "inputs": [
+            "gdbus-codegen",
+            "gio-2.0 development files"
+          ],
+          "test_ids": [
+            "Probe.test_property_skeleton"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "cpp",
+        "dtc",
+        "dt-validate",
+        "dt-doc-validate",
+        "dt-mk-schema",
+        "cc",
+        "git"
+      ],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "dts/qcom/sm8350-asus-rog-phone5.dts",
+        "patches/linux-7.2.7/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-sea-retire.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-security-config.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-session-carry.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-shell.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "grep",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-sleep-policy.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "setsid"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-binding.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "dtc",
+        "dt-doc-validate",
+        "dt-mk-schema",
+        "dt-validate"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml",
+        "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core-runner.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 90,
+      "prerequisites": [],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "scripts/device/test-rog5-touch-input-core.py",
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h",
+        "scripts/device/test-rog5-touch-lifecycle.py",
+        "scripts/device/fixtures/fts3658u/stubs.h",
+        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
+        "scripts/device/fixtures/fts3658u/cases.c",
+        "test-results/2026-09-20-touch-input-semantics.md",
+        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
+        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
+        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
+        "scripts/device/fixtures/fts3658u-input-core/cases.c",
+        "scripts/device/fixtures/fts3658u-input-core/owned_process.py",
+        "scripts/device/fixtures/fts3658u-input-core/runner-regression.py",
+        "scripts/device/fixtures/fts3658u-input-core/original-runner.py",
+        "scripts/host/repository-test-report.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-input-core.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 90,
+      "prerequisites": [
+        "cc"
+      ],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h",
+        "scripts/device/test-rog5-touch-lifecycle.py",
+        "scripts/device/fixtures/fts3658u/stubs.h",
+        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
+        "scripts/device/fixtures/fts3658u/cases.c",
+        "test-results/2026-09-20-touch-input-semantics.md",
+        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
+        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
+        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
+        "scripts/device/fixtures/fts3658u-input-core/cases.c",
+        "scripts/device/fixtures/fts3658u-input-core/owned_process.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-lifecycle.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
+        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.2.7.c",
+        "scripts/device/fixtures/fts3658u-regulator/cases.c"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-update.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare",
+        "flock"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/rog5-update",
+        "initramfs/persistent-root-init",
+        "initramfs/persistent-root-attest",
+        "configs/systemd/rog5-update.service",
+        "configs/systemd/rog5-update.timer",
+        "configs/systemd/rog5-update-commit.service"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-usb-helpers.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "flock"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-usb-storage.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-wifi-networkmanager.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-wifi-networkmanager.sh"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rpmh-readback.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-s12-ufs-vote.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-screen-toggle.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-slotb-ram-bundle.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-stage-persistent-service-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/stage-persistent-service-state.sh"
+      ],
       "optional_subchecks": []
     },
     {
@@ -1325,7 +2301,7 @@
       ]
     },
     {
-      "path": "scripts/device/test-production-trial-commit.py",
+      "path": "scripts/device/test-standalone-rescue-composition.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -1335,25 +2311,19 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 120,
+      "deadline_seconds": 300,
       "prerequisites": [
-        "python3",
-        "sh",
-        "unshare"
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [
-        "initramfs/production-trial-commit",
-        "initramfs/persistent-root-init",
-        "configs/systemd/rog5-production-trial-commit.service"
-      ],
+      "required_inputs": [],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-rog5-update.py",
+      "path": "scripts/device/test-standby-bisect.py",
       "interpreter": "python3",
       "tiers": [
         "active",
@@ -1367,80 +2337,131 @@
       "prerequisites": [
         "python3",
         "sh",
-        "unshare",
+        "dtc",
+        "fdtget",
+        "fdtput",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires the private production DTB r9",
+          "scope": "subcheck",
+          "reason": "The real r9 bytes are private build output; the synthetic r9-shaped fixture covers the composition logic, so a skip proves nothing about the installed DTB.",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/platform-cpucap-dp4-btmtc-memx-dtb-r9/board.dtb (or ROG5_BISECT_R9_DTB)"
+          ],
+          "test_ids": [
+            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
+          ]
+        },
+        {
+          "id": "optional-2",
+          "kind": "unittest",
+          "message": "requires python libfdt",
+          "scope": "subcheck",
+          "reason": "The dangling-reference walk over the real r9 tree needs the libfdt Python binding.",
+          "inputs": [
+            "python libfdt module"
+          ],
+          "test_ids": [
+            "ProductionR9Test.test_r9_variants_leave_no_dangling_enabled_consumer"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/device/test-startup-observer.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-status-screen.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-steam-scripts.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh",
+        "python3",
         "flock"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [
-        "initramfs/rog5-update",
-        "initramfs/persistent-root-init",
-        "initramfs/persistent-root-attest",
-        "configs/systemd/rog5-update.service",
-        "configs/systemd/rog5-update.timer",
-        "configs/systemd/rog5-update-commit.service"
-      ],
+      "required_inputs": [],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-production-platform-kit.py",
+      "path": "scripts/device/test-ufs-storage-trust-boundary.py",
       "interpreter": "python3",
       "tiers": [
-        "active",
         "ci",
         "nightly",
         "quick",
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 120,
+      "deadline_seconds": 300,
       "prerequisites": [
-        "python3",
-        "sh",
-        "unshare"
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [
-        "initramfs/production-platform-modules",
-        "initramfs/production-rtc-time",
-        "initramfs/persistent-root-init",
-        "configs/production/boot-modules.list",
-        "configs/systemd/rog5-rtc-time.service",
-        "configs/kernel/rog5-production-modules.json"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-production-wifi.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "unshare"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "initramfs/production-wifi",
-        "initramfs/persistent-root-init",
-        "configs/systemd/rog5-wifi-radio.service"
-      ],
+      "required_inputs": [],
       "optional_subchecks": []
     },
     {
@@ -1476,9 +2497,58 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-native-wifi-dtb.py",
+      "path": "scripts/host/test-ams678-compile-location.py",
       "interpreter": "python3",
       "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "git",
+        "bash"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-backup-readonly-storage-inventory.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/backup-readonly-storage-inventory.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-build-persistent-wifi-selector.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -1497,112 +2567,7 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-ams678-panel-patch.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-screen-toggle.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-power-buttond.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-status-screen.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-hotspot-uplink.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-display-post-switch-report.sh",
+      "path": "scripts/host/test-canonical-boot-v3-template-contract.sh",
       "interpreter": "bash",
       "tiers": [
         "ci",
@@ -1623,7 +2588,54 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-load-native-ram-bundle.sh",
+      "path": "scripts/host/test-check-repository-static.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/check-repository-static.py",
+        "configs/repository-tests.json"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-fetch-android-boot-tools-contract.sh",
+      "interpreter": "bash",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bash"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-github-exact-head-workflow.sh",
       "interpreter": "sh",
       "tiers": [
         "ci",
@@ -1644,9 +2656,61 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-native-kexec-shutdown.py",
+      "path": "scripts/host/test-index-test-results.py",
       "interpreter": "python3",
       "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-install-default-kernel.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/install-default-kernel.py",
+        "scripts/device/install-default-kernel-on-target.sh",
+        "scripts/host/build-persistent-wifi-selector.py",
+        "scripts/host/production-ram-trial.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-module-loop.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -1656,19 +2720,23 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "python3",
-        "qemu-aarch64-static"
+        "git"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [],
+      "required_inputs": [
+        "scripts/host/module-loop.py",
+        "scripts/host/production-ram-trial.py"
+      ],
       "optional_subchecks": []
     },
     {
-      "path": "scripts/device/test-persistent-ufs-module-profile.sh",
-      "interpreter": "sh",
+      "path": "scripts/host/test-package-production-modules.py",
+      "interpreter": "python3",
       "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -1677,27 +2745,17 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "sh"
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "line",
-          "message": "SKIP retained UFS binary profile fixtures are absent",
-          "scope": "subcheck",
-          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
-          "inputs": [
-            "READ_ONLY_ARCHIVE (default artifacts/persistent-native-root-v4/initramfs.cpio.gz)",
-            "LOCAL_WRITE_ARCHIVE (default artifacts/local-image-direct-v49/initramfs.cpio.gz)"
-          ],
-          "test_ids": []
-        }
-      ]
+      "required_inputs": [
+        "scripts/host/package-production-modules.py",
+        "configs/kernel/rog5-production-modules.json"
+      ],
+      "optional_subchecks": []
     },
     {
       "path": "scripts/host/test-persistent-trial-state-aarch64.sh",
@@ -1719,7 +2777,15 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [
-        "artifacts/host-tools/qemu-aarch64-static"
+        "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v1/SHA256SUMS",
+        "artifacts/persistent-trial-state-v1/build-meta.txt",
+        "artifacts/persistent-trial-state-v2/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v2/SHA256SUMS",
+        "artifacts/persistent-trial-state-v2/build-meta.txt",
+        "artifacts/persistent-trial-state-v3/rog5-persistent-trial-state",
+        "artifacts/persistent-trial-state-v3/SHA256SUMS",
+        "artifacts/persistent-trial-state-v3/build-meta.txt"
       ],
       "optional_subchecks": [
         {
@@ -1734,6 +2800,55 @@
             "artifacts/host-tools/qemu-aarch64-static"
           ],
           "test_ids": []
+        },
+        {
+          "id": "optional-2",
+          "kind": "line",
+          "message": "SKIP isolated AArch64 behavior replay: QEMU/bubblewrap unavailable",
+          "scope": "subcheck",
+          "reason": "The replay runs the tracked helper under the qualified QEMU (Ubuntu 8.2.2+ds-0ubuntu1.17, extracted by extract-qualified-qemu-aarch64-static.sh into ignored artifacts/host-tools); runners without it still check the tracked artifact bytes, metadata and ELF shape. A skip proves no AArch64 behaviour.",
+          "inputs": [
+            "artifacts/host-tools/qemu-aarch64-static",
+            "bwrap"
+          ],
+          "test_ids": []
+        }
+      ]
+    },
+    {
+      "path": "scripts/host/test-persistent-trial-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires explicit retained ARM binary replay",
+          "scope": "subcheck",
+          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
+          "inputs": [
+            "ROG5_TRIAL_TEST_ARM64=1",
+            "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+          ],
+          "test_ids": [
+            "PersistentTrialState.test_retained_v1_target_can_acknowledge_v2_recovery"
+          ]
         }
       ]
     },
@@ -1759,8 +2874,8 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-fetch-android-boot-tools-contract.sh",
-      "interpreter": "bash",
+      "path": "scripts/host/test-prepare-recovery-runtime-bundle.py",
+      "interpreter": "python3",
       "tiers": [
         "ci",
         "nightly",
@@ -1770,7 +2885,7 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "bash"
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1780,8 +2895,8 @@
       "optional_subchecks": []
     },
     {
-      "path": "scripts/host/test-canonical-boot-v3-template-contract.sh",
-      "interpreter": "bash",
+      "path": "scripts/host/test-production-build-diagnostics.py",
+      "interpreter": "python3",
       "tiers": [
         "ci",
         "nightly",
@@ -1791,7 +2906,506 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "bash"
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/check-production-build-diagnostics.py",
+        "scripts/host/draft-warning-policy.py",
+        "configs/kernel/rog5-production-warning-policy-7.2.7.json"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-production-kernel-build.py",
+      "interpreter": "python3",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "make",
+        "dtc",
+        "fdtoverlay",
+        "fdtget"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-production-ram-trial.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "sandbox-local-tcp",
+          "inputs": [
+            "permission to create local TCP sockets"
+          ],
+          "kind": "unittest",
+          "message": "local TCP sockets are prohibited by the sandbox",
+          "reason": "Only the loopback receiver cases need sockets; claim durability and cleanup use local stubs.",
+          "scope": "subcheck",
+          "test_ids": [
+            "Stages.test_receiver_records_distinct_stage_records_from_the_peer",
+            "Stages.test_receiver_ignores_other_peers"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/host/test-rebase-kernel-series.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rebase-kernel-series.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-recovery-bundle-native.py",
+      "interpreter": "python3",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-recovery-init-policy.py",
+      "interpreter": "python3",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-render-current-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-repository-linux-runner-contract.sh",
+      "interpreter": "sh",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-repository-test-report.py",
+      "interpreter": "python3",
+      "tiers": [
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-bench.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-bench.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-brightness-lab.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-brightness-lab.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-build-rootfs.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-build-rootfs",
+        "configs/rootfs/packages.txt",
+        "configs/rootfs/custom-packages.txt",
+        "configs/rootfs/required-commands.tsv"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "needs unshare --map-auto --map-root-user",
+          "scope": "subcheck",
+          "reason": "The boot-step cases build a root owned tree in a user namespace with subordinate ids; the configuration and package-list tests stay mandatory. A skip proves nothing about the sealed boot step.",
+          "inputs": [
+            "unshare --map-auto --map-root-user",
+            "/etc/subuid and /etc/subgid entries"
+          ],
+          "test_ids": [
+            "BootStep.test_bad_bundles_are_refused",
+            "BootStep.test_boot_step_needs_the_sealed_directory",
+            "BootStep.test_no_bundle_is_a_no_op",
+            "BootStep.test_seal_verifies_right_after_sealing",
+            "BootStep.test_v1_selector_and_modes"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/host/test-rog5-device-profile.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-device-profile",
+        "configs/device-profiles/reference.env",
+        "scripts/host/install-default-kernel.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-dtb-memory.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "dtc",
+        "fdtget",
+        "fdtput"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-dtb-memory"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-make-bundle.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git",
+        "tar",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-make-bundle.py",
+        "scripts/host/rog5-bundle-registry.py",
+        "configs/production/bundles.json",
+        "configs/production/dtbs.json",
+        "docs/bundles.md"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "private DTB directory not present",
+          "scope": "subcheck",
+          "reason": "The registered board.dtb files and their features files live in the private production state directory; the fixture covers the checks, so a skip proves nothing about the real DTBs.",
+          "inputs": [
+            "~/.local/state/rog5-production-boot-20260923/<dtb dir>/board.dtb and features"
+          ],
+          "test_ids": [
+            "Registries.test_private_dtb_files_match_the_registry_when_present"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/host/test-rog5-touch-module-build.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "bwrap"
+      ],
+      "resource_class": "namespace",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-run-sealed-busybox.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "bwrap",
+        "python3",
+        "qemu-aarch64-static"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "requires an ARM64 target archive (ROG5_TEST_TARGET_ARCHIVE) and isolated ARM userspace tools",
+          "scope": "subcheck",
+          "reason": "The ARM64 busybox archive is private (the V9 base ramdisk); the pure-Python extraction checks stay mandatory.",
+          "inputs": [
+            "ROG5_TEST_TARGET_ARCHIVE"
+          ],
+          "test_ids": [
+            "Extraction.test_shell_children_keep_target_release",
+            "Extraction.test_actual_archive_ownership_is_root_inside_namespace"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "scripts/host/test-select-repository-test-tier.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": null,
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-source-teardown-observation.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1858,1158 +3472,6 @@
           ],
           "test_ids": [
             "Vcnl36866PortContractTest.test_cli_reports_both_current_oracles"
-          ]
-        }
-      ]
-    },
-    {
-      "path": "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-recovery-bundle-native.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-prepare-recovery-runtime-bundle.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-github-exact-head-workflow.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-root-storage-resolution.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-root-handoff.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-persistent-root-initramfs.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "line",
-          "message": "SKIP retained persistent-root binary integration; source contract remains active",
-          "scope": "subcheck",
-          "reason": "Retained historical artifact replay is separate from mandatory source/fixture checks; skipped replay proves neither installed bytes nor hardware behavior.",
-          "inputs": [
-            "artifacts/ufs-discovery-v2/rog5-ufs-discovery-initramfs.cpio.gz",
-            "artifacts/persistent-root-verifier-build-a/persistent-root-verify",
-            "artifacts/persistent-root-p2/config-7.1.4-persistent-root"
-          ],
-          "test_ids": []
-        }
-      ]
-    },
-    {
-      "path": "scripts/host/test-recovery-init-policy.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-clk-orphan-runtime-pm-current-source-patch.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "nightly"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "kind": "line",
-          "message": "SKIP retained Generation 41 source integration; committed patch contract passed",
-          "scope": "subcheck",
-          "reason": "Committed patch identity, markers and forbidden-operation checks run before this branch; exact historical source integration is optional only when no explicit source was supplied.",
-          "inputs": [
-            "ROG5_LINUX_SOURCE",
-            "${ROG5_LINUX_SOURCE:-/home/deck/.local/state/rog5-qmp-ufs-first-clock-name-stage-20260813-r1/linux-source}"
-          ],
-          "test_ids": []
-        }
-      ]
-    },
-    {
-      "path": "scripts/host/test-production-kernel-build.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "make",
-        "dtc",
-        "fdtoverlay",
-        "fdtget"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-production-build-diagnostics.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-ams678-compile-location.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "git",
-        "bash"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-touch-lifecycle.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "board",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "tools/rog5-fts3658u/rog5_fts3658u.c",
-        "tools/rog5-fts3658u/rog5_fts_protocol.h"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-touch-regulator-errors.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "board",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "tools/rog5-fts3658u/rog5_fts3658u.c",
-        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
-        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.2.7.c",
-        "scripts/device/fixtures/fts3658u-regulator/cases.c"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-ams678-regulator-errors.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "board",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
-        "scripts/device/fixtures/ams678-regulator/cases.c",
-        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
-        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.2.7.c"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-ams678-lp-brightness.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "board",
-        "ci",
-        "nightly",
-        "probe",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "cc",
-        "git"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "patches/linux-7.2.7/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
-        "patches/linux-7.2.7/0043-drm-panel-asus-rog5-ams678-send-brightness-in-LP-mode.patch",
-        "scripts/device/test-ams678-lifecycle.py",
-        "scripts/device/fixtures/ams678/backlight-v7.2.7.c",
-        "scripts/device/fixtures/ams678/cases.c",
-        "scripts/device/fixtures/ams678/drm-brightness-v7.2.7.c",
-        "scripts/device/fixtures/ams678/drm-panel-v7.2.7.c",
-        "scripts/device/fixtures/ams678/stubs.h"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rog5-touch-module-build.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "bwrap"
-      ],
-      "resource_class": "namespace",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-rpmh-binding.py",
-      "interpreter": "python3",
-      "tiers": [
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "cpp",
-        "dtc",
-        "dt-validate",
-        "dt-doc-validate",
-        "dt-mk-schema",
-        "cc",
-        "git"
-      ],
-      "resource_class": "high-memory",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": true,
-      "required_inputs": [
-        "dts/qcom/sm8350-asus-rog-phone5.dts",
-        "patches/linux-7.2.7/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 30,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-mobile-dt-guards.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 30,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/device/test-mobile-dt-composition.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-mobile-touch-providers.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 30,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/device/verify-mobile-touch-providers.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-geni-mode.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "board",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": "",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/device/fixtures/geni-mode/buffer-select.inc",
-        "scripts/device/fixtures/geni-mode/buffer.inc",
-        "scripts/device/fixtures/geni-mode/cases.c",
-        "scripts/device/fixtures/geni-mode/firmware.inc",
-        "scripts/device/fixtures/geni-mode/protocol.inc",
-        "scripts/device/fixtures/geni-mode/setup.inc"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-touch-binding.py",
-      "interpreter": "python3",
-      "tiers": [
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "dtc",
-        "dt-doc-validate",
-        "dt-mk-schema",
-        "dt-validate"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": false,
-      "required_inputs": [
-        "tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml",
-        "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-touch-input-core.py",
-      "interpreter": "python3",
-      "tiers": [
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 90,
-      "prerequisites": [
-        "cc"
-      ],
-      "resource_class": "high-memory",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": true,
-      "required_inputs": [
-        "tools/rog5-fts3658u/rog5_fts3658u.c",
-        "tools/rog5-fts3658u/rog5_fts_protocol.h",
-        "scripts/device/test-rog5-touch-lifecycle.py",
-        "scripts/device/fixtures/fts3658u/stubs.h",
-        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
-        "scripts/device/fixtures/fts3658u/cases.c",
-        "test-results/2026-09-20-touch-input-semantics.md",
-        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
-        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
-        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
-        "scripts/device/fixtures/fts3658u-input-core/cases.c",
-        "scripts/device/fixtures/fts3658u-input-core/owned_process.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-touch-input-core-runner.py",
-      "interpreter": "python3",
-      "tiers": [
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 90,
-      "prerequisites": [],
-      "resource_class": "high-memory",
-      "exclusivity_group": "repository",
-      "python_optimized": true,
-      "exact_source": true,
-      "required_inputs": [
-        "scripts/device/test-rog5-touch-input-core.py",
-        "tools/rog5-fts3658u/rog5_fts3658u.c",
-        "tools/rog5-fts3658u/rog5_fts_protocol.h",
-        "scripts/device/test-rog5-touch-lifecycle.py",
-        "scripts/device/fixtures/fts3658u/stubs.h",
-        "scripts/device/fixtures/fts3658u/kernel-v7.1.4.c",
-        "scripts/device/fixtures/fts3658u/cases.c",
-        "test-results/2026-09-20-touch-input-semantics.md",
-        "scripts/device/fixtures/fts3658u-input-core/source-pins.json",
-        "scripts/device/fixtures/fts3658u-input-core/types.h.in",
-        "scripts/device/fixtures/fts3658u-input-core/boundary.h",
-        "scripts/device/fixtures/fts3658u-input-core/cases.c",
-        "scripts/device/fixtures/fts3658u-input-core/owned_process.py",
-        "scripts/device/fixtures/fts3658u-input-core/runner-regression.py",
-        "scripts/device/fixtures/fts3658u-input-core/original-runner.py",
-        "scripts/host/repository-test-report.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-sleep-policy.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-sea-retire.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-desktop-mode-lock.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-desktop-mode-events.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash",
-        "awk",
-        "mkfifo",
-        "timeout"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-gpu-watchdog.sh",
-      "interpreter": "bash",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "bash",
-        "awk",
-        "dd",
-        "setsid",
-        "timeout"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-steam-scripts.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh",
-        "python3",
-        "flock"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-usb-helpers.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh",
-        "flock"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-perf-mode.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-usb-storage.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-charge-policy.sh",
-      "interpreter": "sh",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-check-repository-static.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "git"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-render-current-state.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-index-test-results.py",
-      "interpreter": "python3",
-      "tiers": [
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "git"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rog5-device-profile.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/rog5-device-profile",
-        "configs/device-profiles/reference.env",
-        "scripts/host/install-default-kernel.py"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-install-userspace.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "unshare"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/device/rog5-install-userspace",
-        "configs/rootfs/userspace.tsv"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rog5-dtb-memory.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "dtc",
-        "fdtget",
-        "fdtput"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/rog5-dtb-memory"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/host/test-rog5-build-rootfs.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 60,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "unshare"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [
-        "scripts/host/rog5-build-rootfs",
-        "configs/rootfs/packages.txt",
-        "configs/rootfs/custom-packages.txt"
-      ],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-memory-tune.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "sh"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-rog5-mem-report.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
-    },
-    {
-      "path": "scripts/device/test-memslim-dtb.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "quick",
-        "rootfs"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 300,
-      "prerequisites": [
-        "python3",
-        "sh",
-        "dtc",
-        "fdtget",
-        "fdtput",
-        "awk",
-        "sha256sum"
-      ],
-      "resource_class": "shared-state",
-      "exclusivity_group": "repository",
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": [
-        {
-          "id": "optional-1",
-          "inputs": [
-            "~/.local/state/rog5-production-boot-20260923/platform-dp4-btmtc-memx-l11off-dtb-d10/board.dtb (or ROG5_MEMSLIM_D10_DTB)"
-          ],
-          "kind": "unittest",
-          "message": "requires the private production DTB d10",
-          "reason": "The real d10 bytes are private build output; the synthetic d10-shaped fixture covers the composition logic and refusals, so a skip proves nothing about the installed DTB or the loader check.",
-          "scope": "subcheck",
-          "test_ids": [
-            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
-          ]
-        },
-        {
-          "id": "optional-2",
-          "inputs": [
-            "cc with OpenSSL and zlib headers"
-          ],
-          "kind": "unittest",
-          "message": "requires cc with OpenSSL and zlib headers for the loader check",
-          "reason": "The loader check compiles verify_fdt from tools/recovery_control/rog5-bundle-verify.c.",
-          "scope": "subcheck",
-          "test_ids": [
-            "ProductionD10Test.test_d10_parts_compose_and_pass_the_loader_check"
           ]
         }
       ]

@@ -4,7 +4,21 @@
 # kernel's ("[auto] inhibit-charge force-discharge") after each write.
 set -eu
 here=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
-t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+t=$(mktemp -d)
+pid=
+stop_loop() {
+	[ -z "$pid" ] || {
+		# The fixture owns this session, including the daemon's poll sleep.
+		/bin/kill -KILL -- "-$pid" 2>/dev/null || true
+		wait "$pid" 2>/dev/null || true
+		pid=
+	}
+}
+cleanup() { stop_loop; rm -rf "$t"; }
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 b=$t/bat u=$t/usb
 export ROG5_CHG_BAT=$b ROG5_CHG_USB=$u ROG5_CHG_PARTNER=$t/port0-partner ROG5_CHG_ZONES=$t/zones \
 	ROG5_CHG_CONF=$t/charge-policy ROG5_CHG_STATE=$t/state ROG5_CHG_KMSG=$t/log
@@ -122,6 +136,20 @@ check 'auto 70 80 limit' 'auto 70 80' 'replug after full -> limit'
 # ... or cancelled
 check 'auto 0 100 full' 'auto 0 100' 'full override 3' full
 check 'auto 70 80 limit' 'auto 70 80' 'cancel-full' cancel-full
+# An explicit full charge beats the performance bypass (perf_on_power=always
+# made a 50 % battery stay at 50 % for the whole override); heat still wins.
+bat 50 300 0; perf on
+check 'auto 0 100 full' 'auto 0 100' 'full override charges in performance mode' full
+bat 50 410 0
+check 'inhibit-charge 0 100 battery-hot' 'inhibit-charge 0 100' 'full override, hot battery bypasses'
+bat 50 300 0
+check 'auto 0 100 full' 'auto 0 100' 'full override, cooled'
+check 'inhibit-charge 70 80 performance' 'inhibit-charge 70 80' 'cancel-full in performance mode' cancel-full
+check 'inhibit-charge 70 80 performance' 'inhibit-charge 70 80' 'cancelled full -> performance bypass again'
+printf 'mode=full\n' >$t/charge-policy
+check 'auto 0 100 full' 'auto 0 100' 'full mode charges in performance mode'
+perf off; bat 90 300 0; rm -f $t/charge-policy $t/state/hot
+check 'auto 70 80 limit' 'auto 70 80' 'back to the default window'
 
 # Drain (opt-in): force-discharge from >= end+3 down to end, never below 50.
 printf 'drain=1\n' >$t/charge-policy
@@ -211,8 +239,9 @@ if "$here/rog5-charge-policy" bogus 2>/dev/null; then echo 'FAIL unknown command
 
 # The loop: applies the config and keeps running.
 rm -rf $t/state
-ROG5_CHG_POLL=1 "$here/rog5-charge-policy" & pid=$!
+# Own process group: the daemon's poll sleep outlives the daemon itself.
+ROG5_CHG_POLL=1 setsid "$here/rog5-charge-policy" & pid=$!
 sleep 2
-kill $pid; wait $pid 2>/dev/null || true
+stop_loop
 [ "$(cat $b/charge_control_end_threshold)" = 80 ] || { echo 'FAIL loop did not apply the limit'; exit 1; }
 echo PASS rog5-charge-policy

@@ -30,6 +30,7 @@ os.environ.update({
     'ROG5_SHELL_GDM_BIN': str(TMP / 'usr/bin/gdm'),
     'ROG5_SHELL_GREETER_MONITORS': str(TMP / 'etc/xdg/monitors.xml'),
     'ROG5_SHELL_KMSG': str(TMP / 'kmsg'),
+    'ROG5_SHELL_BOOT_ID': str(TMP / 'boot_id'),
     'ROG5_SHELL_PHONE_USER': __import__('pwd').getpwuid(os.getuid()).pw_name,
 })
 loader = importlib.machinery.SourceFileLoader('rog5_shell', str(HERE / 'rog5-shell'))
@@ -324,6 +325,9 @@ class WatchdogStartup(unittest.TestCase):
         self.assertIn('touchscreen', (rs.STATE_DIR / 'shell-fallback').read_text())
 
     def test_ready_then_supervises_quietly(self):
+        (TMP / 'boot_id').write_text('0d5c1d8e-2a4f-4b61-9d0e-3f1a2b3c4d5e\n')
+        ready = rs.RUN_DIR / 'mobile-ready'
+        ready.unlink(missing_ok=True)
         f = FakeSystem()
         mobile_up(f)
         wd = rs.Watchdog(f)
@@ -331,6 +335,16 @@ class WatchdogStartup(unittest.TestCase):
             self.assertIsNone(wd.step())
             f.sleep(rs.POLL_S)
         self.assertTrue(wd.ready)
+        self.assertEqual(ready.read_text(), 'boot_id=0d5c1d8e-2a4f-4b61-9d0e-3f1a2b3c4d5e\n')
+
+    def test_never_ready_records_no_readiness(self):
+        ready = rs.RUN_DIR / 'mobile-ready'
+        ready.unlink(missing_ok=True)
+        f = FakeSystem()
+        mobile_up(f)
+        f.touch_pids = set()
+        run_watchdog(f)
+        self.assertFalse(ready.exists())
 
     def test_late_greeter_within_window(self):
         f = FakeSystem()
@@ -802,12 +816,38 @@ class ReviewFixes(unittest.TestCase):
     def test_rog5_gnome_cleanup_only_after_setup(self):
         text = (REPO / 'configs/systemd/rog5-gnome.service').read_text()
         pre = unit_lines(REPO / 'configs/systemd/rog5-gnome.service', 'ExecStartPre')
-        self.assertEqual(pre[0], '+/bin/touch /run/rog5-gnome.setup')
+        # the lock gate comes first, before the setup marker
+        self.assertEqual(pre[0], '+/usr/local/libexec/rog5-desktop-mode --gate')
+        self.assertEqual(pre[1], '+/bin/touch /run/rog5-gnome.setup')
         post = unit_lines(REPO / 'configs/systemd/rog5-gnome.service', 'ExecStopPost')
         for line in post[:-1]:
             self.assertIn('[ -e /run/rog5-gnome.setup ] || exit 0;', line)
         self.assertEqual(post[-1], '+/bin/rm -f /run/rog5-gnome.setup')
         self.assertIn('ExecStart=/usr/bin/gnome-session', text)
+
+    def test_gnome_starts_only_through_the_lock_aware_switcher(self):
+        # Audit 2026-10-02: polkit's "active" says nothing about the lock, so
+        # the phone user may not start rog5-gnome.service directly.
+        rules = (REPO / 'configs/polkit/60-rog5-desktop-mode.rules').read_text()
+        code = '\n'.join(l for l in rules.splitlines() if not l.lstrip().startswith('//'))
+        self.assertNotIn('rog5-gnome.service', code)
+        self.assertIn('"rog5-desktop-request.service"', code)
+        self.assertIn('"rog5-phosh.service"', code)
+        self.assertIn('subject.local && subject.active', code)
+        launcher = (REPO / 'configs/applications/rog5-desktop-mode.desktop').read_text()
+        self.assertIn('Exec=systemctl start --no-block rog5-desktop-request.service', launcher)
+        req = (REPO / 'configs/systemd/rog5-desktop-request.service').read_text()
+        self.assertIn('ExecStart=/usr/local/libexec/rog5-desktop-mode --request', req)
+        self.assertIn('Requisite=rog5-desktop-mode.service', req)
+        gnome = (REPO / 'configs/systemd/rog5-gnome.service').read_text()
+        self.assertIn('BindsTo=rog5-desktop-mode.service', gnome)
+        after = unit_lines(REPO / 'configs/systemd/rog5-gnome.service', 'After')
+        self.assertTrue(any('rog5-desktop-mode.service' in a.split() for a in after))
+        self.assertNotIn('Restart=', gnome)
+        sw = (REPO / 'configs/systemd/rog5-desktop-mode.service').read_text()
+        self.assertIn('OnFailure=rog5-phosh.service', sw)
+        manifest = (REPO / 'configs/rootfs/userspace.tsv').read_text()
+        self.assertIn('configs/systemd/rog5-desktop-request.service\t/etc/systemd/system/rog5-desktop-request.service', manifest)
 
     def test_watchdog_failure_falls_back(self):
         wd = (REPO / 'configs/systemd/rog5-shell-watchdog.service').read_text()

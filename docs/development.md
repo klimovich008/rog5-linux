@@ -15,8 +15,18 @@ tiers, deadline, prerequisites, resource class and declared optional
 subchecks. `bash scripts/host/test-repository-linux.sh --list TIER` prints a
 tier; `scripts/host/test-repository-linux.sh TIER` runs it (see CLAUDE.md for
 the recorded environment). Every tier first runs
-`python3 scripts/host/check-repository-static.py` (context entry points, local
-Markdown links in the live docs, shell/Python syntax, secret scan).
+`python3 scripts/host/check-repository-static.py` (context entry points, tracked
+test suites and required inputs, local Markdown links in the live docs,
+shell/Python syntax, secret scan).
+
+After preparing a public export, run that static check in the exported Git
+checkout before publishing. Keep every registered suite and required input,
+including extensionless host tools such as `scripts/host/rog5-device-profile`
+and the tracked binaries, hashes and metadata in
+`artifacts/persistent-trial-state-v{1,2,3}/`. The ignored `artifacts/` parent
+does not make those tracked source inputs disposable. Test the clean exported
+checkout with the workflow's boot-tool bootstrap and the selected tier;
+ignored files in a private worktree must not supply missing publication inputs.
 
 The runner writes per-suite logs plus `summary.json` and JUnit `summary.xml`
 under `build/test-reports/` (or a fresh `ROG5_TEST_REPORT_DIR`). Missing
@@ -219,6 +229,11 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   (default line) keep the rN of their directory. Register a new composition
   with `scripts/host/rog5-bundle-registry.py add-dtb --dtb <state>/<dir>/board.dtb
   --features <list> --base d9`; it takes the next free id, from d10.
+  `requires` lists the production-series patch files and `.config` symbols
+  the DTB needs (`--require-patch NAME`, `--require-config SYM=y|m`); a DTB
+  inherits its base chain's requirements, and `rog5-make-bundle.py` (also with
+  `--plan`) refuses a kernel build that lacks one. `kernel_requires` is only
+  the free text of the table.
 - **Bundles** are `<role>-k<kernel>-d<dtb>-<YYMMDD><letter>`, for example
   `main-k111-d9-261001a`. `main` is built with a fresh try-once descriptor,
   `safe` (a fallback) without one. The letter is the first free one of the
@@ -235,7 +250,16 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   digest matches the snapshot; otherwise a new one is packaged from the
   snapshot (`--fresh-modules` forces that). A legacy `modules-7.2.7-rNNN`
   is used only when the build's objects are gone (k69), and the registry
-  notes it. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
+  notes it. Every board module in the package, new, reused or legacy, must
+  match the build's `module-provenance.json`, whose hash `result.json`
+  records; the packager also checks `.config`, `Module.symvers`, `System.map`
+  and the Image against `result.json` before it compiles the externals.
+  The package must hold exactly the selection's board and external modules
+  (a legacy package: only provenance-matching ones) and every module the
+  DTB `requires`; the ramdisk builder gets a private checked copy.
+  `bundle-inputs.json` and registries inside the source repository must equal
+  HEAD's copies. Their hashes are recorded, including explicit external
+  registry overrides. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
   `ROG5_*` or `PYTHON*` variables. The ramdisk is built with the pinned inputs of
   `configs/production/bundle-inputs.json` and must carry exactly the new
   descriptor (main) or none (safe), plus the current init. Then
@@ -312,8 +336,10 @@ trial descriptor:
    `PRODUCTION_TRIAL_DESCRIPTOR=<file> PRODUCTION_TRIAL_DESCRIPTOR_SHA256=<sha>`
    and packages it with `--bundle <new bundle>`.
 2. RAM-trial that wrapper. `rog5-production-trial-commit.service` must log
-   `rog5-production-trial: SKIP …` (the record belongs to another trial) and
-   leave the record unchanged.
+   `rog5-production-trial: SKIP RAM boot …` and leave the record unchanged.
+   The trusted wrapper loader appends `rog5.boot_origin=ram` to the verified
+   command line; even a matching installed descriptor cannot commit in RAM.
+   Rebuild the wrapper to obtain this guard; an older wrapper does not add it.
 3. `install-default-kernel.py --bundle-dir <package>/bundles/<bundle>
    --descriptor <file> --trust-key <raw loader key> --evidence <new dir>`
    from any booted ROG5 system. It verifies both bundles with the trust key
@@ -338,7 +364,27 @@ trial descriptor:
    be new on p24 and carry no trial descriptor, and the new selector names
    it.
 4. Reboot normally. The first boot writes a pending record and boots the
-   bundle, and the unit logs `PASS <bundle> committed healthy`. The next
+   bundle, and the unit logs `PASS <bundle> committed healthy ... (local
+   shell: <session>)`. Healthy means: current-boot P2 and SSH identity, sshd
+   listening, only the userdata window writable, battery below 45 °C, the
+   init's module publication record (`/run/rog5-production-modules.record`
+   for this release), `rog5-platform-modules.service` succeeded (its failure
+   fails the commit at once), and the local shell reached its lock screen
+   once: the logind session led by `rog5-phosh.service` with
+   `LockedHint=yes` (needs packages/phosh 0002), a DSI connector enabled with
+   DPMS On, and nonzero actual backlight brightness. The unit polls before
+   SSH readiness; if an early unlock beats its first observation, it requests
+   one lock per session and waits for `LockedHint=yes`. This can cause one
+   extra unlock during early boot. Once observed, the lock is
+   latched in `/run/rog5-production-trial-shell` (boot-bound), so an unlock,
+   a desktop-mode switch or a unit restart afterwards does not matter. A
+   GNOME Mobile boot needs GDM active and the boot-bound
+   `/run/rog5-shell/mobile-ready` that `rog5-shell watchdog` writes once the
+   greeter's shell answers, holds the touchscreen and lit the panel. Trade-off for server
+   use: a boot whose display or Phosh fails while SSH works stays pending,
+   so the next boot takes the fallback (which also gives SSH). A headless
+   phone (`systemctl disable rog5-phosh.service`, or no Phosh installed)
+   commits without the local shell. The next
    reboot must land on the same bundle. Record it:
    `rog5-bundle-registry.py set <bundle> --status installed-main --healthy yes
    --installed '<date time>'` (and `installed-fallback` for a new fallback).
@@ -396,13 +442,23 @@ that upper without user data:
   `var/lib/systemd/coredump`, `var/log/journal`, `var/cache/pacman/pkg`;
   20.8 of 27.0 GB on 2026-09-30, so a snapshot is about 6 GB). The v2 seal
   holds an entry count, a hash of the name list and `excluded=`. The space
-  check counts upper without those paths. It writes `pending
-  action=restore`, upgrades the
+  check counts upper without those paths. Before the snapshot it downloads
+  the upgrade (`pacman -Suw`: no hooks, no installs), so a mirror or
+  network failure costs no snapshot and retries hourly; a plan with a new
+  `archlinuxarm-keyring` skips this, because new keys verify only after
+  the keyring upgrade. It writes `pending action=restore`, upgrades the
   keyring first, then `pacman -Su`, then runs `verify-root`. On a pass it
   rewrites pending to `action=verify` and reboots once the backlight is
-  off (`ROG5_UPDATE_REBOOT=idle|now|never`). On a failure the restore stays
-  armed and the phone reboots at once. A transaction that changed nothing is
-  discarded without a reboot.
+  off (`ROG5_UPDATE_REBOOT=idle|now|never`). On any failure the restore
+  stays armed and the phone reboots at once: unchanged package versions do
+  not prove unchanged files (a PreTransaction hook with `AbortOnFail`).
+  The previous good snapshot stays until the new update commits, and a
+  commit names its snapshot in `rog5-update/last-good` (the target of a
+  manual `rollback`). The copy's `db.lck` holds a random token that is
+  recorded durably in `rog5-update/snapshot-lock` before the lock is linked
+  into place; a signal, and after a kill or power loss the next run (before
+  any admission check), removes only a `db.lck` holding that token, never
+  pacman's own lock, and stale `.tmp-*` copies go too.
 - **Init.** Before the overlay mounts, the first boot with a `verify` pending
   record writes `attempt`. A second boot without a commit, or any `restore`
   record, renames the sealed snapshot into place. It keeps the old upper as
@@ -423,21 +479,26 @@ that upper without user data:
   snapshot that matches its seal. Anything else leaves upper as it is. All
   the existing checks then run on the result.
 - **commit** runs after the trial commit and after `systemd-update-done`. It
-  waits for the trial commit's health gate, then reruns `verify-root`. On a
+  requires the current-boot `/run/rog5-production-health` record when the
+  trial kit is present (ordering alone does not propagate a failed unit),
+  then reruns `verify-root`. On a
   pass it records `committed`, keeps only this update's snapshot as the last
   good root, and empties the package cache. A root that fails is armed for
   restore and rebooted.
 - **Operate:** `/run/rog5-update/rog5-update status|verify-root|resume|rollback`.
   After two failed updates in a row, the same plan waits for new package
   versions. After three, updates pause until `resume`. `rollback` arms a
-  manual restore to the kept snapshot.
+  manual restore to the `last-good` snapshot (without that record, to the
+  single kept snapshot; one consumed by a rollback, with `failed-upper` and
+  no `upper`, does not count).
 
 `verify-root` checks the merged-root conditions that the next boot enforces.
 A package can trip them:
 
 - **`filesystem`, `shadow`, `systemd` (sysusers):** `/etc/shadow` must be
-  0:0 600 with one hard link and exactly `root:x:<n>::::::` (P2). A root
-  crypt hash passes the init but fails P2.
+  0:0 600 with one hard link and exactly `root:x:<n>::::::`, consistently
+  in init, P2 and `verify-root`. Root crypt passwords are rejected; the Phosh
+  PIN belongs to the separate `phone` account.
 - **`openssh`:** the effective `sshd -T` policy must still be key-only root
   with `usepam no`. `ssh-keygen -y` and `-lf` must work. `/usr/bin/sshd`
   must stay the listener. The `10-rog5-server.conf` drop-in is unowned and
@@ -471,8 +532,12 @@ Limits:
   lower shows below it.
 - User data (`snapshot_excludes`) is not rolled back. A package's files there
   (e.g. under `/var/lib/flatpak`) keep their updated state after a rollback.
-- Files that services rewrite during the copy can be torn. pacman's own
-  files are consistent.
+- Files that services rewrite during the copy can be torn (tar status 1 is
+  accepted). pacman's own files are consistent. Server data belongs under
+  an excluded path or `/persist`; adding an exclude needs the init's
+  `update_snapshot_excludable` extended first and a fallback built from
+  that init, because an older init refuses a seal that names an unknown
+  path.
 
 ### Human-assisted hardware sessions
 
@@ -594,4 +659,3 @@ The native RAM loader and transaction are
 `scripts/device/execute-native-ram-bundle-transaction.sh`; host admission must
 precede them. Neither this command front door nor packaging consumes a claim.
 Never retry an ambiguous or post-COMMIT experimental target.
-

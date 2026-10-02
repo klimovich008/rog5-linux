@@ -224,6 +224,37 @@ WW33 vendor_a partition (read-only on 2026-10-01).
   boot, so the first load can be watched and a failure cannot repeat at the
   next boot.
 
+## Applications
+
+Measured 2026-10-02 on k116 (H.264/HEVC decoder exposed):
+
+- **Chromium 153** has the V4L2 stateful decoder built in, but desktop Linux
+  keeps it off until the `AcceleratedVideoDecoder` feature is enabled.
+  `configs/chromium/chromium-flags.conf` (installed as
+  `/etc/chromium-flags.conf`) enables it together with `V4L2VideoDecoder`,
+  ANGLE on GLES and `--ignore-gpu-blocklist`; `72-rog5-v4l2-names.rules`
+  adds the `/dev/video-dec0` / `/dev/video-enc0` names Chromium looks for.
+  A 1080p30 H.264 clip decoded 711 frames in 24 s with no errors or software
+  fallback; YouTube 1080p60 H.264 (avc1.64002a) kept the engine busy 100% of
+  the time and the renderer dropped from ~120% to ~55% CPU. chrome://gpu
+  still says "Video Decode: Software only" (ANGLE reports vendor 0x0000), so
+  check the DevTools Media panel (`V4L2VideoDecoder`) instead.
+- **Not enabled by default: the firmware wedges under YouTube.** After ~15 s
+  of YouTube 1080p60 (20:32:11, k116) a STOP/RELEASE answer carried an HFI
+  error (`stop/release failed: -5`; the error code is not logged), then every
+  new session failed to open, END was never acknowledged (`no end
+  acknowledgement (-110) ... leaking its buffers`) and the core could not
+  power-collapse (`failed to suspend` every 2 s) until reboot. Chromium fell
+  back to software decoding without a visible error. The installer therefore
+  does not ship `chromium-flags.conf` yet; a single local clip played cleanly,
+  so the trigger is likely YouTube's quality switches or its many short
+  decoder sessions.
+- VP9 and AV1 streams still decode in software (VP9 is not exposed until it
+  passes its trial; an extension such as enhanced-h264ify makes YouTube pick
+  H.264). AV1 has no
+  hardware decoder on SM8350; dav1d in software handles 1080p30 at 6.4x,
+  1440p60 at 2.7x and 4K30 at 2.5x real time.
+
 ## Trial
 
 Not run. Bundle, install, firmware and test steps: [Trial plan](#trial-plan).

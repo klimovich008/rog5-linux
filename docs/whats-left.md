@@ -135,7 +135,7 @@ Details and causes: [`user-irritations.md`](user-irritations.md).
 | 11 | Hotspot | Turn on the Wi-Fi hotspot, connect another device | Internet on the other device? |
 | 12 | Boot screen | Reboot and watch the screen | What glitches do you see and when? |
 | 13 | HDMI hub | With the hub's HDMI converter plugged in, while I run HDMI compatibility tests | Picture or not, per step |
-| 14 | Next fastboot visit | Run `fastboot getvar all` (read-only) | Paste the output (slot flags) |
+| 14 | Next fastboot visit | Run `fastboot getvar current-slot`, `fastboot getvar slot-retry-count:b`, `fastboot getvar slot-successful:b` and `fastboot getvar slot-unbootable:b` (read-only; not `getvar all`, whose serials and identifiers stay private) | Paste those four lines |
 | 15 | Bypass below full | With a PD charger (not the hub) and the battery below 80 %, while I switch bypass on | Does the charger keep the phone running without charging? |
 | 16 | Games | BioShock with native ARM64 Proton (DXVK 3); Dota 2 for 30 min (it crashed with SIGBUS before memx) | Starts? Crashes? |
 | 17 | USB stick at boot | Boot with a stick plugged in, log in, then replug it | Did it show up once in Files, and can you open it? |

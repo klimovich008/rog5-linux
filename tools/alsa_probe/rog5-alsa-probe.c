@@ -33,10 +33,17 @@ typedef long ssize_t;
 #define NR_EXIT 93
 #define NR_NANOSLEEP 101
 #define NR_MMAP 222
+#define LONG_MAX_ 0x7fffffffffffffffL
 #define AT_FDCWD -100
 #define O_RDWR 2
 #define O_WRONLY 1
 
+#ifdef ROG5_ALSA_PROBE_HOST_TEST
+/* scripts/device/test-rog5-alsa-probe.py: a host build with fake syscalls */
+long sys3(long n, long a, long b, long c);
+long sys4(long n, long a, long b, long c, long d);
+long sys6(long n, long a, long b, long c, long d, long e, long f);
+#else
 static long sys3(long n, long a, long b, long c)
 {
 	register long x0 __asm__("x0") = a;
@@ -60,6 +67,21 @@ static long sys4(long n, long a, long b, long c, long d)
 	return x0;
 }
 
+static long sys6(long n, long a, long b, long c, long d, long e, long f)
+{
+	register long x0 __asm__("x0") = a;
+	register long x1 __asm__("x1") = b;
+	register long x2 __asm__("x2") = c;
+	register long x3 __asm__("x3") = d;
+	register long x4 __asm__("x4") = e;
+	register long x5 __asm__("x5") = f;
+	register long x8 __asm__("x8") = n;
+
+	__asm__ volatile("svc #0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5), "r"(x8)
+			 : "memory");
+	return x0;
+}
+
 void *memset(void *d, int c, size_t n)
 {
 	unsigned char *p = d;
@@ -78,6 +100,8 @@ void *memcpy(void *d, const void *s, size_t n)
 		*p++ = *q++;
 	return d;
 }
+
+#endif
 
 static size_t slen(const char *s)
 {
@@ -144,9 +168,10 @@ static void flush(void)
 	used = 0;
 }
 
+/* A decimal long; *ok = 0 for anything else, including values out of range */
 static long parse(const char *s, int *ok)
 {
-	long v = 0;
+	unsigned long v = 0, limit;
 	int neg = *s == '-';
 
 	*ok = 0;
@@ -154,10 +179,20 @@ static long parse(const char *s, int *ok)
 		s++;
 	if (!*s)
 		return 0;
-	while (*s >= '0' && *s <= '9')
-		v = v * 10 + (*s++ - '0');
-	*ok = !*s;
-	return neg ? -v : v;
+	limit = neg ? (unsigned long)LONG_MAX_ + 1 : (unsigned long)LONG_MAX_;
+	while (*s >= '0' && *s <= '9') {
+		unsigned long d = (unsigned long)(*s++ - '0');
+
+		if (v > (limit - d) / 10)
+			return 0;
+		v = v * 10 + d;
+	}
+	if (*s)
+		return 0;
+	*ok = 1;
+	if (neg)
+		return v == (unsigned long)LONG_MAX_ + 1 ? -LONG_MAX_ - 1 : -(long)v;
+	return (long)v;
 }
 
 static void pause_ms(long ms)
@@ -228,6 +263,8 @@ _Static_assert(sizeof(struct elem_value) == 1224, "elem_value");
 #define TYPE_BOOLEAN 1
 #define TYPE_INTEGER 2
 #define TYPE_ENUMERATED 3
+/* value.integer[] and value.enumerated[] hold 128 entries */
+#define MAX_VALUES 128
 
 struct mask { unsigned int bits[8]; };
 struct interval {
@@ -331,11 +368,50 @@ static int ctl_info(int fd, int i)
 	return (int)sys3(NR_IOCTL, fd, CTL_INFO, (long)&info);
 }
 
-static void enum_name(int fd, int i, unsigned int item)
+/*
+ * get/set handle BOOLEAN, INTEGER and ENUMERATED controls of at most
+ * MAX_VALUES values only: a BYTES control may have 512 values (and IEC958 or
+ * INTEGER64 use other layouts), which the long/unsigned int arrays of
+ * struct elem_value cannot hold. Leaves the control's info in "info".
+ */
+static int ctl_scalar(int fd, int i, const char *name)
 {
-	ctl_info(fd, i);
+	if (ctl_info(fd, i) < 0) {
+		put("no info for ");
+		put(name);
+		flush();
+		return 0;
+	}
+	if ((info.type != TYPE_BOOLEAN && info.type != TYPE_INTEGER &&
+	     info.type != TYPE_ENUMERATED) || info.count == 0 || info.count > MAX_VALUES) {
+		put("unsupported control ");
+		put(name);
+		put(" type=");
+		putn(info.type);
+		put(" count=");
+		putn(info.count);
+		flush();
+		return 0;
+	}
+	return 1;
+}
+
+/* The name of enumerated item "item" in info.value.enumerated.name; 0 on error */
+static int enum_name(int fd, int i, unsigned int item)
+{
+	if (ctl_info(fd, i) < 0)
+		return 0;
 	info.value.enumerated.item = item;
-	sys3(NR_IOCTL, fd, CTL_INFO, (long)&info);
+	info.value.enumerated.name[0] = 0;
+	if (sys3(NR_IOCTL, fd, CTL_INFO, (long)&info) < 0 || info.type != TYPE_ENUMERATED ||
+	    info.value.enumerated.item != item) {
+		put("no name for item ");
+		putn(item);
+		flush();
+		return 0;
+	}
+	info.value.enumerated.name[sizeof(info.value.enumerated.name) - 1] = 0;
+	return 1;
 }
 
 static int cmd_list(const char *card)
@@ -370,7 +446,8 @@ static int cmd_get(const char *card, const char *name)
 
 	if (fd < 0 || (i = ctl_find(fd, name)) < 0)
 		return 2;
-	ctl_info(fd, i);
+	if (!ctl_scalar(fd, i, name))
+		return 4;
 	memset(&val, 0, sizeof(val));
 	val.id = ids[i];
 	if (sys3(NR_IOCTL, fd, CTL_READ, (long)&val) < 0)
@@ -382,7 +459,8 @@ static int cmd_get(const char *card, const char *name)
 		if (info.type == TYPE_ENUMERATED) {
 			unsigned int item = val.value.enumerated[k];
 
-			enum_name(fd, i, item);
+			if (!enum_name(fd, i, item))
+				return 3;
 			put(info.value.enumerated.name);
 		} else {
 			putn(val.value.integer[k]);
@@ -404,18 +482,21 @@ static int cmd_set(const char *card, const char *name, const char *value)
 		flush();
 		return 2;
 	}
-	ctl_info(fd, i);
+	if (!ctl_scalar(fd, i, name))
+		return 4;
 	memset(&val, 0, sizeof(val));
 	val.id = ids[i];
 	if (info.type == TYPE_ENUMERATED) {
 		unsigned int items = info.value.enumerated.items, item = items;
 
 		for (unsigned int k = 0; k < items; k++) {
-			enum_name(fd, i, k);
+			if (!enum_name(fd, i, k))
+				return 3;
 			if (seq(info.value.enumerated.name, value))
 				item = k;
 		}
-		ctl_info(fd, i);
+		if (!ctl_scalar(fd, i, name))
+			return 4;
 		if (item == items) {
 			v = parse(value, &ok);
 			if (!ok || v < 0 || (unsigned long)v >= items)
@@ -425,9 +506,21 @@ static int cmd_set(const char *card, const char *name, const char *value)
 		for (unsigned int k = 0; k < info.count; k++)
 			val.value.enumerated[k] = item;
 	} else {
+		long lo = 0, hi = 1;
+
+		if (info.type == TYPE_INTEGER) {
+			lo = info.value.integer.min;
+			hi = info.value.integer.max;
+		}
 		v = parse(value, &ok);
-		if (!ok)
+		if (!ok || v < lo || v > hi) {
+			put("value out of range ");
+			putn(lo);
+			put("..");
+			putn(hi);
+			flush();
 			return 4;
+		}
 		for (unsigned int k = 0; k < info.count; k++)
 			val.value.integer[k] = v;
 	}
@@ -630,18 +723,8 @@ static int cmd_mmaptest(const char *card, const char *device)
 	flush();
 	if (rc < 0)
 		return 3;
-	{
-		register long x0 __asm__("x0") = 0;
-		register long x1 __asm__("x1") = (long)bytes;
-		register long x2 __asm__("x2") = 3;	/* PROT_READ | PROT_WRITE */
-		register long x3 __asm__("x3") = 1;	/* MAP_SHARED */
-		register long x4 __asm__("x4") = fd;
-		register long x5 __asm__("x5") = 0;	/* SNDRV_PCM_MMAP_OFFSET_DATA */
-		register long x8 __asm__("x8") = NR_MMAP;
-
-		__asm__ volatile("svc #0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5), "r"(x8) : "memory");
-		buf = (volatile unsigned char *)x0;
-	}
+	/* PROT_READ | PROT_WRITE, MAP_SHARED, offset SNDRV_PCM_MMAP_OFFSET_DATA */
+	buf = (volatile unsigned char *)sys6(NR_MMAP, 0, (long)bytes, 3, 1, fd, 0);
 	put("mmap=");
 	putn((long)buf);
 	flush();
@@ -691,6 +774,7 @@ static int run(int argc, char **argv)
 	return 1;
 }
 
+#ifndef ROG5_ALSA_PROBE_HOST_TEST
 __attribute__((used)) static void start_c(unsigned long *sp)
 {
 	sys3(NR_EXIT, run((int)sp[0], (char **)(sp + 1)), 0, 0);
@@ -702,3 +786,4 @@ __attribute__((naked)) void _start(void)
 {
 	__asm__ volatile("mov x0, sp\n\tb start_c");
 }
+#endif

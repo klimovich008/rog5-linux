@@ -1,6 +1,6 @@
 {
   "format": "rog5-dtb-registry-v1",
-  "comment": "Board DTBs that bundles use, by stable id dN. Paths are relative to root; each DTB directory also holds a 'features' file with the same id, sha256 and features. d2/d3 (fallback line) and d7-d9 (default line) keep the rN of their directory; new DTBs take the next free number from d10 (scripts/host/rog5-bundle-registry.py add-dtb). docs/bundles.md is generated from this file and bundles.json.",
+  "comment": "Board DTBs that bundles use, by stable id dN. Paths are relative to root; each DTB directory also holds a 'features' file with the same id, sha256 and features. d2/d3 (fallback line) and d7-d9 (default line) keep the rN of their directory; new DTBs take the next free number from d10 (scripts/host/rog5-bundle-registry.py add-dtb). docs/bundles.md is generated from this file and bundles.json. 'requires' is the machine-readable kernel requirement: production-series patch file names and .config symbols (value y, m or y|m) the kernel build must carry and modules (paths under kernel/) its module package must carry; a DTB inherits the requirements of its base chain, and rog5-make-bundle.py refuses a kernel build that lacks any of them. 'kernel_requires' stays as free text for the generated table.",
   "root": "~/.local/state/rog5-production-boot-20260923",
   "dtbs": {
     "d2": {
@@ -10,6 +10,11 @@
       "base": null,
       "created": "2026-09-28",
       "kernel_requires": "0089 (bottom-port 5 V regulator)",
+      "requires": {
+        "patches": [
+          "0089-power-supply-qcom_battmgr-ROG5-bottom-port-5V-source-regulator.patch"
+        ]
+      },
       "notes": "Bottom USB-C stage A (5 V by hand); no cpucap, no SBU mux; the r160 default and the safe-r6/safe-r7 fallback DTB."
     },
     "d3": {
@@ -19,6 +24,7 @@
       "base": "d2",
       "created": "2026-09-30",
       "kernel_requires": "0089",
+      "requires": {},
       "notes": "d2 plus only the memx node (fdtoverlay; the dts diff is exactly memory@34a000000, kept as dts-vs-platform-usbbtm-dtb-r2.diff). Fallback DTB of safe-r8."
     },
     "d7": {
@@ -28,6 +34,15 @@
       "base": null,
       "created": "2026-09-30",
       "kernel_requires": "0089, 0121-0124 (cs35l45 dsp-part-name)",
+      "requires": {
+        "patches": [
+          "0089-power-supply-qcom_battmgr-ROG5-bottom-port-5V-source-regulator.patch",
+          "0121-ASoC-cs35l45-ROG5-name-the-DSP-firmware-by-cirrus-dsp-part-name.patch",
+          "0122-ASoC-cs35l45-ROG5-vendor-boost-LDPM-and-BBPE-settings-while-protection-runs.patch",
+          "0123-firmware-cs_dsp-fail-a-coefficient-load-on-a-write-error-add-a-pre_load_coeff-hook.patch",
+          "0124-ASoC-cs35l45-ROG5-do-not-start-the-protection-firmware-without-a-valid-calibration.patch"
+        ]
+      },
       "notes": "2-lane DP through the SBU mux, HBR2 link cap, MultiMedia1/2 playback-only, speaker DSP part names. Feature list read back from the DTB (not recorded at build time)."
     },
     "d8": {
@@ -37,6 +52,16 @@
       "base": "d7",
       "created": "2026-09-30",
       "kernel_requires": "0136-0139 (4-lane DP); usbbtmtc needs 0144 and 0146",
+      "requires": {
+        "patches": [
+          "0136-phy-qcom-qmp-combo-ROG5-report-the-routed-DP-lanes-defer-mode-switches-to-the-next-PHY-init.patch",
+          "0137-drm-msm-dp-ROG5-use-at-most-the-lanes-the-Type-C-pin-assignment-routes-propagate-PHY-errors.patch",
+          "0138-drm-msm-dp-ROG5-HBR3-opt-in-dp_hbr3-and-a-dp_max_lanes-cap.patch",
+          "0139-drm-msm-dpu-ROG5-dpu_mode_clk_check-full-or-halved-for-A-B-tests-of-0114.patch",
+          "0144-irqchip-qcom-pdc-program-the-SPI-edge-level-config-register.patch",
+          "0146-usb-typec-tcpm-source-only-port-without-toggling-look-at-CC-when-the-port-reset-ends.patch"
+        ]
+      },
       "notes": "4-lane DP on the side port; bottom USB-C stage B (RT1715 + TCPM, source-only 5 V). With k105 (no 0144) the RT1715 ALERT never fired."
     },
     "d9": {
@@ -46,6 +71,7 @@
       "base": "d8",
       "created": "2026-09-30",
       "kernel_requires": "0136-0139, 0144, 0146",
+      "requires": {},
       "notes": "d8 plus memx (no-map 64 MiB at 0x34a000000, the DDR that aborts on instruction fetch). Default DTB since r204."
     },
     "d10": {
@@ -55,6 +81,7 @@
       "base": "d9",
       "created": "2026-10-01",
       "kernel_requires": "",
+      "requires": {},
       "notes": "d9 + l11off (PM8350C L11 antenna rail disabled by late cleanup)"
     },
     "d11": {
@@ -64,6 +91,7 @@
       "base": "d10",
       "created": "2026-10-01",
       "kernel_requires": "",
+      "requires": {},
       "notes": "RAM trial A passed: d10 + compose-memslim-dtb.sh stockcma (frees 0xcbc00000-0xd7ffffff, 196 MiB)"
     },
     "d12": {
@@ -73,6 +101,7 @@
       "base": "d10",
       "created": "2026-10-01",
       "kernel_requires": "",
+      "requires": {},
       "notes": "RAM trial B passed: d10 + compose-memslim-dtb.sh stockcma,ionpool (d11 + frees 0xedc00000-0xef7fffff and 0xf3800000-0xf9bfffff, 128 MiB)"
     },
     "d13": {
@@ -82,6 +111,7 @@
       "base": "d10",
       "created": "2026-10-01",
       "kernel_requires": "",
+      "requires": {},
       "notes": "RAM trials A-C passed 2026-10-01; default main DTB: d10 + compose-memslim-dtb.sh stockcma,ionpool,pil (d12 + frees modem 0x8b800000 256 MiB, camera 0x85200000 and cvp 0x85c00000 5 MiB each)"
     },
     "d14": {
@@ -91,6 +121,21 @@
       "base": "d13",
       "created": "2026-10-01",
       "kernel_requires": "0154-0156, rog5-video.fragment (k114); video-modules kit",
+      "requires": {
+        "patches": [
+          "0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch",
+          "0155-dt-bindings-media-qcom-venus-common-Allow-IOVA-reservation-memory-region.patch",
+          "0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch"
+        ],
+        "config": {
+          "CONFIG_SM_VIDEOCC_8350": "y|m",
+          "CONFIG_VIDEO_QCOM_IRIS": "y|m"
+        },
+        "modules": [
+          "drivers/clk/qcom/videocc-sm8350.ko",
+          "drivers/media/platform/qcom/iris/qcom-iris.ko"
+        ]
+      },
       "notes": "REJECTED, never in a bundle: the slot-B loader verifier (rog5-bundle-verify) refuses /reserved-memory/iris-iova (reserved-memory child without reg) when packaging main-k114-d14-261001a; superseded by d15 (same nodes, iris-iova as a root child). d13 + compose-video-dtb.sh iris-v1."
     },
     "d15": {
@@ -100,6 +145,21 @@
       "base": "d13",
       "created": "2026-10-01",
       "kernel_requires": "0154-0156, rog5-video.fragment (k114); video-modules kit",
+      "requires": {
+        "patches": [
+          "0154-media-iris-power-the-core-off-when-the-firmware-does-not-come-up.patch",
+          "0155-dt-bindings-media-qcom-venus-common-Allow-IOVA-reservation-memory-region.patch",
+          "0156-iommu-arm-smmu-qcom-ROG5-SM8350-report-stream-routes-the-hypervisor-did-not-take.patch"
+        ],
+        "config": {
+          "CONFIG_SM_VIDEOCC_8350": "y|m",
+          "CONFIG_VIDEO_QCOM_IRIS": "y|m"
+        },
+        "modules": [
+          "drivers/clk/qcom/videocc-sm8350.ko",
+          "drivers/media/platform/qcom/iris/qcom-iris.ko"
+        ]
+      },
       "notes": "TRIAL: d13 + compose-video-dtb.sh iris-v2 (dts/qcom/sm8350-asus-rog-phone5-video.dtso): Iris v2 video-codec@aa00000 (qcom,sm8350-iris + sm8250-venus fallback, firmware qcom/sm8350/vpu20_4v.mbn), videocc@abf0000, /iris-iova (IOVA [0, 0x25800000), root child because the loader verifier refuses reg-less reserved-memory children); otherwise d13 byte for byte"
     }
   }

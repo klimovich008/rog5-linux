@@ -19,7 +19,7 @@ Then open http://127.0.0.1:8765/ (the page opens automatically).
   read afterwards.
 Listens on 127.0.0.1 only.
 """
-import argparse, datetime, html, json, os, shlex, subprocess, sys, threading, webbrowser
+import argparse, datetime, html, json, os, secrets, shlex, subprocess, sys, tempfile, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -42,10 +42,28 @@ LOG = Path.home()/'.local/state/rog5-brightness-lab/observations.jsonl'
 LOCK = threading.Lock()
 
 
+# One random token per lab run: the page sends it with every API call, so a
+# web page from another origin (which cannot read the page) cannot drive it.
+TOKEN = secrets.token_urlsafe(24)
+
+
 class Phone:
     def __init__(self, address):
         self.address = address
-        self.control = f'/tmp/rog5-brightness-lab-{os.getuid()}.sock'
+        # a private directory per lab run and a per-destination socket (%C):
+        # never another instance's master connection to another address
+        self.control_dir = tempfile.mkdtemp(prefix='rog5-brightness-lab.')
+        self.control = os.path.join(self.control_dir, '%C')
+
+    def close(self):
+        subprocess.run(['ssh', '-F', '/dev/null', '-o', f'ControlPath={self.control}', '-O', 'exit',
+                        f'root@{self.address}'], capture_output=True, timeout=10)
+        try:
+            for name in os.listdir(self.control_dir):
+                os.unlink(os.path.join(self.control_dir, name))
+            os.rmdir(self.control_dir)
+        except OSError:
+            pass
 
     def run(self, cmd, timeout=15):
         args = ['ssh', '-F', '/dev/null', '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
@@ -126,7 +144,7 @@ function show(st){
   if(st.brightness!==undefined && st.brightness!==null){cur=+st.brightness; paint()}}
 function paint(){document.getElementById('v').textContent=cur; document.getElementById('s').value=cur; document.getElementById('n').value=cur;
   document.getElementById('bytes').textContent='51 '+hex(cur>>8)+' '+hex(cur&255)}
-async function api(path,body){const r=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+async function api(path,body){const r=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-ROG5-Token':'@TOKEN@'},body:body?JSON.stringify(body):undefined});
   const j=await r.json(); document.getElementById('err').textContent=j.error||''; if(j.state) show(j.state); return j}
 async function flush(){ if(busy||pending===null) return; busy=true; const v=pending; pending=null; await api('/api/brightness',{value:v}); busy=false; flush()}
 function setv(v){cur=Math.max(0,Math.min(1023,Math.round(v))); paint(); pending=cur; flush()}
@@ -143,10 +161,31 @@ api('/api/state'); setInterval(()=>api('/api/state'),5000);
 </script></body></html>'''
 
 
-def make_handler(phone):
+def make_handler(phone, port):
+    hosts = {f'127.0.0.1:{port}', f'localhost:{port}'}
+    origins = {f'http://{h}' for h in hosts}
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
+
+        def trusted(self, api=True):
+            """Same-origin requests only: the Host header (no DNS rebinding),
+            the Origin if a browser sends one, and for API calls the run's
+            token and a JSON content type (a cross-site form or text/plain
+            POST cannot carry either)."""
+            if self.headers.get('Host') not in hosts:
+                return False
+            origin = self.headers.get('Origin')
+            if origin is not None and origin not in origins:
+                return False
+            if api:
+                if not secrets.compare_digest(self.headers.get('X-ROG5-Token', ''), TOKEN):
+                    return False
+                if self.command == 'POST' and \
+                        self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
+                    return False
+            return True
 
         def reply(self, code, obj=None, body=None, ctype='application/json'):
             data = body.encode() if body is not None else json.dumps(obj).encode()
@@ -158,7 +197,11 @@ def make_handler(phone):
 
         def do_GET(self):
             if self.path == '/':
-                return self.reply(200, body=PAGE, ctype='text/html; charset=utf-8')
+                if not self.trusted(api=False):
+                    return self.reply(403, {'error': 'forbidden'})
+                return self.reply(200, body=PAGE.replace('@TOKEN@', TOKEN), ctype='text/html; charset=utf-8')
+            if not self.trusted():
+                return self.reply(403, {'error': 'forbidden'})
             if self.path == '/api/state':
                 try:
                     return self.reply(200, {'state': phone.state()})
@@ -167,6 +210,8 @@ def make_handler(phone):
             self.reply(404, {'error': 'not found'})
 
         def do_POST(self):
+            if not self.trusted():
+                return self.reply(403, {'error': 'forbidden'})
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
                 if self.path == '/api/brightness':
@@ -206,7 +251,7 @@ def main():
             print(f'{addr}: {e}', file=sys.stderr)
     if phone is None:
         sys.exit('phone not reachable')
-    srv = ThreadingHTTPServer(('127.0.0.1', a.port), make_handler(phone))
+    srv = ThreadingHTTPServer(('127.0.0.1', a.port), make_handler(phone, a.port))
     url = f'http://127.0.0.1:{a.port}/'
     print(f'brightness lab on {url} (phone {phone.address}); log {LOG}; Ctrl+C to stop')
     if not a.no_browser:
@@ -215,6 +260,8 @@ def main():
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        phone.close()
 
 
 if __name__ == '__main__':

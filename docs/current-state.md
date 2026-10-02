@@ -5,11 +5,11 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components.json`).
+Status as of 2026-10-02 (main-k116-d15-261002e) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
-| Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
+| Default | `main-k116-d15-261002e` | k116 (series to 0168: + Iris video 0154-0168; uname 7.2.7-rog5-k116) | d15 (`16cbb384`, d13 + iris/videocc nodes) | 2026-10-02 14:02; hardware H.264/HEVC decode, firmware installed persistently |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
 Components: 39 ready, 11 partial, 8 needs a test, 16 missing.
@@ -30,7 +30,7 @@ Partial:
 
 Needs a test:
 
-- Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback
+- Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback; 2026-10-02 failed-transaction recovery, owned pacman lock, last-good durability and phone health gate tested offline (571d9273), not deployed
 - Boot & updates / Boot splash: r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check
 - Display & shell / Phosh: hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending
 - Connectivity / Hotspot

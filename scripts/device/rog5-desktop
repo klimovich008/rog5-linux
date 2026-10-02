@@ -1,12 +1,19 @@
 #!/bin/sh
 # ROG5 remote and automation helper for the two graphical targets:
 #   desktop  the headless sway virtual desktop (rog5-desktop.service,
-#            1920x1080, VNC on 127.0.0.1:5901); it doesn't depend on the
+#            1920x1080, VNC on the Unix socket
+#            /run/user/<uid>/rog5-vnc-desktop.sock); it doesn't depend on the
 #            phone screen. Started on demand: "start" (e.g. before a VNC
 #            session), or by any desktop command below; "stop" ends it
-#   phone    the Phosh session on the panel (VNC mirror on 127.0.0.1:5900,
-#            started on demand by rog5-wayvnc-phone.socket); it only renders
-#            while the panel is on
+#   phone    the Phosh session on the panel (VNC mirror on the Unix socket
+#            /run/user/<uid>/rog5-vnc-phone.sock, started on demand by
+#            rog5-wayvnc-phone.socket); it only renders while the panel is on
+#
+# VNC has no password here, so both listen only on Unix sockets that the
+# phone user and root can open (no TCP port: 127.0.0.1 admits every local
+# account). From a PC, forward a local port over SSH, e.g.
+#   ssh -N -L 5900:/run/user/1000/rog5-vnc-phone.sock root@10.77.0.2
+# and point a VNC client at localhost:5900 ("status" prints both commands).
 #
 #   rog5-desktop status
 #   rog5-desktop start | stop                 start/stop the virtual desktop
@@ -23,8 +30,8 @@
 #
 # Each wtype call starts with a 150 ms pause: the first key of a new virtual
 # keyboard was dropped while the compositor applied its keymap.
-# Pointer input on the phone screen goes through VNC (port 5900), which
-# injects it into Phosh. Runs as root or as "phone".
+# Pointer input on the phone screen goes through VNC (the phone mirror),
+# which injects it into Phosh. Runs as root or as "phone".
 set -eu
 user=phone
 uid=$(id -u "$user")
@@ -72,15 +79,18 @@ cmd=${1:-status}
 [ $# -eq 0 ] || shift
 case $cmd in
 status)
-	printf 'desktop: %s (display %s, VNC 127.0.0.1:5901)\n' \
+	printf 'desktop: %s (display %s, VNC %s)\n' \
 		"$(usys is-active rog5-desktop.service 2>/dev/null || true)" \
-		"$(cat "$rt/rog5-desktop.display" 2>/dev/null || echo -)"
-	printf 'phone:   screen %s, VNC mirror %s (127.0.0.1:5900)\n' \
+		"$(cat "$rt/rog5-desktop.display" 2>/dev/null || echo -)" "$rt/rog5-vnc-desktop.sock"
+	printf 'phone:   screen %s, VNC mirror %s (%s)\n' \
 		"$(cat /sys/class/drm/card1-DSI-1/dpms 2>/dev/null || echo unknown)" \
-		"$(usys is-active rog5-wayvnc-phone.socket 2>/dev/null || true) socket, wayvnc $(usys is-active rog5-wayvnc-phone.service 2>/dev/null || true)"
+		"$(usys is-active rog5-wayvnc-phone.socket 2>/dev/null || true) socket, wayvnc $(usys is-active rog5-wayvnc-phone.service 2>/dev/null || true)" \
+		"$rt/rog5-vnc-phone.sock"
+	printf 'from a PC: ssh -N -L 5900:%s root@<phone>   (then VNC to localhost:5900)\n' "$rt/rog5-vnc-phone.sock"
+	printf '           ssh -N -L 5901:%s root@<phone>   (virtual desktop: localhost:5901)\n' "$rt/rog5-vnc-desktop.sock"
 	;;
 start) target=desktop; ensure_desktop
-	echo "desktop: running (VNC 127.0.0.1:5901)" ;;
+	echo "desktop: running (VNC $rt/rog5-vnc-desktop.sock)" ;;
 stop) usys stop rog5-desktop.service ;;
 screenshot) [ $# -eq 1 ] || { echo 'usage: screenshot FILE' >&2; exit 2; }
 	wl grim - >"$1" ;;
@@ -118,5 +128,5 @@ fcntl.ioctl(fd, 0x5502)           # UI_DEV_DESTROY
 os.close(fd)
 PY
 	;;
-*) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+*) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

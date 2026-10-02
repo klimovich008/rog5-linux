@@ -103,6 +103,12 @@ stage_record=/run/rog5-persistent-root-stage.record
 stage_reporter_pid=
 target_boot_id=
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
+# restart2 runs the kernel's orderly restart (reboot notifiers, device
+# shutdown including the UFS power-off), which normally ends in a few
+# seconds. A stuck notifier or driver shutdown, or another transition holding
+# system_transition_mutex, can block it indefinitely, so the helper runs in
+# the background and SysRq b follows after this many seconds regardless.
+reboot_helper_grace=15
 reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode
 reboot_mode_modules=/rog5-reboot-mode-modules
 watchdog_pid=
@@ -219,13 +225,16 @@ fail_local_stage() {
 }
 
 force_rollback() {
-	log 'requesting storage-quiescent bootloader restart'
 	if [ -x "$reboot_helper" ]; then
-		"$reboot_helper" || true
+		# Never wait for restart2: a blocked request must not hold off the
+		# emergency reset below.
+		"$reboot_helper" &
+		sleep "$reboot_helper_grace" || true
 	fi
-	log 'bootloader restart returned; forcing emergency reset'
+	# Reset first, log after: a stalled console must not delay the reset.
 	while :; do
 		printf b >/proc/sysrq-trigger 2>/dev/null || true
+		log 'bootloader restart did not complete; forcing emergency reset'
 		sleep 5
 	done
 }
@@ -319,8 +328,12 @@ watchdog_expired() {
 		printf '%s\n' 'rog5-persistent-root: watchdog acknowledged by current-boot P2 and SSH identity readiness' >&8
 		return 0
 	fi
-	# Do not depend on deleted absolute paths, an interpreter in the old root,
-	# systemd, or a diagnostic write completing before the reset request.
+	# Arm the backstop (stdout is its pipe) before anything that can block:
+	# restart2 may never return, and the backstop then resets after the
+	# grace. Do not depend on deleted absolute paths, an interpreter in the
+	# old root, /dev/null, systemd, or a diagnostic write completing before
+	# the reset request.
+	printf '%s\n' expired
 	if [ -x "./initramfs$reboot_helper" ]; then
 		"./initramfs$reboot_helper" || true
 	fi
@@ -332,6 +345,26 @@ watchdog_expired() {
 	return 1
 }
 
+# The watchdog's second process, forked with it before switch_root (after it
+# the old root has no /dev/null, so ash cannot start a background job there).
+# It reads the watchdog's output: "expired" means restart2 is being requested,
+# and SysRq b follows after the grace whether or not that request returns.
+# End of input without it (an acknowledged boot) does nothing. After
+# switch_root only the retained busybox can sleep; if no sleep works the
+# reset follows at once.
+watchdog_backstop() {
+	while IFS= read -r watchdog_line; do
+		[ "$watchdog_line" = expired ] || continue
+		watchdog_bb sleep "$reboot_helper_grace" ||
+			sleep "$reboot_helper_grace" || true
+		# Reset first, log after: a stalled console must not delay it.
+		printf b >&9
+		printf '%s\n' 'rog5-persistent-root: restart2 did not complete; watchdog emergency reset returned' >&8
+		return 1
+	done
+	return 0
+}
+
 arm_watchdog() {
 	watchdog_boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
 	printf '%s\n' "$watchdog_boot_id" |
@@ -340,11 +373,19 @@ arm_watchdog() {
 	# A compound-command redirection failure returns to the caller. An exec
 	# special-builtin redirection error can instead terminate PID 1 outright.
 	{
-		(
-			cd /run || { printf b >&9; exit 1; }
-			sleep "$recovery_timeout"
-			watchdog_expired
-		) &
+		{
+			(
+				# A dead backstop must not turn the expiry notice into
+				# SIGPIPE before the reset requests.
+				trap '' PIPE
+				cd /run || { printf b >&9; exit 1; }
+				sleep "$recovery_timeout"
+				watchdog_expired
+			) | (
+				cd /run || { printf b >&9; exit 1; }
+				watchdog_backstop
+			)
+		} &
 		watchdog_pid=$!
 	} 8>"$watchdog_kmsg" 9>"$watchdog_sysrq" || return 1
 	printf '%s\n' "$watchdog_pid" >"$watchdog_pid_file" || return 1
@@ -890,6 +931,13 @@ publish_production_modules() {
 	cp -a "$production_modules_tree"/. \
 		"/run/rog5-modules/lib/modules/$running_kernel_release"/ || return 1
 	chmod -R go-w /run/rog5-modules || return 1
+	# The try-once commit requires this record: a boot whose module tree did
+	# not publish stays pending, so the next boot takes the fallback.
+	printf 'release=%s\n' "$running_kernel_release" \
+		>/run/rog5-production-modules.record.next || return 1
+	chmod 0444 /run/rog5-production-modules.record.next || return 1
+	mv -f /run/rog5-production-modules.record.next \
+		/run/rog5-production-modules.record || return 1
 	log 'production module tree published at /run/rog5-modules'
 }
 
@@ -1688,34 +1736,74 @@ verify_persistent_overlay_tree() {
 	return 0
 }
 
+# OverlayFS scratch residue in work/work (k113 fs/overlayfs). Every name the
+# kernel creates there is a "#%x" temporary (dir.c ovl_tempname): copy-up and
+# create-over-whiteout temporaries of any inode type (directory, symlink,
+# device, fifo, socket, empty file, hard link to an upper file) and the cached
+# shared whiteout. ovl_clear_empty() can also leave a "#%x" directory holding
+# the whiteouts of a removed directory. A reset may retain any of these. On
+# every read-write mount ovl_workdir_create() removes work/work through
+# ovl_workdir_cleanup() (readdir.c): it unlinks every non-directory at levels 1
+# and 2 without following links and removes the directories that are or become
+# empty. A level-2 directory that is not empty survives; the kernel then
+# mounts the overlay read-only, which mount_overlay_root refuses. Accept
+# exactly what that cleanup removes, with kernel temporary names at level 1,
+# and reject anything else here, before the overlay is mounted. Never delete or
+# change anything here: the kernel does the cleanup.
+overlay_scratch_name() {
+	overlay_hex=${1#\#}
+	[ "$overlay_hex" != "$1" ] || return 1
+	case $overlay_hex in ''|*[!0-9a-f]*|0?*) return 1 ;; esac
+	[ "${#overlay_hex}" -le 8 ]
+}
+
+# Prints the number of subdirectories of directory $1 after checking that
+# its link count agrees (2 + subdirectories). Nothing is followed.
+overlay_scratch_subdirs() {
+	overlay_dir=$1
+	overlay_links=$(stat -c %h "$overlay_dir") || return 1
+	overlay_count=0
+	for overlay_node in "$overlay_dir"/* "$overlay_dir"/.[!.]* \
+		"$overlay_dir"/..?*; do
+		[ -e "$overlay_node" ] || [ -L "$overlay_node" ] || continue
+		[ ! -L "$overlay_node" ] && [ -d "$overlay_node" ] || continue
+		overlay_count=$((overlay_count + 1))
+	done
+	[ "$overlay_links" = $((overlay_count + 2)) ] || return 1
+	printf '%s\n' "$overlay_count"
+}
+
 verify_overlay_workdir_pre_mount() {
 	root=$1
 	inventory=$(find "$root/work" -mindepth 1 -maxdepth 1 -print) || return 1
 	case $inventory in
 		'') return 0 ;;
-		"$root/work/work")
-			[ -d "$inventory" ] && [ ! -L "$inventory" ] &&
-				[ "$(stat -c '%u:%g:%a:%h' "$inventory")" = 0:0:0:2 ] ||
-				return 1
-			# OverlayFS caches a shared 0:0 whiteout under a #%x name.
-			# A reset may retain it, including links from upper. Let the
-			# kernel unlink its scratch name on mount; never delete it here.
-			for overlay_entry in "$inventory"/* "$inventory"/.[!.]* \
-				"$inventory"/..?*; do
-				[ -e "$overlay_entry" ] || [ -L "$overlay_entry" ] || continue
-				overlay_name=${overlay_entry##*/}
-				overlay_hex=${overlay_name#\#}
-				[ "$overlay_hex" != "$overlay_name" ] || return 1
-				case $overlay_hex in ''|*[!0-9a-f]*|0?*) return 1 ;; esac
-				[ "${#overlay_hex}" -le 8 ] || return 1
-				[ -c "$overlay_entry" ] && [ ! -L "$overlay_entry" ] &&
-					[ "$(stat -c '%u:%g:%a:%t:%T' "$overlay_entry")" = \
-						0:0:0:0:0 ] || return 1
-			done
-			return 0
-			;;
+		"$root/work/work") ;;
 		*) return 1 ;;
 	esac
+	[ -d "$inventory" ] && [ ! -L "$inventory" ] || return 1
+	overlay_metadata=$(stat -c '%u:%g:%a' "$inventory") || return 1
+	[ "$overlay_metadata" = 0:0:0 ] || return 1
+	overlay_scratch_subdirs "$inventory" >/dev/null || return 1
+	for overlay_entry in "$inventory"/* "$inventory"/.[!.]* \
+		"$inventory"/..?*; do
+		[ -e "$overlay_entry" ] || [ -L "$overlay_entry" ] || continue
+		overlay_scratch_name "${overlay_entry##*/}" || return 1
+		# Level 1: the kernel unlinks any non-directory.
+		[ ! -L "$overlay_entry" ] && [ -d "$overlay_entry" ] || continue
+		# Level 2: any non-directory, and only empty directories.
+		overlay_scratch_subdirs "$overlay_entry" >/dev/null || return 1
+		for overlay_child in "$overlay_entry"/* "$overlay_entry"/.[!.]* \
+			"$overlay_entry"/..?*; do
+			[ ! -L "$overlay_child" ] && [ -d "$overlay_child" ] || continue
+			[ "$(overlay_scratch_subdirs "$overlay_child")" = 0 ] ||
+				return 1
+			overlay_grandchild=$(find "$overlay_child" -mindepth 1 \
+				-maxdepth 1 -print) || return 1
+			[ -z "$overlay_grandchild" ] || return 1
+		done
+	done
+	return 0
 }
 
 # Unattended package updates (rog5-update in the /rog5-update kit) keep their
@@ -2248,24 +2336,14 @@ prepare_volatile_root_account() {
 	case $root_password in !*) ;; *) return 1 ;; esac
 	merged_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow") ||
 		return 1
-	user_password=0
 	case $merged_password in
 		"$root_password") sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1 ;;
 		x) [ "$expected_persistent_overlay_mode" -eq 1 ] || return 1 ;;
-		# A crypt hash the phone's user set (passwd/chpasswd) for the Denial
-		# lock screen and local console, kept only on the persistent overlay.
-		# SSH stays key-only: the volatile sshd policy adds UsePAM no.
-		'$'*)
-			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
-			user_password=1
-			;;
 		*) return 1 ;;
 	esac
-	if [ "$user_password" -eq 1 ]; then
-		grep -Eq '^root:[$][^:]+:[0-9]*:([^:]*:){5}[^:]*$' "$shadow" || return 1
-	else
-		grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
-	fi
+	# P2 and verify-root enforce the same key-only root account contract.
+	# The phone user's Phosh PIN belongs to a separate unprivileged account.
+	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
 	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
 		return 1
 	[ "$root_password_after" = "$root_password" ]
@@ -3264,7 +3342,9 @@ if ! verify_ufs_health; then
 		"$final_storage_detail"
 fi
 publish_or_rollback final-storage PASS
-publish_production_modules || log 'production module tree publication failed'
+# A partial or failed copy cannot provide the trusted post-boot module tree.
+# Refuse handoff so this boot stays pending and the next boot takes fallback.
+publish_production_modules || fail_local_stage runtime 'production module tree publication failed'
 
 run_pre_switch_display_observer
 

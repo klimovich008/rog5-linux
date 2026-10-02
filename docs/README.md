@@ -40,6 +40,11 @@ When another document disagrees with it, current state wins.
 - [licensing-provenance.md](licensing-provenance.md): licensing and provenance inventory.
 - Remote desktop today: the headless Sway virtual desktop and the wayvnc phone
   mirror (`configs/rog5-desktop`, `configs/systemd-user`), reached over SSH.
+  VNC has no password, so both listen only on Unix sockets in the phone
+  user's runtime directory (no TCP port): forward one with
+  `ssh -N -L 5900:/run/user/1000/rog5-vnc-phone.sock root@10.77.0.2` (the
+  virtual desktop: `rog5-vnc-desktop.sock`) and connect a VNC client to
+  `localhost:5900`. `rog5-desktop status` prints both commands.
 
 ## Reviews
 

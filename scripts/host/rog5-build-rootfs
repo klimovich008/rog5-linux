@@ -77,14 +77,59 @@ def fail(message: str) -> None:
     raise SystemExit(f'rog5-build-rootfs: FAIL {message}')
 
 
+# Secret values (the phone password hash) never go on a command line; they
+# are also masked in anything this script prints, as a second line of defence.
+REDACT: list[str] = []
+
+
+def redact(text: str) -> str:
+    for secret in REDACT:
+        if secret:
+            text = text.replace(secret, '<redacted>')
+    return text
+
+
 def log(message: str) -> None:
-    print(f'rog5-build-rootfs: {message}', flush=True)
+    print(redact(f'rog5-build-rootfs: {message}'), flush=True)
 
 
 def run(argv, **kwargs):
-    log('$ ' + ' '.join(shlex.quote(str(a)) for a in argv))
+    argv = [str(a) for a in argv]
+    if any(secret and secret in a for secret in REDACT for a in argv):
+        fail('refusing to put a secret on a command line')
+    log('$ ' + ' '.join(shlex.quote(a) for a in argv))
     kwargs.setdefault('check', True)
-    return subprocess.run([str(a) for a in argv], **kwargs)
+    return subprocess.run(argv, **kwargs)
+
+
+# GnuPG status lines that make a signature unacceptable even when VALIDSIG is
+# also printed (a revoked or expired key, an expired signature) or that mean
+# a signature did not verify at all.
+GPG_BAD_STATUS = ('BADSIG', 'ERRSIG', 'EXPSIG', 'EXPKEYSIG', 'REVKEYSIG', 'NO_PUBKEY',
+                  'FAILURE', 'NODATA', 'UNEXPECTED', 'BADARMOR')
+
+
+def check_signature_status(returncode: int, status: str, key: str) -> str | None:
+    """None if gpg --status-fd output STATUS (exit RETURNCODE) shows exactly
+    one good signature by KEY (its primary fingerprint; a subkey may sign);
+    otherwise why not."""
+    if returncode != 0:
+        return f'gpg exited with {returncode}'
+    lines = [line.split() for line in status.splitlines() if line.startswith('[GNUPG:] ')]
+    words = [line[1] for line in lines if len(line) > 1]
+    bad = sorted(set(words) & set(GPG_BAD_STATUS))
+    if bad:
+        return 'gpg reported ' + ', '.join(bad)
+    good = [line for line in lines if len(line) > 1 and line[1] == 'GOODSIG']
+    valid = [line for line in lines if len(line) > 1 and line[1] == 'VALIDSIG']
+    if len(good) != 1 or len(valid) != 1 or words.count('NEWSIG') > 1:
+        return f'expected exactly one good signature, got {len(good)} GOODSIG / {len(valid)} VALIDSIG'
+    # VALIDSIG <fpr> <date> <timestamp> <expire> <version> <reserved> <pkalgo>
+    #          <hashalgo> <class> <primary-fpr>
+    fields = valid[0]
+    if len(fields) < 12 or not re.fullmatch(r'[0-9A-F]{40}', fields[2]) or fields[11] != key:
+        return f'the signature is not by the key {key}'
+    return None
 
 
 def emulated() -> bool:
@@ -118,6 +163,19 @@ fi
 exec chroot "$root" /usr/bin/env -i HOME=/root TERM=dumb LANG=C.UTF-8 \
 	PATH=/usr/local/sbin:/usr/local/bin:/usr/bin "$@"
 '''
+
+
+def required_commands() -> list[str]:
+    """Absolute program paths of configs/rootfs/required-commands.tsv."""
+    paths = []
+    for line in (REPO / 'configs/rootfs/required-commands.tsv').read_text().splitlines():
+        if not line.strip() or line.startswith('#'):
+            continue
+        cols = [c for c in line.split('\t') if c]
+        if len(cols) != 3 or not re.fullmatch(r'/usr/(bin|sbin|lib)/[A-Za-z0-9_./+-]+', cols[0]) or '..' in cols[0]:
+            fail(f'bad required-commands row: {line!r}')
+        paths.append(cols[0])
+    return paths
 
 
 class Builder:
@@ -164,10 +222,13 @@ class Builder:
         status = subprocess.run(['gpg', '--homedir', str(gnupg), '--status-fd', '1', '--verify',
                                  str(tarball) + '.sig', str(tarball)],
                                 capture_output=True, text=True)
-        # VALIDSIG <signing key> ... <primary key>: accept a subkey of the build key.
-        if not re.search(rf'^\[GNUPG:\] VALIDSIG [0-9A-F]{{40}} .* {ALARM_KEY}$', status.stdout, re.M):
-            fail(f'{TARBALL} is not signed by the Arch Linux ARM build key {ALARM_KEY}')
-        digest = hashlib.sha256(tarball.read_bytes()).hexdigest()
+        # Exit status and every status line count: VALIDSIG alone is also
+        # printed for a revoked or expired key (REVKEYSIG/EXPKEYSIG).
+        why = check_signature_status(status.returncode, status.stdout, ALARM_KEY)
+        if why:
+            fail(f'{TARBALL} is not validly signed by the Arch Linux ARM build key {ALARM_KEY}: {why}')
+        with tarball.open('rb') as archive_stream:
+            digest = hashlib.file_digest(archive_stream, 'sha256').hexdigest()
         (self.work / 'source.env').write_text(
             f'source_archive_size={tarball.stat().st_size}\nsource_archive_sha256={digest}\n')
         log(f'verified {TARBALL} sha256={digest}')
@@ -264,9 +325,13 @@ class Builder:
         authorized = f'{key_type} {blob}\n'
         password_hash = ''
         if self.args.phone_password_hash_file:
-            password_hash = Path(self.args.phone_password_hash_file).read_text().strip()
+            hash_file = Path(self.args.phone_password_hash_file)
+            if hash_file.stat().st_mode & 0o077:
+                fail(f'{hash_file} must be private (chmod 600): it holds the phone PIN hash')
+            password_hash = hash_file.read_text().strip()
             if not re.fullmatch(r'\$(6|y|5)\$[^:\s]+', password_hash):
                 fail('--phone-password-hash-file must hold one crypt(3) hash ($6$, $y$ or $5$)')
+            REDACT.append(password_hash)
         (self.work / 'authorized_keys.tmp').write_text(authorized)
         self.chroot(textwrap.dedent(f'''
             ! id alarm >/dev/null 2>&1 || userdel -r alarm
@@ -283,7 +348,8 @@ class Builder:
         '''))
         (self.work / 'authorized_keys.tmp').unlink()
         if password_hash:
-            self.chroot(f"printf '%s:%s\\n' {PHONE_USER} {shlex.quote(password_hash)} | chpasswd -e")
+            # On stdin, never in argv or the logged command.
+            self.chroot('chpasswd -e', input=f'{PHONE_USER}:{password_hash}\n', text=True)
 
     def step_userspace(self):
         self.chroot(textwrap.dedent(f'''
@@ -329,6 +395,12 @@ class Builder:
             for key in /etc/ssh/ssh_host_*; do [ ! -e "$key" ] || fail "host key $key must not be in the image"; done
             [ -z "$(ls -A /etc/pacman.d/gnupg)" ] || fail 'pacman keyring must be empty (the boot keeps it on /persist)'
             [ ! -s /etc/machine-id ] || fail 'machine-id must be empty'
+            # Programs the shipped units and helpers run (required-commands.tsv).
+            missing=
+            for program in {' '.join(shlex.quote(p) for p in required_commands())}; do
+                [ -f "$program" ] && [ -x "$program" ] || missing="$missing $program"
+            done
+            [ -z "$missing" ] || fail "programs missing from the root:$missing (configs/rootfs/required-commands.tsv)"
         '''))
 
     def step_seal(self):
@@ -489,7 +561,9 @@ def main() -> int:
     parser.add_argument('--tarball-sig', help='its detached signature (with --tarball)')
     parser.add_argument('--alarm-key', help='file with the Arch Linux ARM build key instead of a keyserver fetch')
     parser.add_argument('--skip-custom', default='', help='comma-separated packages/ dirs not to build (e.g. mesa,resources)')
-    parser.add_argument('--phone-password-hash-file', help='crypt(3) hash for the phone user (openssl passwd -6)')
+    parser.add_argument('--phone-password-hash-file',
+                        help='file (keep it 0600) with a crypt(3) hash for the phone user (openssl passwd -6); '
+                             'it is passed to chpasswd on stdin and never printed')
     parser.add_argument('--image-bytes', type=int, default=DEFAULT_IMAGE_BYTES,
                         help='image size; must equal your p24 size (default %(default)s)')
     parser.add_argument('--fs-uuid', help='ext4 UUID of the image (default: random once, kept in WORK/fs-uuid)')

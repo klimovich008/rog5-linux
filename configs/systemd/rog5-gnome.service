@@ -1,17 +1,23 @@
-# GNOME desktop for the "phone" user on an external display (desktop mode),
-# started from the "Desktop mode" launcher on the unlocked phone (polkit rule
-# 60-rog5-desktop-mode: active local session only). No
-# display manager, so GNOME's own screen lock (it needs GDM) is off: when
-# GNOME goes idle (no input and no work running) or locks, or the display is
+# GNOME desktop for the "phone" user on an external display (desktop mode).
+# Only rog5-desktop-mode starts it: automatically, or for the "Desktop mode"
+# launcher (rog5-desktop-request.service, the unit polkit lets the phone user
+# start), and only after it has seen rog5-phosh's session locked and then
+# unlocked. Its one-use start grant is checked by the first ExecStartPre
+# (rog5-desktop-mode --gate): any other start fails, and the switcher brings
+# Phosh back on its lock screen. No display manager, so GNOME's own screen
+# lock (it needs GDM) is off: when GNOME goes idle (no input and no work
+# running) or locks, its lock state cannot be read, or the display is
 # unplugged, rog5-desktop-mode starts Phosh again, which comes up on its PIN
-# lock screen. The touchscreen is a touchpad
-# while this runs (rog5-touchpad.service).
+# lock screen. BindsTo= the switcher: GNOME never runs unsupervised. The
+# touchscreen is a touchpad while this runs (rog5-touchpad.service).
 [Unit]
 Description=GNOME desktop on the external display (ROG5 desktop mode)
 Requires=rog5-platform-modules.service
+# The lock supervisor: GNOME stops when it stops or fails for good.
+BindsTo=rog5-desktop-mode.service
 # After=rog5-phosh: when one replaces the other, the stop finishes before the
 # start (Phosh's tty hangup killed GNOME's start when both ran at once).
-After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service rog5-phosh.service
+After=rog5-platform-modules.service systemd-user-sessions.service rog5-p2-ready.service rog5-phosh.service rog5-desktop-mode.service
 Conflicts=rog5-phosh.service
 Wants=rog5-touchpad.service
 ConditionPathExists=/usr/bin/gnome-session
@@ -30,6 +36,9 @@ StandardError=journal
 UtmpIdentifier=tty7
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
+# Lock gate first: refuses a start without the switcher's fresh grant (and
+# before the setup marker, so a refused start resets nothing).
+ExecStartPre=+/usr/local/libexec/rog5-desktop-mode --gate
 # Setup marker: ExecStopPost also runs after a skipped start (ExecCondition,
 # e.g. in GNOME Mobile mode), and must then not reset the shared settings.
 # The cleanup commands are "-" so that the marker is always removed.

@@ -341,9 +341,9 @@ start_state() {
 		bb blockdev --setrw "$userdata"
 		bb blockdev --setrw "$userdata_disk"
 		verify_write_window || return 1
-		bb mkdir -m 0700 "$userdata_mount"
+		bb mkdir -m 0700 "$userdata_mount" || return 1
 		bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
-			"$userdata" "$userdata_mount"
+			"$userdata" "$userdata_mount" || return 1
 		userdata_mounted=1
 	fi
 	verify_mount "$userdata" "$userdata_mount" || return 1
@@ -360,7 +360,8 @@ start_state() {
 	state_start_phase=image-loop
 	loop_device=$(bb losetup -f)
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
-	bb losetup "$loop_device" "$state_image"
+	# A failed attach must not make the cleanup detach another user's loop.
+	bb losetup "$loop_device" "$state_image" || { loop_device=; return 1; }
 	[ "$(bb blockdev --getsize64 "$loop_device")" = "$expected_state_bytes" ] ||
 		return 1
 	state_start_phase=image-fs
@@ -368,13 +369,13 @@ start_state() {
 		"$expected_state_label" || return 1
 	state_start_phase=state-mount
 	if [ ! -e "$state_mount" ] && [ ! -L "$state_mount" ]; then
-		bb mkdir -m 0700 "$state_mount"
+		bb mkdir -m 0700 "$state_mount" || return 1
 		state_mount_created=1
 	else
 		verify_empty_mountpoint "$state_mount" || return 1
 	fi
 	bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
-		"$loop_device" "$state_mount"
+		"$loop_device" "$state_mount" || return 1
 	state_mounted=1
 	verify_mount "$loop_device" "$state_mount" || return 1
 	state_start_phase=state-tree
@@ -387,10 +388,16 @@ start_state() {
 	boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
 	printf 'format=rog5-persistent-service-state-runtime-v1\nboot_id=%s\ndisk=%s\nuserdata=%s\nloop=%s\nimage=%s\nmount=%s\nuserdata_owner=%s\n' \
 		"$boot_id" "$userdata_disk" "$userdata" "$loop_device" \
-		"$state_relative" "$state_mount" "$userdata_owner" >"$runtime_next"
-	bb chown 0:0 "$runtime_next"
-	bb chmod 0400 "$runtime_next"
-	bb mv "$runtime_next" "$runtime_record"
+		"$state_relative" "$state_mount" "$userdata_owner" >"$runtime_next" ||
+		return 1
+	bb chown 0:0 "$runtime_next" || return 1
+	bb chmod 0400 "$runtime_next" || return 1
+	bb mv "$runtime_next" "$runtime_record" || return 1
+	# stop_state needs this record; keep the cleanup armed until it is exact.
+	[ -f "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%h' "$runtime_record")" = 0:0:400:1 ] &&
+		[ "$(bb grep -c '^format=rog5-persistent-service-state-runtime-v1$' \
+			"$runtime_record")" -eq 1 ] || { bb rm -f "$runtime_record"; return 1; }
 	trap - EXIT HUP INT TERM
 	printf 'rog5-persistent-state: PASS mounted %s on %s\n' \
 		"$state_relative" "$state_mount" >/dev/kmsg 2>/dev/null || true

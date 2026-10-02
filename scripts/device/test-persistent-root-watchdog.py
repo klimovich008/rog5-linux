@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""Offline boot-watchdog acknowledgement contracts; no devices or mounts."""
+"""Offline boot-watchdog acknowledgement contracts; no devices or mounts.
+
+Set ROG5_TEST_BUSYBOX/ROG5_TEST_QEMU to run the reset-path cases under the
+target ARM64 busybox ash (its background-job and pipe semantics matter there).
+"""
 import os
 from pathlib import Path
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -16,6 +22,161 @@ IDENTITY = ("format=rog5-persistent-ssh-identity-v1\nmode=load\n"
 def function(source, name):
     start = source.index(name + "() {\n")
     return source[start:source.index("\n}\n", start) + 3]
+
+
+def target_shell():
+    if os.environ.get("ROG5_TEST_BUSYBOX"):
+        return [os.environ["ROG5_TEST_QEMU"], os.environ["ROG5_TEST_BUSYBOX"], "sh"]
+    return ["sh"]
+
+
+def unshare_ok():
+    return subprocess.run(["unshare", "-rm", "true"], capture_output=True).returncode == 0
+
+
+BLOCKING_HELPER = "#!/bin/sh\n: >\"$0.started\"\nexec sleep 1000\n"
+
+
+class ResetPath(unittest.TestCase):
+    """A restart2 request that never returns must not hold off SysRq b."""
+
+    def run_group(self, argv, cwd, deadline):
+        """Run argv in its own session; the blocked helper keeps running, so
+        wait for the shell only and then kill whatever is left."""
+        with tempfile.TemporaryFile(mode="w+") as err:
+            process = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL,
+                                       stdout=subprocess.DEVNULL, stderr=err,
+                                       start_new_session=True)
+            try:
+                code = process.wait(timeout=deadline)
+            except subprocess.TimeoutExpired:
+                code = None
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+            err.seek(0)
+            return code, err.read()
+
+    def watchdog(self, root, acknowledged, prelude=''):
+        source = INIT.read_text()
+        helper = root / "helper"
+        helper.write_text(BLOCKING_HELPER)
+        helper.chmod(0o755)
+        (root / "run").mkdir()
+        body = "".join(function(source, name) for name in (
+            "watchdog_expired", "watchdog_backstop", "arm_watchdog"))
+        self.assertEqual(body.count("cd /run ||"), 2)
+        body = body.replace("cd /run ||", 'cd "$FIXTURE_RUN" ||')
+        script = f"""
+set -u
+FIXTURE_RUN={root}/run
+reboot_helper={helper}
+reboot_helper_grace=2
+recovery_timeout=1
+watchdog_kmsg={root}/kmsg
+watchdog_sysrq={root}/sysrq
+watchdog_pid_file={root}/watchdog.pid
+watchdog_bb() {{ return 127; }}
+watchdog_acknowledged() {{ return {0 if acknowledged else 1}; }}
+log() {{ :; }}
+{body}
+arm_watchdog || exit 77
+{prelude}
+# Wait for the watchdog group (sleep + expiry + backstop).
+wait
+"""
+        return script
+
+    def test_blocked_restart2_is_followed_by_sysrq_after_the_grace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = self.watchdog(root, acknowledged=False)
+            code, err = self.run_group(target_shell() + ["-c", script], root, 12)
+            # wait never returns while the helper blocks; the group is killed
+            # at the deadline. The reset must have come long before.
+            self.assertTrue((root / "helper.started").exists(), err)
+            self.assertEqual((root / "sysrq").read_text(), "b", err)
+            self.assertIn("restart2 did not complete; watchdog emergency reset",
+                          (root / "kmsg").read_text())
+            self.assertNotIn("watchdog reset requests returned", (root / "kmsg").read_text())
+            sysrq_time = (root / "sysrq").stat().st_mtime
+            self.assertLess(sysrq_time - (root / "helper.started").stat().st_mtime, 6)
+
+    def test_acknowledged_boot_never_resets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = self.watchdog(root, acknowledged=True)
+            code, err = self.run_group(target_shell() + ["-c", script], root, 15)
+            self.assertEqual(code, 0, err)
+            self.assertEqual((root / "sysrq").read_text(), "")
+            self.assertFalse((root / "helper.started").exists())
+            self.assertIn("watchdog acknowledged", (root / "kmsg").read_text())
+
+    def test_returning_restart2_resets_at_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = self.watchdog(root, acknowledged=False)
+            (root / "helper").write_text("#!/bin/sh\n: >\"$0.started\"\nexit 1\n")
+            code, err = self.run_group(target_shell() + ["-c", script], root, 15)
+            self.assertIn("watchdog reset requests returned", (root / "kmsg").read_text(), err)
+            self.assertTrue((root / "sysrq").read_text().startswith("b"))
+
+    @unittest.skipUnless(unshare_ok(), "unshare -rm unavailable")
+    def test_expiry_after_switch_root_needs_no_dev_null(self):
+        # After switch_root the watchdog's root (the old rootfs) has an empty
+        # /dev: ash cannot open /dev/null for a background job there. Model
+        # it by hiding /dev in a private mount namespace after arming.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = self.watchdog(root, acknowledged=False,
+                                   prelude="mount -t tmpfs tmpfs /dev || exit 76\n"
+                                           "[ ! -e /dev/null ] || exit 75\n")
+            code, err = self.run_group(
+                ["unshare", "-rm"] + target_shell() + ["-c", script], root, 20)
+            self.assertNotIn(code, (75, 76, 77), err)
+            self.assertTrue((root / "helper.started").exists(), err)
+            self.assertEqual((root / "sysrq").read_text(), "b", err)
+
+    def test_force_rollback_resets_while_restart2_blocks(self):
+        source = function(INIT.read_text(), "force_rollback")
+        self.assertEqual(source.count("printf b >/proc/sysrq-trigger 2>/dev/null || true"), 1)
+        source = source.replace("printf b >/proc/sysrq-trigger 2>/dev/null || true",
+                                'printf b >>"$FIXTURE_SYSRQ"; exit 42')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            helper = root / "helper"
+            helper.write_text(BLOCKING_HELPER)
+            helper.chmod(0o755)
+            script = f"""
+set -u
+FIXTURE_SYSRQ={root}/sysrq
+reboot_helper={helper}
+reboot_helper_grace=1
+log() {{ printf '%s\\n' "$*" >>{root}/log; sleep 1000; }}
+{source}
+force_rollback
+"""
+            started = time.monotonic()
+            code, err = self.run_group(target_shell() + ["-c", script], root, 15)
+            self.assertEqual(code, 42, err)
+            self.assertLess(time.monotonic() - started, 10)
+            self.assertTrue((root / "helper.started").exists(), err)
+            self.assertEqual((root / "sysrq").read_text(), "b")
+            self.assertFalse((root / "log").exists() and
+                             "did not complete" in (root / "log").read_text())
+
+    def test_reset_precedes_every_diagnostic_after_the_grace(self):
+        # A stalled printk path must not keep SysRq b from being written.
+        source = INIT.read_text()
+        backstop = function(source, "watchdog_backstop")
+        self.assertLess(backstop.index("printf b >&9"), backstop.index(">&8"))
+        rollback = function(source, "force_rollback")
+        grace = rollback.index('sleep "$reboot_helper_grace"')
+        self.assertLess(rollback.index("printf b >/proc/sysrq-trigger", grace),
+                        rollback.index("\tlog '", grace))
 
 
 class BootWatchdog(unittest.TestCase):

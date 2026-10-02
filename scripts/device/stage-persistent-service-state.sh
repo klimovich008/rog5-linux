@@ -114,10 +114,12 @@ verify_existing_root_mount() {
 	$1 ~ "^/dev/sd" {
 		count++
 		if ($1 != expected || $2 != "/.rog5/root-ro" || $3 != "ext4" ||
-		    $4 !~ /(^|,)ro(,|$)/ || $4 !~ /(^|,)norecovery(,|$)/)
-			exit 1
+		    $4 !~ /(^|,)ro(,|$)/ || $4 !~ /(^|,)norecovery(,|$)/) {
+			bad = 1
+			exit
+		}
 	}
-	END { exit count != 1 }' /proc/mounts
+	END { exit bad || count != 1 }' /proc/mounts
 }
 
 relock_storage() {

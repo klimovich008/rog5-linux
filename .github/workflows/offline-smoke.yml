@@ -19,7 +19,8 @@ concurrency:
 jobs:
   head-exact:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The nightly tier alone took 12.5 min in an Ubuntu 24.04 container (2026-10-02).
+    timeout-minutes: 30
     outputs:
       head_sha: ${{ steps.verify-head.outputs.head_sha }}
       test_tier: ${{ steps.select-tier.outputs.test_tier }}
@@ -57,6 +58,7 @@ jobs:
             build-essential \
             bubblewrap \
             gtk-update-icon-cache \
+            gawk \
             rustc \
             libegl1 \
             libwayland-dev libwayland-bin \
@@ -114,7 +116,7 @@ jobs:
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
       - name: Retain JSON and JUnit results on success or failure
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: head-reports-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/test-reports/
@@ -124,7 +126,8 @@ jobs:
   merge-compat:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The nightly tier alone took 12.5 min in an Ubuntu 24.04 container (2026-10-02).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -158,6 +161,7 @@ jobs:
             build-essential \
             bubblewrap \
             gtk-update-icon-cache \
+            gawk \
             rustc \
             libegl1 \
             libwayland-dev libwayland-bin \
@@ -215,7 +219,7 @@ jobs:
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
       - name: Retain JSON and JUnit results on success or failure
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: merge-reports-${{ github.event.pull_request.head.sha || github.sha }}
           path: build/test-reports/
@@ -224,8 +228,9 @@ jobs:
 
   board-production:
     runs-on: ubuntu-24.04
-    # Measured cold 2-job build exceeded 38 minutes before link/schema stages.
-    timeout-minutes: 90
+    # Measured 2026-10-02 (run 36985394004): cold 2-job kernel-build 63 min,
+    # all build stages 66 min, job 68 min before the board tier.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -291,7 +296,7 @@ jobs:
             scripts/host/test-repository-linux.sh board
       - name: Retain exact-board results and validation logs
         if: steps.board.outputs.selected == 'yes' && always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: board-production-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -359,7 +364,7 @@ jobs:
             build/panel-linux-source build/panel-driver-check
       - name: Retain panel source/config/object identities
         if: steps.panel.outputs.selected == 'yes' && success()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: panel-driver-${{ github.event.pull_request.head.sha || github.sha }}
           path: |

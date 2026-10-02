@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import re
 import shutil
 import subprocess
 import tempfile
@@ -58,6 +59,121 @@ class Static(unittest.TestCase):
 
     def test_default_image_is_the_reference_p24(self):
         self.assertEqual(TOOL.DEFAULT_IMAGE_BYTES, 67108824 * 512)
+
+    def test_required_commands_have_packages_and_users(self):
+        # Audit 2026-10-02: rog5-firewall.service ran /usr/bin/nft, but
+        # nftables (only optional for networkmanager) was not in the list.
+        pkgs = {l.split('#')[0].strip() for l in (REPO / 'configs/rootfs/packages.txt').read_text().splitlines()}
+        rows = [[c for c in l.split('\t') if c] for l in
+                (REPO / 'configs/rootfs/required-commands.tsv').read_text().splitlines()
+                if l.strip() and not l.startswith('#')]
+        self.assertEqual(len(rows), len(TOOL.required_commands()))
+        for path, package, used_by in rows:
+            if not package.startswith('dep:'):
+                self.assertIn(package, pkgs, f'{path}: package {package} is not in packages.txt')
+            text = (REPO / used_by).read_text()
+            name = path.rsplit('/', 1)[1]
+            self.assertRegex(text, r'(^|[\s/\'"=$({])' + re.escape(name) + r'($|[\s;\'")])',
+                             f'{used_by} does not run {name}')
+        for needed in ('/usr/bin/nft', '/usr/bin/grim', '/usr/bin/wmenu-run', '/usr/bin/wayvnc'):
+            self.assertIn(needed, TOOL.required_commands())
+        firewall = (REPO / 'configs/systemd/rog5-firewall.service').read_text()
+        self.assertIn('/usr/bin/nft', firewall)
+        self.assertIn('nftables', pkgs)
+
+
+class Signature(unittest.TestCase):
+    KEY = TOOL.ALARM_KEY
+    SUB = 'B' * 40
+
+    def status(self, *extra, primary=None, good=True):
+        lines = ['[GNUPG:] NEWSIG', '[GNUPG:] KEY_CONSIDERED %s 0' % self.KEY, '[GNUPG:] SIG_ID x 2026-10-01 1790000000']
+        if good:
+            lines.append('[GNUPG:] GOODSIG 77193F152BDBE6A6 Arch Linux ARM Build System <builder@archlinuxarm.org>')
+            lines.append('[GNUPG:] VALIDSIG %s 2026-10-01 1790000000 0 4 0 1 10 00 %s' % (self.SUB, primary or self.KEY))
+        lines += list(extra)
+        lines.append('[GNUPG:] TRUST_UNDEFINED 0 pgp')
+        return '\n'.join(lines) + '\n'
+
+    def test_good_signature_by_a_subkey(self):
+        self.assertIsNone(TOOL.check_signature_status(0, self.status(), self.KEY))
+
+    def test_revoked_or_expired_keys_and_signatures_are_refused(self):
+        # GnuPG prints VALIDSIG next to REVKEYSIG/EXPKEYSIG/EXPSIG
+        for word in ('REVKEYSIG', 'EXPKEYSIG', 'EXPSIG', 'BADSIG', 'ERRSIG', 'NO_PUBKEY'):
+            why = TOOL.check_signature_status(0, self.status(f'[GNUPG:] {word} 77193F152BDBE6A6 x'), self.KEY)
+            self.assertIsNotNone(why, word)
+            self.assertIn(word, why)
+
+    def test_exit_status_counts(self):
+        self.assertIn('exited', TOOL.check_signature_status(1, self.status(), self.KEY))
+
+    def test_other_key_missing_primary_or_two_signatures(self):
+        self.assertIsNotNone(TOOL.check_signature_status(0, self.status(primary='C' * 40), self.KEY))
+        bad = self.status().replace(' ' + self.KEY + '\n', '\n')
+        self.assertIsNotNone(TOOL.check_signature_status(0, bad, self.KEY))
+        self.assertIsNotNone(TOOL.check_signature_status(0, self.status(good=False), self.KEY))
+        two = self.status() + self.status()
+        self.assertIsNotNone(TOOL.check_signature_status(0, two, self.KEY))
+
+    def test_fetch_uses_the_status_check(self):
+        src = (REPO / 'scripts/host/rog5-build-rootfs').read_text()
+        fetch = src[src.index('def step_fetch'):src.index('def step_extract')]
+        self.assertIn('check_signature_status(status.returncode, status.stdout, ALARM_KEY)', fetch)
+        self.assertNotIn('re.search', fetch)    # no bare VALIDSIG match any more
+
+
+class PasswordHash(unittest.TestCase):
+    """The phone PIN hash goes to chpasswd on stdin, never on a command line
+    or in the log (synthetic hash only)."""
+    HASH = '$6$synthetic$' + 'x' * 86
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.key = self.tmp / 'id.pub'
+        self.key.write_text('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAISyntheticKeyBlobForTestsOnly0000000000 me@pc\n')
+        self.hash_file = self.tmp / 'phone.hash'
+        self.hash_file.write_text(self.HASH + '\n')
+        self.hash_file.chmod(0o600)
+        (self.tmp / 'work').mkdir()
+        self.addCleanup(TOOL.REDACT.clear)
+
+    def builder(self):
+        b = TOOL.Builder(args(work=str(self.tmp / 'work'), ssh_key=str(self.key),
+                              phone_password_hash_file=str(self.hash_file)))
+        b.calls = []
+        b.chroot = lambda script, **kw: b.calls.append((script, kw))
+        return b
+
+    def test_hash_on_stdin_only(self):
+        import contextlib
+        import io
+        b = self.builder()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            b.step_accounts()
+        scripts = [c[0] for c in b.calls]
+        self.assertFalse(any(self.HASH in s for s in scripts), 'hash in a chroot script (argv)')
+        self.assertIn(('chpasswd -e', {'input': f'phone:{self.HASH}\n', 'text': True}), b.calls)
+        self.assertNotIn(self.HASH, out.getvalue())
+
+    def test_run_refuses_and_log_masks_a_secret(self):
+        import contextlib
+        import io
+        TOOL.REDACT.append(self.HASH)
+        with self.assertRaises(SystemExit):
+            TOOL.run(['echo', 'x' + self.HASH])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            TOOL.log('value ' + self.HASH)
+        self.assertNotIn(self.HASH, out.getvalue())
+        self.assertIn('<redacted>', out.getvalue())
+
+    def test_group_readable_hash_file_is_refused(self):
+        self.hash_file.chmod(0o644)
+        with self.assertRaises(SystemExit):
+            self.builder().step_accounts()
 
 
 @unittest.skipUnless(userns(), 'needs unshare --map-auto --map-root-user')
