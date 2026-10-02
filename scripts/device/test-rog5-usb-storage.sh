@@ -191,4 +191,11 @@ printf 'UUID=other\nLABEL=ROG5-USB\nTYPE=ext4\n' >$t/blkid.sdc1
 n=$(wc -l <$t/mounts)
 "$s" mount sdc1 2>/dev/null && fail 'second disk with the same label mounted'
 [ "$(wc -l <$t/mounts)" = "$n" ] || fail 'second disk stacked'
+# The unit cleans up with ExecStopPost (also after a failed or killed start),
+# which needs "umount" to be idempotent: a second run without a record is a
+# no-op that succeeds.
+unit=$here/../../configs/systemd/rog5-usb-storage@.service
+grep -qx 'ExecStopPost=/usr/local/sbin/rog5-usb-storage umount %I' "$unit" || fail 'no ExecStopPost cleanup'
+! grep -q '^ExecStop=' "$unit" || fail 'cleanup only in ExecStop (skipped after a failed start)'
+"$s" umount sdb1 2>/dev/null || fail 'idempotent umount without a record'
 echo PASS rog5-usb-storage

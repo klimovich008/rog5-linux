@@ -20,6 +20,10 @@ PartOf=rog5-persistent-state.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/sbin/rog5-usb-storage mount %I
-ExecStop=/usr/local/sbin/rog5-usb-storage umount %I
+# ExecStopPost, not ExecStop: it also runs after a failed or killed start
+# (e.g. a timeout or SIGKILL after the mount but before the oneshot
+# finished), which ExecStop does not. "umount" is idempotent: without a
+# record it does nothing.
+ExecStopPost=/usr/local/sbin/rog5-usb-storage umount %I
 # e2fsck -p of a large filesystem after an unclean unplug.
 TimeoutStartSec=30min

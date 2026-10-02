@@ -637,7 +637,12 @@ def run(args):
     finally:
         for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
             signal.signal(sig, signal.SIG_IGN)   # let the cleanup finish
-        log("restore: " + ses.close())
+        msg = ses.close()
+        log("restore: " + msg)
+        if "FAILED" in msg and rc == 0:
+            # the measurement ran, but the phone was not put back (charger,
+            # charge daemon or link policy): automation must not see success
+            rc = 1
         csv.close()
         os.close(lockfd)
     if wins:

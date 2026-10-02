@@ -109,6 +109,32 @@ class MemoryTuneTest(unittest.TestCase):
         self.assertFalse(os.path.lexists(user / 'localsearch-3.service'))
         self.assertTrue(os.path.islink(user / 'admin.service'))
 
+    def test_mask_failures_are_reported_and_ownership_kept(self):
+        user = self.t / 'etc/systemd/user'
+        user.mkdir(parents=True)
+        self.conf.write_text('mask_user_units=localsearch-3.service\n')
+        # creation fails: not recorded, non-zero
+        user.chmod(0o555)
+        self.addCleanup(user.chmod, 0o755)
+        r = self.run_tool('apply', rc=1)
+        self.assertIn('could not mask localsearch-3.service', r.stderr)
+        self.assertFalse(os.path.lexists(user / 'localsearch-3.service'))
+        self.assertEqual(self.read('state/masks').split(), [])
+        # created and recorded once possible
+        user.chmod(0o755)
+        self.run_tool('apply')
+        self.assertEqual(self.read('state/masks').split(), ['localsearch-3.service'])
+        # removal fails: still recorded (so a later revert retries), non-zero
+        user.chmod(0o555)
+        r = self.run_tool('revert', rc=1)
+        self.assertIn('could not remove the mask', r.stderr)
+        self.assertTrue(os.path.islink(user / 'localsearch-3.service'))
+        self.assertEqual(self.read('state/masks').split(), ['localsearch-3.service'])
+        user.chmod(0o755)
+        self.run_tool('revert')
+        self.assertFalse(os.path.lexists(user / 'localsearch-3.service'))
+        self.assertEqual(self.read('state/masks').split(), [])
+
     def test_revert_restores_defaults_and_keeps_foreign_dropin(self):
         self.run_tool('apply')
         foreign = self.t / 'etc/systemd/user.conf.d/60-rog5-malloc-thp.conf'

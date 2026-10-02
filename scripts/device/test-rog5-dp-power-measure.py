@@ -201,6 +201,15 @@ class Tests(unittest.TestCase):
         self.assertEqual(f.run("restore").returncode, 0)
         self.assertFalse((run / "saved.json").exists())
 
+    def test_failed_cleanup_after_a_measurement_fails_the_run(self):
+        f = self.f = Fixture()
+        f.env["FAIL_VERB"] = "start"
+        r = f.run("matrix", "--configs=efficient", "--rounds=1", "--seconds=2",
+                  "--interval=1", "--settle=0", "--power=battery")
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("FAILED rog5-charge-policy started", r.stdout)
+        self.assertTrue((f.root / "run/rog5-dp-power-measure/saved.json").exists())
+
     def test_sample_needs_no_policy_parameter(self):
         f = self.f = Fixture(param=False)
         r = f.run("sample", "--label=before", "--seconds=2", "--interval=1")
