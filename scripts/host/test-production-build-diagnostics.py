@@ -66,6 +66,26 @@ class Diagnostics(unittest.TestCase):
                 (self.source/name).write_text('new semantics')
                 self.assertFalse(self.check(message)[0]['allowed'])
                 (self.source/name).write_text(before)
+    def test_absolute_and_ccache_relative_paths_match_one_review(self):
+        # CI clang prints the absolute source path; local ccache builds
+        # (CCACHE_BASEDIR) print it relative to the object directory.
+        absolute=self.reviewed();relative='../source/'+absolute.split(str(self.source)+'/',1)[1]
+        self.assertEqual([x['allowed'] for x in self.check(absolute+'\n'+relative)],[True,False])
+        self.assertTrue(self.check(relative)[0]['allowed'])
+        self.assertFalse(self.check(relative.replace('../source/','../other/'))[0]['allowed'])
+        self.assertFalse(self.check('x/'+relative)[0]['allowed'])
+    def test_repository_policy_keys_are_source_relative_and_unique(self):
+        # The checker uses the first entry that names a message, so a stale
+        # duplicate or an unnormalised key silently disables a review.
+        policy=json.loads(checker.POLICY.read_text());owners={}
+        for index,pin in enumerate(policy['reviewed_messages']):
+            self.assertTrue(pin['reason'])
+            for message in pin['messages']:
+                with self.subTest(message=message):
+                    self.assertFalse(message.startswith(('/','../','./')))
+                    self.assertTrue(message.split('Warning: ',1)[-1].startswith(pin['path']+':'))
+                    self.assertNotIn(message,owners)
+                    owners[message]=index
     def test_schema_error_cannot_be_allowed_as_reviewed_warning(self):
         self.reviewed();self.policy['reviewed_messages'][0]['messages']={'board.dtb: missing required property':1}
         self.assertFalse(self.check('board.dtb: missing required property','dtbs-check')[0]['allowed'])

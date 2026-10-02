@@ -84,8 +84,10 @@ def main():
         if (root/pin['path']).is_file() and sha(root/pin['path']) == pin['sha256'] and all(
                 sha((source if d['root'] == 'source' else build/'objects')/d['path']) == d['sha256'] for d in pin['dependencies']):
             policy['initializer_overrides'].append(pin)
+    # A reviewed site's reason also rests on its pinned dependencies (headers).
     for pin in previous['reviewed_messages']:
-        if (source/pin['path']).is_file() and sha(source/pin['path']) == pin['sha256']:
+        if (source/pin['path']).is_file() and sha(source/pin['path']) == pin['sha256'] and all(
+                (source/d['path']).is_file() and sha(source/d['path']) == d['sha256'] for d in pin['dependencies']):
             policy['reviewed_messages'].append(pin)
     kept = (len(policy['initializer_overrides']), len(policy['reviewed_messages']))
     refused, drafted = [], collections.defaultdict(collections.Counter)
@@ -98,7 +100,7 @@ def main():
                 or not (source/path).is_file():
             refused.append(dict(stage=entry['stage'], line=line[:400], path=path, series_file=path in touched))
             continue
-        drafted[path][line.replace(str(source)+'/', '')] += 1
+        drafted[path][D.normalize(line, source, build/'objects')] += 1
     need(not refused, 'diagnostics that cannot be drafted:\n'+'\n'.join(json.dumps(r) for r in refused[:40]))
     reason = ('Upstream '+base['base_commit'][:12]+' W=1 diagnostic in a file the ROG5 series does not modify; '
               'exact file hash and message count drafted by draft-warning-policy.py.')
