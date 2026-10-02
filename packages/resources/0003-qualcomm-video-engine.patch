@@ -482,7 +482,7 @@ index 8c3200d..b195ced 100644
 +        /*
 +         *  Video engines
 +         */
-+        self.refresh_video_pages(&video_data, &apps_context);
++        self.refresh_video_pages(&video_data, &imp.apps_context.borrow());
 +
          /*
           *  Drives
