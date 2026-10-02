@@ -590,8 +590,16 @@ the first six ETB/FTB of a session).
 
 ## k117 trials
 
-Kernel k117 = k116 + patches 0169-0171, DTB d15 unchanged. Wrappers and
-hashes: [bundles.md](../bundles.md) and the table below once built.
+Kernel k117 = k116 + patches 0169-0171, DTB d15 unchanged. Wrappers
+(`boot-ram-128m.img` in `~/.local/state/rog5-production-boot-20260923/package-<bundle>/`,
+descriptor in `trial-<bundle>/`):
+
+| Bundle | Use | Wrapper SHA-256 |
+|---|---|---|
+| `main-k117-d15-261002a` | F1 regression + safe reload | `e2473675149c47b118d00224daf1c692968ab80e9014ddc2555d9550dda62de9` |
+| `main-k117-d15-261002b` | F2 VP9 | `1ab51f9ce20da67ef97bfd132a01cd757442fb6de90cdc2409436bc89cf4078a` |
+| `main-k117-d15-261002c` | F3 staged encoder | `5049507c06cb287948c81f3be6d1f1c01dbeaba032d0256996a4a5472a4747c6` |
+| `main-k117-d15-261002d` | spare | `f2de01c615e1f215c398879848af3942c401d81bea852051ed9bf1042c89ced0` |
 
 What changed:
 
