@@ -1,0 +1,128 @@
+From f5307c3ee95417ef1ccaecde67ed038697de3f5a Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:20:33 +0200
+Subject: [PATCH] drm/msm/dp: expose a modeset PCON reprobe for dark-video
+ recovery
+
+dp_pcon_reprobe defaults off and permits capability/EDID refresh after an orderly modeset teardown, without a physical HPD or reboot. A detected failure always reprobes. Select depth only after the refresh. Stop optional CRC sampling when rate limiting ends a snapshot sequence.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+---
+ drivers/gpu/drm/msm/dp/dp_ctrl.c    |  6 +++++
+ drivers/gpu/drm/msm/dp/dp_display.c | 35 +++++++++++++++++++----------
+ 2 files changed, 29 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index f09d34b..72f78c4 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -2599,6 +2599,9 @@ static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl)
+ 		if (rc == 0) {
+ 			/* training completed successfully */
+ 			return 0;
++		} else if (rc != -EAGAIN && rc != -ETIMEDOUT) {
++			/* AUX/configuration errors are not electrical downshift failures. */
++			break;
+ 		} else if (training_step == DP_TRAINING_1) {
+ 			/* link train_1 failed */
+ 			if (!msm_dp_aux_is_link_connected(ctrl->aux))
+@@ -2650,6 +2653,9 @@ static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl)
+ 			rc = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
+ 			if (rc)
+ 				break;
++		} else {
++			/* A reset/configuration failure happened before CR/EQ started. */
++			break;
+ 		}
+ 
+ 		rc = msm_dp_ctrl_reinitialize_mainlink(ctrl);
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index a0f3c1c..c0ff4dd 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -720,9 +720,12 @@ static void msm_dp_snoop_fn(struct work_struct *work)
+ 	static DEFINE_RATELIMIT_STATE(limit, 5 * HZ, 10);
+ 
+ 	guard(mutex)(&dp->plugged_lock);
+-	if (!dp->msm_dp_display.power_on || !dp->phy_initialized ||
+-	    !__ratelimit(&limit))
++	if (!dp->msm_dp_display.power_on || !dp->phy_initialized)
+ 		return;
++	if (!__ratelimit(&limit)) {
++		msm_dp_display_stop_crc(dp);
++		return;
++	}
+ 
+ 	if (msm_dp_crc && step == 0) {
+ 		u8 cap;
+@@ -850,6 +853,10 @@ static int msm_dp_display_post_enable(struct msm_dp *msm_dp_display)
+  * amdgpu do. Aimed at the USB-C HDMI hub whose converter stayed dark after an
+  * HBR2 attempt until a replug and a reboot. Applied at the next modeset.
+  */
++static bool msm_dp_pcon_reprobe;
++module_param_named(dp_pcon_reprobe, msm_dp_pcon_reprobe, bool, 0644);
++MODULE_PARM_DESC(dp_pcon_reprobe, "ROG5 PCON recovery: reread sink/EDID capabilities at the next modeset after teardown (default 0)");
++
+ static bool msm_dp_sink_power_cycle;
+ module_param_named(dp_sink_power_cycle, msm_dp_sink_power_cycle, bool, 0644);
+ MODULE_PARM_DESC(dp_sink_power_cycle, "ROG5: D3 on link shutdown and D3->D0 before a fresh link enable");
+@@ -1659,12 +1666,6 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 		goto failed_enable;
+ 	}
+ 
+-	rc = msm_dp_display_set_mode(dp, &msm_dp_display->msm_dp_mode);
+-	if (rc) {
+-		DRM_ERROR("Failed to perform a mode set, rc=%d\n", rc);
+-		goto failed_enable;
+-	}
+-
+ 	if (!dp->power_on) {
+ 		rc = msm_dp_display_host_phy_init(msm_dp_display);
+ 		if (rc < 0)
+@@ -1688,12 +1689,22 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 	rc = msm_dp_display_sink_wake(msm_dp_display);
+ 	if (rc)
+ 		goto failed_enable;
+-	if (msm_dp_display->retry_pending) {
++	if (msm_dp_display->retry_pending ||
++	    (READ_ONCE(msm_dp_pcon_reprobe) &&
++	     drm_dp_is_branch(msm_dp_display->panel->dpcd) &&
++	     (msm_dp_display->panel->dpcd[DP_DOWNSTREAMPORT_PRESENT] &
++	      DP_DWN_STRM_PORT_TYPE_MASK) == DP_DWN_STRM_PORT_TYPE_TMDS)) {
+ 		rc = msm_dp_display_process_hpd_high(msm_dp_display);
+ 		if (rc)
+ 			goto failed_enable;
+ 	}
+ 
++	rc = msm_dp_display_set_mode(dp, &msm_dp_display->msm_dp_mode);
++	if (rc) {
++		DRM_ERROR("Failed to perform a mode set, rc=%d\n", rc);
++		goto failed_enable;
++	}
++
+ 	rc = msm_dp_panel_config_pcon(msm_dp_display->panel);
+ 	if (rc)
+ 		goto failed_enable;
+@@ -1701,7 +1712,7 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
+ 	msm_dp_display_replay_reset_hpd(msm_dp_display);
+ 	if (rc) {
+-		DRM_ERROR("Failed link training (rc=%d)\n", rc);
++		DRM_ERROR_RATELIMITED("Failed link training (rc=%d)\n", rc);
+ 		goto failed_enable;
+ 	}
+ 
+@@ -1790,8 +1801,8 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
+ 	if (dp->is_edp)
+ 		msm_dp_hpd_unplug_handle(msm_dp_display);
+ 
+-	guard(mutex)(&msm_dp_display->plugged_lock);
+-	msm_dp_display_disable(msm_dp_display);
++	scoped_guard(mutex, &msm_dp_display->plugged_lock)
++		msm_dp_display_disable(msm_dp_display);
+ 
+ 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
+ 
+-- 
+2.50.1
+

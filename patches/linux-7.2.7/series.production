@@ -130,3 +130,10 @@
 0166-media-iris-ROG5-gen1-property-packets-sized-for-their-wire-structure.patch
 0167-media-iris-ROG5-SM8350-power-off-on-in-the-stock-Iris2-order.patch
 0168-media-iris-ROG5-resume-unwind-bandwidth-vote-and-flush-answer-robustness.patch
+0200-drm-msm-dp-observe-and-unwind-failed-enables.patch
+0201-drm-msm-dp-check-sink-wake-and-PCON-restoration.patch
+0202-drm-msm-dp-opt-in-stock-PCON-training-termination.patch
+0203-drm-msm-dp-opt-in-serialized-PCON-AHB-reset.patch
+0204-drm-msm-dp-opt-in-fresh-PCON-MISC-state.patch
+0205-drm-msm-dp-recover-maintenance-and-bound-snapshots.patch
+0206-drm-msm-dp-modeset-PCON-reprobe-for-recovery.patch

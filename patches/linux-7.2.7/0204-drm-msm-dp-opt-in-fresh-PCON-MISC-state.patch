@@ -1,0 +1,62 @@
+From 7747995066216bd58f6d730cd3bd45584d88ded5 Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:12:18 +0200
+Subject: [PATCH] drm/msm/dp: gate fresh PCON MISC state and clear polarity
+ overrides
+
+dp_pcon_clean_misc defaults off. Rebuild depth, encoding/colorimetry, sync clock and VSC selection for the current stream; remove stale RGB VSC SDPs. Keep dp_polarity off by default but make its off setting restore the historical polarity rather than retaining a prior trial.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+---
+ drivers/gpu/drm/msm/dp/dp_ctrl.c    | 11 +++++++++++
+ drivers/gpu/drm/msm/dp/dp_display.c |  4 ++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index dffc553..73b4b4c 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -460,6 +460,10 @@ static uint msm_dp_async_msa;
+ module_param_named(dp_async_msa, msm_dp_async_msa, uint, 0644);
+ MODULE_PARM_DESC(dp_async_msa, "ROG5 EXPERIMENT (static M/N, not spec-complete): 1 = asynchronous MSA clock signalling at the next modeset (0 = synchronous)");
+ 
++static bool msm_dp_pcon_clean_misc;
++module_param_named(dp_pcon_clean_misc, msm_dp_pcon_clean_misc, bool, 0644);
++MODULE_PARM_DESC(dp_pcon_clean_misc, "ROG5 PCON experiment: rebuild owned MISC fields and remove stale RGB VSC selection (default 0)");
++
+ static bool msm_dp_pcon_ahb_reset;
+ module_param_named(dp_pcon_ahb_reset, msm_dp_pcon_ahb_reset, bool, 0644);
+ MODULE_PARM_DESC(dp_pcon_ahb_reset, "ROG5 PCON experiment: serialized AHB SW_RESET before link training (default 0)");
+@@ -584,7 +588,14 @@ static void msm_dp_ctrl_configure_source_params(struct msm_dp_ctrl_private *ctrl
+ 	test_bits_depth = msm_dp_link_get_test_bits_depth(ctrl->link, ctrl->panel->msm_dp_mode.bpp);
+ 	colorimetry_cfg = msm_dp_link_get_colorimetry_config(ctrl->link);
+ 
++	if (READ_ONCE(msm_dp_pcon_clean_misc) && msm_dp_ctrl_is_pcon(ctrl) &&
++	    !ctrl->panel->msm_dp_mode.out_fmt_is_yuv_420 &&
++	    !ctrl->panel->psr_cap.version)
++		msm_dp_panel_disable_vsc_sdp(ctrl->panel);
++
+ 	misc_val = msm_dp_read_link(ctrl, REG_DP_MISC1_MISC0);
++	if (READ_ONCE(msm_dp_pcon_clean_misc) && msm_dp_ctrl_is_pcon(ctrl))
++		misc_val &= ~(0xff | DP_MISC1_VSC_SDP);
+ 
+ 	/* clear bpp bits */
+ 	misc_val &= ~(0x07 << DP_MISC0_TEST_BITS_DEPTH_SHIFT);
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 438a6a4..712c7ac 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -738,6 +738,10 @@ static int msm_dp_display_set_mode(struct msm_dp *msm_dp_display,
+ 	if (msm_dp_polarity) {
+ 		dp->panel->msm_dp_mode.h_active_low = mode->h_active_low;
+ 		dp->panel->msm_dp_mode.v_active_low = mode->v_active_low;
++	} else {
++		/* Restore the historical default when the experiment is turned off. */
++		dp->panel->msm_dp_mode.h_active_low = false;
++		dp->panel->msm_dp_mode.v_active_low = false;
+ 	}
+ 	dp->panel->msm_dp_mode.out_fmt_is_yuv_420 = mode->out_fmt_is_yuv_420;
+ 	msm_dp_panel_init_panel_info(dp->panel);
+-- 
+2.50.1
+
