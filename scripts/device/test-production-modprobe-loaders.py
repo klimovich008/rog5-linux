@@ -27,7 +27,7 @@ ARCHIVE = Path(os.environ.get('ROG5_TEST_TARGET_ARCHIVE', STATE/'archive-rehears
 TREE = Path(os.environ.get('ROG5_TEST_MODULE_TREE', STATE/'package-r1/module-root-complete.tar.gz'))
 QEMU = Path(os.environ.get('ROG5_TEST_QEMU', '/usr/bin/qemu-aarch64-static'))
 APPLETS = ('sh', 'grep', 'find', 'wc', 'cat', 'sed', 'head', 'tail', 'tr', 'basename',
-           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false', 'cp', 'chmod')
+           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false', 'cp', 'chmod', 'mv')
 POWER_ORDER = ['mdt_loader', 'qcom_q6v5', 'qcom_glink_smem', 'qcom_common', 'qcom_pil_info',
                'qcom_q6v5_pas', 'qrtr', 'qrtr_smd', 'qcom_pdr_msg', 'qcom_pd_mapper',
                'pdr_interface', 'pmic_glink', 'qcom_battmgr', 'typec', 'typec_ucsi', 'ucsi_glink']
@@ -276,6 +276,11 @@ class Loaders(unittest.TestCase):
         published = self.root/'run/rog5-modules/lib/modules'/RELEASE
         self.assertEqual((published/'modules.dep').read_text(), self.dep_text)
         self.assertTrue((published/'kernel/drivers/gpu/drm/msm/msm.ko').is_file())
+        # The try-once commit requires this record (written after the tree).
+        record = self.root/'run/rog5-production-modules.record'
+        self.assertEqual(record.read_text(), f'release={RELEASE}\n')
+        self.assertEqual(record.stat().st_mode & 0o777, 0o444)
+        self.assertFalse((self.root/'run/rog5-production-modules.record.next').exists())
         result, _ = self.run_case(body)  # a second publication must refuse
         self.assertIn('PUBLISH=1', result.stdout)
         shutil.rmtree(self.root/'run/rog5-modules')
