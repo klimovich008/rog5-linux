@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Mock test of the lock tracking in rog5-desktop-mode (fails closed).
 set -u
 here=$(dirname "$0")

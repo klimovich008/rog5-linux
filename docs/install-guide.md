@@ -680,7 +680,12 @@ step 5; a bootstrap bundle that boots without them is not defined yet.
   starts it, and only after it has seen the phone locked and then unlocked
   with the PIN (a tap on a phone it has not seen unlocked, e.g. right after
   restarting the switcher, is refused with a notification: lock and unlock
-  once). Stopping or restarting `rog5-desktop-mode` ends desktop mode.
+  once). Manual is the default when `/var/lib/rog5/desktop-mode` is absent
+  or empty; keep `manual` in that root-owned file for manual operation.
+  The switcher also requires Phosh's actual lock property (patched Phosh
+  0.57.0-1.4); deploy the package with the switcher. An older package or an
+  unreadable property refuses the request. Stopping or restarting
+  `rog5-desktop-mode` ends desktop mode; its watchdog stops a stuck supervisor.
 - **Optional:** `pacman -S tailscale && systemctl enable --now tailscaled && tailscale up`.
 - **Patched packages you skipped:** in a checkout on the phone, as `phone`,
   `cd packages/<dir> && makepkg <flags from configs/rootfs/custom-packages.txt>`

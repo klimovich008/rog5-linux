@@ -68,8 +68,8 @@
 # while work runs; but work that starts in the last PRE_IDLE seconds before
 # the idle-delay can still meet GNOME's lock, and a lock always hands back. With the work gone the inhibitor is dropped, and the
 # hand-back follows GNOME's idle-delay as before.
-# /var/lib/rog5/desktop-mode holds auto (default: switch automatically),
-# manual (only the "Desktop mode" launcher) or off.
+# /var/lib/rog5/desktop-mode holds auto (switch automatically),
+# manual (default: only the "Desktop mode" launcher) or off.
 #
 # Every start of GNOME goes through this switcher (it has no lock screen of
 # its own, so it must never start on a locked phone):
@@ -93,10 +93,11 @@
 #   - a lock of the granted session between the grant and the gate (Phosh
 #     still stopping) voids the grant and puts Phosh back; a grant names
 #     this switcher's PID, so one from an earlier switcher is void.
-# Limit: logind lets any process of the phone user set its session's
-# LockedHint, so code already running as "phone" could fake a lock/unlock
-# and get the desktop while Phosh still shows its lock screen. Closing that
-# needs an authenticated unlock from a root broker (PAM), not the hint.
+# Authorization also reads Phosh's real Locked property (package patch
+# 0003) from its unique bus owner, verified as the packaged executable in
+# its system or user service cgroup. A forged logind hint or an unrelated
+# replacement bus owner cannot authorize a desktop. Missing/older Phosh fails closed. This does not isolate
+# Phosh from arbitrary code that can ptrace it as the same UID.
 # Hand-backs start rog5-phosh.service, whose Conflicts= stops GNOME in the
 # same transaction (so rog5-session-carry sees the switch and carries the
 # apps); a GNOME lock or an unreadable lock state stops GNOME first instead.
@@ -116,6 +117,7 @@ BUSY_POLL=60      # seconds between work checks while GNOME runs
 PRE_IDLE=10       # and one this long before GNOME's idle-delay runs out
 REQUEST_TTL=10    # a "Desktop mode" request is dropped after this long
 GRANT_TTL=60      # a start grant is valid this long (Phosh's stop comes first)
+START_GRACE=60    # maximum GNOME activation time, including Phosh stop
 SUP_GRACE=10      # GNOME without a readable lock state this long -> Phosh
 REQUEST=$RUN_DIR/request
 GRANT=$RUN_DIR/gnome-grant
@@ -127,7 +129,7 @@ INHIBIT_ID=rog5-desktop-mode   # app id / reason tag of the own inhibitor
 inhibit_pid= busy= eval_at=
 auto_done=0 nosess_since= dp_state= dp_since=0 now=0 wait_s=$SAFETY EV=
 lock_sess= locked_at=0 lock_ready= unlock_ok=
-sess_cache= seen_locked= req= sup_bad= grant_sess=
+sess_cache= seen_locked= req= sup_bad= grant_sess= grant_at=
 
 # Every logind and systemd query is bounded, so a wedged bus cannot stall the
 # supervisor while GNOME runs (SUP_GRACE is only a deadline if checks run).
@@ -135,7 +137,42 @@ sess_cache= seen_locked= req= sup_bad= grant_sess=
 # (GNOME's stop with rog5-session-carry, Phosh's start); its job continues
 # in systemd if the client is killed.
 loginctl() { timeout -k 1 5 loginctl "$@"; }
-systemctl() { timeout -k 1 30 systemctl "$@"; }
+systemctl() {
+	case ${1:-} in
+	show|is-active|list-jobs) timeout -k 1 3 systemctl "$@" ;;
+	*) timeout -k 1 30 systemctl "$@" ;;
+	esac
+}
+
+# Root connects directly: do not run a probe with phone's mutable environment.
+# Resolve the name once, authenticate that unique owner's process, then query
+# that same unique name (never auto-activate a replacement).
+phosh_locked() {
+	local uid owner pid cg state exe membership
+	uid=$(id -u "$DM_USER") || return 1
+	owner=$(timeout -k 1 3 busctl --address="unix:path=/run/user/$uid/bus" call \
+		org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetNameOwner s org.gnome.Shell 2>/dev/null) || return 1
+	[[ $owner =~ ^s\ \"(:[0-9]+\.[0-9]+)\"$ ]] || return 1
+	owner=${BASH_REMATCH[1]}
+	pid=$(timeout -k 1 3 busctl --address="unix:path=/run/user/$uid/bus" call \
+		org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetConnectionUnixProcessID s "$owner" 2>/dev/null) || return 1
+	[[ $pid =~ ^u\ ([1-9][0-9]*)$ ]] || return 1
+	pid=${BASH_REMATCH[1]}
+	cg=$(systemctl show -p ControlGroup --value rog5-phosh.service 2>/dev/null) || return 1
+	[ -n "$cg" ] && [ "$cg" != / ] || return 1
+	exe=$(readlink "/proc/$pid/exe") || return 1
+	case $exe in /usr/bin/phosh|/usr/lib/phosh/phosh) ;; *) return 1 ;; esac
+	membership=$(cat "/proc/$pid/cgroup") || return 1
+	# gnome-session may launch Phosh through its packaged systemd user
+	# unit instead of directly below the system service's PAM leader.
+	local user_cg=/user.slice/user-$uid.slice/user@$uid.service/session.slice/mobi.phosh.Shell.service
+	awk -F: -v cg="$cg" -v user_cg="$user_cg" \
+		'$1 == "0" && ($3 == cg || index($3, cg "/") == 1 || $3 == user_cg) {ok=1} END {exit !ok}' \
+		<<<"$membership" || return 1
+	state=$(timeout -k 1 3 busctl --address="unix:path=/run/user/$uid/bus" get-property \
+		"$owner" /org/gnome/Shell org.gnome.Shell Locked 2>/dev/null) || return 1
+	case $state in 'b true') echo yes ;; 'b false') echo no ;; *) return 1 ;; esac
+}
 
 # Records the Phosh session's lock state; call on every check while Phosh runs.
 # Fails closed: "unlocked" needs a locked -> unlocked transition of the same
@@ -282,7 +319,7 @@ notify_user() {         # best effort, never blocks the switcher (background)
 # since) is void.
 grant_write() {
 	printf '%s %s %s\n' "$now" "$1" "$$" >"$GRANT.tmp" && mv -f "$GRANT.tmp" "$GRANT" &&
-		grant_sess=$1
+		grant_sess=$1 grant_at=$now
 }
 
 # The phone locked again (or its lock state became unreadable) while a
@@ -291,10 +328,9 @@ grant_write() {
 grant_revoke() {
 	[ -n "$grant_sess" ] || return 0
 	grant_sess=
-	[ -e "$GRANT" ] || return 0
 	rm -f "$GRANT"
 	echo "rog5-desktop-mode: $1 during the switch: GNOME start cancelled -> Phosh" >&2
-	systemctl start --no-block rog5-phosh.service
+	to_phosh "cancelled desktop transition" now
 }
 
 # "Desktop mode" launcher (rog5-desktop-request.service, as root): leaves a
@@ -309,7 +345,7 @@ request_main() {
 # rog5-gnome.service's first ExecStartPre (as root): GNOME starts only with
 # a fresh grant from the switcher, and each grant serves one start.
 gate_main() {
-	local t= s= pid= main
+	local t= s= pid= main sessions locked
 	now_cs
 	[ -f "$GRANT" ] && [ ! -L "$GRANT" ] && { read -r t s pid <"$GRANT"; } 2>/dev/null
 	rm -f "$GRANT"
@@ -325,6 +361,11 @@ gate_main() {
 	if [ -z "$pid" ] || [ "$pid" != "$main" ]; then
 		echo "rog5-gnome: refused: the grant is not from the running rog5-desktop-mode" >&2
 		exit 1
+	fi
+	sessions=$(loginctl list-sessions --no-legend 2>/dev/null) || exit 1
+	if awk -v sid="$s" '$1 == sid {found=1} END {exit !found}' <<<"$sessions"; then
+		locked=$(loginctl show-session "$s" -p LockedHint --value 2>/dev/null) || exit 1
+		[ "$locked" = no ] && [ "$(phosh_locked)" = no ] || exit 1
 	fi
 	echo "rog5-gnome: started by rog5-desktop-mode (phone unlocked in session ${s:-?})"
 }
@@ -566,12 +607,12 @@ check() {
 	wait_s=$SAFETY
 	mode=
 	{ read -r mode <"$MODE_FILE"; } 2>/dev/null   # "printf manual >" has no newline
-	[ -n "$mode" ] || mode=auto
+	[ -n "$mode" ] || mode=manual
 	read_dp
 	request_check
 	set -- $(systemctl is-active rog5-gnome.service rog5-phosh.service 2>/dev/null)
 	gnome=${1:-unknown} phosh=${2:-unknown}
-	[ "$gnome" = active ] || sup_bad=
+	case $gnome in inactive|failed) sup_bad= ;; esac
 	case $gnome in
 	active|activating|reloading)
 		request_done
@@ -590,16 +631,22 @@ check() {
 		if [ "$gnome" != active ]; then
 			# Phosh may still run (its stop comes first): a relock now
 			# voids the grant before the gate reads it.
-			if [ -n "$grant_sess" ] && [ -e "$GRANT" ]; then
-				locked=$(loginctl show-session "$grant_sess" -p LockedHint --value 2>/dev/null) || locked=gone
-				case $locked in
-				no|gone) ;;  # unlocked, or the session already ended with Phosh
-				*) grant_revoke "session $grant_sess locked ($locked)" ;;
-				esac
+			if [ -n "$grant_sess" ]; then
+				# Session removal must be confirmed by a successful list;
+				# a failed query is never evidence that Phosh has gone.
+				local sessions
+				if ! sessions=$(loginctl list-sessions --no-legend 2>/dev/null); then
+					grant_revoke "session list unavailable"
+				elif awk -v sid="$grant_sess" '$1 == sid {found=1} END {exit !found}' <<<"$sessions"; then
+					locked=$(loginctl show-session "$grant_sess" -p LockedHint --value 2>/dev/null) || locked=unknown
+					[ "$locked" = no ] && [ "$(phosh_locked)" = no ] ||
+						grant_revoke "session $grant_sess locked or unreadable"
+				fi
+				[ -z "$grant_sess" ] || [ $((now - grant_at)) -lt $((START_GRACE * 100)) ] ||
+					grant_revoke "GNOME activation timed out"
 			fi
 			set_wait "$TRANSIT"; return
 		fi
-		grant_sess=
 		# Supervision fails closed: GNOME's own session (led by its main
 		# process) with a readable lock and idle state, or Phosh after
 		# SUP_GRACE seconds.
@@ -635,6 +682,13 @@ check() {
 			work_check
 		fi
 		return ;;
+	unknown|"")
+		[ -n "$sup_bad" ] || sup_bad=$now
+		if [ $((now - sup_bad)) -ge $((SUP_GRACE * 100)) ]; then
+			to_phosh "session unit status unavailable" now
+			latch 0
+		fi
+		set_wait "$TRANSIT"; return ;;
 	deactivating)
 		request_done "the desktop is stopping"
 		work_forget; set_wait "$TRANSIT"; return ;;
@@ -649,6 +703,9 @@ check() {
 		[ -n "$sess_cache" ] && phosh_leader "$sess_cache" || sess_cache=$(phosh_session)
 		track_phosh_lock
 		phosh_leader "$sess_cache" || lock_state=unknown
+		# The logind hint can be set by any phone process. Authorization
+		# needs the real lockscreen state as well.
+		[ "$(phosh_locked)" = "$lock_state" ] || lock_state=unknown
 		case $lock_state in
 		yes) note_lock "$sess_cache" confirm ;;
 		no) note_unlock "$sess_cache" ;;
@@ -670,6 +727,9 @@ check() {
 			fi
 			why="display connected"
 		fi
+		[ "$(loginctl show-session "$sess_cache" -p Active --value 2>/dev/null)" = yes ] &&
+			[ "$(loginctl show-session "$sess_cache" -p Seat --value 2>/dev/null)" = seat0 ] || {
+			request_done "the phone session is not active on seat0"; return; }
 		# A lock that is already queued must be seen first; then ask logind
 		# again right before the switch.
 		pending_events && { set_wait 1; return; }
@@ -678,7 +738,9 @@ check() {
 			request_done "the phone is not unlocked"; return; }
 		locked=$(loginctl show-session "$sess_cache" -p LockedHint --value 2>/dev/null) || locked=
 		case $locked in
-		no) ;;
+		no) [ "$(phosh_locked)" = no ] || {
+			forget_locks "Phosh locked or unreadable"
+			request_done "the phone is not unlocked"; return; } ;;
 		yes) note_lock "$sess_cache"; request_done "the phone is locked"; return ;;
 		*) forget_locks "lock state of session $sess_cache unreadable"
 			request_done "the lock state is unreadable"; return ;;
@@ -730,6 +792,7 @@ handle_event() {
 		now_cs; note_unlock "$2" ;;
 	"Q "*)  # session removed: its id must not carry history
 		set -- $1
+		[ "$2" != "$grant_sess" ] || grant_sess=
 		[ "$2" = "$lock_sess" ] || [ "$2" = "$seen_locked" ] || [ "$2" = "$unlock_ok" ] &&
 			forget_locks "session $2 removed"
 		[ "$2" != "$sess_cache" ] || sess_cache= ;;
@@ -783,7 +846,7 @@ start_sources() {
 }
 
 main() {
-	local ev ready=0 fifo batch
+	local ev ready=0 fifo batch left slice
 	# Non-blocking: the main shell is the only reader, so a blocking write
 	# into a full pipe would hang it for good. A full pipe already wakes it.
 	trap '[ -n "$EV" ] && printf "M\n" | dd of=/proc/self/fd/"$EV" oflag=nonblock status=none 2>/dev/null' USR1
@@ -800,10 +863,21 @@ main() {
 	while [ "$ready" -lt 2 ] && IFS= read -r -t 5 -u "$EV" ev; do
 		case $ev in R*) ready=$((ready + 1)) ;; *) handle_event "$ev" || exit 1 ;; esac
 	done
-	[ "$ready" -ge 2 ] || echo "rog5-desktop-mode: event sources not confirmed ready" >&2
+	[ "$ready" -ge 2 ] || { echo "rog5-desktop-mode: event sources not confirmed ready" >&2; exit 1; }
+	systemd-notify --ready || exit 1
 	while :; do
 		check
-		IFS= read -r -t "$wait_s" -u "$EV" ev || continue
+		systemd-notify WATCHDOG=1 || exit 1
+		# Feed the watchdog during an event wait without repeating expensive
+		# session/work probes. A blocked check itself gets no heartbeat.
+		left=$wait_s
+		while [ "$left" -gt 0 ]; do
+			slice=$left; [ "$slice" -le 5 ] || slice=5
+			IFS= read -r -t "$slice" -u "$EV" ev && break
+			systemd-notify WATCHDOG=1 || exit 1
+			left=$((left - slice))
+		done
+		[ "$left" -gt 0 ] || continue
 		handle_event "$ev" || exit 1
 		# handle what is already queued (bounded, so a busy source cannot
 		# starve check()), then check once; check() starts no GNOME while

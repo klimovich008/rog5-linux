@@ -30,3 +30,5 @@
 /usr/bin/iwctl	iwd	scripts/device/rog5-wifi-networkmanager.sh
 /usr/bin/ss	dep:iproute2	configs/systemd-user/rog5-wayvnc-phone.service
 /usr/bin/python3	python	scripts/device/rog5-session-carry
+/usr/bin/busctl	dep:systemd	scripts/device/rog5-desktop-mode
+/usr/bin/systemd-notify	dep:systemd	scripts/device/rog5-desktop-mode

@@ -42,12 +42,16 @@ systemctl() {
 loginctl() {
 	local n
 	case "$*" in
-	list-sessions*) [ -z "$(st EXTRA)" ] || echo "$(st EXTRA) 1000 phone seat0 tty7"
+	list-sessions*) [ ! -e "$t/LISTFAIL" ] || return 1
+		[ ! -e "$t/GONE" ] || return 0
+		[ -z "$(st EXTRA)" ] || echo "$(st EXTRA) 1000 phone seat0 tty7"
 		echo "$(st SESS) 1000 phone seat0 tty7"; echo "99 0 root - -" ;;
 	*" 99 -p Service"*) echo sshd ;;
 	*"-p Service"*) echo phosh ;;
 	*"-p Leader --value") echo "100$2" ;;
 	*"-p State"*) echo active ;;
+	*"-p Active --value") st ACTIVE ;;
+	*"-p Seat --value") st SEAT ;;
 	*"-p LockedHint -p IdleHint") [ -z "$(st PROPFAIL)" ] || return 1
 		echo "IdleHint=$(st IDLE)"; echo "LockedHint=$(st LOCK)" ;;
 	*"-p Id") [ "$2" = "$(st SESS)" ] || return 1; echo "$2" ;;
@@ -59,6 +63,7 @@ loginctl() {
 		if [ -n "$(st LOCK_AT)" ] && [ "$n" -ge "$(st LOCK_AT)" ]; then echo yes; else st LOCK; fi ;;
 	esac
 }
+phosh_locked() { if [ -e "$t/REAL_LOCK" ]; then st REAL_LOCK; else st LOCK; fi; }
 T=1000
 now_cs() { now=$((T * 100)); }
 # work in progress: PROCS (pgrep -l lines), SINKS (pactl list short sinks),
@@ -76,13 +81,13 @@ inhibiting() { [ -n "$inhibit_pid" ] && kill -0 "$inhibit_pid" 2>/dev/null; }
 reset() {       # G P dp mode
 	inhibit_stop
 	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/* "$t"/GNOME_PID "$t"/PROPFAIL \
-		"$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH "$t"/LEFT
+		"$t"/REAL_LOCK "$t"/LISTFAIL "$t"/GONE "$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH "$t"/LEFT
 	echo closed >"$t/asound/card0/pcm0p/sub0/status"
 	busy= eval_at=
 	put G "$1"; put P "$2"; put status "$3"; put mode "$4"
-	put SESS 2; put LOCK no; put IDLE no; put JOBS ""
+	put SESS 2; put ACTIVE yes; put SEAT seat0; put LOCK no; put IDLE no; put JOBS ""
 	auto_done=0 nosess_since= dp_state= dp_since=0 sess_cache= seen_locked= EV=
-	lock_sess= locked_at=0 lock_ready= unlock_ok= PHOSH_PID= req= sup_bad= grant_sess= SWITCHER_PID=
+	lock_sess= locked_at=0 lock_ready= unlock_ok= PHOSH_PID= req= sup_bad= grant_sess= grant_at= SWITCHER_PID=
 	T=1000
 }
 called() { grep -qxF "systemctl $1" "$t/calls" 2>/dev/null; }
@@ -433,7 +438,7 @@ unlock_cycle; T=1100; request; check
 granted && started_gnome || fail "relock: setup"
 handle_event "L 2 yes"
 granted && fail "relock: the grant survived a lock signal of its session"
-called "start --no-block rog5-phosh.service" || fail "relock: Phosh not put back"
+handed_back || fail "relock: Phosh not put back"
 reset inactive active connected manual
 unlock_cycle; T=1100; request; check
 put G activating; put P deactivating; put LOCK yes; T=1102; check 2>/dev/null
@@ -459,6 +464,65 @@ handed_back && fail "supervision: a good read did not reset the grace period"
 T=1025; check
 handed_back || fail "supervision: unreadable LockedHint/IdleHint kept GNOME"
 pass "GNOME without its own session or readable hints for SUP_GRACE is handed back"
+
+# A logind hint cannot authorize GNOME while Phosh's actual lock is up.
+reset inactive active connected manual
+unlock_cycle; put REAL_LOCK yes; T=1100; request; check
+started_gnome && fail "forged unlocked hint bypassed Phosh's real lock"
+reset inactive active connected manual
+unlock_cycle; put REAL_LOCK unknown; T=1100; request; check
+started_gnome && fail "unreadable Phosh lock state authorized GNOME"
+for prop in ACTIVE SEAT; do
+	reset inactive active connected manual
+	unlock_cycle; put "$prop" invalid; T=1100; request; check
+	started_gnome && fail "inactive/wrong-seat Phosh authorized GNOME"
+done
+reset inactive active connected ''
+unlock_cycle; T=1100; check
+started_gnome && fail "missing mode file selected auto"
+pass "Phosh's real lock and active seat are required; missing mode stays manual"
+
+# The grant has been consumed, but Phosh may still be stopping; keep the
+# transition identity and cancel on relock even without the grant file.
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "gate setup"
+handle_event "L 2 yes"
+handed_back || fail "relock after gate consumption did not cancel GNOME"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "gate setup 2"
+put FAIL_AT "$(( $(st NREAD) + 1 ))"; T=1102; check
+handed_back || fail "failed activation lock query was treated as session removal"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "gate setup 3"
+put LISTFAIL 1; T=1102; check
+handed_back || fail "failed session list authorized activation"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "gate setup 4"
+put GONE 1; T=1161; check
+handed_back || fail "activation exceeded START_GRACE"
+pass "relock and query failures cancel after grant consumption; activation is bounded"
+
+# Unknown unit states must not reset a missing-lock supervision deadline.
+reset active inactive connected manual
+put PROPFAIL 1; check
+put G unknown; T=1005; check
+put G active; T=1009; check
+put G unknown; T=1010; check
+handed_back || fail "intermittent status failure reset supervision indefinitely"
+pass "unknown unit states retain the supervision deadline"
+
+# Even a healthy GNOME read must not forget a source relock event that
+# was queued behind it; keep the source until its SessionRemoved event.
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "late relock setup"
+put G active; T=1101; check
+handle_event "L 2 yes"
+handed_back || fail "healthy GNOME read forgot source before queued relock"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check; gate || fail "removed source setup"
+handle_event "Q 2"
+[ -z "$grant_sess" ] || fail "removed source retained transition identity"
+pass "source relock remains actionable until its removal event"
 
 # --- event parsing -------------------------------------------------------------
 out=$(awk "$LOGIND_AWK" <<'EOF'
@@ -500,11 +564,19 @@ sleep 3; echo 'no' >"$t/LOCK"
 echo "/org/freedesktop/login1/session/_32: org.freedesktop.DBus.Properties.PropertiesChanged ('org.freedesktop.login1.Session', {'LockedHint': <false>}, @as [])"
 exec sleep 60
 EOF
+cat >"$b/systemd-notify" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
 { echo '#!/bin/bash'; echo "t=$t"; declare -f st put systemctl loginctl
   echo 'n=${0##*/}; "$n" "$@"'; } >"$b/systemctl"
 cp "$b/systemctl" "$b/loginctl"
 chmod +x "$b"/*
-PATH=$b:$PATH ROG5_DM_LIB= timeout 20 bash "$here/rog5-desktop-mode" >"$t/out" 2>&1 &
+export -f phosh_locked st
+export t
+sed '/^if \[ -z "${ROG5_DM_LIB:-}" \]; then/,$d' "$here/rog5-desktop-mode" >"$t/loop"
+printf '\nphosh_locked() { cat "$t/LOCK"; }\nmain\n' >>"$t/loop"
+PATH=$b:$PATH ROG5_DM_LIB= timeout 20 bash "$t/loop" >"$t/out" 2>&1 &
 pid=$!
 for _ in $(seq 1 40); do started_gnome && break; sleep 0.5; done
 started_gnome || { cat "$t/out"; fail "event loop: no GNOME start after the unlock signal"; }
@@ -534,6 +606,8 @@ echo "/org/freedesktop/login1/session/_32: org.freedesktop.DBus.Properties.Prope
 exec sleep 60
 EOF
 chmod +x "$b/udevadm" "$b/gdbus"
+export -f phosh_locked st
+export t
 PATH=$b:$PATH ROG5_DM_LIB= timeout 10 bash "$here/rog5-desktop-mode" >"$t/out" 2>&1; rc=$?
 [ "$rc" = 124 ] || { cat "$t/out"; fail "event loop ended early: rc $rc"; }
 started_gnome && { cat "$t/out"; fail "event loop: GNOME started after a yes->no flip nobody made"; }
@@ -546,7 +620,11 @@ cat >"$b/gdbus" <<'EOF'
 echo 'The name org.freedesktop.login1 is owned by :1.5'
 EOF
 chmod +x "$b/gdbus"
-PATH=$b:$PATH ROG5_DM_LIB= timeout 20 bash "$here/rog5-desktop-mode" >"$t/out" 2>&1; rc=$?
+export -f phosh_locked st
+export t
+sed '/^if \[ -z "${ROG5_DM_LIB:-}" \]; then/,$d' "$here/rog5-desktop-mode" >"$t/loop"
+printf '\nphosh_locked() { cat "$t/LOCK"; }\nmain\n' >>"$t/loop"
+PATH=$b:$PATH ROG5_DM_LIB= timeout 20 bash "$t/loop" >"$t/out" 2>&1; rc=$?
 [ "$rc" = 1 ] && grep -q "gdbus monitor ended" "$t/out" || { cat "$t/out"; fail "dead source: rc $rc"; }
 pass "a dead event source ends the switcher"
 

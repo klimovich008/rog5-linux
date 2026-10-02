@@ -122,6 +122,14 @@ with tempfile.TemporaryDirectory() as tmp:
     r = subprocess.run([sys.executable, '-', str(src), str(out)], input=importer(), text=True, capture_output=True)
     check(not (Path(tmp) / 'elsewhere').exists(), 'a symlink at the keyfile path is not followed')
 
+for extra in ('key_mgmt=WPA-EAP\n', 'key_mgmt=NONE\nwep_key0="secret"\n', 'key_mgmt=SAE\n'):
+    r, raw, _ = run(net(psk='', extra=extra))
+    check(r.returncode != 0 and raw is None, 'unsupported or missing credentials cannot become an open network')
+r, raw, _ = run(net(psk='', extra='key_mgmt=NONE\n'))
+check(r.returncode == 0 and '[wifi-security]' not in raw, 'an explicitly open network imports as open')
+r, raw, _ = run(net(psk='a' * 64, extra='key_mgmt=SAE\n'))
+check(r.returncode != 0 and raw is None, 'an SAE network cannot use a derived WPA2 PSK')
+
 text = SCRIPT.read_text()
 apply = text[text.index('\napply)'):text.index('\nrevert)')]
 check('systemctl restart NetworkManager.service' in apply and 'enable --now NetworkManager' not in apply,

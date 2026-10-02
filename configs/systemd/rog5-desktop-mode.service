@@ -8,6 +8,12 @@ Wants=rog5-desktop-mode-reload.path
 OnFailure=rog5-phosh.service
 
 [Service]
+Type=notify
+NotifyAccess=all
+# A wedged query/file read must not leave a live, unsupervised desktop.
+WatchdogSec=30
+TimeoutStartSec=20
+TimeoutStopSec=5
 ExecStart=/usr/local/libexec/rog5-desktop-mode
 # SIGUSR1: re-check now (mode file changed)
 ExecReload=/bin/kill -USR1 $MAINPID

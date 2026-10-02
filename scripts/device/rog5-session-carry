@@ -246,6 +246,10 @@ class System:
         except OSError:
             pass
 
+    def supervisor_active(self):
+        rc, state = self.run(['systemctl', 'is-active', 'rog5-desktop-mode.service'], timeout=0.5)
+        return rc == 0 and state.strip() == 'active'
+
     def switch_pending(self):
         """True while a start job for the other session unit is queued and
         no shutdown-type job is: a Phosh <-> GNOME switch, not a shutdown,
@@ -268,14 +272,27 @@ class System:
         sid = sid.strip()
         if rc != 0 or not sid:
             return None, None
-        rc, out = self.run(['loginctl', 'show-session', sid, '-p', 'LockedHint', '-p', 'Active'])
+        rc, out = self.run(['loginctl', 'show-session', sid, '-p', 'LockedHint', '-p', 'Active', '-p', 'Seat', '-p', 'Leader'])
         if rc != 0:
             return sid, None
         props = dict(line.split('=', 1) for line in out.splitlines() if '=' in line)
         locked, active = props.get('LockedHint'), props.get('Active')
         if locked not in ('yes', 'no') or active not in ('yes', 'no'):
             return sid, None
-        return sid, 'no' if locked == 'no' and active == 'yes' else 'yes'
+        if active != 'yes' or locked != 'no':
+            return sid, 'yes'
+        if props.get('Seat') != 'seat0' or not props.get('Leader', '').isdigit():
+            return sid, None
+        # Display is only logind's preferred primary session. Require it to
+        # be the running destination compositor's PAM session, not SSH or
+        # another same-user graphical session.
+        for unit in SESSION_UNITS:
+            rc, out = self.run(['systemctl', 'show', unit, '-p', 'MainPID', '-p', 'ActiveState'])
+            unit_props = dict(line.split('=', 1) for line in out.splitlines() if '=' in line)
+            if rc == 0 and unit_props.get('ActiveState') == 'active' and \
+                    unit_props.get('MainPID') == props['Leader'] and props['Leader'] != '0':
+                return sid, 'no'
+        return sid, None
 
     def launch(self, app_id):
         unit = 'app-gnome-%s-%d.scope' % (self.escape(app_id), os.getpid() * 100 + int(time.time()) % 100)
@@ -367,6 +384,12 @@ def write_private(path, text):
 def cmd_save(sysm, args):
     global _deadline
     _deadline = time.monotonic() + args.timeout
+    # BindsTo stops GNOME on supervisor failure. Do not delay that stop by
+    # collecting/closing apps for an OnFailure=Phosh recovery transaction.
+    if os.environ.get('XDG_CURRENT_DESKTOP') == 'GNOME' and not sysm.supervisor_active():
+        drop_record(state_file())
+        log('desktop supervisor unavailable: stop GNOME without carrying apps')
+        return 0
     enabled, globs = read_config()
     path = state_file()
     if not enabled:

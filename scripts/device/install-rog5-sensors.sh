@@ -95,15 +95,10 @@ sync
 # staging path and is removed below
 old=
 if [ -e "$data" ] || [ -L "$data" ]; then
-	if exch "$stage" "$data" 2>/dev/null; then
-		old=$stage
-	else
-		# no exchange here (e.g. an overlay directory without redirect_dir):
-		# two renames, putting the old tree back if the second fails
-		old=${data%/*}/.${data##*/}.old.$$
-		mv "$data" "$old"
-		mv "$stage" "$data" || { mv "$old" "$data"; exit 1; }
-	fi
+	# Fail before changing the live tree if the filesystem cannot exchange.
+	# A two-rename fallback leaves an unrecoverable gap on interruption.
+	exch "$stage" "$data" || { echo 'atomic sensor data exchange unavailable; old tree kept' >&2; exit 1; }
+	old=$stage
 else
 	mv "$stage" "$data"
 fi

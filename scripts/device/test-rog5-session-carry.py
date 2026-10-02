@@ -45,9 +45,13 @@ class FakeSystem:
         self.exit_on_signal = True
         self.launch_ok = True
         self.switch = True
+        self.supervisor = True
         self.locked = ['no']
         self.sids = ['2']
         self.slow = 0.0
+
+    def supervisor_active(self):
+        return self.supervisor
 
     def switch_pending(self):
         return self.switch
@@ -163,6 +167,15 @@ class SaveRestore(unittest.TestCase):
         self.assertIn(('kill', 'app-gnome-firefox-2.scope'), f.calls)    # SIGTERM to scopes
         self.assertIn(('kill_pid', 4242), f.calls)                       # no quit action: its PID
         self.assertEqual(f.scope_list, [])
+
+    def test_supervisor_failure_does_not_delay_gnome_stop_for_carry(self):
+        f = FakeSystem()
+        f.supervisor = False
+        f.scope_list = ['app-gnome-firefox-99.scope']
+        STATE.write_text('stale record')
+        self.assertEqual(sc.main(['save', '--close'], f), 0)
+        self.assertEqual(f.calls, [])
+        self.assertFalse(STATE.exists())
 
     def test_close_gives_up_after_the_timeout(self):
         f = FakeSystem()
@@ -305,6 +318,26 @@ class SaveRestore(unittest.TestCase):
         g = FakeSystem()
         self.assertEqual(sc.main(['restore'], g), 0)
         self.assertEqual(g.calls, [])
+
+
+class SessionIdentity(unittest.TestCase):
+    def test_primary_session_must_match_the_active_destination(self):
+        for seat, leader, unit_state, expected in [
+                ('seat0', '123', 'active', 'no'), ('', '123', 'active', None),
+                ('seat1', '123', 'active', None), ('seat0', '456', 'active', None),
+                ('seat0', '123', 'inactive', None), ('seat0', '0', 'active', None)]:
+            with self.subTest(seat=seat, leader=leader, unit_state=unit_state):
+                obj = sc.System()
+                def run(argv, **kw):
+                    if argv[:2] == ['loginctl', 'show-user']:
+                        return 0, '2'
+                    if argv[:2] == ['loginctl', 'show-session']:
+                        return 0, f'LockedHint=no\nActive=yes\nSeat={seat}\nLeader={leader}\n'
+                    if argv[:2] == ['systemctl', 'show']:
+                        return 0, f'MainPID=123\nActiveState={unit_state}\n'
+                    raise AssertionError(argv)
+                obj.run = run
+                self.assertEqual(obj.session_state(), ('2', expected))
 
 
 class Units(unittest.TestCase):

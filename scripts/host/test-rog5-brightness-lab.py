@@ -6,14 +6,12 @@ page's text/plain POST changed the brightness), and each lab run gets its
 own SSH control directory."""
 from __future__ import annotations
 
-import http.client
 import importlib.machinery
 import importlib.util
 import json
 import os
-import threading
+import io
 import unittest
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -37,22 +35,32 @@ class Api(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.phone = FakePhone()
-        cls.srv = ThreadingHTTPServer(('127.0.0.1', 0), None)
-        cls.port = cls.srv.server_address[1]
-        cls.srv.RequestHandlerClass = LAB.make_handler(cls.phone, cls.port)
-        threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
+        cls.port = 8765
+        cls.handler = LAB.make_handler(cls.phone, cls.port)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.srv.shutdown()
+    def request(self, method, path, headers=None, body=b''):
+        # Feed a real HTTP request through BaseHTTPRequestHandler using an
+        # in-memory socket. Security parsing is exercised without a listener.
+        h = {'Host': f'127.0.0.1:{self.port}', 'Content-Length': str(len(body))}
+        h.update(headers or {})
+        request = (f'{method} {path} HTTP/1.0\r\n' + ''.join(
+            f'{k}: {v}\r\n' for k, v in h.items() if v is not None) + '\r\n').encode() + body
+        class Socket:
+            def __init__(self):
+                self.output = bytearray()
+            def makefile(self, *args):
+                return io.BytesIO(request)
+            def sendall(self, data):
+                self.output.extend(data)
+        sock = Socket()
+        self.handler(sock, ('127.0.0.1', 1), object())
+        head, body = bytes(sock.output).split(b'\r\n\r\n', 1)
+        return int(head.split()[1]), body
 
     def post(self, headers, body=b'{"value": 77}'):
-        c = http.client.HTTPConnection('127.0.0.1', self.port, timeout=5)
-        h = {'Host': f'127.0.0.1:{self.port}', 'Content-Type': 'application/json', 'X-ROG5-Token': LAB.TOKEN}
+        h = {'Content-Type': 'application/json', 'X-ROG5-Token': LAB.TOKEN}
         h.update(headers)
-        c.request('POST', '/api/brightness', body=body, headers={k: v for k, v in h.items() if v is not None})
-        r = c.getresponse()
-        return r.status, r.read()
+        return self.request('POST', '/api/brightness', h, body)
 
     def test_same_origin_with_token_works(self):
         before = len(self.phone.values)
@@ -72,15 +80,11 @@ class Api(unittest.TestCase):
         self.assertEqual(len(self.phone.values), before)
 
     def test_page_carries_the_token_and_state_needs_it(self):
-        c = http.client.HTTPConnection('127.0.0.1', self.port, timeout=5)
-        c.request('GET', '/')
-        page = c.getresponse().read().decode()
-        self.assertIn(LAB.TOKEN, page)
-        self.assertNotIn('@TOKEN@', page)
-        c.request('GET', '/api/state')
-        r = c.getresponse()
-        r.read()
-        self.assertEqual(r.status, 403)
+        status, page = self.request('GET', '/')
+        self.assertEqual(status, 200)
+        self.assertIn(LAB.TOKEN, page.decode())
+        self.assertNotIn('@TOKEN@', page.decode())
+        self.assertEqual(self.request('GET', '/api/state')[0], 403)
 
     def test_private_control_directory_per_run(self):
         a, b = LAB.Phone('10.0.0.1'), LAB.Phone('10.0.0.2')

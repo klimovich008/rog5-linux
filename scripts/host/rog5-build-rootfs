@@ -227,7 +227,8 @@ class Builder:
         why = check_signature_status(status.returncode, status.stdout, ALARM_KEY)
         if why:
             fail(f'{TARBALL} is not validly signed by the Arch Linux ARM build key {ALARM_KEY}: {why}')
-        digest = hashlib.sha256(tarball.read_bytes()).hexdigest()
+        with tarball.open('rb') as archive_stream:
+            digest = hashlib.file_digest(archive_stream, 'sha256').hexdigest()
         (self.work / 'source.env').write_text(
             f'source_archive_size={tarball.stat().st_size}\nsource_archive_sha256={digest}\n')
         log(f'verified {TARBALL} sha256={digest}')

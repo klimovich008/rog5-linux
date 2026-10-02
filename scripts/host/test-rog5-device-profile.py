@@ -9,6 +9,8 @@ and be refused when it is inconsistent.
 from __future__ import annotations
 
 import importlib.util
+import importlib.abc
+from unittest import mock
 import re
 import subprocess
 import tempfile
@@ -236,7 +238,20 @@ class Planning(unittest.TestCase):
             self.assertEqual(p['ROG5_UFS_NODE_COUNT'], '117')
             self.assertEqual(p['ROG5_ROOT_FS_UUID'], '22222222-3333-4444-8555-666666666666')
             # a profile made from inventory + identity feeds the installer too
-            installer = load('installer', REPO / 'scripts/host/install-default-kernel.py')
+            # Storage identity does not use the selector composer. Isolate
+            # that unused dependency from private trial-helper artifacts.
+            real_spec = importlib.util.spec_from_file_location
+            class UnusedSelector(importlib.abc.Loader):
+                def create_module(self, spec):
+                    return None
+                def exec_module(self, module):
+                    pass
+            def selector_spec(name, path, *args, **kwargs):
+                if Path(path).name == 'build-persistent-wifi-selector.py':
+                    return importlib.util.spec_from_loader(name, UnusedSelector())
+                return real_spec(name, path, *args, **kwargs)
+            with mock.patch.object(importlib.util, 'spec_from_file_location', side_effect=selector_spec):
+                installer = load('installer', REPO / 'scripts/host/install-default-kernel.py')
             self.assertEqual(installer.storage_identity(out)['p24_size'], '34359717888')
             self.assertEqual(installer.storage_identity(None), installer.storage_identity(TOOL.REFERENCE))
             # Before the flash p24 is empty: accepted; a foreign filesystem is not.

@@ -16,7 +16,10 @@ the write failed and sensor_process asserted (`sns_registry_sensor.c:154`,
 r89).
 
 `0002-hexagonrpcd-validate-output-buffer-counts-and-sizes.patch` is ours
-too (2026-10-02 audit; upstream at da7a374 has no fix). The listener checked
+too (2026-10-02 audit; the prior agent checked upstream at da7a374).
+The follow-up inspected [upstream listener.c](https://github.com/linux-msm/hexagonrpc/blob/main/hexagonrpcd/listener.c):
+the accessible cached main view still lacks primary-output accounting.
+Host DNS is restricted, so this is not a fresh remote-HEAD verification. The listener checked
 a request's output-buffer count without the primary output buffer (and
 without the buffer of a type sequence), so a request with one output buffer
 for `apps_std_fread` or `remotectl_close` passed and `alloc_outbufs4()`

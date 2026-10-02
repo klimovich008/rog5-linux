@@ -105,7 +105,14 @@ elif raw_psk:
 else:
     psk = ''
 key_mgmt = fields.get('key_mgmt', 'WPA-PSK').split()
+if key_mgmt == ['NONE']:
+    if psk or any(k.startswith('wep_') for k in fields):
+        sys.exit('WEP or contradictory open-network credentials cannot be imported safely')
+elif not key_mgmt or not set(key_mgmt) <= {'WPA-PSK', 'SAE'} or not psk:
+    sys.exit('unsupported or incomplete Wi-Fi security settings; saved network kept')
 security = 'sae' if key_mgmt == ['SAE'] else 'wpa-psk'
+if security == 'sae' and re.fullmatch(r'[0-9a-fA-F]{64}', psk):
+    sys.exit('a derived WPA2 PSK cannot be used as an SAE passphrase')
 name = re.sub(r'[^A-Za-z0-9._-]', '_', ssid) or 'wifi'
 path = os.path.join(target, name + '.nmconnection')
 if os.path.exists(path) or os.path.islink(path):

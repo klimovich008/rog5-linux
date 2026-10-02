@@ -2,10 +2,24 @@
 
 Patched build of [Phosh](https://gitlab.gnome.org/World/Phosh/phosh) 0.57.0.
 `PKGBUILD` is the Arch Linux packaging (0.57.0-1) with `aarch64` added,
-`options=(debug)` (a `phosh-debug` package with symbols) and two patches
-(0001 below, 0002 LockedHint). Current packaging: `phosh 0.57.0-1.3`
-(1.2 is installed on r197).
+`options=(debug)` (a `phosh-debug` package with symbols) and three patches
+(0001 below, 0002 LockedHint, 0003 actual lock state). The source recipe is
+`phosh 0.57.0-1.4`; this security follow-up has not deployed it. Earlier
+packaging was 1.3 (1.2 was installed on r197).
 `/etc/pacman.conf` has `phosh` in `IgnorePkg` next to `phoc` and `resources`.
+
+## Desktop authorization (0003)
+
+`0003-export-real-lock-state.patch` exports the shell's actual `locked`
+property as read-only `org.gnome.Shell.Locked`, with a synchronous initial
+binding. `rog5-desktop-mode` queries the authenticated unique bus owner and
+requires agreement with logind before authorizing a switch. Unlike
+`org.gnome.ScreenSaver.GetActive`, it stays true on a lit PIN screen.
+A phone process changing logind's hint cannot change this property.
+Older Phosh builds lack it and desktop requests fail closed, so deploy this
+package with the new switcher. The phone account still owns its compositor;
+this does not create isolation from arbitrary code that can control that
+compositor through ptrace or replace its user service.
 
 ## The crashes (2026-09-29)
 

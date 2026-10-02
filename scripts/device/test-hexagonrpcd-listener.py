@@ -71,7 +71,28 @@ def check_unit() -> list[str]:
     return errors
 
 
+def check_publication():
+    """Execute the installer's publication block with exchange unavailable.
+    Neither the old tree nor its contents may move on that failure path."""
+    source = INSTALLER.read_text()
+    block = source[source.index('old=\nif [ -e "$data" ]'):source.index('\nstage=\nmv -f "$bin_new"')]
+    with tempfile.TemporaryDirectory(prefix='hexagonrpcd-publish.') as d:
+        root = Path(d)
+        live, stage = root / 'live', root / 'stage'
+        live.mkdir(); stage.mkdir()
+        (live / 'registry').write_text('old')
+        (stage / 'registry').write_text('new')
+        script = 'set -eu\ndata=$1\nstage=$2\nexch() { return 1; }\n' + block
+        r = subprocess.run(['sh', '-c', script, 'publish', str(live), str(stage)], capture_output=True, text=True)
+        if r.returncode == 0 or not (live / 'registry').exists() or (live / 'registry').read_text() != 'old':
+            raise RuntimeError('sensor publication changed the live tree without atomic exchange')
+        if (stage / 'registry').read_text() != 'new':
+            raise RuntimeError('sensor publication lost the staged tree')
+    print('PASS sensor publication fails without moving the live tree when exchange is unavailable')
+
+
 def main() -> int:
+    check_publication()
     errors = check_unit()
     for e in errors:
         print(f'FAIL {e}')
