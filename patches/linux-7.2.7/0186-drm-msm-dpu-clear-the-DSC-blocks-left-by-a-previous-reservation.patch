@@ -26,7 +26,7 @@ Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
  because it is the same stale-pointer class as 0130.]
 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
-index bca8bd7b3..fdd7d3a39 100644
+index 5395bcb94..348b07a03 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
 @@ -1222,9 +1222,10 @@ static void dpu_encoder_virt_atomic_mode_set(struct drm_encoder *drm_enc,

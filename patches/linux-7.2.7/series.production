@@ -144,3 +144,7 @@
 0191-tty-serial-qcom-geni-ROG5-balance-the-forced-runtime-suspend-across-system-sleep.patch
 0192-usb-dwc3-qcom-legacy-ROG5-full-ddr-vote-while-an-untracked-device-may-be-attached.patch
 0193-power-supply-qcom_battmgr-ROG5-OEM-answers-that-match-no-request-do-not-end-it.patch
+0194-misc-fastrpc-do-not-hand-back-a-secure-assignment-that-failed.patch
+0195-ASoC-cs35l45-ROG5-keep-the-amplifier-off-while-the-protection-registers-are-not-restored.patch
+0196-ASoC-qcom-sm8250-ROG5-fail-the-SENARY-MI2S-startup-that-could-not-set-up-the-link.patch
+0197-ASoC-codecs-lpass-va-macro-fail-runtime-resume-when-the-registers-are-not-restored.patch

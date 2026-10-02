@@ -1,0 +1,90 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: qcom: sm8250: fail a SENARY MI2S startup that could not set up the link
+
+The SENARY MI2S startup (0046/0079/0111) ignored the results of the bit
+clock vote, the CPU DAI format and the codec format and TDM slot setup,
+and returned success for a link the ADSP or a codec had refused, leaving
+inconsistent clocks and a silent or corrupt stream (2026-10-02 GPT-6.1-Sol
+audit, F6). Return the first error, and release the bit clock that was
+already voted: ASoC does not call ->shutdown() after a failed ->startup().
+
+cs35l45_asp_set_fmt() discarded the result of its register write; return
+it (upstream code, same audit).
+
+Hardware (RAM trial with audio): speaker playback must start exactly as
+before; a stream that fails to start now reports the error instead of
+playing silence.
+
+diff --git a/sound/soc/codecs/cs35l45.c b/sound/soc/codecs/cs35l45.c
+index 3a2a58784..fdd7ad212 100644
+--- a/sound/soc/codecs/cs35l45.c
++++ b/sound/soc/codecs/cs35l45.c
+@@ -934,15 +934,13 @@ static int cs35l45_asp_set_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
+ 		return -EINVAL;
+ 	}
+ 
+-	regmap_update_bits(cs35l45->regmap, CS35L45_ASP_CONTROL2,
+-			   CS35L45_ASP_FMT_MASK |
+-			   CS35L45_ASP_FSYNC_INV_MASK |
+-			   CS35L45_ASP_BCLK_INV_MASK,
+-			   (asp_fmt << CS35L45_ASP_FMT_SHIFT) |
+-			   (fsync_inv << CS35L45_ASP_FSYNC_INV_SHIFT) |
+-			   (bclk_inv << CS35L45_ASP_BCLK_INV_SHIFT));
+-
+-	return 0;
++	return regmap_update_bits(cs35l45->regmap, CS35L45_ASP_CONTROL2,
++				  CS35L45_ASP_FMT_MASK |
++				  CS35L45_ASP_FSYNC_INV_MASK |
++				  CS35L45_ASP_BCLK_INV_MASK,
++				  (asp_fmt << CS35L45_ASP_FMT_SHIFT) |
++				  (fsync_inv << CS35L45_ASP_FSYNC_INV_SHIFT) |
++				  (bclk_inv << CS35L45_ASP_BCLK_INV_SHIFT));
+ }
+ 
+ static int cs35l45_asp_hw_params(struct snd_pcm_substream *substream,
+diff --git a/sound/soc/qcom/sm8250.c b/sound/soc/qcom/sm8250.c
+index e300d77a3..6fd2cd40b 100644
+--- a/sound/soc/qcom/sm8250.c
++++ b/sound/soc/qcom/sm8250.c
+@@ -124,21 +124,35 @@ static int sm8250_snd_startup(struct snd_pcm_substream *substream)
+ 		break;
+ 	case SENARY_MI2S_RX: {
+ 		struct snd_soc_dai *dai;
+-		int i;
++		int i, ret;
+ 
+ 		/*
+ 		 * The ASUS ROG Phone 5 drives two amplifiers from one link, at
+ 		 * 24 bits in 32-bit slots like the stock kernel; the codecs
+-		 * derive their PLL reference from the slot width.
++		 * derive their PLL reference from the slot width. A link that
++		 * is not set up as asked must not start: ASoC does not call
++		 * shutdown after a failed startup, so release the bit clock
++		 * here.
+ 		 */
+ 		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
+-		snd_soc_dai_set_sysclk(cpu_dai,
++		ret = snd_soc_dai_set_sysclk(cpu_dai,
+ 			Q6AFE_LPASS_CLK_ID_SEN_MI2S_IBIT,
+ 			SEN_MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
+-		snd_soc_dai_set_fmt(cpu_dai, fmt);
++		if (ret)
++			return ret;
++		ret = snd_soc_dai_set_fmt(cpu_dai, fmt);
+ 		for_each_rtd_codec_dais(rtd, i, dai) {
+-			snd_soc_dai_set_fmt(dai, codec_dai_fmt);
+-			snd_soc_dai_set_tdm_slot(dai, 0, 0, 2, 32);
++			if (ret)
++				break;
++			ret = snd_soc_dai_set_fmt(dai, codec_dai_fmt);
++			if (!ret)
++				ret = snd_soc_dai_set_tdm_slot(dai, 0, 0, 2, 32);
++		}
++		if (ret) {
++			snd_soc_dai_set_sysclk(cpu_dai,
++				Q6AFE_LPASS_CLK_ID_SEN_MI2S_IBIT, 0,
++				SNDRV_PCM_STREAM_PLAYBACK);
++			return ret;
+ 		}
+ 		break;
+ 	}

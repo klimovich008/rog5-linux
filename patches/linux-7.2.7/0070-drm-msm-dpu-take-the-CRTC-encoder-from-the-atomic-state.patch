@@ -23,10 +23,13 @@ Revised 2026-10-02: the first version read crtc->state->encoder_mask. The
 vblank callbacks hold no modeset lock and a concurrent commit can swap and
 free that state (use-after-free found by the 2026-10-02 GPT-6.1-Sol audit);
 the encoder assignment is stable across ordinary commits and encoders live
-as long as the device.
+as long as the device. It is read locklessly (READ_ONCE, written with
+WRITE_ONCE under enc_spinlock): dpu_encoder_vblank_callback() holds
+enc_spinlock while DRM calls back into the vblank counter, so taking the
+lock there would deadlock (GPT-6.1-Sol review).
 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-index 42d0a529b..16b0a46f3 100644
+index 42d0a529b..a69d1d141 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 @@ -56,8 +56,20 @@ static struct drm_encoder *get_encoder_from_crtc(struct drm_crtc *crtc)
@@ -41,9 +44,9 @@ index 42d0a529b..16b0a46f3 100644
 +	 * scanout position callbacks hold no modeset lock, and a concurrent
 +	 * commit may swap and free that state. Use the encoder's own
 +	 * assignment (dpu_encoder_assign_crtc()), which is set before
-+	 * drm_crtc_vblank_on() and cleared after drm_crtc_vblank_off() and is
-+	 * read under the encoder's spinlock, as dpu_crtc_vblank() does.
-+	 * Encoders live as long as the device.
++	 * drm_crtc_vblank_on() and cleared after drm_crtc_vblank_off(), read
++	 * without the encoder's spinlock: the vblank IRQ path holds it when it
++	 * gets here. Encoders live as long as the device.
 +	 */
  	drm_for_each_encoder(encoder, dev)
 -		if (encoder->crtc == crtc)
@@ -71,10 +74,15 @@ index 42d0a529b..16b0a46f3 100644
  	}
  
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
-index 1f20695f8..bf4143161 100644
+index 1f20695f8..2008b1dc8 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
-@@ -1523,6 +1523,27 @@ void dpu_encoder_assign_crtc(struct drm_encoder *drm_enc, struct drm_crtc *crtc)
+@@ -1519,10 +1519,28 @@ void dpu_encoder_assign_crtc(struct drm_encoder *drm_enc, struct drm_crtc *crtc)
+ 	spin_lock_irqsave(&dpu_enc->enc_spinlock, lock_flags);
+ 	/* crtc should always be cleared before re-assigning */
+ 	WARN_ON(crtc && dpu_enc->crtc);
+-	dpu_enc->crtc = crtc;
++	WRITE_ONCE(dpu_enc->crtc, crtc);
  	spin_unlock_irqrestore(&dpu_enc->enc_spinlock, lock_flags);
  }
  
@@ -83,20 +91,17 @@ index 1f20695f8..bf4143161 100644
 + * @drm_enc:	encoder pointer
 + * @crtc:	crtc pointer
 + *
-+ * Safe without modeset locks, e.g. from the vblank callbacks.
++ * Safe without modeset locks, e.g. from the vblank callbacks, and lockless:
++ * dpu_encoder_vblank_callback() calls into DRM, and from there into the
++ * vblank counter callback, with enc_spinlock held. Only the pointer value is
++ * compared; dpu_encoder_assign_crtc() publishes it with WRITE_ONCE().
 + */
 +bool dpu_encoder_is_assigned_to_crtc(struct drm_encoder *drm_enc,
 +				     struct drm_crtc *crtc)
 +{
 +	struct dpu_encoder_virt *dpu_enc = to_dpu_encoder_virt(drm_enc);
-+	unsigned long lock_flags;
-+	bool assigned;
 +
-+	spin_lock_irqsave(&dpu_enc->enc_spinlock, lock_flags);
-+	assigned = dpu_enc->crtc == crtc;
-+	spin_unlock_irqrestore(&dpu_enc->enc_spinlock, lock_flags);
-+
-+	return assigned;
++	return READ_ONCE(dpu_enc->crtc) == crtc;
 +}
 +
  /**

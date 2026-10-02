@@ -11,6 +11,10 @@ capacity, or a reply is lost and the request times out.
 Take battmgr->lock around the request. Inherited upstream (linux-next
 2026-10-02 is unchanged). Found by the 2026-10-02 GPT-6.1-Sol audit.
 
+Not fixed: a late answer to a request that timed out can still complete
+the next request (the battmgr answers are matched by nothing; upstream
+behaviour).
+
 Hardware: restart the ADSP (or pmic_glink PDR) with a charge limit set;
 battery properties and the charge policy must keep working.
 

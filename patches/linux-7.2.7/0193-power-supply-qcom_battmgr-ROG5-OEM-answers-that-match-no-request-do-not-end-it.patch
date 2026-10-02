@@ -11,6 +11,10 @@ firmware did is unknown.
 
 - Clear oem_opcode when no request is pending (after the wait, and on
   every early return), so a late or repeated answer matches nothing.
+- Match, claim (clear oem_opcode), record the result and complete under a
+  new IRQ-safe oem_lock, which also covers starting and ending a request:
+  a repeated answer racing the end of its request can no longer complete
+  the next one.
 - Log and ignore answers that do not match the pending request; a request
   that gets no answer times out and poisons the channel as before.
 - Poison the channel on a malformed answer to the pending request (until
@@ -25,10 +29,22 @@ Hardware: charge limit / bypass toggles and the bottom-port OTG boost on
 and off, cell voltages readable; no "unexpected OEM message" in dmesg.
 
 diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
-index e0901e59a..74f55993d 100644
+index e0901e59a..b75238ae1 100644
 --- a/drivers/power/supply/qcom_battmgr.c
 +++ b/drivers/power/supply/qcom_battmgr.c
-@@ -435,7 +435,8 @@ struct qcom_battmgr {
+@@ -382,6 +382,11 @@ struct qcom_battmgr {
+ 	struct completion ack;
+ 	int oem_error;
+ 	struct completion oem_ack;
++	/*
++	 * Serialises matching an OEM answer (oem_opcode, oem_error, the cell
++	 * voltages, completing oem_ack) against starting and ending a request.
++	 */
++	spinlock_t oem_lock;
+ 
+ 	bool service_up;
+ 	bool oem_service_up;
+@@ -435,13 +440,14 @@ struct qcom_battmgr {
  
  /*
   * Send one request to the ASUS OEM client and wait for its ack; called with
@@ -38,30 +54,90 @@ index e0901e59a..74f55993d 100644
   */
  static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
  					    void *data, size_t len)
-@@ -457,14 +458,20 @@ static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
- 	battmgr->oem_error = 0;
- 	WRITE_ONCE(battmgr->oem_opcode, le32_to_cpu(hdr->opcode));
- 	if (!READ_ONCE(battmgr->oem_service_up) ||
--	    READ_ONCE(battmgr->oem_service_generation) != generation)
-+	    READ_ONCE(battmgr->oem_service_generation) != generation) {
-+		WRITE_ONCE(battmgr->oem_opcode, 0);
- 		return -EAGAIN;
-+	}
+ {
+ 	struct pmic_glink_hdr *hdr = data;
+-	unsigned long left;
++	unsigned long left, flags;
+ 	u32 generation;
+ 	int ret;
  
- 	ret = pmic_glink_send(battmgr->oem_client, data, len);
+@@ -453,18 +459,32 @@ static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
+ 		return -EIO;
+ 
+ 	generation = READ_ONCE(battmgr->oem_service_generation);
++	spin_lock_irqsave(&battmgr->oem_lock, flags);
+ 	reinit_completion(&battmgr->oem_ack);
+ 	battmgr->oem_error = 0;
+-	WRITE_ONCE(battmgr->oem_opcode, le32_to_cpu(hdr->opcode));
++	battmgr->oem_opcode = le32_to_cpu(hdr->opcode);
++	spin_unlock_irqrestore(&battmgr->oem_lock, flags);
++
+ 	if (!READ_ONCE(battmgr->oem_service_up) ||
+ 	    READ_ONCE(battmgr->oem_service_generation) != generation)
+-		return -EAGAIN;
+-
+-	ret = pmic_glink_send(battmgr->oem_client, data, len);
 -	if (ret < 0)
++		ret = -EAGAIN;
++	else
++		ret = pmic_glink_send(battmgr->oem_client, data, len);
 +	if (ret < 0) {
-+		WRITE_ONCE(battmgr->oem_opcode, 0);
++		spin_lock_irqsave(&battmgr->oem_lock, flags);
++		battmgr->oem_opcode = 0;
++		spin_unlock_irqrestore(&battmgr->oem_lock, flags);
  		return ret;
 +	}
  
  	left = wait_for_completion_timeout(&battmgr->oem_ack, HZ);
-+	/* A late or repeated ack now matches no request. */
-+	WRITE_ONCE(battmgr->oem_opcode, 0);
++
++	/* A late or repeated answer now matches no request. */
++	spin_lock_irqsave(&battmgr->oem_lock, flags);
++	battmgr->oem_opcode = 0;
++	ret = battmgr->oem_error;
++	spin_unlock_irqrestore(&battmgr->oem_lock, flags);
++
  	if (!left) {
  		WRITE_ONCE(battmgr->oem_request_poisoned, true);
  		return -ETIMEDOUT;
-@@ -2330,6 +2337,13 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+@@ -473,7 +493,7 @@ static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
+ 	    READ_ONCE(battmgr->oem_service_generation) != generation)
+ 		return -ENOTCONN;
+ 
+-	return battmgr->oem_error;
++	return ret;
+ }
+ 
+ static int qcom_battmgr_asus_request(struct qcom_battmgr *battmgr,
+@@ -2289,8 +2309,9 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ 	const struct qcom_battmgr_asus_cell_voltage_response *resp = data;
+ 	const struct pmic_glink_hdr *hdr = data;
+ 	struct qcom_battmgr *battmgr = priv;
++	unsigned long flags;
+ 	size_t expected;
+-	u32 opcode;
++	u32 opcode, pending;
+ 
+ 	/* Unsolicited OEM messages must not complete a pending request. */
+ 	if (le32_to_cpu(hdr->type) == PMIC_GLINK_NOTIFY) {
+@@ -2298,13 +2319,16 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ 		return;
+ 	}
+ 
++	spin_lock_irqsave(&battmgr->oem_lock, flags);
++	pending = battmgr->oem_opcode;
++
+ 	opcode = le32_to_cpu(hdr->opcode);
+ 	/*
+ 	 * The ROG5 ADSP firmware acks SET_CHG_LIMIT_MODE2 with the older
+ 	 * SET_CHG_LIMIT_MODE reply: opcode 0x2110, header + u32 (seen on r143).
+ 	 */
+ 	if (opcode == ASUS_ROG5_SET_CHG_LIMIT_MODE &&
+-	    READ_ONCE(battmgr->oem_opcode) == ASUS_ROG5_SET_CHG_LIMIT_MODE2 &&
++	    pending == ASUS_ROG5_SET_CHG_LIMIT_MODE2 &&
+ 	    len == sizeof(*hdr) + sizeof(__le32))
+ 		opcode = ASUS_ROG5_SET_CHG_LIMIT_MODE2;
+ 
+@@ -2330,18 +2354,34 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
  		break;
  	}
  
@@ -74,16 +150,22 @@ index e0901e59a..74f55993d 100644
 +	 */
  	if (le32_to_cpu(hdr->owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
  	    le32_to_cpu(hdr->type) != PMIC_GLINK_REQ_RESP ||
- 	    !expected || opcode != READ_ONCE(battmgr->oem_opcode)) {
-@@ -2337,11 +2351,16 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+-	    !expected || opcode != READ_ONCE(battmgr->oem_opcode)) {
++	    !expected || !pending || opcode != pending) {
++		spin_unlock_irqrestore(&battmgr->oem_lock, flags);
+ 		dev_warn_ratelimited(battmgr->dev,
  				     "unexpected OEM message: owner %u type %u opcode %#x len %zu (pending %#x)\n",
  				     le32_to_cpu(hdr->owner), le32_to_cpu(hdr->type),
- 				     opcode, len, READ_ONCE(battmgr->oem_opcode));
+-				     opcode, len, READ_ONCE(battmgr->oem_opcode));
 -		battmgr->oem_error = -EPROTO;
 -		goto out_complete;
++				     opcode, len, pending);
 +		return;
  	}
  
++	/* Claimed: a repeated answer matches nothing. */
++	battmgr->oem_opcode = 0;
++
 +	/*
 +	 * A malformed answer to the pending request: what the firmware did is
 +	 * unknown, so no later request may rely on the channel until the
@@ -94,3 +176,33 @@ index e0901e59a..74f55993d 100644
  		battmgr->oem_error = -EMSGSIZE;
  		goto out_complete;
  	}
+@@ -2354,6 +2394,7 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ 
+ out_complete:
+ 	complete(&battmgr->oem_ack);
++	spin_unlock_irqrestore(&battmgr->oem_lock, flags);
+ }
+ 
+ static void qcom_battmgr_asus_pdr_notify(void *priv, int state)
+@@ -2366,8 +2407,13 @@ static void qcom_battmgr_asus_pdr_notify(void *priv, int state)
+ 	WRITE_ONCE(battmgr->oem_service_up, service_up);
+ 	WRITE_ONCE(battmgr->oem_request_poisoned, false);
+ 	if (!service_up) {
++		unsigned long flags;
++
++		spin_lock_irqsave(&battmgr->oem_lock, flags);
++		battmgr->oem_opcode = 0;
+ 		battmgr->oem_error = -ENOTCONN;
+ 		complete(&battmgr->oem_ack);
++		spin_unlock_irqrestore(&battmgr->oem_lock, flags);
+ 	} else {
+ 		/* A restarted ADSP starts with the default charge mode. */
+ 		qcom_battmgr_asus_chg_kick(battmgr, true);
+@@ -2451,6 +2497,7 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
+ 	mutex_init(&battmgr->lock);
+ 	init_completion(&battmgr->ack);
+ 	init_completion(&battmgr->oem_ack);
++	spin_lock_init(&battmgr->oem_lock);
+ 
+ 	match = of_match_device(qcom_battmgr_of_variants, dev->parent);
+ 	if (match)

@@ -44,7 +44,7 @@ Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
  0185 fixes it, and its allocation-failure fallback.]
 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-index 9fb12df08..00f4d5fde 100644
+index a3b40b1fe..bafda18c2 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 @@ -1227,7 +1227,7 @@ static void dpu_crtc_disable(struct drm_crtc *crtc,

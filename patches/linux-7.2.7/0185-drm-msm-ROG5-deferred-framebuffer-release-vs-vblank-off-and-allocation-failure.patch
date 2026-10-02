@@ -23,13 +23,29 @@ Follow-up to 0184 (upstream v3 4/8 of "drm/msm: fix SMMU fault dumps"):
    once, i.e. while the crtc may still fetch from it (the unsafe old
    behaviour). Wait (at most 100 ms) for the crtc to pass a vblank first;
    cleanup_fb runs in sleepable context (commit tail, async commit ioctl).
+   If the crtc neither passes a vblank nor is known to be off (vblank
+   enable failed, or the wait timed out), keep the framebuffer and its pin
+   for good instead (logged): a leak, never an unmapped scanout. The same
+   fallback covers drm_vblank_work_schedule() failing in drm_vblank_get().
+3. Whether to defer was decided from crtc->state->active, but a later
+   commit may already have swapped in a state that switches the crtc off
+   while the hardware still fetches (GPT-6.1-Sol review). Ask the vblank
+   machinery instead, which follows the hardware: drm_vblank_work_schedule()
+   returns 0 for a crtc in modeset (never enabled since reset, or past
+   drm_crtc_vblank_off(), which runs after the interface is disabled), and
+   ->off covers msm_crtc_vblank_off() up to that point.
+
+Not covered: msm's legacy-cursor async path cleans the planes before its
+deferred flush runs (about 1 ms before the next vblank); a flush that
+misses that vblank latches one frame later than the release. That path
+needs legacy cursor ioctls, which Phosh/phoc and GNOME do not use.
 
 Hardware: Phosh page flips, DPMS off/on and suspend with the panel on,
 DP hotplug while scanning out; dmesg must stay free of SMMU context
 faults and of "Cancelling pending vblank works".
 
 diff --git a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
-index bb95e64a5..f3dfa502e 100644
+index bb95e64a5..7ec31df66 100644
 --- a/drivers/gpu/drm/msm/msm_kms.c
 +++ b/drivers/gpu/drm/msm/msm_kms.c
 @@ -215,8 +215,17 @@ void msm_crtc_vblank_off(struct drm_crtc *crtc)
@@ -51,7 +67,7 @@ index bb95e64a5..f3dfa502e 100644
  	for (;;) {
  		spin_lock(&pending->lock);
  		unpin = list_first_entry_or_null(&pending->fbs, typeof(*unpin),
-@@ -232,10 +241,39 @@ void msm_crtc_vblank_off(struct drm_crtc *crtc)
+@@ -232,10 +241,68 @@ void msm_crtc_vblank_off(struct drm_crtc *crtc)
  		msm_kms_fb_unpin_release(unpin);
  	}
  
@@ -68,48 +84,94 @@ index bb95e64a5..f3dfa502e 100644
  }
  
 +/*
-+ * Fallback when the release cannot be deferred: wait (bounded) until the
-+ * crtc has passed a vblank, so that it no longer fetches from the retired
-+ * framebuffer. A crtc in modeset has no vblank to wait for and is not
-+ * fetching either; drm_crtc_vblank_get() fails for it.
++ * Whether the crtc no longer fetches from what it scanned out before: it has
++ * passed a vblank since, or it is off (vblank in modeset: drm_crtc_vblank_get()
++ * fails with -EINVAL). Bounded wait; a crtc that neither passes a vblank in
++ * 100 ms nor is off gives no answer.
 + */
-+static void msm_crtc_wait_one_vblank(struct drm_crtc *crtc)
++static bool msm_crtc_wait_one_vblank(struct drm_crtc *crtc)
 +{
 +	wait_queue_head_t *queue = drm_crtc_vblank_waitqueue(crtc);
++	long left;
 +	u64 count;
++	int ret;
 +
-+	if (drm_crtc_vblank_get(crtc))
-+		return;
++	ret = drm_crtc_vblank_get(crtc);
++	if (ret)
++		return ret == -EINVAL;
 +
 +	count = drm_crtc_vblank_count(crtc);
-+	wait_event_timeout(*queue, drm_crtc_vblank_count(crtc) != count,
-+			   msecs_to_jiffies(100));
++	left = wait_event_timeout(*queue, drm_crtc_vblank_count(crtc) != count,
++				  msecs_to_jiffies(100));
 +
 +	drm_crtc_vblank_put(crtc);
++
++	return left > 0;
 +}
 +
++/*
++ * The release could not be deferred to a vblank work. Release now only once
++ * the crtc is known to have stopped fetching from @fb; otherwise keep the
++ * framebuffer and its pin for good (a leak, but never an unmapped scanout).
++ */
++static bool msm_crtc_fb_unpin_fallback(struct drm_crtc *crtc,
++				       struct drm_framebuffer *fb)
++{
++	if (msm_crtc_wait_one_vblank(crtc))
++		return false;
++
++	drm_err_ratelimited(crtc->dev,
++			    "crtc %u: end of scanout of FB %u unknown, keeping it pinned\n",
++			    crtc->base.id, fb->base.id);
++	drm_framebuffer_get(fb);
++
++	return true;
++}
++
++/*
++ * Returns true when the release of @fb is taken care of (deferred to the
++ * next vblank of @crtc, or deliberately kept), false when @fb is to be
++ * released now because @crtc does not scan out.
++ */
  bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
  {
  	struct msm_drm_private *priv = crtc->dev->dev_private;
-@@ -253,8 +291,10 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+@@ -243,18 +310,16 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+ 	unsigned int idx = drm_crtc_index(crtc);
+ 	struct msm_kms_fb_unpin *pending;
+ 	struct msm_fb_unpin_work *unpin;
++	int ret = 0;
+ 
+ 	if (!kms || idx >= ARRAY_SIZE(kms->fb_unpin))
+ 		return false;
+ 
+-	if (!crtc->state->active)
+-		return false;
+-
  	pending = &kms->fb_unpin[idx];
  
  	unpin = kzalloc_obj(*unpin);
--	if (!unpin)
-+	if (!unpin) {
-+		msm_crtc_wait_one_vblank(crtc);
- 		return false;
-+	}
+ 	if (!unpin)
+-		return false;
++		return msm_crtc_fb_unpin_fallback(crtc, fb);
  
  	unpin->fb = fb;
  	unpin->pending = pending;
-@@ -262,23 +302,27 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+@@ -262,23 +327,40 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
  
  	drm_vblank_work_init(&unpin->base, crtc, msm_kms_fb_unpin_work);
  
 +	/*
 +	 * Publish and schedule under the lock: msm_crtc_vblank_off() must
 +	 * not take the work off the list and free it in between.
++	 *
++	 * Whether the crtc still scans out is not read from crtc->state: a
++	 * later commit may already have swapped in a state that switches it
++	 * off while the hardware still fetches. Ask the vblank machinery,
++	 * which follows the hardware: drm_vblank_work_schedule() returns 0
++	 * for a crtc in modeset (never enabled since reset, or past
++	 * drm_crtc_vblank_off(), which runs after the interface is disabled),
++	 * and ->off covers msm_crtc_vblank_off() up to that point.
 +	 */
  	spin_lock(&pending->lock);
 -	list_add_tail(&unpin->node, &pending->fbs);
@@ -120,24 +182,28 @@ index bb95e64a5..f3dfa502e 100644
 -		spin_lock(&pending->lock);
 +	if (!pending->off) {
 +		list_add_tail(&unpin->node, &pending->fbs);
-+		if (drm_vblank_work_schedule(&unpin->base,
-+					     drm_crtc_vblank_count(crtc) + 1,
-+					     true) == 1) {
++		ret = drm_vblank_work_schedule(&unpin->base,
++					       drm_crtc_vblank_count(crtc) + 1,
++					       true);
++		if (ret == 1) {
 +			spin_unlock(&pending->lock);
 +			return true;
 +		}
  		list_del_init(&unpin->node);
 -		spin_unlock(&pending->lock);
--
++	}
++	spin_unlock(&pending->lock);
+ 
 -		drm_framebuffer_put(fb);
 -		kfree(unpin);
--
--		return false;
- 	}
-+	spin_unlock(&pending->lock);
-+
 +	drm_framebuffer_put(fb);
 +	kfree(unpin);
+ 
+-		return false;
+-	}
++	/* No vblank reference (vblank enable failed) while maybe scanning out */
++	if (ret < 0)
++		return msm_crtc_fb_unpin_fallback(crtc, fb);
  
 -	return true;
 +	return false;
