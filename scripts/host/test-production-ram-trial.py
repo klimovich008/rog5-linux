@@ -194,6 +194,16 @@ class Launcher(unittest.TestCase):
         last_dir = max(i for i, e in enumerate(before) if e == ('fsync', claims))
         self.assertLess(before.index(('fsync', claim)), last_dir)
         self.assertEqual(os.stat(claim).st_mode & 0o777, 0o600)
+        # An existing claims/ (an earlier run may have died before its parent
+        # sync) still gets its entry synced before the next boot.
+        events.clear()
+        self.booted.unlink()
+        self.sha = self.m.hashlib.sha256(b'other').hexdigest()
+        with mock.patch.object(self.m.os, 'fsync', fsync), mock.patch.object(self.m, 'sealed', lambda i, e: os.open(os.devnull, os.O_RDONLY)), \
+                mock.patch.object(self.m.subprocess, 'run', run):
+            self.boot()
+        boot_at = events.index(next(e for e in events if e[0] == 'boot'))
+        self.assertIn(('fsync', str(self.base)), events[:boot_at])
 
     def test_claim_refuses_a_symlinked_marker(self):
         self.device('0b05', '4daf')

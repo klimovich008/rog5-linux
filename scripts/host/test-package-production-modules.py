@@ -126,6 +126,22 @@ class Packager(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'records no output hashes'):
             P.verify_build(build, built, release)
 
+    def test_a_deleted_module_cannot_pass_as_built_in(self):
+        build, built, release, installed = self.fake_build()
+        (installed/'kernel/drivers/a.ko').unlink()
+        (installed/'modules.builtin').write_text('kernel/drivers/a.ko\n')
+        (build/'objects/include/config').mkdir(parents=True)
+        (build/'objects/include/config/kernel.release').write_text(release+'\n')
+        built['stages'] = {'kernel-build': dict(status='PASS'), 'modules-install': dict(status='PASS')}
+        (build/'result.json').write_text(json.dumps(built))
+        selection = self.root/'selection.json'
+        selection.write_text(json.dumps(dict(board_modules=['drivers/a.ko', 'drivers/b.ko'], external_modules=[],
+                                             required_builtin=[])))
+        argv = ['package', '--build', str(build), '--selection', str(selection), '--output', str(self.root/'out')]
+        with mock.patch.object(sys, 'argv', argv), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(ValueError, 'modules.builtin names modules the provenance records'):
+                P.main()
+
     def test_provenance_entries_must_name_this_release(self):
         build, built, release, _ = self.fake_build()
         entries = json.loads((build/'module-provenance.json').read_text())

@@ -64,14 +64,21 @@ def verify_build(build, built, release):
     packaging even when its release and exported symbols are unchanged."""
     outputs = built.get('outputs')
     need(isinstance(outputs, dict), 'result.json records no output hashes')
+    provenance_bytes = None
     for name in BUILD_OUTPUTS:
         need(isinstance(outputs.get(name), str) and len(outputs[name]) == 64, 'result.json records no hash for '+name)
         path = build/name
         need(path.is_file() and not path.is_symlink(), 'recorded build output missing: '+name)
-        need(sha(path) == outputs[name], 'build output differs from result.json: '+name)
+        if name == 'module-provenance.json':
+            # Hash and parse the same bytes (no reopen between check and use).
+            provenance_bytes = path.read_bytes()
+            need(hashlib.sha256(provenance_bytes).hexdigest() == outputs[name],
+                 'build output differs from result.json: '+name)
+        else:
+            need(sha(path) == outputs[name], 'build output differs from result.json: '+name)
     if built.get('config_sha256') is not None:
         need(built['config_sha256'] == outputs['objects/.config'], 'result.json config_sha256 disagrees with its outputs')
-    entries = json.loads((build/'module-provenance.json').read_text())
+    entries = json.loads(provenance_bytes)
     need(isinstance(entries, list) and entries, 'module provenance is empty')
     prefix = 'modules/lib/modules/'+release+'/'
     provenance = {}
@@ -174,6 +181,10 @@ def main():
     builtin_names = set((installed/'modules.builtin').read_text().splitlines())
     built_in = [m for m in selection['board_modules'] if not (installed/'kernel'/m).is_file() and 'kernel/'+m in builtin_names]
     missing = [m for m in selection['board_modules'] if not (installed/'kernel'/m).is_file() and m not in built_in]
+    # modules.builtin is not hash-bound; a module the provenance records as a
+    # .ko is never accepted as built in (a deleted .ko plus an edited list).
+    contradicted = [m for m in built_in if 'modules/lib/modules/'+release+'/kernel/'+m in provenance]
+    need(not contradicted, 'modules.builtin names modules the provenance records as loadable: '+', '.join(contradicted))
     need(not missing, 'selected modules missing from this build: '+', '.join(missing))
     for canonical in selection['board_modules']:
         if canonical in built_in:

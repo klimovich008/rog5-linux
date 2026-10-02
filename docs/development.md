@@ -244,6 +244,9 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   match the build's `module-provenance.json`, whose hash `result.json`
   records; the packager also checks `.config`, `Module.symvers`, `System.map`
   and the Image against `result.json` before it compiles the externals.
+  The package must hold exactly the selection's board and external modules
+  (a legacy package: only provenance-matching ones) and every module the
+  DTB `requires`; the ramdisk builder gets a private checked copy.
   `bundle-inputs.json` must equal HEAD's copy. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
   `ROG5_*` or `PYTHON*` variables. The ramdisk is built with the pinned inputs of
   `configs/production/bundle-inputs.json` and must carry exactly the new

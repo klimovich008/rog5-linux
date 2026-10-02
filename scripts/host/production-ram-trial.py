@@ -344,7 +344,8 @@ def fsync_directory(path):
 
 def durable_mkdir(path):
     """Create path (mode 0700) and any missing parents; each new entry is
-    fsynced into its parent so a host crash cannot drop the directory."""
+    fsynced into its parent so a host crash cannot drop the directory, and
+    path's own entry is synced into its parent every time."""
     missing = []
     probe = path
     while not probe.exists():
@@ -357,6 +358,9 @@ def durable_mkdir(path):
             pass
         fsync_directory(directory.parent)
     need(path.is_dir() and not path.is_symlink(), 'claim directory is not a real directory')
+    # Also when an earlier run created it: that run may have died before its
+    # parent sync, so the directory entry is synced on every use.
+    fsync_directory(path.parent)
 
 
 def claim_entered(expected, content):

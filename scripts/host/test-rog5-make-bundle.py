@@ -157,7 +157,7 @@ class Fixture:
                           ('scripts/device/build-persistent-root-standalone-initramfs.sh', FAKE_RAMDISK),
                           ('scripts/host/package-production-ram-trial.py', FAKE_PACKAGE),
                           ('configs/kernel/rog5-production-modules.json',
-                           '{"board_modules": [], "external_modules": [{"name": "fake-ext", "source": "tools/fake"}]}\n'),
+                           '{"board_modules": ["drivers/board.ko"], "external_modules": [{"name": "fake-ext", "source": "tools/fake"}]}\n'),
                           ('tools/fake/fake.c', 'int x;\n'),
                           ('configs/production/boot-modules.list', 'old_module\n')):
             path = self.source/rel
@@ -558,6 +558,73 @@ class MakeBundle(unittest.TestCase):
         (build/'result.json').write_text(json.dumps(built))
         with self.assertRaisesRegex(ValueError, 'records no module provenance'):
             f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9', '--fresh-modules')
+
+    def test_package_inventory_externals_and_required_modules(self):
+        f = self.f
+        f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        package_dir = f.state/'modules-k111'
+        original = (package_dir/'module-root-complete.tar.gz').read_bytes(), (package_dir/'result.json').read_text()
+        build = f.kernels/'rog5-kernel-7.2.7-build-r111'
+        board = (build/'modules/lib/modules/7.2.7-rog5-k111/kernel/drivers/board.ko').read_bytes()
+
+        def repackage(members, externals=('fake-ext.ko',)):
+            data = module_tar('7.2.7-rog5-k111', members)
+            (package_dir/'module-root-complete.tar.gz').write_bytes(data)
+            result = json.loads(original[1])
+            result.update(package_sha256=sha(data), external_modules=list(externals))
+            (package_dir/'result.json').write_text(json.dumps(result))
+        cases = [
+            # a board module declared "external" to dodge provenance
+            (dict({'drivers/board.ko': board, 'fake-ext.ko': b'e', 'extra.ko': board}), ('fake-ext.ko', 'extra.ko'),
+             'external modules outside the selection'),
+            # no board module at all
+            (dict({'fake-ext.ko': b'e'}), ('fake-ext.ko',), 'carries no board module'),
+            # the selection's external module left out
+            (dict({'drivers/board.ko': board}), (), 'lacks external modules of the selection'),
+        ]
+        for members, externals, message in cases:
+            with self.subTest(message=message):
+                repackage(members, externals)
+                with self.assertRaisesRegex(ValueError, message):
+                    f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        # A verified module of the build that the selection does not name.
+        second = build/'modules/lib/modules/7.2.7-rog5-k111/kernel/drivers/second.ko'
+        second.write_bytes(b'second')
+        entries = json.loads((build/'module-provenance.json').read_text())
+        entries.append(dict(path='modules/lib/modules/7.2.7-rog5-k111/kernel/drivers/second.ko', sha256=sha(b'second'),
+                            name='second', vermagic='7.2.7-rog5-k111 SMP'))
+        (build/'module-provenance.json').write_text(json.dumps(entries))
+        built = json.loads((build/'result.json').read_text())
+        built['outputs']['module-provenance.json'] = sha((build/'module-provenance.json').read_bytes())
+        (build/'result.json').write_text(json.dumps(built))
+        repackage({'drivers/board.ko': board, 'drivers/second.ko': b'second', 'fake-ext.ko': b'e'})
+        with self.assertRaisesRegex(ValueError, 'board modules differ from the selection: missing ; extra drivers/second.ko'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        # The private copy is what the ramdisk builder gets.
+        (package_dir/'module-root-complete.tar.gz').write_bytes(original[0])
+        (package_dir/'result.json').write_text(original[1])
+        f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        env = json.loads(f.log.read_text())
+        self.assertRegex(Path(env['PRODUCTION_MODULE_PACKAGE']).parent.name, r'^bundle-work-main-k111-d9-261001[a-z]$')
+        # A DTB that needs a module the package lacks.
+        registry = json.loads((f.config/'dtbs.json').read_text())
+        registry['dtbs']['d9']['requires'] = dict(modules=['drivers/media/iris.ko'])
+        (f.config/'dtbs.json').write_text(json.dumps(registry))
+        with self.assertRaisesRegex(ValueError, 'the DTB needs modules the package does not carry: drivers/media/iris.ko'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+
+    def test_bundle_inputs_symlink_in_the_repository_is_refused(self):
+        f = self.f
+        inside = f.source/'configs/production/bundle-inputs.json'
+        inside.write_text(f.inputs.read_text())
+        git = ['git', '-C', str(f.source), '-c', 'user.name=t', '-c', 'user.email=t@t']
+        subprocess.run(git+['add', '-A'], check=True)
+        subprocess.run(git+['commit', '-qm', 'inputs'], check=True)
+        inside.unlink()
+        inside.symlink_to(f.inputs)
+        f.inputs = inside
+        with self.assertRaisesRegex(ValueError, 'must not be a symlink'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
 
     def test_dtb_kernel_requirements_are_inherited_and_enforced(self):
         f = self.f

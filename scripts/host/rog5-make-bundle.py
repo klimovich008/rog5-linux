@@ -131,8 +131,10 @@ def kernel_config(build, result):
     if not config.exists():
         return None
     recorded = result.get('outputs', {}).get('objects/.config')
-    need(recorded is not None and sha256(config) == recorded, f'{build.name}: objects/.config differs from result.json')
-    return config.read_text()
+    data = config.read_bytes()  # hash and parse the same bytes
+    need(recorded is not None and hashlib.sha256(data).hexdigest() == recorded,
+         f'{build.name}: objects/.config differs from result.json')
+    return data.decode()
 
 
 def kernel_entry(kernel, build, result):
@@ -266,49 +268,66 @@ def module_package(steps, src, state, kernel, build, image_sha256, release, fres
     return package, result, 'new'
 
 
-def package_provenance(package, modules, build, result, release, how):
-    """Check every board module in the module package against the kernel
-    build's installed-module provenance, which result.json binds by hash.
-    External modules (built by the packager from tools/) have no provenance
-    entry and are taken by name from the package record. A legacy package of a
-    pruned build whose build records no provenance stays usable, but only as
-    an explicitly unverified record."""
+def package_provenance(package, modules, build, result, release, how, selection, required_modules):
+    """Check the module package against the kernel build's installed-module
+    provenance, which result.json binds by hash: every board module must match
+    its provenance entry, external modules may only be the snapshot
+    selection's (built from tools/, no provenance), a package of the current
+    selection (new or reused) must carry exactly its board modules, and every
+    module the DTB requires must be among the verified ones. A legacy package
+    of a pruned build that records no provenance stays usable, but only as an
+    explicitly unverified record."""
     recorded = result.get('outputs', {}).get('module-provenance.json')
     if recorded is None:
         need(how == 'reused-unverified',
              f'{build.name}: result.json records no module provenance; its module package cannot be verified')
+        need(not required_modules, f'{build.name}: no module provenance to show the modules the DTB requires')
         return dict(status='unverified', reason='the kernel build records no module provenance')
     provenance_file = build/'module-provenance.json'
-    need(provenance_file.is_file() and not provenance_file.is_symlink() and sha256(provenance_file) == recorded,
-         f'{build.name}: module-provenance.json differs from result.json')
+    need(provenance_file.is_file() and not provenance_file.is_symlink(), f'{build.name}: module-provenance.json missing')
+    data = provenance_file.read_bytes()  # hash and parse the same bytes
+    need(hashlib.sha256(data).hexdigest() == recorded, f'{build.name}: module-provenance.json differs from result.json')
     provenance = {}
-    for entry in json.loads(provenance_file.read_text()):
+    for entry in json.loads(data):
         need(entry['path'] not in provenance, f'{build.name}: duplicate provenance entry {entry["path"]}')
         provenance[entry['path']] = entry['sha256']
+    allowed_externals = {item['name']+'.ko' for item in selection['external_modules']}
     externals = set(modules.get('external_modules') or [])
-    need(all(re.fullmatch(r'[A-Za-z0-9_-]+\.ko', name) for name in externals), 'module package external names')
-    prefix = f'lib/modules/{release}/'
-    verified, seen_externals, names = 0, set(), set()
+    need(externals <= allowed_externals,
+         'module package external modules outside the selection: '+', '.join(sorted(externals-allowed_externals)))
+    prefix = f'lib/modules/{release}/kernel/'
+    verified, seen_externals, names = set(), set(), set()
     with tarfile.open(package, mode='r|gz') as archive:
         for item in archive:
             need(item.name not in names, f'module package member twice: {item.name}')
             names.add(item.name)
             if not item.name.endswith('.ko'):
                 continue
-            need(item.isfile() and item.name.startswith(prefix+'kernel/'), f'module package member {item.name}')
+            need(item.isfile() and item.name.startswith(prefix), f'module package member {item.name}')
             digest = hashlib.sha256(archive.extractfile(item).read()).hexdigest()
-            relative = item.name[len(prefix+'kernel/'):]
+            relative = item.name[len(prefix):]
             expected = provenance.get('modules/'+item.name)
             if expected is None and relative in externals:
                 seen_externals.add(relative)
                 continue
             need(expected is not None, f'module package member {relative} has no provenance record in {build.name}')
             need(digest == expected, f'module package member {relative} differs from the {build.name} provenance')
-            verified += 1
+            verified.add(relative)
     need(seen_externals == externals, 'module package external modules differ from its record')
-    need(verified > 0, 'module package carries no board module')
-    return dict(status='verified', provenance_sha256=recorded, board_modules=verified,
-                external_modules=sorted(externals))
+    need(verified, 'module package carries no board module')
+    built_in = set(modules.get('selected_built_in') or [])
+    need(not any('modules/'+prefix+name in provenance for name in built_in),
+         'module package calls modules built in that the provenance records as loadable')
+    if how != 'reused-unverified':
+        # This package was made from the snapshot's selection.
+        expected_board = set(selection['board_modules'])-built_in
+        need(verified == expected_board, 'module package board modules differ from the selection: missing '
+             + ', '.join(sorted(expected_board-verified))+'; extra '+', '.join(sorted(verified-expected_board)))
+        need(externals == allowed_externals, 'module package lacks external modules of the selection')
+    missing = [name for name in required_modules if name not in verified]
+    need(not missing, 'the DTB needs modules the package does not carry: '+', '.join(missing))
+    return dict(status='verified', provenance_sha256=recorded, board_modules=len(verified),
+                external_modules=sorted(externals), exact_selection=how != 'reused-unverified')
 
 
 def write_descriptor(state, name):
@@ -376,7 +395,7 @@ def plan(args):
     kernel_pin(registry, args.kernel, build, result)
     dtb, dtb_entry = registry.verify_dtb(args.dtb)
     patches, config = registry.check_kernel(args.dtb, args.kernel, result, kernel_config(build, result))
-    requirements = dict(patches=patches, config=config)
+    requirements = dict(patches=patches, config=config, modules=registry.required_modules(args.dtb))
     name = choose_name(args, registry, state)
     for key in ('ramdisk_base', 'recovery_base', 'asus_template', 'asus_kernel'):
         path, digest = pinned(inputs[key], state)
@@ -401,19 +420,29 @@ def build_bundle(args, p):
     print(f'  source {commit[:12]}' + (' (uncommitted changes in the working tree are NOT included)' if dirty else ''))
     # The pinned inputs were read from the working tree before the snapshot
     # existed; the bundle's source record names HEAD, so they must be HEAD's.
-    inputs_path, source_root = args.inputs.resolve(), Path(args.source_repo).resolve()
-    if inputs_path.is_relative_to(source_root):
-        relative = inputs_path.relative_to(source_root)
+    # Lexical paths: a symlink in the repository must not lead the check away.
+    inputs_path, source_root = Path(os.path.abspath(args.inputs)), Path(os.path.abspath(args.source_repo))
+    if inputs_path.is_relative_to(source_root) or args.inputs.resolve().is_relative_to(source_root.resolve()):
+        need(not inputs_path.is_symlink(), f'{args.inputs} must not be a symlink')
+        relative = (inputs_path.relative_to(source_root) if inputs_path.is_relative_to(source_root)
+                    else args.inputs.resolve().relative_to(source_root.resolve()))
         need((src/relative).is_file() and sha256(src/relative) == p['inputs_sha256'],
              f'{relative} differs from HEAD; commit it before building a bundle')
     image_sha256 = sha256(p['image'])
     package, modules, how = module_package(steps, src, state, args.kernel, p['build'], image_sha256,
                                            p['release'], args.fresh_modules)
     print(f'  modules {package.parent.name} ({how})')
+    # Work on a private copy: it is checked and then handed to the ramdisk
+    # builder, so a later change of the shared package cannot reach the bundle.
+    source_package = package
+    package = work/'module-root-complete.tar.gz'
+    shutil.copyfile(source_package, package)
+    os.chmod(package, 0o400)
     package_sha256 = sha256(package)
     need(package_sha256 == modules['package_sha256'], 'module package changed after its check')
-    provenance = package_provenance(package, modules, p['build'], p['result'], p['release'], how)
-    need(sha256(package) == package_sha256, 'module package changed during its provenance check')
+    selection_data = json.loads((src/'configs/kernel/rog5-production-modules.json').read_text())
+    provenance = package_provenance(package, modules, p['build'], p['result'], p['release'], how, selection_data,
+                                    p['requirements'].get('modules', []))
     print(f'  module provenance {provenance["status"]}'
           + (f' ({provenance["board_modules"]} board modules)' if provenance['status'] == 'verified' else
              ': '+provenance['reason']))
@@ -454,7 +483,7 @@ def build_bundle(args, p):
                   release=p['release'], source_commit=commit, source_tree_dirty=dirty,
                   kernel_build=str(p['build']), image_sha256=image_sha256,
                   dtb_path=str(p['dtb']), dtb_sha256=p['dtb_entry']['sha256'],
-                  module_package=str(package), module_package_sha256=package_sha256,
+                  module_package=str(source_package), module_package_sha256=package_sha256,
                   module_package_source=how, module_selection_current=selection_current,
                   module_provenance=provenance, dtb_kernel_requirements=p['requirements'],
                   bundle_inputs=str(args.inputs), bundle_inputs_sha256=p['inputs_sha256'],
@@ -468,7 +497,7 @@ def build_bundle(args, p):
     (output/'make-bundle.json').write_text(json.dumps(record, indent=2)+'\n')
     notes = []
     if how == 'reused-unverified':
-        notes.append(f'legacy module package {package.parent.name}'
+        notes.append(f'legacy module package {source_package.parent.name}'
                      + ('' if provenance['status'] == 'verified' else ' (module provenance not verified)'))
     if boot_modules:
         notes.append(f'boot-modules.list from {boot_modules["revision"]}')
