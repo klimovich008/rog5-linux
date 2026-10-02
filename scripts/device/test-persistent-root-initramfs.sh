@@ -316,8 +316,10 @@ grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||
 	fail 'P2 rollback does not request restart2'
 grep -Fq 'cp -p "$reboot_helper" "$exitrd$reboot_helper"' "$init" ||
 	fail 'P2 exitrd omits the restart2 helper used by shutdown'
-grep -Fq 'bootloader restart returned; forcing emergency reset' "$init" ||
+grep -Fq 'bootloader restart did not complete; forcing emergency reset' "$init" ||
 	fail 'P2 target does not retain a last-resort reset after restart2'
+grep -Fqx 'reboot_helper_grace=15' "$init" ||
+	fail 'P2 target lacks the bounded restart2 grace'
 grep -Fq 'bootloader restart returned; triggering emergency reset' "$shutdown" ||
 	fail 'P2 shutdown does not retain a last-resort reset after restart2'
 for reboot_mode_contract in \
@@ -333,11 +335,22 @@ python3 - "$init" "$shutdown" <<'PY'
 from pathlib import Path
 import sys
 
-for name in sys.argv[1:]:
-    source = Path(name).read_text(encoding="ascii")
-    helper = source.index('"$reboot_helper" || true')
-    reset = source.index('printf b >/proc/sysrq-trigger')
-    assert helper < reset, f"{name}: emergency reset precedes restart2"
+init, shutdown = (Path(name).read_text(encoding="ascii") for name in sys.argv[1:])
+helper = shutdown.index('"$reboot_helper" || true')
+reset = shutdown.index('printf b >/proc/sysrq-trigger')
+assert helper < reset, "shutdown: emergency reset precedes restart2"
+# The init never waits for restart2: force_rollback backgrounds it and the
+# watchdog's backstop resets after the grace even if it blocks.
+start = init.index('force_rollback() {')
+body = init[start:init.index('\n}\n', start)]
+helper = body.index('"$reboot_helper" &\n')
+grace = body.index('sleep "$reboot_helper_grace" || true')
+reset = body.index('printf b >/proc/sysrq-trigger')
+assert helper < grace < reset, "init: force_rollback order"
+start = init.index('watchdog_expired() {')
+body = init[start:init.index('\n}\n', start)]
+assert body.index("printf '%s\\n' expired") < body.index('"$reboot_helper" || true')
+assert '| (' in init[init.index('arm_watchdog() {'):] and 'watchdog_backstop' in init
 PY
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'

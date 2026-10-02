@@ -7,6 +7,14 @@
 # next boot takes the fallback bundle (V11). A boot that is not the selected
 # trial (a RAM trial, or the fallback) finds a different record and changes
 # nothing. Any failure leaves the record pending.
+#
+# Health is: current-boot P2 and SSH identity, sshd listening, only the
+# userdata write window writable, battery below 45 C, the production module
+# tree published by the init (/run/rog5-production-modules.record) and
+# rog5-platform-modules.service succeeded, and the local shell came up
+# locked once during this boot (see local_shell_ready). A boot that reaches
+# SSH but not the phone's display/lock screen therefore stays pending and the
+# next boot takes the fallback, which still gives SSH.
 set -u
 root=${ROG5_TRIAL_KIT:-/run/rog5-production-trial}
 run=${ROG5_TRIAL_RUN:-/run}
@@ -16,6 +24,9 @@ kmsg=${ROG5_TRIAL_KMSG:-/dev/kmsg}
 descriptor=$root/trial-descriptor
 helper=$root/trial-state
 limit=${ROG5_TRIAL_WAIT:-180}
+systemctl=${ROG5_TRIAL_SYSTEMCTL:-systemctl}
+loginctl=${ROG5_TRIAL_LOGINCTL:-loginctl}
+rootfs=${ROG5_TRIAL_ROOT:-}
 
 log() {
 	printf 'rog5-production-trial: %s\n' "$*" >"$kmsg" 2>/dev/null ||
@@ -41,6 +52,7 @@ case $trial_id in ''|*[!0-9a-f]*) fail 'trial id' ;; esac
 case $primary in ''|*[!a-z0-9._-]*|*..*|[._-]*) fail 'primary bundle name' ;; esac
 [ -x "$helper" ] && [ ! -L "$helper" ] || fail 'trial helper missing'
 boot_id=$(cat "$proc/sys/kernel/random/boot_id") || fail 'boot id'
+release=$(cat "$proc/sys/kernel/osrelease") || fail 'kernel release'
 
 if ! state=$("$helper" state "$trial_id" "$primary" 2>/dev/null); then
 	log "SKIP this boot is not the selected try-once trial of $primary"
@@ -52,7 +64,60 @@ case $state in
 	*) fail "unexpected trial state $state" ;;
 esac
 
+# The phone's local shell must have reached its lock screen once during this
+# boot: the logind session led by rog5-phosh.service's main process with
+# LockedHint=yes (Phosh publishes its startup lock with packages/phosh 0002).
+# That needs msm, the panel, phoc and Phosh. It is latched for this run, so
+# a later unlock by the user, a desktop-mode switch or a Phosh restart does
+# not hold the commit back. A GNOME Mobile boot (/run/rog5-shell/effective)
+# needs GDM and its rog5-shell watchdog active instead (the GDM greeter is
+# the lock there). A boot without Phosh (not installed, or rog5-phosh.service
+# disabled or masked: a headless server) commits without a local shell.
+locked_session=
+local_shell_ready() {
+	[ -z "$locked_session" ] || return 0
+	effective=$(cat "$run/rog5-shell/effective" 2>/dev/null) || effective=phosh
+	if [ "$effective" = gnome-mobile ]; then
+		"$systemctl" is-active --quiet gdm.service &&
+			"$systemctl" is-active --quiet rog5-shell-watchdog.service || return 1
+		locked_session=gdm
+		return 0
+	fi
+	[ -x "$rootfs/usr/bin/phosh-session" ] || { locked_session=none; return 0; }
+	case $("$systemctl" is-enabled rog5-phosh.service 2>/dev/null) in
+		disabled|masked|masked-runtime) locked_session=none; return 0 ;;
+	esac
+	leader=$("$systemctl" show -p MainPID --value rog5-phosh.service 2>/dev/null) ||
+		return 1
+	case $leader in ''|0|*[!0-9]*) return 1 ;; esac
+	for session in $("$loginctl" list-sessions --no-legend 2>/dev/null |
+		awk '$1 ~ /^[A-Za-z0-9_-]+$/ { print $1 }'); do
+		properties=$("$loginctl" show-session "$session" \
+			-p Leader -p State -p LockedHint 2>/dev/null) || continue
+		printf '%s\n' "$properties" | grep -Fxq "Leader=$leader" || continue
+		printf '%s\n' "$properties" | grep -Fxq 'State=closing' && continue
+		printf '%s\n' "$properties" | grep -Fxq 'LockedHint=yes' || continue
+		locked_session=$session
+		return 0
+	done
+	return 1
+}
+
+modules_ready() {
+	record=$run/rog5-production-modules.record
+	[ -f "$record" ] && [ ! -L "$record" ] &&
+		[ "$(stat -c '%u:%g:%a' "$record")" = 0:0:444 ] &&
+		[ "$(cat "$record")" = "release=$release" ] || return 1
+	"$systemctl" is-active --quiet rog5-platform-modules.service
+}
+
+waiting=
 ready() {
+	# Polled every pass so the lock screen is seen even before SSH is up.
+	local_shell_ready || waiting='local shell locked'
+	modules_ready || { waiting='production modules'; return 1; }
+	[ -n "$locked_session" ] || return 1
+	waiting='p2, ssh, storage or battery'
 	p2=$run/rog5-p2-ready
 	identity=$run/rog5-persistent-ssh-identity.record
 	[ -f "$p2" ] && [ ! -L "$p2" ] && [ "$(stat -c '%u:%g:%a' "$p2")" = 0:0:444 ] &&
@@ -78,11 +143,14 @@ ready() {
 
 waited=0
 until ready; do
+	if "$systemctl" is-failed --quiet rog5-platform-modules.service; then
+		fail "rog5-platform-modules.service failed; record stays $state, so the next boot takes the fallback"
+	fi
 	waited=$((waited + 1))
 	[ "$waited" -lt "$limit" ] ||
-		fail "health not reached in $limit s; record stays $state, so the next boot takes the fallback"
+		fail "health not reached in $limit s (waiting for $waiting); record stays $state, so the next boot takes the fallback"
 	sleep 1
 done
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail "trial commit result $result" ;; esac
-log "PASS $primary committed $result for boot $boot_id after $waited s"
+log "PASS $primary committed $result for boot $boot_id after $waited s (local shell: $locked_session)"

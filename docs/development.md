@@ -338,7 +338,20 @@ trial descriptor:
    be new on p24 and carry no trial descriptor, and the new selector names
    it.
 4. Reboot normally. The first boot writes a pending record and boots the
-   bundle, and the unit logs `PASS <bundle> committed healthy`. The next
+   bundle, and the unit logs `PASS <bundle> committed healthy ... (local
+   shell: <session>)`. Healthy means: current-boot P2 and SSH identity, sshd
+   listening, only the userdata window writable, battery below 45 °C, the
+   init's module publication record (`/run/rog5-production-modules.record`
+   for this release), `rog5-platform-modules.service` succeeded (its failure
+   fails the commit at once), and the local shell reached its lock screen
+   once: the logind session led by `rog5-phosh.service` with
+   `LockedHint=yes` (needs packages/phosh 0002; latched, so an unlock or a
+   desktop-mode switch afterwards does not matter). A GNOME Mobile boot
+   needs GDM and `rog5-shell-watchdog` active instead. Trade-off for server
+   use: a boot whose display or Phosh fails while SSH works stays pending,
+   so the next boot takes the fallback (which also gives SSH). A headless
+   phone (`systemctl disable rog5-phosh.service`, or no Phosh installed)
+   commits without the local shell. The next
    reboot must land on the same bundle. Record it:
    `rog5-bundle-registry.py set <bundle> --status installed-main --healthy yes
    --installed '<date time>'` (and `installed-fallback` for a new fallback).
@@ -396,13 +409,20 @@ that upper without user data:
   `var/lib/systemd/coredump`, `var/log/journal`, `var/cache/pacman/pkg`;
   20.8 of 27.0 GB on 2026-09-30, so a snapshot is about 6 GB). The v2 seal
   holds an entry count, a hash of the name list and `excluded=`. The space
-  check counts upper without those paths. It writes `pending
-  action=restore`, upgrades the
+  check counts upper without those paths. Before the snapshot it downloads
+  the upgrade (`pacman -Suw`: no hooks, no installs), so a mirror or
+  network failure costs no snapshot and retries hourly; a plan with a new
+  `archlinuxarm-keyring` skips this, because new keys verify only after
+  the keyring upgrade. It writes `pending action=restore`, upgrades the
   keyring first, then `pacman -Su`, then runs `verify-root`. On a pass it
   rewrites pending to `action=verify` and reboots once the backlight is
-  off (`ROG5_UPDATE_REBOOT=idle|now|never`). On a failure the restore stays
-  armed and the phone reboots at once. A transaction that changed nothing is
-  discarded without a reboot.
+  off (`ROG5_UPDATE_REBOOT=idle|now|never`). On any failure the restore
+  stays armed and the phone reboots at once: unchanged package versions do
+  not prove unchanged files (a PreTransaction hook with `AbortOnFail`).
+  The previous good snapshot stays until the new update commits. The copy
+  records the `db.lck` it took (`rog5-update/snapshot-lock`, inode and
+  change time) and releases it on a signal; a later run releases exactly
+  that file after a kill or power loss and removes stale `.tmp-*` copies.
 - **Init.** Before the overlay mounts, the first boot with a `verify` pending
   record writes `attempt`. A second boot without a commit, or any `restore`
   record, renames the sealed snapshot into place. It keeps the old upper as
@@ -430,7 +450,8 @@ that upper without user data:
 - **Operate:** `/run/rog5-update/rog5-update status|verify-root|resume|rollback`.
   After two failed updates in a row, the same plan waits for new package
   versions. After three, updates pause until `resume`. `rollback` arms a
-  manual restore to the kept snapshot.
+  manual restore to the kept snapshot (a snapshot consumed by a rollback,
+  with `failed-upper` and no `upper`, does not count).
 
 `verify-root` checks the merged-root conditions that the next boot enforces.
 A package can trip them:
@@ -471,8 +492,12 @@ Limits:
   lower shows below it.
 - User data (`snapshot_excludes`) is not rolled back. A package's files there
   (e.g. under `/var/lib/flatpak`) keep their updated state after a rollback.
-- Files that services rewrite during the copy can be torn. pacman's own
-  files are consistent.
+- Files that services rewrite during the copy can be torn (tar status 1 is
+  accepted). pacman's own files are consistent. Server data belongs under
+  an excluded path or `/persist`; adding an exclude needs the init's
+  `update_snapshot_excludable` extended first and a fallback built from
+  that init, because an older init refuses a seal that names an unknown
+  path.
 
 ### Human-assisted hardware sessions
 

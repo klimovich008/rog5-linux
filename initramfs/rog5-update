@@ -7,8 +7,9 @@
 #   run          hourly timer. Reboots into a verified update when the display
 #                is off; otherwise, at most once per interval, when on external
 #                power or battery > ROG5_UPDATE_MIN_BATTERY and online:
-#                snapshot upper, pacman -Syu, then verify-root. A failed
-#                upgrade or check arms a restore and reboots at once.
+#                download (pacman -Suw), snapshot upper, pacman -Su, then
+#                verify-root. A failed upgrade or check arms a restore and
+#                reboots at once.
 #   commit       every boot (rog5-update-commit.service). Commits the update
 #                this boot started once the boot is healthy and verify-root
 #                still passes after systemd-update-done; otherwise arms a
@@ -53,6 +54,7 @@ dir=$state/rog5-update
 snapshots=$state/snapshots
 upper=$state/upper
 pacman_lock=$root/var/lib/pacman/db.lck
+snapshot_lock=$dir/snapshot-lock
 commit_failed=$run/rog5-update-commit.failed
 
 log() {
@@ -219,6 +221,31 @@ prune_snapshots() {
 	done
 }
 
+# A snapshot copy that was killed (SIGKILL, power loss) leaves pacman's lock
+# and a partial .tmp-<id> copy behind. The lock is released only when it is
+# the very file the copy created (same inode and change time as recorded);
+# pacman would not have locked over it. Runs under the updater's own lock.
+recover_interrupted_snapshot() {
+	if [ -e "$snapshot_lock" ] || [ -L "$snapshot_lock" ]; then
+		record_exact "$snapshot_lock" 2 &&
+			[ "$(sed -n 1p "$snapshot_lock")" = format=rog5-update-snapshot-lock-v1 ] ||
+			return 1
+		recorded=$(sed -n 's/^lock=//p' "$snapshot_lock")
+		if [ -f "$pacman_lock" ] && [ ! -L "$pacman_lock" ] &&
+			[ "$(stat -c '%i %z' "$pacman_lock")" = "$recorded" ]; then
+			rm -f "$pacman_lock" || return 1
+			log 'released the pacman lock of an interrupted snapshot copy'
+			history 'released the pacman lock of an interrupted snapshot copy'
+		fi
+		bb rm -f "$snapshot_lock" || return 1
+	fi
+	[ -d "$snapshots" ] && [ ! -L "$snapshots" ] || return 0
+	for entry in "$snapshots"/.tmp-*; do
+		[ -e "$entry" ] || [ -L "$entry" ] || continue
+		rm -rf -- "$entry" || return 1
+	done
+}
+
 make_snapshot() {
 	id=$1
 	if [ -e "$snapshots" ] || [ -L "$snapshots" ]; then
@@ -237,6 +264,14 @@ make_snapshot() {
 	# can leave the user-data paths out. Exit 1 of the archiving side only
 	# means a file changed while it was read (cp copies such files silently).
 	( set -C; : >"$pacman_lock" ) 2>/dev/null || { rm -rf -- "$tmp"; return 1; }
+	# Record which lock file is ours (inode and change time), so a later run
+	# can release exactly this lock if the copy is killed or the power fails;
+	# a signal releases it now.
+	lock_identity=$(stat -c '%i %z' "$pacman_lock") &&
+		write_record "$snapshot_lock" format=rog5-update-snapshot-lock-v1 \
+			"lock=$lock_identity" ||
+		{ rm -f "$pacman_lock"; rm -rf -- "$tmp"; return 1; }
+	trap 'rm -f "$pacman_lock" "$snapshot_lock"; exit 1' HUP INT TERM
 	sync
 	set --
 	for path in $snapshot_excludes; do
@@ -252,6 +287,8 @@ make_snapshot() {
 	extracted=$?
 	archived=$(cat "$tmp/archived" 2>/dev/null) || archived=2
 	rm -f "$pacman_lock" "$tmp/archived"
+	rm -f "$snapshot_lock"
+	trap - HUP INT TERM
 	rm -f "$tmp/upper/var/lib/pacman/db.lck"
 	case $extracted:$archived in
 		0:0|0:1) ;;
@@ -693,6 +730,7 @@ action_run() {
 	network_up || { log 'SKIP no default route'; exit 0; }
 	systemctl is-active --quiet rog5-package-keyring.service ||
 		{ log 'SKIP package keyring is not active'; exit 0; }
+	recover_interrupted_snapshot || fail 'cannot clean up an interrupted snapshot copy'
 	[ ! -e "$pacman_lock" ] || { log 'SKIP pacman is locked'; exit 0; }
 	# One real attempt per interval; a mirror or network failure retries hourly.
 	printf '%s\n' "$now" >"$dir/last-check"
@@ -720,14 +758,24 @@ action_run() {
 		log 'SKIP this upgrade failed twice; waiting for new package versions'
 		exit 0
 	fi
+	# Download before the snapshot. pacman -Sw installs nothing and runs no
+	# hooks, so a mirror or network failure changes only the package cache
+	# (left out of snapshots) and costs no snapshot; it retries hourly. A
+	# plan with a new keyring skips this: packages signed by new keys verify
+	# only after the keyring upgrade, a real transaction after the snapshot.
+	if ! printf '%s\n' "$plan" | grep -q '^archlinuxarm-keyring '; then
+		# shellcheck disable=SC2086
+		pacman -Suw --noconfirm $ignore_args ||
+			{ rm -f "$dir/last-check"; fail 'pacman could not download the upgrade'; }
+	fi
 	used=$(snapshot_kib) || fail 'cannot size the snapshot'
 	kept=0
 	# Failed roots are retained; conservatively count no existing
-	# snapshot as reclaimable space.
+	# snapshot as reclaimable space. The last good snapshot stays until this
+	# update commits (action_commit prunes), so a failed copy loses nothing.
 	available=$(stat -f -c '%a %S' "$state" | awk '{ printf "%d", $1 * $2 / 1024 }')
 	[ $((available + kept)) -ge $((used + reserve_mib * 1024)) ] ||
 		fail "not enough space for a snapshot of upper (${used} KiB)"
-	prune_snapshots '' || fail 'cannot remove old snapshots'
 	id=$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')
 	printf '%s\n' "$id" | grep -Eq '^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$' || fail 'update id'
 	make_snapshot "$id" || fail 'snapshot of upper failed'
@@ -736,7 +784,9 @@ action_run() {
 	# Until verify-root passes, any interruption restores at the next boot.
 	arm_pending "$id" restore || fail 'cannot arm the pending update'
 	history "update $id: $(printf '%s\n' "$plan" | wc -l | tr -d ' ') packages"
-	pacman -Q >"$dir/packages-before" 2>/dev/null || true
+	# From here every failure keeps the restore armed: a failed transaction
+	# can have changed files without changing package versions (a failing
+	# PreTransaction hook with AbortOnFail, a partly extracted package).
 	upgraded=0
 	if printf '%s\n' "$plan" | grep -q '^archlinuxarm-keyring '; then
 		pacman -S --needed --noconfirm archlinuxarm-keyring || upgraded=1
@@ -744,13 +794,6 @@ action_run() {
 	if [ "$upgraded" -eq 0 ]; then
 		# shellcheck disable=SC2086
 		pacman -Su --noconfirm $ignore_args || upgraded=1
-	fi
-	pacman -Q >"$dir/packages-after" 2>/dev/null || true
-	if [ "$upgraded" -ne 0 ] && cmp -s "$dir/packages-before" "$dir/packages-after"; then
-		bb rm -f "$dir/pending" "$dir/targets"
-		prune_snapshots '' || true
-		bb sync
-		fail "pacman failed before changing packages (update $id)"
 	fi
 	if [ "$upgraded" -eq 0 ] && problems=$(verify_root); then
 		arm_pending "$id" verify || fail 'cannot mark the update verified'
@@ -837,9 +880,13 @@ action_rollback() {
 	lock
 	overlay_ok || fail 'the root is not the expected persistent overlay'
 	[ ! -e "$dir/pending" ] && [ ! -L "$dir/pending" ] || fail 'an update is pending'
+	# Only a kept good root counts: a snapshot consumed by a rollback keeps
+	# its seal next to failed-upper and has no upper left.
 	count=0
 	for entry in "$snapshots"/*; do
 		[ -e "$entry/seal" ] || continue
+		[ -d "$entry/upper" ] && [ ! -L "$entry/upper" ] || continue
+		[ ! -e "$entry/failed-upper" ] && [ ! -L "$entry/failed-upper" ] || continue
 		count=$((count + 1))
 		id=${entry##*/}
 	done

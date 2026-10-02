@@ -1385,6 +1385,48 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-overlay-workdir-residue.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 600,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "unshare"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "initramfs/persistent-root-init"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "kernel cases need private inputs",
+          "scope": "subcheck",
+          "reason": "The kernel cases boot the private production kernel Image with the target archive's busybox in the local rog5-qemu-gate QEMU container on a disposable ext4 disk; the predicate cases still run, so a skip proves nothing about the kernel's own workdir cleanup.",
+          "inputs": [
+            "~/.local/state/rog5-kernel-7.2.7-build-r113/objects/arch/arm64/boot/Image (ROG5_OVERLAY_KERNEL)",
+            "~/.local/state/rog5-production-boot-20260923/ramdisk-main-k113-d13-261001a/target.cpio.gz (ROG5_OVERLAY_ARCHIVE)",
+            "podman image localhost/rog5-qemu-gate:ubuntu-24.04"
+          ],
+          "test_ids": [
+            "Kernel.test_kernel_cleans_accepted_residue_and_refuses_the_rest"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/device/test-production-platform-kit.py",
       "interpreter": "python3",
       "tiers": [

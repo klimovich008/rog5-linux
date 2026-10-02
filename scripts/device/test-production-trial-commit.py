@@ -13,6 +13,8 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -34,6 +36,34 @@ case $1 in
 esac
 '''.replace('TRIAL', TRIAL)
 SSHD = '  0: 00000000:0016 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1 1 0 100 0 0 10 0\n'
+RELEASE = '7.2.7-rog5-k117'
+# systemctl/loginctl stubs read their answers from files under $D/systemd:
+# active/<unit> (present: active), failed/<unit>, enabled/<unit> (content),
+# mainpid/<unit>; sessions/<id> holds `loginctl show-session` lines, and
+# sessions-sequence/<n> files replace sessions/ on the n-th list call.
+SYSTEMCTL = """#!/bin/sh
+D=${0%/*}/../systemd
+quiet=; [ "$2" = --quiet ] && quiet=1
+case $1 in
+	is-active) unit=${3:-$2}; [ -e "$D/active/$unit" ] ;;
+	is-failed) unit=${3:-$2}; [ -e "$D/failed/$unit" ] ;;
+	is-enabled) cat "$D/enabled/$2" 2>/dev/null || { echo disabled; exit 1; } ;;
+	show) cat "$D/mainpid/$5" 2>/dev/null || echo 0 ;;
+	*) exit 1 ;;
+esac
+"""
+LOGINCTL = """#!/bin/sh
+D=${0%/*}/../systemd
+n=$(cat "$D/list-count" 2>/dev/null || echo 0); n=$((n + 1))
+case $1 in
+	list-sessions)
+		echo "$n" >"$D/list-count"
+		[ -d "$D/sessions-sequence/$n" ] && { rm -rf "$D/sessions"; cp -r "$D/sessions-sequence/$n" "$D/sessions"; }
+		for f in "$D"/sessions/*; do [ -e "$f" ] && echo "   ${f##*/} 1000 phone seat0 tty7 active no -"; done ;;
+	show-session) cat "$D/sessions/$2" ;;
+	*) exit 1 ;;
+esac
+"""
 
 
 def target_shell(workdir):
@@ -68,6 +98,22 @@ class Commit(unittest.TestCase):
         (self.kit/'trial-state').chmod(0o755)
         (self.kit/'state').write_text('pending\n')
         (self.proc/'sys/kernel/random/boot_id').write_text(BOOT+'\n')
+        (self.proc/'sys/kernel/osrelease').write_text(RELEASE+'\n')
+        self.bin, self.systemd, self.root = d/'bin', d/'systemd', d/'root'
+        for path in (self.bin, self.root/'usr/bin'):
+            path.mkdir(parents=True)
+        for name, text in (('systemctl', SYSTEMCTL), ('loginctl', LOGINCTL)):
+            (self.bin/name).write_text(text)
+            (self.bin/name).chmod(0o755)
+        (self.root/'usr/bin/phosh-session').write_text('#!/bin/sh\n')
+        (self.root/'usr/bin/phosh-session').chmod(0o755)
+        self.unit('active', 'rog5-platform-modules.service')
+        self.unit('enabled', 'rog5-phosh.service', 'enabled\n')
+        self.unit('mainpid', 'rog5-phosh.service', '4242\n')
+        self.session('2', 4242, 'yes')
+        record = self.run/'rog5-production-modules.record'
+        record.write_text(f'release={RELEASE}\n')
+        record.chmod(0o444)
         (self.proc/'net/tcp').write_text('  sl  local_address rem_address   st\n'+SSHD)
         (self.sys/'class/power_supply/qcom-battmgr-bat/temp').write_text('300\n')
         for disk, ro in (('sda', 0), ('sda23', 0), ('sda24', 1), ('sdb', 1)):
@@ -77,6 +123,16 @@ class Commit(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.dir)
+
+    def unit(self, kind, name, text=''):
+        path = self.systemd/kind/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def session(self, sid, leader, locked, state='active', where='sessions'):
+        path = self.systemd/where/sid
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f'Leader={leader}\nState={state}\nLockedHint={locked}\n')
 
     def ready(self, boot=BOOT, status='PASS'):
         for name, text in (('rog5-p2-ready', f'status={status}\nattested_boot_id={boot}\n'),
@@ -90,7 +146,9 @@ class Commit(unittest.TestCase):
     def commit(self, wait=3):
         env = dict(os.environ, ROG5_TRIAL_KIT=str(self.kit), ROG5_TRIAL_RUN=str(self.run),
                    ROG5_TRIAL_SYS=str(self.sys), ROG5_TRIAL_PROC=str(self.proc),
-                   ROG5_TRIAL_KMSG=str(self.dir/'kmsg'), ROG5_TRIAL_WAIT=str(wait))
+                   ROG5_TRIAL_KMSG=str(self.dir/'kmsg'), ROG5_TRIAL_WAIT=str(wait),
+                   ROG5_TRIAL_SYSTEMCTL=str(self.bin/'systemctl'),
+                   ROG5_TRIAL_LOGINCTL=str(self.bin/'loginctl'), ROG5_TRIAL_ROOT=str(self.root))
         shell, extra = target_shell(tempfile.mkdtemp(dir=self.dir))
         result = subprocess.run(['unshare', '-r', *shell, str(COMMIT)], capture_output=True, text=True,
                                 env=dict(env, **extra), timeout=120)
@@ -153,6 +211,93 @@ class Commit(unittest.TestCase):
                 self.setUp()
                 breakit()
                 self.assert_stays_pending(why)
+
+    def test_modules_and_local_shell_gate_the_commit(self):
+        cases = [
+            ('module tree not published', lambda: (self.run/'rog5-production-modules.record').unlink()),
+            ('module record for another release', lambda: (
+                (self.run/'rog5-production-modules.record').chmod(0o644),
+                (self.run/'rog5-production-modules.record').write_text('release=7.2.7-rog5-k1\n'),
+                (self.run/'rog5-production-modules.record').chmod(0o444))),
+            ('module record writable', lambda: (self.run/'rog5-production-modules.record').chmod(0o644)),
+            ('platform modules not active', lambda: (self.systemd/'active/rog5-platform-modules.service').unlink()),
+            ('phosh never locked', lambda: self.session('2', 4242, 'no')),
+            ('phosh not running', lambda: (self.systemd/'mainpid/rog5-phosh.service').unlink()),
+            ('locked session of another leader', lambda: self.session('2', 4243, 'yes')),
+            ('locked session closing', lambda: self.session('2', 4242, 'yes', state='closing')),
+            ('no session', lambda: (self.systemd/'sessions/2').unlink()),
+            ('gnome-mobile without gdm', lambda: (
+                (self.run/'rog5-shell').mkdir(), (self.run/'rog5-shell/effective').write_text('gnome-mobile\n'),
+                self.unit('active', 'rog5-shell-watchdog.service'))),
+        ]
+        for why, breakit in cases:
+            with self.subTest(why):
+                self.tearDown()
+                self.setUp()
+                breakit()
+                self.assert_stays_pending(why)
+
+    def test_failed_platform_modules_fail_at_once(self):
+        self.unit('failed', 'rog5-platform-modules.service')
+        (self.systemd/'active/rog5-platform-modules.service').unlink()
+        code, kmsg = self.commit(wait=30)
+        self.assertEqual(code, 1, kmsg)
+        self.assertIn('rog5-platform-modules.service failed', kmsg)
+        self.assertEqual(self.state(), 'pending')
+
+    def test_waiting_reason_is_logged(self):
+        self.session('2', 4242, 'no')
+        code, kmsg = self.commit(wait=2)
+        self.assertIn('waiting for local shell locked', kmsg)
+
+    def test_lock_seen_once_is_latched_across_an_unlock(self):
+        # Phosh is locked on the first pass, SSH comes up only seconds later
+        # and the user has unlocked by then (the session reads "no" from the
+        # second list call on, if there were one): the commit still lands.
+        identity = self.run/'rog5-persistent-ssh-identity.record'
+        identity.chmod(0o644)
+        identity.unlink()
+        self.session('2', 4242, 'no', where='sessions-sequence/2')
+
+        def publish():
+            time.sleep(4)
+            identity.write_text(f'identity_boot_id={BOOT}\n')
+            identity.chmod(0o444)
+        thread = threading.Thread(target=publish)
+        thread.start()
+        code, kmsg = self.commit(wait=20)
+        thread.join()
+        self.assertEqual(code, 0, kmsg)
+        self.assertIn('(local shell: 2)', kmsg)
+        self.assertNotIn('after 0 s', kmsg)
+        self.assertEqual((self.systemd/'list-count').read_text().strip(), '1')
+
+    def test_headless_and_alternative_shells(self):
+        cases = [
+            ('phosh disabled', lambda: self.unit('enabled', 'rog5-phosh.service', 'disabled\n'), 'none'),
+            ('phosh masked', lambda: self.unit('enabled', 'rog5-phosh.service', 'masked\n'), 'none'),
+            ('phosh not installed', lambda: (self.root/'usr/bin/phosh-session').unlink(), 'none'),
+            ('gnome-mobile', lambda: (
+                (self.run/'rog5-shell').mkdir(), (self.run/'rog5-shell/effective').write_text('gnome-mobile\n'),
+                self.unit('active', 'gdm.service'), self.unit('active', 'rog5-shell-watchdog.service')), 'gdm'),
+        ]
+        for why, setup, shell in cases:
+            with self.subTest(why):
+                self.tearDown()
+                self.setUp()
+                (self.systemd/'sessions/2').unlink()
+                setup()
+                code, kmsg = self.commit()
+                self.assertEqual(code, 0, kmsg)
+                self.assertIn(f'(local shell: {shell})', kmsg)
+                self.assertEqual(self.state(), 'healthy')
+
+    def test_init_writes_the_module_record_after_the_tree(self):
+        body = re.search(r'^publish_production_modules\(\) \{\n.*?^\}\n', INIT.read_text(), re.M | re.S).group(0)
+        self.assertLess(body.index('cp -a "$production_modules_tree"'),
+                        body.index('/run/rog5-production-modules.record.next'))
+        self.assertIn('mv -f /run/rog5-production-modules.record.next', body)
+        self.assertIn("printf 'release=%s\\n' \"$running_kernel_release\"", body)
 
     def test_bad_descriptors_fail_before_the_helper(self):
         cases = [
