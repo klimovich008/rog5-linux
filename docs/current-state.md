@@ -5,11 +5,11 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components.json`).
+Status as of 2026-10-02 (main-k116-d15-261002e) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
-| Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
+| Default | `main-k116-d15-261002e` | k116 (series to 0168: + Iris video 0154-0168; uname 7.2.7-rog5-k116) | d15 (`16cbb384`, d13 + iris/videocc nodes) | 2026-10-02 14:02; hardware H.264/HEVC decode, firmware installed persistently |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
 Components: 39 ready, 11 partial, 8 needs a test, 16 missing.

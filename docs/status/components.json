@@ -1,11 +1,11 @@
 {
-  "as_of": "2026-10-01 (main-k113-d13-261001a)",
+  "as_of": "2026-10-02 (main-k116-d15-261002e)",
   "bundles": {
     "default": {
-      "bundle": "main-k113-d13-261001a",
-      "kernel": "k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB)",
-      "dtb": "d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil)",
-      "installed": "2026-10-01 18:30"
+      "bundle": "main-k116-d15-261002e",
+      "kernel": "k116 (series to 0168: + Iris video 0154-0168; uname 7.2.7-rog5-k116)",
+      "dtb": "d15 (`16cbb384`, d13 + iris/videocc nodes)",
+      "installed": "2026-10-02 14:02; hardware H.264/HEVC decode, firmware installed persistently"
     },
     "fallback": {
       "bundle": "safe-k111-d10-261001a",

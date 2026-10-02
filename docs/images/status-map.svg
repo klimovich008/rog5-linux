@@ -29,7 +29,7 @@
 <g><title>Sensors &amp; hardware / RGB logo LED: partial / not fully integrated</title><rect x="158.1" y="191.2" width="77.6" height="64.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="161.1" y="203.2" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">RGB logo L…</text>
 </g>
-<g><title>Sensors &amp; hardware / Hardware video decode/encode: missing - no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)</title><rect x="158.1" y="255.8" width="77.6" height="64.6" fill="#d9534f" stroke="#e6e6e6" stroke-width="1"/>
+<g><title>Sensors &amp; hardware / Hardware video decode/encode: partial / not fully integrated - k115 RAM trials 2026-10-02: with a real EOS buffer H.264 and HEVC 1080p decode 300/300 bit-exact, GStreamer OK, 5 min idle OK (runtime PM auto); dummy EOS address crashed the firmware; VP9 session error (no SECURE_SESSION=0); H.264 encode hard-hung the SoC at session start (boots B and D; B was first misread as an idle hang with pinned runtime PM). k116 (0163-0168: SM8350 OEM platform data with SECURE_SESSION=0, real EOS default, stock Iris2 power off/on order with real OPP release, encoder/VP9 behind load-time switches, gen1 property packet sizing, compliance and robustness fixes, encoder bring-up markers) built as RAM wrappers main-k116-d15-261002a/b/c (+d for a later encoder boot), not installed; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime</title><rect x="158.1" y="255.8" width="77.6" height="64.6" fill="#e0b91b" stroke="#e6e6e6" stroke-width="1"/>
 <text x="161.1" y="267.8" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" font-weight="normal" fill="#10200a">Hardware v…</text>
 </g>
 <rect x="2.0" y="321.4" width="234.7" height="296.6" fill="#2b2f38" stroke="#1f2229" stroke-width="2"/>
@@ -247,10 +247,10 @@
 <rect x="8" y="630" width="14" height="14" fill="#4cc417"/>
 <text x="28.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">ready (39)</text>
 <rect x="108" y="630" width="14" height="14" fill="#e0b91b"/>
-<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (10)</text>
+<text x="128.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">partial / not fully integrated (11)</text>
 <rect x="383" y="630" width="14" height="14" fill="#3b8fd9"/>
 <text x="403.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">needs a test (8)</text>
 <rect x="525" y="630" width="14" height="14" fill="#d9534f"/>
-<text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (17)</text>
-<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-10-01 (main-k113-d13-261001a)</text>
+<text x="545.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#e8e8e8">missing (16)</text>
+<text x="810.0" y="642.0" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="normal" fill="#9aa0a6">2026-10-02 (main-k116-d15-261002e)</text>
 </svg>
