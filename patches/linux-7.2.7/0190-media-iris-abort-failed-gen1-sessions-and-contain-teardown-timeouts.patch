@@ -1,0 +1,280 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] media: iris: abort failed gen1 sessions and contain teardown timeouts
+
+A failed gen1 streamoff must abort the firmware session, rather than send
+normal END and let the next queue's streamoff send STOP after END. Wait
+for ABORT before returning its buffers, and keep the terminal completion
+available for close. Do not accept a rejected teardown as permission to
+free firmware-visible memory.
+
+If END/ABORT is rejected or unanswered, use the existing fatal containment
+and PAS shutdown instead of leaving a live unresponsive core retrying
+runtime power collapse. Close stops the queues and waits for teardown
+before releasing their mappings, retaining them if containment holds the
+core. Log packet type and error_type for gen1 error responses, including
+buffer returns and SYS_INIT.
+
+The original Chromium rejection needs a phone rerun with this error log;
+this patch fixes the demonstrated teardown and containment gaps without
+changing the normal dynamic-resolution-change flush/continue sequence.
+---
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -9,6 +9,7 @@
+ #include "iris_hfi_gen1.h"
+ #include "iris_hfi_gen1_defines.h"
+ #include "iris_instance.h"
++#include "iris_vidc.h"
+ #include "iris_vpu_buffer.h"
+ 
+ /*
+@@ -325,12 +326,17 @@
+ 	struct hfi_session_pkt packet;
+ 	int ret;
+ 
+-	/* ROG5: one SESSION_END per session (a failed streamoff already sends it) */
++	/* Send END or ABORT only once, including teardown after failed streamoff. */
+ 	if (inst->end_sent)
+ 		return 0;
+ 
+-	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SYS_SESSION_END);
+-	iris_hfi_gen1_expect(inst, HFI_MSG_SYS_SESSION_END);
++	if (inst->state == IRIS_INST_ERROR) {
++		iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SYS_SESSION_ABORT);
++		iris_hfi_gen1_expect(inst, HFI_MSG_SYS_SESSION_ABORT);
++	} else {
++		iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SYS_SESSION_END);
++		iris_hfi_gen1_expect(inst, HFI_MSG_SYS_SESSION_END);
++	}
+ 
+ 	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
+ 	if (!ret)
+@@ -460,6 +466,14 @@
+ 	struct hfi_session_flush_pkt flush_pkt;
+ 	u32 flush_type = 0;
+ 	int ret = 0;
++
++	/* A failed or terminated session must not get another STOP/RELEASE. */
++	if (inst->end_sent)
++		return 0;
++	if (inst->state == IRIS_INST_ERROR) {
++		ret = -EIO;
++		goto exit;
++	}
+ 
+ 	if (inst->domain == DECODER) {
+ 		if (inst->state == IRIS_INST_STREAMING) {
+@@ -498,7 +512,7 @@
+ 		if (iris_enc_start_gated(inst)) {
+ 			inst->enc_start_deferred = false;
+ 			if (!(inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES))
+-				goto return_buffers;
++				goto exit;
+ 		}
+ 		if (inst->state == IRIS_INST_STREAMING ||
+ 		    inst->state == IRIS_INST_INPUT_STREAMING ||
+@@ -506,7 +520,20 @@
+ 			ret = iris_hfi_gen1_stop_release(inst);
+ 		}
+ 
+-return_buffers:
++	}
++
++exit:
++	if (ret) {
++		iris_inst_change_state(inst, IRIS_INST_ERROR);
++		iris_session_close(inst);
++		if (READ_ONCE(inst->core->fatal)) {
++			mutex_unlock(&inst->lock);
++			flush_delayed_work(&inst->core->sys_error_handler);
++			mutex_lock(&inst->lock);
++		}
++	}
++
++	if (inst->domain == ENCODER) {
+ 		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+ 					 VB2_BUF_STATE_ERROR);
+ 		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h b/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_defines.h
+@@ -25,6 +25,7 @@
+ #define HFI_CMD_SYS_GET_PROPERTY			0x10006
+ #define HFI_CMD_SYS_SESSION_INIT			0x10007
+ #define HFI_CMD_SYS_SESSION_END				0x10008
++#define HFI_CMD_SYS_SESSION_ABORT			0x210001
+ 
+ #define HFI_CMD_SESSION_SET_PROPERTY			0x11001
+ #define HFI_CMD_SESSION_SET_BUFFERS			0x11002
+@@ -106,6 +107,7 @@
+ #define HFI_MSG_SYS_INIT				0x20001
+ #define HFI_MSG_SYS_SESSION_INIT			0x20006
+ #define HFI_MSG_SYS_SESSION_END				0x20007
++#define HFI_MSG_SYS_SESSION_ABORT			0x220004
+ #define HFI_MSG_SYS_COV					0x20009
+ #define HFI_MSG_SYS_PROPERTY_INFO			0x2000a
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -572,6 +572,10 @@
+ 	 .pkt_sz = sizeof(struct hfi_msg_session_hdr_pkt),
+ 	},
+ 	{
++	 .pkt = HFI_MSG_SYS_SESSION_ABORT,
++	 .pkt_sz = sizeof(struct hfi_msg_session_hdr_pkt),
++	},
++	{
+ 	 .pkt = HFI_MSG_SESSION_LOAD_RESOURCES,
+ 	 .pkt_sz = sizeof(struct hfi_msg_session_hdr_pkt),
+ 	},
+@@ -613,6 +617,7 @@
+ 	struct hfi_session_pkt *pkt;
+ 	struct iris_inst *inst;
+ 	bool found = false;
++	u32 error_type = HFI_ERR_NONE, session_id = 0;
+ 	u32 i;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(pkt_infos); i++) {
+@@ -629,6 +634,26 @@
+ 
+ 		return;
+ 	}
++
++	if (hdr->pkt_type == HFI_MSG_SYS_INIT) {
++		error_type = ((struct hfi_msg_sys_init_done_pkt *)hdr)->error_type;
++	} else if (hdr->pkt_type != HFI_MSG_EVENT_NOTIFY &&
++		   hdr->pkt_type != HFI_MSG_SYS_PROPERTY_INFO) {
++		struct hfi_msg_session_hdr_pkt *shdr = (void *)hdr;
++
++		session_id = shdr->shdr.session_id;
++		/* Both FBD layouts put error_type after two port/timestamp words. */
++		if (hdr->pkt_type == HFI_MSG_SESSION_FILL_BUFFER) {
++			struct hfi_msg_session_fbd_uncompressed_plane0_pkt *fbd = (void *)hdr;
++
++			error_type = fbd->error_type;
++		} else {
++			error_type = shdr->error_type;
++		}
++	}
++	if (error_type != HFI_ERR_NONE)
++		dev_err(dev, "session %#x: HFI response %#x error %#x\n",
++			session_id, hdr->pkt_type, error_type);
+ 
+ 	switch (hdr->pkt_type) {
+ 	case HFI_MSG_SYS_INIT:
+@@ -705,7 +730,15 @@
+ 					 inst->expected_msg);
+ 			} else {
+ 				inst->expected_msg = 0;
+-				complete(&inst->completion);
++				if (hdr->pkt_type == HFI_MSG_SYS_SESSION_END ||
++				    hdr->pkt_type == HFI_MSG_SYS_SESSION_ABORT) {
++					if (shdr->error_type != HFI_ERR_NONE)
++						iris_core_fatal(core, "session teardown rejected");
++					/* Streamoff and close may both wait for this answer. */
++					complete_all(&inst->completion);
++				} else {
++					complete(&inst->completion);
++				}
+ 			}
+ 		}
+ 		mutex_unlock(&inst->lock);
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -240,7 +240,7 @@
+ }
+ 
+ /* ROG5: 0 when the firmware acknowledged the end of the session (or never had one) */
+-static int iris_session_close(struct iris_inst *inst)
++int iris_session_close(struct iris_inst *inst)
+ {
+ 	const struct iris_hfi_session_ops *hfi_ops = inst->hfi_session_ops;
+ 	int ret;
+@@ -248,26 +248,25 @@
+ 	if (inst->state == IRIS_INST_DEINIT)
+ 		return 0;
+ 
+-	/* ROG5: if END already went out (failed streamoff), wait for its answer */
++	/* Failed streamoff may already have sent and waited for ABORT. */
+ 	if (!inst->end_sent) {
+ 		reinit_completion(&inst->completion);
+ 
+ 		ret = hfi_ops->session_close(inst);
+-		if (ret)
++		if (ret) {
++			iris_core_fatal(inst->core, "session teardown command failed");
+ 			return ret;
+-	}
+-
+-	/*
+-	 * Any answer to END counts as the firmware letting go of the session,
+-	 * also one with an error code; only a timeout or a wake-up by the
+-	 * fatal-error containment does not.
+-	 */
++		}
++	}
++
++	/* END/ABORT errors latch core->fatal before waking this waiter. */
+ 	mutex_unlock(&inst->lock);
+ 	ret = wait_for_completion_timeout(&inst->completion,
+ 					  msecs_to_jiffies(HW_RESPONSE_TIMEOUT_VALUE));
+ 	mutex_lock(&inst->lock);
+ 	if (!ret) {
+ 		iris_inst_change_state(inst, IRIS_INST_ERROR);
++		iris_core_fatal(inst->core, "session teardown timeout");
+ 		return -ETIMEDOUT;
+ 	}
+ 
+@@ -276,7 +275,7 @@
+ 
+ /*
+  * ROG5: may the session's firmware-visible memory (internal buffers, EOS
+- * buffer) be freed? Only once the firmware acknowledged SESSION_END, or the
++ * buffer) be freed? Only once the firmware acknowledged END/ABORT, or the
+  * firmware was shut down after a fatal error. Otherwise it may still run and
+  * access them, and they are leaked on purpose.
+  */
+@@ -362,6 +361,17 @@
+ 	 * down before vb2 releases the client buffers it may still access
+ 	 * (the work takes inst->lock, so no instance lock may be held here).
+ 	 */
++	if (READ_ONCE(inst->core->fatal))
++		flush_delayed_work(&inst->core->sys_error_handler);
++
++	/* Stop both ports without freeing buffers the firmware may still own. */
++	if (!READ_ONCE(inst->core->fw_held)) {
++		v4l2_m2m_streamoff(filp, inst->m2m_ctx, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
++		v4l2_m2m_streamoff(filp, inst->m2m_ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++	}
++	mutex_lock(&inst->lock);
++	end_ret = iris_session_close(inst);
++	mutex_unlock(&inst->lock);
+ 	if (READ_ONCE(inst->core->fatal))
+ 		flush_delayed_work(&inst->core->sys_error_handler);
+ 
+@@ -381,7 +391,6 @@
+ 			inst->session_id);
+ 	}
+ 	mutex_lock(&inst->lock);
+-	end_ret = iris_session_close(inst);
+ 	iris_inst_change_state(inst, IRIS_INST_DEINIT);
+ 	iris_v4l2_fh_deinit(inst, filp);
+ 	if (iris_session_memory_released(inst, end_ret)) {
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.h b/drivers/media/platform/qcom/iris/iris_vidc.h
+--- a/drivers/media/platform/qcom/iris/iris_vidc.h
++++ b/drivers/media/platform/qcom/iris/iris_vidc.h
+@@ -7,9 +7,11 @@
+ #define __IRIS_VIDC_H__
+ 
+ struct iris_core;
++struct iris_inst;
+ 
+ void iris_init_ops(struct iris_core *core);
+ int iris_open(struct file *filp);
+ int iris_close(struct file *filp);
++int iris_session_close(struct iris_inst *inst);
+ 
+ #endif
