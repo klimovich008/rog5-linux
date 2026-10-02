@@ -46,13 +46,15 @@ class FakeSystem:
         self.launch_ok = True
         self.switch = True
         self.locked = ['no']
+        self.sids = ['2']
         self.slow = 0.0
 
     def switch_pending(self):
         return self.switch
 
-    def session_locked(self):
-        return self.locked.pop(0) if len(self.locked) > 1 else self.locked[0]
+    def session_state(self):
+        sid = self.sids.pop(0) if len(self.sids) > 1 else self.sids[0]
+        return sid, (self.locked.pop(0) if len(self.locked) > 1 else self.locked[0])
 
     def scopes(self):
         return list(self.scope_list)
@@ -243,6 +245,38 @@ class SaveRestore(unittest.TestCase):
         self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
         self.assertFalse(STATE.exists())
 
+    def test_restore_stops_when_the_session_relocks(self):
+        # unlocked when checked, locked again after the delay: nothing opens
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['no', 'yes']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
+        # relocked after the first app: the rest stays closed
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['no', 'no', 'yes']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual(len([c for c in g.calls if c[0] == 'launch']), 1)
+
+    def test_restore_stops_when_the_session_changes(self):
+        self.saved()
+        g = FakeSystem()
+        g.sids = ['2', '7']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
+
+    def test_fifo_config_does_not_block(self):
+        reset()
+        os.mkfifo(TMP / 'user.conf')
+        try:
+            start = time.monotonic()
+            enabled, _ = sc.read_config()
+            self.assertTrue(enabled)
+            self.assertLess(time.monotonic() - start, 2)
+        finally:
+            (TMP / 'user.conf').unlink()
+
     def test_malformed_shapes_are_ignored(self):
         bad = ['[]', '{"format": "rog5-session-carry-v1"}',
                '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": "x", "apps": []}',
@@ -277,7 +311,7 @@ class Units(unittest.TestCase):
     def test_dropins_and_user_unit(self):
         for u in ('phosh', 'gnome'):
             text = (REPO / f'configs/systemd/rog5-{u}.service.d/60-rog5-session-carry.conf').read_text()
-            self.assertIn('ExecStop=-/usr/local/bin/rog5-session-carry save --close', text)
+            self.assertIn('ExecStop=-/usr/bin/timeout -k 1s 7s /usr/local/bin/rog5-session-carry save --close', text)
         unit = (REPO / 'configs/systemd-user/rog5-session-restore.service').read_text()
         self.assertIn('WantedBy=graphical-session.target', unit)
         self.assertIn('ExecStart=/usr/local/bin/rog5-session-carry restore', unit)

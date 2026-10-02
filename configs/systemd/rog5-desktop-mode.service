@@ -3,6 +3,9 @@ Description=ROG5 desktop mode: GNOME on an external display, Phosh otherwise
 After=rog5-phosh.service systemd-logind.service systemd-udevd.service dbus.service
 # re-reads /var/lib/rog5/desktop-mode on reload (the .path unit sends it)
 Wants=rog5-desktop-mode-reload.path
+# rog5-gnome.service is BindsTo= this unit. If the switcher fails for good
+# (restart limit), the phone still gets its lock screen.
+OnFailure=rog5-phosh.service
 
 [Service]
 ExecStart=/usr/local/libexec/rog5-desktop-mode

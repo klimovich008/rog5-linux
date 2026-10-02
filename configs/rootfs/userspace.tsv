@@ -23,6 +23,7 @@ file	configs/systemd/rog5-gnome.service	/etc/systemd/system/rog5-gnome.service	0
 file	configs/systemd/rog5-desktop-mode.service	/etc/systemd/system/rog5-desktop-mode.service	0644
 file	configs/systemd/rog5-desktop-mode-reload.path	/etc/systemd/system/rog5-desktop-mode-reload.path	0644
 file	configs/systemd/rog5-desktop-mode-reload.service	/etc/systemd/system/rog5-desktop-mode-reload.service	0644
+file	configs/systemd/rog5-desktop-request.service	/etc/systemd/system/rog5-desktop-request.service	0644
 file	configs/systemd/rog5-touchpad.service	/etc/systemd/system/rog5-touchpad.service	0644
 file	configs/phosh/phoc.ini	/etc/phosh/phoc.ini	0644
 file	configs/dconf/profile/user	/etc/dconf/profile/user	0644

@@ -18,7 +18,9 @@ This makes it cheaper:
                    (once only), uses it only in the same boot and if it is
                    at most --max-age seconds old, waits until the session is
                    unlocked (Phosh comes up locked after a hand-back; up to
-                   --unlock-wait seconds) and then relaunches the apps.
+                   --unlock-wait seconds) and then relaunches the apps, each
+                   only while that same session is still active and
+                   unlocked (a relock or a session change stops it).
   status           prints the record.
 
 Which apps: the ones Phosh and GNOME launched that still run (systemd
@@ -93,14 +95,39 @@ def config_files():
             Path(os.path.expanduser(env('USER_CONF', '~/.config/rog5/session-carry.conf')))]
 
 
+def read_small_file(path, limit=MAX_RECORD):
+    """Text of a regular file of at most LIMIT bytes; None otherwise. Never
+    blocks on a FIFO or a device at that path (O_NONBLOCK, then fstat)."""
+    import stat
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError:
+        return None
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > limit:
+            return None
+        with os.fdopen(fd, 'rb', closefd=False) as f:
+            data = f.read(limit + 1)
+    except OSError:
+        return None
+    finally:
+        os.close(fd)
+    if len(data) > limit:
+        return None
+    return data.decode('utf-8', 'replace')
+
+
 def read_config():
     """(enabled, exclude globs)."""
     enabled, exclude = True, list(DEFAULT_EXCLUDE)
     for path in config_files():
-        try:
-            lines = path.read_text().splitlines()
-        except OSError:
+        text = read_small_file(path)
+        if text is None:
+            if path.exists() or path.is_symlink():
+                log(f'{path}: not a small regular file, ignored')
             continue
+        lines = text.splitlines()
         for line in lines:
             words = line.split('#', 1)[0].split()
             if not words:
@@ -231,16 +258,24 @@ class System:
             return False
         return any(j[1] in SESSION_UNITS and j[2] == 'start' for j in jobs)
 
-    def session_locked(self):
-        """'yes'/'no' for this user's graphical session, None if unknown."""
+    def session_state(self):
+        """(session id, 'no' | 'yes' | None) for this user's graphical
+        session: 'no' only while it is unlocked and active on its seat
+        (an inactive session counts as locked), None if unknown."""
         import pwd
         user = pwd.getpwuid(os.getuid()).pw_name
         rc, sid = self.run(['loginctl', 'show-user', user, '-p', 'Display', '--value'])
-        if rc != 0 or not sid.strip():
-            return None
-        rc, out = self.run(['loginctl', 'show-session', sid.strip(), '-p', 'LockedHint', '--value'])
-        out = out.strip()
-        return out if rc == 0 and out in ('yes', 'no') else None
+        sid = sid.strip()
+        if rc != 0 or not sid:
+            return None, None
+        rc, out = self.run(['loginctl', 'show-session', sid, '-p', 'LockedHint', '-p', 'Active'])
+        if rc != 0:
+            return sid, None
+        props = dict(line.split('=', 1) for line in out.splitlines() if '=' in line)
+        locked, active = props.get('LockedHint'), props.get('Active')
+        if locked not in ('yes', 'no') or active not in ('yes', 'no'):
+            return sid, None
+        return sid, 'no' if locked == 'no' and active == 'yes' else 'yes'
 
     def launch(self, app_id):
         unit = 'app-gnome-%s-%d.scope' % (self.escape(app_id), os.getpid() * 100 + int(time.time()) % 100)
@@ -396,22 +431,22 @@ def valid_record(text):
 
 
 def wait_unlocked(sysm, limit):
-    """True once the session reports unlocked; False on timeout or if the
-    lock state stays unreadable (no session) for 30 s."""
+    """The session id once the session reports unlocked; None on timeout or
+    if the lock state stays unreadable (no session) for 30 s."""
     end = time.monotonic() + limit
     unknown_since = None
     while time.monotonic() < end:
-        state = sysm.session_locked()
-        if state == 'no':
-            return True
+        sid, state = sysm.session_state()
+        if state == 'no' and sid:
+            return sid
         if state is None:
             unknown_since = unknown_since or time.monotonic()
             if time.monotonic() - unknown_since > 30:
-                return False
+                return None
         else:
             unknown_since = None
         sysm.sleep(2)
-    return False
+    return None
 
 
 def cmd_restore(sysm, args):
@@ -430,11 +465,19 @@ def cmd_restore(sysm, args):
     apps = [a for a in rec['apps'] if not excluded(a, globs) and sysm.visible_app(a)]
     if not apps:
         return 0
-    if not wait_unlocked(sysm, args.unlock_wait):
+    sid = wait_unlocked(sysm, args.unlock_wait)
+    if not sid:
         log(f'session not unlocked within {args.unlock_wait:g} s: {len(apps)} app(s) not reopened')
         return 0
     sysm.sleep(args.delay)
-    ok = [a for a in apps if sysm.launch(a)]
+    ok = []
+    for i, app in enumerate(apps):
+        # the same session, still active and unlocked, before each launch
+        if sysm.session_state() != (sid, 'no'):
+            log(f'session {sid} locked, inactive or replaced: {len(apps) - i} app(s) not reopened')
+            break
+        if sysm.launch(app):
+            ok.append(app)
     log(f'reopened {len(ok)}/{len(apps)} app(s) from {rec.get("from") or "?"}: {" ".join(ok) or "-"}')
     return 0
 

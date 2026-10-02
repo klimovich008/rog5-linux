@@ -2,7 +2,11 @@
 # Mock test of the lock tracking in rog5-desktop-mode (fails closed).
 set -u
 here=$(dirname "$0")
-sed -n '/^sess_cache= seen_locked=/,/^to_phosh()/p' "$here/rog5-desktop-mode" | sed '$d' >/tmp/ldm.$$
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT
+sed -n '/^sess_cache= seen_locked=/,/^to_phosh()/p' "$here/rog5-desktop-mode" | sed '$d' >"$tmp/ldm"
+. "$tmp/ldm"
+# mocks after the extract: it defines bounded loginctl/systemctl wrappers
 LOCK=no SESS=2 STATE=active
 loginctl() {
 	case "$1 $*" in
@@ -13,7 +17,6 @@ loginctl() {
 	*"-p LockedHint"*) echo "$LOCK" ;;
 	esac
 }
-. /tmp/ldm.$$; rm -f /tmp/ldm.$$
 ok() { if phosh_unlocked; then r=unlocked; else r=locked; fi; [ "$r" = "$1" ] && echo "PASS $2" || { echo "FAIL $2 (got $r)"; exit 1; }; }
 LOCK=no; track_phosh_lock; ok locked 'fresh session with LockedHint=no (never seen locked): fail closed'
 LOCK=yes; track_phosh_lock; ok locked 'locked'

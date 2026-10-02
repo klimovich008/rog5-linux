@@ -24,12 +24,19 @@ systemctl() {
 	case "$*" in
 	"is-active rog5-gnome.service rog5-phosh.service") st G; st P ;;
 	"stop rog5-gnome.service") put G inactive ;;
-	"start rog5-phosh.service") put P active; put SESS "$(( $(st SESS) + 1 ))"; put LOCK yes ;;
+	# Conflicts=: starting Phosh stops GNOME in the same transaction
+	"start rog5-phosh.service") put G inactive; put P active; put SESS "$(( $(st SESS) + 1 ))"; put LOCK yes ;;
+	"reload rog5-desktop-mode.service") ;;
+	"show -p MainPID --value rog5-desktop-mode.service") echo "${SWITCHER_PID:-$$}" ;;
+	"start --no-block rog5-phosh.service") put G inactive; put P active ;;
 	"start --no-block rog5-gnome.service") put G activating; put P inactive ;;
 	"list-jobs --no-legend") st JOBS ;;
 	"show -p MainPID --value rog5-phosh.service")
 		# rog5-phosh's main process leads the current phone session
 		if [ "$(st P)" = active ]; then echo "${PHOSH_PID:-100$(st SESS)}"; else echo 0; fi ;;
+	"show -p MainPID --value rog5-gnome.service")
+		# rog5-gnome's main process leads GNOME's session (GNOME_PID: another)
+		if [ "$(st G)" = active ]; then echo "$(st GNOME_PID || true)" | grep . || echo "100$(st SESS)"; else echo 0; fi ;;
 	esac
 }
 loginctl() {
@@ -41,7 +48,8 @@ loginctl() {
 	*"-p Service"*) echo phosh ;;
 	*"-p Leader --value") echo "100$2" ;;
 	*"-p State"*) echo active ;;
-	*"-p LockedHint -p IdleHint") echo "IdleHint=$(st IDLE)"; echo "LockedHint=$(st LOCK)" ;;
+	*"-p LockedHint -p IdleHint") [ -z "$(st PROPFAIL)" ] || return 1
+		echo "IdleHint=$(st IDLE)"; echo "LockedHint=$(st LOCK)" ;;
 	*"-p Id") [ "$2" = "$(st SESS)" ] || return 1; echo "$2" ;;
 	*"-p LockedHint --value")
 		n=$(( $(st NREAD) + 1 )); put NREAD "$n"
@@ -67,27 +75,29 @@ inhibiting() { [ -n "$inhibit_pid" ] && kill -0 "$inhibit_pid" 2>/dev/null; }
 
 reset() {       # G P dp mode
 	inhibit_stop
-	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/* \
+	rm -f "$t"/calls "$t"/NREAD "$t"/LOCK_AT "$t"/FAIL_AT "$t"/EXTRA "$t"/run/* "$t"/GNOME_PID "$t"/PROPFAIL \
 		"$t"/PROCS "$t"/SINKS "$t"/INH "$t"/FULL "$t"/GINH "$t"/LEFT
 	echo closed >"$t/asound/card0/pcm0p/sub0/status"
 	busy= eval_at=
 	put G "$1"; put P "$2"; put status "$3"; put mode "$4"
 	put SESS 2; put LOCK no; put IDLE no; put JOBS ""
 	auto_done=0 nosess_since= dp_state= dp_since=0 sess_cache= seen_locked= EV=
-	lock_sess= locked_at=0 lock_ready= unlock_ok= PHOSH_PID=
+	lock_sess= locked_at=0 lock_ready= unlock_ok= PHOSH_PID= req= sup_bad= grant_sess= SWITCHER_PID=
 	T=1000
 }
 called() { grep -qxF "systemctl $1" "$t/calls" 2>/dev/null; }
 started_gnome() { called "start --no-block rog5-gnome.service"; }
+# a hand-back is one start of Phosh (no separate stop of GNOME)
+handed_back() { called "start rog5-phosh.service"; }
 # lock, confirm the lock LOCKED_MIN later, unlock (T advances by 2 s)
 unlock_cycle() { put LOCK yes; check; T=$((T + 2)); check; put LOCK no; }
 
 # --- idle is not counted twice ----------------------------------------------
 reset active inactive connected auto
-check; called "stop rog5-gnome.service" && fail "idle: switched while active"
+check; handed_back && fail "idle: switched while active"
 [ "$wait_s" = 60 ] || fail "idle: safety wait is $wait_s"
 put IDLE yes; T=1001; check
-called "stop rog5-gnome.service" && called "start rog5-phosh.service" || fail "idle: no hand-back on IdleHint=yes"
+handed_back || fail "idle: no hand-back on IdleHint=yes"
 [ "$auto_done" = 0 ] || fail "idle: latch not cleared"
 pass "IdleHint=yes hands back at once (GNOME's idle-delay is the only wait)"
 
@@ -100,17 +110,17 @@ inhibiting || fail "work: no GNOME idle inhibitor while fossilize_replay runs"
 grep -q "^inhibit running: fossilize_replay" "$t/calls" || fail "work: inhibitor reason"
 [ "$wait_s" = 60 ] || fail "work: re-check in $wait_s s, expected BUSY_POLL"
 put IDLE yes; T=1001; check
-called "stop rog5-gnome.service" && fail "work: GNOME idle while fossilize_replay runs was handed back"
+handed_back && fail "work: GNOME idle while fossilize_replay runs was handed back"
 inhibiting || fail "work: inhibitor dropped while idle and busy"
 [ "$(grep -c '^inhibit ' "$t/calls")" = 1 ] || fail "work: inhibitor spawned more than once"
 rm -f "$t/PROCS"; T=1002; check
-called "stop rog5-gnome.service" && called "start rog5-phosh.service" || fail "work: no hand-back once the work ended"
+handed_back || fail "work: no hand-back once the work ended"
 inhibiting && fail "work: inhibitor left running after the hand-back"
 pass "fossilize_replay keeps GNOME from idling; an idle GNOME is handed back only once it ends"
 
 reset active inactive connected auto
 put PROCS "9001 reaper"; put IDLE yes; check
-called "stop rog5-gnome.service" && fail "a Steam game (reaper SteamLaunch) was handed back"
+handed_back && fail "a Steam game (reaper SteamLaunch) was handed back"
 grep -q "pgrep -u phone -l -f -- fossilize_replay|SteamLaunch" "$t/calls" || fail "work: pgrep pattern"
 pass "a game under Steam (SteamLaunch) keeps GNOME"
 
@@ -121,7 +131,7 @@ check; inhibiting || fail "audio: no inhibitor while ALSA playback runs"
 echo closed >"$t/asound/card0/pcm0p/sub0/status"
 T=1030; check; inhibiting || fail "audio: re-evaluated before BUSY_POLL"
 T=1061; check; inhibiting && fail "audio: inhibitor kept after playback stopped"
-called "stop rog5-gnome.service" && fail "audio: switched while GNOME was not idle"
+handed_back && fail "audio: switched while GNOME was not idle"
 pass "audio playback holds the inhibitor; it is dropped after BUSY_POLL without work"
 
 # work that starts after a check is still seen PRE_IDLE s before GNOME idles
@@ -136,35 +146,35 @@ pass "work is checked again PRE_IDLE s before GNOME's idle-delay runs out"
 
 reset active inactive connected auto
 put SINKS "57	bluez_output.00_11_22.1	PipeWire	s16le 2ch 48000Hz	RUNNING"; put IDLE yes; check
-called "stop rog5-gnome.service" && fail "Bluetooth playback (RUNNING sink) was handed back"
+handed_back && fail "Bluetooth playback (RUNNING sink) was handed back"
 put SINKS "57	bluez_output.00_11_22.1	PipeWire	s16le 2ch 48000Hz	SUSPENDED"; T=1001; check
-called "stop rog5-gnome.service" || fail "a suspended sink counted as playback"
+handed_back || fail "a suspended sink counted as playback"
 pass "a RUNNING PipeWire sink (Bluetooth too) counts as audio playing"
 
 reset active inactive connected auto
 put FULL "steam_app_1493710 0x1a00003"; put IDLE yes; check
-called "stop rog5-gnome.service" && fail "a fullscreen window was handed back"
+handed_back && fail "a fullscreen window was handed back"
 pass "a focused fullscreen X11 window keeps GNOME"
 
 reset active inactive connected auto
 put GINH "org.mozilla.firefox"; check
 inhibiting && fail "GNOME's own inhibitors are GNOME's business while it is not idle"
 put IDLE yes; T=1001; check
-called "stop rog5-gnome.service" && fail "an idle GNOME with an app idle inhibitor was handed back"
+handed_back && fail "an idle GNOME with an app idle inhibitor was handed back"
 pass "GNOME app idle inhibitors are honoured when GNOME reports idle"
 
 # logind idle inhibitors: block or block-weak, never the switcher's own
 reset active inactive connected auto
 put INH 'a(ssssuu) 3 "sleep" "rog5-server" "keep-server-workloads-running" "block" 0 8398 "idle" "rog5-desktop-mode" "rog5-desktop-mode: running: fossilize_replay" "block" 1000 77 "idle:sleep" "phone" "rog5-desktop-mode: audio" "block-weak" 1000 78'
 put IDLE yes; check
-called "stop rog5-gnome.service" || fail "the switcher's own (mirrored) inhibitor or a sleep inhibitor kept GNOME"
+handed_back || fail "the switcher's own (mirrored) inhibitor or a sleep inhibitor kept GNOME"
 reset active inactive connected auto
 put INH 'a(ssssuu) 2 "sleep" "rog5-server" "x" "block" 0 1 "handle-lid-switch:idle" "mpv" "Playing \"a b\"" "block-weak" 1000 2'
 put IDLE yes; check
-called "stop rog5-gnome.service" && fail "a logind idle inhibitor (block-weak) was ignored"
+handed_back && fail "a logind idle inhibitor (block-weak) was ignored"
 [ "$busy" = 'idle inhibitor: mpv: Playing "a b"' ] || fail "logind inhibitor reason: [$busy]"
 put INH 'a(ssssuu) 1 "idle" "mpv" "x" "delay" 1000 2'; T=1001; check
-called "stop rog5-gnome.service" || fail "a delay-mode idle inhibitor kept GNOME"
+handed_back || fail "a delay-mode idle inhibitor kept GNOME"
 pass "logind idle inhibitors (block, block-weak) keep GNOME; delay mode and the own one do not"
 
 # a lock still hands back at once (GNOME has no unlock), work or not
@@ -189,15 +199,22 @@ pass "the inhibitor ends with GNOME"
 reset active inactive connected auto
 put LOCK yes; check
 called "start rog5-phosh.service" && [ "$auto_done" = 0 ] || fail "GNOME locked"
-pass "GNOME LockedHint=yes hands back"
+called "stop rog5-gnome.service" || fail "GNOME locked: the desktop was not stopped first"
+pass "GNOME LockedHint=yes hands back, stopping GNOME first (no carry delay on screen)"
+
+reset active inactive connected auto
+put IDLE yes; check
+called "start rog5-phosh.service" || fail "idle: no hand-back"
+called "stop rog5-gnome.service" && fail "idle: separate stop (rog5-session-carry would see no switch)"
+pass "the idle hand-back is one start of Phosh (apps are carried)"
 
 # --- unplug and mode=off while GNOME is starting ------------------------------
 reset activating inactive disconnected auto
 check; T=1010; check
-called "stop rog5-gnome.service" && fail "unplug: acted before OFF_AFTER"
+handed_back && fail "unplug: acted before OFF_AFTER"
 [ "$wait_s" = 2 ] || fail "unplug: activating GNOME should be re-checked soon (wait $wait_s)"
 T=1021; check
-called "stop rog5-gnome.service" || fail "unplug ignored while GNOME is activating"
+handed_back || fail "unplug ignored while GNOME is activating"
 pass "unplug cancels an activating GNOME after OFF_AFTER"
 
 reset active inactive disconnected auto
@@ -207,7 +224,7 @@ pass "unplug debounce sleeps until its deadline"
 
 reset activating inactive connected off
 check
-called "stop rog5-gnome.service" || fail "mode=off ignored while GNOME is activating"
+handed_back || fail "mode=off ignored while GNOME is activating"
 pass "mode=off cancels an activating GNOME"
 
 # --- manual start sets the once-per-plug latch --------------------------------
@@ -346,6 +363,103 @@ put JOBS ""; T=1012; check; T=1022; check
 called "start rog5-phosh.service" || fail "no session: Phosh not started after NOSESS_AFTER"
 pass "no session for NOSESS_AFTER starts Phosh; queued jobs defer it"
 
+# --- "Desktop mode" requests (the launcher) and the start grant -----------------
+request() { now_cs; printf '%s\n' "$now" >"$t/run/request"; }
+granted() { [ -f "$t/run/gnome-grant" ]; }
+
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check
+started_gnome && granted || fail "request: an unlocked phone's request did not start GNOME with a grant"
+[ ! -e "$t/run/request" ] || fail "request: not consumed"
+called "stop rog5-gnome.service" && fail "request: stopped GNOME"
+pass "a Desktop mode request on an unlocked phone starts GNOME with a one-use grant (manual mode too)"
+
+reset inactive active connected manual
+put LOCK yes; check; T=1002; check; T=1100; request; check 2>"$t/err"
+started_gnome && fail "request: a locked phone's request started GNOME"
+granted && fail "request: grant written for a locked phone"
+[ ! -e "$t/run/request" ] && grep -q "refused: the phone is not unlocked" "$t/err" || fail "request: locked refusal"
+put LOCK no; T=1103; check
+started_gnome && fail "request: a refused request was kept and honoured after the unlock"
+pass "a request on a locked phone is refused and dropped (not kept for the unlock)"
+
+reset inactive active connected manual
+check; T=1100; request; check 2>/dev/null
+started_gnome && fail "request: a never-locked session (LockedHint=no from the start) started GNOME"
+pass "a request from a session that was never seen locked is refused"
+
+reset inactive active connected manual
+unlock_cycle; put LOCK_AT 4; T=1100; request; check 2>/dev/null
+started_gnome && fail "request: a relock seen by the final re-read did not stop the start"
+pass "a request meets the same LockedHint re-read right before the start"
+
+reset inactive active connected off
+unlock_cycle; T=1100; request; check 2>/dev/null
+started_gnome && fail "request: honoured with desktop mode off"
+reset inactive active disconnected auto
+unlock_cycle; T=1100; request; check 2>/dev/null
+started_gnome && fail "request: honoured without a display"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; T=1111; check 2>/dev/null
+started_gnome && fail "request: an expired request was honoured"
+[ ! -e "$t/run/request" ] || fail "request: expired request kept"
+reset inactive active connected manual
+unlock_cycle; T=1100; echo 'x y' >"$t/run/request"; check 2>/dev/null
+started_gnome && fail "request: a malformed request was honoured"
+pass "requests are refused with mode off, without a display, after REQUEST_TTL and when malformed"
+
+reset inactive active connected manual
+( ROG5_DM_RUN_DIR=$t/run; REQUEST=$t/run/request; request_main ) || fail "request_main failed"
+[ -s "$t/run/request" ] && called "reload rog5-desktop-mode.service" || fail "request_main: no request or reload"
+pass "the launcher's request unit leaves a request and wakes the switcher"
+
+# the gate in rog5-gnome.service: one fresh grant, one start
+reset inactive active connected manual
+gate() { ( gate_main ) >/dev/null 2>&1; }
+gate && fail "gate: started without a grant"
+now_cs; grant_write 2; gate || fail "gate: refused a fresh grant"
+gate && fail "gate: a grant served two starts"
+now_cs; grant_write 2; T=$((T + 61)); gate && fail "gate: accepted a stale grant"
+T=1000; now_cs; printf '%s 2\n' "$((now + 500))" >"$t/run/gnome-grant"; gate && fail "gate: accepted a grant from the future"
+ln -s /dev/null "$t/run/gnome-grant"; gate && fail "gate: accepted a symlink"
+rm -f "$t/run/gnome-grant"
+now_cs; grant_write 2; SWITCHER_PID=1; gate && fail "gate: accepted a grant from another (earlier) switcher"
+SWITCHER_PID=
+pass "rog5-gnome's gate needs a fresh grant from the running switcher and consumes it"
+
+# a relock after the grant was written (Phosh still stopping) voids it
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check
+granted && started_gnome || fail "relock: setup"
+handle_event "L 2 yes"
+granted && fail "relock: the grant survived a lock signal of its session"
+called "start --no-block rog5-phosh.service" || fail "relock: Phosh not put back"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check
+put G activating; put P deactivating; put LOCK yes; T=1102; check 2>/dev/null
+granted && fail "relock: the grant survived a locked re-read while GNOME was activating"
+reset inactive active connected manual
+unlock_cycle; T=1100; request; check
+put G activating; put P deactivating; T=1102; check
+granted || fail "relock: an unlocked session lost its grant"
+pass "a relock between the grant and the gate voids the grant and puts Phosh back"
+
+# supervision fails closed: GNOME without a readable lock state goes back
+reset active inactive connected auto
+put GNOME_PID 4242; check; T=1005; check
+handed_back && fail "supervision: handed back before SUP_GRACE"
+T=1010; check
+handed_back || fail "supervision: GNOME kept without its own session for SUP_GRACE"
+called "stop rog5-gnome.service" || fail "supervision: the desktop was not stopped first"
+reset active inactive connected auto
+put PROPFAIL 1; check; T=1009; check
+handed_back && fail "supervision: handed back early on unreadable hints"
+rm -f "$t/PROPFAIL"; T=1010; check; put PROPFAIL 1; T=1015; check
+handed_back && fail "supervision: a good read did not reset the grace period"
+T=1025; check
+handed_back || fail "supervision: unreadable LockedHint/IdleHint kept GNOME"
+pass "GNOME without its own session or readable hints for SUP_GRACE is handed back"
+
 # --- event parsing -------------------------------------------------------------
 out=$(awk "$LOGIND_AWK" <<'EOF'
 Monitoring signals from all objects owned by org.freedesktop.login1
@@ -396,8 +510,8 @@ for _ in $(seq 1 40); do started_gnome && break; sleep 0.5; done
 started_gnome || { cat "$t/out"; fail "event loop: no GNOME start after the unlock signal"; }
 grep -q "phone unlocked (session 2) -> GNOME" "$t/out" || fail "event loop: no log line"
 put mode off; kill -USR1 "$pid"
-for _ in $(seq 1 20); do called "stop rog5-gnome.service" && break; sleep 0.5; done
-called "stop rog5-gnome.service" || { cat "$t/out"; fail "event loop: reload (mode off) not handled"; }
+for _ in $(seq 1 20); do handed_back && break; sleep 0.5; done
+handed_back || { cat "$t/out"; fail "event loop: reload (mode off) not handled"; }
 kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 pass "event loop: unlock signal -> GNOME after ON_AFTER; reload -> mode off -> Phosh"
 
