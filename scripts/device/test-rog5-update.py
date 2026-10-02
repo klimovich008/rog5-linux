@@ -16,8 +16,10 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -196,6 +198,7 @@ case "$*" in
 	"-Q") cat $D/installed ;;
 	"-Sy --noconfirm") exit "$(cat $D/sy-rc 2>/dev/null || echo 0)" ;;
 	"-Su --print"*) cat $D/plan ;;
+	"-Suw --noconfirm"*) exit "$(cat $D/dw-rc 2>/dev/null || echo 0)" ;;
 	"-S --needed --noconfirm archlinuxarm-keyring"|"-Su --noconfirm"*)
 		case "$*" in -Su*) [ ! -x $D/effect ] || $D/effect ;; esac
 		[ ! -f $D/new-installed ] || cp $D/new-installed $D/installed
@@ -709,8 +712,7 @@ class VerifyRootMatchesTheBootVerifiers(Base):
                 init, attestor = self.init_accepts()
                 self.assertEqual(self.updater('verify-root') == 0, init and attestor)
                 self.assertEqual(init and attestor, expected)
-                # The init alone keeps a user crypt hash; only P2 rejects it.
-                self.assertEqual(init, expected or 'attestor' in label)
+                self.assertEqual(init, expected)
 
     def test_absent_markers_are_accepted(self):
         # The init creates both on the overlay; separate fake trees cannot show it.
@@ -936,13 +938,151 @@ class Run(Base):
         self.assertEqual(self.fields('pending')['action'], 'restore')
         self.assertEqual(self.reboots(), 1)
 
-    def test_a_transaction_that_changed_nothing_is_discarded(self):
+    def test_a_failed_transaction_with_unchanged_packages_still_arms_a_restore(self):
+        # Package versions say nothing about files: a failing PreTransaction
+        # hook (AbortOnFail) or a partly extracted package changes files and
+        # leaves `pacman -Q` as it was.
         self.write(self.dir/'su-rc', '1')
         self.assertEqual(self.start(), 1)
-        self.assertIn('pacman failed before changing packages', self.kmsg())
+        self.assertEqual(self.fields('pending')['action'], 'restore')
+        uid = self.fields('pending')['update_id']
+        self.assertTrue((self.state/'snapshots'/uid/'upper').is_dir())
+        self.assertIn('the next boot restores the snapshot', self.kmsg())
+        self.assertEqual(self.reboots(), 1)
+        self.assertNotIn('pacman -Q', self.calls())
+
+    def test_a_failed_download_takes_no_snapshot_and_retries(self):
+        self.write(self.dir/'dw-rc', '1')
+        self.assertEqual(self.start(), 1)
+        self.assertIn('pacman could not download the upgrade', self.kmsg())
+        self.assertFalse((self.state/'snapshots').exists())
         self.assertFalse((self.udir/'pending').exists())
-        self.assertEqual([p.name for p in (self.state/'snapshots').iterdir()], [])
+        self.assertFalse((self.udir/'last-check').exists())
+        self.assertNotIn('pacman -Su --noconfirm', self.calls())
         self.assertEqual(self.reboots(), 0)
+
+    def test_download_comes_before_the_snapshot_and_the_install(self):
+        self.write(self.dir/'new-installed', PLAN)
+        self.assertEqual(self.start(), 0, self.kmsg())
+        calls = self.calls()
+        self.assertLess(calls.index('pacman -Su --print --print-format %n %v --noconfirm'),
+                        calls.index('pacman -Suw --noconfirm'))
+        self.assertLess(calls.index('pacman -Suw --noconfirm'), calls.index('pacman -Su --noconfirm'))
+
+    def test_a_previous_good_snapshot_stays_until_the_next_commit(self):
+        old = self.snapshot('20260101T000000Z-00000000')
+        self.write(self.dir/'new-installed', PLAN)
+        self.assertEqual(self.start(), 0, self.kmsg())
+        uid = self.fields('pending')['update_id']
+        self.assertTrue((old/'upper').is_dir())
+        self.assertEqual(sorted(p.name for p in (self.state/'snapshots').iterdir()),
+                         sorted([old.name, uid]))
+
+    TOKEN = '0123456789abcdef0123456789abcdef'
+
+    def stale_lock(self, content):
+        lock = self.root/'var/lib/pacman/db.lck'
+        lock.write_text(content)
+        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v2', f'token={self.TOKEN}'])
+        return lock
+
+    def test_an_interrupted_snapshot_lock_is_released_only_when_it_is_ours(self):
+        self.stale_lock(self.TOKEN + '\n')
+        (self.root/'var/lib/pacman/.rog5-update-lock').write_text(self.TOKEN + '\n')
+        stale = self.state/'snapshots/.tmp-20260101T000000Z-00000000/upper'
+        stale.mkdir(parents=True)
+        (self.state/'snapshots').chmod(0o700)
+        self.write(self.dir/'new-installed', PLAN)
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertIn('released the pacman lock of an interrupted snapshot copy', self.kmsg())
+        self.assertFalse(stale.parent.exists())
+        self.assertFalse((self.udir/'snapshot-lock').exists())
+        self.assertFalse((self.root/'var/lib/pacman/.rog5-update-lock').exists())
+        self.assertIn('pacman -Su --noconfirm', self.calls())
+
+    def test_the_recovery_does_not_wait_for_the_next_interval(self):
+        lock = self.stale_lock(self.TOKEN + '\n')
+        self.write(self.udir/'last-check', '9999999999\n')
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertFalse(lock.exists())
+        self.assertNotIn('pacman -Sy --noconfirm', self.calls())
+
+    def test_a_lock_that_is_not_the_recorded_one_is_kept(self):
+        lock = self.stale_lock('')   # pacman's own lock, taken after the copy died
+        self.assertEqual(self.start(), 0, self.kmsg())
+        self.assertIn('SKIP pacman is locked', self.kmsg())
+        self.assertTrue(lock.exists())
+        self.assertFalse((self.udir/'snapshot-lock').exists())
+        self.assertNotIn('pacman -Sy --noconfirm', self.calls())
+
+    def test_an_inexact_lock_record_stops_the_run(self):
+        self.record('snapshot-lock', ['format=rog5-update-snapshot-lock-v2', 'token=xyz'])
+        self.assertEqual(self.start(), 1)
+        self.assertIn('cannot clean up an interrupted snapshot copy', self.kmsg())
+        self.assertNotIn('pacman -Sy --noconfirm', self.calls())
+
+    def killed_copy(self, during):
+        """Run an update whose snapshot copy is stopped with SIGTERM (as
+        systemd stops the unit); during(lock) runs while the copy is busy."""
+        self.write(self.dir/'plan', PLAN)
+        real_tar = shutil.which('tar')
+        self.stub('tar', 'case "$*" in\n\t*--create*) : >$D/tar-started; sleep 30 ;;\n'
+                         '\t*--extract*) cat >/dev/null ;;\n'
+                         f'\t*) exec {real_tar} "$@" ;;\nesac')
+        env = dict(os.environ, PATH=f'{self.bin}:{os.environ["PATH"]}', ROG5_UPDATE_ROOT=str(self.root),
+                   ROG5_UPDATE_LOWER=str(self.lower), ROG5_UPDATE_STATE=str(self.state),
+                   ROG5_UPDATE_RUN=str(self.run), ROG5_UPDATE_SYS=str(self.sys),
+                   ROG5_UPDATE_PROC=str(self.proc), ROG5_UPDATE_MOUNTS=str(self.dir/'mounts'),
+                   ROG5_UPDATE_KMSG=str(self.dir/'kmsg'), ROG5_UPDATE_RESERVE_MIB='1',
+                   ROG5_UPDATE_INHIBIT_CMD='', ROG5_UPDATE_REBOOT_WINDOW='')
+        process = subprocess.Popen(['unshare', '-r', 'sh', str(self.update), 'run'], env=env,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   start_new_session=True)
+        try:
+            for _ in range(1200):
+                if (self.dir/'tar-started').exists() or process.poll() is not None:
+                    break
+                time.sleep(0.05)
+            self.assertTrue((self.dir/'tar-started').exists(), (process.poll(), self.kmsg(), self.calls()))
+            lock = self.root/'var/lib/pacman/db.lck'
+            self.assertTrue(lock.exists())
+            during(lock)
+            os.killpg(process.pid, signal.SIGTERM)
+            code = process.wait(timeout=30)
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait()
+        return code, lock
+
+    def test_a_signal_during_the_copy_releases_the_lock(self):
+        code, lock = self.killed_copy(lambda lock: None)
+        self.assertNotEqual(code, 0)
+        self.assertFalse(lock.exists())
+        self.assertFalse((self.udir/'snapshot-lock').exists())
+        self.assertFalse((self.udir/'pending').exists())
+
+    def test_a_signal_never_removes_a_lock_that_is_not_the_copys(self):
+        # Models pacman locking again once the copy released its lock.
+        def replace(lock):
+            lock.unlink()
+            lock.write_text('')
+        code, lock = self.killed_copy(replace)
+        self.assertNotEqual(code, 0)
+        self.assertTrue(lock.exists())
+
+    def test_the_lock_record_is_durable_before_the_lock_exists(self):
+        text = UPDATE.read_text()
+        body = text[text.index('make_snapshot() {'):]
+        body = body[:body.index('\n}\n')]
+        self.assertLess(body.index('write_record "$snapshot_lock"'),
+                        body.index('ln -- "$snapshot_lock_tmp" "$pacman_lock"'))
+        self.assertLess(body.index("trap 'release_snapshot_lock"),
+                        body.index('ln -- "$snapshot_lock_tmp" "$pacman_lock"'))
+        normal = body[body.index('extracted=$?'):]
+        self.assertLess(normal.index('trap - HUP INT TERM'), normal.index('release_snapshot_lock'))
 
     def test_keyring_is_upgraded_first(self):
         self.start('archlinuxarm-keyring 20260901-1\n' + PLAN)
@@ -1032,6 +1172,28 @@ class Run(Base):
 
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
 class Commit(Base):
+    def test_failed_last_good_publication_keeps_pending_and_old_snapshots(self):
+        self.booted_update()
+        self.ready()
+        (self.udir/'last-good.next').mkdir()
+        self.assertEqual(self.updater('commit'), 1)
+        self.assertIn('cannot record the last good snapshot', self.kmsg())
+        self.assertTrue((self.udir/'pending').exists())
+        self.assertTrue((self.state/'snapshots/20260101T000000Z-00000000').is_dir())
+        self.assertTrue((self.state/'snapshots'/UID/'upper').is_dir())
+
+    def test_phone_update_keeps_recovery_when_trial_health_failed(self):
+        self.booted_update()
+        self.ready()
+        (self.run/'rog5-production-trial').mkdir()
+        self.assertEqual(self.updater('commit', ROG5_UPDATE_WAIT='2'), 1)
+        self.assertTrue((self.udir/'pending').exists())
+        self.assertTrue((self.state/'snapshots'/UID/'upper').is_dir())
+        self.write(self.run/'rog5-production-health', f'boot_id={BOOT2}\n', 0o444)
+        self.assertEqual(self.updater('commit', ROG5_UPDATE_WAIT='2'), 1)
+        self.write(self.run/'rog5-production-health', f'boot_id={BOOT}\n', 0o444)
+        self.assertEqual(self.updater('commit'), 0, self.kmsg())
+
     def ready(self):
         self.write(self.run/'rog5-p2-ready', f'status=PASS\nattested_boot_id={BOOT}\n', 0o444)
         self.write(self.run/'rog5-persistent-ssh-identity.record',
@@ -1063,6 +1225,35 @@ class Commit(Base):
         self.assertEqual(self.fields('pending')['action'], 'restore')
         self.assertEqual(self.rollback(BOOT2), 0)
         self.assertEqual((self.upper/'etc/pacman.conf').read_text(), 'upper-v0\n')
+
+    def test_manual_rollback_follows_the_last_good_record(self):
+        # An orphaned sealed snapshot (published, never armed) next to the
+        # last committed one must not make the rollback ambiguous.
+        self.booted_update()
+        self.ready()
+        self.assertEqual(self.updater('commit'), 0, self.kmsg())
+        self.assertEqual(self.fields('last-good')['update_id'], UID)
+        self.snapshot('20270101T000000Z-11111111')
+        self.assertEqual(self.updater('rollback'), 0, self.kmsg())
+        self.assertEqual(self.fields('pending')['update_id'], UID)
+
+    def test_manual_rollback_refuses_a_consumed_last_good(self):
+        self.snapshot()
+        self.record('last-good', ['format=rog5-update-last-good-v1', f'update_id={UID}'])
+        (self.state/'snapshots'/UID/'failed-upper').mkdir()
+        self.assertEqual(self.updater('rollback'), 1)
+        self.assertIn('already used by a rollback', self.kmsg())
+
+    def test_manual_rollback_skips_snapshots_consumed_by_a_rollback(self):
+        # Update A rolled back (seal + failed-upper, no upper); update B then
+        # committed. The manual rollback must pick B's kept root.
+        consumed = self.state/'snapshots/20260101T000000Z-00000000'
+        self.snapshot('20260101T000000Z-00000000')
+        (consumed/'upper').rename(consumed/'failed-upper')
+        self.snapshot()
+        self.assertEqual(self.updater('rollback'), 0, self.kmsg())
+        self.assertEqual(self.fields('pending'), {'format': 'rog5-update-pending-v1', 'update_id': UID,
+                                                  'action': 'restore'})
 
     def test_commit_keeps_a_snapshot_that_holds_a_failed_root(self):
         # A rollback keeps the replaced root (writes after the snapshot, e.g.

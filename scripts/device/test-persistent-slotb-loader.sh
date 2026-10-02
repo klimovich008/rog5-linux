@@ -11,6 +11,23 @@ state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 trial_helper=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
+# The trusted RAM path marks its execution origin even for an embedded copy
+# of the selected primary. The ordinary storage path preserves the plan.
+origin_work=$(mktemp -d)
+trap 'rm -rf "$origin_work"' EXIT HUP INT TERM
+awk '/^command_line=/ { seen=1 }
+seen && /^if \[ -n "\$ram_bundle" \]; then$/ { copy=1 }
+copy { print }
+copy && /^fi$/ { exit }' "$init" >"$origin_work/origin.sh"
+for ram_bundle in '' production-primary; do
+	command_line='signed command line'
+	. "$origin_work/origin.sh"
+	if [ -n "$ram_bundle" ]; then
+		[ "$command_line" = 'signed command line rog5.boot_origin=ram' ]
+	else
+		[ "$command_line" = 'signed command line' ]
+	fi
+done
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 target_base=${1:-$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz}
 high_speed_base=$repo/artifacts/local-image-direct-v49/initramfs.cpio.gz

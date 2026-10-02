@@ -129,4 +129,55 @@ sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { echo "FAIL power save not on a
 for i in 1 2 3; do : >$t/client; sleep 1.2; rm -f $t/client; sleep 1.2; done
 sleep 5; stop_loop
 [ "$(tr '\n' ' ' <$t/ps)" = "on off on " ] || { echo "FAIL power save toggles: $(tr '\n' ' ' <$t/ps)"; exit 1; }
+
+# Wi-Fi power save is cached only once applied: no interface yet (boot before
+# the driver) and a failed `iw` are retried; a recreated interface (new
+# ifindex) gets the state again.
+cat >$b/iw <<EOS
+#!/bin/sh
+case "\$*" in
+"dev") [ -e $t/ps-iface ] && { echo "phy#0"; echo "	Interface wlan0"; echo "		ifindex \$(cat $t/ps-iface)"; } ;;
+*"set power_save"*) [ -e $t/ps-fail ] && exit 1; echo "\$5" >>$t/ps2 ;;
+esac
+exit 0
+EOS
+chmod +x $b/iw
+rm -rf $t/ps-state $t/ps2 $t/ps-iface; mkdir -p $t/ps-state; : >$t/ps-fail
+rm -f $t/kmsg
+PATH=$b:$PATH ROG5_SLEEP_WIFI_PS=1 ROG5_SLEEP_WIFI_PS_HOLD=0 ROG5_SLEEP_MODE=reachable ROG5_SLEEP_POLL=1 ROG5_SLEEP_KMSG=$t/kmsg \
+ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep "$here/rog5-sleep-policy" & pid=$!
+sleep 2.5; [ ! -e $t/ps2 ] || { kill $pid; echo "FAIL power save set without an interface"; exit 1; }
+echo 3 >$t/ps-iface
+sleep 2.5; [ ! -e $t/ps2 ] || { kill $pid; echo "FAIL power save recorded although iw failed"; exit 1; }
+rm -f $t/ps-fail
+sleep 2.5; [ "$(tr '\n' ' ' <$t/ps2 2>/dev/null)" = "on " ] || { kill $pid; echo "FAIL power save not retried: $(cat $t/ps2 2>/dev/null)"; exit 1; }
+sleep 2; [ "$(tr '\n' ' ' <$t/ps2)" = "on " ] || { kill $pid; echo "FAIL power save rewritten without a change: $(tr '\n' ' ' <$t/ps2)"; exit 1; }
+echo 4 >$t/ps-iface
+sleep 2.5; kill $pid; wait $pid 2>/dev/null || true
+[ "$(tr '\n' ' ' <$t/ps2)" = "on on " ] || { echo "FAIL recreated interface not set again: $(tr '\n' ' ' <$t/ps2)"; exit 1; }
+[ "$(grep -c 'could not set wifi power save' $t/kmsg)" = 1 ] || { echo "FAIL power-save failure logged $(grep -c 'could not set wifi power save' $t/kmsg) times (want once)"; exit 1; }
+
+# A partial update (wlan0 took "on", wlan1 failed) drops the cache, so the
+# way back to "off" is applied to both, not skipped as unchanged.
+cat >$b/iw <<EOS
+#!/bin/sh
+case "\$*" in
+"dev") echo "phy#0"; echo "	Interface wlan0"; echo "		ifindex 3"; echo "phy#1"; echo "	Interface wlan1"; echo "		ifindex 4" ;;
+*"set power_save"*) [ "\$2" = wlan1 ] && [ "\$5" = on ] && [ -e $t/ps-fail1 ] && exit 1; echo "\$2 \$5" >>$t/ps3 ;;
+esac
+exit 0
+EOS
+chmod +x $b/iw
+rm -rf $t/ps-state $t/ps3; mkdir -p $t/ps-state; : >$t/client; : >$t/ps-fail1
+PATH=$b:$PATH ROG5_SLEEP_WIFI_PS=1 ROG5_SLEEP_WIFI_PS_HOLD=0 ROG5_SLEEP_MODE=reachable ROG5_SLEEP_POLL=1 ROG5_SLEEP_KMSG=/dev/null \
+ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep "$here/rog5-sleep-policy" & pid=$!
+sleep 2.5; rm -f $t/client
+sleep 2.5; : >$t/client
+sleep 2.5; kill $pid; wait $pid 2>/dev/null || true
+# (the failed "on" is retried every poll until the client returns)
+tr '\n' ' ' <$t/ps3 | grep -Eqx 'wlan0 off wlan1 off (wlan0 on )+wlan0 off wlan1 off ' ||
+	{ echo "FAIL partial power-save update: $(tr '\n' ' ' <$t/ps3)"; exit 1; }
+# A killed loop leaves its current `sleep $ROG5_SLEEP_POLL` (1 s) behind;
+# let it end so the runner sees no background descendants.
+sleep 2
 echo PASS rog5-sleep-policy

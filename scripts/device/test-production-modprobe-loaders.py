@@ -27,7 +27,7 @@ ARCHIVE = Path(os.environ.get('ROG5_TEST_TARGET_ARCHIVE', STATE/'archive-rehears
 TREE = Path(os.environ.get('ROG5_TEST_MODULE_TREE', STATE/'package-r1/module-root-complete.tar.gz'))
 QEMU = Path(os.environ.get('ROG5_TEST_QEMU', '/usr/bin/qemu-aarch64-static'))
 APPLETS = ('sh', 'grep', 'find', 'wc', 'cat', 'sed', 'head', 'tail', 'tr', 'basename',
-           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false', 'cp', 'chmod')
+           'mkdir', 'rm', 'uname', 'sleep', 'modprobe', 'insmod', 'true', 'false', 'cp', 'chmod', 'mv')
 POWER_ORDER = ['mdt_loader', 'qcom_q6v5', 'qcom_glink_smem', 'qcom_common', 'qcom_pil_info',
                'qcom_q6v5_pas', 'qrtr', 'qrtr_smd', 'qcom_pdr_msg', 'qcom_pd_mapper',
                'pdr_interface', 'pmic_glink', 'qcom_battmgr', 'typec', 'typec_ucsi', 'ucsi_glink']
@@ -93,6 +93,7 @@ class Source(unittest.TestCase):
         init = INIT.read_text()
         self.assertLess(init.index('IFS= read -r running_kernel_release'),
                         init.index('if deferred_ufs_modules_present; then'))
+        self.assertIn("publish_production_modules || fail_local_stage runtime 'production module tree publication failed'", init)
 
     def test_init_dispatches_production_ufs_only_without_loose_modules(self):
         text = INIT.read_text()
@@ -276,6 +277,11 @@ class Loaders(unittest.TestCase):
         published = self.root/'run/rog5-modules/lib/modules'/RELEASE
         self.assertEqual((published/'modules.dep').read_text(), self.dep_text)
         self.assertTrue((published/'kernel/drivers/gpu/drm/msm/msm.ko').is_file())
+        # The try-once commit requires this record (written after the tree).
+        record = self.root/'run/rog5-production-modules.record'
+        self.assertEqual(record.read_text(), f'release={RELEASE}\n')
+        self.assertEqual(record.stat().st_mode & 0o777, 0o444)
+        self.assertFalse((self.root/'run/rog5-production-modules.record.next').exists())
         result, _ = self.run_case(body)  # a second publication must refuse
         self.assertIn('PUBLISH=1', result.stdout)
         shutil.rmtree(self.root/'run/rog5-modules')
@@ -284,6 +290,19 @@ class Loaders(unittest.TestCase):
         self.assertIn('PUBLISH=0', result.stdout)
         self.assertFalse((self.root/'run/rog5-modules').exists())
         (self.root/'rog5-ufs-modules').rmdir()
+
+    def test_failed_module_publication_never_publishes_readiness(self):
+        for command in ('cp', 'chmod', 'mv'):
+            with self.subTest(command=command):
+                shutil.rmtree(self.root/'run', ignore_errors=True)
+                (self.root/'run').mkdir()
+                body = ('IFS= read -r running_kernel_release </proc/sys/kernel/osrelease\nlog() { :; }\n'
+                        + function(self.init, 'publish_production_modules')
+                        + command+'() { return 1; }\n'
+                        + 'publish_production_modules && echo PUBLISH=0 || echo PUBLISH=$?\n')
+                result, _ = self.run_case(body)
+                self.assertIn('PUBLISH=1', result.stdout, result.stdout+result.stderr)
+                self.assertFalse((self.root/'run/rog5-production-modules.record').exists())
 
     def test_ufs_legacy_archive_keeps_insmod(self):
         legacy = self.root/'rog5-ufs-modules'

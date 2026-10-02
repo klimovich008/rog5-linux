@@ -78,6 +78,7 @@ def env(name, default):
 MODE_FILE = Path(env('MODE_FILE', '/etc/rog5/shell'))
 RUN_DIR = Path(env('RUN_DIR', '/run/rog5-shell'))
 STATE_DIR = Path(env('STATE_DIR', '/var/lib/rog5'))
+BOOT_ID = Path(env('BOOT_ID', '/proc/sys/kernel/random/boot_id'))
 DSI = Path(env('DSI', '/sys/class/drm/card1-DSI-1'))
 DRM_DEV = env('DRM_DEV', '/dev/dri/card1')
 TOUCH_NAME = env('TOUCH_NAME', 'ASUS ROG5 MP2 front FTS3658U')
@@ -475,6 +476,13 @@ class Watchdog:
             if not miss:
                 self.ready = True
                 log(f'gnome-mobile ready after {now - self.armed_at:.0f} s')
+                # The production try-once commit of a GNOME Mobile boot
+                # requires this boot-bound record (production-trial-commit).
+                try:
+                    write_atomic(RUN_DIR / 'mobile-ready',
+                                 f'boot_id={BOOT_ID.read_text().strip()}\n')
+                except OSError as error:
+                    log(f'WARN could not record gnome-mobile readiness: {error}')
                 return None
             if now - self.armed_at >= ARM_S:
                 return f'not ready within {ARM_S:.0f} s: {", ".join(miss)}'

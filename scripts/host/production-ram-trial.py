@@ -274,7 +274,8 @@ class StageReceiver(threading.Thread):
     def close(self):
         self.stop.set()
         self.server.close()
-        self.join(timeout=3)
+        if self.ident is not None:  # an unstarted receiver has nothing to join
+            self.join(timeout=3)
 
 
 def fastboot(*args, timeout=15):
@@ -333,16 +334,62 @@ def sealed(image, expected):
         os.close(source)
 
 
+def fsync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def durable_mkdir(path):
+    """Create path (mode 0700) and any missing parents; each new entry is
+    fsynced into its parent so a host crash cannot drop the directory, and
+    path's own entry is synced into its parent every time."""
+    missing = []
+    probe = path
+    while not probe.exists():
+        missing.append(probe)
+        probe = probe.parent
+    for directory in reversed(missing):
+        try:
+            directory.mkdir(mode=0o700)
+        except FileExistsError:
+            pass
+        fsync_directory(directory.parent)
+    need(path.is_dir() and not path.is_symlink(), 'claim directory is not a real directory')
+    # Also when an earlier run created it: that run may have died before its
+    # parent sync, so the directory entry is synced on every use.
+    fsync_directory(path.parent)
+
+
+def claim_entered(expected, content):
+    """Durably consume the one-use claim for this wrapper hash. The marker's
+    data and its directory entry reach stable storage before fastboot runs,
+    so a host crash right after the phone accepts the image cannot make the
+    same wrapper bootable again."""
+    durable_mkdir(CLAIMS)
+    claim = CLAIMS/(expected+'.entered')
+    fd = os.open(claim, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        data = (json.dumps(content)).encode()
+        view = memoryview(data)
+        while view:
+            view = view[os.write(fd, view):]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    fsync_directory(CLAIMS)
+    return claim
+
+
 def boot(image, expected, evidence):
     need(os.environ.get('ROG5_ALLOW_RAM_TRIAL') == '1', 'set ROG5_ALLOW_RAM_TRIAL=1 for one RAM-only boot')
     need(SHA.fullmatch(expected) is not None, 'wrapper pin framing')
     identity = fastboot_identity()
     snapshot = sealed(image, expected)
     try:
-        CLAIMS.mkdir(mode=0o700, parents=True, exist_ok=True)
-        claim = CLAIMS/(expected+'.entered')
-        with open(claim, 'x') as marker:  # one use per wrapper hash, even on failure
-            json.dump(dict(wrapper_sha256=expected, serial=SERIAL, entered=now(), identity=identity), marker)
+        claim_entered(expected, dict(wrapper_sha256=expected, serial=SERIAL, entered=now(), identity=identity))
         record = dict(entered=now(), identity=identity, wrapper_sha256=expected)
         result = subprocess.run([str(FASTBOOT), '-s', SERIAL, 'boot', f'/proc/self/fd/{snapshot}'],
                                 stdin=subprocess.DEVNULL, capture_output=True, timeout=180,
@@ -491,35 +538,30 @@ def main():
         evidence = Path(args.evidence)
         need(evidence.is_absolute() and not evidence.exists(), 'evidence must be a new absolute directory')
         evidence.mkdir(mode=0o700, parents=True)
-        if args.command == 'boot':
-            stages = None
+        stages = None
+        staged = False
+        try:
+            # Everything that touches host networking is inside the cleanup
+            # boundary: a failure half-way through stage_path(True) (profile
+            # changed, firewall rule refused) is still reverted.
             if args.stage_receiver:
                 stages = StageReceiver(evidence)  # bind first: fail before any phone step
+                staged = True
                 stage_path(True)
                 stages.start()
-            try:
+            address = '169.254.77.2' if stages else '10.77.0.2'
+            if args.command == 'boot':
                 record = boot(Path(args.wrapper), args.wrapper_sha256, evidence)
                 print(f'{now()} fastboot accepted the RAM boot', flush=True)
-                summary = observe(evidence, args.observe_seconds, stages=stages,
-                                  address='169.254.77.2' if stages else '10.77.0.2')
+                summary = observe(evidence, args.observe_seconds, stages=stages, address=address)
                 summary.update(boot=record)
-            finally:
-                if stages is not None:
-                    stages.close()
-                    stage_path(False)
-        else:
-            stages = None
-            if args.stage_receiver:
-                stages = StageReceiver(evidence)
-                stage_path(True)
-                stages.start()
-            try:
-                summary = observe(evidence, args.seconds, stages=stages,
-                                  address='169.254.77.2' if stages else '10.77.0.2')
-            finally:
-                if stages is not None:
-                    stages.close()
-                    stage_path(False)
+            else:
+                summary = observe(evidence, args.seconds, stages=stages, address=address)
+        finally:
+            if stages is not None:
+                stages.close()
+            if staged:
+                stage_path(False)
         (evidence/'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print(json.dumps(summary))
 

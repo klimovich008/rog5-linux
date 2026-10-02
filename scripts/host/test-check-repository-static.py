@@ -49,6 +49,9 @@ class StaticCheck(unittest.TestCase):
             "shell syntax": ("bad.sh", "#!/bin/sh\nif then\n", "sh -n"),
             "shebang": ("noshebang.sh", "set -eu\n", "unsupported tracked shell shebang"),
             "key": ("key.txt", "-----BEGIN OPENSSH " + "PRIVATE KEY-----\n", "private-key header"),
+            "pkcs8 key": ("key.pem", "-----BEGIN " + "PRIVATE KEY-----\n", "private-key header"),
+            "encrypted key": ("key.pem", "-----BEGIN ENCRYPTED " + "PRIVATE KEY-----\n", "private-key header"),
+            "dsa key": ("key.pem", "-----BEGIN DSA " + "PRIVATE KEY-----\n", "private-key header"),
             "entry point": ("docs/active-context.md", None, "missing context entry point"),
         }
         for label, (name, content, message) in cases.items():

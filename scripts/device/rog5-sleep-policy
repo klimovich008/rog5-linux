@@ -98,19 +98,45 @@ sleep_mode() {
 }
 
 # Switches 802.11 power save on (screen off, no remote client) or off.
-# Only acts when the wanted state changes, so a manual `iw` setting holds
-# until the next screen or client change.
+# Only acts when the wanted state or the set of interfaces (name and
+# ifindex, so a recreated interface counts as new) changes, so a manual `iw`
+# setting holds until the next screen or client change. The state is cached
+# only after every interface took it: with no interface yet (boot before the
+# driver) or a failed `iw` (firmware busy) the next poll tries again.
 set_wifi_ps() {
 	[ "$wifi_ps" = 1 ] && command -v iw >/dev/null || return 0
 	want=$1
-	[ "$want" != "$(cat "$state/wifi-ps" 2>/dev/null)" ] || return 0
-	for dev in $(iw dev 2>/dev/null | awk '/Interface/{print $2}'); do
-		iw dev "$dev" set power_save "$want" 2>/dev/null && log "wifi power save $want on $dev"
+	devs=$(iw dev 2>/dev/null | awk '
+		$1 == "Interface" { if (d != "") print d "/" i; d = $2; i = "" }
+		$1 == "ifindex" { i = $2 }
+		END { if (d != "") print d "/" i }')
+	key="$want $(echo $devs)"
+	[ "$key" != "$(cat "$state/wifi-ps" 2>/dev/null)" ] || return 0
+	[ -n "$devs" ] || return 0
+	ps_ok=1
+	for d in $devs; do
+		dev=${d%/*}
+		if iw dev "$dev" set power_save "$want" 2>/dev/null; then
+			log "wifi power save $want on $dev"
+		else
+			ps_ok=0
+			# once per wanted state and interface set, not every poll
+			[ "$key" = "$(cat "$state/wifi-ps-failed" 2>/dev/null)" ] ||
+				log "WARN could not set wifi power save $want on $dev; retrying"
+		fi
 	done
-	echo "$want" >"$state/wifi-ps"
+	if [ "$ps_ok" = 1 ]; then
+		echo "$key" >"$state/wifi-ps"
+		rm -f "$state/wifi-ps-failed"
+	else
+		# Some interfaces may have taken it: the old cache no longer
+		# describes them, so the next change (even back) applies again.
+		rm -f "$state/wifi-ps"
+		echo "$key" >"$state/wifi-ps-failed"
+	fi
 }
 
-log() { printf 'rog5-sleep-policy: %s\n' "$*" >"$kmsg" 2>/dev/null || true; }
+log() { printf 'rog5-sleep-policy: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
 now() { cut -d. -f1 /proc/uptime; }
 
 # Prints why the phone must stay awake, or nothing. Cheapest checks first;
@@ -279,8 +305,10 @@ suspend_once() {
 	ok_before=$(cat "$stats/success" 2>/dev/null || echo 0)
 	$suspend_cmd || { log 'WARN suspend command failed'; return 1; }
 	waited=0
+	# The USB admission (rog5-usb-suspend-admit.service) can hold the suspend
+	# job up to 50 s for a reconnect run, or refuse it (no attempt at all).
 	while [ "$(attempts)" = "$before" ]; do
-		[ "$waited" -lt 60 ] || { log 'WARN no suspend attempt within 60 s'; return 1; }
+		[ "$waited" -lt 90 ] || { log 'WARN no suspend attempt within 90 s (refused or slow)'; return 1; }
 		sleep 1
 		waited=$((waited + 1))
 	done

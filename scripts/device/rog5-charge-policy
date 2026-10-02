@@ -221,7 +221,10 @@ decide() {
 	# Bypass wishes.
 	why=
 	[ "$eff" = bypass ] && why=bypass-mode
-	[ -z "$why" ] && [ "$perf" = 1 ] && why=performance
+	# An explicit full charge (mode or override) beats the performance
+	# bypass: with perf_on_power=always that bypass would otherwise hold the
+	# battery where it is for the whole override. Heat still bypasses.
+	[ -z "$why" ] && [ "$perf" = 1 ] && [ "$eff" != full ] && why=performance
 	[ -z "$why" ] && [ "$hot" = 1 ] && why=battery-hot
 	[ -n "$why" ] || { clear_flag low; reason=${eff}; return 0; }
 

@@ -7,8 +7,9 @@
 #   run          hourly timer. Reboots into a verified update when the display
 #                is off; otherwise, at most once per interval, when on external
 #                power or battery > ROG5_UPDATE_MIN_BATTERY and online:
-#                snapshot upper, pacman -Syu, then verify-root. A failed
-#                upgrade or check arms a restore and reboots at once.
+#                download (pacman -Suw), snapshot upper, pacman -Su, then
+#                verify-root. A failed upgrade or check arms a restore and
+#                reboots at once.
 #   commit       every boot (rog5-update-commit.service). Commits the update
 #                this boot started once the boot is healthy and verify-root
 #                still passes after systemd-update-done; otherwise arms a
@@ -53,6 +54,9 @@ dir=$state/rog5-update
 snapshots=$state/snapshots
 upper=$state/upper
 pacman_lock=$root/var/lib/pacman/db.lck
+snapshot_lock=$dir/snapshot-lock
+snapshot_lock_tmp=$root/var/lib/pacman/.rog5-update-lock
+last_good=$dir/last-good
 commit_failed=$run/rog5-update-commit.failed
 
 log() {
@@ -219,6 +223,44 @@ prune_snapshots() {
 	done
 }
 
+# The snapshot copy holds pacman's lock. Its db.lck carries a random token
+# that is recorded (durably) in rog5-update/snapshot-lock before the lock
+# file is linked into place, so a copy killed by a signal, SIGKILL or a power
+# loss leaves a lock that a later run can tell from pacman's own (empty)
+# lock: only a db.lck holding the recorded token is ever removed.
+release_snapshot_lock() {
+	if [ -f "$pacman_lock" ] && [ ! -L "$pacman_lock" ] &&
+		[ "$(cat "$pacman_lock" 2>/dev/null)" = "$1" ]; then
+		rm -f "$pacman_lock" || return 1
+	fi
+	return 0
+}
+
+# Releases what an interrupted copy left behind (its lock, the unlinked
+# temporary lock, partial .tmp-<id> copies). Runs under the updater's lock.
+recover_interrupted_snapshot() {
+	if [ -e "$snapshot_lock" ] || [ -L "$snapshot_lock" ]; then
+		record_exact "$snapshot_lock" 2 &&
+			[ "$(sed -n 1p "$snapshot_lock")" = format=rog5-update-snapshot-lock-v2 ] ||
+			return 1
+		recorded=$(sed -n 's/^token=\([0-9a-f]\{32\}\)$/\1/p' "$snapshot_lock")
+		[ -n "$recorded" ] || return 1
+		if [ -f "$pacman_lock" ] && [ ! -L "$pacman_lock" ] &&
+			[ "$(cat "$pacman_lock" 2>/dev/null)" = "$recorded" ]; then
+			release_snapshot_lock "$recorded" || return 1
+			log 'released the pacman lock of an interrupted snapshot copy'
+			history 'released the pacman lock of an interrupted snapshot copy'
+		fi
+		rm -f "$snapshot_lock_tmp" || return 1
+		bb rm -f "$snapshot_lock" || return 1
+	fi
+	[ -d "$snapshots" ] && [ ! -L "$snapshots" ] || return 0
+	for entry in "$snapshots"/.tmp-*; do
+		[ -e "$entry" ] || [ -L "$entry" ] || continue
+		rm -rf -- "$entry" || return 1
+	done
+}
+
 make_snapshot() {
 	id=$1
 	if [ -e "$snapshots" ] || [ -L "$snapshots" ]; then
@@ -236,7 +278,25 @@ make_snapshot() {
 	# every xattr (the overlay's trusted.overlay.* included) like cp -a, and
 	# can leave the user-data paths out. Exit 1 of the archiving side only
 	# means a file changed while it was read (cp copies such files silently).
-	( set -C; : >"$pacman_lock" ) 2>/dev/null || { rm -rf -- "$tmp"; return 1; }
+	# The lock: record its token first, then link the file holding it into
+	# place (link fails if db.lck exists, like pacman's own O_EXCL).
+	lock_token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+	printf '%s\n' "$lock_token" | grep -Eq '^[0-9a-f]{32}$' || { rm -rf -- "$tmp"; return 1; }
+	rm -f "$snapshot_lock_tmp" &&
+		printf '%s\n' "$lock_token" >"$snapshot_lock_tmp" &&
+		write_record "$snapshot_lock" format=rog5-update-snapshot-lock-v2 \
+			"token=$lock_token" ||
+		{ rm -f "$snapshot_lock_tmp"; bb rm -f "$snapshot_lock"; rm -rf -- "$tmp"; return 1; }
+	# A signal releases only a db.lck that holds this token.
+	trap 'release_snapshot_lock "$lock_token"; rm -f "$snapshot_lock_tmp" "$snapshot_lock"; exit 1' HUP INT TERM
+	if ! ln -- "$snapshot_lock_tmp" "$pacman_lock" 2>/dev/null; then
+		trap - HUP INT TERM
+		rm -f "$snapshot_lock_tmp"
+		bb rm -f "$snapshot_lock"
+		rm -rf -- "$tmp"
+		return 1
+	fi
+	rm -f "$snapshot_lock_tmp"
 	sync
 	set --
 	for path in $snapshot_excludes; do
@@ -245,13 +305,18 @@ make_snapshot() {
 	{
 		tar -C "$upper" --create --file=- --format=posix --numeric-owner \
 			--one-file-system --sparse --acls --xattrs --xattrs-include='*' \
-			--anchored --no-wildcards --exclude=./var/lib/pacman/db.lck "$@" .
+			--anchored --no-wildcards --exclude=./var/lib/pacman/db.lck \
+			--exclude=./var/lib/pacman/.rog5-update-lock "$@" .
 		echo "$?" >"$tmp/archived"
 	} | tar -C "$tmp/upper" --extract --file=- --numeric-owner --same-owner \
 		--same-permissions --acls --xattrs --xattrs-include='*'
 	extracted=$?
 	archived=$(cat "$tmp/archived" 2>/dev/null) || archived=2
-	rm -f "$pacman_lock" "$tmp/archived"
+	rm -f "$tmp/archived"
+	# The trap goes first: once db.lck is released, pacman may lock again.
+	trap - HUP INT TERM
+	release_snapshot_lock "$lock_token" || { rm -rf -- "$tmp"; return 1; }
+	bb rm -f "$snapshot_lock"
 	rm -f "$tmp/upper/var/lib/pacman/db.lck"
 	case $extracted:$archived in
 		0:0|0:1) ;;
@@ -585,8 +650,15 @@ overlay_ok() {
 	fi
 }
 
-# The health gate of production-trial-commit.
+# The common baseline plus the phone health gate when the trial kit exists.
+# After= orders jobs but does not propagate a failed trial-commit service.
 ready() {
+	if [ -e "$run/rog5-production-trial" ] || [ -L "$run/rog5-production-trial" ]; then
+		health=$run/rog5-production-health
+		[ -f "$health" ] && [ ! -L "$health" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$health")" = 0:0:444:1 ] &&
+			[ "$(cat "$health")" = "boot_id=$boot_id" ] || return 1
+	fi
 	p2=$run/rog5-p2-ready
 	identity=$run/rog5-persistent-ssh-identity.record
 	[ -f "$p2" ] && [ ! -L "$p2" ] && [ "$(stat -c '%u:%g:%a' "$p2")" = 0:0:444 ] &&
@@ -657,6 +729,9 @@ action_run() {
 	lock
 	overlay_ok || fail 'the root is not the expected persistent overlay'
 	settle_previous || fail 'cannot record the previous update result'
+	# Before every admission check: a lock left by a killed copy must not
+	# wait for the next interval, network or power.
+	recover_interrupted_snapshot || fail 'cannot clean up an interrupted snapshot copy'
 	if [ -e "$dir/pending" ] || [ -L "$dir/pending" ]; then
 		fields=$(pending_fields) || fail 'pending record is not exact'
 		id=${fields%% *}
@@ -720,14 +795,24 @@ action_run() {
 		log 'SKIP this upgrade failed twice; waiting for new package versions'
 		exit 0
 	fi
+	# Download before the snapshot. pacman -Sw installs nothing and runs no
+	# hooks, so a mirror or network failure changes only the package cache
+	# (left out of snapshots) and costs no snapshot; it retries hourly. A
+	# plan with a new keyring skips this: packages signed by new keys verify
+	# only after the keyring upgrade, a real transaction after the snapshot.
+	if ! printf '%s\n' "$plan" | grep -q '^archlinuxarm-keyring '; then
+		# shellcheck disable=SC2086
+		pacman -Suw --noconfirm $ignore_args ||
+			{ rm -f "$dir/last-check"; fail 'pacman could not download the upgrade'; }
+	fi
 	used=$(snapshot_kib) || fail 'cannot size the snapshot'
 	kept=0
 	# Failed roots are retained; conservatively count no existing
-	# snapshot as reclaimable space.
+	# snapshot as reclaimable space. The last good snapshot stays until this
+	# update commits (action_commit prunes), so a failed copy loses nothing.
 	available=$(stat -f -c '%a %S' "$state" | awk '{ printf "%d", $1 * $2 / 1024 }')
 	[ $((available + kept)) -ge $((used + reserve_mib * 1024)) ] ||
 		fail "not enough space for a snapshot of upper (${used} KiB)"
-	prune_snapshots '' || fail 'cannot remove old snapshots'
 	id=$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')
 	printf '%s\n' "$id" | grep -Eq '^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$' || fail 'update id'
 	make_snapshot "$id" || fail 'snapshot of upper failed'
@@ -736,7 +821,9 @@ action_run() {
 	# Until verify-root passes, any interruption restores at the next boot.
 	arm_pending "$id" restore || fail 'cannot arm the pending update'
 	history "update $id: $(printf '%s\n' "$plan" | wc -l | tr -d ' ') packages"
-	pacman -Q >"$dir/packages-before" 2>/dev/null || true
+	# From here every failure keeps the restore armed: a failed transaction
+	# can have changed files without changing package versions (a failing
+	# PreTransaction hook with AbortOnFail, a partly extracted package).
 	upgraded=0
 	if printf '%s\n' "$plan" | grep -q '^archlinuxarm-keyring '; then
 		pacman -S --needed --noconfirm archlinuxarm-keyring || upgraded=1
@@ -744,13 +831,6 @@ action_run() {
 	if [ "$upgraded" -eq 0 ]; then
 		# shellcheck disable=SC2086
 		pacman -Su --noconfirm $ignore_args || upgraded=1
-	fi
-	pacman -Q >"$dir/packages-after" 2>/dev/null || true
-	if [ "$upgraded" -ne 0 ] && cmp -s "$dir/packages-before" "$dir/packages-after"; then
-		bb rm -f "$dir/pending" "$dir/targets"
-		prune_snapshots '' || true
-		bb sync
-		fail "pacman failed before changing packages (update $id)"
 	fi
 	if [ "$upgraded" -eq 0 ] && problems=$(verify_root); then
 		arm_pending "$id" verify || fail 'cannot mark the update verified'
@@ -809,6 +889,10 @@ action_commit() {
 		: >"$commit_failed"
 		exit 1
 	fi
+	# Publish the rollback target before clearing pending or pruning anything.
+	# A failed pointer write must keep both recovery and the previous good root.
+	write_record "$last_good" format=rog5-update-last-good-v1 "update_id=$id" ||
+		fail 'cannot record the last good snapshot'
 	write_record "$dir/last-result" format=rog5-update-result-v1 "update_id=$id" \
 		result=committed reason=healthy "boot_id=$boot_id" || fail 'result record'
 	bb rm -f "$dir/pending" "$dir/attempt" "$dir/targets" "$dir/failed-targets" \
@@ -837,13 +921,29 @@ action_rollback() {
 	lock
 	overlay_ok || fail 'the root is not the expected persistent overlay'
 	[ ! -e "$dir/pending" ] && [ ! -L "$dir/pending" ] || fail 'an update is pending'
-	count=0
-	for entry in "$snapshots"/*; do
-		[ -e "$entry/seal" ] || continue
-		count=$((count + 1))
-		id=${entry##*/}
-	done
-	[ "$count" -eq 1 ] || fail 'expected exactly one kept snapshot'
+	# The last committed update names its snapshot (last-good). Without that
+	# record (updates committed before 2026-10-02) only a single kept good
+	# root counts: a snapshot consumed by a rollback keeps its seal next to
+	# failed-upper and has no upper left.
+	if [ -e "$last_good" ] || [ -L "$last_good" ]; then
+		record_exact "$last_good" 2 &&
+			[ "$(sed -n 1p "$last_good")" = format=rog5-update-last-good-v1 ] ||
+			fail 'last-good record is not exact'
+		id=$(sed -n 's/^update_id=\([0-9]\{8\}T[0-9]\{6\}Z-[0-9a-f]\{8\}\)$/\1/p' "$last_good")
+		[ -n "$id" ] || fail 'last-good record is not exact'
+		[ ! -e "$snapshots/$id/failed-upper" ] && [ ! -L "$snapshots/$id/failed-upper" ] ||
+			fail "snapshot $id was already used by a rollback"
+	else
+		count=0
+		for entry in "$snapshots"/*; do
+			[ -e "$entry/seal" ] || continue
+			[ -d "$entry/upper" ] && [ ! -L "$entry/upper" ] || continue
+			[ ! -e "$entry/failed-upper" ] && [ ! -L "$entry/failed-upper" ] || continue
+			count=$((count + 1))
+			id=${entry##*/}
+		done
+		[ "$count" -eq 1 ] || fail 'expected exactly one kept snapshot'
+	fi
 	snapshot_valid "$id" || fail "snapshot $id is not exact"
 	arm_pending "$id" restore || fail 'cannot arm the restore'
 	log "PASS the next boot restores the root from before update $id"

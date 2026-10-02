@@ -1,6 +1,8 @@
 [Unit]
 Description=Commit this boot of the default ROG5 production kernel as healthy
-After=rog5-persistent-state.service rog5-persistent-ssh-identity.service rog5-early-sshd.service
+# Not ordered after the SSH services: the script polls for them, and it must
+# already be polling when Phosh shows its startup lock (see local_shell_ready).
+After=rog5-persistent-state.service
 Before=shutdown.target
 
 [Service]

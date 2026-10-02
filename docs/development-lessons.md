@@ -4201,3 +4201,21 @@ ramoops command line; mainline must use its exact layout there.
 - Stock routes brightness through the Pixelworks Iris6 bridge
   (`iris_update_backlight`, pass-through mode) on production panels; the next
   brightness fix should follow that path, not raw DCS experiments.
+
+## Boot-chain robustness (2026-10-02)
+
+- OverlayFS cleans its own crash residue: every read-write mount removes
+  work/work through `ovl_workdir_cleanup()` (non-directories at levels 1 and
+  2, directories that are or become empty). Any `#%x` temporary type can be
+  left by a reset (directories, symlinks, devices, fifos, empty files, hard
+  links to upper files, the shared whiteout). A pre-mount check stricter than
+  that cleanup blocks both bundles, because they share the overlay. Only a
+  non-empty level-2 directory survives the cleanup; the kernel then mounts the
+  overlay read-only. `scripts/device/test-overlay-workdir-residue.py` boots
+  the production Image in QEMU on a real ext4 disk to check both sides.
+- restart2 runs the kernel's orderly shutdown and can block (a stuck notifier,
+  driver shutdown or `system_transition_mutex`). Never wait for it before
+  SysRq b. After switch_root the watchdog's old root has no `/dev/null`, and
+  busybox ash cannot start a background job there (it reopens stdin from
+  `/dev/null`), so the watchdog's reset backstop is a second process forked
+  with it before switch_root.

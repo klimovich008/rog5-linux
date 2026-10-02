@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -28,6 +29,10 @@
 #define RECORD_CAPACITY 512
 #define BUNDLE_CAPACITY 65
 #define HASH_LENGTH 64
+
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
 
 struct trial_identity {
 	const char *id;
@@ -245,6 +250,25 @@ static void write_all(int descriptor, const char *data, size_t length)
 	}
 }
 
+/*
+ * A helper interrupted between the former linkat() publication and its
+ * unlinkat() left the record with exactly one extra name: the fixed temporary,
+ * naming the same fully synced inode. That one state is recognisable and its
+ * content is still validated in full; any other extra link stays unsafe.
+ */
+static bool interrupted_legacy_link(int directory, const struct stat *record)
+{
+	struct stat temporary;
+
+	if (record->st_nlink != 2 ||
+	    fstatat(directory, TEMPORARY_NAME, &temporary,
+		    AT_SYMLINK_NOFOLLOW) < 0)
+		return false;
+	return S_ISREG(temporary.st_mode) &&
+	       temporary.st_dev == record->st_dev &&
+	       temporary.st_ino == record->st_ino;
+}
+
 static int read_record(int directory, char *output, size_t capacity,
 			struct stat *metadata)
 {
@@ -264,7 +288,9 @@ static int read_record(int directory, char *output, size_t capacity,
 		fail("cannot stat trial record: %s", strerror(errno));
 	if (!S_ISREG(metadata->st_mode) || metadata->st_uid != geteuid() ||
 	    metadata->st_gid != getegid() ||
-	    (metadata->st_mode & 0777) != 0600 || metadata->st_nlink != 1 ||
+	    (metadata->st_mode & 0777) != 0600 ||
+	    (metadata->st_nlink != 1 &&
+	     !interrupted_legacy_link(directory, metadata)) ||
 	    metadata->st_size < 1 || (uintmax_t)metadata->st_size >= capacity)
 		fail("unsafe trial record metadata");
 	while (used < (size_t)metadata->st_size) {
@@ -282,8 +308,72 @@ static int read_record(int directory, char *output, size_t capacity,
 	    path_metadata.st_dev != metadata->st_dev ||
 	    path_metadata.st_ino != metadata->st_ino)
 		fail("trial record pathname changed");
+	/* String comparisons below stop at NUL: the bytes must be canonical. */
+	if (memchr(output, '\0', used) || output[used - 1] != '\n')
+		fail("noncanonical trial record bytes");
 	output[used] = '\0';
 	return descriptor;
+}
+
+/*
+ * Every writer holds the directory lock, so a temporary seen here was left by
+ * an interrupted writer (power loss on p23, a killed helper). It is never
+ * authoritative: the record changes only by an atomic rename. Remove the name
+ * after checking that it is what this helper creates: a regular, caller-owned
+ * 0600 file below the record size limit, with one link, or with two links
+ * when it is the record's own inode (interrupted former linkat publication).
+ * Anything else (symlink, directory, foreign owner, another hard link) was not
+ * made by this helper and keeps failing closed; the loader then boots the
+ * verified fallback. Older helpers serialised on the record lock alone, so a
+ * caller that does not already hold it takes it first: a temporary that a
+ * live older writer is still filling is then refused, never removed.
+ */
+static void recover_temporary(int directory, bool record_locked)
+{
+	struct stat temporary;
+	struct stat record;
+	bool record_present;
+	int lock = -1;
+
+	if (fstatat(directory, TEMPORARY_NAME, &temporary,
+		    AT_SYMLINK_NOFOLLOW) < 0) {
+		if (errno == ENOENT)
+			return;
+		fail("cannot inspect trial temporary: %s", strerror(errno));
+	}
+	if (!S_ISREG(temporary.st_mode) || temporary.st_uid != geteuid() ||
+	    temporary.st_gid != getegid() ||
+	    (temporary.st_mode & 07777) != 0600 || temporary.st_size < 0 ||
+	    (uintmax_t)temporary.st_size >= RECORD_CAPACITY)
+		fail("unsafe abandoned trial temporary");
+	record_present = fstatat(directory, RECORD_NAME, &record,
+				 AT_SYMLINK_NOFOLLOW) == 0;
+	if (!record_present && errno != ENOENT)
+		fail("cannot inspect trial record: %s", strerror(errno));
+	if (record_present && !record_locked) {
+		lock = openat(directory, RECORD_NAME,
+			      O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+		if (lock < 0)
+			fail("cannot open trial record: %s", strerror(errno));
+		if (flock(lock, LOCK_EX | LOCK_NB) < 0)
+			fail("concurrent trial record operation");
+		if (fstat(lock, &record) < 0)
+			fail("cannot stat trial record: %s", strerror(errno));
+	}
+	if (temporary.st_nlink == 2) {
+		if (!record_present || record.st_dev != temporary.st_dev ||
+		    record.st_ino != temporary.st_ino)
+			fail("unsafe abandoned trial temporary link");
+	} else if (temporary.st_nlink != 1) {
+		fail("unsafe abandoned trial temporary link");
+	}
+	if (unlinkat(directory, TEMPORARY_NAME, 0) < 0 || fsync(directory) < 0)
+		fail("cannot remove abandoned trial temporary: %s",
+		     strerror(errno));
+	/* flock conflicts between descriptors of one process: release it
+	 * before read_record() locks the record again. */
+	if (lock >= 0 && close(lock) < 0)
+		fail("cannot close trial record: %s", strerror(errno));
 }
 
 static void create_pending(int directory, const char *record, size_t length)
@@ -298,9 +388,12 @@ static void create_pending(int directory, const char *record, size_t length)
 	write_all(descriptor, record, length);
 	if (fsync(descriptor) < 0 || close(descriptor) < 0)
 		fail("cannot sync trial temporary: %s", strerror(errno));
-	if (linkat(directory, TEMPORARY_NAME, directory, RECORD_NAME, 0) < 0)
+	/* One atomic step that never replaces a record and never leaves a
+	 * second name on it (the former linkat/unlinkat pair could). */
+	if (syscall(SYS_renameat2, directory, TEMPORARY_NAME, directory,
+		    RECORD_NAME, RENAME_NOREPLACE) < 0)
 		fail("cannot publish pending trial: %s", strerror(errno));
-	if (unlinkat(directory, TEMPORARY_NAME, 0) < 0 || fsync(directory) < 0)
+	if (fsync(directory) < 0)
 		fail("cannot sync pending trial publication: %s", strerror(errno));
 }
 
@@ -350,6 +443,7 @@ static void decide(const struct trial_identity *identity)
 	render_record(pending, sizeof(pending), identity, "pending");
 	render_record(healthy, sizeof(healthy), identity, "healthy");
 	render_record(failed, sizeof(failed), identity, "failed");
+	recover_temporary(directory, false);
 	descriptor = read_record(directory, actual, sizeof(actual), &metadata);
 	if (descriptor < 0) {
 		create_pending(directory, pending, strlen(pending));
@@ -399,6 +493,10 @@ static void update_health(const char *operation, const char *expected_id,
 	if (strcmp(parsed.id, expected_id) != 0 ||
 	    strcmp(parsed.primary, expected_primary) != 0)
 		fail("running trial identity does not match pending state");
+	/* Inspection stays read-only (RAM trials call it); writers of the
+	 * matching trial clear an interrupted predecessor's temporary first. */
+	if (strcmp(operation, "state") != 0)
+		recover_temporary(directory, true);
 	identity.id = parsed.id;
 	identity.primary = parsed.primary;
 	identity.primary_hash = parsed.primary_hash;

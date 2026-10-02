@@ -22,7 +22,9 @@ SHELL_INTERPRETERS = {
 }
 ISOLATED_PYTHON_SHEBANG = b"#!/usr/bin/env -S -i /usr/bin/python3 -I -S"
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-SECRET = (r"BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|"
+# PKCS#8 ("BEGIN PRIVATE KEY", the Ed25519 signing key's format) and encrypted
+# PKCS#8 headers have no algorithm word.
+SECRET = (r"BEGIN ((RSA|OPENSSH|EC|DSA|ENCRYPTED) )?PRIVATE KEY|"
           r"OPENROUTER_API_KEY[[:space:]]*=[[:space:]]*['\"]?[A-Za-z0-9_-]{20}")
 
 

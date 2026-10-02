@@ -1,0 +1,18 @@
+# Suspend admission for the side USB port (rog5-usb-sleep admit). systemd
+# ignores the exit status of system-sleep hooks, so the hook alone could not
+# keep a suspend from overlapping a rog5-usb-reconnect transaction (a dwc3
+# unbind/bind or a UCSI role change). systemd-suspend.service Requires= and
+# is ordered After= this unit (drop-in 50-rog5-usb.conf), so a failure here
+# fails that job with a dependency error and the system stays awake.
+# A oneshot without RemainAfterExit: it runs again for every suspend.
+[Unit]
+Description=Admit a suspend only when no ROG5 USB reconnect transaction runs
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/systemd/system-sleep/rog5-usb-sleep admit
+# A refused or killed admission must not leave the marker behind.
+ExecStopPost=/bin/sh -c '[ "$$SERVICE_RESULT" = success ] || rm -f /run/rog5-usb-suspending'
+# admit waits up to 50 s for the reconnect lock.
+TimeoutStartSec=75

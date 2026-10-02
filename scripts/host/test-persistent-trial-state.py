@@ -4,6 +4,7 @@
 import concurrent.futures
 import hashlib
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -20,6 +21,73 @@ PRIMARY = "persistent-native-root-wifi"
 PRIMARY_HASH = "2" * 64
 FALLBACK = "persistent-native-root-v11"
 FALLBACK_HASH = "a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2"
+
+
+FAULT_SHIM = r"""
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+static int fault(const char *name)
+{
+	const char *value = getenv("ROG5_FAULT");
+	return value && strcmp(value, name) == 0;
+}
+
+long syscall(long number, ...)
+{
+	static long (*real)(long, ...);
+	long a[6];
+	va_list list;
+	int i;
+
+	va_start(list, number);
+	for (i = 0; i < 6; i++)
+		a[i] = va_arg(list, long);
+	va_end(list);
+	if (number == SYS_renameat2 && fault("renameat2")) {
+		errno = EIO;
+		return -1;
+	}
+	if (!real)
+		real = (long (*)(long, ...))dlsym(RTLD_NEXT, "syscall");
+	return real(number, a[0], a[1], a[2], a[3], a[4], a[5]);
+}
+
+int unlinkat(int directory, const char *path, int flags)
+{
+	static int (*real)(int, const char *, int);
+
+	if (fault("unlinkat")) {
+		errno = EIO;
+		return -1;
+	}
+	if (!real)
+		real = (int (*)(int, const char *, int))dlsym(RTLD_NEXT, "unlinkat");
+	return real(directory, path, flags);
+}
+
+int fsync(int descriptor)
+{
+	static int (*real)(int);
+	struct stat metadata;
+
+	if (fault("fsync-dir") && fstat(descriptor, &metadata) == 0 &&
+	    S_ISDIR(metadata.st_mode)) {
+		errno = EIO;
+		return -1;
+	}
+	if (!real)
+		real = (int (*)(int))dlsym(RTLD_NEXT, "fsync");
+	return real(descriptor);
+}
+"""
 
 
 class PersistentTrialState(unittest.TestCase):
@@ -269,18 +337,217 @@ class PersistentTrialState(unittest.TestCase):
         self.assertTrue(self.record.read_text().endswith("state=pending\n"))
         self.assertEqual(self.command().stdout, FALLBACK + "\n")
 
-    def test_rearm_temporary_collision_refuses_without_primary_output(self):
+    @property
+    def stale(self):
+        return self.record.with_name(".wifi-trial-state.next")
+
+    def test_rearm_recovers_temporary_abandoned_by_interrupted_writer(self):
+        # Power loss after the temporary was created but before its rename:
+        # the record is still the old one and the temporary is never
+        # authoritative. Refusing it forever stranded the primary (audit 08).
         self.command()
         self.command("healthy")
-        previous = self.record.read_bytes()
-        temporary = self.record.with_name(".wifi-trial-state.next")
-        temporary.write_text("preserve ambiguous state\n")
-        temporary.chmod(0o600)
-        result = self.command(check=False)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "")
-        self.assertEqual(self.record.read_bytes(), previous)
-        self.assertEqual(temporary.read_text(), "preserve ambiguous state\n")
+        self.stale.write_text("partial\n")
+        self.stale.chmod(0o600)
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertFalse(self.stale.exists())
+        self.assertTrue(self.record.read_text().endswith("state=pending\n"))
+        self.assertEqual(self.record.stat().st_nlink, 1)
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
+    def test_interrupted_health_commit_is_recovered_without_committing(self):
+        self.command()
+        pending = self.record.read_bytes()
+        healthy = pending.replace(b"state=pending\n", b"state=healthy\n")
+        for _ in range(2):
+            self.stale.write_bytes(healthy)
+            self.stale.chmod(0o600)
+            # Inspection stays read-only and leaves the temporary alone.
+            self.assertEqual(self.command("state").stdout, "pending\n")
+            self.assertTrue(self.stale.exists())
+        # A reboot before the rename: the commit never landed, so fallback.
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+        self.assertFalse(self.stale.exists())
+        self.assertEqual(self.record.read_bytes(), pending)
+        # The same interruption followed by a retried commit commits once.
+        self.stale.write_bytes(healthy[:17])
+        self.stale.chmod(0o600)
+        self.assertEqual(self.command("healthy").stdout, "healthy\n")
+        self.assertFalse(self.stale.exists())
+        self.assertEqual(self.record.read_bytes(), healthy)
+
+    def test_unsafe_temporaries_still_fail_closed(self):
+        self.command()
+        self.command("healthy")
+        accepted = self.record.read_bytes()
+        other = self.record.with_name("other")
+        for case in ("symlink", "directory", "mode", "hardlink", "oversize",
+                     "fifo"):
+            with self.subTest(case=case):
+                if case == "symlink":
+                    self.stale.symlink_to(self.record)
+                elif case == "directory":
+                    self.stale.mkdir(mode=0o700)
+                elif case == "fifo":
+                    os.mkfifo(self.stale, 0o600)
+                else:
+                    self.stale.write_bytes(
+                        b"x" * 600 if case == "oversize" else b"partial\n")
+                    self.stale.chmod(0o644 if case == "mode" else 0o600)
+                    if case == "hardlink":
+                        os.link(self.stale, other)
+                for action in ("decide", "healthy", "reject"):
+                    result = self.command(action, check=False)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                    self.assertTrue(self.stale.is_symlink() or
+                                    self.stale.exists())
+                    self.assertEqual(self.record.read_bytes(), accepted)
+                if case == "directory":
+                    self.stale.rmdir()
+                else:
+                    self.stale.unlink()
+                other.unlink(missing_ok=True)
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+
+    def test_legacy_two_link_publication_is_recovered(self):
+        # The former helper published by linkat() then unlinkat(); a reset
+        # between them left the synced record also named by the temporary.
+        for operation in ("decide", "healthy"):
+            with self.subTest(operation=operation):
+                for path in (self.record, self.stale):
+                    path.unlink(missing_ok=True)
+                self.assertEqual(self.command().stdout, PRIMARY + "\n")
+                os.link(self.record, self.stale)
+                self.assertEqual(self.record.stat().st_nlink, 2)
+                self.assertEqual(self.command("state").stdout, "pending\n")
+                self.assertEqual(self.record.stat().st_nlink, 2)
+                if operation == "decide":
+                    self.assertEqual(self.command().stdout, FALLBACK + "\n")
+                else:
+                    self.assertEqual(self.command("healthy").stdout,
+                                     "healthy\n")
+                self.assertFalse(self.stale.exists())
+                self.assertEqual(self.record.stat().st_nlink, 1)
+        # A foreign identity must not clear it: identity is checked first.
+        self.record.unlink()
+        self.command()
+        os.link(self.record, self.stale)
+        refused = self.command("healthy", trial="5" * 64, check=False)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertTrue(self.stale.exists())
+
+    def test_noncanonical_record_bytes_are_rejected(self):
+        self.command()
+        canonical = self.record.read_bytes()
+        for payload in (canonical + b"\0garbage", canonical[:-1],
+                        canonical[:-1] + b"\0\n"):
+            with self.subTest(payload=payload[-12:]):
+                self.record.write_bytes(payload)
+                self.record.chmod(0o600)
+                for action in ("decide", "state", "healthy"):
+                    result = self.command(action, check=False)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                self.assertEqual(self.record.read_bytes(), payload)
+
+    def test_recovery_boundaries_and_other_writers(self):
+        self.command()
+        self.command("healthy")
+        for size, recovered in ((511, True), (512, False)):
+            with self.subTest(size=size):
+                self.stale.write_bytes(b"x" * size)
+                self.stale.chmod(0o600)
+                result = self.command("rollback", check=False)
+                self.assertEqual(result.returncode == 0, recovered)
+                self.assertEqual(self.stale.exists(), not recovered)
+                self.stale.unlink(missing_ok=True)
+        # reject of the accepted trial recovers and fences; a failed record
+        # with a stale temporary still selects the fallback.
+        self.stale.write_bytes(b"")
+        self.stale.chmod(0o600)
+        self.assertEqual(self.command("reject").stdout, "rollback\n")
+        self.assertFalse(self.stale.exists())
+        self.stale.write_bytes(b"partial")
+        self.stale.chmod(0o600)
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+        self.assertFalse(self.stale.exists())
+        self.assertTrue(self.record.read_text().endswith("state=failed\n"))
+
+    def test_temporary_of_a_live_record_lock_holder_is_not_removed(self):
+        # Older helpers serialised on the record lock only. While one holds
+        # it and fills the temporary, recovery must refuse, not unlink.
+        self.command()
+        self.command("healthy")
+        self.stale.write_bytes(b"in progress")
+        self.stale.chmod(0o600)
+        import fcntl
+        with open(self.record, "rb") as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if self.arm64:
+                # bwrap's private namespace shares the host flock table.
+                pass
+            result = self.command(check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("concurrent trial record operation", result.stderr)
+            self.assertTrue(self.stale.exists())
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertFalse(self.stale.exists())
+
+    def test_injected_syscall_failures_never_select_primary(self):
+        if self.arm64:
+            self.skipTest("fault injection uses a host LD_PRELOAD shim")
+        shim_source = Path(self.temporary.name) / "fault.c"
+        shim = Path(self.temporary.name) / "fault.so"
+        shim_source.write_text(FAULT_SHIM)
+        subprocess.run(["cc", "-shared", "-fPIC", "-O2", "-o", str(shim),
+                        str(shim_source), "-ldl"], check=True)
+
+        def faulty(fault, action="decide"):
+            environment = dict(os.environ, LD_PRELOAD=str(shim), ROG5_FAULT=fault)
+            arguments = ([str(self.binary), action, TRIAL, PRIMARY]
+                         if action != "decide" else
+                         [str(self.binary), action, TRIAL, PRIMARY, PRIMARY_HASH,
+                          FALLBACK, FALLBACK_HASH])
+            return subprocess.run(arguments, text=True, capture_output=True,
+                                  env=environment, timeout=5)
+
+        # First publication: rename or directory sync fails -> no primary.
+        for fault in ("renameat2", "fsync-dir"):
+            with self.subTest(fault=fault):
+                for path in (self.record, self.stale):
+                    path.unlink(missing_ok=True)
+                result = faulty(fault)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                # The next ordinary boot recovers whatever was left.
+                decision = self.command().stdout
+                self.assertIn(decision, (PRIMARY + "\n", FALLBACK + "\n"))
+                self.assertFalse(self.stale.exists())
+                self.assertEqual(self.record.stat().st_nlink, 1)
+        # Recovery itself fails: no primary, the temporary stays, and an
+        # unfaulted run then recovers.
+        self.command("healthy")
+        self.stale.write_bytes(b"")
+        self.stale.chmod(0o600)
+        for fault in ("unlinkat", "fsync-dir"):
+            with self.subTest(recovery=fault):
+                result = faulty(fault)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assertTrue(self.record.read_text().endswith("state=healthy\n"))
+                if not self.stale.exists():
+                    self.stale.write_bytes(b"")
+                    self.stale.chmod(0o600)
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertFalse(self.stale.exists())
+
+    def test_publication_never_hard_links_the_record(self):
+        source = SOURCE.read_text()
+        self.assertIsNone(re.search(r"\blinkat\s*\(\s*directory", source),
+                          "publication must not add a second record name")
+        self.assertIn("RENAME_NOREPLACE)", source)
 
     def test_identity_change_and_malformed_state_fail_closed(self):
         self.command()
@@ -320,16 +587,21 @@ class PersistentTrialState(unittest.TestCase):
                     if path.is_symlink() or path.is_file():
                         path.unlink()
 
-    def test_stale_temporary_refuses_publication(self):
+    def test_first_publication_recovers_abandoned_temporary(self):
+        # Reset after the first temporary was created (empty or written) but
+        # before its rename: no record exists yet. Formerly every later boot
+        # refused here and the primary was never selected again.
         boot = self.rog5 / "boot"
         boot.mkdir(mode=0o700)
-        temporary = boot / ".wifi-trial-state.next"
-        temporary.write_text("stale\n")
-        temporary.chmod(0o600)
-        result = self.command(check=False)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(self.record.exists())
-        self.assertEqual(temporary.read_text(), "stale\n")
+        for content in (b"", b"format=rog5-persistent-wifi-trial-v1\n"):
+            with self.subTest(content=content):
+                self.record.unlink(missing_ok=True)
+                self.stale.write_bytes(content)
+                self.stale.chmod(0o600)
+                self.assertEqual(self.command().stdout, PRIMARY + "\n")
+                self.assertFalse(self.stale.exists())
+                self.assertEqual(self.record.stat().st_nlink, 1)
+                self.assertTrue(self.record.read_text().endswith("state=pending\n"))
 
     def test_concurrent_healthy_commit_is_durable_and_at_most_once(self):
         self.command()
