@@ -16,10 +16,10 @@ before; a stream that fails to start now reports the error instead of
 playing silence.
 
 diff --git a/sound/soc/codecs/cs35l45.c b/sound/soc/codecs/cs35l45.c
-index 3a2a58784..fdd7ad212 100644
+index 639db8d5f..c6153546b 100644
 --- a/sound/soc/codecs/cs35l45.c
 +++ b/sound/soc/codecs/cs35l45.c
-@@ -934,15 +934,13 @@ static int cs35l45_asp_set_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
+@@ -942,15 +942,13 @@ static int cs35l45_asp_set_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
  		return -EINVAL;
  	}
  

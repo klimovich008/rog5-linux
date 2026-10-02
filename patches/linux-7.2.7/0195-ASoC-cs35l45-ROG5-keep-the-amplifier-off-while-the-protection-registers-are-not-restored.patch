@@ -9,7 +9,9 @@ amplifier from being enabled again, e.g. for the direct DACPCM path, with a
 partly configured boost (2026-10-02 GPT-6.1-Sol audit, F4).
 
 - A failed restore after a failed setup, a failed DSP start or a DSP stop
-  switches the amplifier off (GLOBAL_ENABLES = 0) at once.
+  switches the amplifier off (GLOBAL_ENABLES = 0) at once; if even that
+  write fails, the amplifier is held in reset (reset GPIO, when the board
+  has one) until the driver is rebound.
 - GLOBAL_EN power-up with prot_regs_set but no running firmware retries
   the restore first and leaves the amplifier off while it fails (a DAPM
   event error is only logged, so the write is skipped, not just failed).
@@ -23,7 +25,7 @@ DSP reload (0151) must behave as before, with no "protection registers not
 restored" in dmesg. The failure path itself needs I2C fault injection.
 
 diff --git a/sound/soc/codecs/cs35l45.c b/sound/soc/codecs/cs35l45.c
-index 431e88aa3..3a2a58784 100644
+index 431e88aa3..639db8d5f 100644
 --- a/sound/soc/codecs/cs35l45.c
 +++ b/sound/soc/codecs/cs35l45.c
 @@ -107,16 +107,34 @@ static int cs35l45_set_cspl_mbox_cmd(struct cs35l45_private *cs35l45,
@@ -61,7 +63,7 @@ index 431e88aa3..3a2a58784 100644
  		regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES,
  			     CS35L45_GLOBAL_EN_MASK);
  
-@@ -201,6 +219,18 @@ static int cs35l45_set_prot_regs(struct cs35l45_private *cs35l45, bool vendor)
+@@ -201,6 +219,26 @@ static int cs35l45_set_prot_regs(struct cs35l45_private *cs35l45, bool vendor)
  	return ret;
  }
  
@@ -72,15 +74,23 @@ index 431e88aa3..3a2a58784 100644
 + */
 +static void cs35l45_prot_restore_failed(struct cs35l45_private *cs35l45)
 +{
++	int ret;
++
 +	dev_err(cs35l45->dev,
 +		"protection registers not restored, switching the amplifier off\n");
-+	regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES, 0);
++	ret = regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES, 0);
++	if (ret && cs35l45->reset_gpio) {
++		/* Out of reach over I2C: hold it in reset until it is rebound */
++		dev_err(cs35l45->dev,
++			"cannot switch the amplifier off (%d), holding it in reset\n", ret);
++		gpiod_set_value_cansleep(cs35l45->reset_gpio, 0);
++	}
 +}
 +
  /* A wedged preloaded DSP is booted again this long after its stream stopped */
  #define CS35L45_DSP_RELOAD_DELAY_MS	500
  
-@@ -229,14 +259,15 @@ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
+@@ -229,14 +267,15 @@ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
  		    cs35l45->amplifier_mode == AMP_MODE_SPK) {
  			ret = cs35l45_set_prot_regs(cs35l45, true);
  			if (ret) {
@@ -99,7 +109,7 @@ index 431e88aa3..3a2a58784 100644
  
  		return ret;
  	case SND_SOC_DAPM_PRE_PMD:
-@@ -250,7 +281,8 @@ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
+@@ -250,7 +289,8 @@ static int cs35l45_dsp_preload_ev(struct snd_soc_dapm_widget *w,
  				return ret;
  		}
  
