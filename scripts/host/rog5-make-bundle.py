@@ -204,8 +204,14 @@ def snapshot(source_repo, work, boot_modules_from):
     need(archive.wait() == 0, 'git archive failed')
     artifacts = Path(source_repo)/'artifacts'
     if artifacts.is_dir():
-        # Untracked pinned tools (android-boot-tools-v1, trial-state helper) the packager reads.
-        (src/'artifacts').symlink_to(artifacts.resolve())
+        # Untracked pinned tools (android-boot-tools-v1, ...) the packager reads. The
+        # trial-state helpers are tracked, so the archive may already have artifacts/.
+        if (src/'artifacts').is_dir():
+            for entry in artifacts.resolve().iterdir():
+                if not (src/'artifacts'/entry.name).exists():
+                    (src/'artifacts'/entry.name).symlink_to(entry.resolve())
+        else:
+            (src/'artifacts').symlink_to(artifacts.resolve())
     boot_modules = None
     if boot_modules_from:
         listing = git('show', boot_modules_from+':configs/production/boot-modules.list').stdout
