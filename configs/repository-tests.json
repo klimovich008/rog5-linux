@@ -1427,6 +1427,32 @@
       ]
     },
     {
+      "path": "scripts/device/test-stage-persistent-service-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "sh",
+        "awk"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/stage-persistent-service-state.sh"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-production-platform-kit.py",
       "interpreter": "python3",
       "tiers": [

@@ -130,6 +130,18 @@ class BootModules(Base):
         self.assertEqual(self.calls(), [f'modprobe -d {tree} {m}' for m in ('videocc_sm8350', 'qcom_iris')])
         self.assertIn('video-modules loaded videocc_sm8350 qcom_iris', kmsg)
 
+    def test_a_missing_or_unreadable_list_fails_the_unit(self):
+        (self.kit/'boot-modules').unlink()
+        code, kmsg = self.load()
+        self.assertEqual(code, 1, kmsg)
+        self.assertIn('FAIL cannot read module list boot-modules', kmsg)
+        self.assertEqual(self.calls(), [])
+
+    def test_an_empty_list_still_passes(self):
+        (self.kit/'video-modules').write_text('# nothing for this kernel\n')
+        code, kmsg = self.load('video-modules')
+        self.assertEqual(code, 0, kmsg)
+
     def test_unknown_list_is_refused(self):
         code, kmsg = self.load('../boot-modules')
         self.assertEqual(code, 1)

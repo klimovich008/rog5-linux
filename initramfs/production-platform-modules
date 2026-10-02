@@ -45,6 +45,6 @@ while read -r name params; do
 		log "FAIL modprobe $name"
 		status=1
 	fi
-done <"$kit/$list"
+done <"$kit/$list" || { log "FAIL cannot read module list $list"; exit 1; }
 if [ "$list" = boot-modules ]; then log "loaded$loaded"; else log "$list loaded$loaded"; fi
 exit "$status"
