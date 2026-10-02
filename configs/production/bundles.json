@@ -555,6 +555,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k116-d15-261002c",
+      "role": "main",
+      "kernel": "k116",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k116",
+      "manifest_sha256": "5d2263ac628ebf676fa1918c8e061eb572fa044afe42687c27da9cb2ab6cc598",
+      "package": "package-main-k116-d15-261002c",
+      "source_commit": "5aa826579d36",
+      "changes": "k116 RAM trial wrapper, spare / E1 repeat (same content as main-k116-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
