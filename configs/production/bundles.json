@@ -141,6 +141,16 @@
       "source_commit": "361a3338f470",
       "source_dirty": false,
       "changes": ""
+    },
+    "k123": {
+      "build": "rog5-kernel-7.2.7-build-r123",
+      "release": "7.2.7-rog5-k123",
+      "date": "2026-10-02",
+      "series": "162 patches, 0001-0211",
+      "image_sha256": "5547a2190d46b160a6c1e2001478bf1ccb3da8b2d33a1fe59c3dd3ec2d9c0283",
+      "source_commit": "c3d7fa2cdf4f",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -715,6 +725,22 @@
       "package": "package-main-k122-d15-261002e",
       "source_commit": "7b9bb3321f0d",
       "changes": "k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
+    },
+    {
+      "name": "main-k123-d15-261002a",
+      "role": "main",
+      "kernel": "k123",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k123",
+      "manifest_sha256": "140991f1fafcc2f5fa53cb41220e70dac61d8d81d4e04f900c217f75fa176896",
+      "package": "package-main-k123-d15-261002a",
+      "source_commit": "c3d7fa2cdf4f",
+      "changes": "k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off)",
       "status": "built",
       "healthy": "unknown",
       "installed": null,
