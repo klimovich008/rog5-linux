@@ -121,6 +121,16 @@
       "source_commit": "0f9d70b49dc8",
       "source_dirty": false,
       "changes": "k115 + 0163-0168: SM8350 OEM iris platform data (SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches, UBWC switch), compliance, encoder bring-up markers, gen1 property packet sizing, stock Iris2 power off/on order with OPP release, held-core containment"
+    },
+    "k117": {
+      "build": "rog5-kernel-7.2.7-build-r117",
+      "release": "7.2.7-rog5-k117",
+      "date": "2026-10-02",
+      "series": "134 patches, 0001-0171",
+      "image_sha256": "74dc300c2d3685366c76b4b7f3900fef2bd824cba034e7a510a17a558a58dbef",
+      "source_commit": "553ca1553fa8",
+      "source_dirty": false,
+      "changes": "k116 + 0169-0171: iris probe publication race, module pin while firmware runs (firmware_unload), fatal-error PM guard, PM reference across scaling; SM8350 stock-sized DPBs (VP9), luma 512, +25 % VP9/HEVC input, stock_buf_counts switch; enc_stop_before/marker_delay_ms/dpb_pad_kib"
     }
   },
   "bundles": [
@@ -599,6 +609,22 @@
       "package": "package-main-k116-d15-261002e",
       "source_commit": "a84042f1605b",
       "changes": "hardware video decode: Iris on SM8350 (H.264/HEVC, encoder hidden, VP9 off); k116 = k113 + 0154-0168",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
+    },
+    {
+      "name": "main-k117-d15-261002a",
+      "role": "main",
+      "kernel": "k117",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k117",
+      "manifest_sha256": "0ec5127f344c7020f55ccc458f7fafd3e9742ee32944a874605a45ddaa51d4f0",
+      "package": "package-main-k117-d15-261002a",
+      "source_commit": "553ca1553fa8",
+      "changes": "TRIAL video round 4 (F1 regression + safe reload): k116 + 0169-0171 (iris probe publication race fixed, module pinned while firmware runs + firmware_unload, PM fixes; SM8350 stock-sized DPBs for VP9, luma 512, +25 % VP9/HEVC input; stock_buf_counts/enc_stop_before/marker_delay_ms/dpb_pad_kib knobs); d15 unchanged",
       "status": "built",
       "healthy": "unknown",
       "installed": null,
