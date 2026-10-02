@@ -1,0 +1,862 @@
+From b88c0eac1ec35ebd2b45a695500d8bb120c81e3f Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol (Codex CLI)" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:15:04 +0200
+Subject: [PATCH] Add Qualcomm Iris/Venus video-engine monitoring
+
+Discover V4L2 nodes by platform driver, group them by codec device, and sample runtime-PM residency in the refresh worker. Add a device page with a busy graph, runtime state, available decoder/encoder nodes and readable process users.
+---
+ data/resources/resources.gresource.xml |   1 +
+ data/resources/ui/pages/video.ui       |  68 ++++++
+ po/POTFILES.in                         |   2 +
+ src/ui/pages/mod.rs                    |  10 +-
+ src/ui/pages/video.rs                  | 248 +++++++++++++++++++
+ src/ui/window.rs                       |  45 ++++
+ src/utils/mod.rs                       |   1 +
+ src/utils/video.rs                     | 315 +++++++++++++++++++++++++
+ 8 files changed, 686 insertions(+), 4 deletions(-)
+ create mode 100644 data/resources/ui/pages/video.ui
+ create mode 100644 src/ui/pages/video.rs
+ create mode 100644 src/utils/video.rs
+
+diff --git a/data/resources/resources.gresource.xml b/data/resources/resources.gresource.xml
+index b4f4247..6cf343d 100644
+--- a/data/resources/resources.gresource.xml
++++ b/data/resources/resources.gresource.xml
+@@ -58,6 +58,7 @@
+     <file compressed="true" preprocess="xml-stripblanks">ui/pages/network.ui</file>
+     <file compressed="true" preprocess="xml-stripblanks">ui/pages/npu.ui</file>
+     <file compressed="true" preprocess="xml-stripblanks">ui/pages/processes.ui</file>
++    <file compressed="true" preprocess="xml-stripblanks">ui/pages/video.ui</file>
+     <file compressed="true" preprocess="xml-stripblanks" alias="shortcuts-dialog.ui">ui/shortcuts.ui</file>
+     <file compressed="true" preprocess="xml-stripblanks">ui/widgets/application_name_cell.ui</file>
+     <file compressed="true" preprocess="xml-stripblanks">ui/widgets/double_graph_box.ui</file>
+diff --git a/data/resources/ui/pages/video.ui b/data/resources/ui/pages/video.ui
+new file mode 100644
+index 0000000..f763c31
+--- /dev/null
++++ b/data/resources/ui/pages/video.ui
+@@ -0,0 +1,68 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <template class="ResVideo" parent="AdwBin">
++    <property name="child">
++      <object class="GtkScrolledWindow">
++        <child>
++          <object class="AdwClamp">
++            <property name="maximum-size">768</property>
++            <child>
++              <object class="GtkBox">
++                <property name="margin-top">24</property>
++                <property name="margin-bottom">24</property>
++                <property name="margin-start">16</property>
++                <property name="margin-end">16</property>
++                <property name="spacing">24</property>
++                <property name="orientation">vertical</property>
++                <property name="hexpand">true</property>
++                <property name="valign">start</property>
++                <property name="vexpand">true</property>
++                <child>
++                  <object class="AdwPreferencesGroup">
++                    <property name="title" translatable="yes">Usage</property>
++                    <child>
++                      <object class="ResGraphBox" id="busy"/>
++                    </child>
++                  </object>
++                </child>
++                <child>
++                  <object class="AdwPreferencesGroup">
++                    <property name="title" translatable="yes">Properties</property>
++                    <child>
++                      <object class="AdwActionRow" id="state">
++                        <property name="title" translatable="yes">State</property>
++                        <style>
++                          <class name="property"/>
++                        </style>
++                        <property name="subtitle-selectable">true</property>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="AdwActionRow" id="codecs">
++                        <property name="title" translatable="yes">Codecs</property>
++                        <style>
++                          <class name="property"/>
++                        </style>
++                        <property name="subtitle-selectable">true</property>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="AdwActionRow" id="users">
++                        <property name="title" translatable="yes">Current users</property>
++                        <style>
++                          <class name="property"/>
++                        </style>
++                        <property name="subtitle-selectable">true</property>
++                        <property name="tooltip-text" translatable="yes">Processes with an open video node; only readable file descriptors are shown</property>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++    </property>
++  </template>
++</interface>
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index 0d7ee78..21170e0 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -18,6 +18,7 @@ data/resources/ui/pages/memory.ui
+ data/resources/ui/pages/network.ui
+ data/resources/ui/pages/npu.ui
+ data/resources/ui/pages/processes.ui
++data/resources/ui/pages/video.ui
+ data/resources/ui/shortcuts.ui
+ data/resources/ui/window.ui
+ 
+@@ -36,6 +37,7 @@ src/ui/pages/mod.rs
+ src/ui/pages/network.rs
+ src/ui/pages/processes/mod.rs
+ src/ui/pages/processes/process_entry.rs
++src/ui/pages/video.rs
+ src/ui/window.rs
+ src/utils/app.rs
+ src/utils/battery.rs
+diff --git a/src/ui/pages/mod.rs b/src/ui/pages/mod.rs
+index 7d15025..497df57 100644
+--- a/src/ui/pages/mod.rs
++++ b/src/ui/pages/mod.rs
+@@ -13,16 +13,18 @@ pub mod memory;
+ pub mod network;
+ pub mod npu;
+ pub mod processes;
++pub mod video;
+ 
+ const APPLICATIONS_PRIMARY_ORD: u32 = 0;
+ const PROCESSES_PRIMARY_ORD: u32 = 1;
+ const CPU_PRIMARY_ORD: u32 = 2;
+ const MEMORY_PRIMARY_ORD: u32 = 3;
+ const GPU_PRIMARY_ORD: u32 = 4;
+-const NPU_PRIMARY_ORD: u32 = 5;
+-const DRIVE_PRIMARY_ORD: u32 = 6;
+-const NETWORK_PRIMARY_ORD: u32 = 7;
+-const BATTERY_PRIMARY_ORD: u32 = 8;
++const VIDEO_PRIMARY_ORD: u32 = 5;
++const NPU_PRIMARY_ORD: u32 = 6;
++const DRIVE_PRIMARY_ORD: u32 = 7;
++const NETWORK_PRIMARY_ORD: u32 = 8;
++const BATTERY_PRIMARY_ORD: u32 = 9;
+ 
+ pub static NICE_TO_LABEL: LazyLock<HashMap<Niceness, (String, u32)>> = LazyLock::new(|| {
+     let mut hash_map = HashMap::new();
+diff --git a/src/ui/pages/video.rs b/src/ui/pages/video.rs
+new file mode 100644
+index 0000000..04c4267
+--- /dev/null
++++ b/src/ui/pages/video.rs
+@@ -0,0 +1,248 @@
++use adw::{prelude::*, subclass::prelude::*};
++use gtk::glib;
++use log::trace;
++
++use crate::config::PROFILE;
++use crate::i18n::i18n;
++use crate::utils::app::AppsContext;
++use crate::utils::video::{RuntimeCounters, VideoEngine, VideoEngineData};
++
++pub const TAB_ID_PREFIX: &str = "video";
++
++mod imp {
++    use std::cell::{Cell, RefCell};
++
++    use crate::ui::{pages::VIDEO_PRIMARY_ORD, widgets::graph_box::ResGraphBox};
++
++    use super::*;
++
++    use gtk::{
++        CompositeTemplate,
++        gio::{Icon, ThemedIcon},
++        glib::{ParamSpec, Properties, Value},
++    };
++
++    #[derive(CompositeTemplate, Properties)]
++    #[template(resource = "/net/nokyan/Resources/ui/pages/video.ui")]
++    #[properties(wrapper_type = super::ResVideo)]
++    pub struct ResVideo {
++        #[template_child]
++        pub busy: TemplateChild<ResGraphBox>,
++        #[template_child]
++        pub state: TemplateChild<adw::ActionRow>,
++        #[template_child]
++        pub codecs: TemplateChild<adw::ActionRow>,
++        #[template_child]
++        pub users: TemplateChild<adw::ActionRow>,
++
++        pub previous_counters: Cell<Option<RuntimeCounters>>,
++
++        #[property(get)]
++        uses_progress_bar: Cell<bool>,
++
++        #[property(get)]
++        main_graph_color: glib::Bytes,
++
++        #[property(get)]
++        icon: RefCell<Icon>,
++
++        #[property(get, set)]
++        usage: Cell<f64>,
++
++        #[property(get = Self::tab_name, set = Self::set_tab_name, type = glib::GString)]
++        tab_name: Cell<glib::GString>,
++
++        #[property(get = Self::tab_detail_string, set = Self::set_tab_detail_string, type = glib::GString)]
++        tab_detail_string: Cell<glib::GString>,
++
++        #[property(get = Self::tab_usage_string, set = Self::set_tab_usage_string, type = glib::GString)]
++        tab_usage_string: Cell<glib::GString>,
++
++        #[property(get = Self::tab_id, set = Self::set_tab_id, type = glib::GString)]
++        tab_id: Cell<glib::GString>,
++
++        #[property(get)]
++        graph_locked_max_y: Cell<bool>,
++
++        #[property(get)]
++        primary_ord: Cell<u32>,
++
++        #[property(get, set)]
++        secondary_ord: Cell<u32>,
++    }
++
++    impl ResVideo {
++        gstring_getter_setter!(tab_name, tab_detail_string, tab_usage_string, tab_id);
++    }
++
++    impl Default for ResVideo {
++        fn default() -> Self {
++            Self {
++                busy: Default::default(),
++                state: Default::default(),
++                codecs: Default::default(),
++                users: Default::default(),
++                previous_counters: Default::default(),
++                uses_progress_bar: Cell::new(true),
++                main_graph_color: glib::Bytes::from_static(&super::ResVideo::MAIN_GRAPH_COLOR),
++                icon: RefCell::new(ThemedIcon::new("video-x-generic-symbolic").into()),
++                usage: Default::default(),
++                tab_name: Cell::new(glib::GString::from(i18n("Video engine"))),
++                tab_detail_string: Cell::new(glib::GString::new()),
++                tab_id: Cell::new(glib::GString::new()),
++                tab_usage_string: Cell::new(glib::GString::new()),
++                graph_locked_max_y: Cell::new(true),
++                primary_ord: Cell::new(VIDEO_PRIMARY_ORD),
++                secondary_ord: Default::default(),
++            }
++        }
++    }
++
++    #[glib::object_subclass]
++    impl ObjectSubclass for ResVideo {
++        const NAME: &'static str = "ResVideo";
++        type Type = super::ResVideo;
++        type ParentType = adw::Bin;
++
++        fn class_init(klass: &mut Self::Class) {
++            Self::bind_template(klass);
++        }
++
++        // You must call `Widget`'s `init_template()` within `instance_init()`.
++        fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
++            obj.init_template();
++        }
++    }
++
++    impl ObjectImpl for ResVideo {
++        fn constructed(&self) {
++            self.parent_constructed();
++            let obj = self.obj();
++
++            // Devel Profile
++            if PROFILE == "Devel" {
++                obj.add_css_class("devel");
++            }
++        }
++
++        fn properties() -> &'static [ParamSpec] {
++            Self::derived_properties()
++        }
++
++        fn set_property(&self, id: usize, value: &Value, pspec: &ParamSpec) {
++            self.derived_set_property(id, value, pspec);
++        }
++
++        fn property(&self, id: usize, pspec: &ParamSpec) -> Value {
++            self.derived_property(id, pspec)
++        }
++    }
++
++    impl WidgetImpl for ResVideo {}
++    impl BinImpl for ResVideo {}
++}
++
++glib::wrapper! {
++    pub struct ResVideo(ObjectSubclass<imp::ResVideo>)
++        @extends gtk::Widget, adw::Bin,
++        @implements gtk::Buildable, gtk::ConstraintTarget, gtk::Accessible;
++}
++
++impl Default for ResVideo {
++    fn default() -> Self {
++        Self::new()
++    }
++}
++
++impl ResVideo {
++    const MAIN_GRAPH_COLOR: [u8; 3] = [0x91, 0x41, 0xac];
++
++    pub fn new() -> Self {
++        trace!("Creating ResVideo GObject…");
++        glib::Object::new::<Self>()
++    }
++
++    pub fn init(&self, engine: &VideoEngine, secondary_ord: u32) {
++        let imp = self.imp();
++        self.set_secondary_ord(secondary_ord);
++        imp.set_tab_id(&format!("{}-{}", TAB_ID_PREFIX, engine.sysfs_path.display()));
++        imp.set_tab_detail_string(&engine.driver);
++        imp.busy.set_title_label(&i18n("Busy"));
++        imp.busy.set_tooltip(Some(&i18n(
++            "Time runtime-active, including autosuspend delay",
++        )));
++        imp.busy.graph().set_graph_color(
++            Self::MAIN_GRAPH_COLOR[0],
++            Self::MAIN_GRAPH_COLOR[1],
++            Self::MAIN_GRAPH_COLOR[2],
++        );
++    }
++
++    pub fn refresh_page(&self, data: &VideoEngineData, apps: &AppsContext) {
++        let imp = self.imp();
++        let previous = imp.previous_counters.replace(data.counters);
++        let busy = data
++            .counters
++            .zip(previous)
++            .and_then(|(current, previous)| current.busy_since(previous));
++        let busy_string = busy.map_or_else(
++            || i18n("N/A"),
++            |fraction| format!("{} %", (fraction * 100.0).round()),
++        );
++        imp.busy.set_subtitle(&busy_string);
++        imp.busy.graph().push_data_point(busy.unwrap_or(0.0));
++        imp.busy.graph().set_visible(busy.is_some());
++        self.set_usage(busy.unwrap_or(0.0));
++        let state = match data.active {
++            Some(true) => i18n("Active"),
++            Some(false) => i18n("Idle"),
++            None => i18n("N/A"),
++        };
++        imp.state.set_subtitle(&state);
++        self.set_property("tab_usage_string", format!("{busy_string} · {state}"));
++
++        let codecs = data
++            .inner
++            .nodes
++            .iter()
++            .map(|(node, name)| {
++                let role = if name.contains("decoder") {
++                    i18n("Decoder")
++                } else if name.contains("encoder") {
++                    i18n("Encoder")
++                } else {
++                    name.clone()
++                };
++                format!("{role} ({})", node.display())
++            })
++            .collect::<Vec<_>>()
++            .join("\n");
++        imp.codecs.set_subtitle(&glib::markup_escape_text(&codecs));
++
++        let users = data
++            .users
++            .iter()
++            .map(|user| {
++                let name = apps
++                    .apps_iter()
++                    .find(|app| {
++                        app.id.is_some()
++                            && app
++                                .processes_iter(apps)
++                                .any(|process| process.data.pid == user.pid)
++                    })
++                    .map(|app| app.display_name.as_str())
++                    .or_else(|| {
++                        apps.get_process(user.pid)
++                            .map(|process| process.display_name.as_str())
++                    })
++                    .unwrap_or(&user.name);
++                format!("{name} ({})", user.pid)
++            })
++            .collect::<Vec<_>>()
++            .join("\n");
++        imp.users.set_subtitle(&glib::markup_escape_text(
++            &if users.is_empty() { i18n("None detected") } else { users },
++        ));
++    }
++}
+diff --git a/src/ui/window.rs b/src/ui/window.rs
+index 8c3200d..b195ced 100644
+--- a/src/ui/window.rs
++++ b/src/ui/window.rs
+@@ -17,6 +17,7 @@ use crate::ui::pages::applications::ResApplications;
+ use crate::ui::pages::battery::ResBattery;
+ use crate::ui::pages::drive::ResDrive;
+ use crate::ui::pages::processes::ResProcesses;
++use crate::ui::pages::video::ResVideo;
+ use crate::utils::app::AppsContext;
+ use crate::utils::battery::{Battery, BatteryData};
+ use crate::utils::cpu::{self, CpuData};
+@@ -27,6 +28,7 @@ use crate::utils::network::{NetworkData, NetworkInterface};
+ use crate::utils::npu::{Npu, NpuData};
+ use crate::utils::process::{Process, ProcessAction};
+ use crate::utils::settings::SETTINGS;
++use crate::utils::video::VideoEngineData;
+ 
+ use super::pages::applications;
+ use super::pages::gpu::ResGPU;
+@@ -97,6 +99,8 @@ mod imp {
+         #[template_child]
+         pub memory_page: TemplateChild<gtk::StackPage>,
+ 
++        pub video_pages: RefCell<HashMap<PathBuf, adw::ToolbarView>>,
++
+         pub drive_pages: RefCell<HashMap<PathBuf, adw::ToolbarView>>,
+ 
+         pub network_pages: RefCell<HashMap<PathBuf, adw::ToolbarView>>,
+@@ -121,6 +125,7 @@ mod imp {
+             let receiver = RefCell::new(Some(r));
+ 
+             Self {
++                video_pages: RefCell::default(),
+                 drive_pages: RefCell::default(),
+                 network_pages: RefCell::default(),
+                 battery_pages: RefCell::default(),
+@@ -214,6 +219,7 @@ struct RefreshData {
+     cpu_data: Option<CpuData>,
+     mem_data: Option<Result<MemoryData>>,
+     gpu_data: Vec<GpuData>,
++    video_data: Vec<VideoEngineData>,
+     npu_data: Vec<NpuData>,
+     drive_paths: Vec<PathBuf>,
+     drive_data: Vec<DriveData>,
+@@ -547,6 +553,8 @@ impl MainWindow {
+             npu_data.push(data);
+         }
+ 
++        let video_data = VideoEngineData::collect();
++
+         let drive_paths = if ARGS.disable_drive_monitoring {
+             Vec::new()
+         } else {
+@@ -607,6 +615,7 @@ impl MainWindow {
+             cpu_data,
+             mem_data,
+             gpu_data,
++            video_data,
+             npu_data,
+             drive_paths,
+             drive_data,
+@@ -633,6 +642,7 @@ impl MainWindow {
+             cpu_data,
+             mem_data,
+             gpu_data,
++            video_data,
+             npu_data,
+             drive_paths,
+             drive_data,
+@@ -759,6 +769,11 @@ impl MainWindow {
+             }
+         }
+ 
++        /*
++         *  Video engines
++         */
++        self.refresh_video_pages(&video_data, &apps_context);
++
+         /*
+          *  Drives
+          */
+@@ -925,6 +940,36 @@ impl MainWindow {
+         imp.content_stack.remove(page);
+     }
+ 
++    fn refresh_video_pages(&self, data: &[VideoEngineData], apps: &AppsContext) {
++        let mut pages = self.imp().video_pages.borrow_mut();
++        let mut secondary_ord = pages
++            .values()
++            .filter_map(adw::ToolbarView::content)
++            .map(|page| page.property::<u32>("secondary_ord"))
++            .max()
++            .unwrap_or_default();
++        pages.retain(|path, page| {
++            if data.iter().any(|engine| engine.inner.sysfs_path == *path) {
++                true
++            } else {
++                self.remove_page(page);
++                false
++            }
++        });
++        for engine in data {
++            let toolbar = pages
++                .entry(engine.inner.sysfs_path.clone())
++                .or_insert_with(|| {
++                    secondary_ord = secondary_ord.saturating_add(1);
++                    let page = ResVideo::new();
++                    page.init(&engine.inner, secondary_ord);
++                    self.add_page(&page, &engine.inner.driver, &i18n("Video engine"))
++                });
++            let page = toolbar.content().and_downcast::<ResVideo>().unwrap();
++            page.refresh_page(engine, apps);
++        }
++    }
++
+     /// Create page for every drive that is shown
+     fn refresh_drive_pages(&self, mut paths: Vec<PathBuf>, drive_data: &[DriveData]) {
+         trace!("Refreshing drive pages…");
+diff --git a/src/utils/mod.rs b/src/utils/mod.rs
+index 87a859f..4b9d6c4 100644
+--- a/src/utils/mod.rs
++++ b/src/utils/mod.rs
+@@ -20,6 +20,7 @@ pub mod pci;
+ pub mod process;
+ pub mod settings;
+ pub mod units;
++pub mod video;
+ 
+ const FLATPAK_SPAWN: &str = "/usr/bin/flatpak-spawn";
+ 
+diff --git a/src/utils/video.rs b/src/utils/video.rs
+new file mode 100644
+index 0000000..082fc9f
+--- /dev/null
++++ b/src/utils/video.rs
+@@ -0,0 +1,315 @@
++use std::{
++    collections::{BTreeMap, HashSet},
++    path::{Path, PathBuf},
++};
++
++use super::read_parsed;
++
++const PATH_VIDEO4LINUX: &str = "/sys/class/video4linux";
++const DRIVER_NAMES: &[&str] = &["qcom-iris", "qcom-venus"];
++
++#[derive(Debug, Clone)]
++pub struct VideoEngine {
++    pub sysfs_path: PathBuf,
++    pub driver: String,
++    /// Device node and V4L2 name (e.g. qcom-iris-decoder).
++    pub nodes: Vec<(PathBuf, String)>,
++}
++
++#[derive(Debug, Clone, Copy)]
++pub struct RuntimeCounters {
++    active: u64,
++    suspended: u64,
++}
++
++impl RuntimeCounters {
++    /// Runtime-PM residency, not codec throughput or separate encode/decode utilization.
++    pub fn busy_since(self, previous: Self) -> Option<f64> {
++        let active = self.active.checked_sub(previous.active)?;
++        let suspended = self.suspended.checked_sub(previous.suspended)?;
++        let total = u128::from(active) + u128::from(suspended);
++        (total > 0).then(|| active as f64 / total as f64)
++    }
++}
++
++#[derive(Debug)]
++pub struct VideoUser {
++    pub pid: i32,
++    pub name: String,
++}
++
++#[derive(Debug)]
++pub struct VideoEngineData {
++    pub inner: VideoEngine,
++    pub active: Option<bool>,
++    pub counters: Option<RuntimeCounters>,
++    pub users: Vec<VideoUser>,
++}
++
++impl VideoEngine {
++    fn discover(class_path: &Path) -> Vec<Self> {
++        let Ok(entries) = std::fs::read_dir(class_path) else {
++            return Vec::new();
++        };
++        let mut engines: BTreeMap<PathBuf, Self> = BTreeMap::new();
++        for entry in entries.flatten() {
++            let node_name = entry.file_name().to_string_lossy().into_owned();
++            if !node_name.strip_prefix("video").is_some_and(|suffix| {
++                !suffix.is_empty() && suffix.bytes().all(|byte| byte.is_ascii_digit())
++            }) {
++                continue;
++            }
++            let Ok(device) = std::fs::canonicalize(entry.path().join("device")) else {
++                continue;
++            };
++            // Venus can expose nodes on a child of the platform codec device.
++            let Some((path, driver)) = device.ancestors().find_map(|path| {
++                let driver = std::fs::read_link(path.join("driver")).ok()?;
++                let driver = driver.file_name()?.to_str()?;
++                DRIVER_NAMES
++                    .contains(&driver)
++                    .then(|| (path.to_path_buf(), driver.to_string()))
++            }) else {
++                continue;
++            };
++            let name = read_parsed::<String>(entry.path().join("name")).unwrap_or_default();
++            engines
++                .entry(path.clone())
++                .or_insert_with(|| Self {
++                    sysfs_path: path,
++                    driver,
++                    nodes: Vec::new(),
++                })
++                .nodes
++                .push((Path::new("/dev").join(node_name), name));
++        }
++        engines
++            .into_values()
++            .map(|mut engine| {
++                engine.nodes.sort();
++                engine
++            })
++            .collect()
++    }
++}
++
++impl VideoEngineData {
++    pub fn collect() -> Vec<Self> {
++        let mut data: Vec<_> = VideoEngine::discover(Path::new(PATH_VIDEO4LINUX))
++            .into_iter()
++            .map(Self::new)
++            .collect();
++        if !data.is_empty() {
++            read_users(&mut data, Path::new("/proc"));
++        }
++        data
++    }
++
++    fn new(inner: VideoEngine) -> Self {
++        let power = inner.sysfs_path.join("power");
++        let active = read_parsed::<String>(power.join("runtime_status"))
++            .ok()
++            .and_then(|status| match status.as_str() {
++                "active" => Some(true),
++                "suspended" => Some(false),
++                _ => None,
++            });
++        let counters = read_parsed::<u64>(power.join("runtime_active_time"))
++            .ok()
++            .zip(read_parsed::<u64>(power.join("runtime_suspended_time")).ok())
++            .map(|(active, suspended)| RuntimeCounters { active, suspended });
++        Self {
++            inner,
++            active,
++            counters,
++            users: Vec::new(),
++        }
++    }
++}
++
++/// Scan once for all engines. Inaccessible or disappearing processes/fds are normal.
++fn read_users(data: &mut [VideoEngineData], proc_path: &Path) {
++    let Ok(processes) = std::fs::read_dir(proc_path) else {
++        return;
++    };
++    let nodes: BTreeMap<_, _> = data
++        .iter()
++        .enumerate()
++        .flat_map(|(index, engine)| {
++            engine
++                .inner
++                .nodes
++                .iter()
++                .map(move |(node, _)| (node.clone(), index))
++        })
++        .collect();
++    for process in processes.flatten() {
++        let Ok(pid) = process.file_name().to_string_lossy().parse::<i32>() else {
++            continue;
++        };
++        let Ok(fds) = std::fs::read_dir(process.path().join("fd")) else {
++            continue;
++        };
++        let engines: HashSet<_> = fds
++            .flatten()
++            .filter_map(|fd| std::fs::read_link(fd.path()).ok())
++            .filter_map(|target| nodes.get(&target).copied())
++            .collect();
++        if engines.is_empty() {
++            continue;
++        }
++        let name = read_parsed::<String>(process.path().join("comm"))
++            .ok()
++            .filter(|name| !name.is_empty())
++            .or_else(|| {
++                std::fs::read_link(process.path().join("exe"))
++                    .ok()?
++                    .file_name()
++                    .map(|name| name.to_string_lossy().into_owned())
++            })
++            .unwrap_or_else(|| pid.to_string());
++        for index in engines {
++            data[index].users.push(VideoUser {
++                pid,
++                name: name.clone(),
++            });
++        }
++    }
++    for engine in data {
++        engine.users.sort_by_key(|user| user.pid);
++    }
++}
++
++#[cfg(test)]
++mod test {
++    use super::*;
++    use std::os::unix::fs::symlink;
++
++    struct Fixture(PathBuf);
++
++    impl Fixture {
++        fn new(name: &str) -> Self {
++            let path = std::env::temp_dir()
++                .join(format!("resources-video-test-{}-{name}", std::process::id()));
++            std::fs::create_dir_all(&path).unwrap();
++            Self(path)
++        }
++
++        fn node(&self, node: &str, device: &str, driver: &str, name: &str) -> PathBuf {
++            let device = self.0.join(device);
++            std::fs::create_dir_all(device.join("power")).unwrap();
++            if !device.join("driver").is_symlink() {
++                symlink(
++                    format!("/sys/bus/platform/drivers/{driver}"),
++                    device.join("driver"),
++                )
++                .unwrap();
++            }
++            let path = self.0.join("class").join(node);
++            std::fs::create_dir_all(&path).unwrap();
++            symlink(&device, path.join("device")).unwrap();
++            std::fs::write(path.join("name"), name).unwrap();
++            device
++        }
++    }
++
++    impl Drop for Fixture {
++        fn drop(&mut self) {
++            let _ = std::fs::remove_dir_all(&self.0);
++        }
++    }
++
++    #[test]
++    fn runtime_residency_and_counter_reset() {
++        let previous = RuntimeCounters {
++            active: 100,
++            suspended: 900,
++        };
++        for (active, suspended, expected) in [
++            (350, 1650, Some(0.25)),
++            (100, 1900, Some(0.0)),
++            (1100, 900, Some(1.0)),
++            (100, 900, None), // no elapsed time
++            (0, 0, None), // counters reset
++            (200, 0, None), // suspended counter reset
++        ] {
++            assert_eq!(
++                RuntimeCounters { active, suspended }.busy_since(previous),
++                expected,
++            );
++        }
++    }
++
++    #[test]
++    fn discovery_groups_nodes_and_reads_platform_power() {
++        let fixture = Fixture::new("discovery");
++        let iris = fixture.node(
++            "video0", "aa00000.video-codec", "qcom-iris", "qcom-iris-decoder",
++        );
++        fixture.node(
++            "video1", "aa00000.video-codec", "qcom-iris", "qcom-iris-encoder",
++        );
++        let venus = fixture.node(
++            "video2", "bb00000.video-codec", "qcom-venus", "qcom-venus-decoder",
++        );
++        fixture.node("video3", "camera", "uvcvideo", "USB Camera");
++        // A Venus node with an intermediate child device still belongs to the platform engine.
++        std::fs::remove_file(fixture.0.join("class/video2/device")).unwrap();
++        std::fs::create_dir_all(venus.join("decoder")).unwrap();
++        symlink(venus.join("decoder"), fixture.0.join("class/video2/device")).unwrap();
++        std::fs::write(iris.join("power/runtime_status"), "active\n").unwrap();
++        std::fs::write(iris.join("power/runtime_active_time"), "123\n").unwrap();
++        std::fs::write(iris.join("power/runtime_suspended_time"), "456\n").unwrap();
++        let mut engines = VideoEngine::discover(&fixture.0.join("class")).into_iter();
++        let data = VideoEngineData::new(engines.next().unwrap());
++        assert_eq!(data.inner.sysfs_path, iris);
++        assert_eq!(data.inner.nodes.len(), 2);
++        assert_eq!(
++            data.inner.nodes[0],
++            (PathBuf::from("/dev/video0"), "qcom-iris-decoder".into()),
++        );
++        assert_eq!(data.active, Some(true));
++        assert_eq!(data.counters.unwrap().active, 123);
++        std::fs::write(iris.join("power/runtime_status"), "suspended\n").unwrap();
++        assert_eq!(VideoEngineData::new(data.inner).active, Some(false));
++        let data = VideoEngineData::new(engines.next().unwrap());
++        assert_eq!(data.inner.sysfs_path, venus);
++        assert_eq!(data.active, None);
++        assert!(data.counters.is_none());
++        assert!(engines.next().is_none());
++        assert!(VideoEngine::discover(&fixture.0.join("missing")).is_empty());
++    }
++
++    #[test]
++    fn users_are_best_effort_and_deduplicated_per_engine() {
++        let fixture = Fixture::new("users");
++        fixture.node("video0", "iris", "qcom-iris", "qcom-iris-decoder");
++        fixture.node("video1", "iris", "qcom-iris", "qcom-iris-encoder");
++        fixture.node("video2", "venus", "qcom-venus", "qcom-venus-decoder");
++        let proc = fixture.0.join("proc");
++        std::fs::create_dir_all(proc.join("42/fd")).unwrap();
++        std::fs::create_dir_all(proc.join("43")).unwrap(); // no readable fd directory
++        std::fs::create_dir_all(proc.join("self/fd")).unwrap(); // not a PID
++        std::fs::write(proc.join("42/comm"), "mpv\n").unwrap();
++        for (fd, target) in [
++            ("0", "/dev/video0"),
++            ("1", "/dev/video1"),
++            ("2", "/dev/video2"),
++            ("3", "/dev/null"),
++        ] {
++            symlink(target, proc.join("42/fd").join(fd)).unwrap();
++        }
++        std::fs::write(proc.join("42/fd/4"), "not a symlink").unwrap();
++        let mut data: Vec<_> = VideoEngine::discover(&fixture.0.join("class"))
++            .into_iter()
++            .map(VideoEngineData::new)
++            .collect();
++        read_users(&mut data, &proc);
++        assert_eq!(data.len(), 2);
++        for engine in data {
++            assert_eq!(engine.users.len(), 1);
++            assert_eq!(engine.users[0].pid, 42);
++            assert_eq!(engine.users[0].name, "mpv");
++        }
++    }
++}
+-- 
+2.50.1
+

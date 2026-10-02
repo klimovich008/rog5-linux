@@ -1,9 +1,10 @@
 # resources (GNOME Resources) for the ROG Phone 5
 
 Patched build of [Resources](https://gitlab.gnome.org/GNOME/Incubator/resources)
-1.10.2 so it shows the SM8350 GPU and CPU correctly and does not list the
-firmware UFS LUNs as drives. `PKGBUILD` is the Arch Linux packaging (1.10.2-1)
-with `aarch64` added, `pkgrel=1.2` and two patches.
+1.10.2 so it shows the SM8350 GPU and CPU correctly, hides unused firmware
+UFS LUNs and monitors the separate Qualcomm Iris video engine. `PKGBUILD` is
+the Arch Linux packaging (1.10.2-1) with `aarch64` added, `pkgrel=1.3` and
+three patches.
 
 ## What the patches do
 
@@ -48,15 +49,63 @@ with `aarch64` added, `pkgrel=1.2` and two patches.
     I/O, while the unmounted read-only LUNs `sdb`..`sdg` (8 MB x3, 2.3 GB,
     32 MB x2) are hidden. Unit tests use the phone's mount layout.
 
+`0003-qualcomm-video-engine.patch` (on top of 0001 and 0002):
+
+- Adds a **Video engine** sidebar entry beside the GPU, with a busy-percentage
+  graph, **Active/Idle** state, **Codecs** (decoder/encoder nodes present) and
+  **Current users** (application/process names and PIDs).
+- Discovers `/sys/class/video4linux/video*/device/driver` named `qcom-iris` or
+  `qcom-venus`, including a platform driver on an ancestor device. Groups the
+  nodes by their codec device, so decoder and encoder share one page. The
+  entry appears only when matching nodes exist and disappears when removed.
+  Node roles come from the V4L2 `name`, e.g. `qcom-iris-decoder`; the Codecs row
+  lists available node roles, not supported formats or enabled codec sessions.
+- Reads the codec device's `power/runtime_status`, `runtime_active_time` and
+  `runtime_suspended_time`. On SM8350 this is
+  `/sys/bus/platform/devices/aa00000.video-codec/power/`. Busy percentage is
+  `100 × Δactive / (Δactive + Δsuspended)` between refreshes. It measures
+  runtime-PM residency, including autosuspend delay, rather than throughput or
+  separate encode/decode utilization. State is Active for `active`, Idle for
+  `suspended`; transient or unreadable states show N/A. The first sample,
+  missing/reset counters or a zero-length interval show N/A for busy usage.
+- Scans readable `/proc/<pid>/fd` symlinks for `/dev/videoN` once per refresh,
+  in the existing background worker. Uses Resources' application names when
+  available, then process names, with `/proc/<pid>/comm`/`exe` as fallbacks.
+  Multiple matching fds count once per process per engine. Permission errors
+  and processes exiting during a scan are skipped; **None detected** is best
+  effort. The scan only reads symlinks and never opens a video device or wakes
+  it to probe formats. No root or privileged helper is required.
+
+## Validation (host, 2026-10-02)
+
+The series applies to upstream `v1.10.2`. The new data reader compiles in a
+standalone test harness using cached Rust 1.75 and a standard-library
+replacement for `read_parsed`; all three tests pass (runtime counter deltas
+and resets, Iris/Venus grouping and power discovery, best-effort fd scanning
+and deduplication). The complete GResource bundle compiles and the new UI XML
+passes `xmllint`.
+
+**The full application was not compiled.** `cargo check --locked` could not
+run (`cargo: command not found`); this host also lacks GTK4/libadwaita
+development packages and the required Rust ≥1.85 toolchain. The standalone tests do not
+validate GTK/Rust integration. `makepkg` on the phone builds that integration
+and runs the included tests. No phone access or installation was performed.
+
 ## Rebuild (on the phone, as the `phone` user, never as root)
 
     pacman -S --needed rust appstream meson git       # as root, once
     cd /home/phone/build/resources/pkg                # copy of this directory
-    makepkg -f                                        # runs the unit tests too
-    sudo pacman -U resources-1.10.2-1.2-aarch64.pkg.tar.*
+    makepkg -f                                        # as phone; runs the unit tests too
+    sudo pacman -U resources-1.10.2-1.3-aarch64.pkg.tar.*
+
+Restart Resources after installing. On Iris/Venus systems the Video engine
+entry should appear after the first refresh, with a busy graph after the
+second. During hardware video use it should show Active and any readable
+processes holding a node; after autosuspend it should settle to Idle and 0%.
+Systems with no matching V4L2 device get no entry.
 
 `/etc/pacman.conf` has `resources` in `IgnorePkg` (next to `phoc`) so a repo
 update does not replace it. To move to a new upstream version, bump `pkgver`,
 take the new upstream b2sum from the Arch packaging repo
 (gitlab.archlinux.org/archlinux/packaging/packages/resources), and refresh the
-patch.
+patch series and checksums.
