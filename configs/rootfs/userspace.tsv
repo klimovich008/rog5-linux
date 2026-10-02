@@ -117,6 +117,8 @@ file	initramfs/production-audio-route	/usr/local/libexec/rog5-audio-route	0755
 file	configs/wireplumber/50-rog5-speakers.conf	/etc/wireplumber/wireplumber.conf.d/50-rog5-speakers.conf	0644
 file	configs/udev/81-rog5-proximity.rules	/etc/udev/rules.d/81-rog5-proximity.rules	0644
 file	configs/udev/81-rog5-ssc-accel.rules	/etc/udev/rules.d/81-rog5-ssc-accel.rules	0644
+file	configs/udev/72-rog5-v4l2-names.rules	/etc/udev/rules.d/72-rog5-v4l2-names.rules	0644
+conf	configs/chromium/chromium-flags.conf	/etc/chromium-flags.conf	0644
 file	configs/drirc/drirc	/etc/drirc	0644
 
 # Network, firewall, hotspot, SSH, health endpoint

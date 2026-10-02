@@ -1,0 +1,7 @@
+# /etc/udev/rules.d/72-rog5-v4l2-names.rules
+# ChromeOS-style names for the Iris (and Venus) V4L2 codec nodes: Chromium's
+# V4L2 video decoder/encoder opens /dev/video-dec<N> / /dev/video-enc<N>.
+SUBSYSTEM=="video4linux", ATTR{name}=="qcom-iris-decoder", SYMLINK+="video-dec0"
+SUBSYSTEM=="video4linux", ATTR{name}=="qcom-iris-encoder", SYMLINK+="video-enc0"
+SUBSYSTEM=="video4linux", ATTR{name}=="qcom-venus-decoder", SYMLINK+="video-dec0"
+SUBSYSTEM=="video4linux", ATTR{name}=="qcom-venus-encoder", SYMLINK+="video-enc0"
