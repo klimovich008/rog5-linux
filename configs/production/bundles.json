@@ -745,6 +745,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k123-d15-261002b",
+      "role": "main",
+      "kernel": "k123",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k123",
+      "manifest_sha256": "29236255e245d5cedb6fbb14a168de14945275a4e5c11c6dd316e2482b6e21a3",
+      "package": "package-main-k123-d15-261002b",
+      "source_commit": "8e584ea275a4",
+      "changes": "k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }

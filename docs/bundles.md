@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k123-d15-261002b` | main | k123 | d15 | built | unknown |  | k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off) |  |
 | `main-k123-d15-261002a` | main | k123 | d15 | built | unknown |  | k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off) |  |
 | `main-k122-d15-261002e` | main | k122 | d15 | built | unknown |  | k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress |  |
 | `main-k122-d15-261002d` | main | k122 | d15 | built | unknown |  | k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress |  |
