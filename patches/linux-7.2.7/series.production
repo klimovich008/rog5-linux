@@ -161,3 +161,4 @@
 0203-drm-msm-dp-opt-in-serialized-PCON-AHB-reset.patch
 0210-media-iris-abort-failed-gen1-sessions-and-contain-teardown-timeouts.patch
 0211-media-iris-flush-all-ports-on-normal-gen1-capture-streamoff.patch
+0212-media-iris-ROG5-SM8350-VP9-stock-sized-display-buffers-and-their-extradata.patch

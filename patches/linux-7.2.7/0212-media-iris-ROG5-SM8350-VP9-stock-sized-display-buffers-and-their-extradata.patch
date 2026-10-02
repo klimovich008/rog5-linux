@@ -1,0 +1,120 @@
+From: ROG5 native Linux project
+Subject: [PATCH] media: iris: ROG5 SM8350 VP9 stock-sized display buffers and their extradata
+
+The k123 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1) failed with
+HFI_ERR_SESSION_BAD_POINTER on every display (OUTPUT2) FILL_BUFFER; the
+DPBs were accepted. Stock (ASUS msm_vidc, plain COLOR_FMT_NV12) allocates
+display buffers with stride and luma scanlines aligned to 512 and chroma
+scanlines to 256 (0x480000 at 1920x1088, we gave 0x2fd000) and gives each
+display buffer its own 16 KiB extradata buffer.
+
+For VP9 on the OEM firmware only: allocate the stock size (layout and
+V4L2 format otherwise unchanged) and, with vp9_dpb_extra, attach one
+16 KiB extradata slot per display buffer from the same allocation as the
+shared DPB extradata (slot 0). If frames still fail or come out garbled,
+the firmware also needs stock's 2048 stride layout.
+
+---
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index 6289cde30be2..447849fc781b 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -82,6 +82,22 @@ static u32 iris_yuv_buffer_size_nv12(struct iris_inst *inst)
+ 	y_plane = y_stride * y_scanlines;
+ 	uv_plane = uv_stride * uv_scanlines;
+ 
++	/*
++	 * ROG5, SM8350 VP9: the OEM firmware rejects display buffers smaller
++	 * than stock's plain-NV12 layout (stride and luma scanlines aligned to
++	 * 512, chroma scanlines to 256): 0x480000 instead of 0x2fd000 at
++	 * 1920x1088. Only the allocation grows; the layout is unchanged.
++	 */
++	if (inst->core->iris_platform_data->oem && inst->domain == DECODER &&
++	    inst->fmt_src->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_VP9) {
++		u32 stride = ALIGN(f->fmt.pix_mp.width, 512);
++
++		return max(ALIGN(y_plane + uv_plane, PIXELS_4K),
++			   ALIGN(stride * ALIGN(f->fmt.pix_mp.height, 512) +
++				 stride * ALIGN((f->fmt.pix_mp.height + 1) >> 1, 256),
++				 PIXELS_4K));
++	}
++
+ 	return ALIGN(y_plane + uv_plane, PIXELS_4K);
+ }
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index c7c4beef98ce..c051744193a8 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -616,11 +616,11 @@ static int iris_hfi_gen1_get_dpb_extra(struct iris_inst *inst)
+ 	 * including across resolution changes: old DPBs can still refer to it.
+ 	 */
+ 	if (!inst->dpb_extra_vaddr)
+-		inst->dpb_extra_vaddr = dma_alloc_attrs(core->dev, SZ_16K,
++		inst->dpb_extra_vaddr = dma_alloc_attrs(core->dev, IRIS_VP9_EXTRA_SIZE,
+ 						     &inst->dpb_extra_daddr, GFP_KERNEL, 0);
+ 	if (!inst->dpb_extra_vaddr)
+ 		return -ENOMEM;
+-	if (!iris_dma_range_ok(core, inst->dpb_extra_daddr, SZ_16K, "DPB extradata"))
++	if (!iris_dma_range_ok(core, inst->dpb_extra_daddr, IRIS_VP9_EXTRA_SIZE, "VP9 extradata"))
+ 		return -EINVAL;
+ 	return 0;
+ }
+@@ -655,10 +655,19 @@ static int iris_hfi_gen1_queue_output_buffer(struct iris_inst *inst, struct iris
+ 			return ret;
+ 		op_pkt.extradata_buffer = lower_32_bits(inst->dpb_extra_daddr);
+ 		op_pkt.data = SZ_16K;
++	} else if (op_pkt.stream_id == 1 && iris_hfi_gen1_vp9_dpb_extra(inst) &&
++		   buf->index < IRIS_VP9_OUT2_EXTRA_SLOTS) {
++		ret = iris_hfi_gen1_get_dpb_extra(inst);
++		if (ret)
++			return ret;
++		op_pkt.extradata_buffer =
++			lower_32_bits(inst->dpb_extra_daddr + (1 + buf->index) * SZ_16K);
++		op_pkt.data = SZ_16K;
+ 	}
+-	if (buf->type == BUF_DPB)
+-		iris_mark(inst->core, "DPB FTB: stream=%u type=OUTPUT addr=%#x alloc=%#x extra=%#x/%#x tag=%u",
+-			  op_pkt.stream_id, op_pkt.packet_buffer, op_pkt.alloc_len,
++	if (buf->type == BUF_DPB || op_pkt.stream_id == 1)
++		iris_mark(inst->core, "%s FTB: stream=%u addr=%#x alloc=%#x extra=%#x/%#x tag=%u",
++			  buf->type == BUF_DPB ? "DPB" : "OUT2", op_pkt.stream_id,
++			  op_pkt.packet_buffer, op_pkt.alloc_len,
+ 			  op_pkt.extradata_buffer, op_pkt.data, op_pkt.output_tag);
+ 
+ 	return iris_hfi_queue_session_cmd_write(inst, &op_pkt, op_pkt.shdr.hdr.size);
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index e56936b4ef81..e8dd899e7435 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -149,9 +149,16 @@ struct iris_inst {
+ 	bool				end_sent;
+ 	void				*eos_vaddr;
+ 	dma_addr_t			eos_daddr;
+-	void				*dpb_extra_vaddr;
++	void				*dpb_extra_vaddr;	/* IRIS_VP9_EXTRA_SIZE */
+ 	dma_addr_t			dpb_extra_daddr;
+ 	bool				enc_start_deferred;
+ };
+ 
++/*
++ * ROG5, SM8350 VP9: stock gives the DPBs one shared 16 KiB extradata buffer and
++ * every display (OUTPUT2) buffer its own; slot 0 is the shared one.
++ */
++#define IRIS_VP9_OUT2_EXTRA_SLOTS	32
++#define IRIS_VP9_EXTRA_SIZE		((1 + IRIS_VP9_OUT2_EXTRA_SLOTS) * SZ_16K)
++
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index fd883d6ae6e6..827e15b2171c 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -402,7 +402,7 @@ int iris_close(struct file *filp)
+ 			dma_free_attrs(inst->core->dev, SZ_4K, inst->eos_vaddr,
+ 				       inst->eos_daddr, 0);
+ 		if (inst->dpb_extra_vaddr)
+-			dma_free_attrs(inst->core->dev, SZ_16K, inst->dpb_extra_vaddr,
++			dma_free_attrs(inst->core->dev, IRIS_VP9_EXTRA_SIZE, inst->dpb_extra_vaddr,
+ 				       inst->dpb_extra_daddr, 0);
+ 	}
+ 	iris_remove_session(inst);
