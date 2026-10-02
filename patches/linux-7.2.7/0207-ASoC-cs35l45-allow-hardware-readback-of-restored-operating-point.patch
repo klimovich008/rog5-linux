@@ -1,6 +1,4 @@
 From: GPT-6.1-Sol <noreply@openai.com>
-Subject: [PATCH] From: GPT-6.1-Sol <noreply@openai.com>
-
 Subject: [PATCH] ASoC: cs35l45: allow hardware readback of restored operating point
 
 The bypassed reads introduced in 0198 still obey regmap's readable policy.

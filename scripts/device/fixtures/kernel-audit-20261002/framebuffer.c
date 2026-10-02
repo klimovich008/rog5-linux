@@ -5,7 +5,7 @@ static void list_add_tail(struct list_head *node,struct list_head *head) {node->
 static bool list_empty(struct list_head *head) {return head->next==head;}
 static void list_del_init(struct list_head *node) {node->prev->next=node->next;node->next->prev=node->prev;INIT_LIST_HEAD(node);}
 #define list_for_each_entry(pos,head,member) for(pos=container_of((head)->next,__typeof__(*pos),member); &(pos)->member!=(head); pos=container_of((pos)->member.next,__typeof__(*pos),member))
-struct msm_kms_fb_unpin {spinlock_t lock;struct list_head fbs;bool off;u64 queued_seq,flushed_seq;};
+struct msm_kms_fb_unpin {spinlock_t lock;struct list_head fbs;bool off;u64 queued_seq,flushed_seq;bool flush_failed;};
 struct drm_framebuffer {int refs;struct {u32 id;} base;};
 struct drm_crtc {struct drm_device *dev;int idx;u64 count;struct {u32 id;} base;};
 struct drm_device {void *dev_private;struct drm_crtc *crtc;};
@@ -34,7 +34,12 @@ int main(void) {
  /* A vblank before an in-flight async flush cannot release the buffer. */
  msm_kms_fb_unpin_work(&unpin.base.work);assert(releases==0 && scheduled==11);
  assert(msm_crtc_fb_unpin_fallback(&crtc,&fb) && fb.refs==1 && waits==0);
- crtc.count=11;msm_kms_fb_unpin_flushed(&kms,1);assert(unpin.target_vbl==12);
+ /* A timed-out wait is not completion, even if vblanks keep advancing. */
+ crtc.count=11;msm_kms_fb_unpin_waited(&kms,&crtc,false);msm_kms_fb_unpin_flushed(&kms,1);
+ assert(p->flushed_seq==0 && unpin.target_vbl==0);
+ msm_kms_fb_unpin_work(&unpin.base.work);assert(releases==0 && scheduled==12);
+ assert(msm_crtc_fb_unpin_fallback(&crtc,&fb) && waits==0);
+ msm_kms_fb_unpin_waited(&kms,&crtc,true);msm_kms_fb_unpin_flushed(&kms,1);assert(unpin.target_vbl==12);
  msm_kms_fb_unpin_queued(&kms,1);crtc.count=12;msm_kms_fb_unpin_flushed(&kms,1);
  assert(unpin.target_vbl==12); /* New flush cannot postpone old retirement. */
  msm_kms_fb_unpin_work(&unpin.base.work);assert(releases==1 && list_empty(&p->fbs));

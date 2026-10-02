@@ -5,7 +5,7 @@ host-tested source, not installed-phone evidence. No phone operation is part of
 this work. The installed component status and accepted bundles stay unchanged.
 
 The inherited commits are `d6003bd2`, `daaf7360` and `e911cc06`. They corrected
-0070/0152 in place and added 0180–0197. This continuation adds 0198–0207;
+0070/0152 in place and added 0180–0197. This continuation adds 0198–0208;
 0154–0179 are unchanged. Every new entry is appended to `series.production`.
 
 ## Patch inventory and provenance
@@ -47,6 +47,7 @@ that the whole proposal has merged. Hardware case names refer to the steps below
 | 0205 | Desired/confirmed/unknown boost; best-effort OFF; pause limited charging before sleep | Local | P1, P3 |
 | 0206 | Coherent buffers hold the DMA device through final free | Local F2 follow-up | A1 |
 | 0207 | Permit bypassed readback of the four restored operating-point registers | Local; ASUS WW33 readable-register policy | A3 |
+| 0208 | Preserve DPU commit-wait failure; keep pins without a completed flush | Local follow-up | D1 |
 
 ## Host evidence and its limits
 
@@ -104,6 +105,9 @@ public fault-control interfaces. Do not use unrestricted I2C/register pokes.
    vblank enable/rearm errors individually, then disable the CRTC. Check for zero
    addresses, premature unmaps, SMMU faults, lockdep reports and growth in pins on
    normal paths; retained fault pins must follow the documented behavior.
+   Also inject commit-wait timeout while vblanks continue: flushed_seq and the
+   retirement target must not advance. Recover the wait/flush or disable hardware
+   before expecting those pins to drain.
 2. **D2 — GPU power failures:** Fail the GMU runtime resume before submit and each
    recovery resume in an instrumented image. Submit a bounded GPU job. Verify no
    GMU/GPU MMIO or hw_init occurs after the failed resume, jobs remain deferred or

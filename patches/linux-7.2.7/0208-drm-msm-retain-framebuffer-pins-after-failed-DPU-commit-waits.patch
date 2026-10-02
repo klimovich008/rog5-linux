@@ -1,0 +1,142 @@
+From: GPT-6.1-Sol <noreply@openai.com>
+Subject: [PATCH] drm/msm: retain framebuffer pins after failed DPU commit waits
+
+DPU's void wait_flush callback logged and discarded commit-wait errors.
+0199 could consequently acknowledge a generation after a timeout and free
+its old framebuffer at a later vblank even though the update never latched.
+Preserve the per-CRTC wait outcome under the retirement lock. A failed wait
+cannot advance flushed_seq, set a retirement target, or use the synchronous
+vblank fallback. Keep pins until a successful later wait/flush or hardware-off
+drain. Existing already-proven retirement targets remain frozen.
+
+Local follow-up to the upstream deferred-release proposal and 0199.
+Hardware: inject commit wait timeout while vblanks continue; verify old IOVAs
+stay mapped, then recover the flush or disable the CRTC and verify drain.
+
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -497,7 +497,7 @@
+ 	DPU_ATRACE_END("kms_complete_commit");
+ }
+ 
+-static void dpu_kms_wait_for_commit_done(struct msm_kms *kms,
++static int dpu_kms_wait_for_commit_done(struct msm_kms *kms,
+ 		struct drm_crtc *crtc)
+ {
+ 	struct drm_encoder *encoder;
+@@ -506,19 +506,19 @@
+ 
+ 	if (!kms || !crtc || !crtc->state) {
+ 		DPU_ERROR("invalid params\n");
+-		return;
++		return -EINVAL;
+ 	}
+ 
+ 	dev = crtc->dev;
+ 
+ 	if (!crtc->state->enable) {
+ 		DPU_DEBUG("[crtc:%d] not enable\n", crtc->base.id);
+-		return;
++		return 0;
+ 	}
+ 
+ 	if (!drm_atomic_crtc_effectively_active(crtc->state)) {
+ 		DPU_DEBUG("[crtc:%d] not active\n", crtc->base.id);
+-		return;
++		return 0;
+ 	}
+ 
+ 	list_for_each_entry(encoder, &dev->mode_config.encoder_list, head) {
+@@ -533,9 +533,10 @@
+ 		ret = dpu_encoder_wait_for_commit_done(encoder);
+ 		if (ret && ret != -EWOULDBLOCK) {
+ 			DPU_ERROR("wait for commit done returned %d\n", ret);
+-			break;
++			return ret;
+ 		}
+ 	}
++	return 0;
+ }
+ 
+ static void dpu_kms_wait_flush(struct msm_kms *kms, unsigned crtc_mask)
+@@ -544,7 +545,8 @@
+ 	struct drm_crtc *crtc;
+ 
+ 	for_each_crtc_mask(dpu_kms->dev, crtc, crtc_mask)
+-		dpu_kms_wait_for_commit_done(kms, crtc);
++		msm_kms_fb_unpin_waited(kms, crtc,
++			!dpu_kms_wait_for_commit_done(kms, crtc));
+ }
+ 
+ static const char *dpu_vsync_sources[] = {
+diff --git a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
+--- a/drivers/gpu/drm/msm/msm_kms.c
++++ b/drivers/gpu/drm/msm/msm_kms.c
+@@ -233,6 +233,16 @@
+ 	}
+ }
+ 
++/* DPU calls while the affected commit lock is held, after its actual wait. */
++void msm_kms_fb_unpin_waited(struct msm_kms *kms, struct drm_crtc *crtc, bool done)
++{
++	struct msm_kms_fb_unpin *pending = &kms->fb_unpin[drm_crtc_index(crtc)];
++
++	spin_lock(&pending->lock);
++	pending->flush_failed = !done;
++	spin_unlock(&pending->lock);
++}
++
+ /* Commit locks cover queued_seq through wait_flush and this notification. */
+ void msm_kms_fb_unpin_flushed(struct msm_kms *kms, unsigned int crtc_mask)
+ {
+@@ -244,6 +254,10 @@
+ 		u64 target = drm_crtc_vblank_count(crtc) + 1;
+ 
+ 		spin_lock(&pending->lock);
++		if (pending->flush_failed) {
++			spin_unlock(&pending->lock);
++			continue;
++		}
+ 		pending->flushed_seq = pending->queued_seq;
+ 		list_for_each_entry(unpin, &pending->fbs, node)
+ 			if (!unpin->target_vbl && unpin->required_seq <= pending->flushed_seq)
+@@ -344,7 +358,8 @@
+ 	bool flushed, off;
+ 
+ 	spin_lock(&pending->lock);
+-	flushed = pending->queued_seq == pending->flushed_seq;
++	flushed = pending->queued_seq == pending->flushed_seq &&
++		  !pending->flush_failed;
+ 	off = pending->off;
+ 	spin_unlock(&pending->lock);
+ 
+@@ -403,7 +418,7 @@
+ 	 */
+ 	spin_lock(&pending->lock);
+ 	unpin->required_seq = pending->queued_seq;
+-	if (unpin->required_seq <= pending->flushed_seq)
++	if (unpin->required_seq <= pending->flushed_seq && !pending->flush_failed)
+ 		unpin->target_vbl = drm_crtc_vblank_count(crtc) + 1;
+ 	if (!pending->off) {
+ 		list_add_tail(&unpin->node, &pending->fbs);
+diff --git a/drivers/gpu/drm/msm/msm_kms.h b/drivers/gpu/drm/msm/msm_kms.h
+--- a/drivers/gpu/drm/msm/msm_kms.h
++++ b/drivers/gpu/drm/msm/msm_kms.h
+@@ -144,6 +144,8 @@
+ 	/* Queued/in-flight updates and their completed flushes. */
+ 	u64 queued_seq;
+ 	u64 flushed_seq;
++	/* A failed DPU wait is not a completed flush. */
++	bool flush_failed;
+ };
+ 
+ struct msm_kms {
+@@ -187,6 +189,7 @@
+ 
+ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb);
+ void msm_kms_fb_unpin_queued(struct msm_kms *kms, unsigned int crtc_mask);
++void msm_kms_fb_unpin_waited(struct msm_kms *kms, struct drm_crtc *crtc, bool done);
+ void msm_kms_fb_unpin_flushed(struct msm_kms *kms, unsigned int crtc_mask);
+ void msm_crtc_vblank_off(struct drm_crtc *crtc);
+ 

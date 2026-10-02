@@ -842,6 +842,70 @@
           ]
         }
       ]
+    },
+    "drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c": {
+      "sha256": "dcf55bec5096166862d8172f949b64b020ad13ea78747acbb4ba330cb4f2b304",
+      "line_count": 1550,
+      "fragments": [
+        {
+          "start": 499,
+          "lines": [
+            "static void dpu_kms_wait_for_commit_done(struct msm_kms *kms,\n",
+            "\t\tstruct drm_crtc *crtc)\n",
+            "{\n",
+            "\tstruct drm_encoder *encoder;\n",
+            "\tstruct drm_device *dev;\n",
+            "\tint ret;\n",
+            "\n",
+            "\tif (!kms || !crtc || !crtc->state) {\n",
+            "\t\tDPU_ERROR(\"invalid params\\n\");\n",
+            "\t\treturn;\n",
+            "\t}\n",
+            "\n",
+            "\tdev = crtc->dev;\n",
+            "\n",
+            "\tif (!crtc->state->enable) {\n",
+            "\t\tDPU_DEBUG(\"[crtc:%d] not enable\\n\", crtc->base.id);\n",
+            "\t\treturn;\n",
+            "\t}\n",
+            "\n",
+            "\tif (!drm_atomic_crtc_effectively_active(crtc->state)) {\n",
+            "\t\tDPU_DEBUG(\"[crtc:%d] not active\\n\", crtc->base.id);\n",
+            "\t\treturn;\n",
+            "\t}\n",
+            "\n",
+            "\tlist_for_each_entry(encoder, &dev->mode_config.encoder_list, head) {\n",
+            "\t\tif (encoder->crtc != crtc)\n",
+            "\t\t\tcontinue;\n",
+            "\t\t/*\n",
+            "\t\t * Wait for post-flush if necessary to delay before\n",
+            "\t\t * plane_cleanup. For example, wait for vsync in case of video\n",
+            "\t\t * mode panels. This may be a no-op for command mode panels.\n",
+            "\t\t */\n",
+            "\t\ttrace_dpu_kms_wait_for_commit_done(DRMID(crtc));\n",
+            "\t\tret = dpu_encoder_wait_for_commit_done(encoder);\n",
+            "\t\tif (ret && ret != -EWOULDBLOCK) {\n",
+            "\t\t\tDPU_ERROR(\"wait for commit done returned %d\\n\", ret);\n",
+            "\t\t\tbreak;\n",
+            "\t\t}\n",
+            "\t}\n",
+            "}\n"
+          ]
+        },
+        {
+          "start": 540,
+          "lines": [
+            "static void dpu_kms_wait_flush(struct msm_kms *kms, unsigned crtc_mask)\n",
+            "{\n",
+            "\tstruct dpu_kms *dpu_kms = to_dpu_kms(kms);\n",
+            "\tstruct drm_crtc *crtc;\n",
+            "\n",
+            "\tfor_each_crtc_mask(dpu_kms->dev, crtc, crtc_mask)\n",
+            "\t\tdpu_kms_wait_for_commit_done(kms, crtc);\n",
+            "}\n"
+          ]
+        }
+      ]
     }
   }
 }

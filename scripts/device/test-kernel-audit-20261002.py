@@ -154,9 +154,15 @@ class KernelAudit(unittest.TestCase):
     def test_framebuffer_flush_target_and_failed_rearm(self):
         self.case('framebuffer.c', {'drivers/gpu/drm/msm/msm_kms.c': [
             'msm_kms_fb_unpin_work', 'msm_kms_fb_unpin_queued', 'msm_kms_fb_unpin_flushed',
-            'msm_crtc_fb_unpin_fallback']}, [
+            'msm_kms_fb_unpin_waited', 'msm_crtc_fb_unpin_fallback']}, [
                 ('if (ret != 0)', 'if (ret > 0)'),
-                ('!unpin->target_vbl && unpin->required_seq', 'unpin->required_seq')])
+                ('!unpin->target_vbl && unpin->required_seq', 'unpin->required_seq'),
+                ('if (pending->flush_failed)', 'if (false && pending->flush_failed)')])
+
+    def test_dpu_failed_commit_wait_is_preserved_per_crtc(self):
+        self.case('commit-wait.c', {'drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c': [
+            'dpu_kms_wait_for_commit_done', 'dpu_kms_wait_flush']}, [
+                ('return ret;', 'return 0;')])
 
     def test_fastrpc_dma_device_and_exported_channel_lifetime(self):
         self.case('fastrpc.c', {'drivers/misc/fastrpc.c': [
