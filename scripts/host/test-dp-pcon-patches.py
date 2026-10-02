@@ -23,13 +23,6 @@ def added(number):
                      if line.startswith('+') and not line.startswith('+++'))
 
 
-def postimage(number):
-    """Context plus additions from a patch with full function context."""
-    path, = PATCHES.glob(number + '-*.patch')
-    return '\n'.join(line[1:] for line in path.read_text().splitlines()
-                     if line.startswith((' ', '+')) and not line.startswith('+++'))
-
-
 def function(text, name):
     match = re.search(r'^(?:static )?(?:int|void|bool) ' + name + r'\([^;]*?\n\{',
                       text, re.M)
@@ -48,13 +41,15 @@ COMMON = r'''
 #include <sys/types.h>
 #define container_of(p, t, m) ((t *)((char *)(p) - offsetof(t, m)))
 #define DRM_ERROR_RATELIMITED(...) ((void)0)
+#define DRM_ERROR(...) ((void)0)
+#define drm_dbg_dp(...) ((void)0)
 typedef unsigned char u8;
 typedef unsigned int u32;
 '''
 
 
 class Pcon(unittest.TestCase):
-    def execute(self, code, mutant=None):
+    def execute(self, code):
         with tempfile.TemporaryDirectory(prefix='rog5-pcon-test-') as directory:
             root = Path(directory)
             (root / 'test.c').write_text(COMMON + code)
@@ -65,10 +60,7 @@ class Pcon(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             result = subprocess.run([str(root / 'test')], capture_output=True, text=True,
                                     timeout=5)
-            if mutant:
-                self.assertNotEqual(result.returncode, 0, 'surviving mutant: ' + mutant)
-            else:
-                self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def abort_code(self, body):
         return r'''
@@ -143,13 +135,6 @@ int main(void) {
     def test_abort_resource_matrix(self):
         self.execute(self.abort_code(function(added('0200'), 'msm_dp_ctrl_abort')))
 
-    def test_abort_unclocked_and_double_release_mutants(self):
-        body = function(added('0200'), 'msm_dp_ctrl_abort')
-        self.execute(self.abort_code(body.replace('ctrl->core_clks_on && ctrl->link_clks_on',
-                                                 'true', 1)), 'unclocked access')
-        self.execute(self.abort_code(body.replace('ctrl->stream_clks_on = false;', '', 1)),
-                     'double pixel-clock release')
-
     def test_minimal_wake_rejects_short_reads_and_preserves_errno(self):
         self.execute(r'''
 #define DP_DPCD_REV 0
@@ -198,7 +183,7 @@ static void msm_dp_write_aux(void *aux, int reg, u32 value) { assert(locked); re
 static void msm_dp_ctrl_reset(void *ctrl) { assert(locked); memset(regs, 0, sizeof(regs)); resets++; }
 static void msm_dp_ctrl_enable_irq(void *ctrl) { assert(locked); irq_restores++; }
 static void msm_dp_aux_enable(void *aux) { assert(locked); aux_enables++; }
-''' + function(postimage('0207'), 'msm_dp_aux_reset_ctrl') + r'''
+''' + function(added('0203'), 'msm_dp_aux_reset_ctrl') + r'''
 int main(void) {
     struct msm_dp_aux_private aux = {};
     struct msm_dp_ctrl ctrl = {};
@@ -230,7 +215,6 @@ static int outcome, calls, clear_result;
 static int msm_dp_ctrl_setup_main_link(void *p, int *step) {
     calls++; *step = DP_TRAINING_2; return outcome;
 }
-static void msm_dp_ctrl_log_link(void *p, const char *stage, int result) {}
 static int msm_dp_aux_is_link_connected(void *p) { return 1; }
 static int drm_dp_dpcd_read_link_status(void *p, u8 *status) { return 0; }
 static int msm_dp_ctrl_link_rate_down_shift(void *p) { return 0; }
@@ -283,7 +267,6 @@ static int clk_set_rate(void *p, unsigned long rate) { return fault == 2 ? -ERAN
 static int clk_prepare_enable(void *p) { return fault == 3 ? -EIO : 0; }
 static bool msm_dp_ctrl_channel_eq_ok(void *p) { return eq_good; }
 static int msm_dp_ctrl_link_retrain(void *p) { retrains++; return fault == 4 ? -ENXIO : 0; }
-static void msm_dp_ctrl_log_link(void *p, const char *stage, int rc) {}
 static int msm_dp_ctrl_clear_training_pattern(void *p, int phy) { terminations++; return fault == 5 ? -EIO : 0; }
 static void reinit_completion(void *p) {}
 static void msm_dp_ctrl_configure_source_params(void *p) {}

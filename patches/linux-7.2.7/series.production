@@ -134,7 +134,3 @@
 0201-drm-msm-dp-check-sink-wake-and-PCON-restoration.patch
 0202-drm-msm-dp-opt-in-stock-PCON-training-termination.patch
 0203-drm-msm-dp-opt-in-serialized-PCON-AHB-reset.patch
-0204-drm-msm-dp-opt-in-fresh-PCON-MISC-state.patch
-0205-drm-msm-dp-recover-maintenance-and-bound-snapshots.patch
-0206-drm-msm-dp-modeset-PCON-reprobe-for-recovery.patch
-0207-drm-msm-dp-defer-AHB-reset-for-pending-HPD.patch

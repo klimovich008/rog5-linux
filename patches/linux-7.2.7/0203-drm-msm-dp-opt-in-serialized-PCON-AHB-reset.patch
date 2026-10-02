@@ -1,21 +1,19 @@
 From 4a44477abce1a000b570750078d7ad48c50a734b Mon Sep 17 00:00:00 2001
 From: "GPT-6.1-Sol" <noreply@openai.com>
 Date: Fri, 2 Oct 2026 20:11:21 +0200
-Subject: [PATCH] drm/msm/dp: gate serialized PCON AHB training reset
+Subject: [PATCH] drm/msm/dp: gate serialized PCON AHB reset RAM trial
 
-dp_pcon_ahb_reset defaults off. Reset only with core/link clocks live, serialize with AUX transfers, restore AUX/HPD configuration and controller IRQ masks, and replay captured HPD through the existing IRQ thread. Mainlink and link configuration are restored by training.
+Keep dp_pcon_ahb_reset off by default. Require live core/link clocks,
+serialize reset with AUX, and restore AUX/HPD configuration and IRQ masks.
+Inspect pending HPD without acknowledgement and return -EAGAIN before reset;
+leave events to normal HPD handling without replay state.
+This trial has no on-phone qualification for production use.
 
 Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
----
- drivers/gpu/drm/msm/dp/dp_aux.c     | 27 +++++++++++++++++++++++++++
- drivers/gpu/drm/msm/dp/dp_aux.h     |  2 ++
- drivers/gpu/drm/msm/dp/dp_ctrl.c    | 14 ++++++++++++++
- drivers/gpu/drm/msm/dp/dp_ctrl.h    |  1 +
- drivers/gpu/drm/msm/dp/dp_display.c | 26 ++++++++++++++++++++++++++
- 5 files changed, 70 insertions(+)
 
+---
 diff --git a/drivers/gpu/drm/msm/dp/dp_aux.c b/drivers/gpu/drm/msm/dp/dp_aux.c
-index 3825a2f..8c148f2 100644
+index 3825a2fb..87e90e92 100644
 --- a/drivers/gpu/drm/msm/dp/dp_aux.c
 +++ b/drivers/gpu/drm/msm/dp/dp_aux.c
 @@ -10,6 +10,7 @@
@@ -26,7 +24,7 @@ index 3825a2f..8c148f2 100644
  
  enum msm_dp_aux_err {
  	DP_AUX_ERR_NONE,
-@@ -537,6 +538,32 @@ void msm_dp_aux_init(struct drm_dp_aux *msm_dp_aux)
+@@ -537,6 +538,36 @@ void msm_dp_aux_init(struct drm_dp_aux *msm_dp_aux)
  	mutex_unlock(&aux->mutex);
  }
  
@@ -44,8 +42,12 @@ index 3825a2f..8c148f2 100644
 +	hpd_ctrl = msm_dp_read_aux(aux, REG_DP_DP_HPD_CTRL);
 +	hpd_timer = msm_dp_read_aux(aux, REG_DP_DP_HPD_REFTIMER);
 +	hpd_mask = msm_dp_read_aux(aux, REG_DP_DP_HPD_INT_MASK);
-+	pending = msm_dp_aux_get_hpd_intr_status(msm_dp_aux);
-+	ctrl->reset_hpd_status |= pending & hpd_mask & DP_DP_HPD_INT_MASK;
++	pending = msm_dp_read_aux(aux, REG_DP_DP_HPD_INT_STATUS);
++	/* Leave pending events unacknowledged for the ordinary HPD handler.
++	 * Replaying IRQ_HPD after reset loses its controller pulse-count state.
++	 */
++	if (pending & hpd_mask & DP_DP_HPD_INT_MASK)
++		return -EAGAIN;
 +
 +	msm_dp_ctrl_reset(ctrl);
 +	msm_dp_ctrl_enable_irq(ctrl);
@@ -60,7 +62,7 @@ index 3825a2f..8c148f2 100644
  {
  	struct msm_dp_aux_private *aux;
 diff --git a/drivers/gpu/drm/msm/dp/dp_aux.h b/drivers/gpu/drm/msm/dp/dp_aux.h
-index 4be02e8..e21bc7e 100644
+index 4be02e8b..e21bc7ed 100644
 --- a/drivers/gpu/drm/msm/dp/dp_aux.h
 +++ b/drivers/gpu/drm/msm/dp/dp_aux.h
 @@ -13,6 +13,8 @@ void msm_dp_aux_unregister(struct drm_dp_aux *msm_dp_aux);
@@ -73,10 +75,10 @@ index 4be02e8..e21bc7e 100644
  void msm_dp_aux_reconfig(struct drm_dp_aux *msm_dp_aux);
  
 diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-index 0e5fe10..dffc553 100644
+index aa2fd94c..56f7a1c8 100644
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-@@ -460,6 +460,10 @@ static uint msm_dp_async_msa;
+@@ -413,6 +413,10 @@ static uint msm_dp_async_msa;
  module_param_named(dp_async_msa, msm_dp_async_msa, uint, 0644);
  MODULE_PARM_DESC(dp_async_msa, "ROG5 EXPERIMENT (static M/N, not spec-complete): 1 = asynchronous MSA clock signalling at the next modeset (0 = synchronous)");
  
@@ -87,7 +89,7 @@ index 0e5fe10..dffc553 100644
  static bool msm_dp_pcon_single_train;
  module_param_named(dp_pcon_single_train, msm_dp_pcon_single_train, bool, 0644);
  MODULE_PARM_DESC(dp_pcon_single_train, "ROG5 PCON experiment: terminate initial training before video and retrain only on bad EQ (default 0)");
-@@ -1827,6 +1831,16 @@ static int msm_dp_ctrl_setup_main_link(struct msm_dp_ctrl_private *ctrl,
+@@ -1780,6 +1784,16 @@ static int msm_dp_ctrl_setup_main_link(struct msm_dp_ctrl_private *ctrl,
  {
  	int ret = 0;
  
@@ -104,75 +106,5 @@ index 0e5fe10..dffc553 100644
  	msm_dp_ctrl_mainlink_enable(ctrl);
  
  	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
-diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.h b/drivers/gpu/drm/msm/dp/dp_ctrl.h
-index eb94f07..06355ce 100644
---- a/drivers/gpu/drm/msm/dp/dp_ctrl.h
-+++ b/drivers/gpu/drm/msm/dp/dp_ctrl.h
-@@ -12,6 +12,7 @@
- 
- struct msm_dp_ctrl {
- 	bool wide_bus_en;
-+	u32 reset_hpd_status;
- };
- 
- struct phy;
-diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
-index f21c8d0..438a6a4 100644
---- a/drivers/gpu/drm/msm/dp/dp_display.c
-+++ b/drivers/gpu/drm/msm/dp/dp_display.c
-@@ -416,6 +416,16 @@ static int msm_dp_display_handle_irq_hpd(struct msm_dp_display_private *dp)
- 	drm_dbg_dp(dp->drm_dev, "%d\n", sink_request);
- 
- 	msm_dp_ctrl_handle_sink_request(dp->ctrl);
-+	/* The active IRQ thread will consume any reset-captured HPD next. */
-+	if (dp->ctrl->reset_hpd_status) {
-+		unsigned long flags;
-+
-+		spin_lock_irqsave(&dp->irq_thread_lock, flags);
-+		dp->hpd_isr_status |= dp->ctrl->reset_hpd_status;
-+		dp->ctrl->reset_hpd_status = 0;
-+		spin_unlock_irqrestore(&dp->irq_thread_lock, flags);
-+		irq_wake_thread(dp->irq, dp);
-+	}
- 
- 	if (sink_request & DP_TEST_LINK_VIDEO_PATTERN)
- 		msm_dp_display_handle_video_request(dp);
-@@ -1540,6 +1550,20 @@ int msm_dp_modeset_init(struct msm_dp *msm_dp_display, struct drm_device *dev,
- 	return 0;
- }
- 
-+static void msm_dp_display_replay_reset_hpd(struct msm_dp_display_private *dp)
-+{
-+	unsigned long flags;
-+	u32 pending = dp->ctrl->reset_hpd_status;
-+
-+	dp->ctrl->reset_hpd_status = 0;
-+	if (!pending)
-+		return;
-+	spin_lock_irqsave(&dp->irq_thread_lock, flags);
-+	dp->hpd_isr_status |= pending;
-+	spin_unlock_irqrestore(&dp->irq_thread_lock, flags);
-+	irq_wake_thread(dp->irq, dp);
-+}
-+
- void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
- 				 struct drm_atomic_commit *state)
- {
-@@ -1615,12 +1639,14 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
- 		goto failed_enable;
- 
- 	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
-+	msm_dp_display_replay_reset_hpd(msm_dp_display);
- 	if (rc) {
- 		DRM_ERROR("Failed link training (rc=%d)\n", rc);
- 		goto failed_enable;
- 	}
- 
- 	rc = msm_dp_display_enable(msm_dp_display, force_link_train);
-+	msm_dp_display_replay_reset_hpd(msm_dp_display);
- 	if (rc)
- 		goto failed_enable;
- 	msm_dp_display->retry_pending = false;
 -- 
 2.50.1
-
