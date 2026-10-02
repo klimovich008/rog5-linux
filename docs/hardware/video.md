@@ -225,6 +225,16 @@ Measured 2026-10-02 on k116 (H.264/HEVC decoder exposed):
   the time and the renderer dropped from ~120% to ~55% CPU. chrome://gpu
   still says "Video Decode: Software only" (ANGLE reports vendor 0x0000), so
   check the DevTools Media panel (`V4L2VideoDecoder`) instead.
+- **Not enabled by default: the firmware wedges under YouTube.** After ~15 s
+  of YouTube 1080p60 (20:32:11, k116) a STOP/RELEASE answer carried an HFI
+  error (`stop/release failed: -5`; the error code is not logged), then every
+  new session failed to open, END was never acknowledged (`no end
+  acknowledgement (-110) ... leaking its buffers`) and the core could not
+  power-collapse (`failed to suspend` every 2 s) until reboot. Chromium fell
+  back to software decoding without a visible error. The installer therefore
+  does not ship `chromium-flags.conf` yet; a single local clip played cleanly,
+  so the trigger is likely YouTube's quality switches or its many short
+  decoder sessions.
 - VP9 and AV1 streams still decode in software (VP9 is not exposed until it
   passes its trial; an extension such as enhanced-h264ify makes YouTube pick
   H.264). AV1 has no
