@@ -1,0 +1,97 @@
+From: GPT-6.1-Sol <noreply@openai.com>
+Subject: [PATCH] usb: dwc3: gate new gadgets and release bandwidth after stop
+
+Publish the requested USB role under the worker mutex before queueing
+the mode change. Apply that role to a newly created gadget and gate soft
+connect until DEVICE is requested.
+
+Hardware: delayed HOST-to-NONE registration must never pull up; then
+verify NCM and hub recovery.
+
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -277,6 +277,9 @@
+ 		ret = dwc3_gadget_init(dwc);
+ 		if (ret)
+ 			dev_err(dwc->dev, "failed to initialize peripheral\n");
++		else if (dwc->role_vbus_gated)
++			usb_udc_vbus_handler(dwc->gadget,
++				READ_ONCE(dwc->requested_role) == USB_ROLE_DEVICE);
+ 		break;
+ 	case DWC3_GCTL_PRTCAP_OTG:
+ 		dwc3_otg_init(dwc);
+diff --git a/drivers/usb/dwc3/core.h b/drivers/usb/dwc3/core.h
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -1073,6 +1073,8 @@
+  * @role_switch_default_mode: default operation mode of controller while
+  *			usb role is USB_ROLE_NONE.
+  * @usb_psy: pointer to power supply interface.
++ * @role_vbus_gated: Role switch owns gadget connection state
++ * @requested_role: Latest USB role, independent of queued hardware mode
+  * @vbus_draw_work: Work to set the vbus drawing limit
+  * @current_limit: How much current to draw from vbus, in milliAmperes.
+  * @usb2_phy: pointer to USB2 PHY
+@@ -1264,6 +1266,9 @@
+ 	enum usb_phy_interface	hsphy_mode;
+ 	struct usb_role_switch	*role_sw;
+ 	enum usb_dr_mode	role_switch_default_mode;
++	/* Gate new gadgets, including registration before UDC vbus_work. */
++	bool			role_vbus_gated;
++	enum usb_role		requested_role;
+ 
+ 	struct power_supply	*usb_psy;
+ 	struct work_struct	vbus_draw_work;
+diff --git a/drivers/usb/dwc3/drd.c b/drivers/usb/dwc3/drd.c
+--- a/drivers/usb/dwc3/drd.c
++++ b/drivers/usb/dwc3/drd.c
+@@ -468,7 +468,9 @@
+ 		break;
+ 	}
+ 
++	mutex_lock(&dwc->mutex);
+ 	dwc3_pre_set_role(dwc, role);
++	WRITE_ONCE(dwc->requested_role, role);
+ 	dwc3_set_mode(dwc, mode);
+ 
+ 	/*
+@@ -484,12 +486,11 @@
+ 	 */
+ 	if (dwc->udc_vbus_by_role ||
+ 	    !(dwc->glue_ops && dwc->glue_ops->pre_set_role)) {
+-		mutex_lock(&dwc->mutex);
+ 		if (dwc->current_dr_role == DWC3_GCTL_PRTCAP_DEVICE &&
+ 		    mode == DWC3_GCTL_PRTCAP_DEVICE && dwc->gadget)
+ 			usb_udc_vbus_handler(dwc->gadget, role == USB_ROLE_DEVICE);
+-		mutex_unlock(&dwc->mutex);
+-	}
++	}
++	mutex_unlock(&dwc->mutex);
+ 
+ 	return 0;
+ }
+@@ -527,6 +528,9 @@
+ 	struct usb_role_switch_desc dwc3_role_switch = {NULL};
+ 	u32 mode;
+ 
++	dwc->role_vbus_gated = dwc->udc_vbus_by_role ||
++		!(dwc->glue_ops && dwc->glue_ops->pre_set_role);
++	WRITE_ONCE(dwc->requested_role, USB_ROLE_NONE);
+ 	dwc->role_switch_default_mode = usb_get_role_switch_default_mode(dwc->dev);
+ 	if (dwc->role_switch_default_mode == USB_DR_MODE_HOST) {
+ 		mode = DWC3_GCTL_PRTCAP_HOST;
+diff --git a/drivers/usb/dwc3/gadget.c b/drivers/usb/dwc3/gadget.c
+--- a/drivers/usb/dwc3/gadget.c
++++ b/drivers/usb/dwc3/gadget.c
+@@ -2778,6 +2778,10 @@
+ {
+ 	int ret;
+ 
++	if (READ_ONCE(dwc->role_vbus_gated) &&
++	    READ_ONCE(dwc->requested_role) != USB_ROLE_DEVICE)
++		return 0;
++
+ 	/*
+ 	 * In the Synopsys DWC_usb31 1.90a programming guide section
+ 	 * 4.1.9, it specifies that for a reconnect after a

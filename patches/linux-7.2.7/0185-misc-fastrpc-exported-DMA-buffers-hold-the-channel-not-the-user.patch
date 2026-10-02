@@ -19,8 +19,9 @@ buffers. An exported buffer takes a channel reference, dropped in
 fastrpc_release() after the memory is freed; all other buffers are freed
 before their user (and with it its channel reference) goes away.
 
-Not fixed here: buf->dev of an exported buffer is the session's context
-bank device, which goes away with rpmsg removal of the channel.
+The retained DMA-device reference protects its device object. DMA/IOMMU
+domain lifetime across arbitrary session-device unbind still needs
+separate qualification.
 
 Not fixed upstream (linux-next 2026-10-02). Found by the 2026-10-02
 GPT-6.1-Sol audit (F2).
@@ -28,11 +29,13 @@ GPT-6.1-Sol audit (F2).
 Hardware: ADSP/CDSP/SLPI FastRPC users (hexagonrpcd, sensors via
 ssc.py) work as before; close the device fd before the dma-buf fd.
 
+[ROG5: retain the DMA device until buffer free, balancing its reference
+ on allocation failure as well.]
+
 diff --git a/drivers/misc/fastrpc.c b/drivers/misc/fastrpc.c
-index c8fb854f0..a2f45baf7 100644
 --- a/drivers/misc/fastrpc.c
 +++ b/drivers/misc/fastrpc.c
-@@ -190,7 +190,12 @@ struct fastrpc_buf_overlap {
+@@ -190,7 +190,12 @@
  };
  
  struct fastrpc_buf {
@@ -46,16 +49,17 @@ index c8fb854f0..a2f45baf7 100644
  	struct dma_buf *dmabuf;
  	struct device *dev;
  	void *virt;
-@@ -423,7 +428,7 @@ static int fastrpc_map_lookup(struct fastrpc_user *fl, int fd,
+@@ -423,7 +428,8 @@
  static void fastrpc_buf_free(struct fastrpc_buf *buf)
  {
  	dma_free_coherent(buf->dev, buf->size, buf->virt,
 -			  fastrpc_ipa_to_dma_addr(buf->fl->cctx, buf->dma_addr));
 +			  fastrpc_ipa_to_dma_addr(buf->cctx, buf->dma_addr));
++	put_device(buf->dev);
  	kfree(buf);
  }
  
-@@ -440,7 +445,7 @@ static int __fastrpc_buf_alloc(struct fastrpc_user *fl, struct device *dev,
+@@ -440,17 +446,18 @@
  	INIT_LIST_HEAD(&buf->node);
  	mutex_init(&buf->lock);
  
@@ -64,7 +68,19 @@ index c8fb854f0..a2f45baf7 100644
  	buf->virt = NULL;
  	buf->dma_addr = 0;
  	buf->size = size;
-@@ -748,8 +753,11 @@ static void fastrpc_unmap_dma_buf(struct dma_buf_attachment *attach,
+-	buf->dev = dev;
++	buf->dev = get_device(dev);
+ 	buf->raddr = 0;
+ 
+ 	buf->virt = dma_alloc_coherent(dev, buf->size, &buf->dma_addr,
+ 				       GFP_KERNEL);
+ 	if (!buf->virt) {
+ 		mutex_destroy(&buf->lock);
++		put_device(buf->dev);
+ 		kfree(buf);
+ 		return -ENOMEM;
+ 	}
+@@ -748,8 +755,11 @@
  static void fastrpc_release(struct dma_buf *dmabuf)
  {
  	struct fastrpc_buf *buffer = dmabuf->priv;
@@ -76,7 +92,7 @@ index c8fb854f0..a2f45baf7 100644
  }
  
  static int fastrpc_dma_buf_attach(struct dma_buf *dmabuf,
-@@ -764,7 +772,7 @@ static int fastrpc_dma_buf_attach(struct dma_buf *dmabuf,
+@@ -764,7 +774,7 @@
  		return -ENOMEM;
  
  	ret = dma_get_sgtable(buffer->dev, &a->sgt, buffer->virt,
@@ -85,7 +101,7 @@ index c8fb854f0..a2f45baf7 100644
  			      buffer->size);
  	if (ret < 0) {
  		dev_err(buffer->dev, "failed to get scatterlist from DMA API\n");
-@@ -814,7 +822,7 @@ static int fastrpc_mmap(struct dma_buf *dmabuf,
+@@ -814,7 +824,7 @@
  	dma_resv_assert_held(dmabuf->resv);
  
  	return dma_mmap_coherent(buf->dev, vma, buf->virt,
@@ -94,7 +110,7 @@ index c8fb854f0..a2f45baf7 100644
  }
  
  static const struct dma_buf_ops fastrpc_dma_buf_ops = {
-@@ -1705,10 +1713,13 @@ static int fastrpc_dmabuf_alloc(struct fastrpc_user *fl, char __user *argp)
+@@ -1706,10 +1716,13 @@
  	exp_info.size = bp.size;
  	exp_info.flags = O_RDWR;
  	exp_info.priv = buf;

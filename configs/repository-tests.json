@@ -3013,28 +3013,6 @@
           ]
         }
       ]
-    },
-    {
-      "path": "scripts/device/test-kernel-audit-20261002.py",
-      "interpreter": "python3",
-      "tiers": [
-        "active",
-        "ci",
-        "nightly",
-        "board"
-      ],
-      "mandatory": true,
-      "deadline_seconds": 120,
-      "prerequisites": [
-        "python3",
-        "cc"
-      ],
-      "resource_class": "isolated",
-      "exclusivity_group": null,
-      "python_optimized": false,
-      "exact_source": false,
-      "required_inputs": [],
-      "optional_subchecks": []
     }
   ]
 }

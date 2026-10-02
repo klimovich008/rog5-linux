@@ -38,11 +38,13 @@ Signed-off-by: Srinivas Kandagatla <srini@kernel.org>
  fastrpc-fixes, Cc: stable), https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/commit/?id=2159430fe26068ca3c89557ddd2d5eb17a5a8cf0
  Hardware: FastRPC users as before (hexagonrpcd, sensors).]
 
+[ROG5: publish the secure-map attribute only after assignment succeeds,
+ so failed assignment does not trigger a second ownership transfer.]
+
 diff --git a/drivers/misc/fastrpc.c b/drivers/misc/fastrpc.c
-index d7a9e12f5..c8fb854f0 100644
 --- a/drivers/misc/fastrpc.c
 +++ b/drivers/misc/fastrpc.c
-@@ -881,7 +881,7 @@ static int fastrpc_map_attach(struct fastrpc_user *fl, int fd,
+@@ -881,7 +881,7 @@
  		dev_dbg(sess->dev, "Bad size passed len 0x%llx map size 0x%llx\n",
  				len, map->size);
  		err = -EINVAL;
@@ -51,12 +53,21 @@ index d7a9e12f5..c8fb854f0 100644
  	}
  	map->va = sg_virt(map->table->sgl);
  	map->len = len;
-@@ -904,7 +904,7 @@ static int fastrpc_map_attach(struct fastrpc_user *fl, int fd,
+@@ -898,14 +898,15 @@
+ 		dst_perms[0].perm = QCOM_SCM_PERM_RW;
+ 		dst_perms[1].vmid = fl->cctx->vmperms[0].vmid;
+ 		dst_perms[1].perm = QCOM_SCM_PERM_RWX;
+-		map->attr = attr;
+ 		err = qcom_scm_assign_mem(map->dma_addr, (u64)map->len, &src_perms, dst_perms, 2);
+ 		if (err) {
  			dev_err(sess->dev,
  				"Failed to assign memory with dma_addr %pad size 0x%llx err %d\n",
  				&map->dma_addr, map->len, err);
 -			goto map_err;
 +			goto get_err;
  		}
++		/* Only an assigned map is handed back in fastrpc_free_map() */
++		map->attr = attr;
  	}
  	spin_lock(&fl->lock);
+ 	list_add_tail(&map->node, &fl->maps);

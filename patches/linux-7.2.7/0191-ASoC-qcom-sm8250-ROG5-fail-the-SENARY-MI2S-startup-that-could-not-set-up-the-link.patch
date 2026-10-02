@@ -16,10 +16,9 @@ before; a stream that fails to start now reports the error instead of
 playing silence.
 
 diff --git a/sound/soc/codecs/cs35l45.c b/sound/soc/codecs/cs35l45.c
-index 639db8d5f..c6153546b 100644
 --- a/sound/soc/codecs/cs35l45.c
 +++ b/sound/soc/codecs/cs35l45.c
-@@ -942,15 +942,13 @@ static int cs35l45_asp_set_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
+@@ -950,15 +950,13 @@
  		return -EINVAL;
  	}
  
@@ -43,10 +42,9 @@ index 639db8d5f..c6153546b 100644
  
  static int cs35l45_asp_hw_params(struct snd_pcm_substream *substream,
 diff --git a/sound/soc/qcom/sm8250.c b/sound/soc/qcom/sm8250.c
-index e300d77a3..6fd2cd40b 100644
 --- a/sound/soc/qcom/sm8250.c
 +++ b/sound/soc/qcom/sm8250.c
-@@ -124,21 +124,35 @@ static int sm8250_snd_startup(struct snd_pcm_substream *substream)
+@@ -124,21 +124,35 @@
  		break;
  	case SENARY_MI2S_RX: {
  		struct snd_soc_dai *dai;
