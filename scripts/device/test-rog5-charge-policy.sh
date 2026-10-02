@@ -211,8 +211,9 @@ if "$here/rog5-charge-policy" bogus 2>/dev/null; then echo 'FAIL unknown command
 
 # The loop: applies the config and keeps running.
 rm -rf $t/state
-ROG5_CHG_POLL=1 "$here/rog5-charge-policy" & pid=$!
+# Own process group: the daemon's poll sleep outlives the daemon itself.
+ROG5_CHG_POLL=1 setsid "$here/rog5-charge-policy" & pid=$!
 sleep 2
-kill $pid; wait $pid 2>/dev/null || true
+kill $pid; wait $pid 2>/dev/null || true; kill -- -"$pid" 2>/dev/null || true
 [ "$(cat $b/charge_control_end_threshold)" = 80 ] || { echo 'FAIL loop did not apply the limit'; exit 1; }
 echo PASS rog5-charge-policy

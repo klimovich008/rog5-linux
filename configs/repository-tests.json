@@ -201,7 +201,22 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "host systemd lacks PrivateTmp=disconnected; exact target graph/sandbox qualification still required",
+          "scope": "subcheck",
+          "reason": "systemd-analyze verify of the target units needs systemd >= 256 (PrivateTmp=disconnected); Ubuntu 24.04 runners have 255. The unit text and policy checks stay mandatory; a skip proves nothing about the target unit graph.",
+          "inputs": [
+            "systemd-analyze from systemd >= 256"
+          ],
+          "test_ids": [
+            "Tests.test_legacy_fixture_reproduces_hidden_dependency",
+            "Tests.test_no_implicit_tmpfiles_delay_and_namespace_retained"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/host/test-production-ram-trial.py",
@@ -311,8 +326,7 @@
       "prerequisites": [
         "python3",
         "sh",
-        "unshare",
-        "exch"
+        "unshare"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1718,9 +1732,7 @@
       "exclusivity_group": "repository",
       "python_optimized": false,
       "exact_source": false,
-      "required_inputs": [
-        "artifacts/host-tools/qemu-aarch64-static"
-      ],
+      "required_inputs": [],
       "optional_subchecks": [
         {
           "id": "optional-1",
@@ -1732,6 +1744,18 @@
             "podman",
             "configs/recovery-control/aarch64-build-v1.json",
             "artifacts/host-tools/qemu-aarch64-static"
+          ],
+          "test_ids": []
+        },
+        {
+          "id": "optional-2",
+          "kind": "line",
+          "message": "SKIP isolated AArch64 behavior replay: QEMU/bubblewrap unavailable",
+          "scope": "subcheck",
+          "reason": "The replay runs the tracked helper under the qualified QEMU (Ubuntu 8.2.2+ds-0ubuntu1.17, extracted by extract-qualified-qemu-aarch64-static.sh into ignored artifacts/host-tools); runners without it still check the tracked artifact bytes, metadata and ELF shape. A skip proves no AArch64 behaviour.",
+          "inputs": [
+            "artifacts/host-tools/qemu-aarch64-static",
+            "bwrap"
           ],
           "test_ids": []
         }
@@ -2857,7 +2881,23 @@
         "scripts/device/rog5-install-userspace",
         "configs/rootfs/userspace.tsv"
       ],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "needs unshare --map-auto --map-root-user (subordinate ids)",
+          "scope": "subcheck",
+          "reason": "The install runs as root in a user namespace with subordinate ids; runners without newuidmap/subuid entries (or with unprivileged user namespaces restricted) cannot map them. The planning tests stay mandatory; a skip proves nothing about the installer's file operations.",
+          "inputs": [
+            "unshare --map-auto --map-root-user",
+            "/etc/subuid and /etc/subgid entries"
+          ],
+          "test_ids": [
+            "Install.test_a_link_in_the_home_is_never_followed",
+            "Install.test_install_check_and_kept_local_edit"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/host/test-rog5-dtb-memory.py",
@@ -2912,7 +2952,26 @@
         "configs/rootfs/packages.txt",
         "configs/rootfs/custom-packages.txt"
       ],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "needs unshare --map-auto --map-root-user",
+          "scope": "subcheck",
+          "reason": "The boot-step cases build a root owned tree in a user namespace with subordinate ids; the configuration and package-list tests stay mandatory. A skip proves nothing about the sealed boot step.",
+          "inputs": [
+            "unshare --map-auto --map-root-user",
+            "/etc/subuid and /etc/subgid entries"
+          ],
+          "test_ids": [
+            "BootStep.test_bad_bundles_are_refused",
+            "BootStep.test_boot_step_needs_the_sealed_directory",
+            "BootStep.test_no_bundle_is_a_no_op",
+            "BootStep.test_seal_verifies_right_after_sealing",
+            "BootStep.test_v1_selector_and_modes"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/device/test-rog5-memory-tune.py",
@@ -2957,7 +3016,22 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
-      "optional_subchecks": []
+      "optional_subchecks": [
+        {
+          "id": "optional-1",
+          "kind": "unittest",
+          "message": "executes an aarch64 RET on a real PFN (root on the phone)",
+          "scope": "subcheck",
+          "reason": "Executes code on a real physical page; it runs only as root on the AArch64 phone. The parser and report tests stay mandatory on every host.",
+          "inputs": [
+            "aarch64 host",
+            "root"
+          ],
+          "test_ids": [
+            "MemReportTest.test_exec_pages_native"
+          ]
+        }
+      ]
     },
     {
       "path": "scripts/device/test-memslim-dtb.py",

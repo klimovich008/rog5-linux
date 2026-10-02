@@ -81,8 +81,10 @@ EOS
 chmod +x $t/fake-suspend
 ROG5_SLEEP_IDLE=1 ROG5_SLEEP_AWAKE=1 ROG5_SLEEP_POLL=1 ROG5_SLEEP_STATE=$t/state \
 ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep ROG5_SLEEP_STATS=$t/stats ROG5_SLEEP_WAKE_IRQ=$t/wake \
-ROG5_SLEEP_SUSPEND_CMD=$t/fake-suspend "$here/rog5-sleep-policy" & pid=$!
+ROG5_SLEEP_SUSPEND_CMD=$t/fake-suspend setsid "$here/rog5-sleep-policy" & pid=$!
 sleep 9; kill $pid; wait $pid 2>/dev/null || true; sleep 2
+# The daemon's own process group: its last poll sleep outlives it.
+kill -- -"$pid" 2>/dev/null || true
 calls=$(wc -l <$t/calls); ok=$(cat $t/stats/success)
 [ "$calls" -ge 2 ] || { echo "FAIL loop suspended $calls times"; exit 1; }
 [ "$calls" -le "$ok" ] || [ "$calls" -eq $((ok + 1)) ] || { echo "FAIL $calls suspend calls for $ok kernel suspends"; exit 1; }
@@ -110,9 +112,9 @@ EOS
 chmod +x $b/*
 rm -f $t/stay; echo 0 >$t/usb; echo Off >$t/dpms
 PATH=$b:$PATH ROG5_SLEEP_WIFI_PS=1 ROG5_SLEEP_WIFI_PS_HOLD=3 ROG5_SLEEP_MODE=reachable ROG5_SLEEP_POLL=1 \
-ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep "$here/rog5-sleep-policy" & pid=$!
-sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { kill $pid; echo "FAIL power save not on after the hold"; exit 1; }
+ROG5_SLEEP_STATE=$t/ps-state ROG5_SLEEP_MEM_SLEEP=$t/mem_sleep setsid "$here/rog5-sleep-policy" & pid=$!
+sleep 5; [ "$(cat $t/ps 2>/dev/null)" = on ] || { kill -- -"$pid"; echo "FAIL power save not on after the hold"; exit 1; }
 for i in 1 2 3; do : >$t/client; sleep 1.2; rm -f $t/client; sleep 1.2; done
-sleep 5; kill $pid; wait $pid 2>/dev/null || true
+sleep 5; kill $pid; wait $pid 2>/dev/null || true; kill -- -"$pid" 2>/dev/null || true
 [ "$(tr '\n' ' ' <$t/ps)" = "on off on " ] || { echo "FAIL power save toggles: $(tr '\n' ' ' <$t/ps)"; exit 1; }
 echo PASS rog5-sleep-policy
