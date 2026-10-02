@@ -1,0 +1,24 @@
+diff --git a/src/dbus/org.gnome.Shell.xml b/src/dbus/org.gnome.Shell.xml
+--- a/src/dbus/org.gnome.Shell.xml
++++ b/src/dbus/org.gnome.Shell.xml
+@@ -52,5 +52,7 @@
+     </signal>
+     <property name="OverviewActive" type="b" access="read"/>
+     <property name="ShellVersion" type="s" access="read"/>
++    <!-- ROG5: actual lockscreen state, independent of login1 LockedHint. -->
++    <property name="Locked" type="b" access="read"/>
+   </interface>
+ </node>
+diff --git a/src/gnome-shell-manager.c b/src/gnome-shell-manager.c
+--- a/src/gnome-shell-manager.c
++++ b/src/gnome-shell-manager.c
+@@ -716,6 +716,9 @@
+ 
+   G_OBJECT_CLASS (phosh_gnome_shell_manager_parent_class)->constructed (object);
+ 
++  /* ROG5: export the real lock state, including the startup lock. */
++  g_object_bind_property (shell, "locked", object, "locked", G_BINDING_SYNC_CREATE);
++
+   g_object_bind_property_full (shell, "shell-state",
+                                object, "shell-action-mode",
+                                G_BINDING_SYNC_CREATE,

@@ -1,4 +1,5 @@
-# ROG5 virtual desktop (headless sway, 1920x1080, VNC on 127.0.0.1:5901).
+# ROG5 virtual desktop (headless sway, 1920x1080, VNC on the Unix socket
+# %t/rog5-vnc-desktop.sock; see /etc/rog5-desktop/sway.conf).
 # Runs from the "phone" user's manager (lingering is enabled), independent of
 # Phosh and of the screen. Started on demand ("rog5-desktop start", or any
 # desktop command of rog5-desktop), not at boot: always on it kept sway,
@@ -8,14 +9,14 @@
 # picked no usable device and wayvnc found no buffer format, so the desktop
 # ran on pixman and its clients on llvmpipe (glmark2 ~120 vs ~640 on FD660).
 [Unit]
-Description=ROG5 virtual desktop (headless sway, VNC 127.0.0.1:5901)
+Description=ROG5 virtual desktop (headless sway, VNC on %t/rog5-vnc-desktop.sock)
 
 [Service]
 UnsetEnvironment=WAYLAND_DISPLAY DISPLAY
 Environment=WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=gles2 WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128 SWAYSOCK=%t/rog5-desktop-sway.sock XDG_CURRENT_DESKTOP=sway XDG_SESSION_TYPE=wayland LANG=C.UTF-8
 ExecStart=/usr/bin/sway --config /etc/rog5-desktop/sway.conf
 # the display name is published by sway.conf; a stale one sent commands nowhere
-ExecStopPost=/usr/bin/rm -f %t/rog5-desktop.display
+ExecStopPost=/usr/bin/rm -f %t/rog5-desktop.display %t/rog5-vnc-desktop.sock
 Restart=on-failure
 RestartSec=5
 # No [Install]: on demand only. On an installed phone run once

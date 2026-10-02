@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Static repository checks: context entry points, tracked test inputs, local Markdown links,
-shell/Python syntax of every tracked script, and a private-key/API-key scan.
+shell/Python syntax of every tracked script (*.py, *.sh and extensionless
+files with a sh/bash/python3 shebang), and a private-key/API-key scan that
+reports file and line only, never the matched value.
 
 One standalone command (no network, no build, a few seconds):
     python3 scripts/host/check-repository-static.py [--repo DIR] [--skip-syntax]
@@ -22,10 +24,13 @@ SHELL_INTERPRETERS = {
 }
 ISOLATED_PYTHON_SHEBANG = b"#!/usr/bin/env -S -i /usr/bin/python3 -I -S"
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-# PKCS#8 ("BEGIN PRIVATE KEY", the Ed25519 signing key's format) and encrypted
-# PKCS#8 headers have no algorithm word.
-SECRET = (r"BEGIN ((RSA|OPENSSH|EC|DSA|ENCRYPTED) )?PRIVATE KEY|"
-          r"OPENROUTER_API_KEY[[:space:]]*=[[:space:]]*['\"]?[A-Za-z0-9_-]{20}")
+# Any PEM/OpenSSH private-key header (PKCS#8 "PRIVATE KEY", "ENCRYPTED
+# PRIVATE KEY", RSA/EC/OPENSSH...) and literal provider credentials.
+SECRET = (r"BEGIN ([A-Z0-9]+ )*PRIVATE KEY|"
+          r"(OPENROUTER|OPENAI|ANTHROPIC)_API_KEY[[:space:]]*=[[:space:]]*['\"]?[A-Za-z0-9_-]{20}|"
+          r"(^|[^A-Za-z0-9_-])sk-(ant-|proj-|or-)?[A-Za-z0-9_-]{20,}|"
+          r"gh[pousr]_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16}")
+PYTHON_SHEBANGS = (b"#!/usr/bin/env python3", b"#!/usr/bin/python3")
 
 
 def tracked(repo, *patterns):
@@ -95,10 +100,28 @@ def check_links(repo):
     return broken, len(documents)
 
 
+def extensionless_scripts(repo):
+    """Tracked files without an extension whose shebang names sh, bash or
+    python3 (installed helpers such as scripts/device/rog5-desktop-mode)."""
+    names = []
+    for name in tracked(repo):
+        if "." in Path(name).name or name.startswith("third_party/"):
+            continue
+        path = repo / name
+        if path.is_symlink() or not path.is_file():
+            continue
+        with open(path, "rb") as f:
+            first_line = f.readline(200).rstrip(b"\n")
+        if first_line in SHELL_INTERPRETERS or first_line in PYTHON_SHEBANGS \
+                or first_line == ISOLATED_PYTHON_SHEBANG:
+            names.append(name)
+    return names
+
+
 def check_syntax(repo):
     errors = []
     shell_count = 0
-    for name in tracked(repo, "*.py", "*.sh"):
+    for name in [*tracked(repo, "*.py", "*.sh"), *extensionless_scripts(repo)]:
         path = repo / name
         try:
             source = path.read_bytes()
@@ -106,7 +129,7 @@ def check_syntax(repo):
             errors.append(f'{name}: cannot read tracked script: {error}')
             continue
         first_line = source.partition(b"\n")[0]
-        if path.suffix == ".py" or first_line == ISOLATED_PYTHON_SHEBANG:
+        if path.suffix == ".py" or first_line == ISOLATED_PYTHON_SHEBANG or first_line in PYTHON_SHEBANGS:
             try:
                 compile(source, str(path), "exec")
             except SyntaxError as error:
@@ -131,7 +154,10 @@ def check_secrets(repo):
          ":!scripts/host/check-repository-static.py", ":!scripts/host/test-check-repository-static.py"],
         capture_output=True, text=True)
     if result.returncode == 0:
-        return ["repository contains a private-key header or literal OpenRouter key:\n" + result.stdout]
+        # file:line only: a detected secret must not be copied into CI logs
+        places = [":".join(line.split(":", 2)[:2]) for line in result.stdout.splitlines()]
+        return ["repository contains a private-key header or a literal API key/token at:\n  "
+                + "\n  ".join(places)]
     if result.returncode != 1:
         return ["git grep failed: " + result.stderr.strip()]
     return []

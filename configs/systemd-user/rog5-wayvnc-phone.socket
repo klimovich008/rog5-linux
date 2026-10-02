@@ -1,15 +1,21 @@
-# VNC mirror of the phone screen, started on demand: this socket listens on
-# 127.0.0.1:5900 in the graphical session (loopback only: connect through an
-# SSH tunnel, e.g. ssh -L 5900:127.0.0.1:5900 root@<phone>, then a VNC client
-# on localhost:5900). The first connection starts rog5-wayvnc-phone-proxy,
-# which pulls in wayvnc on 127.0.0.1:5910; two minutes after the last client
+# VNC mirror of the phone screen, started on demand. The socket is a Unix
+# socket in the phone user's runtime directory (0700), mode 0600: only the
+# phone user and root can connect (a TCP port on 127.0.0.1 let every local
+# account in, and VNC has no password here). Remote use goes through SSH,
+# which forwards a local port to it:
+#   ssh -N -L 5900:/run/user/1000/rog5-vnc-phone.sock root@<phone>
+# then a VNC client on localhost:5900 ("rog5-desktop status" prints the
+# exact path). The first connection starts rog5-wayvnc-phone-proxy, which
+# pulls in wayvnc on its own Unix socket; two minutes after the last client
 # the proxy exits and wayvnc stops (it used ~26 MiB PSS when always on).
 [Unit]
-Description=wayvnc phone mirror on demand (127.0.0.1:5900)
+Description=wayvnc phone mirror on demand (%t/rog5-vnc-phone.sock)
 PartOf=graphical-session.target
 
 [Socket]
-ListenStream=127.0.0.1:5900
+ListenStream=%t/rog5-vnc-phone.sock
+SocketMode=0600
+RemoveOnStop=yes
 Service=rog5-wayvnc-phone-proxy.service
 
 [Install]

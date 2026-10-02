@@ -1,0 +1,13 @@
+# "Desktop mode" launcher: the only desktop-mode unit the phone user may start
+# (polkit rule 60-rog5-desktop-mode). It only leaves a request for
+# rog5-desktop-mode, which starts GNOME if rog5-phosh's session was locked
+# and then unlocked (the same check as the automatic switch) and otherwise
+# drops it and says why in a notification.
+[Unit]
+Description=Ask rog5-desktop-mode for the GNOME desktop
+Requisite=rog5-desktop-mode.service
+After=rog5-desktop-mode.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/rog5-desktop-mode --request

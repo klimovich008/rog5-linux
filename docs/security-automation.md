@@ -6,7 +6,15 @@ security decision than enabling SSH.
 
 ## Staged account boundary
 
-The Arch image now stages a locked `rog5-agent` system account. It has its own
+**Historical (packaging kit, not the current image).** What follows describes
+the `packaging/arch` kit of the July-September headless image. The current
+root (`scripts/host/rog5-build-rootfs`, `configs/rootfs/userspace.tsv`)
+creates only the `phone` user and installs neither the `rog5-agent` account
+nor `packaging/arch/rog5-chromium-headless.service`: there is no isolated
+automation account on the phone today. Do not run automation in the `phone`
+session on the strength of this page; install and verify the boundary first.
+
+That kit staged a locked `rog5-agent` system account. It has its own
 group, `/usr/bin/nologin`, no password, no supplementary groups, no SSH
 directory, and no access through the interactive `rog5` desktop account. Its
 state root and reserved private-data directory are:

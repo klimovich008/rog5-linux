@@ -49,9 +49,14 @@ class StaticCheck(unittest.TestCase):
             "shell syntax": ("bad.sh", "#!/bin/sh\nif then\n", "sh -n"),
             "shebang": ("noshebang.sh", "set -eu\n", "unsupported tracked shell shebang"),
             "key": ("key.txt", "-----BEGIN OPENSSH " + "PRIVATE KEY-----\n", "private-key header"),
-            "pkcs8 key": ("key.pem", "-----BEGIN " + "PRIVATE KEY-----\n", "private-key header"),
-            "encrypted key": ("key.pem", "-----BEGIN ENCRYPTED " + "PRIVATE KEY-----\n", "private-key header"),
-            "dsa key": ("key.pem", "-----BEGIN DSA " + "PRIVATE KEY-----\n", "private-key header"),
+            "pkcs8 key": ("k8.pem", "-----BEGIN " + "PRIVATE KEY-----\n", "private-key header"),
+            "encrypted key": ("k9.pem", "-----BEGIN ENCRYPTED " + "PRIVATE KEY-----\n", "private-key header"),
+            "openai key": ("env", "OPENAI_API_KEY" + "=abcdefghijklmnopqrstuvwxyz\n", "API key"),
+            "sk token": ("conf", "token: s" + "k-proj-ABCDEFGHIJKLMNOPQRSTUV0123\n", "API key"),
+            "github token": ("gh", "g" + "hp_" + "a" * 36 + "\n", "API key"),
+            "extensionless shell": ("tool", "#!/bin/sh\nif then\n", "sh -n"),
+            "extensionless python": ("pytool", "#!/usr/bin/env python3\ndef (:\n", "Python syntax"),
+            "dsa key": ("k10.pem", "-----BEGIN DSA " + "PRIVATE KEY-----\n", "private-key header"),
             "entry point": ("docs/active-context.md", None, "missing context entry point"),
         }
         for label, (name, content, message) in cases.items():
@@ -66,6 +71,26 @@ class StaticCheck(unittest.TestCase):
                 result = run(root)
                 self.assertEqual(result.returncode, 1, result.stdout)
                 self.assertIn(message, result.stderr)
+
+    def test_secret_values_are_not_printed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            value = "s" + "k-or-v1-" + "Z" * 40
+            (root / "leak.txt").write_text("x\nkey = " + value + "\n")
+            self.add(root)
+            result = run(root)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("leak.txt:2", result.stderr)
+            self.assertNotIn(value, result.stderr + result.stdout)
+
+    def test_words_ending_in_sk_are_not_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make(root)
+            (root / "series").write_text("0115-ASoC-cs35l45-ROG5-mask-unused-IRQ-sources-and-the-PLL\n")
+            self.add(root)
+            self.assertEqual(run(root).returncode, 0)
 
     def test_skip_syntax_skips_only_syntax(self):
         with tempfile.TemporaryDirectory() as tmp:

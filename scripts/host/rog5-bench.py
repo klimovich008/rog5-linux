@@ -18,7 +18,7 @@ runs there as root over the USB link, stores the JSON under
 test-results/bench/<utc>-<kind>.json and, for smooth runs, prints the change
 against the previous stored run.
 """
-import importlib.util, io, json, sys, tarfile, time
+import importlib.util, io, json, shlex, sys, tarfile, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,9 +44,14 @@ def push():
         sys.exit('push failed: ' + r.stderr.decode()[-300:])
 
 
+RC = 0      # the remote exit status of the last run (kept with its JSON)
+
+
 def run(kind, command, timeout):
+    global RC
     push()
     r = trial.ssh(ADDR, command, timeout)
+    RC = r.returncode
     text = r.stdout.decode(errors='replace')
     try:
         data = json.loads(text)
@@ -56,6 +61,20 @@ def run(kind, command, timeout):
     path = OUT/f'{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}-{kind}.json'
     path.write_text(json.dumps(data, indent=2) + '\n')
     return data, path
+
+
+def numbers(words, low, high, what):
+    """Bounded numeric gesture arguments (they become Python source on the
+    phone, so nothing else may get through)."""
+    if not low <= len(words) <= high:
+        sys.exit(f'gesture {what}: {low}..{high} numbers expected')
+    try:
+        values = [float(w) for w in words]
+    except ValueError:
+        sys.exit(f'gesture {what}: arguments must be numbers')
+    if not all(0 <= v <= 10000 for v in values):
+        sys.exit(f'gesture {what}: numbers out of range')
+    return ','.join(repr(v) for v in values)
 
 
 def smooth_table(data, previous=None):
@@ -75,7 +94,9 @@ def smooth_table(data, previous=None):
 
 def main():
     kind = sys.argv[1] if len(sys.argv) > 1 else 'hw'
-    rest = ' '.join(sys.argv[2:])
+    # one shell word per argument: a label with spaces or shell characters
+    # stays one argument on the phone
+    rest = shlex.join(sys.argv[2:])
     if kind == 'hw':
         data, path = run('hw', f'python3 {REMOTE}/bench/hwcheck.py', 120)
         for s in ('pass', 'partial', 'missing', 'error'):
@@ -104,14 +125,17 @@ def main():
         if r.returncode:
             sys.exit('shot failed: ' + r.stderr.decode(errors='replace')[-600:])
         OUT.mkdir(parents=True, exist_ok=True)
-        path = Path(rest) if rest else OUT/f'{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}-shot.png'
+        path = Path(sys.argv[2]) if len(sys.argv) > 2 else OUT/f'{time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())}-shot.png'
         path.write_bytes(r.stdout)
         print('stored', path)
         return
     elif kind == 'gesture':
+        if len(sys.argv) < 4 or sys.argv[3] not in ('swipe', 'tap'):
+            sys.exit(__doc__)
         out, *g = sys.argv[2:]
+        call = (f'v.swipe({numbers(g[1:], 4, 5, "swipe")})' if g[0] == 'swipe'
+                else f'v.tap({numbers(g[1:], 2, 2, "tap")})')
         push()
-        call = (f'v.swipe({",".join(g[1:])})' if g[0] == 'swipe' else f'v.tap({",".join(g[1:])})')
         r = trial.ssh(ADDR, f'cd {REMOTE}/bench && python3 -c "from vtouch import VirtualTouch, wake_display; import time; '
                             f'wake_display(0.5); v = VirtualTouch(); {call}; time.sleep(1.5); v.close()" && '
                             'python3 scanout.py png /run/rog5-shot.png --scale 3 --no-wake >&2 && '
@@ -130,7 +154,12 @@ def main():
     else:
         sys.exit(__doc__)
     print('stored', path.relative_to(ROOT), 'status', data.get('status', '-'))
+    # a failed probe stays a failure for scripts, even with a stored result
+    if RC != 0 or data.get('status') == 'FAIL':
+        print(f'FAIL remote exit {RC}, status {data.get("status", "-")}', file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

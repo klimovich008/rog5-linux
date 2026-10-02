@@ -1,0 +1,450 @@
+diff --git a/hexagonrpcd/apps_std.c b/hexagonrpcd/apps_std.c
+index 7172bf0..2a97566 100644
+--- a/hexagonrpcd/apps_std.c
++++ b/hexagonrpcd/apps_std.c
+@@ -101,8 +101,9 @@ static uint32_t apps_std_fread(void *data,
+ 	} *first_out = outbufs[0].p;
+ 	ssize_t ret;
+ 
++	/* outbufs[1] was allocated from buf_size: read at most its size */
+ 	ret = hexagonfs_read(ctx->fds, first_in->fd,
+-			     first_in->buf_size, outbufs[1].p);
++			     outbufs[1].s, outbufs[1].p);
+ 	if (ret < 0) {
+ 		fprintf(stderr, "Could not read file: %s\n", strerror(-ret));
+ 		return AEE_EFAILED;
+@@ -115,7 +116,7 @@ static uint32_t apps_std_fread(void *data,
+ #endif
+ 
+ 	first_out->written = ret;
+-	first_out->is_eof = first_out->written < first_in->buf_size;
++	first_out->is_eof = first_out->written < outbufs[1].s;
+ 
+ 	return 0;
+ }
+@@ -160,7 +161,8 @@ static uint32_t apps_std_fopen_with_env(void *data,
+ 	int dirfd, fd;
+ 
+ 	// The name and environment variable must also be NULL-terminated
+-	if (((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0
++	if (inbufs[1].s == 0 || inbufs[3].s == 0 || inbufs[4].s == 0
++	 || ((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0
+ 	 || ((const char *) inbufs[3].p)[inbufs[3].s - 1] != 0
+ 	 || ((const char *) inbufs[4].p)[inbufs[4].s - 1] != 0)
+ 		return AEE_EBADPARM;
+@@ -217,7 +219,8 @@ static uint32_t apps_std_opendir(void *data,
+ 	int ret;
+ 
+ 	// The name must be NULL-terminated
+-	if (((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
++	if (inbufs[1].s == 0
++	 || ((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
+ 		return AEE_EBADPARM;
+ 
+ 	ret = hexagonfs_openat(ctx->fds, ctx->rootfd, ctx->rootfd, inbufs[1].p);
+@@ -310,7 +313,8 @@ static uint32_t apps_std_stat(void *data,
+ 	struct stat stats;
+ 	int fd, ret;
+ 
+-	if (((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
++	if (inbufs[1].s == 0
++	 || ((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
+ 		return AEE_EBADPARM;
+ 
+ 	fd = hexagonfs_openat(ctx->fds, ctx->rootfd, ctx->adsp_library_dirfd, pathname);
+diff --git a/hexagonrpcd/iobuffer.c b/hexagonrpcd/iobuffer.c
+index 0c36df6..4ec054e 100644
+--- a/hexagonrpcd/iobuffer.c
++++ b/hexagonrpcd/iobuffer.c
+@@ -54,13 +54,21 @@ static int try_populate_inbuf(struct fastrpc_decoder_context *ctx)
+ 	if (ctx->size_off)
+ 		return 0;
+ 
+-	buf = malloc(ctx->size);
++	/* at least one byte: malloc(0) may return NULL */
++	buf = malloc(ctx->size ? ctx->size : 1);
+ 	if (buf == NULL)
+ 		return -1;
+ 
+ 	ctx->inbufs[ctx->idx].s = ctx->size;
+ 	ctx->inbufs[ctx->idx].p = buf;
+ 
++	/*
++	 * An empty buffer has no data (and no alignment) after its size: it is
++	 * complete, and the next word is the size of the next buffer.
++	 */
++	if (ctx->size == 0)
++		ctx->idx++;
++
+ 	return 0;
+ }
+ 
+diff --git a/hexagonrpcd/listener.c b/hexagonrpcd/listener.c
+index 3414974..b6617ad 100644
+--- a/hexagonrpcd/listener.c
++++ b/hexagonrpcd/listener.c
+@@ -22,14 +22,41 @@
+ #include <inttypes.h>
+ #include <libhexagonrpc/error.h>
+ #include <libhexagonrpc/hexagonrpc.h>
++#include <stdbool.h>
+ #include <stddef.h>
+ #include <stdint.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ 
+ #include "interface/adsp_listener.h"
+ #include "iobuffer.h"
+ #include "listener.h"
+ 
++/*
++ * Largest output buffer the listener allocates for one argument. The remote
++ * side chooses the sizes; reads of DSP libraries and the sensor registry are
++ * far smaller.
++ */
++#define HRPC_MAX_OUTBUF_SIZE (64u << 20)
++
++/*
++ * Methods with a fixed-size output argument (HRPC_ARG_OUT_BLOB or
++ * HRPC_ARG_OUT_TYPE) return it in the primary output buffer, out[0], and
++ * alloc_outbufs4() starts the other output buffers at out[1].
++ */
++static bool has_primary_outbuf4(const struct hrpc_method_def_interp4 *def)
++{
++	size_t i;
++
++	for (i = 0; i < def->n_args; i++) {
++		if (def->args[i].t == HRPC_ARG_OUT_BLOB
++		 || def->args[i].t == HRPC_ARG_OUT_TYPE)
++			return true;
++	}
++
++	return false;
++}
++
+ static int count_sizes_in_type4(const struct hrpc_inner_type_def_interp4 *type,
+ 				const struct fastrpc_io_buffer **curr_inbuf,
+ 				const struct fastrpc_io_buffer *inbufs_end,
+@@ -95,13 +122,20 @@ static int count_sizes_out_type4(const struct hrpc_inner_type_def_interp4 *type,
+ 	return 0;
+ }
+ 
++/*
++ * Checks that the decoded input buffers and the number of output buffers of
++ * a request match the method definition, so that alloc_outbufs4() and the
++ * implementation stay within them: every output buffer alloc_outbufs4()
++ * fills (the primary one, one per sequence and one for the instances of a
++ * type sequence) must have been sent by the remote side.
++ */
+ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 			uint8_t n_inbufs, uint8_t n_outbufs,
+ 			const struct fastrpc_io_buffer *inbufs)
+ {
+ 	const struct hrpc_inner_type_def_interp4 *inner_type;
+-	const void *pos = inbufs[0].p;
+-	const void *end = (const char *) inbufs[0].p + inbufs[0].s;
++	const void *pos;
++	const void *end;
+ 	const struct fastrpc_io_buffer *inbufs_end = &inbufs[n_inbufs];
+ 	const struct fastrpc_io_buffer *curr_inbuf = &inbufs[1];
+ 	size_t size, i, j;
+@@ -109,8 +143,24 @@ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 	const void *inner_end;
+ 	int ret;
+ 
+-	if (def->msg_id > 30)
++	/* Without a primary input buffer only a method without arguments fits. */
++	if (n_inbufs == 0)
++		return (def->n_args == 0 && def->msg_id <= 30) ? 0 : -1;
++
++	pos = inbufs[0].p;
++	end = (const char *) inbufs[0].p + inbufs[0].s;
++
++	if (def->msg_id > 30) {
+ 		pos = (const uint32_t *) pos + 1;
++		if (pos > end)
++			return -1;
++	}
++
++	if (has_primary_outbuf4(def)) {
++		if (n_outbufs == 0)
++			return -1;
++		n_outbufs--;
++	}
+ 
+ 	for (i = 0; i < def->n_args; i++) {
+ 		switch (def->args[i].t) {
+@@ -126,6 +176,9 @@ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 
+ 				break;
+ 			case HRPC_ARG_TYPE:
++				if (def->args[i].d >= def->n_inner_types)
++					return -1;
++
+ 				inner_type = &def->inner_types[def->args[i].d];
+ 				ret = count_sizes_in_type4(inner_type,
+ 							   &curr_inbuf,
+@@ -156,6 +209,9 @@ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 				if (curr_inbuf >= inbufs_end)
+ 					return -1;
+ 
++				if (def->args[i].d >= def->n_inner_types)
++					return -1;
++
+ 				size = *(const uint32_t *) pos;
+ 				pos = (const uint32_t *) pos + 1;
+ 
+@@ -177,6 +233,9 @@ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 			case HRPC_ARG_OUT_BLOB:
+ 				break;
+ 			case HRPC_ARG_OUT_TYPE:
++				if (def->args[i].d >= def->n_inner_types)
++					return -1;
++
+ 				inner_type = &def->inner_types[def->args[i].d];
+ 				ret = count_sizes_out_type4(inner_type,
+ 							    &n_outbufs,
+@@ -202,6 +261,14 @@ static int count_sizes4(const struct hrpc_method_def_interp4 *def,
+ 				if (curr_inbuf >= inbufs_end)
+ 					return -1;
+ 
++				if (def->args[i].d >= def->n_inner_types)
++					return -1;
++
++				/* the buffer that receives the instances */
++				if (n_outbufs == 0)
++					return -1;
++				n_outbufs--;
++
+ 				size = *(const uint32_t *) pos;
+ 				pos = (const uint32_t *) pos + 1;
+ 
+@@ -264,6 +331,8 @@ static int alloc_outbufs_out_type4(const struct hrpc_inner_type_def_interp4 *typ
+ 			case HRPC_ARG_BLOB_SEQ:
+ 				size = type->p[i].d;
+ 				size *= *(const uint32_t *) *inst_in;
++				if (size > HRPC_MAX_OUTBUF_SIZE)
++					return -1;
+ 
+ 				(*curr_outbuf)->s = size;
+ 				(*curr_outbuf)->p = malloc(size);
+@@ -281,29 +350,33 @@ static int alloc_outbufs_out_type4(const struct hrpc_inner_type_def_interp4 *typ
+ 	return 0;
+ }
+ 
++/*
++ * Only called after count_sizes4() accepted the request, so every buffer
++ * and every size read here is within what the remote side sent.
++ */
+ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_interp4 *def,
+ 						const struct fastrpc_io_buffer *inbufs,
++						uint8_t n_inbufs,
+ 						uint8_t n_outbufs)
+ {
+ 	const struct hrpc_inner_type_def_interp4 *inner_type;
+-	const void *prim_in = inbufs[0].p;
++	const void *prim_in = n_inbufs ? inbufs[0].p : NULL;
+ 	struct fastrpc_io_buffer *out, *curr_outbuf, *inner_outbuf;
+ 	const struct fastrpc_io_buffer *curr_inbuf = &inbufs[1];
+ 	const void *inner_pos;
+ 	size_t i, j, size, prim_out_size = 0;
+ 	int ret;
+ 
+-	curr_outbuf = out = calloc(n_outbufs, sizeof(*out));
++	curr_outbuf = out = calloc(n_outbufs ? n_outbufs : 1, sizeof(*out));
+ 	if (out == NULL)
+ 		return NULL;
+ 
+-	for (i = 0; i < def->n_args; i++) {
+-		if (def->args[i].t == HRPC_ARG_OUT_BLOB
+-		 || def->args[i].t == HRPC_ARG_OUT_TYPE) {
+-			curr_outbuf = &out[1];
+-			break;
+-		}
+-	}
++	/* the same method ID word that count_sizes4() skips */
++	if (def->msg_id > 30)
++		prim_in = (const uint32_t *) prim_in + 1;
++
++	if (has_primary_outbuf4(def))
++		curr_outbuf = &out[1];
+ 
+ 	for (i = 0; i < def->n_args; i++) {
+ 		switch (def->args[i].t) {
+@@ -317,7 +390,7 @@ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_int
+ 							     &curr_inbuf,
+ 							     &prim_in);
+ 				if (ret)
+-					return NULL;
++					goto err;
+ 
+ 				break;
+ 			case HRPC_ARG_BLOB_SEQ:
+@@ -336,7 +409,7 @@ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_int
+ 								     &curr_inbuf,
+ 								     &inner_pos);
+ 					if (ret)
+-						return NULL;
++						goto err;
+ 				}
+ 
+ 				break;
+@@ -350,12 +423,14 @@ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_int
+ 							      &prim_in,
+ 							      &prim_out_size);
+ 				if (ret)
+-					return NULL;
++					goto err;
+ 
+ 				break;
+ 			case HRPC_ARG_OUT_BLOB_SEQ:
+ 				size = *(const uint32_t *) prim_in;
+ 				size *= def->args[i].d;
++				if (size > HRPC_MAX_OUTBUF_SIZE)
++					goto err;
+ 
+ 				curr_outbuf->s = size;
+ 				curr_outbuf->p = malloc(size);
+@@ -383,12 +458,15 @@ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_int
+ 								      &inner_pos,
+ 								      &inner_outbuf->s);
+ 					if (ret)
+-						return NULL;
++						goto err;
+ 				}
+ 
++				if (inner_outbuf->s > HRPC_MAX_OUTBUF_SIZE)
++					goto err;
++
+ 				inner_outbuf->p = malloc(inner_outbuf->s);
+ 				if (inner_outbuf->p == NULL)
+-					return NULL;
++					goto err;
+ 
+ 				break;
+ 			default:
+@@ -406,10 +484,9 @@ static struct fastrpc_io_buffer *alloc_outbufs4(const struct hrpc_method_def_int
+ 	return out;
+ 
+ err:
+-	for (; curr_outbuf >= out; curr_outbuf--) {
+-		if (curr_outbuf->p != NULL)
+-			free(curr_outbuf->p);
+-	}
++	/* calloc()ed: unused entries are NULL */
++	for (i = 0; i < n_outbufs; i++)
++		free(out[i].p);
+ 
+ 	free(out);
+ 
+@@ -548,6 +625,7 @@ static int invoke_requested_procedure(size_t n_ifaces,
+ 	}
+ 
+ 	*returned = alloc_outbufs4(impl->def, decoded,
++				   REMOTE_SCALARS_INBUFS(sc),
+ 				   REMOTE_SCALARS_OUTBUFS(sc));
+ 	if (*returned == NULL && impl->def->n_args > 0) {
+ 		perror("Could not allocate output buffers");
+diff --git a/hexagonrpcd/localctl.c b/hexagonrpcd/localctl.c
+index f90f99e..5361653 100644
+--- a/hexagonrpcd/localctl.c
++++ b/hexagonrpcd/localctl.c
+@@ -64,10 +64,12 @@ static uint32_t localctl_open(void *data,
+ 	struct remotectl_open_return *first_out = outbufs[0].p;
+ 	size_t i;
+ 
+-	if (((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
++	if (inbufs[1].s == 0
++	 || ((const char *) inbufs[1].p)[inbufs[1].s - 1] != 0)
+ 		return AEE_EBADPARM;
+ 
+-	memset(outbufs[1].p, 0, first_in->outlen);
++	/* the allocated size: never a length read from another field */
++	memset(outbufs[1].p, 0, outbufs[1].s);
+ 
+ 	for (i = 0; i < ctx->n_ifaces; i++) {
+ 		if (!strcmp(ctx->ifaces[i]->name,
+@@ -96,10 +98,13 @@ static uint32_t localctl_close(void *data,
+ 			       const struct fastrpc_io_buffer *inbufs,
+ 			       struct fastrpc_io_buffer *outbufs)
+ {
+-	uint32_t *dlerr_size = inbufs[0].p;
+ 	uint32_t *dlerr_len = outbufs[0].p;
+ 
+-	memset(outbufs[1].p, 0, *dlerr_size);
++	/*
++	 * The first input word is the handle, not the error buffer's length
++	 * (that one sized outbufs[1]): clear what was allocated.
++	 */
++	memset(outbufs[1].p, 0, outbufs[1].s);
+ 
+ 	*dlerr_len = 0;
+ 
+diff --git a/hexagonrpcd/rpcd.c b/hexagonrpcd/rpcd.c
+index 38d5c00..d10cae4 100644
+--- a/hexagonrpcd/rpcd.c
++++ b/hexagonrpcd/rpcd.c
+@@ -187,7 +187,11 @@ static int start_clients(size_t n_progs, const char **progs, pid_t *pids)
+ 	return 0;
+ }
+ 
+-static void *start_reverse_tunnel(int fd, const char *device_dir, const char *dsp)
++/*
++ * Returns nonzero when the tunnel ends: the listener only returns on an
++ * error, and the service manager must see that as a failure to restart it.
++ */
++static int start_reverse_tunnel(int fd, const char *device_dir, const char *dsp)
+ {
+ 	struct fastrpc_interface **ifaces;
+ 	struct hexagonfs_dirent *root_dir;
+@@ -196,7 +200,7 @@ static void *start_reverse_tunnel(int fd, const char *device_dir, const char *ds
+ 
+ 	ifaces = malloc(sizeof(struct fastrpc_interface) * n_ifaces);
+ 	if (ifaces == NULL)
+-		return NULL;
++		return -1;
+ 
+ 	root_dir = construct_root_dir(device_dir, dsp);
+ 
+@@ -215,18 +219,19 @@ static void *start_reverse_tunnel(int fd, const char *device_dir, const char *ds
+ 	if (ret)
+ 		goto err;
+ 
+-	run_fastrpc_listener(fd, n_ifaces, ifaces);
++	ret = run_fastrpc_listener(fd, n_ifaces, ifaces);
++	fprintf(stderr, "FastRPC listener ended: %d\n", ret);
+ 
+ 	fastrpc_localctl_deinit(ifaces[REMOTECTL]);
+ 
+ 	free(ifaces);
+ 
+-	return NULL;
++	return ret ? ret : -1;
+ 
+ err:
+ 	free(ifaces);
+ 
+-	return NULL;
++	return -1;
+ }
+ 
+ static char *read_sysfs_file(const char *path, struct stat *file_stat)
+@@ -433,7 +438,7 @@ int main(int argc, char* argv[])
+ 	if (ret)
+ 		goto err_close_dev;
+ 
+-	start_reverse_tunnel(fd, device_dir, dsp);
++	ret = start_reverse_tunnel(fd, device_dir, dsp);
+ 
+ 	terminate_clients(n_progs, pids);
+ 
+@@ -441,7 +446,8 @@ int main(int argc, char* argv[])
+ 	free(pids);
+ 	free(progs);
+ 
+-	return 0;
++	/* A tunnel that ended is a failure (the service manager restarts it). */
++	return ret ? 5 : 0;
+ 
+ err_close_dev:
+ 	close(fd);

@@ -10,13 +10,55 @@ Before=shutdown.target
 Conflicts=shutdown.target
 
 [Service]
+# hexagonrpcd parses requests the DSP sends, so it runs as a dynamic,
+# unprivileged user with no capabilities, a read-only view of the system and
+# only the fastrpc (misc) character devices; the sdsp node is handed to that
+# user while the service runs. It only reads its data tree and sysfs.
+DynamicUser=yes
+User=rog5-sensors
+RuntimeDirectory=rog5-sensors
+CapabilityBoundingSet=
+AmbientCapabilities=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+PrivateIPC=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+DevicePolicy=closed
+DeviceAllow=char-misc rw
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
 # Only when the DT enables the SLPI (the conservative fallback DT keeps the
 # node but disabled; without this the unit waits for fastrpc forever).
 ExecCondition=/usr/bin/grep -q okay /proc/device-tree/soc@0/remoteproc@5c00000/status
-ExecStartPre=/run/rog5-platform/modules sensor-modules
-ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do [ -c /dev/fastrpc-sdsp ] && exit 0; sleep 1; done; exit 1'
+# "+": module loading, and handing the device node over, need root.
+ExecStartPre=+/run/rog5-platform/modules sensor-modules
+ExecStartPre=/bin/sh -c 'for i in $$(seq 1 30); do [ -c /dev/fastrpc-sdsp ] && exit 0; sleep 1; done; exit 1'
+# Data staged by an older installer kept Android's owners and modes: make it
+# root-owned and world-readable once (a no-op afterwards).
+ExecStartPre=+/bin/sh -c 'd=/usr/share/qcom/sm8350/ASUS/ZS673KS; [ -z "$$(find "$$d" ! -user root -o ! -group root -o ! -type l ! -perm -o=r -o ! -type l -perm /go=w | head -n 1)" ] && exit 0; chown -R -h root:root "$$d" && chmod -R u=rwX,go=rX "$$d"'
+ExecStartPre=+/bin/sh -c 'chown --reference=/run/rog5-sensors /dev/fastrpc-sdsp && chmod 0600 /dev/fastrpc-sdsp'
 ExecStart=/usr/local/bin/hexagonrpcd -f /dev/fastrpc-sdsp -d sdsp -s -R /usr/share/qcom/sm8350/ASUS/ZS673KS
-Restart=on-failure
+ExecStopPost=+/bin/sh -c '[ ! -c /dev/fastrpc-sdsp ] || chown root:root /dev/fastrpc-sdsp'
+# A malformed request or a transport error ends the listener (exit 5 with
+# third_party/hexagonrpc 0002): restart it.
+Restart=always
 RestartSec=5
 
 [Install]

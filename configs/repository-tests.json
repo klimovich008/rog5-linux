@@ -223,6 +223,36 @@
       ]
     },
     {
+      "path": "scripts/device/test-hexagonrpcd-listener.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "cc",
+        "patch"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "third_party/hexagonrpc/hexagonrpc-598b591.tar.gz",
+        "third_party/hexagonrpc/0002-hexagonrpcd-validate-output-buffer-counts-and-sizes.patch",
+        "scripts/device/fixtures/hexagonrpc/listener-test.c",
+        "scripts/device/install-rog5-sensors.sh",
+        "configs/systemd/rog5-sensors.service"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/device/test-idle-power-votes.py",
       "interpreter": "python3",
       "tiers": [
@@ -1326,7 +1356,7 @@
     },
     {
       "path": "scripts/device/test-rog5-desktop-mode-lock.sh",
-      "interpreter": "sh",
+      "interpreter": "bash",
       "tiers": [
         "active",
         "ci",
@@ -1337,7 +1367,9 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "sh"
+        "bash",
+        "sed",
+        "mktemp"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1618,6 +1650,50 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-rog5-phosh-lock-state.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "bash",
+        "awk",
+        "timeout"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-desktop-mode",
+        "packages/phosh/0003-export-real-lock-state.patch",
+        "packages/phosh/PKGBUILD"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "property-skeleton",
+          "kind": "unittest",
+          "message": "needs gdbus-codegen and gio-2.0 development files",
+          "scope": "subcheck",
+          "reason": "Probe behavior and package patch pins run everywhere; generated GObject skeleton compilation requires GLib development tools unavailable on some hosts.",
+          "inputs": [
+            "gdbus-codegen",
+            "gio-2.0 development files"
+          ],
+          "test_ids": [
+            "Probe.test_property_skeleton"
+          ]
+        }
+      ]
+    },
+    {
       "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
       "interpreter": "python3",
       "tiers": [
@@ -1681,6 +1757,28 @@
       "deadline_seconds": 300,
       "prerequisites": [
         "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-security-config.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
@@ -1981,6 +2079,31 @@
       "python_optimized": false,
       "exact_source": false,
       "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-wifi-networkmanager.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/rog5-wifi-networkmanager.sh"
+      ],
       "optional_subchecks": []
     },
     {
@@ -2394,6 +2517,31 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-backup-readonly-storage-inventory.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/backup-readonly-storage-inventory.py"
+      ],
       "optional_subchecks": []
     },
     {
@@ -2965,6 +3113,54 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/host/test-rog5-bench.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-bench.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-brightness-lab.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/rog5-brightness-lab.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-rog5-build-rootfs.py",
       "interpreter": "python3",
       "tiers": [
@@ -2988,7 +3184,8 @@
       "required_inputs": [
         "scripts/host/rog5-build-rootfs",
         "configs/rootfs/packages.txt",
-        "configs/rootfs/custom-packages.txt"
+        "configs/rootfs/custom-packages.txt",
+        "configs/rootfs/required-commands.tsv"
       ],
       "optional_subchecks": [
         {

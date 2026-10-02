@@ -45,14 +45,20 @@ class FakeSystem:
         self.exit_on_signal = True
         self.launch_ok = True
         self.switch = True
+        self.supervisor = True
         self.locked = ['no']
+        self.sids = ['2']
         self.slow = 0.0
+
+    def supervisor_active(self):
+        return self.supervisor
 
     def switch_pending(self):
         return self.switch
 
-    def session_locked(self):
-        return self.locked.pop(0) if len(self.locked) > 1 else self.locked[0]
+    def session_state(self):
+        sid = self.sids.pop(0) if len(self.sids) > 1 else self.sids[0]
+        return sid, (self.locked.pop(0) if len(self.locked) > 1 else self.locked[0])
 
     def scopes(self):
         return list(self.scope_list)
@@ -162,6 +168,15 @@ class SaveRestore(unittest.TestCase):
         self.assertIn(('kill_pid', 4242), f.calls)                       # no quit action: its PID
         self.assertEqual(f.scope_list, [])
 
+    def test_supervisor_failure_does_not_delay_gnome_stop_for_carry(self):
+        f = FakeSystem()
+        f.supervisor = False
+        f.scope_list = ['app-gnome-firefox-99.scope']
+        STATE.write_text('stale record')
+        self.assertEqual(sc.main(['save', '--close'], f), 0)
+        self.assertEqual(f.calls, [])
+        self.assertFalse(STATE.exists())
+
     def test_close_gives_up_after_the_timeout(self):
         f = FakeSystem()
         f.exit_on_signal = False
@@ -243,6 +258,38 @@ class SaveRestore(unittest.TestCase):
         self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
         self.assertFalse(STATE.exists())
 
+    def test_restore_stops_when_the_session_relocks(self):
+        # unlocked when checked, locked again after the delay: nothing opens
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['no', 'yes']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
+        # relocked after the first app: the rest stays closed
+        self.saved()
+        g = FakeSystem()
+        g.locked = ['no', 'no', 'yes']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual(len([c for c in g.calls if c[0] == 'launch']), 1)
+
+    def test_restore_stops_when_the_session_changes(self):
+        self.saved()
+        g = FakeSystem()
+        g.sids = ['2', '7']
+        sc.main(['restore', '--delay', '0'], g)
+        self.assertEqual([c for c in g.calls if c[0] == 'launch'], [])
+
+    def test_fifo_config_does_not_block(self):
+        reset()
+        os.mkfifo(TMP / 'user.conf')
+        try:
+            start = time.monotonic()
+            enabled, _ = sc.read_config()
+            self.assertTrue(enabled)
+            self.assertLess(time.monotonic() - start, 2)
+        finally:
+            (TMP / 'user.conf').unlink()
+
     def test_malformed_shapes_are_ignored(self):
         bad = ['[]', '{"format": "rog5-session-carry-v1"}',
                '{"format": "rog5-session-carry-v1", "boot_id": "boot-a", "saved": "x", "apps": []}',
@@ -273,11 +320,31 @@ class SaveRestore(unittest.TestCase):
         self.assertEqual(g.calls, [])
 
 
+class SessionIdentity(unittest.TestCase):
+    def test_primary_session_must_match_the_active_destination(self):
+        for seat, leader, unit_state, expected in [
+                ('seat0', '123', 'active', 'no'), ('', '123', 'active', None),
+                ('seat1', '123', 'active', None), ('seat0', '456', 'active', None),
+                ('seat0', '123', 'inactive', None), ('seat0', '0', 'active', None)]:
+            with self.subTest(seat=seat, leader=leader, unit_state=unit_state):
+                obj = sc.System()
+                def run(argv, **kw):
+                    if argv[:2] == ['loginctl', 'show-user']:
+                        return 0, '2'
+                    if argv[:2] == ['loginctl', 'show-session']:
+                        return 0, f'LockedHint=no\nActive=yes\nSeat={seat}\nLeader={leader}\n'
+                    if argv[:2] == ['systemctl', 'show']:
+                        return 0, f'MainPID=123\nActiveState={unit_state}\n'
+                    raise AssertionError(argv)
+                obj.run = run
+                self.assertEqual(obj.session_state(), ('2', expected))
+
+
 class Units(unittest.TestCase):
     def test_dropins_and_user_unit(self):
         for u in ('phosh', 'gnome'):
             text = (REPO / f'configs/systemd/rog5-{u}.service.d/60-rog5-session-carry.conf').read_text()
-            self.assertIn('ExecStop=-/usr/local/bin/rog5-session-carry save --close', text)
+            self.assertIn('ExecStop=-/usr/bin/timeout -k 1s 7s /usr/local/bin/rog5-session-carry save --close', text)
         unit = (REPO / 'configs/systemd-user/rog5-session-restore.service').read_text()
         self.assertIn('WantedBy=graphical-session.target', unit)
         self.assertIn('ExecStart=/usr/local/bin/rog5-session-carry restore', unit)

@@ -5,7 +5,11 @@
 # replaced by the patched builds in packages/ (see custom-packages.txt).
 # No kernel package: the kernel, modules and firmware come from the signed
 # boot bundle. One package per line; '#' starts a comment.
-# Added beyond the reference list: xxhash (xxhsum for steam-fex-rootfs-install).
+# Added beyond the reference list: xxhash (xxhsum for steam-fex-rootfs-install);
+# nftables (rog5-firewall.service; only an optional dependency of
+# networkmanager), grim and wmenu (rog5-desktop screenshots and the Sway menu;
+# optional for sway), xorg-xprop and libpulse (pactl) for rog5-desktop-mode.
+# configs/rootfs/required-commands.tsv lists the programs the build checks.
 alsa-utils
 archlinuxarm-keyring
 base
@@ -35,6 +39,7 @@ gnome-software
 gnome-system-monitor
 gnome-text-editor
 gnome-weather
+grim
 gst-libav
 hostapd
 hunspell-en_us
@@ -44,6 +49,7 @@ iperf3
 iw
 iwd
 libinput
+libpulse
 libxkbcommon
 linux-firmware-atheros
 loupe
@@ -56,6 +62,7 @@ nautilus
 net-tools
 netctl
 networkmanager
+nftables
 ntfs-3g
 openssh
 papers
@@ -90,8 +97,10 @@ which
 wireless-regdb
 wireplumber
 wlr-randr
+wmenu
 wtype
 xorg-xev
+xorg-xprop
 xorg-xwayland
 xorg-xwininfo
 xxhash
