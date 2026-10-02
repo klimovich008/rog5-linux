@@ -111,6 +111,16 @@
       "source_commit": "de7a8a518c08",
       "source_dirty": false,
       "changes": "k114 + 0157-0162: iris diagnostics (SFR, HFI trace, fw log), fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer/interframe_pc module parameters"
+    },
+    "k116": {
+      "build": "rog5-kernel-7.2.7-build-r116",
+      "release": "7.2.7-rog5-k116",
+      "date": "2026-10-02",
+      "series": "131 patches, 0001-0168",
+      "image_sha256": "6fffaad4bc8357a56edea07a64b0ef26254917e9f127328ff9a4c4d0c360cce8",
+      "source_commit": "0f9d70b49dc8",
+      "source_dirty": false,
+      "changes": "k115 + 0163-0168: SM8350 OEM iris platform data (SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches, UBWC switch), compliance, encoder bring-up markers, gen1 property packet sizing, stock Iris2 power off/on order with OPP release, held-core containment"
     }
   },
   "bundles": [
@@ -509,6 +519,22 @@
       "package": "package-main-k115-d15-261002d",
       "source_commit": "49ad2a91da59",
       "changes": "k115 RAM re-trial bundle D (same content as main-k115-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
+    },
+    {
+      "name": "main-k116-d15-261002a",
+      "role": "main",
+      "kernel": "k116",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k116",
+      "manifest_sha256": "9cd4eb9493ab0f758e7ce69302fbce93b54747094dcb593d6d6e9df87c5d3cc5",
+      "package": "package-main-k116-d15-261002a",
+      "source_commit": "0f9d70b49dc8",
+      "changes": "TRIAL hardware video round 3 (E1, defaults): k115 + 0163-0168 (SM8350 OEM iris platform data: SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches; stock Iris2 power off/on order; gen1 property packet sizing; held-core containment); d15 unchanged",
       "status": "built",
       "healthy": "unknown",
       "installed": null,

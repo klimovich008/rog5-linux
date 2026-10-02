@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k116-d15-261002a` | main | k116 | d15 | built | unknown |  | TRIAL hardware video round 3 (E1, defaults): k115 + 0163-0168 (SM8350 OEM iris platform data: SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches; stock Iris2 power off/on order; gen1 property packet sizing; held-core containment); d15 unchanged |  |
 | `main-k115-d15-261002d` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle D (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k115-d15-261002c` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle C (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k115-d15-261002b` | main | k115 | d15 | built | unknown |  | k115 RAM re-trial bundle (same content as main-k115-d15-261002a; one RAM boot per wrapper) |  |
@@ -47,6 +48,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k116 | `rog5-kernel-7.2.7-build-r116` | `7.2.7-rog5-k116` | 131 patches, 0001-0168 | 2026-10-02 | k115 + 0163-0168: SM8350 OEM iris platform data (SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches, UBWC switch), compliance, encoder bring-up markers, gen1 property packet sizing, stock Iris2 power off/on order with OPP release, held-core containment |
 | k115 | `rog5-kernel-7.2.7-build-r115` | `7.2.7-rog5-k115` | 125 patches, 0001-0162 | 2026-10-01 | k114 + 0157-0162: iris diagnostics (SFR, HFI trace, fw log), fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer/interframe_pc module parameters |
 | k114 | `rog5-kernel-7.2.7-build-r114` | `7.2.7-rog5-k114` | 119 patches, 0001-0156 | 2026-10-01 | k113 + hardware video: rog5-video.fragment (SM_VIDEOCC_8350, VIDEO_QCOM_IRIS), 0154 iris fail-clean teardown, 0155 IOVA memory-region binding (backport), 0156 SM8350 SMMU route readback |
 | k113 | `rog5-kernel-7.2.7-build-r113` | `7.2.7-rog5-k113` | 116 patches, 0001-0153 | 2026-10-01 |  |
