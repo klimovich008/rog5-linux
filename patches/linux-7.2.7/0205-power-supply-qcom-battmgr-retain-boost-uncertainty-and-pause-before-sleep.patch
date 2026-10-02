@@ -1,0 +1,154 @@
+From: GPT-6.1-Sol <noreply@openai.com>
+Subject: [PATCH] power: supply: qcom_battmgr: retain boost uncertainty and pause before sleep
+
+Complete audit 12 boost and suspended-percentage-policy findings with the
+known OEM protocol. Track requested source state separately from confirmed
+state and the service generation. Failed disable returns unknown, never OFF.
+A poisoned channel still permits an idempotent best-effort OFF send without
+using an indistinguishable delayed ON ack as proof. The channel stays poisoned;
+service recovery explicitly establishes the wanted OFF/ON state again.
+
+OEM firmware exposes pause, not a qualified threshold command. Conservatively
+pause before system suspend whenever a percentage limit is active, even below
+the threshold, and reject suspend if fresh acknowledgement fails. Resume
+reevaluates capacity and permits charging again where appropriate. This avoids
+crossing a percentage limit while its evaluator is frozen, at the cost of no
+charging during sleep with a limit set. Firmware-owned percentage enforcement
+or a wake-based policy needs separate hardware/protocol qualification.
+
+Local fixes to 0082/0089; no matching upstream backport found.
+Hardware: lose ON/OFF replies with GPIO4 isolated, confirm unknown until PDR
+recovery then OFF. Sleep below the configured threshold on external power:
+charging must pause, resume must restore the awake policy; inject pause failure
+and confirm suspend aborts. Threshold mode is not continuous asleep charging.
+
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -426,7 +426,9 @@
+ 	 */
+ 	struct regulator_dev *btm_otg_rdev;
+ 	struct work_struct btm_otg_work;
+-	bool btm_otg_on;
++	bool btm_otg_on; /* desired state, not proof of hardware state */
++	int btm_otg_confirmed; /* 0/1, or -EIO for unknown */
++	u32 btm_otg_generation;
+ 
+ 	struct qcom_battmgr_info info;
+ 	struct qcom_battmgr_status status;
+@@ -583,8 +585,24 @@
+ 		.on = cpu_to_le32(on),
+ 	};
+ 
+-	return qcom_battmgr_asus_request_locked(battmgr, &request,
+-						sizeof(request));
++	u32 generation = READ_ONCE(battmgr->oem_service_generation);
++	int ret;
++
++	battmgr->btm_otg_confirmed = -EIO;
++	ret = qcom_battmgr_asus_request_locked(battmgr, &request, sizeof(request));
++	if (!ret) {
++		battmgr->btm_otg_confirmed = on;
++		battmgr->btm_otg_generation = generation;
++	} else if (!on && READ_ONCE(battmgr->oem_service_up) &&
++		   READ_ONCE(battmgr->oem_request_poisoned)) {
++		/*
++		 * OFF is idempotent. Send it without waiting on the poisoned,
++		 * tokenless channel. Never interpret a stale ON ack as proof
++		 * of OFF; state stays unknown until service recovery.
++		 */
++		pmic_glink_send(battmgr->oem_client, &request, sizeof(request));
++	}
++	return ret;
+ }
+ 
+ static int qcom_battmgr_btm_otg_enable(struct regulator_dev *rdev)
+@@ -623,7 +641,11 @@
+ {
+ 	struct qcom_battmgr *battmgr = rdev_get_drvdata(rdev);
+ 
+-	return READ_ONCE(battmgr->btm_otg_on);
++	if (!READ_ONCE(battmgr->oem_service_up) ||
++	    READ_ONCE(battmgr->btm_otg_generation) !=
++		READ_ONCE(battmgr->oem_service_generation))
++		return -EIO;
++	return READ_ONCE(battmgr->btm_otg_confirmed);
+ }
+ 
+ static const struct regulator_ops qcom_battmgr_btm_otg_ops = {
+@@ -649,8 +671,9 @@
+ 	int ret;
+ 
+ 	mutex_lock(&battmgr->lock);
+-	if (battmgr->btm_otg_on) {
+-		ret = qcom_battmgr_btm_otg_send_locked(battmgr, true);
++	{
++		/* Recovery establishes OFF too, including a failed ON rollback. */
++		ret = qcom_battmgr_btm_otg_send_locked(battmgr, battmgr->btm_otg_on);
+ 		if (ret)
+ 			dev_err(battmgr->dev,
+ 				"failed to restore the bottom port 5 V source: %d\n",
+@@ -667,7 +690,8 @@
+ 	disable_work_sync(&battmgr->btm_otg_work);
+ 
+ 	mutex_lock(&battmgr->lock);
+-	if (battmgr->btm_otg_on) {
++	if (battmgr->btm_otg_on || battmgr->btm_otg_confirmed != 0 ||
++	    battmgr->btm_otg_generation != READ_ONCE(battmgr->oem_service_generation)) {
+ 		ret = qcom_battmgr_btm_otg_send_locked(battmgr, false);
+ 		if (ret)
+ 			dev_warn(battmgr->dev,
+@@ -2575,6 +2599,7 @@
+ 	init_completion(&battmgr->ack);
+ 	spin_lock_init(&battmgr->request_lock);
+ 	init_completion(&battmgr->oem_ack);
++	battmgr->btm_otg_confirmed = -EIO;
+ 	spin_lock_init(&battmgr->oem_lock);
+ 
+ 	match = of_match_device(qcom_battmgr_of_variants, dev->parent);
+@@ -2713,6 +2738,36 @@
+ 		qcom_battmgr_btm_otg_stop(battmgr);
+ }
+ 
++/*
++ * The OEM protocol only exposes pause, not a firmware percentage policy.
++ * While a percentage limit is active, pause before sleep rather than permit
++ * crossing that limit with its evaluator frozen. Resume reevaluates it.
++ */
++static int qcom_battmgr_suspend(struct device *dev)
++{
++	struct qcom_battmgr *battmgr = dev_get_drvdata(dev);
++	bool limited;
++	int ret = 0;
++
++	if (!battmgr->oem_client)
++		return 0;
++	cancel_delayed_work_sync(&battmgr->asus_chg_work);
++	mutex_lock(&battmgr->asus_chg_lock);
++	limited = battmgr->asus_chg_end < 100;
++	mutex_unlock(&battmgr->asus_chg_lock);
++	if (limited) {
++		/* Reassert: cached desired/previous state is not fresh proof. */
++		ret = qcom_battmgr_asus_set_bypass(battmgr, true);
++		if (!ret)
++			battmgr->asus_chg_paused = true;
++	}
++	if (ret) {
++		dev_err(dev, "cannot pause limited charging for suspend: %d\n", ret);
++		qcom_battmgr_asus_chg_kick(battmgr, true);
++	}
++	return ret;
++}
++
+ static int qcom_battmgr_resume(struct device *dev)
+ {
+ 	struct qcom_battmgr *battmgr = dev_get_drvdata(dev);
+@@ -2723,7 +2778,7 @@
+ 	return 0;
+ }
+ 
+-static DEFINE_SIMPLE_DEV_PM_OPS(qcom_battmgr_pm_ops, NULL, qcom_battmgr_resume);
++static DEFINE_SIMPLE_DEV_PM_OPS(qcom_battmgr_pm_ops, qcom_battmgr_suspend, qcom_battmgr_resume);
+ 
+ static const struct auxiliary_device_id qcom_battmgr_id_table[] = {
+ 	{ .name = "pmic_glink.power-supply", },

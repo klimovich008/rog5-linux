@@ -1,0 +1,221 @@
+From: GPT-6.1-Sol <noreply@openai.com>
+Subject: [PATCH] drm/msm: bind retirement to queued and in-flight flushes
+
+Resolve the three outstanding handoff-review findings in 0185. Assign a
+monotonic per-CRTC update generation under commit_lock before programming,
+including coalesced async updates. Keep sync commit_lock through wait_flush
+so a completion cannot accidentally acknowledge a later submission. Retired
+buffers wait for the required generation and a frozen subsequent vblank;
+newer flushes never advance that target. A failed vblank rearm retains the
+listed pin for the hardware-off drain. Allocation/initial schedule failure
+cannot use a pre-flush vblank as proof: retain the pin if a flush is pending.
+
+Local correction to the v3 deferred-release proposal in 0184/0185.
+Hardware: double-buffer reuse, async cursor updates stalled before flush,
+dual-display flips and DPMS/hotplug; no SMMU faults or steadily growing pins.
+Fault injection: allocation and vblank enable/rearm failures, then disable.
+
+diff --git a/drivers/gpu/drm/msm/msm_atomic.c b/drivers/gpu/drm/msm/msm_atomic.c
+--- a/drivers/gpu/drm/msm/msm_atomic.c
++++ b/drivers/gpu/drm/msm/msm_atomic.c
+@@ -218,6 +218,7 @@
+ 	kms->funcs->wait_flush(kms, crtc_mask);
+ 	trace_msm_atomic_wait_flush_finish(crtc_mask);
+ 
++	msm_kms_fb_unpin_queued(kms, crtc_mask);
+ 	atomic_set(&kms->fault_snapshot_capture, 0);
+ 
+ 	/*
+@@ -288,7 +289,6 @@
+ 	 */
+ 	trace_msm_atomic_flush_commit(crtc_mask);
+ 	kms->funcs->flush_commit(kms, crtc_mask);
+-	unlock_crtcs(kms, crtc_mask);
+ 	/*
+ 	 * Wait for flush to complete:
+ 	 */
+@@ -296,6 +296,7 @@
+ 	kms->funcs->wait_flush(kms, crtc_mask);
+ 	trace_msm_atomic_wait_flush_finish(crtc_mask);
+ 	msm_kms_fb_unpin_flushed(kms, crtc_mask);
++	unlock_crtcs(kms, crtc_mask);
+ 
+ 	vblank_put(kms, crtc_mask);
+ 
+diff --git a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
+--- a/drivers/gpu/drm/msm/msm_kms.c
++++ b/drivers/gpu/drm/msm/msm_kms.c
+@@ -174,9 +174,9 @@
+ 	struct msm_kms_fb_unpin *pending;
+ 	struct drm_crtc *crtc;
+ 	struct drm_framebuffer *fb;
+-	/* retired by an async commit whose flush was still pending */
+-	bool await_flush;
+-	u32 flush_seq;
++	/* Freeze the vblank target once our required flush completes. */
++	u64 required_seq;
++	u64 target_vbl;
+ };
+ 
+ static void msm_kms_fb_unpin_release(struct msm_fb_unpin_work *unpin)
+@@ -200,23 +200,17 @@
+ 		return;
+ 	}
+ 
+-	/*
+-	 * An async commit (msm_atomic_commit_tail()) cleans its planes up
+-	 * before its deferred flush has run: the old framebuffer is fetched
+-	 * until a vblank after that flush. Look again at the next vblank
+-	 * while the flush is outstanding.
+-	 */
+-	if (unpin->await_flush) {
+-		count = drm_crtc_vblank_count(unpin->crtc);
+-		if (pending->flush_seq == unpin->flush_seq)
+-			target = count + 1;
+-		else if (count <= pending->flush_vbl)
+-			target = pending->flush_vbl + 1;
+-	}
+-	/* A crtc in modeset refuses: it does not scan out any more. */
+-	if (target && drm_vblank_work_schedule(&unpin->base, target, true) == 1) {
+-		spin_unlock(&pending->lock);
+-		return;
++	count = drm_crtc_vblank_count(unpin->crtc);
++	if (!unpin->target_vbl || count < unpin->target_vbl)
++		target = unpin->target_vbl ?: count + 1;
++	if (target) {
++		int ret = drm_vblank_work_schedule(&unpin->base, target, true);
++
++		if (ret != 0) {
++			/* Negative means no completion proof: drain on hardware off. */
++			spin_unlock(&pending->lock);
++			return;
++		}
+ 	}
+ 
+ 	list_del_init(&unpin->node);
+@@ -225,25 +219,35 @@
+ 	msm_kms_fb_unpin_release(unpin);
+ }
+ 
+-/*
+- * Called after the CTL flush of @crtc_mask completed (wait_flush): a
+- * framebuffer retired before it is not fetched past the next vblank.
+- */
++/* Called with each affected commit_lock held, before publishing updates. */
++void msm_kms_fb_unpin_queued(struct msm_kms *kms, unsigned int crtc_mask)
++{
++	struct drm_crtc *crtc;
++
++	for_each_crtc_mask(kms->dev, crtc, crtc_mask) {
++		struct msm_kms_fb_unpin *pending = &kms->fb_unpin[drm_crtc_index(crtc)];
++
++		spin_lock(&pending->lock);
++		pending->queued_seq++;
++		spin_unlock(&pending->lock);
++	}
++}
++
++/* Commit locks cover queued_seq through wait_flush and this notification. */
+ void msm_kms_fb_unpin_flushed(struct msm_kms *kms, unsigned int crtc_mask)
+ {
+ 	struct drm_crtc *crtc;
+ 
+ 	for_each_crtc_mask(kms->dev, crtc, crtc_mask) {
+-		unsigned int idx = drm_crtc_index(crtc);
+-		struct msm_kms_fb_unpin *pending;
+-
+-		if (idx >= ARRAY_SIZE(kms->fb_unpin))
+-			continue;
+-
+-		pending = &kms->fb_unpin[idx];
++		struct msm_kms_fb_unpin *pending = &kms->fb_unpin[drm_crtc_index(crtc)];
++		struct msm_fb_unpin_work *unpin;
++		u64 target = drm_crtc_vblank_count(crtc) + 1;
++
+ 		spin_lock(&pending->lock);
+-		pending->flush_seq++;
+-		pending->flush_vbl = drm_crtc_vblank_count(crtc);
++		pending->flushed_seq = pending->queued_seq;
++		list_for_each_entry(unpin, &pending->fbs, node)
++			if (!unpin->target_vbl && unpin->required_seq <= pending->flushed_seq)
++				unpin->target_vbl = target;
+ 		spin_unlock(&pending->lock);
+ 	}
+ }
+@@ -303,9 +307,9 @@
+ 
+ /*
+  * Whether the crtc no longer fetches from what it scanned out before: it has
+- * passed a vblank since, or it is off (vblank in modeset: drm_crtc_vblank_get()
+- * fails with -EINVAL). Bounded wait; a crtc that neither passes a vblank in
+- * 100 ms nor is off gives no answer.
++ * passed a vblank since. A failed vblank_get (including -EINVAL) is not
++ * proof of hardware shutdown: enabling vblank can fail with the same error.
++ * Bounded wait; a crtc without a vblank in 100 ms gives no answer.
+  */
+ static bool msm_crtc_wait_one_vblank(struct drm_crtc *crtc)
+ {
+@@ -316,7 +320,7 @@
+ 
+ 	ret = drm_crtc_vblank_get(crtc);
+ 	if (ret)
+-		return ret == -EINVAL;
++		return false;
+ 
+ 	count = drm_crtc_vblank_count(crtc);
+ 	left = wait_event_timeout(*queue, drm_crtc_vblank_count(crtc) != count,
+@@ -335,7 +339,16 @@
+ static bool msm_crtc_fb_unpin_fallback(struct drm_crtc *crtc,
+ 				       struct drm_framebuffer *fb)
+ {
+-	if (msm_crtc_wait_one_vblank(crtc))
++	struct msm_drm_private *priv = crtc->dev->dev_private;
++	struct msm_kms_fb_unpin *pending = &priv->kms->fb_unpin[drm_crtc_index(crtc)];
++	bool flushed, off;
++
++	spin_lock(&pending->lock);
++	flushed = pending->queued_seq == pending->flushed_seq;
++	off = pending->off;
++	spin_unlock(&pending->lock);
++
++	if (off || (flushed && msm_crtc_wait_one_vblank(crtc)))
+ 		return false;
+ 
+ 	drm_err_ratelimited(crtc->dev,
+@@ -389,9 +402,9 @@
+ 	 * and ->off covers msm_crtc_vblank_off() up to that point.
+ 	 */
+ 	spin_lock(&pending->lock);
+-	unpin->await_flush = READ_ONCE(kms->pending_crtc_mask) &
+-			     drm_crtc_mask(crtc);
+-	unpin->flush_seq = pending->flush_seq;
++	unpin->required_seq = pending->queued_seq;
++	if (unpin->required_seq <= pending->flushed_seq)
++		unpin->target_vbl = drm_crtc_vblank_count(crtc) + 1;
+ 	if (!pending->off) {
+ 		list_add_tail(&unpin->node, &pending->fbs);
+ 		ret = drm_vblank_work_schedule(&unpin->base,
+diff --git a/drivers/gpu/drm/msm/msm_kms.h b/drivers/gpu/drm/msm/msm_kms.h
+--- a/drivers/gpu/drm/msm/msm_kms.h
++++ b/drivers/gpu/drm/msm/msm_kms.h
+@@ -141,9 +141,9 @@
+ 	struct list_head fbs;
+ 	/* the crtc is being switched off: release retired framebuffers directly */
+ 	bool off;
+-	/* completed CTL flushes, and the vblank count after the last one */
+-	u32 flush_seq;
+-	u64 flush_vbl;
++	/* Queued/in-flight updates and their completed flushes. */
++	u64 queued_seq;
++	u64 flushed_seq;
+ };
+ 
+ struct msm_kms {
+@@ -186,6 +186,7 @@
+ };
+ 
+ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb);
++void msm_kms_fb_unpin_queued(struct msm_kms *kms, unsigned int crtc_mask);
+ void msm_kms_fb_unpin_flushed(struct msm_kms *kms, unsigned int crtc_mask);
+ void msm_crtc_vblank_off(struct drm_crtc *crtc);
+ 

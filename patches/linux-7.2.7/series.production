@@ -148,3 +148,12 @@
 0195-ASoC-cs35l45-ROG5-keep-the-amplifier-off-while-the-protection-registers-are-not-restored.patch
 0196-ASoC-qcom-sm8250-ROG5-fail-the-SENARY-MI2S-startup-that-could-not-set-up-the-link.patch
 0197-ASoC-codecs-lpass-va-macro-fail-runtime-resume-when-the-registers-are-not-restored.patch
+0198-ASoC-cs35l45-latch-restore-faults-and-verify-hardware-defaults.patch
+0199-drm-msm-bind-retirement-to-queued-and-inflight-flushes.patch
+0200-ASoC-q6afe-correlate-LPASS-votes-and-confirm-devotes.patch
+0201-ASoC-q6asm-quarantine-PCM-buffers-after-uncertain-teardown.patch
+0202-drm-msm-dp-reject-untrained-links-and-track-PHY-init-ownership.patch
+0203-usb-dwc3-gate-new-gadgets-and-release-bandwidth-after-stop.patch
+0204-power-supply-qcom-battmgr-correlate-property-requests.patch
+0205-power-supply-qcom-battmgr-retain-boost-uncertainty-and-pause-before-sleep.patch
+0206-misc-fastrpc-retain-the-DMA-device-for-buffer-lifetime.patch
