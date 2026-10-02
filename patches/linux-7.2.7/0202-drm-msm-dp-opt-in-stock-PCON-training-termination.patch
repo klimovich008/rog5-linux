@@ -1,0 +1,77 @@
+From 55331f26d6e9401dcc2132bab33a39786bb95775 Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:10:13 +0200
+Subject: [PATCH] drm/msm/dp: gate PCON single-training RAM trial
+
+Keep dp_pcon_single_train off by default and latch it at link setup for
+TMDS converters only. Terminate successful initial training before video,
+skip forced duplicate training, and retain retraining when EQ is bad.
+This trial has no on-phone qualification for production use.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+
+---
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index 944028ed..aa2fd94c 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -142,6 +142,7 @@ struct msm_dp_ctrl_private {
+ 	bool stream_clks_on;
+ 	/* ROG5: phy_power_on() succeeded and no phy_power_off() since */
+ 	bool phy_powered;
++	bool pcon_single_train;
+ };
+ 
+ static inline u32 msm_dp_read_ahb(const struct msm_dp_ctrl_private *ctrl, u32 offset)
+@@ -412,6 +413,19 @@ static uint msm_dp_async_msa;
+ module_param_named(dp_async_msa, msm_dp_async_msa, uint, 0644);
+ MODULE_PARM_DESC(dp_async_msa, "ROG5 EXPERIMENT (static M/N, not spec-complete): 1 = asynchronous MSA clock signalling at the next modeset (0 = synchronous)");
+ 
++static bool msm_dp_pcon_single_train;
++module_param_named(dp_pcon_single_train, msm_dp_pcon_single_train, bool, 0644);
++MODULE_PARM_DESC(dp_pcon_single_train, "ROG5 PCON experiment: terminate initial training before video and retrain only on bad EQ (default 0)");
++
++static bool msm_dp_ctrl_is_pcon(struct msm_dp_ctrl_private *ctrl)
++{
++	const u8 *dpcd = ctrl->panel->dpcd;
++
++	return drm_dp_is_branch(dpcd) &&
++		(dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) ==
++		DP_DWN_STRM_PORT_TYPE_TMDS;
++}
++
+ static void msm_dp_ctrl_config_ctrl(struct msm_dp_ctrl_private *ctrl)
+ {
+ 	u32 config = 0, tbd;
+@@ -2600,6 +2614,8 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 
+ 	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
+ 
++	ctrl->pcon_single_train = READ_ONCE(msm_dp_pcon_single_train) &&
++		msm_dp_ctrl_is_pcon(ctrl);
+ 	rate = ctrl->panel->link_info.rate;
+ 	if (msm_dp_max_rate && rate > msm_dp_max_rate)
+ 		rate = msm_dp_max_rate;
+@@ -2689,6 +2705,10 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 			 ctrl->link->link_params.rate, need_kbps);
+ 	}
+ 
++	if (!rc && ctrl->pcon_single_train) {
++		rc = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++		drm_info(ctrl->drm_dev, "DP: on-link/single-training rc=%d\n", rc);
++	}
+ 	drm_info(ctrl->drm_dev, "DP: on-link rc=%d %u x %u kHz bpp=%u\n",
+ 		 rc, ctrl->link->link_params.num_lanes, ctrl->link->link_params.rate,
+ 		 ctrl->panel->msm_dp_mode.bpp);
+@@ -2837,7 +2857,8 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
+ 		ctrl->stream_clks_on = true;
+ 	}
+ 
+-	if (force_link_train || !msm_dp_ctrl_channel_eq_ok(ctrl)) {
++	if ((force_link_train && !ctrl->pcon_single_train) ||
++	    !msm_dp_ctrl_channel_eq_ok(ctrl)) {
+ 		ret = msm_dp_ctrl_link_retrain(ctrl);
+ 		drm_dbg_dp(ctrl->drm_dev, "DP: pre-video-training rc=%d\n", ret);
+ 		if (ret)
+-- 
+2.50.1

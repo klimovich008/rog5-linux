@@ -1,0 +1,900 @@
+From 7fda7055aa772ea9c9b72b8cb8a7b0efcc9ab1d3 Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:08:02 +0200
+Subject: [PATCH] drm/msm/dp: propagate failures and unwind acquired resources
+
+Check AUX transfers, training exhaustion, capacity and stream readiness.
+Unwind acquired resources after enable or maintenance failure, defer link-BAD
+notification, and refresh capabilities before mode/depth setup on retry.
+Serialize maintenance and snooping with disable; preserve PM ownership.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+
+---
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index 09312836..944028ed 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -186,8 +186,8 @@ static int msm_dp_aux_link_configure(struct drm_dp_aux *aux,
+ 		lane_count |= DP_LANE_COUNT_ENHANCED_FRAME_EN;
+ 
+ 	err = drm_dp_dpcd_writeb(aux, DP_LANE_COUNT_SET, lane_count);
+-	if (err < 0)
+-		return err;
++	if (err != 1)
++		return err < 0 ? err : -EIO;
+ 
+ 	if (link->use_rate_set) {
+ 		DRM_DEBUG_DP("using LINK_RATE_SET: 0x%02x", link->rate_set);
+@@ -198,7 +198,7 @@ static int msm_dp_aux_link_configure(struct drm_dp_aux *aux,
+ 		err = drm_dp_dpcd_writeb(aux, DP_LINK_BW_SET, bw_code);
+ 	}
+ 
+-	return err;
++	return err == 1 ? 0 : (err < 0 ? err : -EIO);
+ }
+ 
+ /*
+@@ -1432,13 +1432,10 @@ static int msm_dp_ctrl_update_phy_vx_px(struct msm_dp_ctrl_private *ctrl,
+ 		reg = DP_TRAINING_LANE0_SET_PHY_REPEATER(dp_phy);
+ 
+ 	ret = drm_dp_dpcd_write(ctrl->aux, reg, buf, lane_cnt);
+-	if (ret == lane_cnt)
+-		ret = 0;
+-
+-	return ret;
++	return ret == lane_cnt ? 0 : (ret < 0 ? ret : -EIO);
+ }
+ 
+-static bool msm_dp_ctrl_train_pattern_set(struct msm_dp_ctrl_private *ctrl,
++static int msm_dp_ctrl_train_pattern_set(struct msm_dp_ctrl_private *ctrl,
+ 		u8 pattern, enum drm_dp_phy dp_phy)
+ {
+ 	u8 buf;
+@@ -1458,7 +1455,7 @@ static bool msm_dp_ctrl_train_pattern_set(struct msm_dp_ctrl_private *ctrl,
+ 		reg = DP_TRAINING_PATTERN_SET_PHY_REPEATER(dp_phy);
+ 
+ 	ret = drm_dp_dpcd_writeb(ctrl->aux, reg, buf);
+-	return ret == 1;
++	return ret == 1 ? 0 : (ret < 0 ? ret : -EIO);
+ }
+ 
+ static int msm_dp_ctrl_set_pattern_state_bit(struct msm_dp_ctrl_private *ctrl,
+@@ -1503,8 +1500,10 @@ static int msm_dp_ctrl_link_train_1(struct msm_dp_ctrl_private *ctrl,
+ 	ret = msm_dp_ctrl_set_pattern_state_bit(ctrl, 1);
+ 	if (ret)
+ 		return ret;
+-	msm_dp_ctrl_train_pattern_set(ctrl, DP_TRAINING_PATTERN_1 |
++	ret = msm_dp_ctrl_train_pattern_set(ctrl, DP_TRAINING_PATTERN_1 |
+ 		DP_LINK_SCRAMBLING_DISABLE, dp_phy);
++	if (ret)
++		return ret;
+ 
+ 	msm_dp_link_reset_phy_params_vx_px(ctrl->link);
+ 	ret = msm_dp_ctrl_update_phy_vx_px(ctrl, dp_phy);
+@@ -1595,16 +1594,19 @@ static int msm_dp_ctrl_link_lane_down_shift(struct msm_dp_ctrl_private *ctrl)
+ 	return 0;
+ }
+ 
+-static void msm_dp_ctrl_clear_training_pattern(struct msm_dp_ctrl_private *ctrl,
++static int msm_dp_ctrl_clear_training_pattern(struct msm_dp_ctrl_private *ctrl,
+ 					       enum drm_dp_phy dp_phy)
+ {
+-	int delay_us;
++	int delay_us, ret;
+ 
+-	msm_dp_ctrl_train_pattern_set(ctrl, DP_TRAINING_PATTERN_DISABLE, dp_phy);
++	ret = msm_dp_ctrl_train_pattern_set(ctrl, DP_TRAINING_PATTERN_DISABLE, dp_phy);
++	if (ret)
++		return ret;
+ 
+ 	delay_us = drm_dp_read_channel_eq_delay(ctrl->aux,
+ 						ctrl->panel->dpcd, dp_phy, false);
+ 	fsleep(delay_us);
++	return 0;
+ }
+ 
+ static int msm_dp_ctrl_link_train_2(struct msm_dp_ctrl_private *ctrl,
+@@ -1639,7 +1641,9 @@ static int msm_dp_ctrl_link_train_2(struct msm_dp_ctrl_private *ctrl,
+ 	if (ret)
+ 		return ret;
+ 
+-	msm_dp_ctrl_train_pattern_set(ctrl, pattern, dp_phy);
++	ret = msm_dp_ctrl_train_pattern_set(ctrl, pattern, dp_phy);
++	if (ret)
++		return ret;
+ 
+ 	for (tries = 0; tries <= maximum_retries; tries++) {
+ 		fsleep(delay_us);
+@@ -1701,25 +1705,40 @@ static int msm_dp_ctrl_link_train(struct msm_dp_ctrl_private *ctrl,
+ 	link_info.rate = ctrl->link->link_params.rate;
+ 	link_info.capabilities = DP_LINK_CAP_ENHANCED_FRAMING;
+ 
+-	msm_dp_aux_link_configure(ctrl->aux, &link_info);
++	ret = msm_dp_aux_link_configure(ctrl->aux, &link_info);
++	if (ret)
++		goto end;
+ 
+ 	if (msm_dp_ctrl_ssc(dpcd))
+ 		encoding[0] |= DP_SPREAD_AMP_0_5;
+ 
+ 	/* config DOWNSPREAD_CTRL and MAIN_LINK_CHANNEL_CODING_SET */
+-	drm_dp_dpcd_write(ctrl->aux, DP_DOWNSPREAD_CTRL, encoding, 2);
++	ret = drm_dp_dpcd_write(ctrl->aux, DP_DOWNSPREAD_CTRL, encoding, 2);
++	if (ret != 2) {
++		ret = ret < 0 ? ret : -EIO;
++		goto end;
++	}
++	ret = 0;
+ 
+ 	if (drm_dp_alternate_scrambler_reset_cap(dpcd)) {
+ 		assr = DP_ALTERNATE_SCRAMBLER_RESET_ENABLE;
+-		drm_dp_dpcd_write(ctrl->aux, DP_EDP_CONFIGURATION_SET,
+-				&assr, 1);
++		ret = drm_dp_dpcd_writeb(ctrl->aux, DP_EDP_CONFIGURATION_SET, assr);
++		if (ret != 1) {
++			ret = ret < 0 ? ret : -EIO;
++			goto end;
++		}
++		ret = 0;
+ 	}
+ 
+ 	for (i = ctrl->link->lttpr_count - 1; i >= 0; i--) {
+ 		enum drm_dp_phy dp_phy = DP_PHY_LTTPR(i);
+ 
+ 		ret = msm_dp_ctrl_link_train_1_2(ctrl, training_step, dp_phy);
+-		msm_dp_ctrl_clear_training_pattern(ctrl, dp_phy);
++		/* Preserve the training error, otherwise propagate termination failure. */
++		if (ret)
++			msm_dp_ctrl_clear_training_pattern(ctrl, dp_phy);
++		else
++			ret = msm_dp_ctrl_clear_training_pattern(ctrl, dp_phy);
+ 
+ 		if (ret)
+ 			break;
+@@ -1915,10 +1934,15 @@ static int msm_dp_ctrl_enable_mainlink_clocks(struct msm_dp_ctrl_private *ctrl)
+ 		return ret;
+ 	}
+ 
+-	dev_pm_opp_set_rate(ctrl->dev, ctrl->link->link_params.rate * 1000);
++	ret = dev_pm_opp_set_rate(ctrl->dev, ctrl->link->link_params.rate * 1000);
++	if (ret) {
++		msm_dp_ctrl_phy_power_off(ctrl);
++		return ret;
++	}
+ 	ret = msm_dp_ctrl_link_clk_enable(&ctrl->msm_dp_ctrl);
+ 	if (ret) {
+ 		DRM_ERROR("Unable to start link clocks. ret=%d\n", ret);
++		dev_pm_opp_set_rate(ctrl->dev, 0);
+ 		msm_dp_ctrl_phy_power_off(ctrl);
+ 	}
+ 
+@@ -2032,7 +2056,7 @@ static void msm_dp_ctrl_phy_reset(struct msm_dp_ctrl_private *ctrl)
+ 	msm_dp_write_ahb(ctrl, REG_DP_PHY_CTRL, 0x0);
+ }
+ 
+-void msm_dp_ctrl_phy_init(struct msm_dp_ctrl *msm_dp_ctrl)
++int msm_dp_ctrl_phy_init(struct msm_dp_ctrl *msm_dp_ctrl)
+ {
+ 	struct msm_dp_ctrl_private *ctrl;
+ 	struct phy *phy;
+@@ -2041,7 +2065,7 @@ void msm_dp_ctrl_phy_init(struct msm_dp_ctrl *msm_dp_ctrl)
+ 	phy = ctrl->phy;
+ 
+ 	msm_dp_ctrl_phy_reset(ctrl);
+-	phy_init(phy);
++	return phy_init(phy);
+ }
+ 
+ void msm_dp_ctrl_phy_exit(struct msm_dp_ctrl *msm_dp_ctrl)
+@@ -2087,27 +2111,6 @@ static int msm_dp_ctrl_reinitialize_mainlink(struct msm_dp_ctrl_private *ctrl)
+ 	return ret;
+ }
+ 
+-static int msm_dp_ctrl_deinitialize_mainlink(struct msm_dp_ctrl_private *ctrl)
+-{
+-	struct phy *phy;
+-
+-	phy = ctrl->phy;
+-
+-	msm_dp_ctrl_mainlink_disable(ctrl);
+-
+-	msm_dp_ctrl_reset(&ctrl->msm_dp_ctrl);
+-
+-	msm_dp_ctrl_link_clk_disable(&ctrl->msm_dp_ctrl);
+-
+-	msm_dp_ctrl_phy_power_off(ctrl);
+-
+-	/* aux channel down, reinit phy */
+-	phy_exit(phy);
+-	phy_init(phy);
+-
+-	return 0;
+-}
+-
+ static int msm_dp_ctrl_link_maintenance(struct msm_dp_ctrl_private *ctrl)
+ {
+ 	int ret = 0;
+@@ -2122,7 +2125,9 @@ static int msm_dp_ctrl_link_maintenance(struct msm_dp_ctrl_private *ctrl)
+ 	if (ret)
+ 		goto end;
+ 
+-	msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++	ret = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++	if (ret)
++		goto end;
+ 
+ 	msm_dp_write_link(ctrl, REG_DP_STATE_CTRL, DP_STATE_CTRL_SEND_VIDEO);
+ 
+@@ -2313,14 +2318,15 @@ static int msm_dp_ctrl_process_phy_test_request(struct msm_dp_ctrl_private *ctrl
+ 	return 0;
+ }
+ 
+-void msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl)
++int msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl)
+ {
+ 	struct msm_dp_ctrl_private *ctrl;
+ 	u32 sink_request = 0x0;
++	int ret;
+ 
+ 	if (!msm_dp_ctrl) {
+ 		DRM_ERROR("invalid input\n");
+-		return;
++		return -EINVAL;
+ 	}
+ 
+ 	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
+@@ -2333,31 +2339,35 @@ void msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl)
+ 	if (!ctrl->link_clks_on) {
+ 		drm_dbg_dp(ctrl->drm_dev, "sink request 0x%x with the link off\n",
+ 			   sink_request);
+-		return;
++		return 0;
+ 	}
+ 
+ 	if (sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) {
+ 		drm_dbg_dp(ctrl->drm_dev, "PHY_TEST_PATTERN request\n");
+-		if (msm_dp_ctrl_process_phy_test_request(ctrl)) {
++		ret = msm_dp_ctrl_process_phy_test_request(ctrl);
++		if (ret) {
+ 			DRM_ERROR("process phy_test_req failed\n");
+-			return;
++			return ret;
+ 		}
+ 	}
+ 
+ 	if (sink_request & DP_LINK_STATUS_UPDATED) {
+-		if (msm_dp_ctrl_link_maintenance(ctrl)) {
++		ret = msm_dp_ctrl_link_maintenance(ctrl);
++		if (ret) {
+ 			DRM_ERROR("LM failed: TEST_LINK_TRAINING\n");
+-			return;
++			return ret;
+ 		}
+ 	}
+ 
+ 	if (sink_request & DP_TEST_LINK_TRAINING) {
+ 		msm_dp_link_send_test_response(ctrl->link);
+-		if (msm_dp_ctrl_link_maintenance(ctrl)) {
++		ret = msm_dp_ctrl_link_maintenance(ctrl);
++		if (ret) {
+ 			DRM_ERROR("LM failed: TEST_LINK_TRAINING\n");
+-			return;
++			return ret;
+ 		}
+ 	}
++	return 0;
+ }
+ 
+ static bool msm_dp_ctrl_clock_recovery_any_ok(
+@@ -2487,29 +2497,33 @@ found:
+  * Link training with msm's rate and lane downshifts on failure. Inherited:
+  * when the retries run out, rc is the last (successful) reinitialisation,
+  * i.e. 0 for a link that never trained; on_stream() retrains it once more.
+- * ROG5: strict (a reduced link, 0145) reports that as -ETIMEDOUT so the
+- * caller falls back to the maximum link; the maximum link keeps the old flow.
++ * Exhaustion must fail for reduced and maximum links alike.
+  */
+-static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl,
+-					    bool strict)
++static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl)
+ {
+ 	int rc = 0;
+ 	int link_train_max_retries = 5;
+ 	u8 link_status[DP_LINK_STATUS_SIZE];
+-	unsigned int training_step;
++	int training_step;
+ 
+ 	while (--link_train_max_retries) {
+ 		training_step = DP_TRAINING_NONE;
+ 		rc = msm_dp_ctrl_setup_main_link(ctrl, &training_step);
++		drm_dbg_dp(ctrl->drm_dev, "DP: training rc=%d\n", rc);
+ 		if (rc == 0) {
+ 			/* training completed successfully */
+ 			return 0;
++		} else if (rc != -EAGAIN && rc != -ETIMEDOUT) {
++			/* AUX/configuration errors are not electrical downshift failures. */
++			break;
+ 		} else if (training_step == DP_TRAINING_1) {
+ 			/* link train_1 failed */
+ 			if (!msm_dp_aux_is_link_connected(ctrl->aux))
+ 				break;
+ 
+-			drm_dp_dpcd_read_link_status(ctrl->aux, link_status);
++			rc = drm_dp_dpcd_read_link_status(ctrl->aux, link_status);
++			if (rc)
++				break;
+ 
+ 			rc = msm_dp_ctrl_link_rate_down_shift(ctrl);
+ 			if (rc < 0) { /* already in RBR = 1.6G */
+@@ -2534,7 +2548,9 @@ static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl,
+ 			if (!msm_dp_aux_is_link_connected(ctrl->aux))
+ 				break;
+ 
+-			drm_dp_dpcd_read_link_status(ctrl->aux, link_status);
++			rc = drm_dp_dpcd_read_link_status(ctrl->aux, link_status);
++			if (rc)
++				break;
+ 
+ 			if (!drm_dp_clock_recovery_ok(link_status,
+ 					ctrl->link->link_params.num_lanes))
+@@ -2548,7 +2564,12 @@ static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl,
+ 			}
+ 
+ 			/* stop link training before start re training  */
+-			msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++			rc = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++			if (rc)
++				break;
++		} else {
++			/* A reset/configuration failure happened before CR/EQ started. */
++			break;
+ 		}
+ 
+ 		rc = msm_dp_ctrl_reinitialize_mainlink(ctrl);
+@@ -2558,7 +2579,7 @@ static int msm_dp_ctrl_train_link_downshift(struct msm_dp_ctrl_private *ctrl,
+ 		}
+ 	}
+ 
+-	if (strict && !rc)
++	if (!rc)
+ 		rc = -ETIMEDOUT;
+ 
+ 	return rc;
+@@ -2584,7 +2605,9 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 		rate = msm_dp_max_rate;
+ 	pixel_rate = ctrl->panel->msm_dp_mode.drm_mode.clock;
+ 
+-	msm_dp_ctrl_core_clk_enable(&ctrl->msm_dp_ctrl);
++	rc = msm_dp_ctrl_core_clk_enable(&ctrl->msm_dp_ctrl);
++	if (rc)
++		return rc;
+ 
+ 	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) {
+ 		drm_dbg_dp(ctrl->drm_dev,
+@@ -2619,7 +2642,7 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 		return rc;
+ 
+ 	if (!rc)
+-		rc = msm_dp_ctrl_train_link_downshift(ctrl, reduced);
++		rc = msm_dp_ctrl_train_link_downshift(ctrl);
+ 
+ 	/*
+ 	 * ROG5: a reduced link that failed, or that msm's downshifts left
+@@ -2645,7 +2668,7 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 		if (rc)
+ 			DRM_ERROR("Failed to reinitialize mainlink. rc=%d\n", rc);
+ 		else
+-			rc = msm_dp_ctrl_train_link_downshift(ctrl, false);
++			rc = msm_dp_ctrl_train_link_downshift(ctrl);
+ 	}
+ 
+ 	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
+@@ -2658,12 +2681,17 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 	 */
+ 	if (!rc && need_kbps &&
+ 	    !msm_dp_ctrl_link_carries(ctrl->link->link_params.num_lanes,
+-				      ctrl->link->link_params.rate, need_kbps, 100))
++				      ctrl->link->link_params.rate, need_kbps, 100)) {
++		rc = -ENOSPC;
+ 		drm_warn(ctrl->drm_dev,
+ 			 "DP: link %u lanes x %u kHz carries less than the mode's %llu kbit/s\n",
+ 			 ctrl->link->link_params.num_lanes,
+ 			 ctrl->link->link_params.rate, need_kbps);
++	}
+ 
++	drm_info(ctrl->drm_dev, "DP: on-link rc=%d %u x %u kHz bpp=%u\n",
++		 rc, ctrl->link->link_params.num_lanes, ctrl->link->link_params.rate,
++		 ctrl->panel->msm_dp_mode.bpp);
+ 	if (rc == 0) {  /* link train successfully */
+ 		/*
+ 		 * do not stop train pattern here
+@@ -2677,8 +2705,7 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl)
+ 		 */
+ 		msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
+ 
+-		msm_dp_ctrl_deinitialize_mainlink(ctrl);
+-		rc = -ECONNRESET;
++		/* atomic_enable owns resource unwind; retain the original errno. */
+ 	}
+ 
+ 	return rc;
+@@ -2811,15 +2838,16 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
+ 	}
+ 
+ 	if (force_link_train || !msm_dp_ctrl_channel_eq_ok(ctrl)) {
+-		int rc = msm_dp_ctrl_link_retrain(ctrl);
+-
+-		/* ROG5: this result was dropped; only report it (no flow change) */
+-		if (rc)
+-			DRM_ERROR("DP: retraining before video failed, rc=%d\n", rc);
++		ret = msm_dp_ctrl_link_retrain(ctrl);
++		drm_dbg_dp(ctrl->drm_dev, "DP: pre-video-training rc=%d\n", ret);
++		if (ret)
++			goto end;
+ 	}
+ 
+ 	/* stop txing train pattern to end link training */
+-	msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++	ret = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++	if (ret)
++		goto end;
+ 
+ 	/*
+ 	 * Set up transfer unit values and set controller state to send
+@@ -2842,22 +2870,53 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
+ 
+ 	ret = msm_dp_ctrl_wait4video_ready(ctrl);
+ 	if (ret)
+-		return ret;
++		goto end;
+ 
+ 	mainlink_ready = msm_dp_ctrl_mainlink_ready(ctrl);
+ 	drm_dbg_dp(ctrl->drm_dev,
+ 		"mainlink %s\n", mainlink_ready ? "READY" : "NOT READY");
+ 	if (!mainlink_ready)
+-		DRM_ERROR("DP: main link not ready after SEND_VIDEO\n");
++		ret = -ETIMEDOUT;
+ 	drm_info(ctrl->drm_dev, "DP: MSA %s clock, CONFIGURATION_CTRL 0x%08x MISC1_MISC0 0x%08x\n",
+ 		 msm_dp_async_msa ? "asynchronous" : "synchronous",
+ 		 msm_dp_read_link(ctrl, REG_DP_CONFIGURATION_CTRL),
+ 		 msm_dp_read_link(ctrl, REG_DP_MISC1_MISC0));
+ 
+ end:
++	drm_dbg_dp(ctrl->drm_dev, "DP: on-stream rc=%d\n", ret);
+ 	return ret;
+ }
+ 
++/* Failed enables have no power_on flag; unwind actual acquisitions only. */
++void msm_dp_ctrl_abort(struct msm_dp_ctrl *msm_dp_ctrl, bool sink_access)
++{
++	struct msm_dp_ctrl_private *ctrl =
++		container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
++	int ret;
++
++	if (ctrl->core_clks_on && ctrl->link_clks_on) {
++		msm_dp_panel_disable_vsc_sdp(ctrl->panel);
++		msm_dp_write_link(ctrl, REG_DP_STATE_CTRL, 0);
++		msm_dp_ctrl_mainlink_disable(ctrl);
++	}
++	/* AUX remains live until after the receiver has been put into D3. */
++	if (sink_access && ctrl->core_clks_on && msm_dp_aux_is_link_connected(ctrl->aux)) {
++		ret = msm_dp_ctrl_clear_training_pattern(ctrl, DP_PHY_DPRX);
++		if (ret)
++			DRM_ERROR_RATELIMITED("DP: abort TP disable rc=%d\n", ret);
++		ret = msm_dp_link_psm_config(ctrl->link, &ctrl->panel->link_info, true);
++		if (ret)
++			DRM_ERROR_RATELIMITED("DP: abort D3 rc=%d\n", ret);
++	}
++	if (ctrl->stream_clks_on) {
++		clk_disable_unprepare(ctrl->pixel_clk);
++		ctrl->stream_clks_on = false;
++	}
++	msm_dp_ctrl_link_clk_disable(msm_dp_ctrl);
++	dev_pm_opp_set_rate(ctrl->dev, 0);
++	msm_dp_ctrl_phy_power_off(ctrl);
++}
++
+ void msm_dp_ctrl_off_link_stream(struct msm_dp_ctrl *msm_dp_ctrl)
+ {
+ 	struct msm_dp_ctrl_private *ctrl;
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.h b/drivers/gpu/drm/msm/dp/dp_ctrl.h
+index f68bee62..a30cffc9 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.h
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.h
+@@ -20,9 +20,10 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl);
+ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train);
+ void msm_dp_ctrl_off_link_stream(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl);
++void msm_dp_ctrl_abort(struct msm_dp_ctrl *msm_dp_ctrl, bool sink_access);
+ void msm_dp_ctrl_push_idle(struct msm_dp_ctrl *msm_dp_ctrl);
+ irqreturn_t msm_dp_ctrl_isr(struct msm_dp_ctrl *msm_dp_ctrl);
+-void msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl);
++int msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl);
+ struct msm_dp_ctrl *msm_dp_ctrl_get(struct device *dev,
+ 				    struct msm_dp_link *link,
+ 				    struct msm_dp_panel *panel,
+@@ -32,7 +33,7 @@ struct msm_dp_ctrl *msm_dp_ctrl_get(struct device *dev,
+ 				    void __iomem *link_base);
+ 
+ void msm_dp_ctrl_reset(struct msm_dp_ctrl *msm_dp_ctrl);
+-void msm_dp_ctrl_phy_init(struct msm_dp_ctrl *msm_dp_ctrl);
++int msm_dp_ctrl_phy_init(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_phy_exit(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_irq_phy_exit(struct msm_dp_ctrl *msm_dp_ctrl);
+ 
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 8a11ffab..3ccf4001 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -15,6 +15,8 @@
+ #include <drm/display/drm_dp_aux_bus.h>
+ #include <drm/display/drm_hdmi_audio_helper.h>
+ #include <drm/drm_edid.h>
++#include <drm/drm_probe_helper.h>
++#include <drm/drm_modeset_lock.h>
+ 
+ #include "msm_drv.h"
+ #include "msm_kms.h"
+@@ -58,6 +60,8 @@ struct msm_dp_display_private {
+ 
+ 	struct delayed_work snoop_work;
+ 	unsigned int snoop_step;
++	struct work_struct link_bad_work;
++	bool retry_pending;
+ 
+ 	struct drm_device *drm_dev;
+ 
+@@ -236,6 +240,8 @@ static void msm_dp_display_unbind(struct device *dev, struct device *master,
+ 	struct msm_dp_display_private *dp = dev_get_dp_display_private(dev);
+ 	struct msm_drm_private *priv = dev_get_drvdata(master);
+ 
++	cancel_work_sync(&dp->link_bad_work);
++	cancel_delayed_work_sync(&dp->snoop_work);
+ 	of_dp_aux_depopulate_bus(dp->aux);
+ 
+ 	msm_dp_aux_unregister(dp->aux);
+@@ -300,7 +306,9 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	 * set sink to normal operation mode -- D0
+ 	 * before dpcd read
+ 	 */
+-	msm_dp_link_psm_config(dp->link, &dp->panel->link_info, false);
++	rc = msm_dp_link_psm_config(dp->link, &dp->panel->link_info, false);
++	if (rc)
++		goto end;
+ 
+ 	msm_dp_link_reset_phy_params_vx_px(dp->link);
+ 
+@@ -314,17 +322,19 @@ end:
+  *
+  * Prepare DP PHY for the AUX transactions to succeed.
+  *
+- * Returns: true if this call has initliazed the PHY and false if the PHY has
+- * already been setup beforehand.
++ * Returns: 1 for a new initialization, 0 if already initialized, or an errno.
+  */
+-static bool msm_dp_display_host_phy_init(struct msm_dp_display_private *dp)
++static int msm_dp_display_host_phy_init(struct msm_dp_display_private *dp)
+ {
++	int ret;
+ 	drm_dbg_dp(dp->drm_dev, "type=%d core_init=%d phy_init=%d\n",
+ 		dp->msm_dp_display.connector_type, dp->core_initialized,
+ 		dp->phy_initialized);
+ 
+ 	if (!dp->phy_initialized) {
+-		msm_dp_ctrl_phy_init(dp->ctrl);
++		ret = msm_dp_ctrl_phy_init(dp->ctrl);
++		if (ret)
++			return ret;
+ 		dp->phy_initialized = true;
+ 		return true;
+ 	}
+@@ -344,17 +354,21 @@ static void msm_dp_display_host_phy_exit(struct msm_dp_display_private *dp)
+ 	}
+ }
+ 
+-static void msm_dp_display_host_init(struct msm_dp_display_private *dp)
++static int msm_dp_display_host_init(struct msm_dp_display_private *dp)
+ {
++	int ret;
+ 	drm_dbg_dp(dp->drm_dev, "type=%d core_init=%d phy_init=%d\n",
+ 		dp->msm_dp_display.connector_type, dp->core_initialized,
+ 		dp->phy_initialized);
+ 
+-	msm_dp_ctrl_core_clk_enable(dp->ctrl);
++	ret = msm_dp_ctrl_core_clk_enable(dp->ctrl);
++	if (ret)
++		return ret;
+ 	msm_dp_ctrl_reset(dp->ctrl);
+ 	msm_dp_ctrl_enable_irq(dp->ctrl);
+ 	msm_dp_aux_init(dp->aux);
+ 	dp->core_initialized = true;
++	return 0;
+ }
+ 
+ static void msm_dp_display_host_deinit(struct msm_dp_display_private *dp)
+@@ -378,14 +392,30 @@ static void msm_dp_display_handle_video_request(struct msm_dp_display_private *d
+ 	}
+ }
+ 
++static void msm_dp_display_handle_plugged_change(struct msm_dp *msm_dp_display,
++		bool plugged);
++
+ static int msm_dp_display_handle_irq_hpd(struct msm_dp_display_private *dp)
+ {
+ 	u32 sink_request = dp->link->sink_request;
++	int ret;
+ 
+ 	drm_dbg_dp(dp->drm_dev, "%d\n", sink_request);
+ 
+-	msm_dp_ctrl_handle_sink_request(dp->ctrl);
++	ret = msm_dp_ctrl_handle_sink_request(dp->ctrl);
+ 
++	if (ret) {
++		DRM_ERROR("DP: maintenance failed rc=%d; teardown, link BAD/retry\n", ret);
++		cancel_delayed_work(&dp->snoop_work);
++		msm_dp_ctrl_abort(dp->ctrl, dp->phy_initialized);
++		msm_dp_display_host_phy_exit(dp);
++		dp->msm_dp_display.power_on = false;
++		msm_dp_display_handle_plugged_change(&dp->msm_dp_display, false);
++		dp->msm_dp_display.audio_enabled = false;
++		dp->retry_pending = true;
++		schedule_work(&dp->link_bad_work);
++		return ret;
++	}
+ 	if (sink_request & DP_TEST_LINK_VIDEO_PATTERN)
+ 		msm_dp_display_handle_video_request(dp);
+ 
+@@ -411,7 +441,12 @@ static int msm_dp_hpd_plug_handle(struct msm_dp_display_private *dp)
+ 
+ 	msm_dp_aux_enable_xfers(dp->aux, true);
+ 
+-	msm_dp_display_host_phy_init(dp);
++	ret = msm_dp_display_host_phy_init(dp);
++	if (ret < 0) {
++		msm_dp_aux_enable_xfers(dp->aux, false);
++		pm_runtime_put_sync(&pdev->dev);
++		return ret;
++	}
+ 
+ 	ret = msm_dp_display_process_hpd_high(dp);
+ 
+@@ -445,13 +480,13 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp)
+ 	dp->panel->video_test = false;
+ 
+ 	cancel_delayed_work_sync(&dp->snoop_work);
+-	msm_dp_aux_enable_xfers(dp->aux, false);
+ 
+ 	drm_dbg_dp(dp->drm_dev, "Before, type=%d sink_count=%d\n",
+ 			dp->msm_dp_display.connector_type,
+ 			dp->link->sink_count);
+ 
+ 	guard(mutex)(&dp->plugged_lock);
++	msm_dp_aux_enable_xfers(dp->aux, false);
+ 	if (!dp->plugged)
+ 		return 0;
+ 
+@@ -632,6 +667,7 @@ static void msm_dp_snoop_fn(struct work_struct *work)
+ 	u8 st[8] = {}, err[4] = {}, esi[4] = {}, esi2[4] = {}, pcon[6] = {}, crc[7] = {};
+ 	int r1, r2, r3, r4, r5, r6 = 0;
+ 
++	guard(mutex)(&dp->plugged_lock);
+ 	if (!dp->msm_dp_display.power_on)
+ 		return;
+ 
+@@ -661,6 +697,25 @@ static void msm_dp_snoop_fn(struct work_struct *work)
+ 	}
+ }
+ 
++/* Atomic enable cannot return an errno: notify userspace after its locks drop. */
++static void msm_dp_link_bad_work(struct work_struct *work)
++{
++	struct msm_dp_display_private *dp =
++		container_of(work, struct msm_dp_display_private, link_bad_work);
++	bool notify = false;
++
++	drm_modeset_lock(&dp->drm_dev->mode_config.connection_mutex, NULL);
++	mutex_lock(&dp->plugged_lock);
++	if (dp->retry_pending && dp->plugged && !dp->msm_dp_display.power_on) {
++		dp->msm_dp_display.connector->state->link_status = DRM_MODE_LINK_STATUS_BAD;
++		notify = true;
++	}
++	mutex_unlock(&dp->plugged_lock);
++	drm_modeset_unlock(&dp->drm_dev->mode_config.connection_mutex);
++	if (notify)
++		drm_kms_helper_hotplug_event(dp->drm_dev);
++}
++
+ static int msm_dp_display_set_mode(struct msm_dp *msm_dp_display,
+ 			       struct msm_dp_display_mode *mode)
+ {
+@@ -960,7 +1015,12 @@ enum drm_connector_status msm_dp_bridge_detect(struct drm_bridge *bridge,
+ 		return status;
+ 	}
+ 
+-	phy_deinit = msm_dp_display_host_phy_init(priv);
++	ret = msm_dp_display_host_phy_init(priv);
++	if (ret < 0) {
++		pm_runtime_put_sync(&dp->pdev->dev);
++		return status;
++	}
++	phy_deinit = ret;
+ 
+ 	msm_dp_aux_enable_xfers(priv->aux, true);
+ 
+@@ -1271,6 +1331,7 @@ static int msm_dp_display_probe(struct platform_device *pdev)
+ 
+ 	mutex_init(&dp->plugged_lock);
+ 	INIT_DELAYED_WORK(&dp->snoop_work, msm_dp_snoop_fn);
++	INIT_WORK(&dp->link_bad_work, msm_dp_link_bad_work);
+ 
+ 	rc = msm_dp_display_get_io(dp);
+ 	if (rc)
+@@ -1343,6 +1404,7 @@ static int msm_dp_pm_runtime_suspend(struct device *dev)
+ static int msm_dp_pm_runtime_resume(struct device *dev)
+ {
+ 	struct msm_dp_display_private *dp = dev_get_dp_display_private(dev);
++	int ret;
+ 
+ 	/*
+ 	 * for eDP, host cotroller, HPD block and PHY are enabled here
+@@ -1352,10 +1414,17 @@ static int msm_dp_pm_runtime_resume(struct device *dev)
+ 	 * HPD block is enabled at msm_dp_bridge_hpd_enable()
+ 	 * PHY will be enabled at plugin handler later
+ 	 */
+-	msm_dp_display_host_init(dp);
++	ret = msm_dp_display_host_init(dp);
++	if (ret)
++		return ret;
+ 	if (dp->msm_dp_display.is_edp) {
+ 		msm_dp_aux_hpd_enable(dp->aux);
+-		msm_dp_display_host_phy_init(dp);
++		ret = msm_dp_display_host_phy_init(dp);
++		if (ret < 0) {
++			msm_dp_aux_hpd_disable(dp->aux);
++			msm_dp_display_host_deinit(dp);
++			return ret;
++		}
+ 	}
+ 
+ 	enable_irq(dp->irq);
+@@ -1501,17 +1570,15 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 	 */
+ 	guard(mutex)(&msm_dp_display->plugged_lock);
+ 
+-	if (msm_dp_display->link->sink_count == 0)
+-		return;
+-
+-	rc = msm_dp_display_set_mode(dp, &msm_dp_display->msm_dp_mode);
+-	if (rc) {
+-		DRM_ERROR("Failed to perform a mode set, rc=%d\n", rc);
+-		return;
++	if (msm_dp_display->link->sink_count == 0) {
++		rc = -ENOTCONN;
++		goto failed_enable;
+ 	}
+ 
+ 	if (!dp->power_on) {
+-		msm_dp_display_host_phy_init(msm_dp_display);
++		rc = msm_dp_display_host_phy_init(msm_dp_display);
++		if (rc < 0)
++			goto failed_enable;
+ 		force_link_train = true;
+ 		if (msm_dp_sink_power_cycle && !dp->is_edp) {
+ 			/* D3, >= 200 us (stock), D0 (retried, 1-2 ms wake each) */
+@@ -1524,18 +1591,34 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 		}
+ 	}
+ 
++	if (msm_dp_display->retry_pending) {
++		rc = msm_dp_link_psm_config(msm_dp_display->link,
++					    &msm_dp_display->panel->link_info, false);
++		if (rc)
++			goto failed_enable;
++		rc = msm_dp_display_process_hpd_high(msm_dp_display);
++		if (rc)
++			goto failed_enable;
++	}
++
++	rc = msm_dp_display_set_mode(dp, &msm_dp_display->msm_dp_mode);
++	if (rc) {
++		DRM_ERROR("Failed to perform a mode set, rc=%d\n", rc);
++		goto failed_enable;
++	}
++
+ 	msm_dp_panel_config_pcon(msm_dp_display->panel);
+ 
+ 	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
+ 	if (rc) {
+ 		DRM_ERROR("Failed link training (rc=%d)\n", rc);
+-		// TODO: schedule drm_connector_set_link_status_property()
+-		return;
++		goto failed_enable;
+ 	}
+ 
+ 	rc = msm_dp_display_enable(msm_dp_display, force_link_train);
+ 	if (rc)
+-		DRM_ERROR("DP: stream enable failed, rc=%d\n", rc);
++		goto failed_enable;
++	msm_dp_display->retry_pending = false;
+ 
+ 	if (msm_dp_tpg)
+ 		msm_dp_panel_tpg_config(msm_dp_display->panel, true);
+@@ -1559,10 +1642,20 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 	rc = msm_dp_display_post_enable(dp);
+ 	if (rc) {
+ 		DRM_ERROR("DP display post enable failed, rc=%d\n", rc);
+-		msm_dp_display_disable(msm_dp_display);
++		goto failed_enable;
+ 	}
+ 
+ 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
++	return;
++
++failed_enable:
++	DRM_ERROR_RATELIMITED("DP: enable failed rc=%d; teardown, link BAD/retry\n", rc);
++	msm_dp_ctrl_abort(msm_dp_display->ctrl, msm_dp_display->phy_initialized);
++	msm_dp_display_host_phy_exit(msm_dp_display);
++	dp->power_on = false;
++	dp->audio_enabled = false;
++	msm_dp_display->retry_pending = true;
++	schedule_work(&msm_dp_display->link_bad_work);
+ }
+ 
+ void msm_dp_bridge_atomic_disable(struct drm_bridge *drm_bridge,
+@@ -1575,6 +1668,7 @@ void msm_dp_bridge_atomic_disable(struct drm_bridge *drm_bridge,
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
+ 	cancel_delayed_work_sync(&msm_dp_display->snoop_work);
++	guard(mutex)(&msm_dp_display->plugged_lock);
+ 
+ 	/*
+ 	 * PUSH_IDLE is a write to the link register block, which is only
+@@ -1602,7 +1696,8 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
+ 	if (dp->is_edp)
+ 		msm_dp_hpd_unplug_handle(msm_dp_display);
+ 
+-	msm_dp_display_disable(msm_dp_display);
++	scoped_guard(mutex, &msm_dp_display->plugged_lock)
++		msm_dp_display_disable(msm_dp_display);
+ 
+ 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
+ 
+diff --git a/drivers/gpu/drm/msm/dp/dp_link.c b/drivers/gpu/drm/msm/dp/dp_link.c
+index 1c07dfb6..afb2048e 100644
+--- a/drivers/gpu/drm/msm/dp/dp_link.c
++++ b/drivers/gpu/drm/msm/dp/dp_link.c
+@@ -59,8 +59,8 @@ static int msm_dp_aux_link_power_up(struct drm_dp_aux *aux,
+ 		return 0;
+ 
+ 	len = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
+-	if (len < 0)
+-		return len;
++	if (len != 1)
++		return len < 0 ? len : -EIO;
+ 
+ 	value &= ~DP_SET_POWER_MASK;
+ 	value |= DP_SET_POWER_D0;
+@@ -87,17 +87,14 @@ static int msm_dp_aux_link_power_down(struct drm_dp_aux *aux,
+ 		return 0;
+ 
+ 	err = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
+-	if (err < 0)
+-		return err;
++	if (err != 1)
++		return err < 0 ? err : -EIO;
+ 
+ 	value &= ~DP_SET_POWER_MASK;
+ 	value |= DP_SET_POWER_D3;
+ 
+ 	err = drm_dp_dpcd_writeb(aux, DP_SET_POWER, value);
+-	if (err < 0)
+-		return err;
+-
+-	return 0;
++	return err == 1 ? 0 : (err < 0 ? err : -EIO);
+ }
+ 
+ static int msm_dp_link_get_period(struct msm_dp_link_private *link, int const addr)
+-- 
+2.50.1

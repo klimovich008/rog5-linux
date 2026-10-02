@@ -1,0 +1,177 @@
+From 90e892d12fdf465db7fa8ab6e721fd869449badf Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:09:31 +0200
+Subject: [PATCH] drm/msm/dp: wake before discovery and check PCON writes
+
+Wake from the minimal receiver revision before capability/EDID discovery.
+Check D3/D0 and TMDS-scoped converter writes. Readback remains diagnostic;
+retry discovery owns its wake and the redundant late D0 is removed.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+
+---
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 3ccf4001..81d4d121 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -272,6 +272,19 @@ static int msm_dp_display_lttpr_init(struct msm_dp_display_private *dp, u8 *dpcd
+ 	return lttpr_count;
+ }
+ 
++static int msm_dp_display_sink_wake(struct msm_dp_display_private *dp)
++{
++	struct msm_dp_link_info info = {};
++	u8 revision;
++	int ret;
++
++	ret = drm_dp_dpcd_readb(dp->aux, DP_DPCD_REV, &revision);
++	if (ret != 1)
++		return ret < 0 ? ret : -EIO;
++	info.revision = revision;
++	return msm_dp_link_psm_config(dp->link, &info, false);
++}
++
+ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ {
+ 	struct drm_connector *connector = dp->msm_dp_display.connector;
+@@ -279,6 +292,10 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	int rc = 0;
+ 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
+ 
++	rc = msm_dp_display_sink_wake(dp);
++	if (rc)
++		goto end;
++
+ 	rc = drm_dp_read_dpcd_caps(dp->aux, dpcd);
+ 	if (rc)
+ 		goto end;
+@@ -302,14 +319,6 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
+ 	dp->audio_supported = info->has_audio;
+ 	msm_dp_panel_handle_sink_request(dp->panel);
+ 
+-	/*
+-	 * set sink to normal operation mode -- D0
+-	 * before dpcd read
+-	 */
+-	rc = msm_dp_link_psm_config(dp->link, &dp->panel->link_info, false);
+-	if (rc)
+-		goto end;
+-
+ 	msm_dp_link_reset_phy_params_vx_px(dp->link);
+ 
+ end:
+@@ -1032,6 +1041,10 @@ enum drm_connector_status msm_dp_bridge_detect(struct drm_bridge *bridge,
+ 		goto end;
+ 	}
+ 
++	ret = msm_dp_display_sink_wake(priv);
++	if (ret)
++		goto end;
++
+ 	ret = drm_dp_read_dpcd_caps(priv->aux, dpcd);
+ 	if (ret) {
+ 		DRM_DEBUG_DP("failed to read caps\n");
+@@ -1582,21 +1595,25 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 		force_link_train = true;
+ 		if (msm_dp_sink_power_cycle && !dp->is_edp) {
+ 			/* D3, >= 200 us (stock), D0 (retried, 1-2 ms wake each) */
+-			msm_dp_link_psm_config(msm_dp_display->link,
++			rc = msm_dp_link_psm_config(msm_dp_display->link,
+ 					       &msm_dp_display->panel->link_info, true);
++			if (rc)
++				goto failed_enable;
+ 			usleep_range(200, 500);
+ 			rc = msm_dp_link_psm_config(msm_dp_display->link,
+ 						    &msm_dp_display->panel->link_info, false);
+ 			drm_info(msm_dp_display->drm_dev, "DP: sink D3 -> D0 before link enable (rc=%d)\n", rc);
++			if (rc)
++				goto failed_enable;
+ 		}
+ 	}
+ 
+ 	if (msm_dp_display->retry_pending) {
+-		rc = msm_dp_link_psm_config(msm_dp_display->link,
+-					    &msm_dp_display->panel->link_info, false);
++		rc = msm_dp_display_process_hpd_high(msm_dp_display);
+ 		if (rc)
+ 			goto failed_enable;
+-		rc = msm_dp_display_process_hpd_high(msm_dp_display);
++	} else {
++		rc = msm_dp_display_sink_wake(msm_dp_display);
+ 		if (rc)
+ 			goto failed_enable;
+ 	}
+@@ -1607,7 +1624,9 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 		goto failed_enable;
+ 	}
+ 
+-	msm_dp_panel_config_pcon(msm_dp_display->panel);
++	rc = msm_dp_panel_config_pcon(msm_dp_display->panel);
++	if (rc)
++		goto failed_enable;
+ 
+ 	rc = msm_dp_ctrl_on_link(msm_dp_display->ctrl);
+ 	if (rc) {
+diff --git a/drivers/gpu/drm/msm/dp/dp_panel.c b/drivers/gpu/drm/msm/dp/dp_panel.c
+index eab405e9..111423aa 100644
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c
+@@ -467,27 +467,36 @@ void msm_dp_panel_unplugged(struct msm_dp_panel *msm_dp_panel,
+  * infoframes and no audio. i915 and amdgpu configure it before every link
+  * bring-up; do the same, with no colour-space conversion (0x3051/0x3052).
+  */
+-void msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel)
++int msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel)
+ {
+ 	struct msm_dp_panel_private *panel;
+ 	const u8 *dpcd = msm_dp_panel->dpcd;
+ 	u8 mode, readback = 0xff;
++	int ret;
+ 	bool hdmi;
+ 
+-	if (dpcd[DP_DPCD_REV] < 0x13 || !drm_dp_is_branch(dpcd))
+-		return;
++	if (dpcd[DP_DPCD_REV] < 0x13 || !drm_dp_is_branch(dpcd) ||
++	    (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) !=
++	    DP_DWN_STRM_PORT_TYPE_TMDS)
++		return 0;
+ 
+ 	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
+ 	hdmi = msm_dp_panel->connector && msm_dp_panel->connector->display_info.is_hdmi;
+ 	mode = hdmi ? DP_HDMI_DVI_OUTPUT_CONFIG : 0;
+ 
+-	if (drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_0, mode) != 1)
+-		DRM_WARN("DP: failed to set protocol converter %s mode\n", hdmi ? "HDMI" : "DVI");
+-	drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_1, 0);
+-	drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_2, 0);
++	ret = drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_0, mode);
++	if (ret != 1)
++		return ret < 0 ? ret : -EIO;
++	ret = drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_1, 0);
++	if (ret != 1)
++		return ret < 0 ? ret : -EIO;
++	ret = drm_dp_dpcd_writeb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_2, 0);
++	if (ret != 1)
++		return ret < 0 ? ret : -EIO;
+ 	drm_dp_dpcd_readb(panel->aux, DP_PROTOCOL_CONVERTER_CONTROL_0, &readback);
+ 	drm_info(panel->drm_dev, "DP: protocol converter %s mode (0x3050=0x%02x)\n",
+ 		 hdmi ? "HDMI" : "DVI", readback);
++	return 0;
+ }
+ 
+ u32 msm_dp_panel_get_mode_bpp(struct msm_dp_panel *msm_dp_panel,
+diff --git a/drivers/gpu/drm/msm/dp/dp_panel.h b/drivers/gpu/drm/msm/dp/dp_panel.h
+index df8f499b..6de2dd4b 100644
+--- a/drivers/gpu/drm/msm/dp/dp_panel.h
++++ b/drivers/gpu/drm/msm/dp/dp_panel.h
+@@ -49,7 +49,7 @@ int msm_dp_panel_deinit(struct msm_dp_panel *msm_dp_panel);
+ int msm_dp_panel_timing_cfg(struct msm_dp_panel *msm_dp_panel, bool wide_bus_en);
+ int msm_dp_panel_read_sink_caps(struct msm_dp_panel *msm_dp_panel,
+ 		struct drm_connector *connector);
+-void msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel);
++int msm_dp_panel_config_pcon(struct msm_dp_panel *msm_dp_panel);
+ void msm_dp_panel_unplugged(struct msm_dp_panel *msm_dp_panel,
+ 			    struct drm_connector *connector);
+ u32 msm_dp_panel_get_mode_bpp(struct msm_dp_panel *msm_dp_panel, u32 mode_max_bpp,
+-- 
+2.50.1

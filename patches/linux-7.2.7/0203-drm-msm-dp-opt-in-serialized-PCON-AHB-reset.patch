@@ -1,0 +1,110 @@
+From 4a44477abce1a000b570750078d7ad48c50a734b Mon Sep 17 00:00:00 2001
+From: "GPT-6.1-Sol" <noreply@openai.com>
+Date: Fri, 2 Oct 2026 20:11:21 +0200
+Subject: [PATCH] drm/msm/dp: gate serialized PCON AHB reset RAM trial
+
+Keep dp_pcon_ahb_reset off by default. Require live core/link clocks,
+serialize reset with AUX, and restore AUX/HPD configuration and IRQ masks.
+Inspect pending HPD without acknowledgement and return -EAGAIN before reset;
+leave events to normal HPD handling without replay state.
+This trial has no on-phone qualification for production use.
+
+Co-Authored-By: GPT-6.1-Sol (Codex CLI) <noreply@openai.com>
+
+---
+diff --git a/drivers/gpu/drm/msm/dp/dp_aux.c b/drivers/gpu/drm/msm/dp/dp_aux.c
+index 3825a2fb..87e90e92 100644
+--- a/drivers/gpu/drm/msm/dp/dp_aux.c
++++ b/drivers/gpu/drm/msm/dp/dp_aux.c
+@@ -10,6 +10,7 @@
+ 
+ #include "dp_reg.h"
+ #include "dp_aux.h"
++#include "dp_ctrl.h"
+ 
+ enum msm_dp_aux_err {
+ 	DP_AUX_ERR_NONE,
+@@ -537,6 +538,36 @@ void msm_dp_aux_init(struct drm_dp_aux *msm_dp_aux)
+ 	mutex_unlock(&aux->mutex);
+ }
+ 
++/* Serialize SW_RESET with all AUX transfers, including the AUX chardev. */
++int msm_dp_aux_reset_ctrl(struct drm_dp_aux *msm_dp_aux, struct msm_dp_ctrl *ctrl)
++{
++	struct msm_dp_aux_private *aux =
++		container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
++	u32 hpd_ctrl, hpd_timer, hpd_mask, pending;
++
++	guard(mutex)(&aux->mutex);
++	if (!aux->initted)
++		return -EIO;
++
++	hpd_ctrl = msm_dp_read_aux(aux, REG_DP_DP_HPD_CTRL);
++	hpd_timer = msm_dp_read_aux(aux, REG_DP_DP_HPD_REFTIMER);
++	hpd_mask = msm_dp_read_aux(aux, REG_DP_DP_HPD_INT_MASK);
++	pending = msm_dp_read_aux(aux, REG_DP_DP_HPD_INT_STATUS);
++	/* Leave pending events unacknowledged for the ordinary HPD handler.
++	 * Replaying IRQ_HPD after reset loses its controller pulse-count state.
++	 */
++	if (pending & hpd_mask & DP_DP_HPD_INT_MASK)
++		return -EAGAIN;
++
++	msm_dp_ctrl_reset(ctrl);
++	msm_dp_ctrl_enable_irq(ctrl);
++	msm_dp_aux_enable(aux);
++	msm_dp_write_aux(aux, REG_DP_DP_HPD_REFTIMER, hpd_timer);
++	msm_dp_write_aux(aux, REG_DP_DP_HPD_CTRL, hpd_ctrl);
++	msm_dp_write_aux(aux, REG_DP_DP_HPD_INT_MASK, hpd_mask);
++	return 0;
++}
++
+ void msm_dp_aux_deinit(struct drm_dp_aux *msm_dp_aux)
+ {
+ 	struct msm_dp_aux_private *aux;
+diff --git a/drivers/gpu/drm/msm/dp/dp_aux.h b/drivers/gpu/drm/msm/dp/dp_aux.h
+index 4be02e8b..e21bc7ed 100644
+--- a/drivers/gpu/drm/msm/dp/dp_aux.h
++++ b/drivers/gpu/drm/msm/dp/dp_aux.h
+@@ -13,6 +13,8 @@ void msm_dp_aux_unregister(struct drm_dp_aux *msm_dp_aux);
+ irqreturn_t msm_dp_aux_isr(struct drm_dp_aux *msm_dp_aux, u32 isr);
+ void msm_dp_aux_enable_xfers(struct drm_dp_aux *msm_dp_aux, bool enabled);
+ void msm_dp_aux_init(struct drm_dp_aux *msm_dp_aux);
++struct msm_dp_ctrl;
++int msm_dp_aux_reset_ctrl(struct drm_dp_aux *msm_dp_aux, struct msm_dp_ctrl *ctrl);
+ void msm_dp_aux_deinit(struct drm_dp_aux *msm_dp_aux);
+ void msm_dp_aux_reconfig(struct drm_dp_aux *msm_dp_aux);
+ 
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index aa2fd94c..56f7a1c8 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -413,6 +413,10 @@ static uint msm_dp_async_msa;
+ module_param_named(dp_async_msa, msm_dp_async_msa, uint, 0644);
+ MODULE_PARM_DESC(dp_async_msa, "ROG5 EXPERIMENT (static M/N, not spec-complete): 1 = asynchronous MSA clock signalling at the next modeset (0 = synchronous)");
+ 
++static bool msm_dp_pcon_ahb_reset;
++module_param_named(dp_pcon_ahb_reset, msm_dp_pcon_ahb_reset, bool, 0644);
++MODULE_PARM_DESC(dp_pcon_ahb_reset, "ROG5 PCON experiment: serialized AHB SW_RESET before link training (default 0)");
++
+ static bool msm_dp_pcon_single_train;
+ module_param_named(dp_pcon_single_train, msm_dp_pcon_single_train, bool, 0644);
+ MODULE_PARM_DESC(dp_pcon_single_train, "ROG5 PCON experiment: terminate initial training before video and retrain only on bad EQ (default 0)");
+@@ -1780,6 +1784,16 @@ static int msm_dp_ctrl_setup_main_link(struct msm_dp_ctrl_private *ctrl,
+ {
+ 	int ret = 0;
+ 
++	if (!(ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN) &&
++	    READ_ONCE(msm_dp_pcon_ahb_reset) && msm_dp_ctrl_is_pcon(ctrl)) {
++		if (!ctrl->core_clks_on || !ctrl->link_clks_on)
++			return -EIO;
++		ret = msm_dp_aux_reset_ctrl(ctrl->aux, &ctrl->msm_dp_ctrl);
++		if (ret)
++			return ret;
++		dev_info_ratelimited(ctrl->dev, "DP: PCON AHB reset before training\n");
++	}
++
+ 	msm_dp_ctrl_mainlink_enable(ctrl);
+ 
+ 	if (ctrl->link->sink_request & DP_TEST_LINK_PHY_TEST_PATTERN)
+-- 
+2.50.1

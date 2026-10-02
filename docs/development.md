@@ -121,6 +121,9 @@ device coordinator. This policy changes iteration cadence, not release gates.
 
 ### Fast module loop (running production kernel)
 
+DP-to-HDMI converter diagnostics, recovery controls and the ordered HBR2
+RAM-trial recipe are in [HDMI converter trials](hardware/hdmi-pcon.md).
+
 Use `rog5-dev module` to change a loadable module and test it on the phone in
 seconds, with no ramdisk, packaging, reboot or flashing. The phone must be
 running a production boot whose vmlinux matches the object tree.

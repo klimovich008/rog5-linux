@@ -3500,6 +3500,51 @@
         "scripts/device/rog5-video-encoder-trial"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-dp-pcon-patches.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs",
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": false,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/linux-7.2.7/0200-drm-msm-dp-observe-and-unwind-failed-enables.patch",
+        "patches/linux-7.2.7/0201-drm-msm-dp-check-sink-wake-and-PCON-restoration.patch",
+        "patches/linux-7.2.7/0202-drm-msm-dp-opt-in-stock-PCON-training-termination.patch",
+        "patches/linux-7.2.7/0203-drm-msm-dp-opt-in-serialized-PCON-AHB-reset.patch"
+      ],
+      "optional_subchecks": [
+        {
+          "id": "applied-source",
+          "kind": "unittest",
+          "message": "requires ROG5_LINUX_SOURCE with the applied HDMI series",
+          "scope": "subcheck",
+          "reason": "Existing training and sink-power functions need an applied kernel source; added-helper resource and AUX tests remain mandatory.",
+          "inputs": [
+            "ROG5_LINUX_SOURCE with patches 0200-0203 applied"
+          ],
+          "test_ids": [
+            "Pcon.test_applied_training_exhaustion_is_failure",
+            "Pcon.test_applied_d0_d3_exact_transfers",
+            "Pcon.test_applied_stream_errors_and_single_training"
+          ]
+        }
+      ]
     }
   ]
 }
