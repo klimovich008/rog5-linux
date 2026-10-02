@@ -1,0 +1,34 @@
+From: ROG5 Linux bring-up <rog5@localhost>
+Subject: [PATCH] media: iris: flush all ports on normal gen1 capture streamoff
+
+Chromium stops CAPTURE before OUTPUT when closing a stateful decoder.
+The gen1 path treats this like a resolution change and sends FLUSH_OUTPUT
+while compressed input is still pending. On SM8350 with vpu20_4v.mbn this
+is followed by an unanswered flush and unresponsive firmware.
+
+Follow Venus vdec_stop_capture(): use FLUSH_ALL for ordinary streamoff,
+reserving FLUSH_OUTPUT for dynamic resolution change, where input is
+paused. A closing instance also needs FLUSH_ALL even if DRC is pending.
+Keep the existing flush completion wait before STOP/RELEASE_RESOURCES.
+OUTPUT2 is not a substitute: stock and Venus use FLUSH_OUTPUT for DRC
+with secondary display output too.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -477,10 +477,12 @@
+ 
+ 	if (inst->domain == DECODER) {
+ 		if (inst->state == IRIS_INST_STREAMING) {
+-			if (V4L2_TYPE_IS_OUTPUT(plane))
++			/* Output-only flush is for a paused resolution change. */
++			if (V4L2_TYPE_IS_CAPTURE(plane) &&
++			    (inst->sub_state & IRIS_INST_SUB_DRC) && !inst->closing)
++				flush_type = HFI_FLUSH_OUTPUT;
++			else
+ 				flush_type = HFI_FLUSH_ALL;
+-			else if (V4L2_TYPE_IS_CAPTURE(plane))
+-				flush_type = HFI_FLUSH_OUTPUT;
+ 
+ 			reinit_completion(&inst->flush_completion);
+ 

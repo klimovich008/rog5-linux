@@ -141,3 +141,4 @@
 0177-media-iris-ROG5-retain-HFI-configuration-in-the-live-log.patch
 0178-media-iris-reject-core-initialization-after-remove-starts.patch
 0190-media-iris-abort-failed-gen1-sessions-and-contain-teardown-timeouts.patch
+0191-media-iris-flush-all-ports-on-normal-gen1-capture-streamoff.patch
