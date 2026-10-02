@@ -1,0 +1,32 @@
+# Programs that the shipped units, helpers and settings run and that only a
+# package provides. rog5-build-rootfs (step finalize) fails when one is not
+# an executable file in the built root, and test-rog5-build-rootfs.py checks
+# that each package is in configs/rootfs/packages.txt (an optional
+# dependency of another package, e.g. nftables of networkmanager, must be
+# listed itself) or, marked dep:<package>, a hard dependency of one, and
+# that the file named in USED-BY still runs the program.
+# Columns are separated by one or more tabs.
+# PATH	PACKAGE	USED-BY
+/usr/bin/nft	nftables	configs/systemd/rog5-firewall.service
+/usr/bin/grim	grim	scripts/device/rog5-desktop
+/usr/bin/wmenu-run	wmenu	configs/rog5-desktop/sway-base.conf
+/usr/bin/foot	foot	configs/rog5-desktop/sway-base.conf
+/usr/bin/sway	sway	configs/systemd-user/rog5-desktop.service
+/usr/bin/swaymsg	sway	scripts/device/rog5-desktop
+/usr/bin/wayvnc	wayvnc	configs/systemd-user/rog5-wayvnc-phone.service
+/usr/bin/wtype	wtype	scripts/device/rog5-desktop
+/usr/lib/systemd/systemd-socket-proxyd	dep:systemd	configs/systemd-user/rog5-wayvnc-phone-proxy.service
+/usr/bin/phosh-session	phosh	configs/systemd/rog5-phosh.service
+/usr/bin/gnome-session	dep:gnome-session	configs/systemd/rog5-gnome.service
+/usr/bin/gnome-session-inhibit	dep:gnome-session	scripts/device/rog5-desktop-mode
+/usr/bin/gsettings	dep:glib2	configs/systemd/rog5-gnome.service
+/usr/bin/gdbus	dep:glib2	scripts/device/rog5-desktop-mode
+/usr/bin/xprop	xorg-xprop	scripts/device/rog5-desktop-mode
+/usr/bin/pactl	libpulse	scripts/device/rog5-desktop-mode
+/usr/bin/setpriv	dep:util-linux	scripts/device/rog5-desktop-mode
+/usr/bin/dnsmasq	dnsmasq	scripts/device/rog5-hotspot
+/usr/bin/hostapd	hostapd	scripts/device/rog5-hotspot
+/usr/bin/nmcli	networkmanager	scripts/device/rog5-wifi-networkmanager.sh
+/usr/bin/iwctl	iwd	scripts/device/rog5-wifi-networkmanager.sh
+/usr/bin/ss	dep:iproute2	configs/systemd-user/rog5-wayvnc-phone.service
+/usr/bin/python3	python	scripts/device/rog5-session-carry
