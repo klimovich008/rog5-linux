@@ -431,7 +431,18 @@ another attempt in the same boot; a fresh boot is the cleaner test.
 Kernel k116 = k115 + patches 0163-0168, DTB d15 unchanged. RAM wrappers
 (the RAM-trial launcher takes one boot per wrapper): `main-k116-d15-261002a`
 (E1), `-b` (E2), `-c` (spare / E1 repeat), and `-d` kept for the dedicated
-encoder boot (paths and SHA-256 in [bundles.md](../bundles.md)). What
+encoder boot. Wrappers (`boot-ram-128m.img` in
+`~/.local/state/rog5-production-boot-20260923/package-<bundle>/`, descriptor
+in `trial-<bundle>/`):
+
+| Bundle | Use | Wrapper SHA-256 |
+|---|---|---|
+| `main-k116-d15-261002a` | E1 defaults | `f1269bdc5f1eb4cb39b1d61d8a0503cdafe8ba48ea0b31a0221dae3f5ef1c513` |
+| `main-k116-d15-261002b` | E2 VP9 | `6a552bb2d53b1dbcd179e0e10576f9f12483f52485a91fb353c808856f11bf09` |
+| `main-k116-d15-261002c` | spare / E1 repeat | `1e3cd55ca5f417e81c38487af87b5b8321248349c4a8367299bc2bf5489402a1` |
+| `main-k116-d15-261002d` | later encoder boot | `19d5b0330695f2554f9ea5821446e66944684eccf48a0bc33386e03a19b1171b` |
+
+What
 changed for SM8350 (only for the `qcom,sm8350-iris` compatible, through its
 own platform data and vpu ops), after the k115 trials and five GPT-6.1-Sol
 deep dives (`docs/reviews/2026-10-02-gpt-6.1-sol-video-k115-deep-dive-*.md`):
