@@ -1,6 +1,6 @@
 # HDMI converter recovery and HBR2 trials
 
-Patches 0200–0206 are host-validated experiments for the SM8350 DP controller.
+Patches 0200–0207 are host-validated experiments for the SM8350 DP controller.
 No HDMI picture or recovery is qualified by compilation. The converter cap
 stays **270000 kHz (HBR)** by default. Native DP keeps its existing rate policy.
 
@@ -63,7 +63,7 @@ apply only to HDMI/DVI converter branches. Do not unload active `msm`.
 | `dp_sink_power_cycle` | 0 | Existing checked D3, ≥200 µs, D0 cycle before fresh enable; D3 on attached shutdown. |
 | `dp_pcon_reprobe` | 0 | Reread receiver/downstream/EDID capabilities on the next modeset, after teardown/wake. Use after changing the converter cap or recovering dark video. |
 | `dp_pcon_single_train` | 0 | Immediate receiver TP termination at initial success; skip forced duplicate training, retain retraining on bad EQ. Latched at link setup. |
-| `dp_pcon_ahb_reset` | 0 | AHB SW_RESET before training with clocks live and AUX transfers excluded; restore AUX/HPD configuration and IRQ masks, replay captured pending HPD. |
+| `dp_pcon_ahb_reset` | 0 | AHB SW_RESET before training with clocks live and AUX transfers excluded; restore AUX/HPD configuration and IRQ masks; defer if HPD is already pending. |
 | `dp_async_msa` | 0 | Existing asynchronous signaling experiment; M/N remain static, so success is a compatibility lead, not complete asynchronous qualification. |
 | `dp_pcon_clean_misc` | 0 | Rebuild owned MISC depth/colorimetry/clock/VSC fields; remove stale legacy-RGB VSC selection. |
 | `dp_polarity` | 0 | Existing mode-polarity copy; returning to 0 clears a prior trial's polarity. |

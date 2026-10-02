@@ -3201,7 +3201,8 @@
         "patches/linux-7.2.7/0203-drm-msm-dp-opt-in-serialized-PCON-AHB-reset.patch",
         "patches/linux-7.2.7/0204-drm-msm-dp-opt-in-fresh-PCON-MISC-state.patch",
         "patches/linux-7.2.7/0205-drm-msm-dp-recover-maintenance-and-bound-snapshots.patch",
-        "patches/linux-7.2.7/0206-drm-msm-dp-modeset-PCON-reprobe-for-recovery.patch"
+        "patches/linux-7.2.7/0206-drm-msm-dp-modeset-PCON-reprobe-for-recovery.patch",
+        "patches/linux-7.2.7/0207-drm-msm-dp-defer-AHB-reset-for-pending-HPD.patch"
       ],
       "optional_subchecks": [
         {
@@ -3211,7 +3212,7 @@
           "scope": "subcheck",
           "reason": "Existing training and sink-power functions need an applied kernel source; added-helper resource and AUX tests remain mandatory.",
           "inputs": [
-            "ROG5_LINUX_SOURCE with patches 0200-0206 applied"
+            "ROG5_LINUX_SOURCE with patches 0200-0207 applied"
           ],
           "test_ids": [
             "Pcon.test_applied_training_exhaustion_is_failure",

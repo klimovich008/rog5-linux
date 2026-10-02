@@ -23,6 +23,13 @@ def added(number):
                      if line.startswith('+') and not line.startswith('+++'))
 
 
+def postimage(number):
+    """Context plus additions from a patch with full function context."""
+    path, = PATCHES.glob(number + '-*.patch')
+    return '\n'.join(line[1:] for line in path.read_text().splitlines()
+                     if line.startswith((' ', '+')) and not line.startswith('+++'))
+
+
 def function(text, name):
     match = re.search(r'^(?:static )?(?:int|void|bool) ' + name + r'\([^;]*?\n\{',
                       text, re.M)
@@ -176,32 +183,34 @@ int main(void) {
 #define REG_DP_DP_HPD_CTRL 0
 #define REG_DP_DP_HPD_REFTIMER 1
 #define REG_DP_DP_HPD_INT_MASK 2
+#define REG_DP_DP_HPD_INT_STATUS 3
 #define DP_DP_HPD_INT_MASK 15
 struct drm_dp_aux { int unused; };
-struct msm_dp_ctrl { u32 reset_hpd_status; };
+struct msm_dp_ctrl { int unused; };
 struct msm_dp_aux_private { struct drm_dp_aux msm_dp_aux; int mutex; bool initted; };
-static u32 regs[3];
+static u32 regs[4];
 static int locked, resets, irq_restores, aux_enables;
 static int lock_guard(int *mutex) { assert(!locked); locked = 1; return 1; }
 static void unlock_guard(int *held) { assert(locked && *held); locked = 0; }
 #define guard(kind) int held __attribute__((cleanup(unlock_guard))) = lock_guard
 static u32 msm_dp_read_aux(void *aux, int reg) { assert(locked); return regs[reg]; }
 static void msm_dp_write_aux(void *aux, int reg, u32 value) { assert(locked); regs[reg] = value; }
-static u32 msm_dp_aux_get_hpd_intr_status(void *aux) { assert(locked); return 0x107; }
 static void msm_dp_ctrl_reset(void *ctrl) { assert(locked); memset(regs, 0, sizeof(regs)); resets++; }
 static void msm_dp_ctrl_enable_irq(void *ctrl) { assert(locked); irq_restores++; }
 static void msm_dp_aux_enable(void *aux) { assert(locked); aux_enables++; }
-''' + function(added('0203'), 'msm_dp_aux_reset_ctrl') + r'''
+''' + function(postimage('0207'), 'msm_dp_aux_reset_ctrl') + r'''
 int main(void) {
     struct msm_dp_aux_private aux = {};
-    struct msm_dp_ctrl ctrl = { .reset_hpd_status = 8 };
+    struct msm_dp_ctrl ctrl = {};
     assert(msm_dp_aux_reset_ctrl(&aux.msm_dp_aux, &ctrl) == -EIO);
     assert(!locked && !resets && !irq_restores && !aux_enables);
     aux.initted = true; regs[0] = 1; regs[1] = 0x10000; regs[2] = 5;
     assert(msm_dp_aux_reset_ctrl(&aux.msm_dp_aux, &ctrl) == 0);
     assert(!locked && resets == 1 && irq_restores == 1 && aux_enables == 1);
     assert(regs[0] == 1 && regs[1] == 0x10000 && regs[2] == 5);
-    assert(ctrl.reset_hpd_status == 13);
+    regs[3] = 5;
+    assert(msm_dp_aux_reset_ctrl(&aux.msm_dp_aux, &ctrl) == -EAGAIN);
+    assert(!locked && resets == 1 && regs[3] == 5);
     return 0;
 }
 ''')
