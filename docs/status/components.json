@@ -478,7 +478,7 @@
           "name": "Steam (native arm64)",
           "status": "partial",
           "weight": 2,
-          "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending"
+          "note": "title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip (packages/mesa-fex, 26.2.0-rog5.1) installed in the FEX guest root 2026-10-01: DXVK 3.1.1 under Proton Experimental finds Turnip Adreno 660 for 32-bit BioShock (no 8-bit storage skip), s8test x86_64/i686 PASS again 2026-10-03; Dota 2 retest pending"
         },
         {
           "name": "Browsers",
