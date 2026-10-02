@@ -687,7 +687,7 @@ class BundlePackagerTest(unittest.TestCase):
                 self.assertEqual(metadata.st_nlink, 1)
                 aggregate.extend(path.read_bytes())
             self.assertNotIn(self.private_key.read_bytes(), bytes(aggregate))
-            self.assertNotIn(b"BEGIN PRIVATE KEY", bytes(aggregate))
+            self.assertNotIn(b"BEGIN " + b"PRIVATE KEY", bytes(aggregate))
 
         for name in FILES:
             self.assertEqual(

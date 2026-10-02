@@ -52,18 +52,38 @@ def newc(members):
 
 
 FAKE_MODULES = r'''#!/usr/bin/env python3
-import argparse, hashlib, json, sys
+import argparse, hashlib, io, json, os, sys, tarfile
 from pathlib import Path
 p = argparse.ArgumentParser(); p.add_argument('--build'); p.add_argument('--output'); a = p.parse_args()
 build = Path(a.build); out = Path(a.output); out.mkdir()
 r = json.loads((build/'result.json').read_text())
-pkg = out/'module-root-complete.tar.gz'; pkg.write_bytes(b'modules for '+r['release'].encode())
+installed = build/'modules/lib/modules'/r['release']
+pkg = out/'module-root-complete.tar.gz'
+members = {'lib/modules/%s/kernel/%s' % (r['release'], q.relative_to(installed/'kernel')): q.read_bytes()
+           for q in sorted((installed/'kernel').rglob('*.ko'))}
+members['lib/modules/%s/kernel/fake-ext.ko' % r['release']] = os.environ.get('FAKE_EXTERNAL', 'external').encode()
+members['lib/modules/%s/modules.dep' % r['release']] = b'dep'
+with tarfile.open(pkg, 'w:gz') as t:
+    for name, data in members.items():
+        info = tarfile.TarInfo(name); info.size = len(data); t.addfile(info, io.BytesIO(data))
 h = lambda b: hashlib.sha256(b).hexdigest()
 repo = Path(__file__).resolve().parents[2]
 json.dump(dict(status='PASS_UNSIGNED_MODULE_PACKAGE', release=r['release'], kernel_build=str(build),
     kernel_image_sha256=h((build/'objects/arch/arm64/boot/Image').read_bytes()), package_sha256=h(pkg.read_bytes()),
+    external_modules=['fake-ext.ko'],
     selection_sha256=h((repo/'configs/kernel/rog5-production-modules.json').read_bytes())), open(out/'result.json', 'w'))
 '''
+
+
+def module_tar(release, members):
+    import tarfile
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+        for name, data in members.items():
+            info = tarfile.TarInfo(f'lib/modules/{release}/kernel/{name}')
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    return buffer.getvalue()
 
 FAKE_RAMDISK = r'''#!/bin/sh
 exec python3 - "$@" <<'EOF'
@@ -162,7 +182,7 @@ class Fixture:
         registry['root'] = str(self.state)
         registry['dtbs'] = {'d9': dict(path='platform-test-dtb-r9/board.dtb', sha256=sha(b'dtb nine'),
                                        features='touch,memx', base=None, created='2026-09-30',
-                                       kernel_requires='', notes='test')}
+                                       kernel_requires='', requires={}, notes='test')}
         (self.config/'dtbs.json').write_text(json.dumps(registry))
         bundles = dict(format='rog5-bundle-registry-v1', kernels={}, bundles=[])
         (self.config/'bundles.json').write_text(json.dumps(bundles))
@@ -188,15 +208,27 @@ class Fixture:
             signing_key=str(self.key), ramdisk_env=dict(UFS_CONTAINMENT='off', PERSISTENT_ROOT_OVERLAY='1',
                                                           PRODUCTION_UPDATE_KIT='1'), **files)))
 
-    def kernel(self, number, release, label, status='PASS'):
+    def kernel(self, number, release, label, status='PASS', provenance=True, patches=('0001-a.patch', '0148-b.patch'),
+               config='CONFIG_X=y\n'):
         build = self.kernels/f'rog5-kernel-7.2.7-build-r{number}'
         image = build/'objects/arch/arm64/boot/Image'
         image.parent.mkdir(parents=True)
         image.write_bytes(b'Image '+release.encode())
+        (build/'objects/.config').write_text(config)
+        outputs = {'objects/arch/arm64/boot/Image': sha(image.read_bytes()),
+                   'objects/.config': sha(config.encode())}
+        if provenance:
+            module = build/'modules/lib/modules'/release/'kernel/drivers/board.ko'
+            module.parent.mkdir(parents=True)
+            module.write_bytes(b'board module of '+release.encode())
+            entries = [dict(path=f'modules/lib/modules/{release}/kernel/drivers/board.ko',
+                            sha256=sha(module.read_bytes()), name='board', vermagic=release+' SMP')]
+            (build/'module-provenance.json').write_text(json.dumps(entries))
+            outputs['module-provenance.json'] = sha((build/'module-provenance.json').read_bytes())
         result = dict(status=status, release=release, started='2026-10-01T09:00:00',
                       stages={'kernel-build': dict(status='PASS'), 'modules-install': dict(status='PASS')},
-                      outputs={'objects/arch/arm64/boot/Image': sha(image.read_bytes())},
-                      ordered_series=dict(production=[dict(name='0001-a.patch'), dict(name='0148-b.patch')]),
+                      outputs=outputs,
+                      ordered_series=dict(production=[dict(name=name) for name in patches]),
                       repository=dict(commit='abcdef1234567890', dirty=False))
         if label:
             result['release_label'] = label
@@ -270,6 +302,12 @@ class Registries(unittest.TestCase):
             'loader name': lambda r: r.bundles[-1].update(name='Main..x'),
             'release': lambda r: r.bundles[-1].update(release='7.2.7-rog5-k1'),
             'dtb path': lambda r: r.dtbs['dtbs']['d9'].update(path='../x/board.dtb'),
+            'requires missing': lambda r: r.dtbs['dtbs']['d9'].pop('requires'),
+            'unknown patch': lambda r: r.dtbs['dtbs']['d9'].update(requires=dict(patches=['0999-none.patch'])),
+            'patch name': lambda r: r.dtbs['dtbs']['d9'].update(requires=dict(patches=['0136'])),
+            'config value': lambda r: r.dtbs['dtbs']['d15']['requires']['config'].update(CONFIG_SM_VIDEOCC_8350='n'),
+            'requires key': lambda r: r.dtbs['dtbs']['d9'].update(requires=dict(modules=['iris'])),
+            'base cycle': lambda r: r.dtbs['dtbs']['d7'].update(base='d9'),
         }
         for label, mutate in cases.items():
             with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
@@ -279,6 +317,28 @@ class Registries(unittest.TestCase):
                 mutate(registry)
                 with self.assertRaises(ValueError):
                     registry.validate()
+
+    def test_committed_dtb_requirements_reject_an_incompatible_kernel(self):
+        # d13 inherits 0136-0139, 0144 and 0146 from d8 through d10/d9 (its own
+        # entry is empty): a kernel without them is refused, k113's series passes.
+        registry = REG.Registry()
+        patches, config = registry.requirements('d13')
+        self.assertEqual([name[:4] for name in patches],
+                         ['0089', '0121', '0122', '0123', '0124', '0136', '0137', '0138', '0139', '0144', '0146'])
+        self.assertEqual(config, {})
+        series = sorted(path.name for path in (REPO/'patches/linux-7.2.7').glob('0*.patch')
+                        if path.name[:4] <= '0153')
+        full = dict(ordered_series=dict(production=[dict(name=name) for name in series]))
+        registry.check_kernel('d13', 'k113', full, None)
+        lacking = dict(ordered_series=dict(production=[dict(name=name) for name in series
+                                                       if name[:4] not in ('0136', '0144', '0146')]))
+        with self.assertRaisesRegex(ValueError, 'd13 needs kernel patches kX does not carry: 0136-.*0144-.*0146-'):
+            registry.check_kernel('d13', 'kX', lacking, None)
+        # d15 also needs the video config; a pruned build (no .config) cannot show it.
+        with self.assertRaisesRegex(ValueError, 'needs .config symbols'):
+            registry.check_kernel('d15', 'kX', dict(ordered_series=dict(production=[
+                dict(name=name) for name in sorted(p.name for p in (REPO/'patches/linux-7.2.7').glob('0*.patch'))])),
+                None)
 
     def test_set_retires_the_previous_installed_bundle_and_add_dtb_numbers_from_10(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -416,6 +476,11 @@ class MakeBundle(unittest.TestCase):
         # A package this tool made would still win after pruning; drop it to reach the legacy one.
         shutil.rmtree(f.state/'modules-k69')
         self.prune_k69_with_a_registered_copy()
+        # An old build that recorded no module provenance: the legacy package
+        # stays usable, explicitly unverified.
+        built = json.loads((build/'result.json').read_text())
+        del built['outputs']['module-provenance.json']
+        (build/'result.json').write_text(json.dumps(built))
         out = f.run('--role', 'safe', '--kernel', 'k69', '--dtb', 'd9', '--boot-modules-from', f.old_rev)
         self.assertIn('modules modules-7.2.7-r69 (reused-unverified)', out)
         self.assertIn('differs from HEAD', out)
@@ -423,12 +488,122 @@ class MakeBundle(unittest.TestCase):
         self.assertEqual((record['module_package_sha256'], record['module_package_source']),
                          (sha(b'legacy'), 'reused-unverified'))
         self.assertFalse(record['module_selection_current'])
-        self.assertIn('legacy module package modules-7.2.7-r69',
+        self.assertIn('legacy module package modules-7.2.7-r69 (module provenance not verified)',
                       REG.Registry(f.config, f.doc).bundle('safe-k69-d9-261001b')['notes'])
+        self.assertEqual(record['module_provenance']['status'], 'unverified')
         result['kernel_build'] = str(f.kernels/'rog5-kernel-7.2.7-build-r111')
         (legacy/'result.json').write_text(json.dumps(result))
         with self.assertRaisesRegex(ValueError, 'not a module package'):
             f.run('--role', 'safe', '--kernel', 'k69', '--dtb', 'd9', '--boot-modules-from', f.old_rev)
+
+    def test_legacy_package_of_a_pruned_build_is_checked_against_its_provenance(self):
+        # The real safe-r8 recipe: k69's objects are gone, modules-7.2.7-r69 is
+        # reused, and k69 still records module provenance.
+        f = self.f
+        build = f.kernels/'rog5-kernel-7.2.7-build-r69'
+        release = '7.2.7-rog5-production'
+        board = (build/'modules/lib/modules'/release/'kernel/drivers/board.ko').read_bytes()
+        legacy = f.state/'modules-7.2.7-r69'
+        legacy.mkdir()
+        image_sha = sha((build/'objects/arch/arm64/boot/Image').read_bytes())
+        self.prune_k69_with_a_registered_copy()
+
+        def legacy_package(members):
+            data = module_tar(release, members)
+            (legacy/'module-root-complete.tar.gz').write_bytes(data)
+            (legacy/'result.json').write_text(json.dumps(dict(
+                status='PASS_UNSIGNED_MODULE_PACKAGE', release=release, kernel_build=str(build),
+                kernel_image_sha256=image_sha, package_sha256=sha(data), selection_sha256='1'*64,
+                external_modules=['fake-ext.ko'])))
+        legacy_package({'drivers/board.ko': board, 'fake-ext.ko': b'ext'})
+        out = f.run('--role', 'safe', '--kernel', 'k69', '--dtb', 'd9', '--boot-modules-from', f.old_rev)
+        self.assertIn('module provenance verified (1 board modules)', out)
+        record = json.loads((f.state/'package-safe-k69-d9-261001a/make-bundle.json').read_text())
+        self.assertEqual(record['module_provenance']['status'], 'verified')
+        self.assertNotIn('not verified', REG.Registry(f.config, f.doc).bundle('safe-k69-d9-261001a')['notes'])
+        for members, message in (({'drivers/board.ko': b'rebuilt', 'fake-ext.ko': b'ext'}, 'differs from'),
+                                 ({'drivers/board.ko': board, 'drivers/extra.ko': b'x', 'fake-ext.ko': b'ext'},
+                                  'no provenance record'),
+                                 ({'drivers/board.ko': board}, 'external modules differ')):
+            with self.subTest(message=message):
+                legacy_package(members)
+                with self.assertRaisesRegex(ValueError, message):
+                    f.run('--role', 'safe', '--kernel', 'k69', '--dtb', 'd9', '--boot-modules-from', f.old_rev)
+
+    def test_module_provenance_is_enforced_for_new_and_reused_packages(self):
+        f = self.f
+        build = f.kernels/'rog5-kernel-7.2.7-build-r111'
+        self.assertIn('module provenance verified', f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9'))
+        # Provenance edited to match a replaced module: result.json binds the file.
+        provenance = build/'module-provenance.json'
+        original = provenance.read_bytes()
+        entries = json.loads(original)
+        entries[0]['sha256'] = sha(b'replaced module')
+        provenance.write_text(json.dumps(entries))
+        with self.assertRaisesRegex(ValueError, 'module-provenance.json differs from result.json'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        provenance.write_bytes(original)
+        # A reused package whose board module differs from the provenance.
+        package_dir = f.state/'modules-k111'
+        result = json.loads((package_dir/'result.json').read_text())
+        data = module_tar('7.2.7-rog5-k111', {'drivers/board.ko': b'tampered', 'fake-ext.ko': b'external'})
+        (package_dir/'module-root-complete.tar.gz').write_bytes(data)
+        result['package_sha256'] = sha(data)
+        (package_dir/'result.json').write_text(json.dumps(result))
+        with self.assertRaisesRegex(ValueError, 'drivers/board.ko differs from'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        # A build without recorded provenance cannot get a new package.
+        built = json.loads((build/'result.json').read_text())
+        del built['outputs']['module-provenance.json']
+        (build/'result.json').write_text(json.dumps(built))
+        with self.assertRaisesRegex(ValueError, 'records no module provenance'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9', '--fresh-modules')
+
+    def test_dtb_kernel_requirements_are_inherited_and_enforced(self):
+        f = self.f
+        registry = json.loads((f.config/'dtbs.json').read_text())
+        patch = '0089-power-supply-qcom_battmgr-ROG5-bottom-port-5V-source-regulator.patch'
+        registry['dtbs']['d9']['requires'] = dict(patches=[patch], config={'CONFIG_X': 'y|m'})
+        new = f.state/'platform-test-dtb-d10'
+        new.mkdir()
+        (new/'board.dtb').write_bytes(b'dtb ten')
+        registry['dtbs']['d10'] = dict(path='platform-test-dtb-d10/board.dtb', sha256=sha(b'dtb ten'),
+                                       features='touch,memx', base='d9', created='2026-10-01',
+                                       kernel_requires='', requires={}, notes='derived')
+        (f.config/'dtbs.json').write_text(json.dumps(registry))
+        REG.write_features(REG.Registry(f.config, f.doc), 'd10')
+        reg = REG.Registry(f.config, f.doc)
+        self.assertEqual(reg.requirements('d10'), ([patch], {'CONFIG_X': 'y|m'}))
+        # k111 lacks 0089: d10 inherits d9's requirement and is refused, at --plan already.
+        with self.assertRaisesRegex(ValueError, 'd10 needs kernel patches k111 does not carry: '+patch):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd10', '--plan')
+        f.kernel(113, '7.2.7-rog5-k113', 'k113', patches=('0001-a.patch', patch), config='CONFIG_X=m\n')
+        self.assertEqual(json.loads(f.run('--role', 'main', '--kernel', 'k113', '--dtb', 'd10', '--plan'))['name'],
+                         'main-k113-d10-261001a')
+        f.kernel(114, '7.2.7-rog5-k114', 'k114', patches=('0001-a.patch', patch), config='# CONFIG_X is not set\n')
+        with self.assertRaisesRegex(ValueError, 'needs kernel config k114 does not have: CONFIG_X=y\\|m \\(has unset\\)'):
+            f.run('--role', 'main', '--kernel', 'k114', '--dtb', 'd10', '--plan')
+        # A .config that differs from result.json is not trusted.
+        (f.kernels/'rog5-kernel-7.2.7-build-r113/objects/.config').write_text('CONFIG_X=y\n')
+        with self.assertRaisesRegex(ValueError, 'objects/.config differs from result.json'):
+            f.run('--role', 'main', '--kernel', 'k113', '--dtb', 'd10', '--plan')
+
+    def test_bundle_inputs_in_the_repository_must_be_committed(self):
+        f = self.f
+        inside = f.source/'configs/production/bundle-inputs.json'
+        inside.write_text(f.inputs.read_text())
+        git = ['git', '-C', str(f.source), '-c', 'user.name=t', '-c', 'user.email=t@t']
+        subprocess.run(git+['add', '-A'], check=True)
+        subprocess.run(git+['commit', '-qm', 'inputs'], check=True)
+        f.inputs = inside
+        f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
+        record = json.loads((f.state/'package-main-k111-d9-261001a/make-bundle.json').read_text())
+        self.assertEqual(record['bundle_inputs_sha256'], sha(inside.read_bytes()))
+        data = json.loads(inside.read_text())
+        data['ramdisk_env']['UFS_CONTAINMENT'] = 'on'
+        inside.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'bundle-inputs.json differs from HEAD'):
+            f.run('--role', 'main', '--kernel', 'k111', '--dtb', 'd9')
 
     def test_changed_external_module_sources_give_a_new_module_package(self):
         f = self.f

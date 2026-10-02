@@ -8,7 +8,10 @@ the exact System.map and writes the deterministic module-root-complete.tar.gz
 that build-persistent-root-standalone-initramfs.sh consumes as
 PRODUCTION_MODULE_PACKAGE: regular files only, sorted names, mode 0644,
 uid/gid/mtime 0, gzip level 1 with mtime 0. Every member is read back and
-checked after packing.
+checked after packing. Before anything is copied or compiled, the build's
+recorded output hashes (result.json) must hold for module-provenance.json,
+.config, Module.symvers, System.map and Image, and every selected module must
+match its provenance hash.
 """
 import argparse
 import gzip
@@ -42,6 +45,58 @@ def sha(path):
 
 def modinfo(path, field):
     return subprocess.run(['modinfo', '-F', field, str(path)], capture_output=True, text=True, check=True).stdout.strip()
+
+
+# Files of the kernel build whose recorded hashes (result.json "outputs") must
+# hold before anything is packaged or compiled against the object tree.
+BUILD_OUTPUTS = ('module-provenance.json', 'objects/.config', 'objects/Module.symvers',
+                 'objects/System.map', 'objects/arch/arm64/boot/Image')
+
+
+def verify_build(build, built, release):
+    """Check the build's recorded outputs before packaging. Returns the
+    installed-module provenance, keyed by its build-relative path.
+
+    The provenance file is bound to result.json by its hash; every selected
+    module is then checked against its provenance entry, and .config,
+    Module.symvers and System.map (external builds, depmod) against theirs. A
+    module replaced or rebuilt in a completed build directory therefore stops
+    packaging even when its release and exported symbols are unchanged."""
+    outputs = built.get('outputs')
+    need(isinstance(outputs, dict), 'result.json records no output hashes')
+    for name in BUILD_OUTPUTS:
+        need(isinstance(outputs.get(name), str) and len(outputs[name]) == 64, 'result.json records no hash for '+name)
+        path = build/name
+        need(path.is_file() and not path.is_symlink(), 'recorded build output missing: '+name)
+        need(sha(path) == outputs[name], 'build output differs from result.json: '+name)
+    if built.get('config_sha256') is not None:
+        need(built['config_sha256'] == outputs['objects/.config'], 'result.json config_sha256 disagrees with its outputs')
+    entries = json.loads((build/'module-provenance.json').read_text())
+    need(isinstance(entries, list) and entries, 'module provenance is empty')
+    prefix = 'modules/lib/modules/'+release+'/'
+    provenance = {}
+    for entry in entries:
+        need(isinstance(entry, dict) and isinstance(entry.get('path'), str) and isinstance(entry.get('sha256'), str),
+             'module provenance entry format')
+        need(entry['path'].startswith(prefix) and entry['path'].endswith('.ko') and '..' not in entry['path'].split('/'),
+             'module provenance path outside '+prefix+': '+entry['path'])
+        need(entry['path'] not in provenance, 'duplicate module provenance entry: '+entry['path'])
+        need(str(entry.get('vermagic', '')).split()[:1] == [release], 'module provenance vermagic: '+entry['path'])
+        provenance[entry['path']] = entry
+    return provenance
+
+
+def copy_board_module(installed, canonical, dst, provenance, release):
+    """Copy one selected installed module after checking it against its
+    provenance hash, then check the copy."""
+    entry = provenance.get('modules/lib/modules/'+release+'/kernel/'+canonical)
+    need(entry is not None, 'selected module has no provenance record: '+canonical)
+    source = installed/'kernel'/canonical
+    need(source.is_file() and not source.is_symlink(), 'selected module is not a regular file: '+canonical)
+    need(sha(source) == entry['sha256'], 'installed module differs from its provenance hash: '+canonical)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, dst)
+    need(sha(dst) == entry['sha256'], 'copied module differs from its provenance hash: '+canonical)
 
 
 def build_external(objects, source, stage, jobs, env, extra_symbols):
@@ -104,6 +159,8 @@ def main():
          'kernel build or module install did not pass')
     objects = build/'objects'
     release = (objects/'include/config/kernel.release').read_text().strip()
+    need(built.get('release') in (None, release), 'object tree release differs from result.json')
+    provenance = verify_build(build, built, release)
     installed = build/'modules/lib/modules'/release
     need((installed/'modules.builtin').is_file(), 'installed modules missing')
     selection = json.loads(args.selection.read_text())
@@ -121,9 +178,7 @@ def main():
     for canonical in selection['board_modules']:
         if canonical in built_in:
             continue
-        dst = root/'kernel'/canonical
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(installed/'kernel'/canonical, dst)
+        copy_board_module(installed, canonical, root/'kernel'/canonical, provenance, release)
     env = {k: v for k, v in os.environ.items() if not k.startswith(('KBUILD', 'KCFLAGS', 'CC', 'MAKEFLAGS'))}
     env.update(LC_ALL='C', KBUILD_BUILD_USER='rog5-linux', KBUILD_BUILD_HOST='rog5-builder', KBUILD_BUILD_VERSION='1')
     externals, symvers = [], []
@@ -131,7 +186,10 @@ def main():
         ko = build_external(objects, REPO/item['source'], out/'external'/item['name'], args.jobs, env, symvers)
         symvers.append(out/'external'/item['name']/'Module.symvers')
         need(modinfo(ko, 'name') == item['name'].replace('-', '_'), 'external module name: '+item['name'])
-        shutil.copyfile(ko, root/'kernel'/(item['name']+'.ko'))
+        dst = root/'kernel'/(item['name']+'.ko')
+        need(not dst.exists(), 'external module would replace a board module: '+item['name'])
+        shutil.copyfile(ko, dst)
+        need(sha(dst) == sha(ko), 'external module copy: '+item['name'])
         externals.append(item['name']+'.ko')
     for name in ('modules.builtin', 'modules.builtin.modinfo'):
         shutil.copyfile(installed/name, root/name)
@@ -147,10 +205,16 @@ def main():
     need(depmod.returncode == 0 and not depmod.stderr.strip(), 'depmod: '+depmod.stderr[-2000:])
     for ko in root.rglob('*.ko'):
         need(modinfo(ko, 'vermagic').split()[0] == release, 'vermagic: '+str(ko))
+    # The object tree must not have changed while the externals were built.
+    verify_build(build, built, release)
     package = out/'module-root-complete.tar.gz'
     entries, total = pack(tree, package)
     result = dict(status='PASS_UNSIGNED_MODULE_PACKAGE', release=release, kernel_build=str(build), kernel_build_status=built['status'],
                   kernel_image_sha256=sha(objects/'arch/arm64/boot/Image'),
+                  module_provenance_sha256=built['outputs']['module-provenance.json'],
+                  config_sha256=built['outputs']['objects/.config'],
+                  module_symvers_sha256=built['outputs']['objects/Module.symvers'],
+                  board_modules_verified=len(selection['board_modules'])-len(built_in),
                   selection_sha256=sha(args.selection), package_sha256=sha(package), package_bytes=package.stat().st_size,
                   files=len(entries), modules=sum(n.endswith('.ko') for n in entries), uncompressed_bytes=total,
                   external_modules=externals, selected_built_in=built_in, files_sha256=entries, duration_seconds=round(time.monotonic()-started, 2),

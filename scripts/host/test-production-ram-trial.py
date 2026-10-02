@@ -163,6 +163,48 @@ class Launcher(unittest.TestCase):
             self.boot()
         self.assertFalse(self.booted.exists())
 
+    def test_claim_and_its_directory_are_durable_before_fastboot_boot(self):
+        from unittest import mock
+        self.device('0b05', '4daf')
+        os.environ['ROG5_ALLOW_RAM_TRIAL'] = '1'
+        events = []
+        real_fsync, real_run = os.fsync, self.m.subprocess.run
+
+        def fsync(fd):
+            events.append(('fsync', os.readlink(f'/proc/self/fd/{fd}')))
+            return real_fsync(fd)
+
+        def run(argv, *args, **kwargs):
+            if 'boot' in argv:
+                events.append(('boot', argv[-1]))
+            return real_run(argv, *args, **kwargs)
+
+        with mock.patch.object(self.m.os, 'fsync', fsync), mock.patch.object(self.m.subprocess, 'run', run):
+            self.boot()
+        claims = str(self.base/'claims')
+        claim = claims+'/'+self.sha+'.entered'
+        boot_at = events.index(next(e for e in events if e[0] == 'boot'))
+        before = events[:boot_at]
+        self.assertIn(('fsync', claim), before)
+        self.assertIn(('fsync', claims), before)
+        # claims/ was new: its own entry is made durable in its parent too.
+        self.assertIn(('fsync', str(self.base)), before)
+        # The directory sync that publishes the marker's name follows the
+        # marker's own data sync.
+        last_dir = max(i for i, e in enumerate(before) if e == ('fsync', claims))
+        self.assertLess(before.index(('fsync', claim)), last_dir)
+        self.assertEqual(os.stat(claim).st_mode & 0o777, 0o600)
+
+    def test_claim_refuses_a_symlinked_marker(self):
+        self.device('0b05', '4daf')
+        os.environ['ROG5_ALLOW_RAM_TRIAL'] = '1'
+        (self.base/'claims').mkdir(mode=0o700)
+        (self.base/'claims'/(self.sha+'.entered')).symlink_to(self.base/'elsewhere')
+        with self.assertRaises(FileExistsError):
+            self.boot()
+        self.assertFalse(self.booted.exists())
+        self.assertFalse((self.base/'elsewhere').exists())
+
     def test_failed_fastboot_boot_keeps_the_claim_consumed(self):
         self.device('0b05', '4daf')
         os.environ['ROG5_ALLOW_RAM_TRIAL'] = '1'
@@ -338,6 +380,28 @@ class Stages(unittest.TestCase):
         self.assertIn('--remove-rich-rule=', calls)
         self.assertNotIn('--permanent', calls)
         self.assertNotIn('ipv4.addresses +', calls)
+
+    def test_partial_stage_setup_is_reverted(self):
+        # The firewall rule fails after the profile was changed: main() must
+        # still run stage_path(False) (it used to sit outside the try).
+        calls = []
+        self.m.StageReceiver = lambda evidence: type('R', (), dict(
+            start=lambda self: calls.append('start'), close=lambda self: calls.append('close')))()
+
+        def stage_path(enable):
+            calls.append(('stage', enable))
+            if enable:
+                raise ValueError('firewall refused')
+        self.m.stage_path = stage_path
+        evidence = self.base/'ev'
+        argv = sys.argv
+        sys.argv = ['production-ram-trial.py', 'observe', '--evidence', str(evidence), '--stage-receiver', '--seconds', '1']
+        try:
+            with self.assertRaisesRegex(ValueError, 'firewall refused'):
+                self.m.main()
+        finally:
+            sys.argv = argv
+        self.assertEqual(calls, [('stage', True), 'close', ('stage', False)])
 
     def test_stage_path_refuses_when_the_profile_does_not_take_effect(self):
         # NetworkManager 1.52 silently ignored a second address on the shared

@@ -18,6 +18,12 @@ Names (docs/development.md, "Bundle names"):
   rog5-bundle-registry.py describe kNNN|dN TEXT     set a kernel's changes or a DTB's notes
   rog5-bundle-registry.py add-dtb --dtb PATH --features LIST [--base dN]
                                   [--kernel-requires TEXT] [--notes TEXT]
+                                  [--require-patch NAME ...] [--require-config SYM=y|m|y|m ...]
+
+A DTB's "requires" (production-series patch file names and .config symbols)
+plus those of its base chain must be carried by the kernel build a bundle pairs
+it with; rog5-make-bundle.py enforces that (check_kernel). "kernel_requires"
+is free text for the table.
 
 Offline only: nothing here touches the phone.
 """
@@ -47,6 +53,9 @@ DTB = re.compile(r'd([1-9][0-9]{0,3})')
 LOADER_NAME = re.compile(r'[a-z0-9][a-z0-9._-]{0,63}')
 NEW_NAME = re.compile(r'(main|safe)-k([1-9][0-9]{0,3})-d([1-9][0-9]{0,3})-([0-9]{6})([a-z])')
 FEATURE = re.compile(r'[a-z0-9]+')
+PATCH_NAME = re.compile(r'[0-9]{4}-[A-Za-z0-9._+-]+\.patch')
+CONFIG_SYMBOL = re.compile(r'CONFIG_[A-Z0-9_]+')
+CONFIG_VALUES = {'y': ('y',), 'm': ('m',), 'y|m': ('y', 'm')}
 FIRST_NEW_DTB = 10
 
 
@@ -145,6 +154,22 @@ class Registry:
             paths.add(entry['path'])
             need(all(FEATURE.fullmatch(f) for f in entry['features'].split(',')), ident+' features')
             need(entry.get('base') is None or entry['base'] in self.dtbs['dtbs'], ident+' base')
+            requires = entry.get('requires')
+            need(isinstance(requires, dict) and set(requires) <= {'patches', 'config'},
+                 ident+' requires must be an object with patches and/or config')
+            patches = requires.get('patches', [])
+            need(isinstance(patches, list) and len(set(patches)) == len(patches)
+                 and all(isinstance(n, str) and PATCH_NAME.fullmatch(n) for n in patches),
+                 ident+' requires.patches must be distinct patch file names')
+            for name in patches:
+                need(any((series/name).is_file() for series in (REPO/'patches').glob('linux-*')),
+                     ident+' requires an unknown patch '+name)
+            config = requires.get('config', {})
+            need(isinstance(config, dict) and all(CONFIG_SYMBOL.fullmatch(k) and v in CONFIG_VALUES
+                                                  for k, v in config.items()),
+                 ident+' requires.config must map CONFIG_ symbols to y, m or y|m')
+        for ident in self.dtbs['dtbs']:
+            self.requirements(ident)  # no base cycle, no conflicting inherited config
         for ident, entry in self.kernels.items():
             need(KERNEL.fullmatch(ident) is not None, 'kernel id '+ident)
             need(entry['build'].endswith('-build-r'+ident[1:]), ident+' build directory must end in -build-r'+ident[1:])
@@ -172,6 +197,44 @@ class Registry:
         for status in ('installed-main', 'installed-fallback'):
             need(sum(entry['status'] == status for entry in self.bundles) <= 1, 'more than one bundle is '+status)
         return True
+
+    def requirements(self, ident):
+        """(patches, config) a kernel needs for DTB IDENT: its own 'requires'
+        and those of every base it was derived from."""
+        patches, config, seen, current = set(), {}, [], ident
+        while current is not None:
+            need(current in self.dtbs['dtbs'], f'{ident}: unknown base {current}')
+            need(current not in seen, f'{ident}: base cycle through {current}')
+            seen.append(current)
+            entry = self.dtbs['dtbs'][current]
+            requires = entry.get('requires') or {}
+            patches.update(requires.get('patches', []))
+            for symbol, value in requires.get('config', {}).items():
+                need(config.get(symbol, value) == value, f'{ident}: {current} and a derived DTB disagree on {symbol}')
+                config[symbol] = value
+            current = entry.get('base')
+        return sorted(patches), dict(sorted(config.items()))
+
+    def check_kernel(self, ident, kernel, result, config_text):
+        """Refuse a kernel build that lacks a patch or .config symbol DTB IDENT
+        (with its bases) needs. RESULT is the build's result.json; CONFIG_TEXT
+        its .config (None when the object tree is pruned)."""
+        patches, config = self.requirements(ident)
+        applied = {item['name'] for item in result.get('ordered_series', {}).get('production', [])}
+        need(applied or not patches, f'{kernel}: result.json records no production series')
+        missing = [name for name in patches if name not in applied]
+        need(not missing, f'{ident} needs kernel patches {kernel} does not carry: '+', '.join(missing))
+        if config:
+            need(config_text is not None, f'{ident} needs .config symbols but the {kernel} build has no .config')
+            values = {}
+            for line in config_text.splitlines():
+                match = re.fullmatch(r'(CONFIG_[A-Z0-9_]+)=(.*)', line)
+                if match:
+                    values[match[1]] = match[2]
+            wrong = [f'{symbol}={value} (has {values.get(symbol, "unset")})' for symbol, value in config.items()
+                     if values.get(symbol) not in CONFIG_VALUES[value]]
+            need(not wrong, f'{ident} needs kernel config {kernel} does not have: '+', '.join(wrong))
+        return patches, config
 
     def verify_dtb(self, ident):
         """The DTB file and its features file match the registry."""
@@ -231,6 +294,22 @@ def cell(value):
     return text.replace('|', '\\|').replace('\n', ' ')
 
 
+def needs_text(registry, ident):
+    """The table's Needs cell: the enforced requirement (inherited ones
+    included), then the free text."""
+    patches, config = registry.requirements(ident)
+    runs = []
+    for number in sorted(int(name[:4]) for name in patches):
+        if runs and number == runs[-1][1]+1:
+            runs[-1][1] = number
+        else:
+            runs.append([number, number])
+    numbers = [f'{a:04d}' if a == b else f'{a:04d}-{b:04d}' for a, b in runs]
+    enforced = ', '.join(numbers + [f'{k}={v}' for k, v in config.items()])
+    text = registry.dtbs['dtbs'][ident].get('kernel_requires') or ''
+    return enforced + (f' ({text})' if text else '') if enforced else text
+
+
 def render(registry):
     lines = ['# Bundles, kernels and DTBs', '',
              '<!-- Generated by scripts/host/rog5-bundle-registry.py from configs/production/bundles.json',
@@ -265,7 +344,7 @@ def render(registry):
         d = registry.dtbs['dtbs'][ident]
         lines.append('| ' + ' | '.join(cell(v) for v in (
             ident, '`'+d['path']+'`', '`'+d['sha256'][:8]+'`', d.get('base') or '', d['features'].replace(',', ', '),
-            d.get('kernel_requires'), d.get('notes'))) + ' |')
+            needs_text(registry, ident), d.get('notes'))) + ' |')
     return '\n'.join(lines)+'\n'
 
 
@@ -294,6 +373,10 @@ def main(argv=None):
     add.add_argument('--base', help='the dN it was derived from')
     add.add_argument('--kernel-requires', default='')
     add.add_argument('--notes', default='')
+    add.add_argument('--require-patch', action='append', default=[], metavar='NAME',
+                     help='production-series patch file the kernel must carry (repeatable; the base chain is inherited)')
+    add.add_argument('--require-config', action='append', default=[], metavar='SYM=y|m|y|m',
+                     help='.config symbol the kernel must have (repeatable)')
     args = parser.parse_args(argv)
     if args.action != 'check':
         with locked(args.config, args.doc) as registry:
@@ -319,6 +402,20 @@ def main(argv=None):
         print(f'PASS {len(registry.bundles)} bundles, {len(registry.kernels)} kernels, '
               f'{len(registry.dtbs["dtbs"])} DTBs')
         return 0
+
+
+def requires_argument(args):
+    requires = {}
+    if args.require_patch:
+        requires['patches'] = list(args.require_patch)
+    if args.require_config:
+        config = {}
+        for item in args.require_config:
+            symbol, _, value = item.partition('=')
+            need(symbol not in config, 'config symbol given twice: '+symbol)
+            config[symbol] = value
+        requires['config'] = config
+    return requires
 
 
 def change(args, registry):
@@ -352,7 +449,8 @@ def change(args, registry):
         ident = registry.next_dtb_id()
         registry.dtbs['dtbs'][ident] = dict(
             path=relative, sha256=digest, features=args.features, base=args.base,
-            created=datetime.date.today().isoformat(), kernel_requires=args.kernel_requires, notes=args.notes)
+            created=datetime.date.today().isoformat(), kernel_requires=args.kernel_requires,
+            requires=requires_argument(args), notes=args.notes)
         registry.validate()
         write_features(registry, ident)
         print(f'{ident} = {relative} ({digest[:8]})')

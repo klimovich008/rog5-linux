@@ -219,6 +219,11 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   (default line) keep the rN of their directory. Register a new composition
   with `scripts/host/rog5-bundle-registry.py add-dtb --dtb <state>/<dir>/board.dtb
   --features <list> --base d9`; it takes the next free id, from d10.
+  `requires` lists the production-series patch files and `.config` symbols
+  the DTB needs (`--require-patch NAME`, `--require-config SYM=y|m`); a DTB
+  inherits its base chain's requirements, and `rog5-make-bundle.py` (also with
+  `--plan`) refuses a kernel build that lacks one. `kernel_requires` is only
+  the free text of the table.
 - **Bundles** are `<role>-k<kernel>-d<dtb>-<YYMMDD><letter>`, for example
   `main-k111-d9-261001a`. `main` is built with a fresh try-once descriptor,
   `safe` (a fallback) without one. The letter is the first free one of the
@@ -235,7 +240,11 @@ scripts/host/rog5-make-bundle.py --role main --kernel k111 --dtb d9 --plan  # na
   digest matches the snapshot; otherwise a new one is packaged from the
   snapshot (`--fresh-modules` forces that). A legacy `modules-7.2.7-rNNN`
   is used only when the build's objects are gone (k69), and the registry
-  notes it. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
+  notes it. Every board module in the package, new, reused or legacy, must
+  match the build's `module-provenance.json`, whose hash `result.json`
+  records; the packager also checks `.config`, `Module.symvers`, `System.map`
+  and the Image against `result.json` before it compiles the externals.
+  `bundle-inputs.json` must equal HEAD's copy. Build steps get no inherited `PRODUCTION_*`, `EXPECTED_*`,
   `ROG5_*` or `PYTHON*` variables. The ramdisk is built with the pinned inputs of
   `configs/production/bundle-inputs.json` and must carry exactly the new
   descriptor (main) or none (safe), plus the current init. Then

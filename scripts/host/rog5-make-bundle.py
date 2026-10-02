@@ -10,13 +10,17 @@ The name is <role>-k<kernel>-d<dtb>-<YYMMDD><letter> (the first free letter of
 the day unless --name-letter). Steps, all offline (no phone, no install):
  1. the kernel build (rog5-kernel-*-build-rNNN for kNNN) must be PASS, its Image
     must match result.json, and a labelled build must report <base>-rog5-kNNN;
- 2. the DTB comes from configs/production/dtbs.json (sha256 and features file);
+ 2. the DTB comes from configs/production/dtbs.json (sha256 and features file),
+    and the kernel build must carry every patch and .config symbol the DTB and
+    its base chain require ("requires");
  3. `git archive HEAD` is extracted to <state>/bundle-work-<name>/src (the
     working tree's uncommitted changes are not in the bundle) with artifacts/
     linked; every build step runs that snapshot's scripts;
  4. the module package modules-kNNN is reused while its recorded digest of
     the packager, selection and external module sources matches the snapshot,
     else packaged anew (a legacy modules-<base>-rNNN only for a pruned build);
+    every board module in it must match the build's module-provenance.json,
+    which result.json binds by hash;
  5. main: a fresh try-once descriptor <state>/trial-<name>/descriptor; safe: none;
  6. the ramdisk (build-persistent-root-standalone-initramfs.sh with the pinned
     inputs of configs/production/bundle-inputs.json) must carry exactly that
@@ -39,6 +43,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
 
 REPO = Path(__file__).resolve().parents[2]
@@ -117,6 +122,17 @@ def kernel_build(kernel, root, copies=()):
         need(image is not None, f'{kernel}: {build.name}/objects is gone and no registered bundle has its Image')
     need(sha256(image) == expected, f'{kernel}: Image differs from result.json')
     return build, result, image, release
+
+
+def kernel_config(build, result):
+    """.config text of a kernel build (checked against result.json), or None
+    for a pruned build whose object tree is gone."""
+    config = build/'objects/.config'
+    if not config.exists():
+        return None
+    recorded = result.get('outputs', {}).get('objects/.config')
+    need(recorded is not None and sha256(config) == recorded, f'{build.name}: objects/.config differs from result.json')
+    return config.read_text()
 
 
 def kernel_entry(kernel, build, result):
@@ -250,6 +266,51 @@ def module_package(steps, src, state, kernel, build, image_sha256, release, fres
     return package, result, 'new'
 
 
+def package_provenance(package, modules, build, result, release, how):
+    """Check every board module in the module package against the kernel
+    build's installed-module provenance, which result.json binds by hash.
+    External modules (built by the packager from tools/) have no provenance
+    entry and are taken by name from the package record. A legacy package of a
+    pruned build whose build records no provenance stays usable, but only as
+    an explicitly unverified record."""
+    recorded = result.get('outputs', {}).get('module-provenance.json')
+    if recorded is None:
+        need(how == 'reused-unverified',
+             f'{build.name}: result.json records no module provenance; its module package cannot be verified')
+        return dict(status='unverified', reason='the kernel build records no module provenance')
+    provenance_file = build/'module-provenance.json'
+    need(provenance_file.is_file() and not provenance_file.is_symlink() and sha256(provenance_file) == recorded,
+         f'{build.name}: module-provenance.json differs from result.json')
+    provenance = {}
+    for entry in json.loads(provenance_file.read_text()):
+        need(entry['path'] not in provenance, f'{build.name}: duplicate provenance entry {entry["path"]}')
+        provenance[entry['path']] = entry['sha256']
+    externals = set(modules.get('external_modules') or [])
+    need(all(re.fullmatch(r'[A-Za-z0-9_-]+\.ko', name) for name in externals), 'module package external names')
+    prefix = f'lib/modules/{release}/'
+    verified, seen_externals, names = 0, set(), set()
+    with tarfile.open(package, mode='r|gz') as archive:
+        for item in archive:
+            need(item.name not in names, f'module package member twice: {item.name}')
+            names.add(item.name)
+            if not item.name.endswith('.ko'):
+                continue
+            need(item.isfile() and item.name.startswith(prefix+'kernel/'), f'module package member {item.name}')
+            digest = hashlib.sha256(archive.extractfile(item).read()).hexdigest()
+            relative = item.name[len(prefix+'kernel/'):]
+            expected = provenance.get('modules/'+item.name)
+            if expected is None and relative in externals:
+                seen_externals.add(relative)
+                continue
+            need(expected is not None, f'module package member {relative} has no provenance record in {build.name}')
+            need(digest == expected, f'module package member {relative} differs from the {build.name} provenance')
+            verified += 1
+    need(seen_externals == externals, 'module package external modules differ from its record')
+    need(verified > 0, 'module package carries no board module')
+    return dict(status='verified', provenance_sha256=recorded, board_modules=verified,
+                external_modules=sorted(externals))
+
+
 def write_descriptor(state, name):
     directory = state/('trial-'+name)
     directory.mkdir(mode=0o755)
@@ -271,7 +332,7 @@ def device_profile(inputs, state):
     return path
 
 
-def ramdisk_env(inputs, state, release, package, descriptor):
+def ramdisk_env(inputs, state, release, package, descriptor, package_sha256):
     env = clean_env()
     env.update(inputs['ramdisk_env'])
     profile = device_profile(inputs, state)
@@ -281,7 +342,7 @@ def ramdisk_env(inputs, state, release, package, descriptor):
     firmware, firmware_sha = pinned(inputs['extra_firmware'], state, 'sums_sha256')
     wifi, wifi_sha = pinned(inputs['wifi_kit'], state, 'sums_sha256')
     env.update(EXPECTED_RELEASE=release, EXPECTED_STANDALONE_BASE_SHA256=base_sha,
-               PRODUCTION_MODULE_PACKAGE=str(package), PRODUCTION_MODULE_PACKAGE_SHA256=sha256(package),
+               PRODUCTION_MODULE_PACKAGE=str(package), PRODUCTION_MODULE_PACKAGE_SHA256=package_sha256,
                PRODUCTION_EXTRA_FIRMWARE=str(firmware), PRODUCTION_EXTRA_FIRMWARE_SHA256=firmware_sha,
                PRODUCTION_WIFI_KIT=str(wifi), PRODUCTION_WIFI_KIT_SHA256=wifi_sha)
     if descriptor is not None:
@@ -302,7 +363,8 @@ def check_ramdisk(ramdisk, descriptor):
 def plan(args):
     registry = REG.Registry(args.config, args.doc)
     registry.validate()
-    inputs = json.loads(args.inputs.read_text())
+    inputs_bytes = args.inputs.read_bytes()
+    inputs = json.loads(inputs_bytes)
     need(inputs.get('format') == 'rog5-bundle-inputs-v1', 'bundle-inputs format')
     state = args.state_dir or expand(inputs['state_dir'])
     need(state.is_dir(), f'state directory {state} missing')
@@ -313,6 +375,8 @@ def plan(args):
     build, result, image, release = kernel_build(args.kernel, args.kernel_root or expand(inputs['kernel_builds']), copies)
     kernel_pin(registry, args.kernel, build, result)
     dtb, dtb_entry = registry.verify_dtb(args.dtb)
+    patches, config = registry.check_kernel(args.dtb, args.kernel, result, kernel_config(build, result))
+    requirements = dict(patches=patches, config=config)
     name = choose_name(args, registry, state)
     for key in ('ramdisk_base', 'recovery_base', 'asus_template', 'asus_kernel'):
         path, digest = pinned(inputs[key], state)
@@ -323,7 +387,8 @@ def plan(args):
     key = Path(args.private_key or os.environ.get('ROG5_SIGNING_KEY') or expand(inputs['signing_key']))
     need(key.is_absolute() and key.is_file() and not key.is_symlink(), f'signing key {key} missing')
     return dict(registry=registry, inputs=inputs, state=state, build=build, result=result, image=image,
-                release=release, dtb=dtb, dtb_entry=dtb_entry, name=name, key=key)
+                release=release, dtb=dtb, dtb_entry=dtb_entry, name=name, key=key, requirements=requirements,
+                inputs_sha256=hashlib.sha256(inputs_bytes).hexdigest())
 
 
 def build_bundle(args, p):
@@ -334,10 +399,24 @@ def build_bundle(args, p):
     print(f'{name}: {args.kernel} ({p["build"].name}, {p["release"]}) + {args.dtb} ({p["dtb_entry"]["path"]})', flush=True)
     src, commit, dirty, boot_modules = snapshot(args.source_repo, work, args.boot_modules_from)
     print(f'  source {commit[:12]}' + (' (uncommitted changes in the working tree are NOT included)' if dirty else ''))
+    # The pinned inputs were read from the working tree before the snapshot
+    # existed; the bundle's source record names HEAD, so they must be HEAD's.
+    inputs_path, source_root = args.inputs.resolve(), Path(args.source_repo).resolve()
+    if inputs_path.is_relative_to(source_root):
+        relative = inputs_path.relative_to(source_root)
+        need((src/relative).is_file() and sha256(src/relative) == p['inputs_sha256'],
+             f'{relative} differs from HEAD; commit it before building a bundle')
     image_sha256 = sha256(p['image'])
     package, modules, how = module_package(steps, src, state, args.kernel, p['build'], image_sha256,
                                            p['release'], args.fresh_modules)
     print(f'  modules {package.parent.name} ({how})')
+    package_sha256 = sha256(package)
+    need(package_sha256 == modules['package_sha256'], 'module package changed after its check')
+    provenance = package_provenance(package, modules, p['build'], p['result'], p['release'], how)
+    need(sha256(package) == package_sha256, 'module package changed during its provenance check')
+    print(f'  module provenance {provenance["status"]}'
+          + (f' ({provenance["board_modules"]} board modules)' if provenance['status'] == 'verified' else
+             ': '+provenance['reason']))
     selection = src/'configs/kernel/rog5-production-modules.json'
     selection_current = selection.is_file() and sha256(selection) == modules.get('selection_sha256')
     if how == 'reused-unverified':
@@ -347,7 +426,7 @@ def build_bundle(args, p):
     ramdisk_dir = state/('ramdisk-'+name)
     ramdisk_dir.mkdir()
     ramdisk = ramdisk_dir/'target.cpio.gz'
-    env, base = ramdisk_env(inputs, state, p['release'], package, descriptor)
+    env, base = ramdisk_env(inputs, state, p['release'], package, descriptor, package_sha256)
     steps.run('ramdisk', ['sh', src/'scripts/device/build-persistent-root-standalone-initramfs.sh', base, ramdisk],
               cwd=src, env=env)
     check_ramdisk(ramdisk, descriptor)
@@ -375,8 +454,12 @@ def build_bundle(args, p):
                   release=p['release'], source_commit=commit, source_tree_dirty=dirty,
                   kernel_build=str(p['build']), image_sha256=image_sha256,
                   dtb_path=str(p['dtb']), dtb_sha256=p['dtb_entry']['sha256'],
-                  module_package=str(package), module_package_sha256=sha256(package),
+                  module_package=str(package), module_package_sha256=package_sha256,
                   module_package_source=how, module_selection_current=selection_current,
+                  module_provenance=provenance, dtb_kernel_requirements=p['requirements'],
+                  bundle_inputs=str(args.inputs), bundle_inputs_sha256=p['inputs_sha256'],
+                  device_profile_sha256=(sha256(device_profile(inputs, state))
+                                         if device_profile(inputs, state) is not None else None),
                   boot_modules_from=boot_modules,
                   descriptor=str(descriptor) if descriptor else None,
                   ramdisk=str(ramdisk), ramdisk_sha256=sha256(ramdisk),
@@ -385,7 +468,8 @@ def build_bundle(args, p):
     (output/'make-bundle.json').write_text(json.dumps(record, indent=2)+'\n')
     notes = []
     if how == 'reused-unverified':
-        notes.append(f'legacy module package {package.parent.name}')
+        notes.append(f'legacy module package {package.parent.name}'
+                     + ('' if provenance['status'] == 'verified' else ' (module provenance not verified)'))
     if boot_modules:
         notes.append(f'boot-modules.list from {boot_modules["revision"]}')
     if dirty:
