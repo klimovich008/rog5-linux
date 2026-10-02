@@ -12,10 +12,19 @@ Both amplifiers run in speaker mode at 19 dBV analog (3, the highest step, as
 stock and the driver default). The digital level depends on the path: 0 dB
 (409; 0.25 dB steps) only on an amplifier whose protection DSP was started and
 verified (below), else -12 dB (361, the level of the kernels before the
-protection work, e.g. the r69 fallback). The route first sets -12 dB, raises an
-amplifier to 0 dB only after DACPCM Source = DSP_TX1, and lowers it again
-before any switch back to the direct path. DAPM powers the amplifiers only
-while a stream runs.
+protection work, e.g. the r69 fallback). Per amplifier the route first sets
+-12 dB and confirms it (attenuate(): two value-changing writes that both
+succeed, so both reach the amplifier, then the read-back), and only then
+touches its DACPCM Source, its DSP or its AMP Enable Switch; it raises an
+amplifier to 0 dB only after DACPCM Source = DSP_TX1 is confirmed (the DAPM
+mux put succeeds even when its register write fails, and repeating a value
+the register cache already holds writes nothing, so set_mux() goes through
+another item first and checks the kernel log). If -12 dB cannot be confirmed, that amplifier fails
+closed: AMP Enable Switch off and DACPCM Source = Zero, its DSP left alone,
+and the run fails (a later run retries). If it cannot be muted either,
+MultiMedia1 is disconnected from SENARY MI2S and nothing else is set. The
+playback mixer is switched on last. DAPM powers the amplifiers only while a
+stream runs.
 
 Speaker protection: when install-rog5-speaker-firmware has installed the
 vendor firmware and this unit's calibration, and /etc/rog5/speaker-dsp.conf
@@ -57,7 +66,13 @@ Those controls are optional: without the VA macro they are skipped.
 "audio-route --sanitize-alsa-state" (89-rog5-alsa-state.rules, before
 90-alsa-restore.rules) removes this card's DSP, DSP_RXn and DACPCM entries
 from /var/lib/alsa/asound.state, so "alsactl restore" can neither start a DSP
-nor write stale coefficients into one; this script owns those controls.
+nor write stale coefficients into one; this script owns those controls. It
+also rewrites the saved Digital PCM Volume to -12 dB and the AMP Enable
+Switches to off: a shutdown behind a running protection DSP saves 0 dB, the
+register default of DACPCM Source is the unprotected ASP_RX1, and the route
+service runs only after the restore. A state file it cannot parse (only the
+layout alsactl store writes is understood) or rewrite is moved aside
+(asound.state.rog5-unsafe), so nothing unchecked is restored.
 Uses libasound through ctypes, as amixer cset would.
 """
 import fcntl
@@ -73,17 +88,19 @@ CARD_ID = 'ASUSROGPhone5'
 # direct path (unprotected speakers, e.g. a fallback kernel without 0121-0124).
 PROTECTED_VOLUME = '409'
 DIRECT_VOLUME = '361'
+# One step (0.25 dB) below: attenuate() writes it first so that the write of
+# DIRECT_VOLUME always changes the register and reaches the amplifier.
+NUDGE_VOLUME = '360'
+# Set after every amplifier's digital level is at most -12 dB; the Digital PCM
+# Volume and AMP Enable Switch of each amplifier belong to route_amp(), and the
+# playback mixer (PLAYBACK_MIXER) comes last.
 ROUTE = (
-    ('SEN_MI2S_RX Audio Mixer MultiMedia1', '1'),
     ('SPK Amplifier Mode', 'SPK'),
     ('RCV Amplifier Mode', 'SPK'),
     ('SPK Analog PCM Volume', '3'),
     ('RCV Analog PCM Volume', '3'),
-    ('SPK Digital PCM Volume', DIRECT_VOLUME),
-    ('RCV Digital PCM Volume', DIRECT_VOLUME),
-    ('SPK AMP Enable Switch', '1'),
-    ('RCV AMP Enable Switch', '1'),
 )
+PLAYBACK_MIXER = 'SEN_MI2S_RX Audio Mixer MultiMedia1'
 CAPTURE = (
     ('MultiMedia3 Mixer VA_CODEC_DMA_TX_0', '1'),
     ('VA DEC0 MUX', 'VA_DMIC'),
@@ -100,6 +117,10 @@ LOCK_FILE = '/run/rog5-audio-route.lock'
 STATE_FILE = '/var/lib/alsa/asound.state'
 # Controls this script owns; never restored by alsactl (see module docstring).
 STATE_DROP = re.compile(r'^(RCV|SPK) (DSP1 .*|DACPCM Source|DSP_RX[1-8] Source)$')
+# Restored, but only at the safe value: -12 dB, amplifier off.
+STATE_SAFE = ((re.compile(r'^(RCV|SPK) Digital PCM Volume$'), DIRECT_VOLUME),
+              (re.compile(r'^(RCV|SPK) AMP Enable Switch$'), 'false'))
+STATE_VALUE = re.compile(r'^(\s*value(?:\.\d+)?\s+)(\'[^\'\\]*\'|"[^"\\]*"|[^\s#\'"]+)\s*(?:#.*)?$')
 
 # (control prefix, firmware part suffix, direct DACPCM/DSP_RX1/2 source)
 AMPS = (('RCV', 'rcv', 'ASP_RX1'), ('SPK', 'spk', 'ASP_RX2'))
@@ -118,6 +139,7 @@ UPDATE_PARAMS = 'UPDATE_PARAMS_CONFIG'
 DSP_BOOT_SECONDS = 10
 DSP_STOP_SECONDS = 2
 PCM_IDLE_SECONDS = 15
+CONFIRM_RETRY_SECONDS = 0.05
 KMSG = '/dev/kmsg'
 
 
@@ -144,15 +166,90 @@ def brace_delta(line):
     return delta
 
 
+def safe_value(name):
+    for pattern, value in STATE_SAFE:
+        if pattern.match(name):
+            return value
+    return None
+
+
+def force_value(block, value):
+    """(block with every value line set to value, ok). ok is False unless the
+    block has value lines and all of them are in the form alsactl writes
+    (value N / value.N N, optionally a trailing comment)."""
+    out, depth, values, ok = [], 0, 0, True
+    for line in block:
+        if depth == 1 and re.match(r'\s*value\b', line):
+            match = STATE_VALUE.match(line)
+            if match:
+                values += 1
+                line = f'{match.group(1)}{value}\n'
+            else:
+                ok = False
+        out.append(line)
+        depth += brace_delta(line)
+    return out, ok and values > 0
+
+
+# The lines alsactl store writes in a control block (depth 2), one key each;
+# the comment block (depth 3) holds only "key value" lines.
+BLOCK_LINES = (re.compile(r'\s*iface\s+\w+\s*$'),
+               re.compile(r'\s*name\s+(\'[^\'\\]*\'|"[^"\\]*")\s*$'),
+               re.compile(r'\s*(index|device|subdevice)\s+\d+\s*$'),
+               STATE_VALUE,
+               re.compile(r'\s*comment\s*\{\s*$'))
+
+
+def block_syntax(block):
+    """None when a control block of this card is in the alsactl store layout
+    (so that the name and value lines read here are the ones libasound
+    reads), else what is not."""
+    if len(block) < 2 or block[-1].strip() != '}':
+        return 'control block not closed on its own line'
+    comment = False
+    for line in block[1:-1]:
+        text = line.strip()
+        if not text or text.startswith('#'):
+            continue
+        if '\\' in text:
+            return f'escape in {text!r}'
+        if comment:
+            if text == '}':
+                comment = False
+            elif '{' in text or '}' in text or not re.match(r'[\w.]+\s+\S', text):
+                return f'unexpected comment line {text!r}'
+        elif any(pattern.match(line) for pattern in BLOCK_LINES):
+            comment = text.startswith('comment')
+        else:
+            return f'unexpected line {text!r}'
+    return 'comment block not closed' if comment else None
+
+
+def quarantine_alsa_state(path, why):
+    """Move a state file that could not be made safe out of alsactl's way."""
+    try:
+        os.replace(path, path + '.rog5-unsafe')
+        log(f'sanitize: {path} {why}; moved to {path}.rog5-unsafe, nothing restored')
+    except FileNotFoundError:
+        pass
+    except OSError as e:
+        log(f'sanitize: FAIL {path} {why}, and it could not be moved aside: {e}')
+
+
 def sanitize_alsa_state(path=STATE_FILE):
-    """Drop this card's DSP/DSP_RX/DACPCM entries from the saved ALSA state."""
+    """Drop this card's DSP/DSP_RX/DACPCM entries from the saved ALSA state and
+    put its digital volumes at -12 dB and its amplifier enables off. Only the
+    layout alsactl store writes is understood (state.CARD { control.N { name
+    ...; value ... } }); anything else that mentions this card is moved
+    aside rather than restored unchecked."""
     try:
         with open(path) as f:
-            lines = f.read().splitlines(keepends=True)
+            text = f.read()
     except FileNotFoundError:
         return 0
-    out, block, dropped = [], None, []
-    depth, card, name = 0, None, None
+    lines = text.splitlines(keepends=True)
+    out, block, dropped, forced, headers = [], None, [], [], 0
+    depth, card, name, unsafe = 0, None, None, None
     for line in lines:
         if block is not None:
             block.append(line)
@@ -161,34 +258,69 @@ def sanitize_alsa_state(path=STATE_FILE):
                 name = match.group(2)
             depth += brace_delta(line)
             if depth == 1:
-                if name and STATE_DROP.match(name):
+                safe = safe_value(name) if name else None
+                syntax = block_syntax(block)
+                if syntax:
+                    unsafe = unsafe or syntax
+                if not name:
+                    unsafe = unsafe or 'a control without a name line'
+                elif STATE_DROP.match(name):
                     dropped.append(name)
+                elif safe is not None:
+                    fixed, ok = force_value(block, safe)
+                    if not ok:
+                        unsafe = unsafe or f'{name}: value not in the alsactl layout'
+                    if fixed != block:
+                        forced.append(name)
+                    out.extend(fixed)
                 else:
                     out.extend(block)
                 block = None
+            elif depth < 1:
+                unsafe = unsafe or 'unbalanced control block'
             continue
         if depth == 0:
-            match = re.match(r'\s*state\.(\S+)\s*\{', line)
-            card = match.group(1) if match else None
-        elif depth == 1 and card == CARD_ID and re.match(r'\s*control\.\d+\s*\{', line):
-            block, name = [line], None
-            depth += brace_delta(line)
-            continue
+            match = re.match(r'\s*state\.([\'"]?)([^\'"\s{\\]+)\1\s*\{\s*$', line)
+            card = match.group(2) if match else None
+            headers += card == CARD_ID
+            if not match and line.strip() and not line.lstrip().startswith('#'):
+                # e.g. "state {" or an escaped card id: not what alsactl writes
+                unsafe = unsafe or f'unexpected top-level line {line.strip()!r}'
+        elif depth == 1 and card == CARD_ID:
+            if re.match(r'\s*control\.\d+\s*\{\s*$', line):
+                block, name = [line], None
+                depth += brace_delta(line)
+                continue
+            if line.strip() not in ('', '}') and not line.lstrip().startswith('#'):
+                unsafe = unsafe or f'unexpected line {line.strip()!r}'
         out.append(line)
         depth += brace_delta(line)
     if depth != 0 or block is not None:
-        log(f'sanitize: {path} did not parse, left unchanged')
+        unsafe = 'did not parse'
+    elif text.count(CARD_ID) != headers:
+        unsafe = unsafe or f'{CARD_ID} outside a state.{CARD_ID} block'
+    if unsafe:
+        quarantine_alsa_state(path, unsafe)
         return 0
-    if not dropped:
+    if not dropped and not forced:
         return 0
     tmp = path + '.rog5-tmp'
-    with open(tmp, 'w') as f:
-        f.writelines(out)
-        f.flush()
-        os.fsync(f.fileno())
-    os.chmod(tmp, os.stat(path).st_mode & 0o7777)
-    os.replace(tmp, path)
-    log(f'sanitize: removed {len(dropped)} speaker DSP/route entries from {path}')
+    try:
+        with open(tmp, 'w') as f:
+            f.writelines(out)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, os.stat(path).st_mode & 0o7777)
+        os.replace(tmp, path)
+    except OSError as e:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        quarantine_alsa_state(path, f'could not be rewritten ({e})')
+        return 0
+    log(f'sanitize: removed {len(dropped)} speaker DSP/route entries, set {len(forced)} '
+        f'volume/amplifier entries to -12 dB/off in {path}')
     return 0
 
 
@@ -393,6 +525,17 @@ def kernel_messages(path=KMSG):
     return messages
 
 
+def dsp_failures(device, prefix):
+    """Kernel log lines of a pause or resume this amplifier's protection
+    firmware did not acknowledge."""
+    return (f'cs35l45 {device}: Failed to set mailbox cmd 1 ',
+            f'cs35l45 {device}: Failed to set mailbox cmd 2 ',
+            f'cs35l45 {device}: Protection firmware did not pause',
+            f'cs35l45 {device}: Failed to write MBOX',
+            f'ASoC: PRE_PMD: {prefix} DSP1 event failed',
+            f'ASoC: POST_PMU: {prefix} DSP1 event failed')
+
+
 def wedge_reason(messages, device, prefix):
     """The kernel log line showing that this amplifier's protection firmware
     missed a pause/resume after its last start, or None. A history that does
@@ -402,12 +545,7 @@ def wedge_reason(messages, device, prefix):
         return 'kernel log unreadable'
     started = False
     start = f'cs35l45 {device}: Protection firmware calibration CAL_R'
-    failures = (f'cs35l45 {device}: Failed to set mailbox cmd 1 ',
-                f'cs35l45 {device}: Failed to set mailbox cmd 2 ',
-                f'cs35l45 {device}: Protection firmware did not pause',
-                f'cs35l45 {device}: Failed to write MBOX',
-                f'ASoC: PRE_PMD: {prefix} DSP1 event failed',
-                f'ASoC: POST_PMU: {prefix} DSP1 event failed')
+    failures = dsp_failures(device, prefix)
     reason = None
     for text in messages:
         if text.startswith('rog5-audio-route:'):
@@ -541,9 +679,96 @@ def start_protection(mixer, prefix, part, direct, cal_r, config, card=None):
     return None
 
 
+def set_confirmed(mixer, name, value):
+    """Write an integer or boolean control and read it back. Only for
+    controls without a register (AMP Enable Switch): a read-back shows the
+    driver's register cache, see attenuate()."""
+    mixer.set(name, value)
+    return mixer.get_int(name) == int(value)
+
+
+def attenuate(mixer, prefix, attempts=3):
+    """Digital PCM Volume at -12 dB, confirmed: True only when two writes that
+    each change the value (NUDGE_VOLUME, then DIRECT_VOLUME) both succeeded
+    and the control reads DIRECT_VOLUME. The read-back alone proves nothing:
+    regmap updates its cache before the I2C write, so a failed write still
+    reads back, and a retry of the same value would not reach the amplifier
+    (the cache already matches). A changed value always does. Retried
+    briefly: one I2C error should not mute a speaker until the next boot."""
+    name = f'{prefix} Digital PCM Volume'
+    for attempt in range(attempts):
+        if attempt:
+            time.sleep(CONFIRM_RETRY_SECONDS)
+        if mixer.set(name, NUDGE_VOLUME) >= 0 and mixer.set(name, DIRECT_VOLUME) >= 0 and \
+                mixer.get_int(name) == int(DIRECT_VOLUME):
+            return True
+    return False
+
+
+def set_mux(mixer, prefix, control, value, via=None):
+    """Set a DAPM mux and confirm it reached the amplifier: the put reports
+    success even when the register write fails, which only shows in the
+    kernel log ("ASoC: RCV DACPCM Source DAPM update failed"), and a failed
+    write leaves the new value in the register cache, so setting it again
+    writes nothing. Hence first via (another item), then value: the second
+    write always changes the cached register and goes to the amplifier.
+    Without via a no-op write can confirm a stale value. None, or why it is
+    not confirmed."""
+    items = (via, value) if via else (value,)
+    marker = f'{prefix} {control} -> {" -> ".join(items)} ({time.monotonic_ns()})'
+    log(marker)
+    for item in items:
+        if mixer.set(f'{prefix} {control}', item) < 0:
+            return f'could not set {control}'
+    messages = kernel_messages()
+    if messages is None:
+        return f'{control} not confirmed (kernel log unreadable)'
+    marker = f'rog5-audio-route: {marker}'
+    if marker not in messages:
+        return f'{control} not confirmed (marker not in the kernel log)'
+    # The mux change may pause and resume a running DSP (a stream through
+    # DSP_TX1): a resume it missed leaves it paused (silent) or wedged.
+    failures = (f'ASoC: {prefix} {control} DAPM',) + \
+        dsp_failures(os.path.basename(amp_device(prefix) or prefix), prefix)
+    for text in messages[len(messages) - messages[::-1].index(marker):]:
+        if text.startswith('rog5-audio-route:'):
+            continue
+        if any(failure in text for failure in failures):
+            return f'{control} {value} not confirmed ({text})'
+    return None
+
+
+class NotIsolated(str):
+    """A failure after which the amplifier could not be muted either."""
+
+
+def mute_amp(mixer, prefix, why):
+    """Fail closed when -12 dB cannot be confirmed: amplifier off and its DAC
+    fed zeros, so neither the direct path nor a stopped DSP can reach the
+    speaker at a protected level. The DSP is left as it is. Returns the
+    failure; a NotIsolated one when either step is not confirmed."""
+    off = set_confirmed(mixer, f'{prefix} AMP Enable Switch', '0')
+    # With the amplifier off, through DSP_TX1 (the protected path; nothing
+    # from a stopped DSP) so that Zero is really written. Never through the
+    # unprotected ASP_RX source at an unconfirmed level. Without "off" the
+    # result is NotIsolated anyway.
+    zero = set_mux(mixer, prefix, 'DACPCM Source', 'Zero', via='DSP_TX1' if off else None)
+    log(f'FAIL {prefix} {why}: AMP Enable Switch {"off" if off else "NOT confirmed off"}, '
+        f'DACPCM Source {zero or "Zero"}')
+    if off and zero is None:
+        return f'{prefix} {why} (amplifier muted)'
+    return NotIsolated(f'{prefix} {why} (amplifier NOT isolated)')
+
+
 def route_amp(mixer, prefix, part, direct, config, calibration, card=None):
-    """Direct path or protection DSP for one amplifier; None, or what failed
-    on the way to the direct path."""
+    """Direct path or protection DSP for one amplifier, then its AMP Enable
+    Switch; None, or what failed."""
+    volume = f'{prefix} Digital PCM Volume'
+    # -12 dB first, confirmed (an earlier run may have left 0 dB behind a
+    # DSP, or alsactl restored it): nothing below may change the source, stop
+    # a DSP or enable the amplifier otherwise.
+    if not attenuate(mixer, prefix):
+        return mute_amp(mixer, prefix, f'Digital PCM Volume not confirmed at {DIRECT_VOLUME}')
     reason = unavailable(prefix, part, config, calibration)
     device = amp_device(prefix)
     if reason is None:
@@ -553,24 +778,26 @@ def route_amp(mixer, prefix, part, direct, config, calibration, card=None):
         else:
             reason = start_protection(mixer, prefix, part, direct, cal_r, config, card)
         if reason is None:
-            if mixer.set(f'{prefix} DACPCM Source', 'DSP_TX1') >= 0:
-                if config.get('hibernate', '0') == '1':
-                    runtime_control(device, 'auto')
-                # Full level only now that the DSP protects this speaker.
-                if mixer.set(f'{prefix} Digital PCM Volume', PROTECTED_VOLUME) < 0:
-                    log(f'{prefix} protected, but Digital PCM Volume stays {DIRECT_VOLUME}')
-                return None
-            reason = 'could not set DACPCM Source'
+            # Through Zero (a moment of silence at -12 dB) so that DSP_TX1 is written.
+            reason = set_mux(mixer, prefix, 'DACPCM Source', 'DSP_TX1', via='Zero')
+        if reason is None:
+            if config.get('hibernate', '0') == '1':
+                runtime_control(device, 'auto')
+            # Full level only now that the DSP protects this speaker.
+            if mixer.set(volume, PROTECTED_VOLUME) < 0:
+                log(f'{prefix} protected, but Digital PCM Volume may stay at {DIRECT_VOLUME}')
+            return enable_amp(mixer, prefix)
         log(f'FAIL {prefix} speaker protection: {reason}; direct path')
         reason = None
-    # The unprotected level before the direct path (an earlier run may have
-    # left 0 dB behind a DSP), then stop a DSP left from an earlier run or
-    # failure (awake: a hibernating DSP is woken by the stop anyway).
+    # The direct path: -12 dB again, confirmed right before the switch (a
+    # protection attempt never raises it), then stop a DSP left from an
+    # earlier run or failure (awake: a hibernating DSP is woken by the stop
+    # anyway).
+    if not attenuate(mixer, prefix):
+        return mute_amp(mixer, prefix, f'Digital PCM Volume not confirmed at {DIRECT_VOLUME}')
     failure = None
-    if mixer.set(f'{prefix} Digital PCM Volume', DIRECT_VOLUME) < 0:
-        failure = f'{prefix} Digital PCM Volume'
     if mixer.set(f'{prefix} DACPCM Source', direct) < 0:
-        failure = failure or f'{prefix} DACPCM Source'
+        failure = f'{prefix} DACPCM Source'
     if mixer.get_int(f'{prefix} DSP1 Preload Switch') == 1:
         runtime_control(device, 'on')
         mixer.set(f'{prefix} DSP1 Preload Switch', '0')
@@ -582,7 +809,47 @@ def route_amp(mixer, prefix, part, direct, config, calibration, card=None):
         runtime_control(device, 'auto')
     if reason and reason != f'not enabled in {CONFIG_FILE}' and reason != 'firmware not installed':
         log(f'{prefix} speaker protection off: {reason}')
-    return failure
+    # At -12 dB (confirmed above) the amplifier may play whatever the source.
+    return enable_amp(mixer, prefix) or failure
+
+
+def enable_amp(mixer, prefix):
+    if mixer.set(f'{prefix} AMP Enable Switch', '1') < 0:
+        return f'{prefix} AMP Enable Switch'
+    return None
+
+
+def cut_playback(mixer, failed):
+    """An amplifier at an unconfirmed level that could not be muted: take
+    MultiMedia1 off SENARY MI2S (an ADSP control, not on the amplifiers' I2C
+    bus) and change nothing else."""
+    if set_confirmed(mixer, PLAYBACK_MIXER, '0'):
+        log('FAIL speaker route stopped: MultiMedia1 disconnected from both amplifiers')
+        return failed
+    log('FAIL speaker route stopped, and MultiMedia1 could NOT be disconnected')
+    return failed + [PLAYBACK_MIXER]
+
+
+def route_card(mixer, config, calibration, card=None):
+    """Every amplifier at -12 dB (confirmed) before the shared route, then each
+    amplifier's path, then the playback mixer; the controls that failed."""
+    unsafe = [prefix for prefix, part, direct in AMPS if not attenuate(mixer, prefix)]
+    failed = [mute_amp(mixer, prefix, f'Digital PCM Volume not confirmed at {DIRECT_VOLUME}')
+              for prefix in unsafe]
+    if any(isinstance(failure, NotIsolated) for failure in failed):
+        return cut_playback(mixer, failed)
+    failed += [name for name, value in ROUTE if mixer.set(name, value) < 0]
+    for prefix, part, direct in AMPS:
+        if prefix in unsafe:
+            continue
+        failure = route_amp(mixer, prefix, part, direct, config, calibration, card)
+        if isinstance(failure, NotIsolated):
+            return cut_playback(mixer, failed + [failure])
+        if failure:
+            failed.append(failure)
+    if mixer.set(PLAYBACK_MIXER, '1') < 0:
+        failed.append(PLAYBACK_MIXER)
+    return failed
 
 
 def find_card(asound):
@@ -613,10 +880,12 @@ def load_asound():
 
 def main():
     if sys.argv[1:] == ['--sanitize-alsa-state']:
+        # Never fails the udev event, but never leaves an unchecked file for
+        # alsactl either (unreadable, not text, ...).
         try:
-            return sanitize_alsa_state()
-        except OSError as e:
-            log(f'sanitize: {e}')
+            return sanitize_alsa_state(STATE_FILE)
+        except Exception as e:  # noqa: BLE001
+            quarantine_alsa_state(STATE_FILE, f'could not be checked ({e!r})')
             return 0
     # Not needed (nor loaded) for the sanitizer, which runs inside udevd.
     global ctypes
@@ -640,14 +909,10 @@ def main():
         log(f'FAIL open hw:{card}: {rc}')
         return 1
     mixer = Mixer(asound, handle)
-    failed = [name for name, value in ROUTE if mixer.set(name, value) < 0]
-    capture = [mixer.set(name, value) for name, value in CAPTURE]
     config = read_key_values(CONFIG_FILE)
     calibration = read_key_values(f'{SPEAKER_DIR}/calibration')
-    for prefix, part, direct in AMPS:
-        failure = route_amp(mixer, prefix, part, direct, config, calibration, card)
-        if failure:
-            failed.append(failure)
+    failed = route_card(mixer, config, calibration, card)
+    capture = [mixer.set(name, value) for name, value in CAPTURE]
     asound.snd_ctl_close(handle)
     if all(rc == 0 for rc in capture):
         log(f'hw:{card} microphones routed to MultiMedia3 (PCM 3)')

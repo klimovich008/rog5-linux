@@ -107,6 +107,9 @@ conf	configs/rog5/usb-storage	/etc/rog5/usb-storage	0644
 file	configs/systemd/rog5-audio-route.service	/etc/systemd/system/rog5-audio-route.service	0644
 file	configs/udev/91-rog5-audio-route.rules	/etc/udev/rules.d/91-rog5-audio-route.rules	0644
 file	configs/udev/89-rog5-alsa-state.rules	/etc/udev/rules.d/89-rog5-alsa-state.rules	0644
+# The ALSA state sanitizer of 89-rog5-alsa-state.rules (the same script as the
+# boot kit's audio-route), so it does not depend on the booted bundle
+file	initramfs/production-audio-route	/usr/local/libexec/rog5-audio-route	0755
 file	configs/wireplumber/50-rog5-speakers.conf	/etc/wireplumber/wireplumber.conf.d/50-rog5-speakers.conf	0644
 file	configs/udev/81-rog5-proximity.rules	/etc/udev/rules.d/81-rog5-proximity.rules	0644
 file	configs/udev/81-rog5-ssc-accel.rules	/etc/udev/rules.d/81-rog5-ssc-accel.rules	0644
