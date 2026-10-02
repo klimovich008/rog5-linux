@@ -587,6 +587,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k116-d15-261002e",
+      "role": "main",
+      "kernel": "k116",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k116",
+      "manifest_sha256": "3114701db411087ab938ff52b44482a3a4d495866af222e29a9acdb9664648de",
+      "package": "package-main-k116-d15-261002e",
+      "source_commit": "a84042f1605b",
+      "changes": "hardware video decode: Iris on SM8350 (H.264/HEVC, encoder hidden, VP9 off); k116 = k113 + 0154-0168",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }

@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k116-d15-261002e` | main | k116 | d15 | built | unknown |  | hardware video decode: Iris on SM8350 (H.264/HEVC, encoder hidden, VP9 off); k116 = k113 + 0154-0168 |  |
 | `main-k116-d15-261002d` | main | k116 | d15 | built | unknown |  | k116 RAM trial wrapper for the later dedicated encoder boot (experimental_encoder=1 markers=1; same content as main-k116-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k116-d15-261002c` | main | k116 | d15 | built | unknown |  | k116 RAM trial wrapper, spare / E1 repeat (same content as main-k116-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k116-d15-261002b` | main | k116 | d15 | built | unknown |  | k116 RAM trial wrapper E2 (VP9 via experimental_vp9=1 at module reload; same content as main-k116-d15-261002a; one RAM boot per wrapper) |  |
