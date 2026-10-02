@@ -131,6 +131,16 @@
       "source_commit": "553ca1553fa8",
       "source_dirty": false,
       "changes": "k116 + 0169-0171: iris probe publication race, module pin while firmware runs (firmware_unload), fatal-error PM guard, PM reference across scaling; SM8350 stock-sized DPBs (VP9), luma 512, +25 % VP9/HEVC input, stock_buf_counts switch; enc_stop_before/marker_delay_ms/dpb_pad_kib"
+    },
+    "k122": {
+      "build": "rog5-kernel-7.2.7-build-r122",
+      "release": "7.2.7-rog5-k122",
+      "date": "2026-10-02",
+      "series": "142 patches, 0001-0190",
+      "image_sha256": "3a319a37dcfaeada11b437b45ba46ee2559dd2a71d7ceac45737fd5711192b34",
+      "source_commit": "361a3338f470",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -673,6 +683,22 @@
       "package": "package-main-k117-d15-261002d",
       "source_commit": "f8362e936b18",
       "changes": "k117 RAM trial wrapper, spare (same content as main-k117-d15-261002a; one RAM boot per wrapper)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
+    },
+    {
+      "name": "main-k122-d15-261002d",
+      "role": "main",
+      "kernel": "k122",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k122",
+      "manifest_sha256": "cee3b606f8755b4c4eebd6737bc5a25f7bacdbd45920dec85799d57451483bfb",
+      "package": "package-main-k122-d15-261002d",
+      "source_commit": "e7830930541a",
+      "changes": "k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress",
       "status": "built",
       "healthy": "unknown",
       "installed": null,

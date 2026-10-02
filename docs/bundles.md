@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k122-d15-261002d` | main | k122 | d15 | built | unknown |  | k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress |  |
 | `main-k117-d15-261002d` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper, spare (same content as main-k117-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k117-d15-261002c` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper F3 (staged encoder via /etc/modprobe.d experimental_encoder=1 and scripts/device/rog5-video-encoder-trial; same content as main-k117-d15-261002a) |  |
 | `main-k117-d15-261002b` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper F2 (VP9 via /etc/modprobe.d experimental_vp9=1; same content as main-k117-d15-261002a; one RAM boot per wrapper) |  |
@@ -56,6 +57,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k122 | `rog5-kernel-7.2.7-build-r122` | `7.2.7-rog5-k122` | 142 patches, 0001-0190 | 2026-10-02 |  |
 | k117 | `rog5-kernel-7.2.7-build-r117` | `7.2.7-rog5-k117` | 134 patches, 0001-0171 | 2026-10-02 | k116 + 0169-0171: iris probe publication race, module pin while firmware runs (firmware_unload), fatal-error PM guard, PM reference across scaling; SM8350 stock-sized DPBs (VP9), luma 512, +25 % VP9/HEVC input, stock_buf_counts switch; enc_stop_before/marker_delay_ms/dpb_pad_kib |
 | k116 | `rog5-kernel-7.2.7-build-r116` | `7.2.7-rog5-k116` | 131 patches, 0001-0168 | 2026-10-02 | k115 + 0163-0168: SM8350 OEM iris platform data (SECURE_SESSION=0, real EOS, encoder/VP9 behind load-time switches, UBWC switch), compliance, encoder bring-up markers, gen1 property packet sizing, stock Iris2 power off/on order with OPP release, held-core containment |
 | k115 | `rog5-kernel-7.2.7-build-r115` | `7.2.7-rog5-k115` | 125 patches, 0001-0162 | 2026-10-01 | k114 + 0157-0162: iris diagnostics (SFR, HFI trace, fw log), fatal containment without reload, instance lifetime, buffer/answer fixes, eos_buffer/interframe_pc module parameters |
