@@ -1,0 +1,180 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: cs35l45: keep the amplifier off while the protection registers are not restored
+
+Latch failed protection-register restoration until driver rebind. Block
+GLOBAL_EN and DSP setup while faulted; mute immediately and assert reset
+if the mute write fails. Force BBPE writes and propagate enable, mute and
+restore errors. No automatic recovery or hardware readback.
+
+Hardware: muted restore/mute-error injection, direct playback and DSP
+reload must remain blocked until rebind.
+
+diff --git a/sound/soc/codecs/cs35l45.c b/sound/soc/codecs/cs35l45.c
+--- a/sound/soc/codecs/cs35l45.c
++++ b/sound/soc/codecs/cs35l45.c
+@@ -107,25 +107,37 @@
+ 	return -ENOMSG;
+ }
+ 
++static void cs35l45_prot_restore_failed(struct cs35l45_private *cs35l45);
++
+ static int cs35l45_global_en_ev(struct snd_soc_dapm_widget *w,
+ 				struct snd_kcontrol *kcontrol, int event)
+ {
+ 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
+ 	struct cs35l45_private *cs35l45 = snd_soc_component_get_drvdata(component);
++	int ret;
+ 
+ 	dev_dbg(cs35l45->dev, "%s event : %x\n", __func__, event);
+ 
+ 	switch (event) {
+ 	case SND_SOC_DAPM_POST_PMU:
+-		regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES,
+-			     CS35L45_GLOBAL_EN_MASK);
++		if (cs35l45->prot_fault)
++			return -EIO;
++
++		ret = regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES,
++				   CS35L45_GLOBAL_EN_MASK);
++		if (ret)
++			return ret;
+ 
+ 		usleep_range(CS35L45_POST_GLOBAL_EN_US, CS35L45_POST_GLOBAL_EN_US + 100);
+ 		break;
+ 	case SND_SOC_DAPM_PRE_PMD:
+ 		usleep_range(CS35L45_PRE_GLOBAL_DIS_US, CS35L45_PRE_GLOBAL_DIS_US + 100);
+ 
+-		regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES, 0);
++		ret = regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES, 0);
++		if (ret) {
++			cs35l45_prot_restore_failed(cs35l45);
++			return ret;
++		}
+ 		break;
+ 	default:
+ 		break;
+@@ -167,6 +179,9 @@
+ {
+ 	int ret;
+ 
++	if (cs35l45->prot_fault)
++		return -EIO;
++
+ 	/*
+ 	 * prot_regs_set means "restore needed": a requested vendor setup is
+ 	 * always written in full, even after a failed setup and rollback.
+@@ -180,16 +195,18 @@
+ 		ret = regmap_multi_reg_write(cs35l45->regmap, cs35l45_vendor_prot_regs,
+ 					     ARRAY_SIZE(cs35l45_vendor_prot_regs));
+ 		if (!ret)
+-			ret = regmap_set_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
+-					      CS35L45_BBPE_EN_MASK);
++			ret = regmap_write_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
++					       CS35L45_BBPE_EN_MASK, CS35L45_BBPE_EN_MASK);
+ 	} else {
+-		ret = regmap_clear_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
+-					CS35L45_BBPE_EN_MASK);
++		ret = regmap_write_bits(cs35l45->regmap, CS35L45_BLOCK_ENABLES2,
++					       CS35L45_BBPE_EN_MASK, 0);
+ 		if (!ret)
+ 			ret = regmap_multi_reg_write(cs35l45->regmap, cs35l45_default_prot_regs,
+ 						     ARRAY_SIZE(cs35l45_default_prot_regs));
+ 		if (!ret)
+ 			cs35l45->prot_regs_set = false;
++		else
++			cs35l45->prot_fault = true;
+ 	}
+ 
+ 	if (ret)
+@@ -201,6 +218,27 @@
+ 	return ret;
+ }
+ 
++/*
++ * The defaults could not be restored after the protection firmware stopped or
++ * failed to start (prot_regs_set stays set): switch the amplifier off now.
++ * Power-up stays blocked until the driver is rebound.
++ */
++static void cs35l45_prot_restore_failed(struct cs35l45_private *cs35l45)
++{
++	int ret;
++
++	cs35l45->prot_fault = true;
++	dev_err(cs35l45->dev,
++		"protection registers not restored, switching the amplifier off\n");
++	ret = regmap_write(cs35l45->regmap, CS35L45_GLOBAL_ENABLES, 0);
++	if (ret && cs35l45->reset_gpio) {
++		/* Out of reach over I2C: hold it in reset until it is rebound */
++		dev_err(cs35l45->dev,
++			"cannot switch the amplifier off (%d), holding it in reset\n", ret);
++		gpiod_set_value_cansleep(cs35l45->reset_gpio, 0);
++	}
++}
++
+ /* A wedged preloaded DSP is booted again this long after its stream stopped */
+ #define CS35L45_DSP_RELOAD_DELAY_MS	500
+ 
+@@ -210,6 +248,10 @@
+ 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
+ 	struct cs35l45_private *cs35l45 = snd_soc_component_get_drvdata(component);
+ 	int ret;
++
++	if (cs35l45->prot_fault &&
++	    (event == SND_SOC_DAPM_PRE_PMU || event == SND_SOC_DAPM_POST_PMU))
++		return -EIO;
+ 
+ 	switch (event) {
+ 	case SND_SOC_DAPM_PRE_PMU:
+@@ -229,14 +271,15 @@
+ 		    cs35l45->amplifier_mode == AMP_MODE_SPK) {
+ 			ret = cs35l45_set_prot_regs(cs35l45, true);
+ 			if (ret) {
+-				cs35l45_set_prot_regs(cs35l45, false);
++				if (cs35l45_set_prot_regs(cs35l45, false))
++					cs35l45_prot_restore_failed(cs35l45);
+ 				return ret;
+ 			}
+ 		}
+ 
+ 		ret = wm_adsp_event(w, kcontrol, event);
+-		if (ret)
+-			cs35l45_set_prot_regs(cs35l45, false);
++		if (ret && cs35l45_set_prot_regs(cs35l45, false))
++			cs35l45_prot_restore_failed(cs35l45);
+ 
+ 		return ret;
+ 	case SND_SOC_DAPM_PRE_PMD:
+@@ -250,7 +293,11 @@
+ 				return ret;
+ 		}
+ 
+-		cs35l45_set_prot_regs(cs35l45, false);
++		ret = cs35l45_set_prot_regs(cs35l45, false);
++		if (ret) {
++			cs35l45_prot_restore_failed(cs35l45);
++			return ret;
++		}
+ 
+ 		ret = wm_adsp_early_event(w, kcontrol, event);
+ 
+@@ -438,7 +485,7 @@
+ 	 * The vendor protection operating point is for speaker mode only; DSP
+ 	 * starts and stops run under the DAPM mutex, so check it here.
+ 	 */
+-	if (cs35l45->prot_regs_set) {
++	if (cs35l45->prot_regs_set || cs35l45->prot_fault) {
+ 		snd_soc_dapm_mutex_unlock(dapm);
+ 		return -EBUSY;
+ 	}
+diff --git a/sound/soc/codecs/cs35l45.h b/sound/soc/codecs/cs35l45.h
+--- a/sound/soc/codecs/cs35l45.h
++++ b/sound/soc/codecs/cs35l45.h
+@@ -500,6 +500,8 @@
+ 	bool sysclk_set;
+ 	bool dsp_part_named;
+ 	bool prot_regs_set;
++	/* Failed restoration: no amplifier power-up until rebind. */
++	bool prot_fault;
+ 	bool dsp_reload;
+ 	ktime_t dsp_resumed;
+ 	struct delayed_work dsp_reload_work;

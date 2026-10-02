@@ -1,0 +1,126 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] misc: fastrpc: exported DMA buffers hold the channel, not the user
+
+A buffer from FASTRPC_IOCTL_ALLOC_DMA_BUFF is exported as a dma-buf and
+can outlive the fastrpc_user that allocated it: close the device fd
+(fastrpc_device_release() drops the last fl reference and frees fl) and
+keep the dma-buf fd. Closing, attaching or mmapping that dma-buf then
+dereferences the freed fl through buf->fl->cctx (fastrpc_release() ->
+fastrpc_buf_free(), fastrpc_dma_buf_attach(), fastrpc_mmap()). The remote
+heap has the same dangling pointer: it is allocated with the fl of the
+process that created the static PD and freed on rpmsg removal with
+fastrpc_buf_free(cctx->remote_heap) long after that fl is gone.
+
+Every user of buf->fl only wants the channel, so keep the channel in the
+buffer instead. Taking a reference on fl for an exported buffer would
+create a cycle when the same dma-buf is mapped back into fl->maps (fl ->
+map -> dma-buf -> buffer -> fl); the channel does not reference the
+buffers. An exported buffer takes a channel reference, dropped in
+fastrpc_release() after the memory is freed; all other buffers are freed
+before their user (and with it its channel reference) goes away.
+
+The retained DMA-device reference protects its device object. DMA/IOMMU
+domain lifetime across arbitrary session-device unbind still needs
+separate qualification.
+
+Not fixed upstream (linux-next 2026-10-02). Found by the 2026-10-02
+GPT-6.1-Sol audit (F2).
+
+Hardware: ADSP/CDSP/SLPI FastRPC users (hexagonrpcd, sensors via
+ssc.py) work as before; close the device fd before the dma-buf fd.
+
+[ROG5: retain the DMA device until buffer free, balancing its reference
+ on allocation failure as well.]
+
+diff --git a/drivers/misc/fastrpc.c b/drivers/misc/fastrpc.c
+--- a/drivers/misc/fastrpc.c
++++ b/drivers/misc/fastrpc.c
+@@ -190,7 +190,12 @@
+ };
+ 
+ struct fastrpc_buf {
+-	struct fastrpc_user *fl;
++	/*
++	 * Not the allocating fastrpc_user: an exported DMA buffer and the
++	 * remote heap outlive it. An exported buffer holds a reference on
++	 * the channel; all others are freed before the channel goes away.
++	 */
++	struct fastrpc_channel_ctx *cctx;
+ 	struct dma_buf *dmabuf;
+ 	struct device *dev;
+ 	void *virt;
+@@ -423,7 +428,8 @@
+ static void fastrpc_buf_free(struct fastrpc_buf *buf)
+ {
+ 	dma_free_coherent(buf->dev, buf->size, buf->virt,
+-			  fastrpc_ipa_to_dma_addr(buf->fl->cctx, buf->dma_addr));
++			  fastrpc_ipa_to_dma_addr(buf->cctx, buf->dma_addr));
++	put_device(buf->dev);
+ 	kfree(buf);
+ }
+ 
+@@ -440,17 +446,18 @@
+ 	INIT_LIST_HEAD(&buf->node);
+ 	mutex_init(&buf->lock);
+ 
+-	buf->fl = fl;
++	buf->cctx = fl->cctx;
+ 	buf->virt = NULL;
+ 	buf->dma_addr = 0;
+ 	buf->size = size;
+-	buf->dev = dev;
++	buf->dev = get_device(dev);
+ 	buf->raddr = 0;
+ 
+ 	buf->virt = dma_alloc_coherent(dev, buf->size, &buf->dma_addr,
+ 				       GFP_KERNEL);
+ 	if (!buf->virt) {
+ 		mutex_destroy(&buf->lock);
++		put_device(buf->dev);
+ 		kfree(buf);
+ 		return -ENOMEM;
+ 	}
+@@ -748,8 +755,11 @@
+ static void fastrpc_release(struct dma_buf *dmabuf)
+ {
+ 	struct fastrpc_buf *buffer = dmabuf->priv;
++	struct fastrpc_channel_ctx *cctx = buffer->cctx;
+ 
+ 	fastrpc_buf_free(buffer);
++	/* Taken in fastrpc_dmabuf_alloc() */
++	fastrpc_channel_ctx_put(cctx);
+ }
+ 
+ static int fastrpc_dma_buf_attach(struct dma_buf *dmabuf,
+@@ -764,7 +774,7 @@
+ 		return -ENOMEM;
+ 
+ 	ret = dma_get_sgtable(buffer->dev, &a->sgt, buffer->virt,
+-			      fastrpc_ipa_to_dma_addr(buffer->fl->cctx, buffer->dma_addr),
++			      fastrpc_ipa_to_dma_addr(buffer->cctx, buffer->dma_addr),
+ 			      buffer->size);
+ 	if (ret < 0) {
+ 		dev_err(buffer->dev, "failed to get scatterlist from DMA API\n");
+@@ -814,7 +824,7 @@
+ 	dma_resv_assert_held(dmabuf->resv);
+ 
+ 	return dma_mmap_coherent(buf->dev, vma, buf->virt,
+-				 fastrpc_ipa_to_dma_addr(buf->fl->cctx, buf->dma_addr), size);
++				 fastrpc_ipa_to_dma_addr(buf->cctx, buf->dma_addr), size);
+ }
+ 
+ static const struct dma_buf_ops fastrpc_dma_buf_ops = {
+@@ -1706,10 +1716,13 @@
+ 	exp_info.size = bp.size;
+ 	exp_info.flags = O_RDWR;
+ 	exp_info.priv = buf;
++	/* The buffer can outlive fl; released in fastrpc_release() */
++	fastrpc_channel_ctx_get(buf->cctx);
+ 	buf->dmabuf = dma_buf_export(&exp_info);
+ 	if (IS_ERR(buf->dmabuf)) {
+ 		err = PTR_ERR(buf->dmabuf);
+ 		fastrpc_buf_free(buf);
++		fastrpc_channel_ctx_put(fl->cctx);
+ 		return err;
+ 	}
+ 

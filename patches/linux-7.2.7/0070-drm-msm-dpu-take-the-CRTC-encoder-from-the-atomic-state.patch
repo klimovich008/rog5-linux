@@ -1,5 +1,5 @@
 From: Claude <noreply@anthropic.com>
-Subject: [PATCH] drm/msm/dpu: take the CRTC's encoder from the atomic state
+Subject: [PATCH] drm/msm/dpu: take the CRTC's encoder from the encoder's own CRTC assignment
 
 dpu_crtc_get_vblank_counter() and dpu_crtc_get_scanout_position() find the
 encoder through the legacy encoder->crtc link. drm_atomic_helper_
@@ -12,14 +12,27 @@ around blank/unblank, dmesg 01:20-01:39) and, because dpu_kms sets
 max_vblank_count = 0xffffffff, feeds a counter value of 0 into
 drm_update_vblank_count(), which jumps the vblank sequence userspace sees.
 
-Use the encoder mask of the CRTC's atomic state first; fall back to the
-legacy link (dpu_crtc_disable() runs after the state swap with an empty new
-mask). A query on a CRTC that is really off is not an error: report it at
-debug level and keep returning 0/false.
----
+Use the DPU encoder's own CRTC assignment instead (dpu_encoder_assign_crtc():
+set before drm_crtc_vblank_on() in dpu_crtc_enable(), cleared after
+drm_crtc_vblank_off() in dpu_crtc_disable()), read under the encoder's
+spinlock through the new dpu_encoder_is_assigned_to_crtc(), the way
+dpu_crtc_vblank() already does. A query on a CRTC that is really off is
+not an error: report it at debug level and keep returning 0/false.
+
+Revised 2026-10-02: the first version read crtc->state->encoder_mask. The
+vblank callbacks hold no modeset lock and a concurrent commit can swap and
+free that state (use-after-free found by the 2026-10-02 GPT-6.1-Sol audit);
+the encoder assignment is stable across ordinary commits and encoders live
+as long as the device. It is read locklessly (READ_ONCE, written with
+WRITE_ONCE under enc_spinlock): dpu_encoder_vblank_callback() holds
+enc_spinlock while DRM calls back into the vblank counter, so taking the
+lock there would deadlock (GPT-6.1-Sol review).
+
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+index 42d0a529b..a69d1d141 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-@@ -56,6 +56,19 @@
+@@ -56,8 +56,20 @@ static struct drm_encoder *get_encoder_from_crtc(struct drm_crtc *crtc)
  	struct drm_device *dev = crtc->dev;
  	struct drm_encoder *encoder;
  
@@ -27,19 +40,21 @@ debug level and keep returning 0/false.
 +	 * The legacy encoder->crtc link is torn down and rebuilt by
 +	 * drm_atomic_helper_update_legacy_modeset_state() on every commit that
 +	 * carries the connector, and it is NULL for a CRTC that is switched
-+	 * off. The atomic CRTC state is what actually drives the encoder, so
-+	 * take the encoder from its mask first and use the legacy link only as
-+	 * a fallback (dpu_crtc_disable() after the state swap).
++	 * off. crtc->state cannot be used either: the vblank counter and
++	 * scanout position callbacks hold no modeset lock, and a concurrent
++	 * commit may swap and free that state. Use the encoder's own
++	 * assignment (dpu_encoder_assign_crtc()), which is set before
++	 * drm_crtc_vblank_on() and cleared after drm_crtc_vblank_off(), read
++	 * without the encoder's spinlock: the vblank IRQ path holds it when it
++	 * gets here. Encoders live as long as the device.
 +	 */
-+	if (crtc->state) {
-+		drm_for_each_encoder_mask(encoder, dev, crtc->state->encoder_mask)
-+			return encoder;
-+	}
-+
  	drm_for_each_encoder(encoder, dev)
- 		if (encoder->crtc == crtc)
+-		if (encoder->crtc == crtc)
++		if (dpu_encoder_is_assigned_to_crtc(encoder, crtc))
  			return encoder;
-@@ -189,7 +202,8 @@
+ 
+ 	return NULL;
+@@ -189,7 +201,8 @@ static u32 dpu_crtc_get_vblank_counter(struct drm_crtc *crtc)
  {
  	struct drm_encoder *encoder = get_encoder_from_crtc(crtc);
  	if (!encoder) {
@@ -49,7 +64,7 @@ debug level and keep returning 0/false.
  		return 0;
  	}
  
-@@ -279,7 +293,7 @@
+@@ -279,7 +292,7 @@ static bool dpu_crtc_get_scanout_position(struct drm_crtc *crtc,
  
  	encoder = get_encoder_from_crtc(crtc);
  	if (!encoder) {
@@ -57,4 +72,52 @@ debug level and keep returning 0/false.
 +		DRM_DEBUG_KMS("no encoder found for crtc %d\n", pipe);
  		return false;
  	}
+ 
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+index 1f20695f8..2008b1dc8 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -1519,10 +1519,28 @@ void dpu_encoder_assign_crtc(struct drm_encoder *drm_enc, struct drm_crtc *crtc)
+ 	spin_lock_irqsave(&dpu_enc->enc_spinlock, lock_flags);
+ 	/* crtc should always be cleared before re-assigning */
+ 	WARN_ON(crtc && dpu_enc->crtc);
+-	dpu_enc->crtc = crtc;
++	WRITE_ONCE(dpu_enc->crtc, crtc);
+ 	spin_unlock_irqrestore(&dpu_enc->enc_spinlock, lock_flags);
+ }
+ 
++/**
++ * dpu_encoder_is_assigned_to_crtc - Test whether the encoder is linked to a crtc
++ * @drm_enc:	encoder pointer
++ * @crtc:	crtc pointer
++ *
++ * Safe without modeset locks, e.g. from the vblank callbacks, and lockless:
++ * dpu_encoder_vblank_callback() calls into DRM, and from there into the
++ * vblank counter callback, with enc_spinlock held. Only the pointer value is
++ * compared; dpu_encoder_assign_crtc() publishes it with WRITE_ONCE().
++ */
++bool dpu_encoder_is_assigned_to_crtc(struct drm_encoder *drm_enc,
++				     struct drm_crtc *crtc)
++{
++	struct dpu_encoder_virt *dpu_enc = to_dpu_encoder_virt(drm_enc);
++
++	return READ_ONCE(dpu_enc->crtc) == crtc;
++}
++
+ /**
+  * dpu_encoder_toggle_vblank_for_crtc - Toggles vblank interrupts on or off if
+  *	the encoder is assigned to the given crtc
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
+index 4942097e7..4ebff157f 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
+@@ -41,6 +41,9 @@ struct msm_display_info {
+ void dpu_encoder_assign_crtc(struct drm_encoder *encoder,
+ 			     struct drm_crtc *crtc);
+ 
++bool dpu_encoder_is_assigned_to_crtc(struct drm_encoder *drm_enc,
++				     struct drm_crtc *crtc);
++
+ void dpu_encoder_toggle_vblank_for_crtc(struct drm_encoder *encoder,
+ 					struct drm_crtc *crtc, bool enable);
  

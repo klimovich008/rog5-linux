@@ -1,0 +1,49 @@
+From: GPT-6.1-Sol <noreply@openai.com>
+Subject: [PATCH] ASoC: q6asm: quarantine PCM buffers after uncertain teardown
+
+Unmap capture from the first buffer, reject an existing mapping with
+-EBUSY and initialize the audio client before publishing it to callbacks.
+
+Hardware: capture unmap, duplicate map and callback publication checks.
+
+diff --git a/sound/soc/qcom/qdsp6/q6asm.c b/sound/soc/qcom/qdsp6/q6asm.c
+--- a/sound/soc/qcom/qdsp6/q6asm.c
++++ b/sound/soc/qcom/qdsp6/q6asm.c
+@@ -422,7 +422,7 @@
+ 
+ 	cnt = port->num_periods - 1;
+ 	if (cnt >= 0) {
+-		rc = __q6asm_memory_unmap(ac, port->buf[dir].phys, dir);
++		rc = __q6asm_memory_unmap(ac, port->buf[0].phys, dir);
+ 		if (rc < 0) {
+ 			dev_err(ac->dev, "%s: Memory_unmap_regions failed %d\n",
+ 				__func__, rc);
+@@ -523,7 +523,7 @@
+ 	if (ac->port[dir].buf) {
+ 		dev_err(ac->dev, "Buffer already allocated\n");
+ 		spin_unlock_irqrestore(&ac->lock, flags);
+-		return 0;
++		return -EBUSY;
+ 	}
+ 
+ 	buf = kzalloc_objs(*buf, periods, GFP_ATOMIC);
+@@ -883,9 +883,6 @@
+ 	if (!ac)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	spin_lock_irqsave(&a->slock, flags);
+-	a->session[session_id + 1] = ac;
+-	spin_unlock_irqrestore(&a->slock, flags);
+ 	ac->session = session_id + 1;
+ 	ac->cb = cb;
+ 	ac->dev = dev;
+@@ -899,6 +896,9 @@
+ 	init_waitqueue_head(&ac->cmd_wait);
+ 	mutex_init(&ac->cmd_lock);
+ 	spin_lock_init(&ac->lock);
++	spin_lock_irqsave(&a->slock, flags);
++	a->session[session_id + 1] = ac;
++	spin_unlock_irqrestore(&a->slock, flags);
+ 
+ 	return ac;
+ }

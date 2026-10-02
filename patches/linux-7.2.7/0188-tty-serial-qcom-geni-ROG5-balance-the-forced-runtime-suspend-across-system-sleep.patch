@@ -1,0 +1,97 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] tty: serial: qcom-geni: balance the forced runtime suspend across system sleep
+
+0081 powers the serial engine down in system suspend with
+pm_runtime_force_suspend(), except when the port stays on (wakeup source,
+no_console_suspend). Two gaps:
+
+- resume called pm_runtime_force_resume() unconditionally; it ends with
+  pm_runtime_enable(), so a port that was not force-suspended got an
+  unmatched enable ("Unbalanced pm_runtime_enable!").
+- when pm_runtime_force_suspend() failed (e.g. the runtime suspend
+  callback could not select the sleep pinctrl state), the port had
+  already been shut down by uart_suspend_port(). The PM core does not run
+  ->resume() for a device whose ->suspend() failed, so after the aborted
+  sleep the UART stayed down; the console's ICC tag also stayed
+  ACTIVE_ONLY.
+
+Record a successful forced suspend and force-resume only then; on a
+failed forced suspend bring the port back with uart_resume_port() and
+restore the console's ICC tag before returning the error (also when
+uart_suspend_port() fails). Found by the 2026-10-02 GPT-6.1-Sol audit.
+
+Hardware: s2idle suspend/resume with the Bluetooth UART in use and with
+the debug console, no "Unbalanced pm_runtime_enable" in dmesg; Bluetooth
+works after resume.
+
+diff --git a/drivers/tty/serial/qcom_geni_serial.c b/drivers/tty/serial/qcom_geni_serial.c
+index 62db2ab49..df3951e59 100644
+--- a/drivers/tty/serial/qcom_geni_serial.c
++++ b/drivers/tty/serial/qcom_geni_serial.c
+@@ -148,6 +148,8 @@ struct qcom_geni_serial_port {
+ 	bool rx_tx_swap;
+ 	bool cts_rts_swap;
+ 	bool manual_flow;
++	/* ROG5: system suspend forced the SE off; resume must undo exactly that */
++	bool force_suspended;
+ 
+ 	struct qcom_geni_private_data private_data;
+ 	const struct qcom_geni_device_data *dev_data;
+@@ -1995,7 +1997,7 @@ static int qcom_geni_serial_suspend(struct device *dev)
+ 	}
+ 	ret = uart_suspend_port(private_data->drv, uport);
+ 	if (ret)
+-		return ret;
++		goto err_icc;
+ 
+ 	/*
+ 	 * uart_suspend_port() releases the port with pm_runtime_put_sync(),
+@@ -2008,7 +2010,26 @@ static int qcom_geni_serial_suspend(struct device *dev)
+ 	if (uport->state && uport->state->pm_state == UART_PM_STATE_ON)
+ 		return 0;
+ 
+-	return pm_runtime_force_suspend(dev);
++	ret = pm_runtime_force_suspend(dev);
++	if (ret) {
++		/*
++		 * The PM core does not resume a device whose suspend failed:
++		 * bring the port back up here, or it stays shut down after the
++		 * aborted sleep.
++		 */
++		uart_resume_port(private_data->drv, uport);
++		goto err_icc;
++	}
++	port->force_suspended = true;
++
++	return 0;
++
++err_icc:
++	if (uart_console(uport)) {
++		geni_icc_set_tag(&port->se, QCOM_ICC_TAG_ALWAYS);
++		geni_icc_set_bw(&port->se);
++	}
++	return ret;
+ }
+ 
+ static int qcom_geni_serial_resume(struct device *dev)
+@@ -2018,9 +2039,17 @@ static int qcom_geni_serial_resume(struct device *dev)
+ 	struct uart_port *uport = &port->uport;
+ 	struct qcom_geni_private_data *private_data = uport->private_data;
+ 
+-	ret = pm_runtime_force_resume(dev);
+-	if (ret)
+-		return ret;
++	/*
++	 * pm_runtime_force_resume() re-enables runtime PM unconditionally:
++	 * call it only after a forced suspend (not for a port left on as a
++	 * wakeup source).
++	 */
++	if (port->force_suspended) {
++		port->force_suspended = false;
++		ret = pm_runtime_force_resume(dev);
++		if (ret)
++			return ret;
++	}
+ 
+ 	ret = uart_resume_port(private_data->drv, uport);
+ 	if (uart_console(uport)) {

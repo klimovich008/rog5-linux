@@ -1,0 +1,251 @@
+From: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Subject: [PATCH] drm/msm: unwind msm_drm_kms_init() on failure
+
+msm_drm_kms_init() leaves behind whatever it has already set up when it
+fails and lets the caller sort it out: msm_drm_init() jumps to
+msm_drm_uninit(), which runs msm_drm_kms_uninit() for every device which
+has a kms.  That is the teardown of a fully initialised KMS -- it flushes
+kms->wq, calls ->irq_uninstall() and frees the IRQ, none of which exist
+yet when the failure happened early.
+
+The kms driver's own init is the first step which can fail, and since
+commit a409b78fcdf7 ("drm/msm: move wq handling to KMS code") the
+workqueue is created by msm_kms_init() rather than by msm_drm_init(), so a
+failure there leaves a NULL kms->wq for flush_workqueue().
+
+Undo the steps which have completed instead, and let msm_drm_init() unwind
+its own error paths rather than calling the full teardown.
+
+Fixes: a409b78fcdf7 ("drm/msm: move wq handling to KMS code")
+Assisted-by: LLM
+Signed-off-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+[ROG5: backport of "[PATCH v3 3/8]" of "drm/msm: fix SMMU fault dumps"
+ (Dmitry Baryshkov, 2026-09-12, not merged as of 2026-10-02; latest version),
+ https://lore.kernel.org/all/20260912-fd-kms-fix-smmu-v3-3-a7ddc6fe2032@oss.qualcomm.com/
+ 0130/0131 carry 5/8 and 7/8 of the same series.
+ The last hunk is adapted to 0069 (pm_vt_switch_required() after
+ drm_mode_config_reset(): it is the last step and needs no unwind).]
+
+[ROG5: also handle failed snapshot-worker creation, a missing workqueue,
+ and DPU private-object teardown during partial initialization.]
+
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -402,7 +402,15 @@
+ 
+ static void dpu_kms_global_obj_fini(struct dpu_kms *dpu_kms)
+ {
++	/*
++	 * A failed dpu_kms_hw_init() already tore the object down, and
++	 * dpu_kms_destroy() runs for a kms whose hw_init never ran.
++	 */
++	if (!dpu_kms->global_state.funcs)
++		return;
++
+ 	drm_atomic_private_obj_fini(&dpu_kms->global_state);
++	dpu_kms->global_state.funcs = NULL;
+ }
+ 
+ static int dpu_kms_parse_data_bus_icc_path(struct dpu_kms *dpu_kms)
+@@ -1154,8 +1162,10 @@
+ 	dev->mode_config.cursor_width = 512;
+ 	dev->mode_config.cursor_height = 512;
+ 
+-	drm_atomic_private_obj_init(dpu_kms->dev, &dpu_kms->global_state,
+-				    &dpu_kms_global_state_funcs);
++	rc = drm_atomic_private_obj_init(dpu_kms->dev, &dpu_kms->global_state,
++					 &dpu_kms_global_state_funcs);
++	if (rc)
++		goto error;
+ 
+ 	atomic_set(&dpu_kms->bandwidth_ref, 0);
+ 
+diff --git a/drivers/gpu/drm/msm/disp/msm_disp_snapshot.c b/drivers/gpu/drm/msm/disp/msm_disp_snapshot.c
+--- a/drivers/gpu/drm/msm/disp/msm_disp_snapshot.c
++++ b/drivers/gpu/drm/msm/disp/msm_disp_snapshot.c
+@@ -110,8 +110,14 @@
+ 	mutex_init(&kms->dump_mutex);
+ 
+ 	kms->dump_worker = kthread_run_worker(0, "%s", "disp_snapshot");
+-	if (IS_ERR(kms->dump_worker))
++	if (IS_ERR(kms->dump_worker)) {
++		int ret = PTR_ERR(kms->dump_worker);
++
+ 		DRM_ERROR("failed to create disp state task\n");
++		kms->dump_worker = NULL;
++		mutex_destroy(&kms->dump_mutex);
++		return ret;
++	}
+ 
+ 	kthread_init_work(&kms->dump_work, _msm_disp_snapshot_work);
+ 
+diff --git a/drivers/gpu/drm/msm/msm_drv.c b/drivers/gpu/drm/msm/msm_drv.c
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -159,29 +159,44 @@
+ 
+ 	ret = msm_gem_shrinker_init(ddev);
+ 	if (ret)
+-		goto err_msm_uninit;
++		goto err_unbind;
+ 
+ 	if (priv->kms_init) {
+ 		ret = msm_drm_kms_init(dev, drv);
+ 		if (ret)
+-			goto err_msm_uninit;
++			goto err_shrinker_cleanup;
+ 	}
+ 
+ 	ret = drm_dev_register(ddev, 0);
+ 	if (ret)
+-		goto err_msm_uninit;
++		goto err_kms_uninit;
+ 
+ 	ret = msm_debugfs_late_init(ddev);
+ 	if (ret)
+-		goto err_msm_uninit;
++		goto err_unregister;
+ 
+ 	if (priv->kms_init)
+ 		msm_drm_kms_post_init(dev);
+ 
+ 	return 0;
+ 
+-err_msm_uninit:
+-	msm_drm_uninit(dev, gpu_ops);
++err_unregister:
++	drm_dev_unregister(ddev);
++	if (priv->kms_init)
++		msm_drm_kms_unregister(dev);
++	msm_rd_debugfs_cleanup(priv);
++err_kms_uninit:
++	if (priv->kms_init)
++		msm_drm_kms_uninit(dev);
++err_shrinker_cleanup:
++	msm_gem_shrinker_cleanup(ddev);
++err_unbind:
++	if (gpu_ops)
++		gpu_ops->unbind(dev, dev, NULL);
++	else
++		component_unbind_all(dev, ddev);
++	ddev->dev_private = NULL;
++	drm_dev_put(ddev);
+ 
+ 	return ret;
+ 
+diff --git a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
+--- a/drivers/gpu/drm/msm/msm_kms.c
++++ b/drivers/gpu/drm/msm/msm_kms.c
+@@ -226,13 +226,23 @@
+ 	drm_atomic_helper_shutdown(ddev);
+ }
+ 
++static void msm_drm_kms_destroy_event_threads(struct msm_kms *kms)
++{
++	int i;
++
++	for (i = 0; i < MAX_CRTCS; i++) {
++		if (kms->event_thread[i].worker)
++			kthread_destroy_worker(kms->event_thread[i].worker);
++		kms->event_thread[i].worker = NULL;
++	}
++}
++
+ void msm_drm_kms_uninit(struct device *dev)
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct msm_drm_private *priv = platform_get_drvdata(pdev);
+ 	struct drm_device *ddev = priv->dev;
+ 	struct msm_kms *kms = priv->kms;
+-	int i;
+ 
+ 	BUG_ON(!kms);
+ 
+@@ -243,11 +253,7 @@
+ 
+ 	flush_workqueue(kms->wq);
+ 
+-	/* clean up event worker threads */
+-	for (i = 0; i < MAX_CRTCS; i++) {
+-		if (kms->event_thread[i].worker)
+-			kthread_destroy_worker(kms->event_thread[i].worker);
+-	}
++	msm_drm_kms_destroy_event_threads(kms);
+ 
+ 	drm_kms_helper_poll_fini(ddev);
+ 
+@@ -285,7 +291,7 @@
+ 	ret = priv->kms_init(ddev);
+ 	if (ret) {
+ 		DRM_DEV_ERROR(dev, "failed to load kms\n");
+-		goto err_msm_uninit;
++		goto err_destroy_kms;
+ 	}
+ 
+ 	/* Enable normalization of plane zpos */
+@@ -298,7 +304,7 @@
+ 	ret = kms->funcs->hw_init(kms);
+ 	if (ret) {
+ 		DRM_DEV_ERROR(dev, "kms hw init failed: %d\n", ret);
+-		goto err_msm_uninit;
++		goto err_destroy_kms;
+ 	}
+ 
+ 	drm_helper_move_panel_connectors_to_head(ddev);
+@@ -314,7 +320,7 @@
+ 			ret = PTR_ERR(ev_thread->worker);
+ 			DRM_DEV_ERROR(dev, "failed to create crtc_event kthread\n");
+ 			ev_thread->worker = NULL;
+-			goto err_msm_uninit;
++			goto err_destroy_event_threads;
+ 		}
+ 
+ 		sched_set_fifo(ev_thread->worker->task);
+@@ -323,7 +329,7 @@
+ 	ret = drm_vblank_init(ddev, ddev->mode_config.num_crtc);
+ 	if (ret < 0) {
+ 		DRM_DEV_ERROR(dev, "failed to initialize vblank\n");
+-		goto err_msm_uninit;
++		goto err_destroy_event_threads;
+ 	}
+ 
+ 	pm_runtime_get_sync(dev);
+@@ -331,7 +337,7 @@
+ 	pm_runtime_put_sync(dev);
+ 	if (ret < 0) {
+ 		DRM_DEV_ERROR(dev, "failed to install IRQ handler\n");
+-		goto err_msm_uninit;
++		goto err_destroy_event_threads;
+ 	}
+ 
+ 	drm_mode_config_reset(ddev);
+@@ -346,7 +352,13 @@
+ 
+ 	return 0;
+ 
+-err_msm_uninit:
++err_destroy_event_threads:
++	msm_drm_kms_destroy_event_threads(kms);
++err_destroy_kms:
++	msm_disp_snapshot_destroy(ddev);
++	if (kms->funcs)
++		kms->funcs->destroy(kms);
++
+ 	return ret;
+ }
+ 
+diff --git a/drivers/gpu/drm/msm/msm_kms.h b/drivers/gpu/drm/msm/msm_kms.h
+--- a/drivers/gpu/drm/msm/msm_kms.h
++++ b/drivers/gpu/drm/msm/msm_kms.h
+@@ -203,7 +203,9 @@
+ 	for (i = 0; i < ARRAY_SIZE(kms->pending_timers); i++)
+ 		msm_atomic_destroy_pending_timer(&kms->pending_timers[i]);
+ 
+-	destroy_workqueue(kms->wq);
++	if (kms->wq)
++		destroy_workqueue(kms->wq);
++	kms->wq = NULL;
+ }
+ 
+ #define for_each_crtc_mask(dev, crtc, crtc_mask) \

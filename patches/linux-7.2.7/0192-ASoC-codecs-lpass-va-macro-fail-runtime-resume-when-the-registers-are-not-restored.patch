@@ -1,0 +1,44 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] ASoC: codecs: lpass-va-macro: fail runtime resume when the registers are not restored
+
+va_macro_runtime_resume() ignored the result of regcache_sync() and
+reported an active macro with all its clocks enabled although the DMIC and
+decimator configuration had not been written back: recording then fails
+while the LPASS votes stay held (2026-10-02 GPT-6.1-Sol audit, F7). On
+failure, go back to cache-only mode with the whole cache dirty, release the
+clocks in reverse order and return the error.
+
+Upstream fixed the same in eb667d0fbdd3 ("ASoC: codecs: lpass-va-macro:
+Switch to PM clock framework for runtime PM", linux-next, 7.3 cycle), as
+part of a conversion that does not apply here; this is the minimal
+equivalent on the 7.2 clock handling (0083).
+
+Hardware (RAM trial with audio): microphone capture after the macro has
+runtime-suspended (idle a few seconds, then record) works as before.
+
+diff --git a/sound/soc/codecs/lpass-va-macro.c b/sound/soc/codecs/lpass-va-macro.c
+index f76bf963c..8b69178c4 100644
+--- a/sound/soc/codecs/lpass-va-macro.c
++++ b/sound/soc/codecs/lpass-va-macro.c
+@@ -1770,7 +1770,20 @@ static int va_macro_runtime_resume(struct device *dev)
+ 	}
+ 
+ 	regcache_cache_only(va->regmap, false);
+-	regcache_sync(va->regmap);
++	ret = regcache_sync(va->regmap);
++	if (ret) {
++		/*
++		 * The registers are not what the cache says: stay in cache-only
++		 * mode with the whole cache dirty for the next resume, and do
++		 * not report an active macro holding its clocks.
++		 */
++		dev_err(va->dev, "failed to restore registers: %d\n", ret);
++		regcache_cache_only(va->regmap, true);
++		regcache_mark_dirty(va->regmap);
++		if (va->has_npl_clk)
++			clk_disable_unprepare(va->npl);
++		goto err_npl;
++	}
+ 
+ 	return 0;
+ 
