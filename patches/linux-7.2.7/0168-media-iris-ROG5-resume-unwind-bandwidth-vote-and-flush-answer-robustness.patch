@@ -1,0 +1,248 @@
+From b6a9526c105861edd19943fbe4b0409be2878a48 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 03:20:36 +0200
+Subject: [PATCH 6/6] media: iris: ROG5: resume unwind, bandwidth vote and
+ flush answer robustness
+
+From the k115 robustness and power deep dives, the low-risk items:
+
+- A failed runtime resume suspended the firmware through TrustZone and
+  powered off without checking that the suspend call succeeded. If it
+  fails, keep clocks, votes and memory, latch the core
+  (iris_core_hold_locked()) and report the resume as done, so runtime PM
+  does not drop the MX/MMCX supplier references under powered hardware.
+- While the core holds its resources after a fault (fw_held, also after a
+  failed PAS shutdown or 0167's MVS0 hand-back failure), runtime suspend
+  is refused (-EBUSY): the device and its suppliers stay active, and
+  system sleep is refused through pm_runtime_force_suspend(). A resume
+  unwind whose power off ends held also reports success for the same
+  reason.
+- A held core pins the module (iris_core_mark_held(), every place that
+  sets fw_held) and sysfs unbind is disabled for the driver, so rmmod or
+  unbind cannot run the managed cleanup (supplier links, power domains,
+  interconnect votes) under a firmware that was not confirmed stopped.
+  Only a reboot clears a held core. (A hold that happens during removal
+  itself is not covered.)
+- iris_set_icc_bw() cached the new video-mem vote before
+  icc_bulk_set_bw() had applied it; a failed vote then looked applied and
+  suppressed the retry. Cache it only on success and restore the table
+  entry on failure.
+- A flush answer that was not asked for decremented
+  flush_responses_pending through zero (u32), so a later flush never
+  completed. Ignore it with a warning.
+
+ROG5: patch 0168, kernel k116. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_core.c  | 21 +++++++++++++++----
+ drivers/media/platform/qcom/iris/iris_core.h  |  1 +
+ .../media/platform/qcom/iris/iris_firmware.c  |  2 +-
+ .../platform/qcom/iris/iris_hfi_common.c      | 20 +++++++++++++++++-
+ .../qcom/iris/iris_hfi_gen1_response.c        |  6 +++++-
+ drivers/media/platform/qcom/iris/iris_probe.c |  8 +++++++
+ .../media/platform/qcom/iris/iris_resources.c | 18 ++++++++++++----
+ 7 files changed, 65 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index ba5317f..c36af99 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -113,7 +113,7 @@ static void iris_core_teardown(struct iris_core *core, bool powered)
+ 			"firmware shutdown (PAS) failed: %d; keeping the video core powered and its memory mapped\n",
+ 			ret);
+ 		core->fatal = true;
+-		core->fw_held = true;
++		iris_core_mark_held(core);
+ 		core->state = IRIS_CORE_ERROR;
+ 		return;
+ 	}
+@@ -183,6 +183,19 @@ void iris_core_fatal(struct iris_core *core, const char *reason)
+ 	mutex_unlock(&core->lock);
+ }
+ 
++/*
++ * ROG5: the core keeps resources the firmware may still use (fw_held). Pin
++ * the module so that rmmod cannot run the managed cleanup (supplier links,
++ * power domains, interconnect votes) under it; sysfs unbind is disabled for
++ * this driver. Only a reboot clears a held core.
++ */
++void iris_core_mark_held(struct iris_core *core)
++{
++	if (!core->fw_held && try_module_get(THIS_MODULE))
++		dev_err(core->dev, "video core held: qcom_iris stays loaded until reboot\n");
++	core->fw_held = true;
++}
++
+ /*
+  * ROG5: the hardware could not be released safely (MVS0 stuck under hardware
+  * control, or the firmware not confirmed suspended): keep every resource,
+@@ -193,10 +206,10 @@ void iris_core_fatal(struct iris_core *core, const char *reason)
+ void iris_core_hold_locked(struct iris_core *core, const char *reason)
+ {
+ 	dev_err(core->dev,
+-		"%s: keeping the video core powered; video unavailable until qcom_iris is reloaded\n",
++		"%s: keeping the video core powered; video unavailable until reboot\n",
+ 		reason);
+ 	core->fatal = true;
+-	core->fw_held = true;
++	iris_core_mark_held(core);
+ 	if (core->state == IRIS_CORE_INIT)
+ 		core->state = IRIS_CORE_ERROR;
+ 	if (!core->removing)
+@@ -398,7 +411,7 @@ error_power_off:
+ 		dev_err(core->dev,
+ 			"firmware shutdown (PAS) failed after a failed boot; keeping the video core powered and its memory mapped\n");
+ 		core->fatal = true;
+-		core->fw_held = true;
++		iris_core_mark_held(core);
+ 		enable_irq(core->irq);
+ 		goto exit;
+ 	}
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index 3493e0e..7be6325 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -191,6 +191,7 @@ void iris_core_fw_log(struct iris_core *core, const u8 *msg, size_t len);
+ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool force);
+ void iris_core_fatal(struct iris_core *core, const char *reason);
+ void iris_core_hold_locked(struct iris_core *core, const char *reason);
++void iris_core_mark_held(struct iris_core *core);
+ void iris_core_contain_fatal(struct iris_core *core);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_firmware.c b/drivers/media/platform/qcom/iris/iris_firmware.c
+index fccce63..760b8b7 100644
+--- a/drivers/media/platform/qcom/iris/iris_firmware.c
++++ b/drivers/media/platform/qcom/iris/iris_firmware.c
+@@ -111,7 +111,7 @@ int iris_fw_load(struct iris_core *core)
+ 				dev_err(core->dev,
+ 					"firmware shutdown (PAS) failed; keeping the video core powered and its memory mapped\n");
+ 				core->fatal = true;
+-				core->fw_held = true;
++				iris_core_mark_held(core);
+ 			}
+ 			return ret;
+ 		}
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_common.c b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+index a8a83c6..270a181 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_common.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_common.c
+@@ -138,6 +138,9 @@ int iris_hfi_pm_suspend(struct iris_core *core)
+ 		goto error;
+ 
+ 	iris_vpu_power_off(core);
++	/* ROG5: power off kept the hardware (see iris_core_hold_locked()) */
++	if (core->fw_held)
++		return -EBUSY;
+ 
+ 	return 0;
+ 
+@@ -175,9 +178,24 @@ int iris_hfi_pm_resume(struct iris_core *core)
+ 	return 0;
+ 
+ err_suspend_hw:
+-	iris_set_hw_state(core, false);
++	/*
++	 * ROG5: only remove clocks and power under a firmware that TrustZone
++	 * confirmed suspended; otherwise keep everything and latch the core.
++	 */
++	if (iris_set_hw_state(core, false)) {
++		iris_core_hold_locked(core, "firmware not suspended after a failed resume");
++		/*
++		 * Report the resume as done: a failed resume would drop the
++		 * MX/MMCX supplier references while the hardware stays on.
++		 * The core is latched, so nothing uses it.
++		 */
++		return 0;
++	}
+ err_power_off:
+ 	iris_vpu_power_off(core);
++	/* ROG5: power off kept the hardware: stay active, like above */
++	if (core->fw_held)
++		return 0;
+ error:
+ 	dev_err(core->dev, "failed to resume\n");
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+index 30410a7..5b65330 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_response.c
+@@ -692,7 +692,11 @@ static void iris_hfi_gen1_handle_response(struct iris_core *core, void *response
+ 				iris_inst_change_state(inst, IRIS_INST_ERROR);
+ 
+ 			if (pkt_info->pkt == HFI_MSG_SESSION_FLUSH) {
+-				if (!(--inst->flush_responses_pending))
++				/* ROG5: an unrequested flush answer must not wrap the count */
++				if (!inst->flush_responses_pending)
++					dev_warn(dev, "session %#x: unexpected flush answer\n",
++						 pkt->shdr.session_id);
++				else if (!(--inst->flush_responses_pending))
+ 					complete(&inst->flush_completion);
+ 			} else if (inst->expected_msg && hdr->pkt_type != inst->expected_msg) {
+ 				/* ROG5: a late answer must not end the wait for another one */
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index f5910a6..b48e7ea 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -373,6 +373,12 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 	core = dev_get_drvdata(dev);
+ 
+ 	mutex_lock(&core->lock);
++	/* ROG5: resources held after a fault stay on, suppliers included */
++	if (core->fw_held) {
++		dev_warn_ratelimited(dev, "video core held after a fault: not suspending\n");
++		ret = -EBUSY;
++		goto exit;
++	}
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
+@@ -459,6 +465,8 @@ static struct platform_driver qcom_iris_driver = {
+ 		.name = "qcom-iris",
+ 		.of_match_table = iris_dt_match,
+ 		.pm = &iris_pm_ops,
++		/* ROG5: no unbind under a held core (iris_core_mark_held()) */
++		.suppress_bind_attrs = true,
+ 	},
+ };
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_resources.c b/drivers/media/platform/qcom/iris/iris_resources.c
+index 6d33394..4a63ac8 100644
+--- a/drivers/media/platform/qcom/iris/iris_resources.c
++++ b/drivers/media/platform/qcom/iris/iris_resources.c
+@@ -20,7 +20,8 @@ int iris_set_icc_bw(struct iris_core *core, unsigned long icc_bw)
+ {
+ 	unsigned long bw_kbps = 0, bw_prev = 0;
+ 	const struct icc_info *icc_tbl;
+-	int ret = 0, i;
++	int ret = 0, i, mem = -1;
++	u32 avg_prev = 0;
+ 
+ 	icc_tbl = core->iris_platform_data->icc_tbl;
+ 
+@@ -35,14 +36,23 @@ int iris_set_icc_bw(struct iris_core *core, unsigned long icc_bw)
+ 			if (abs(bw_kbps - bw_prev) < BW_THRESHOLD && bw_prev)
+ 				return ret;
+ 
++			avg_prev = core->icc_tbl[i].avg_bw;
+ 			core->icc_tbl[i].avg_bw = bw_kbps;
+-
+-			core->power.icc_bw = bw_kbps;
++			mem = i;
+ 			break;
+ 		}
+ 	}
+ 
+-	return icc_bulk_set_bw(core->icc_count, core->icc_tbl);
++	ret = icc_bulk_set_bw(core->icc_count, core->icc_tbl);
++	/* ROG5: remember a vote only once the interconnect took it */
++	if (mem >= 0) {
++		if (ret)
++			core->icc_tbl[mem].avg_bw = avg_prev;
++		else
++			core->power.icc_bw = bw_kbps;
++	}
++
++	return ret;
+ }
+ 
+ int iris_unset_icc_bw(struct iris_core *core)

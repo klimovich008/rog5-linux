@@ -127,3 +127,6 @@
 0163-media-iris-ROG5-SM8350-OEM-firmware-platform-data-secure-session-EOS-power-off-gating.patch
 0164-media-iris-ROG5-v4l2-compliance-bus_info-prefix-and-colorspace.patch
 0165-media-iris-ROG5-encoder-bring-up-guards-markers-DMA-window-errors-start-gating.patch
+0166-media-iris-ROG5-gen1-property-packets-sized-for-their-wire-structure.patch
+0167-media-iris-ROG5-SM8350-power-off-on-in-the-stock-Iris2-order.patch
+0168-media-iris-ROG5-resume-unwind-bandwidth-vote-and-flush-answer-robustness.patch

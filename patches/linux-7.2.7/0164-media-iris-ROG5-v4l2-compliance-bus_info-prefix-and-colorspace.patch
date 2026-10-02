@@ -1,7 +1,7 @@
-From 6c13aed342a45ca40f5786cb94c11a300a346d96 Mon Sep 17 00:00:00 2001
+From 8cc5d8c5da361fef15840493a58f45f812d3496a Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 2 Oct 2026 02:26:22 +0200
-Subject: [PATCH 2/3] media: iris: ROG5: v4l2-compliance: bus_info prefix and
+Subject: [PATCH 2/6] media: iris: ROG5: v4l2-compliance: bus_info prefix and
  colorspace
 
 From the k115 trial's v4l2-compliance runs (decoder 40/48, encoder 41/48):
@@ -143,10 +143,10 @@ index a945992..ba6b58d 100644
  	fmt->fmt.pix_mp.xfer_func = f->fmt.pix_mp.xfer_func;
  	fmt->fmt.pix_mp.ycbcr_enc = f->fmt.pix_mp.ycbcr_enc;
 diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
-index 4bc0473..0ee1a7a 100644
+index f3301af..c137ef6 100644
 --- a/drivers/media/platform/qcom/iris/iris_vidc.c
 +++ b/drivers/media/platform/qcom/iris/iris_vidc.c
-@@ -546,19 +546,15 @@ static int iris_querycap(struct file *filp, void *fh, struct v4l2_capability *ca
+@@ -532,19 +532,15 @@ static int iris_querycap(struct file *filp, void *fh, struct v4l2_capability *ca
  {
  	struct iris_core *core = video_drvdata(filp);
  	struct iris_inst *inst = iris_get_inst(filp);

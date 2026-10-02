@@ -435,7 +435,7 @@
           "name": "Hardware video decode/encode",
           "status": "partial",
           "weight": 1,
-          "note": "k115 RAM trials 2026-10-02: with a real EOS buffer H.264 and HEVC 1080p decode 300/300 bit-exact, GStreamer OK, 5 min idle OK (runtime PM auto); dummy EOS address crashed the firmware; VP9 session error (no SECURE_SESSION=0); H.264 encode hard-hung the SoC; pinned runtime PM hung idle. k116 (0163-0165: SM8350 OEM platform data with SECURE_SESSION=0, real EOS default, stock Iris2 power off, encoder/VP9 behind load-time switches, compliance fixes, encoder bring-up guards) built as main-k116-d15-261002a/b/c, not installed; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
+          "note": "k115 RAM trials 2026-10-02: with a real EOS buffer H.264 and HEVC 1080p decode 300/300 bit-exact, GStreamer OK, 5 min idle OK (runtime PM auto); dummy EOS address crashed the firmware; VP9 session error (no SECURE_SESSION=0); H.264 encode hard-hung the SoC at session start (boots B and D; B was first misread as an idle hang with pinned runtime PM). k116 (0163-0168: SM8350 OEM platform data with SECURE_SESSION=0, real EOS default, stock Iris2 power off/on order with real OPP release, encoder/VP9 behind load-time switches, gen1 property packet sizing, compliance and robustness fixes, encoder bring-up markers) built as RAM wrappers main-k116-d15-261002a/b/c (+d for a later encoder boot), not installed; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
         }
       ]
     },

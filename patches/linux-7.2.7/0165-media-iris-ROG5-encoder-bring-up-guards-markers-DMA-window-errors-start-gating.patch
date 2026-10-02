@@ -1,7 +1,7 @@
-From 8213eb636c86a2c1198594b4eb5364019b584d95 Mon Sep 17 00:00:00 2001
+From ff0e4867797eedd1d6054c624b7f55598730adae Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 2 Oct 2026 02:28:40 +0200
-Subject: [PATCH 3/3] media: iris: ROG5: encoder bring-up guards: markers, DMA
+Subject: [PATCH 3/6] media: iris: ROG5: encoder bring-up guards: markers, DMA
  window, errors, start gating
 
 The k115 trial's H.264 encode hung the ROG Phone 5 at session start with
@@ -22,37 +22,33 @@ experimental_encoder=1, patch 0163):
   i.e. [0x25800000, 0xe0000000) here, end included; anything else is
   refused before it is sent.
 - ETB/FTB packets are zero-initialised (extradata_buffer, data).
-- Property setters: any error other than -EINVAL (failed or refused
-  command, full queue, failed resume, dead firmware, allocation) now fails
-  the stream-on; -EINVAL stays "not applicable" (setters use it, e.g.
-  bitrate before streaming). A failed clock/bandwidth vote fails the
-  stream-on and encoder queueing.
+- Property setters: a failed command, a dead firmware or a failed
+  allocation (-EIO, -ETIMEDOUT, -ENOMEM) now fails the stream-on; -EINVAL
+  stays "not applicable" (setters use it, e.g. bitrate before streaming).
+  A failed clock/bandwidth vote fails the stream-on and encoder queueing.
 - Experimental SM8350 encoder only: LOAD_RESOURCES/START wait until both
   ports streamed on (the CAPTURE port's properties, frame rate included,
-  used to arrive after START when the raw port streamed on first; the
-  LOAD_RESOURCES sub-state is allowed in INPUT_STREAMING for that), the
-  work route (4 pipes) is set explicitly before LOAD as stock does, no
-  buffer reaches the firmware before the instance is STREAMING, any
-  stream-off cancels a deferred start, a session never started gets no
-  STOP/RELEASE, and a drain before START is refused (-EBUSY).
-
-Reviewed (read-only): GPT-6.1-Sol, docs/reviews/2026-10-02-gpt-6.1-sol-video-k116.md.
+  used to arrive after START when the raw port streamed on first), the
+  work route (4 pipes) is set explicitly before LOAD as stock does, and no
+  buffer reaches the firmware before the instance is STREAMING. A
+  CAPTURE-only stream-off (STOP/RELEASE) followed by a CAPTURE stream-on
+  while the raw port still streams loads and starts the session again.
 
 ROG5: patch 0165, kernel k116. Not in upstream.
 ---
  .../media/platform/qcom/iris/iris_common.c    |  9 ++-
  drivers/media/platform/qcom/iris/iris_core.c  | 13 +++-
- drivers/media/platform/qcom/iris/iris_core.h  | 19 +++++-
- drivers/media/platform/qcom/iris/iris_ctrls.c | 19 +++++-
- .../qcom/iris/iris_hfi_gen1_command.c         | 68 +++++++++++++++++--
+ drivers/media/platform/qcom/iris/iris_core.h  | 19 ++++-
+ drivers/media/platform/qcom/iris/iris_ctrls.c | 19 ++++-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 73 +++++++++++++++++--
  .../media/platform/qcom/iris/iris_hfi_queue.c | 29 ++++++++
  .../media/platform/qcom/iris/iris_instance.h  |  3 +
- drivers/media/platform/qcom/iris/iris_probe.c |  4 ++
+ drivers/media/platform/qcom/iris/iris_probe.c |  4 +
  drivers/media/platform/qcom/iris/iris_state.c |  6 ++
- drivers/media/platform/qcom/iris/iris_utils.c | 28 ++++++++
+ drivers/media/platform/qcom/iris/iris_utils.c | 28 +++++++
  drivers/media/platform/qcom/iris/iris_utils.h |  2 +
  drivers/media/platform/qcom/iris/iris_venc.c  | 14 +++-
- 12 files changed, 199 insertions(+), 15 deletions(-)
+ 12 files changed, 204 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/media/platform/qcom/iris/iris_common.c b/drivers/media/platform/qcom/iris/iris_common.c
 index 2583656..2636760 100644
@@ -217,7 +213,7 @@ index 391e1fc..344e802 100644
  
  	return 0;
 diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
-index cd54fd2..ab6cc8f 100644
+index 0311abf..b703492 100644
 --- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
 +++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
 @@ -4,6 +4,7 @@
@@ -237,7 +233,7 @@ index cd54fd2..ab6cc8f 100644
  	*daddr = lower_32_bits(inst->eos_daddr);
  
  	return 0;
-@@ -333,11 +336,36 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+@@ -334,11 +337,41 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
  	struct hfi_session_pkt packet;
  	int ret;
  
@@ -251,15 +247,18 @@ index cd54fd2..ab6cc8f 100644
 +	 */
 +	if (iris_enc_start_gated(inst)) {
 +		struct vb2_queue *dst_q = v4l2_m2m_get_dst_vq(inst->m2m_ctx);
++		struct vb2_queue *src_q = v4l2_m2m_get_src_vq(inst->m2m_ctx);
 +		u32 route = inst->core->iris_platform_data->num_vpp_pipe;
- 
--	if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
--		return 0;
++
 +		if (V4L2_TYPE_IS_OUTPUT(plane) && !vb2_start_streaming_called(dst_q)) {
 +			inst->enc_start_deferred = true;
 +			return 0;
 +		}
-+		if (!V4L2_TYPE_IS_OUTPUT(plane) && !inst->enc_start_deferred)
++		/*
++		 * CAPTURE: start once the raw port streams, also when CAPTURE
++		 * alone was stopped (STOP/RELEASE) and is restarted.
++		 */
++		if (!V4L2_TYPE_IS_OUTPUT(plane) && !vb2_start_streaming_called(src_q))
 +			return 0;
 +		inst->enc_start_deferred = false;
 +		if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
@@ -271,14 +270,16 @@ index cd54fd2..ab6cc8f 100644
 +	} else {
 +		if (!V4L2_TYPE_IS_OUTPUT(plane))
 +			return 0;
-+
+ 
+-	if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
+-		return 0;
 +		if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
 +			return 0;
 +	}
  
  	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_LOAD_RESOURCES);
  	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_LOAD_RESOURCES);
-@@ -430,12 +458,23 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+@@ -431,12 +464,23 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
  			 */
  		}
  	} else {
@@ -302,7 +303,7 @@ index cd54fd2..ab6cc8f 100644
  		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
  					 VB2_BUF_STATE_ERROR);
  		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
-@@ -456,8 +495,12 @@ static int iris_hfi_gen1_session_continue(struct iris_inst *inst, u32 plane)
+@@ -457,8 +501,12 @@ static int iris_hfi_gen1_session_continue(struct iris_inst *inst, u32 plane)
  
  static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_buffer *buf)
  {
@@ -317,7 +318,7 @@ index cd54fd2..ab6cc8f 100644
  
  	if (inst->domain == DECODER) {
  		com_ip_pkt.shdr.hdr.size = sizeof(struct hfi_session_empty_buffer_compressed_pkt);
-@@ -498,7 +541,10 @@ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_
+@@ -499,7 +547,10 @@ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_
  
  static int iris_hfi_gen1_queue_output_buffer(struct iris_inst *inst, struct iris_buffer *buf)
  {
@@ -329,7 +330,7 @@ index cd54fd2..ab6cc8f 100644
  
  	op_pkt.shdr.hdr.size = sizeof(struct hfi_session_fill_buffer_pkt);
  	op_pkt.shdr.hdr.pkt_type = HFI_CMD_SESSION_FILL_BUFFER;
-@@ -526,6 +572,9 @@ static int iris_hfi_gen1_queue_internal_buffer(struct iris_inst *inst, struct ir
+@@ -527,6 +578,9 @@ static int iris_hfi_gen1_queue_internal_buffer(struct iris_inst *inst, struct ir
  	u32 packet_size;
  	int ret;
  
@@ -339,7 +340,7 @@ index cd54fd2..ab6cc8f 100644
  	packet_size = struct_size(int_pkt, buffer_info, 1);
  	int_pkt = kzalloc(packet_size, GFP_KERNEL);
  	if (!int_pkt)
-@@ -663,6 +712,11 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+@@ -664,6 +718,11 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
  	if (inst->domain == ENCODER) {
  		struct hfi_session_empty_buffer_uncompressed_pkt ip_pkt = {0};
  

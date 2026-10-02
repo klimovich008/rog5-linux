@@ -428,33 +428,58 @@ another attempt in the same boot; a fresh boot is the cleaner test.
 
 ## k116 trials
 
-Kernel k116 = k115 + patches 0163-0165, DTB d15 unchanged, three RAM
-wrappers built up front (the RAM-trial launcher takes one boot per
-wrapper): `main-k116-d15-261002a`, `-b`, `-c` (paths and SHA-256 in
-[bundles.md](../bundles.md) and the 2026-10-02 report). What changed for
-SM8350 (only for the `qcom,sm8350-iris` compatible, through its own
-platform data):
+Kernel k116 = k115 + patches 0163-0168, DTB d15 unchanged. RAM wrappers
+(the RAM-trial launcher takes one boot per wrapper): `main-k116-d15-261002a`
+(E1), `-b` (E2), `-c` (spare / E1 repeat), and `-d` kept for the dedicated
+encoder boot (paths and SHA-256 in [bundles.md](../bundles.md)). What
+changed for SM8350 (only for the `qcom,sm8350-iris` compatible, through its
+own platform data and vpu ops), after the k115 trials and five GPT-6.1-Sol
+deep dives (`docs/reviews/2026-10-02-gpt-6.1-sol-video-k115-deep-dive-*.md`):
 
 - `HFI_PROPERTY_PARAM_SECURE_SESSION = 0` right after SESSION_INIT, before
-  any buffer (stock does this; VP9 failed without it);
+  any buffer (stock does this for every non-secure session; VP9 failed at
+  its first PERSIST SET_BUFFERS with "CP mode is UNKNOWN" without it);
 - real 4 KiB EOS buffer for every drain, decoder and encoder (no dummy);
-- the stock Iris2 controller power off (X2RPMh, AON MVP NOC, debug bridge
-  7 then 0) instead of the CPU-NOC handshake that always timed out;
+- power off and on in the stock Iris2 order (0167): the handshakes
+  (X2RPMh = 3, AON MVP NOC, debug bridge 7 then 0) while both GDSCs, all
+  clocks and the votes are still held; then clocks MVS0, MVS0C, AXI0; MVS0
+  back to software control (checked) before both GDSCs go; then the
+  bandwidth votes and a real OPP release (the old rate-0 call kept the
+  lowest OPP's MX/MMCX votes). No CPU-NOC request (it never acknowledged:
+  `CPU NOC LPI handshake timed out` at every k115 power off) and no TZ FIFO
+  reset. Power on: votes, OPP, MVS0C, MVS0, reset, clocks, stock preset
+  (clear bits 0x11 of +0xb0088 instead of writing 0). Power-collapse
+  readiness as stock (PC_READY and WFI in the same read);
 - firmware inter-frame power collapse always on (the `interframe_pc`
-  switch is gone); opening the decoder is refused while
-  `power/control` is `on` (pinned runtime PM hung the SoC idle);
+  switch is gone: C showed that turning it off alone stops the firmware);
 - encoder node only with `experimental_encoder=1`, VP9 only with
   `experimental_vp9=1` (both module load time, 0444);
 - `ubwc_config=1` (run time, applies at the next firmware load) sends the
-  stock LPDDR5 UBWC config; off by default;
+  stock LPDDR5 UBWC config (60-byte packet); off by default;
+- gen1 property packets are allocated for their wire structure (0166:
+  profile/level and H.264 entropy wrote 4 bytes past their allocation;
+  encoder-only properties, fixed for every gen1 user);
+- robustness (0168): a failed resume keeps everything if TrustZone did not
+  confirm the firmware suspend; bandwidth votes are cached only once
+  applied; an unrequested flush answer no longer wraps the flush count;
 - compliance: bus_info `platform:aa00000.video-codec`, no DEFAULT
   colorspace in formats;
 - bring-up guards: `markers=1` prints a line before/after every risky
-  step (for netconsole), 16-word HFI trace, DMA window
+  step (core init, PM, power off), 16-word HFI trace, DMA window
   [0x25800000, 0xe0000000) enforced for every firmware-visible buffer,
   property and power-vote failures fail the stream-on.
 
-Do not write `power/control` in these trials (leave it `auto`).
+Runtime PM: leave `power/control` at `auto` (the default and D's tested
+state). The k115 report first blamed pinned runtime PM for an idle hang in
+B; the live kmsg showed B went on decoding and hung at the encoder test,
+like D, so the k116 guard against pinned runtime PM was dropped.
+
+What the trials should show for 0167: no `NOC`, `debug bridge` or
+`power off reported an error` lines after a power down; with `markers=1`
+the lines `mark: power off: handshakes done: 0` and `mark: power off:
+done: 0`. Any nonzero value names the step (the power off continues like
+stock). `MVS0 stays under hardware control` means the core latched itself
+off until reboot (the module stays pinned).
 
 ### Boot E1: defaults (wrapper a)
 
@@ -468,9 +493,14 @@ Do not write `power/control` in these trials (leave it `auto`).
    framemd5 of each with the software decoder.
 3. `install-rog5-video-firmware --runtime`, then H.264 decode, compare
    (expect `IDENTICAL`, 300 frames); HEVC decode, compare; H.264 again.
-4. Power off clean? `dmesg | grep -E 'NOC|debug bridge|controller power off'`
-   should print nothing after each idle power-down (k115: `CPU NOC LPI
-   handshake timed out` every time).
+4. Power off clean? Before the first decode
+   `echo 1 > /sys/module/qcom_iris/parameters/markers`; after each idle
+   power-down (5 s) `dmesg | grep -E 'NOC|debug bridge|power off|power domain|OPP release|MVS0|mark: power'`
+   should show only `mark: power off: handshakes done: 0` and
+   `mark: power off: done: 0` (k115: `CPU NOC LPI handshake timed out`
+   every time). Also check that the core clock and both video GDSCs are off
+   (`grep -E 'video_cc_mvs0|mvs0' /sys/kernel/debug/clk/clk_summary`,
+   `grep -i mvs0 /sys/kernel/debug/pm_genpd/pm_genpd_summary`).
 5. GStreamer `v4l2h264dec` with byte-stream/au caps (as in the k115 plan)
    and `v4l2h265dec`.
 6. `v4l2-compliance -d /dev/videoN > /var/tmp/compl-dec.txt 2>&1` on a
@@ -493,17 +523,71 @@ the HFI trace as `00011001 ... 00001011 00000000`. Optionally a second VP9
 decode after `echo 1 > /sys/module/qcom_iris/parameters/ubwc_config`
 needs a firmware reload: rebind the module first.
 
-### Later: encoder (wrapper c, dedicated boot)
+### Later: encoder (wrapper d, dedicated boot)
 
-Only with an external log: on the host
-`socat -u UDP-RECV:6666 - | tee encoder-netconsole.log` (or `nc -lu 6666`,
-and allow UDP 6666 in the host firewall); on the phone
-`modprobe -d /run/rog5-modules netconsole netconsole=@/<ncm-if>,6666@169.254.77.1/`
-(`<ncm-if>` = the USB NCM interface, see `ip -br link`; target MAC defaults
-to broadcast) and `dmesg -n 8`. Then
+Not before E1 has passed, on a fresh boot with no decode before it (B and
+D both hung at encoder start, D 140 ms after the encode marker, right
+after a controller power off). The encoder still has known open problems
+(below); this boot only localises the hang. Two log paths, because a hard
+hang loses the journal:
+
+- External, live: on the host
+  `socat -u UDP-RECV:6666 - | tee encoder-netconsole.log` (or `nc -lu 6666`,
+  allow UDP 6666 in the host firewall); on the phone
+  `modprobe -d /run/rog5-modules netconsole netconsole=@/<ncm-if>,6666@169.254.77.1/`
+  (`<ncm-if>` = the USB NCM interface, see `ip -br link`; target MAC
+  defaults to broadcast) and `dmesg -n 8`. Also keep `ssh root@<phone>
+  'dmesg -w' > encoder-kmsg.log` running (that is what kept B's and D's
+  last lines). Neither is guaranteed to flush the very last line.
+- Persistent: the ramoops console (0x9b800000, 4 MiB) survives the reset,
+  but the wrapper overwrites the start of its console zone. Before the test:
+  `echo Y > /sys/module/printk/parameters/ignore_loglevel`, unbind the
+  debug UART console (`echo 98c000.serial > /sys/bus/platform/drivers/msm_geni_serial/unbind`
+  or the current driver name), and pad the log past 160 KB (e.g. 2000
+  `echo pad-$i > /dev/kmsg`). After the reset (lands on the installed
+  default, `main-k113-d13-261001a` today),
+  `insmod rog5_ramdump-k113.ko` (host copy in
+  `~/.local/state/rog5-encoder-trial/`, built for k113; rebuild it from the
+  `.c` next to it if the default changed; it maps the raw region read-only) and save
+  `/sys/kernel/debug/rog5_ramdump`; the wrapper's `postmortem snapshot
+  bytes=N` line gives the dead boot's console length.
+
+Then
 `modprobe -r qcom_iris && modprobe -d /run/rog5-modules qcom_iris experimental_encoder=1 markers=1`,
 the firmware, and one encode with NV12 input:
 `timeout 60 ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30:duration=5 -vf format=nv12 -pix_fmt nv12 -c:v h264_v4l2m2m -b:v 4M -an -y /var/tmp/enc.h264`.
-The last `mark:` line received before a hang names the step. Consider
-`ubwc_config=1` in a following encoder boot (stock sends it; the encoder
-writes UBWC reference frames).
+The last `mark:` line before the hang names the step (marked: core init
+steps, runtime suspend/resume, power off, and every command before and
+after its doorbell: session init, each property, SET_BUFFERS, LOAD, START,
+the first six ETB/FTB of a session).
+
+### Deferred from the deep dives (not in k116)
+
+Each is a separate experiment or larger change; ordered by expected value.
+
+- Encoder: translate V4L2 profile/level enums to HFI ones (stock
+  msm_vidc_common.c:360; now sent untranslated, zero falls back to H.264
+  High/1); stock allocates encoder PERSIST in the secure non-pixel pool
+  (msm_smem.c:376, stream 0x2104, VMID 0xb) even for non-secure sessions,
+  which Linux cannot do while the hypervisor owns the secure banks: the
+  top-ranked hang candidate; one configuration transaction after both
+  ports are ready; the stock baseline properties; a printk-independent
+  persistent breadcrumb journal.
+- Power: hand MVS0 to hardware right after the PAS load / SCM resume and
+  before the HFI boot (stock order); drop the VERSION_INFO (+0xa0058) write
+  at boot; pulse only the AXI0 reset (stock DT lists no MVS0C reset);
+  `hw_clk_ctrl` on the MVS0 RCG (stock sets CFG bit 20); scale the
+  controller clock too; hold resources instead of collapsing after a
+  failed handshake (stock logs and continues, k116 too).
+- VP9 beyond SECURE_SESSION: decoder init properties (profile/level with
+  stock mapping, output order, thumbnail off, realtime, conceal colours);
+  25% input headroom and 16-line alignment for gen1 VP9 line buffers; VP9
+  admission limits; DPB retirement on resolution change; 10-bit/profile 2.
+- Robustness/performance: OUTPUT/OUTPUT2 minimum/actual buffer counts
+  from the real allocations (now 32/32 and DPB count for OUTPUT2); one
+  effective frame rate for clock and bandwidth (bandwidth uses 30 fps,
+  clocks a submission count, 1080p30 lands in the 60 fps row); COMV sized
+  for the real reference count (32 now: 66 MB for HEVC 1080p); requeue
+  driver-owned DPBs after a flush (seek); bounded sequence-change parsing;
+  decoder QBUF ignoring power-vote errors; session admission (the 17th
+  open is silently not listed); Lahaina core limits and clock model; DCVS.

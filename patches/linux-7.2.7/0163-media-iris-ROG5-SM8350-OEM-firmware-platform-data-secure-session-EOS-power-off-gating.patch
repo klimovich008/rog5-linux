@@ -1,7 +1,7 @@
-From 6ae8c7e9e3772a5a6fdfc4fdc89b03114b60442d Mon Sep 17 00:00:00 2001
+From e5fe3c273a1351977b734365c31dc405a6dc79e8 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 2 Oct 2026 02:24:55 +0200
-Subject: [PATCH 1/3] media: iris: ROG5: SM8350 OEM-firmware platform data
+Subject: [PATCH 1/6] media: iris: ROG5: SM8350 OEM-firmware platform data
  (secure session, EOS, power off, gating)
 
 The k115 RAM trials on the ROG Phone 5 (SM8350, ASUS vpu20_4v firmware)
@@ -16,9 +16,10 @@ established, with the 0157 diagnostics:
 - the generic controller power off asks the CPU NOC at wrapper +0x5c/+0x60,
   which never acknowledges here, and then skips the debug-bridge steps;
   stock Iris2 does X2RPMh, AON MVP NOC and the debug bridge (7, then 0);
-- pinned runtime PM with the firmware's power collapse hung the SoC idle;
-  disabling the firmware power collapse alone stopped the firmware;
-- the H.264 encoder hung the SoC at session start.
+- disabling the firmware power collapse alone stopped the firmware;
+- the H.264 encoder hung the SoC at session start (boots B and D; B had
+  run HEVC, VP9 and GStreamer decodes with runtime PM pinned first, so the
+  pinned mode is not shown unsafe).
 
 Scope all of it to SM8350 through new platform data selected by the
 "qcom,sm8350-iris" compatible (the board also lists the qcom,sm8250-venus
@@ -27,13 +28,10 @@ fallback, so other SM8250-compatible devices are unchanged):
 - SECURE_SESSION = 0 right after SESSION_INIT, before any buffer.
 - Real EOS buffer for decoder and encoder drains (no dummy fallback); the
   eos_buffer parameter remains for other gen1 platforms.
-- iris_vpu2_sm8350_ops: the stock Iris2 controller power off; handshake
-  failures are logged and the first one returned, the power off goes on
-  like stock.
+- iris_vpu2_sm8350_ops: the stock Iris2 controller handshakes (0167
+  completes this with the stock power off/on order).
 - The firmware's inter-frame power collapse stays enabled; the incomplete
   interframe_pc switch of 0161 is removed.
-- Opens are refused while runtime PM is pinned (power/control = on); this
-  does not guard a later write while the core is up.
 - The encoder node is only registered with experimental_encoder=1 and VP9
   only advertised with experimental_vp9=1 (module load time); session open
   refuses both again before SESSION_INIT.
@@ -44,16 +42,15 @@ fallback, so other SM8250-compatible devices are unchanged):
 ROG5: patch 0163, kernel k116. Not in upstream.
 ---
  drivers/media/platform/qcom/iris/iris_core.h  |   4 +
- .../qcom/iris/iris_hfi_gen1_command.c         | 169 +++++++++++++++---
+ .../qcom/iris/iris_hfi_gen1_command.c         | 170 +++++++++++++++---
  .../qcom/iris/iris_hfi_gen1_defines.h         |   2 +
- .../platform/qcom/iris/iris_platform_common.h |  32 ++++
- .../platform/qcom/iris/iris_platform_vpu2.c   |  56 ++++++
+ .../platform/qcom/iris/iris_platform_common.h |  30 ++++
+ .../platform/qcom/iris/iris_platform_vpu2.c   |  55 ++++++
  drivers/media/platform/qcom/iris/iris_probe.c |  43 ++++-
  drivers/media/platform/qcom/iris/iris_vdec.c  |   4 +-
- drivers/media/platform/qcom/iris/iris_vidc.c  |  14 ++
  drivers/media/platform/qcom/iris/iris_vpu2.c  |  59 ++++++
  .../platform/qcom/iris/iris_vpu_common.h      |   1 +
- 10 files changed, 354 insertions(+), 30 deletions(-)
+ 9 files changed, 338 insertions(+), 30 deletions(-)
 
 diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
 index f37f0d0..d3bf6f1 100644
@@ -78,7 +75,7 @@ index f37f0d0..d3bf6f1 100644
  
  int iris_core_init(struct iris_core *core);
 diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
-index 1b72972..cd54fd2 100644
+index 1b72972..0311abf 100644
 --- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
 +++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
 @@ -20,25 +20,50 @@ module_param(fw_debug, uint, 0644);
@@ -145,7 +142,7 @@ index 1b72972..cd54fd2 100644
  
  static u32 iris_hfi_gen1_buf_type_from_driver(enum iris_buffer_type buffer_type)
  {
-@@ -62,6 +87,51 @@ static u32 iris_hfi_gen1_buf_type_from_driver(enum iris_buffer_type buffer_type)
+@@ -62,6 +87,52 @@ static u32 iris_hfi_gen1_buf_type_from_driver(enum iris_buffer_type buffer_type)
  	}
  }
  
@@ -175,6 +172,7 @@ index 1b72972..cd54fd2 100644
 +		u32 pad;
 +	} __packed pkt = {};
 +
++	BUILD_BUG_ON(sizeof(pkt) != 60);
 +	if (!cfg || !READ_ONCE(ubwc_config))
 +		return 0;
 +
@@ -197,7 +195,7 @@ index 1b72972..cd54fd2 100644
  static int iris_hfi_gen1_sys_init(struct iris_core *core)
  {
  	struct hfi_sys_init_pkt sys_init_pkt;
-@@ -79,8 +149,10 @@ static int iris_hfi_gen1_sys_init(struct iris_core *core)
+@@ -79,8 +150,10 @@ static int iris_hfi_gen1_sys_init(struct iris_core *core)
  	sys_init_pkt.arch_type = HFI_VIDEO_ARCH_OX;
  
  	ret = iris_hfi_queue_cmd_write_locked(core, &sys_init_pkt, sys_init_pkt.hdr.size);
@@ -209,7 +207,7 @@ index 1b72972..cd54fd2 100644
  
  	dbg.hdr.size = sizeof(dbg);
  	dbg.hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
-@@ -89,7 +161,11 @@ static int iris_hfi_gen1_sys_init(struct iris_core *core)
+@@ -89,7 +162,11 @@ static int iris_hfi_gen1_sys_init(struct iris_core *core)
  	dbg.cfg.debug_config = fw_debug;
  	dbg.cfg.debug_mode = HFI_DEBUG_MODE_QUEUE;
  
@@ -222,7 +220,7 @@ index 1b72972..cd54fd2 100644
  }
  
  static int iris_hfi_gen1_sys_image_version(struct iris_core *core)
-@@ -122,7 +198,7 @@ static int iris_hfi_gen1_sys_interframe_powercollapse(struct iris_core *core)
+@@ -122,7 +199,7 @@ static int iris_hfi_gen1_sys_interframe_powercollapse(struct iris_core *core)
  	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
  	pkt->num_properties = 1;
  	pkt->data[0] = HFI_PROPERTY_SYS_CODEC_POWER_PLANE_CTRL;
@@ -231,7 +229,7 @@ index 1b72972..cd54fd2 100644
  
  	ret = iris_hfi_queue_cmd_write_locked(core, pkt, pkt->hdr.size);
  	kfree(pkt);
-@@ -153,8 +229,12 @@ static void iris_hfi_gen1_expect(struct iris_inst *inst, u32 msg)
+@@ -153,8 +230,12 @@ static void iris_hfi_gen1_expect(struct iris_inst *inst, u32 msg)
  	reinit_completion(&inst->completion);
  }
  
@@ -244,7 +242,7 @@ index 1b72972..cd54fd2 100644
  	struct hfi_session_open_pkt packet;
  	u32 codec = 0;
  	int ret;
-@@ -162,6 +242,13 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
+@@ -162,6 +243,13 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
  	if (inst->state != IRIS_INST_DEINIT)
  		return -EALREADY;
  
@@ -258,7 +256,7 @@ index 1b72972..cd54fd2 100644
  	switch (inst->codec) {
  	case V4L2_PIX_FMT_H264:
  		codec = HFI_VIDEO_CODEC_H264;
-@@ -191,7 +278,26 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
+@@ -191,7 +279,26 @@ static int iris_hfi_gen1_session_open(struct iris_inst *inst)
  	if (ret)
  		return ret;
  
@@ -286,7 +284,7 @@ index 1b72972..cd54fd2 100644
  }
  
  static void iris_hfi_gen1_packet_session_cmd(struct iris_inst *inst,
-@@ -540,15 +646,11 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+@@ -540,15 +647,11 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
  		ip_pkt.flags = HFI_BUFFERFLAG_EOS;
  		ip_pkt.packet_buffer = 0xdeadb000;
  
@@ -306,7 +304,7 @@ index 1b72972..cd54fd2 100644
  			ip_pkt.alloc_len = SZ_4K;
  			ip_pkt.filled_len = 0;
  		}
-@@ -567,6 +669,16 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+@@ -567,6 +670,16 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
  		ip_pkt.flags = HFI_BUFFERFLAG_EOS;
  		ip_pkt.packet_buffer = 0xdeadb000;
  
@@ -323,7 +321,7 @@ index 1b72972..cd54fd2 100644
  		return iris_hfi_queue_session_cmd_write(inst, &ip_pkt, ip_pkt.shdr.hdr.size);
  	}
  
-@@ -657,6 +769,13 @@ iris_hfi_gen1_packet_session_set_property(struct hfi_session_set_property_pkt *p
+@@ -657,6 +770,13 @@ iris_hfi_gen1_packet_session_set_property(struct hfi_session_set_property_pkt *p
  		packet->shdr.hdr.size += sizeof(*sz);
  		break;
  	}
@@ -358,7 +356,7 @@ index f346845..f84db56 100644
  #define HFI_PROPERTY_PARAM_WORK_ROUTE			0x1017
  #define HFI_PROPERTY_CONFIG_FRAME_RATE			0x2001
 diff --git a/drivers/media/platform/qcom/iris/iris_platform_common.h b/drivers/media/platform/qcom/iris/iris_platform_common.h
-index ff48333..80a11b3 100644
+index ff48333..6128010 100644
 --- a/drivers/media/platform/qcom/iris/iris_platform_common.h
 +++ b/drivers/media/platform/qcom/iris/iris_platform_common.h
 @@ -56,6 +56,7 @@ extern const struct iris_firmware_data iris_hfi_gen2_data;
@@ -369,7 +367,7 @@ index ff48333..80a11b3 100644
  extern const struct iris_platform_data sm8550_data;
  extern const struct iris_platform_data sm8650_data;
  extern const struct iris_platform_data sm8750_data;
-@@ -287,6 +288,35 @@ struct iris_firmware_desc {
+@@ -287,6 +288,33 @@ struct iris_firmware_desc {
  	const char *fwname;
  };
  
@@ -396,8 +394,6 @@ index ff48333..80a11b3 100644
 +	bool encoder_experimental;
 +	/* VP9 decoding only with experimental_vp9=1 at module load */
 +	bool vp9_experimental;
-+	/* refuse opens while runtime PM is pinned (power/control = on) */
-+	bool require_runtime_pm_auto;
 +	/* sent at core init with ubwc_config=1 */
 +	const struct iris_gen1_ubwc_config *ubwc;
 +};
@@ -405,7 +401,7 @@ index ff48333..80a11b3 100644
  struct iris_platform_data {
  	/*
  	 * XXX: replace with gen1 / gen2 pointers once we have platforms
-@@ -323,6 +353,8 @@ struct iris_platform_data {
+@@ -323,6 +351,8 @@ struct iris_platform_data {
  	u32 max_core_mbpf;
  	/* max number of macroblocks per second supported */
  	u32 max_core_mbps;
@@ -415,10 +411,10 @@ index ff48333..80a11b3 100644
  
  #endif
 diff --git a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
-index 6e06a32..2d0ebb7 100644
+index 6e06a32..0655f2f 100644
 --- a/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
 +++ b/drivers/media/platform/qcom/iris/iris_platform_vpu2.c
-@@ -93,6 +93,62 @@ const struct iris_platform_data sc7280_data = {
+@@ -93,6 +93,61 @@ const struct iris_platform_data sc7280_data = {
  	.max_core_mbps = 4096 * 2176 / 256 * 60,
  };
  
@@ -443,7 +439,6 @@ index 6e06a32..2d0ebb7 100644
 +	.eos_buffer = true,
 +	.encoder_experimental = true,
 +	.vp9_experimental = true,
-+	.require_runtime_pm_auto = true,
 +	.ubwc = &iris_sm8350_ubwc,
 +};
 +
@@ -578,31 +573,6 @@ index 9e228b7..a1a35dd 100644
  		break;
  	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
  		fmt = iris_vdec_formats_cap;
-diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
-index f3301af..4bc0473 100644
---- a/drivers/media/platform/qcom/iris/iris_vidc.c
-+++ b/drivers/media/platform/qcom/iris/iris_vidc.c
-@@ -145,6 +145,20 @@ int iris_open(struct file *filp)
- 	else
- 		return -EINVAL;
- 
-+	/*
-+	 * ROG5: on SM8350 a pinned runtime PM (power/control = on) with the
-+	 * firmware's power collapse enabled hung the SoC while idle (k115
-+	 * trial B); refuse to start the firmware in that mode. This does not
-+	 * guard a later write to power/control while the core is up.
-+	 */
-+	if (core->iris_platform_data->oem &&
-+	    core->iris_platform_data->oem->require_runtime_pm_auto &&
-+	    !core->dev->power.runtime_auto) {
-+		dev_warn_ratelimited(core->dev,
-+				     "runtime PM is pinned (power/control = on); refusing to start the video core\n");
-+		return -EPERM;
-+	}
-+
- 	ret = pm_runtime_resume_and_get(core->dev);
- 	if (ret < 0)
- 		return ret;
 diff --git a/drivers/media/platform/qcom/iris/iris_vpu2.c b/drivers/media/platform/qcom/iris/iris_vpu2.c
 index b8714dc..3f1425f 100644
 --- a/drivers/media/platform/qcom/iris/iris_vpu2.c

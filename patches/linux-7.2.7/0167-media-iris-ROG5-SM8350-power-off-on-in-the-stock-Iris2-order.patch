@@ -1,0 +1,417 @@
+From 3a279d0837b2e34a745eb8b1fa693c7c6e260e3e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 03:20:36 +0200
+Subject: [PATCH 5/6] media: iris: ROG5: SM8350 power off/on in the stock Iris2
+ order
+
+The k115 trials logged "CPU NOC LPI handshake timed out (0x0)" at every
+power off, also before any firmware was loaded. 0163 replaced only the
+controller handshakes; a deep dive of the stock lahaina driver
+(hfi_iris2.c:176, hfi_common.c:3121/:3786, lahaina-vidc.dtsi) showed the
+outer order differs as well: the generic code lowers the OPP, takes MVS0
+out of hardware control, collapses MVS0 and stops its clock, and only then
+does the controller handshakes. Stock does the handshakes with both GDSCs,
+all clocks and the votes still held, and powers up MVS0 before reset and
+clocks.
+
+New optional vpu_ops (power_off, power_on, prepare_pc), used only by
+iris_vpu2_sm8350_ops (compatible "qcom,sm8350-iris"); other platforms keep
+the split callbacks.
+
+Power off: X2RPMh = 3; AON MVP NOC low-power request/ack; debug bridge 7
+(wait for 7) then 0 (wait for 0); clocks MVS0 -> MVS0C -> AXI0; MVS0 back
+to software control, checked, before MVS0 and then MVS0C are collapsed;
+bandwidth votes; then a real OPP release with dev_pm_opp_set_opp(NULL)
+(iris_opp_set_rate(dev, 0) selected the lowest OPP and kept its MX/MMCX
+votes). No CPU-NOC request and no TZ AXI halt / QNS4PDX FIFO reset (not in
+the stock sequence). A handshake that does not complete is logged and the
+power off goes on, as stock does. If MVS0 cannot be taken back from
+hardware control, its domain, MVS0C and the votes stay and the core is
+latched unavailable through the new iris_core_hold_locked() (fatal,
+fw_held, containment work; 0168 keeps the device and its MX/MMCX
+suppliers runtime-active in that state).
+
+Power on: bandwidth vote, OPP, MVS0C, MVS0 (software control), the reset
+pulse, clocks AXI0 -> MVS0C -> MVS0, the operating rate (a failure now fails
+the power on; it was ignored), and the stock preset (clear bits 0x11 of
+wrapper +0x88, keep the others, where the generic code wrote 0). Unwinds
+what it took; a failure part way through the first OPP set can leave
+MX/MMCX votes the OPP API cannot roll back (noted in the code).
+
+Power-collapse readiness as stock (hfi_iris2.c:255): after PC_PREP,
+PC_READY and WFI must be seen in the same pass (ten passes of 150-250 us);
+the generic code polled them one after the other.
+
+Unchanged (separate experiments, see docs/hardware/video.md): both resets
+are still pulsed (stock lists only the AXI0 one), MVS0 is still handed to
+hardware after the HFI boot (stock: before), VERSION_INFO is still written
+at boot, and the MVS0 RCG still has no hardware clock control.
+
+ROG5: patch 0167, kernel k116. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_core.c  |  20 ++
+ drivers/media/platform/qcom/iris/iris_core.h  |   1 +
+ drivers/media/platform/qcom/iris/iris_vpu2.c  | 211 ++++++++++++++++--
+ .../platform/qcom/iris/iris_vpu_common.c      |  17 ++
+ .../platform/qcom/iris/iris_vpu_common.h      |   4 +
+ 5 files changed, 238 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index 370c4e2..ba5317f 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -183,6 +183,26 @@ void iris_core_fatal(struct iris_core *core, const char *reason)
+ 	mutex_unlock(&core->lock);
+ }
+ 
++/*
++ * ROG5: the hardware could not be released safely (MVS0 stuck under hardware
++ * control, or the firmware not confirmed suspended): keep every resource,
++ * latch the core and fail its instances. Called with core->lock held. The
++ * runtime PM callbacks refuse to suspend while core->fw_held, so the device
++ * and its MX/MMCX suppliers stay active (system sleep is refused too).
++ */
++void iris_core_hold_locked(struct iris_core *core, const char *reason)
++{
++	dev_err(core->dev,
++		"%s: keeping the video core powered; video unavailable until qcom_iris is reloaded\n",
++		reason);
++	core->fatal = true;
++	core->fw_held = true;
++	if (core->state == IRIS_CORE_INIT)
++		core->state = IRIS_CORE_ERROR;
++	if (!core->removing)
++		schedule_delayed_work(&core->sys_error_handler, 0);
++}
++
+ static void iris_core_fail_instance(struct iris_inst *inst)
+ {
+ 	mutex_lock(&inst->lock);
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index cdaeecc..3493e0e 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -190,6 +190,7 @@ void iris_core_trace(struct iris_core *core, u32 dir, const void *pkt);
+ void iris_core_fw_log(struct iris_core *core, const u8 *msg, size_t len);
+ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool force);
+ void iris_core_fatal(struct iris_core *core, const char *reason);
++void iris_core_hold_locked(struct iris_core *core, const char *reason);
+ void iris_core_contain_fatal(struct iris_core *core);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu2.c b/drivers/media/platform/qcom/iris/iris_vpu2.c
+index 3f1425f..9619c82 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu2.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu2.c
+@@ -5,13 +5,22 @@
+ 
+ #include <linux/bits.h>
+ #include <linux/iopoll.h>
++#include <linux/pm_domain.h>
++#include <linux/pm_opp.h>
++#include <linux/pm_runtime.h>
+ #include <linux/reset.h>
+ 
++#include "iris_core.h"
+ #include "iris_instance.h"
++#include "iris_resources.h"
+ #include "iris_vpu_common.h"
+ 
+ #include "iris_vpu_register_defines.h"
+ 
++/* stock hfi_iris2.c CTRL_STATUS (SCIACMDARG0) */
++#define IRIS2_CTRL_STATUS		(CPU_CS_BASE_OFFS + 0x4C)
++#define IRIS2_CTRL_STATUS_PC_READY	0x100
++
+ static u64 iris_vpu2_calc_freq(struct iris_inst *inst, size_t data_size)
+ {
+ 	struct platform_inst_caps *caps = inst->core->iris_platform_data->inst_caps;
+@@ -39,17 +48,32 @@ static u64 iris_vpu2_calc_freq(struct iris_inst *inst, size_t data_size)
+ }
+ 
+ /*
+- * ROG5: controller power off as the stock Iris2 driver does it
+- * (hfi_iris2.c:176, HPG 6.1.2): X2RPMh = 3, AON MVP-NOC low-power request
+- * and acknowledge, debug bridge to low power (7, wait for 7) and back (0,
+- * wait for 0), then clocks and the controller power domain. The generic
+- * sequence asks the CPU-NOC at wrapper +0x5c/+0x60 instead, which never
+- * acknowledged on SM8350 ("CPU NOC LPI handshake timed out (0x0)" at every
+- * power off in the k115 trials) and then skipped the debug-bridge steps.
++ * ROG5: SM8350 power sequence in the stock Iris2 order (hfi_iris2.c:176,
++ * hfi_common.c:3786 and :3121, lahaina-vidc.dtsi).
++ *
++ * The generic sequence first lowered the OPP, took MVS0 out of hardware
++ * control, collapsed MVS0 and stopped its clock, and only then did the
++ * controller handshakes, asking the CPU NOC at wrapper +0x5c/+0x60, which
++ * never acknowledged on SM8350 ("CPU NOC LPI handshake timed out (0x0)" at
++ * every power off in the k115 trials) and skipped the debug bridge. Its
++ * TZ AXI halt and QNS4PDX FIFO reset are not in the stock sequence either.
++ *
++ * Power off: with both GDSCs, all three clocks and the votes still held,
++ * X2RPMh = 3, AON MVP NOC low-power request/ack, debug bridge 7 then 0;
++ * then the clocks MVS0 -> MVS0C -> AXI0; MVS0 back to software control
++ * (checked) before it is collapsed, then MVS0C; then the bandwidth votes
++ * and a real OPP release (dev_pm_opp_set_opp(NULL); setting rate 0 only
++ * selected the lowest OPP and kept its MX/MMCX votes).
+  * Like stock, a handshake that does not complete is reported and the power
+- * off goes on; the first failure is returned.
++ * off goes on. If MVS0 cannot be taken back from hardware control, the
++ * domains and votes stay and the core is latched unavailable.
++ *
++ * Power on: votes and OPP, MVS0C, then MVS0 (software control), the reset
++ * pulse, clocks AXI0 -> MVS0C -> MVS0, the operating rate, and the preset
++ * as stock does it (clear bits 0x11 of wrapper +0x88, keep the others).
++ * The generic order powered and clocked the controller before MVS0.
+  */
+-static int iris_vpu2_sm8350_power_off_controller(struct iris_core *core)
++static int iris_vpu2_sm8350_lpi_handshakes(struct iris_core *core)
+ {
+ 	u32 val = 0;
+ 	int ret, err = 0;
+@@ -80,19 +104,176 @@ static int iris_vpu2_sm8350_power_off_controller(struct iris_core *core)
+ 		err = err ?: ret;
+ 	}
+ 
+-	iris_disable_unprepare_clock(core, IRIS_AHB_CLK);
++	return err;
++}
++
++static int iris_vpu2_sm8350_power_off(struct iris_core *core)
++{
++	struct device *ctrl_pd = core->pmdomain_tbl->pd_devs[IRIS_CTRL_POWER_DOMAIN];
++	struct device *hw_pd = core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN];
++	int ret, err;
++
++	iris_mark(core, "power off: handshakes");
++	err = iris_vpu2_sm8350_lpi_handshakes(core);
++	iris_mark(core, "power off: handshakes done: %d", err);
++
++	/* no codec register access from here on */
++	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_CTRL_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_AXI_CLK);
+-	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_CTRL_POWER_DOMAIN]);
++
++	ret = dev_pm_genpd_set_hwmode(hw_pd, false);
++	if (ret) {
++		dev_err(core->dev, "MVS0 stays under hardware control (%d)\n", ret);
++		iris_core_hold_locked(core, "MVS0 not released");
++		return err ?: ret;
++	}
++
++	ret = pm_runtime_put_sync(hw_pd);
++	if (ret < 0) {
++		dev_err(core->dev, "MVS0 power domain off failed: %d\n", ret);
++		err = err ?: ret;
++	}
++	ret = pm_runtime_put_sync(ctrl_pd);
++	if (ret < 0) {
++		dev_err(core->dev, "MVS0C power domain off failed: %d\n", ret);
++		err = err ?: ret;
++	}
++
++	ret = iris_unset_icc_bw(core);
++	if (ret) {
++		dev_err(core->dev, "dropping the bandwidth votes failed: %d\n", ret);
++		err = err ?: ret;
++	}
++	ret = dev_pm_opp_set_opp(core->dev, NULL);
++	if (ret) {
++		dev_err(core->dev, "OPP release failed: %d\n", ret);
++		err = err ?: ret;
++	}
++	iris_mark(core, "power off: done: %d", err);
+ 
+ 	return err;
+ }
+ 
++static int iris_vpu2_sm8350_power_on(struct iris_core *core)
++{
++	struct device *ctrl_pd = core->pmdomain_tbl->pd_devs[IRIS_CTRL_POWER_DOMAIN];
++	struct device *hw_pd = core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN];
++	u32 rst_tbl_size = core->iris_platform_data->clk_rst_tbl_size;
++	unsigned long freq;
++	u32 val;
++	int ret;
++
++	ret = iris_set_icc_bw(core, INT_MAX);
++	if (ret)
++		goto err_unvote_icc;
++
++	/*
++	 * A failure part way through this first OPP set can leave required
++	 * (MX/MMCX) votes behind that the NULL release below does not drop
++	 * (the OPP table is not marked enabled yet); the OPP API offers no
++	 * rollback for that case.
++	 */
++	ret = iris_opp_set_rate(core->dev, ULONG_MAX);
++	if (ret)
++		goto err_release_opp;
++
++	ret = pm_runtime_resume_and_get(ctrl_pd);
++	if (ret)
++		goto err_release_opp;
++
++	ret = pm_runtime_resume_and_get(hw_pd);
++	if (ret)
++		goto err_put_ctrl_pd;
++
++	ret = reset_control_bulk_reset(rst_tbl_size, core->resets);
++	if (ret)
++		goto err_put_hw_pd;
++
++	ret = iris_prepare_enable_clock(core, IRIS_AXI_CLK);
++	if (ret)
++		goto err_put_hw_pd;
++
++	ret = iris_prepare_enable_clock(core, IRIS_CTRL_CLK);
++	if (ret)
++		goto err_disable_axi_clk;
++
++	ret = iris_prepare_enable_clock(core, IRIS_HW_CLK);
++	if (ret)
++		goto err_disable_ctrl_clk;
++
++	freq = core->power.clk_freq ? core->power.clk_freq : ULONG_MAX;
++	ret = iris_opp_set_rate(core->dev, freq);
++	if (ret) {
++		dev_err(core->dev, "setting the core clock to %lu failed (%d)\n", freq, ret);
++		goto err_disable_hw_clk;
++	}
++
++	val = readl(core->reg_base + 0xb0088);
++	writel(val & ~0x11, core->reg_base + 0xb0088);
++
++	return 0;
++
++err_disable_hw_clk:
++	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
++err_disable_ctrl_clk:
++	iris_disable_unprepare_clock(core, IRIS_CTRL_CLK);
++err_disable_axi_clk:
++	iris_disable_unprepare_clock(core, IRIS_AXI_CLK);
++err_put_hw_pd:
++	pm_runtime_put_sync(hw_pd);
++err_put_ctrl_pd:
++	pm_runtime_put_sync(ctrl_pd);
++err_release_opp:
++	dev_pm_opp_set_opp(core->dev, NULL);
++err_unvote_icc:
++	iris_unset_icc_bw(core);
++
++	return ret;
++}
++
++/*
++ * ROG5: stock iris_hfi_prepare_pc (hfi_iris2.c:255): after PC_PREP, PC_READY
++ * and the CPU's WFI must be seen in the same read pass, ten passes of
++ * 150-250 us. The generic code polls them one after the other.
++ */
++static int iris_vpu2_sm8350_prepare_pc(struct iris_core *core)
++{
++	u32 ctrl_status, wfi_status;
++	int ret, i;
++
++	ctrl_status = readl(core->reg_base + IRIS2_CTRL_STATUS);
++	if (ctrl_status & IRIS2_CTRL_STATUS_PC_READY)
++		return 0;
++
++	wfi_status = readl(core->reg_base + WRAPPER_TZ_CPU_STATUS) & BIT(0);
++	if (!wfi_status || !(ctrl_status & BIT(30)))
++		goto skip_power_off;
++
++	ret = core->hfi_sys_ops->sys_pc_prep(core);
++	if (ret)
++		goto skip_power_off;
++
++	for (i = 0; i < 10; i++) {
++		wfi_status = readl(core->reg_base + WRAPPER_TZ_CPU_STATUS) & BIT(0);
++		ctrl_status = readl(core->reg_base + IRIS2_CTRL_STATUS);
++		if (wfi_status && (ctrl_status & IRIS2_CTRL_STATUS_PC_READY))
++			return 0;
++		usleep_range(150, 250);
++	}
++
++skip_power_off:
++	ctrl_status = readl(core->reg_base + IRIS2_CTRL_STATUS);
++	wfi_status = readl(core->reg_base + WRAPPER_TZ_CPU_STATUS) & BIT(0);
++	dev_err(core->dev, "skip power collapse, wfi=%#x, ctrl=%#x\n", wfi_status, ctrl_status);
++
++	return -EAGAIN;
++}
++
+ const struct vpu_ops iris_vpu2_sm8350_ops = {
+-	.power_off_hw = iris_vpu_power_off_hw,
+-	.power_on_hw = iris_vpu_power_on_hw,
+-	.power_off_controller = iris_vpu2_sm8350_power_off_controller,
+-	.power_on_controller = iris_vpu_power_on_controller,
++	.power_off = iris_vpu2_sm8350_power_off,
++	.power_on = iris_vpu2_sm8350_power_on,
++	.prepare_pc = iris_vpu2_sm8350_prepare_pc,
+ 	.calc_freq = iris_vpu2_calc_freq,
+ 	.set_hwmode = iris_vpu_set_hwmode,
+ };
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.c b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+index ab0c65d..c27b7a4 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.c
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.c
+@@ -138,6 +138,9 @@ int iris_vpu_prepare_pc(struct iris_core *core)
+ 	u32 ctrl_status, val = 0;
+ 	int ret;
+ 
++	if (core->iris_platform_data->vpu_ops->prepare_pc)
++		return core->iris_platform_data->vpu_ops->prepare_pc(core);
++
+ 	ctrl_status = readl(core->reg_base + CTRL_STATUS);
+ 	pc_ready = ctrl_status & CTRL_STATUS_PC_READY;
+ 	idle_status = ctrl_status & BIT(30);
+@@ -249,6 +252,12 @@ void iris_vpu_power_off(struct iris_core *core)
+ 		disable_irq_nosync(core->irq);
+ 	core->powered = false;
+ 
++	if (core->iris_platform_data->vpu_ops->power_off) {
++		if (core->iris_platform_data->vpu_ops->power_off(core))
++			dev_err(core->dev, "power off reported an error\n");
++		return;
++	}
++
+ 	iris_opp_set_rate(core->dev, 0);
+ 	core->iris_platform_data->vpu_ops->power_off_hw(core);
+ 	if (core->iris_platform_data->vpu_ops->power_off_controller(core))
+@@ -482,6 +491,13 @@ int iris_vpu_power_on(struct iris_core *core)
+ 	u32 freq;
+ 	int ret;
+ 
++	if (core->iris_platform_data->vpu_ops->power_on) {
++		ret = core->iris_platform_data->vpu_ops->power_on(core);
++		if (ret)
++			goto err;
++		goto powered;
++	}
++
+ 	ret = iris_set_icc_bw(core, INT_MAX);
+ 	if (ret)
+ 		goto err;
+@@ -501,6 +517,7 @@ int iris_vpu_power_on(struct iris_core *core)
+ 
+ 	iris_vpu_set_preset_registers(core);
+ 
++powered:
+ 	iris_vpu_interrupt_init(core);
+ 	core->intr_status = 0;
+ 	core->powered = true;
+diff --git a/drivers/media/platform/qcom/iris/iris_vpu_common.h b/drivers/media/platform/qcom/iris/iris_vpu_common.h
+index 448b806..1ca4775 100644
+--- a/drivers/media/platform/qcom/iris/iris_vpu_common.h
++++ b/drivers/media/platform/qcom/iris/iris_vpu_common.h
+@@ -16,6 +16,10 @@ extern const struct vpu_ops iris_vpu35_ops;
+ extern const struct vpu_ops iris_vpu4x_ops;
+ 
+ struct vpu_ops {
++	/* ROG5: optional complete sequences replacing the split callbacks */
++	int (*power_off)(struct iris_core *core);
++	int (*power_on)(struct iris_core *core);
++	int (*prepare_pc)(struct iris_core *core);
+ 	void (*power_off_hw)(struct iris_core *core);
+ 	int (*power_on_hw)(struct iris_core *core);
+ 	int (*power_off_controller)(struct iris_core *core);

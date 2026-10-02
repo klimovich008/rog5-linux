@@ -1,0 +1,101 @@
+From 631a45d5be0b4ee3e5d7f1c7884849a90373e56a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 03:16:12 +0200
+Subject: [PATCH 4/6] media: iris: ROG5: gen1 property packets sized for their
+ wire structure
+
+hfi_gen1_set_property() allocated header + property id + the caller's
+payload_size, but the packetizer writes the property's wire structure.
+Two callers pass less than that:
+- profile/level (iris_set_profile_level_gen1) passes sizeof(u32) for the
+  8-byte struct hfi_profile_level: the packet is declared and queued with
+  28 bytes from a 24-byte allocation;
+- the H.264 entropy control passes sizeof(u32) and the packetizer writes
+  struct hfi_h264_entropy_control (entropy_mode + cabac_model), 8 bytes.
+
+Both are encoder properties (found by the k115 encoder deep dive), but the
+helper is shared by every gen1 user, so fix it there: allocate room for
+the largest gen1 property structure (128 bytes, checked at build time
+for the largest ones), refuse to queue a packet whose declared size does
+not fit, and pass the real size for profile/level.
+
+Audit of the other gen1 packets: SYS_SET_PROPERTY (interframe power
+collapse), SET_BUFFERS (internal buffers, struct_size), RELEASE_BUFFERS
+(40-byte allocation, 36 or 40 bytes declared), the 0157 debug config and
+the 0163 UBWC config (on-stack, fixed size) are within their buffers.
+
+Still open for the encoder (it stays behind experimental_encoder=1):
+V4L2 profile/level enums are sent untranslated (stock maps them,
+msm_vidc_common.c:360) and a zero profile/level falls back to H.264 High/1.
+
+ROG5: patch 0166, kernel k116. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_ctrls.c |  2 +-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 27 ++++++++++++++++++-
+ 2 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_ctrls.c b/drivers/media/platform/qcom/iris/iris_ctrls.c
+index 344e802..5e4c673 100644
+--- a/drivers/media/platform/qcom/iris/iris_ctrls.c
++++ b/drivers/media/platform/qcom/iris/iris_ctrls.c
+@@ -599,7 +599,7 @@ int iris_set_profile_level_gen1(struct iris_inst *inst, enum platform_inst_fw_ca
+ 					     HFI_HOST_FLAGS_NONE,
+ 					     iris_get_port_info(inst, cap_id),
+ 					     HFI_PAYLOAD_U32_ENUM,
+-					     &pl, sizeof(u32));
++					     &pl, sizeof(pl));
+ }
+ 
+ int iris_set_header_mode_gen1(struct iris_inst *inst, enum platform_inst_fw_cap_type cap_id)
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index b703492..a447d5e 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -1021,6 +1021,16 @@ iris_hfi_gen1_packet_session_set_property(struct hfi_session_set_property_pkt *p
+ 	return 0;
+ }
+ 
++/*
++ * ROG5: the packetizer writes the property's wire structure, which is not
++ * always what the caller passed as payload_size: profile/level came with
++ * 4 bytes for an 8-byte structure and the H.264 entropy control with 4 for
++ * 8 (entropy_mode + cabac_model), so both packets ran 4 bytes past their
++ * allocation. Allocate room for the largest gen1 property structure and
++ * check the written size against it before the packet is queued.
++ */
++#define IRIS_HFI_GEN1_PROP_MAX	128
++
+ static int hfi_gen1_set_property(struct iris_inst *inst, u32 packet_type,
+ 				 void *payload, u32 payload_size)
+ {
+@@ -1028,7 +1038,15 @@ static int hfi_gen1_set_property(struct iris_inst *inst, u32 packet_type,
+ 	u32 packet_size;
+ 	int ret;
+ 
+-	packet_size = sizeof(*pkt) + sizeof(u32) + payload_size;
++	BUILD_BUG_ON(sizeof(struct hfi_uncompressed_plane_actual_constraints_info) >
++		     IRIS_HFI_GEN1_PROP_MAX);
++	BUILD_BUG_ON(sizeof(struct hfi_uncompressed_plane_actual_info) > IRIS_HFI_GEN1_PROP_MAX);
++	BUILD_BUG_ON(sizeof(struct hfi_quantization_range_v2) > IRIS_HFI_GEN1_PROP_MAX);
++	BUILD_BUG_ON(sizeof(struct hfi_buffer_count_actual) > IRIS_HFI_GEN1_PROP_MAX);
++	BUILD_BUG_ON(sizeof(struct hfi_ltr_use) > IRIS_HFI_GEN1_PROP_MAX);
++
++	packet_size = sizeof(*pkt) + sizeof(u32) +
++		      max_t(u32, payload_size, IRIS_HFI_GEN1_PROP_MAX);
+ 	pkt = kzalloc(packet_size, GFP_KERNEL);
+ 	if (!pkt)
+ 		return -ENOMEM;
+@@ -1041,6 +1059,13 @@ static int hfi_gen1_set_property(struct iris_inst *inst, u32 packet_type,
+ 	if (ret)
+ 		goto exit;
+ 
++	if (WARN_ONCE(pkt->shdr.hdr.size > packet_size,
++		      "iris: property %#x wrote %u bytes into %u\n",
++		      packet_type, pkt->shdr.hdr.size, packet_size)) {
++		ret = -EOVERFLOW;
++		goto exit;
++	}
++
+ 	ret = iris_hfi_queue_session_cmd_write(inst, pkt, pkt->shdr.hdr.size);
+ 
+ exit:
