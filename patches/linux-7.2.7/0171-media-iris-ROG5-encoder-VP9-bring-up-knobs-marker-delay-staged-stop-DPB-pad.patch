@@ -1,0 +1,201 @@
+From b000eef77f531deea94430dfc358e08978472313 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 14:15:29 +0200
+Subject: [PATCH 3/3] media: iris: ROG5: encoder/VP9 bring-up knobs (marker
+ delay, staged stop, DPB pad)
+
+For the dedicated encoder RAM boot (B and D hung the SoC at encoder start
+with nothing after the start marker) and the VP9 follow-up, three module
+parameters, all off by default and writable at run time:
+
+- marker_delay_ms: sleep (or delay, in atomic context) after each
+  `markers=1` line, so that netconsole, a `dmesg -w` reader over USB and
+  the persistent ramoops console have the line before the next step
+  touches the hardware.
+- enc_stop_before: encoder sessions refuse the first command of the given
+  HFI packet type with -ECANCELED (e.g. 0x11002 SET_BUFFERS, 0x211001
+  LOAD_RESOURCES, 0x211002 START, 0x211005 FTB, 0x211004 ETB). One boot
+  can walk the encoder start forward step by step, backing out cleanly
+  after each, and only the last run goes all the way. A stop before START
+  releases the resources LOAD_RESOURCES took.
+- dpb_pad_kib: extra KiB per decoder reference buffer on SM8350, in case
+  the stock-sized DPBs of 0170 are still rejected by the VP9 firmware
+  (change it only between sessions: it applies to DPBs created later).
+
+ROG5: patch 0171, kernel k117. Not in upstream.
+---
+ .../media/platform/qcom/iris/iris_buffer.c    | 11 ++++++++-
+ drivers/media/platform/qcom/iris/iris_core.c  | 23 +++++++++++++++++++
+ drivers/media/platform/qcom/iris/iris_core.h  |  6 ++++-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 19 +++++++++++++++
+ .../media/platform/qcom/iris/iris_hfi_queue.c | 18 +++++++++++++++
+ 5 files changed, 75 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index b8b28b8..6289cde 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -3,6 +3,8 @@
+  * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  */
+ 
++#include <linux/module.h>
++#include <linux/sizes.h>
+ #include <media/v4l2-event.h>
+ #include <media/v4l2-mem2mem.h>
+ 
+@@ -264,6 +266,11 @@ static u32 iris_yuv_buffer_size_qc08c(struct iris_inst *inst)
+ 	return ALIGN(y_meta_plane + y_plane + uv_meta_plane + uv_plane, PIXELS_4K);
+ }
+ 
++/* ROG5, VP9 bring-up: extra bytes per DPB if the stock size is not enough */
++static unsigned int iris_dpb_pad_kib;
++module_param_named(dpb_pad_kib, iris_dpb_pad_kib, uint, 0644);
++MODULE_PARM_DESC(dpb_pad_kib, "SM8350: extra KiB per decoder reference buffer (VP9 bring-up)");
++
+ /*
+  * ROG5, SM8350 OEM firmware: the reference (DPB) size as the stock driver
+  * computes it, VENUS_BUFFER_SIZE(COLOR_FMT_NV12_UBWC) (msm_media_info.h).
+@@ -503,7 +510,9 @@ int iris_get_buffer_size(struct iris_inst *inst,
+ 			else if (inst->core->iris_platform_data->oem)
+ 				return max(iris_yuv_buffer_size_qc08c(inst),
+ 					   iris_ubwc_nv12_size_stock(inst->fmt_dst->fmt.pix_mp.width,
+-								     inst->fmt_dst->fmt.pix_mp.height));
++								     inst->fmt_dst->fmt.pix_mp.height)) +
++				       ALIGN(min(READ_ONCE(iris_dpb_pad_kib), 16384U) * SZ_1K,
++					     PIXELS_4K);
+ 			else
+ 				return iris_yuv_buffer_size_qc08c(inst);
+ 		default:
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index 3f618b2..f0898c3 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -8,6 +8,8 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/timekeeping.h>
+ 
++#include <linux/delay.h>
++
+ #include "iris_core.h"
+ #include "iris_firmware.h"
+ #include "iris_instance.h"
+@@ -18,6 +20,27 @@ bool iris_markers;
+ module_param_named(markers, iris_markers, bool, 0644);
+ MODULE_PARM_DESC(markers, "print a line before/after each risky step (for netconsole)");
+ 
++/*
++ * ROG5, encoder bring-up: after each marker wait this long, so that
++ * netconsole, a `dmesg -w` reader and the persistent ramoops console have
++ * the line before the next step touches the hardware.
++ */
++unsigned int iris_marker_delay_ms;
++module_param_named(marker_delay_ms, iris_marker_delay_ms, uint, 0644);
++MODULE_PARM_DESC(marker_delay_ms, "wait after each marker line (ms, max 1000)");
++
++void iris_mark_settle(void)
++{
++	unsigned int ms = min(READ_ONCE(iris_marker_delay_ms), 1000U);
++
++	if (!ms)
++		return;
++	if (preemptible())
++		msleep(ms);
++	else
++		mdelay(ms);
++}
++
+ /* ROG5: called with core->lock held; @pkt starts with the HFI size word */
+ void iris_core_trace(struct iris_core *core, u32 dir, const void *pkt)
+ {
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index 5d11f2e..765350e 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -40,10 +40,14 @@ struct icc_info {
+  * the in-memory trace dies with the SoC.
+  */
+ extern bool iris_markers;
++extern unsigned int iris_marker_delay_ms;
++void iris_mark_settle(void);
+ #define iris_mark(core, fmt, ...)						\
+ 	do {								\
+-		if (READ_ONCE(iris_markers))				\
++		if (READ_ONCE(iris_markers)) {				\
+ 			dev_warn((core)->dev, "mark: " fmt "\n", ##__VA_ARGS__); \
++			iris_mark_settle();				\
++		}							\
+ 	} while (0)
+ 
+ struct iris_trace_entry {
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 637dd7d..ccb7d6f 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -388,6 +388,25 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_START);
+ 
+ 	ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
++	if (ret == -ECANCELED) {
++		/*
++		 * ROG5, enc_stop_before START: LOAD_RESOURCES was acknowledged
++		 * but no sub-state records it; release it here, as a stream-off
++		 * would after STOP.
++		 */
++		iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_RELEASE_RESOURCES);
++		iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_RELEASE_RESOURCES);
++		ret = iris_hfi_queue_session_cmd_write(inst, &packet, packet.shdr.hdr.size);
++		if (!ret)
++			ret = iris_wait_for_session_response(inst, false);
++		if (ret) {
++			dev_err(inst->core->dev,
++				"session %#x: release after the cancelled START failed: %d\n",
++				inst->session_id, ret);
++			return ret;
++		}
++		return -ECANCELED;
++	}
+ 	if (ret)
+ 		return ret;
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_queue.c b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+index 4d716ca..96dd3c3 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_queue.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+@@ -3,6 +3,7 @@
+  * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  */
+ 
++#include <linux/module.h>
+ #include <linux/pm_runtime.h>
+ 
+ #include "iris_core.h"
+@@ -186,11 +187,28 @@ exit:
+  * init attempt). Commands for a session of an earlier firmware instance are
+  * what produced "invalid session id" (0x1004) after upstream's reload.
+  */
++/*
++ * ROG5, encoder bring-up: refuse to send the first command of this HFI
++ * packet type in an encoder session (-ECANCELED), so that one boot can
++ * walk the encoder start up to a chosen step and back out cleanly.
++ */
++static unsigned int enc_stop_before;
++module_param(enc_stop_before, uint, 0644);
++MODULE_PARM_DESC(enc_stop_before,
++		 "encoder sessions: refuse this HFI command type (e.g. 0x211001 LOAD_RESOURCES); 0 = off");
++
+ int iris_hfi_queue_session_cmd_write(struct iris_inst *inst, void *pkt, u32 pkt_size)
+ {
+ 	struct iris_core *core = inst->core;
++	u32 stop = READ_ONCE(enc_stop_before);
+ 	int ret;
+ 
++	if (stop && inst->domain == ENCODER && pkt_size >= 8 && ((u32 *)pkt)[1] == stop) {
++		dev_warn(core->dev, "mark: encoder stopped before command %#x (enc_stop_before)\n",
++			 stop);
++		return -ECANCELED;
++	}
++
+ 	ret = pm_runtime_resume_and_get(core->dev);
+ 	if (ret < 0)
+ 		return ret;

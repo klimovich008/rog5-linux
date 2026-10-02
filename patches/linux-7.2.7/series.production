@@ -130,3 +130,6 @@
 0166-media-iris-ROG5-gen1-property-packets-sized-for-their-wire-structure.patch
 0167-media-iris-ROG5-SM8350-power-off-on-in-the-stock-Iris2-order.patch
 0168-media-iris-ROG5-resume-unwind-bandwidth-vote-and-flush-answer-robustness.patch
+0169-media-iris-ROG5-safe-publication-reload-and-PM-reference-fixes.patch
+0170-media-iris-ROG5-SM8350-decoder-buffers-as-the-stock-driver-sizes-them.patch
+0171-media-iris-ROG5-encoder-VP9-bring-up-knobs-marker-delay-staged-stop-DPB-pad.patch

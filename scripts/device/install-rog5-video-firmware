@@ -24,7 +24,9 @@
 #   --runtime   the same name under the kernel's firmware_class.path directory
 #               (/run/rog5-charge-firmware, tmpfs): gone at the next boot, for a
 #               first supervised trial (a wedge then cannot repeat at boot)
-#   --check     prints the installed copies and whether they match the pin
+#   --check     prints the installed copies, whether they match the pin and
+#               which one the kernel loads first; exits 1 unless that one
+#               is the pinned image
 #   --uninstall removes both copies (and the directories if empty)
 # The driver only requests the firmware on an open; to retry after installing
 # into a running system: v4l2-ctl --list-devices (or reopen any /dev/video*).
@@ -54,20 +56,49 @@ case ${1:-} in
 esac
 [ $# -le 1 ] || { echo 'usage: install-rog5-video-firmware [--runtime|--check|--uninstall]' >&2; exit 2; }
 
-if [ "$mode" = check ] || [ "$mode" = uninstall ]; then
+# The kernel's search order (drivers/base/firmware_loader/main.c): the
+# firmware_class.path directory first, then /lib/firmware/updates/<release>,
+# /lib/firmware/updates, /lib/firmware/<release>, /lib/firmware.
+search_order() {
+	if d=$(cat /sys/module/firmware_class/parameters/path 2>/dev/null) && [ -n "$d" ]; then
+		echo "$d/$name"
+	fi
+	echo "/lib/firmware/updates/$(uname -r)/$name"
+	echo "/lib/firmware/updates/$name"
+	echo "/lib/firmware/$(uname -r)/$name"
+	echo "$persistent"
+}
+
+if [ "$mode" = check ]; then
+	effective=
+	for f in $(search_order); do
+		[ -e "$f" ] || continue
+		if [ "$(sha256sum "$f" | cut -d ' ' -f 1)" = "$sha" ]; then
+			echo "ok      $f"
+		else
+			echo "WRONG   $f (not the pinned vpu20_4v.mbn)"
+		fi
+		[ -n "$effective" ] || effective=$f
+	done
+	if [ -z "$effective" ]; then
+		echo "absent  $name (no copy in the firmware search path)"
+		exit 1
+	fi
+	echo "loaded  $effective (first in the search order)"
+	[ "$(sha256sum "$effective" | cut -d ' ' -f 1)" = "$sha" ] || exit 1
+	exit 0
+fi
+
+if [ "$mode" = uninstall ]; then
 	targets=$persistent
 	if rdir=$(runtime_dir); then targets="$targets $rdir/$name"; fi
 	for f in $targets; do
 		if [ ! -e "$f" ]; then
 			echo "absent  $f"
-		elif [ "$mode" = uninstall ]; then
+		else
 			rm -f "$f"
 			rmdir "${f%/*}" "${f%/*/*}" 2>/dev/null || true
 			echo "removed $f"
-		elif [ "$(sha256sum "$f" | cut -d ' ' -f 1)" = "$sha" ]; then
-			echo "ok      $f"
-		else
-			echo "WRONG   $f (not the pinned vpu20_4v.mbn)"
 		fi
 	done
 	exit 0
@@ -78,9 +109,14 @@ if [ "$mode" = runtime ]; then
 	target=$rdir/$name
 else
 	target=$persistent
-	# A copy earlier in the search path would be loaded instead.
-	for f in /lib/firmware/updates/$name /lib/firmware/updates/$(uname -r)/$name /lib/firmware/$(uname -r)/$name; do
-		[ ! -e "$f" ] || { echo "refusing: $f exists and would be loaded instead of $target" >&2; exit 1; }
+	# A copy earlier in the search path (the firmware_class.path directory
+	# included) would be loaded instead.
+	for f in $(search_order); do
+		[ "$f" != "$target" ] || continue
+		[ -e "$f" ] || continue
+		[ "$(sha256sum "$f" | cut -d ' ' -f 1)" = "$sha" ] ||
+			{ echo "refusing: $f exists and would be loaded instead of $target" >&2; exit 1; }
+		echo "note: $f (the pinned image too) comes first in the search path"
 	done
 fi
 

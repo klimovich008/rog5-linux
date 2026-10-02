@@ -1,5 +1,11 @@
 # Hardware video decode/encode (Iris v2 on SM8350)
 
+Status 2026-10-02 (k117): k116 is the installed default (H.264/HEVC decode
+bit-exact, compliance 48/48; [k116 trials](../../test-results/2026-10-02-video-iris-k116-ram-trials.md)).
+Its trials left VP9 with every reference buffer rejected and a phone reset
+on a module reload; kernel k117 (0169-0171) addresses both and prepares the
+staged encoder boot: [k117 trials](#k117-trials). Earlier:
+
 Status 2026-10-02 (k116): k115's trials found the cause of the decode-end
 crash (the dummy EOS address) and made H.264 and HEVC decode work
 bit-exactly ([test-results/2026-10-02-video-iris-k115-ram-trials.md](../../test-results/2026-10-02-video-iris-k115-ram-trials.md));
@@ -403,7 +409,9 @@ After a fatal error the log shows, in this order:
   received; `w0` packet size, `w1` packet type, `w2` session id (system
   packets have none), then the payload (EMPTY_BUFFER: w5 flags, 0x1 = EOS,
   w9 alloc_len, w10 filled_len, w11 input tag, w12 buffer address;
-  FILL_BUFFER: w3 stream id, w4 buffer address; see
+  FILL_BUFFER: w3 stream id (0 = the firmware's OUTPUT port, the
+  internal reference/DPB buffers in split mode; 1 = OUTPUT2, the client's
+  CAPTURE buffers), w4 offset, w5 alloc_len, w7 tag, w8 buffer address; see
   `iris_hfi_gen1_defines.h`). Sent types:
   0x10001 SYS_INIT, 0x10005 SYS_SET_PROPERTY, 0x10007 SESSION_INIT,
   0x10008 SESSION_END, 0x11001 SET_PROPERTY, 0x11002 SET_BUFFERS,
@@ -422,9 +430,12 @@ The last `t` lines before the first `r 21001` with w3 = 1 name the command
 the firmware failed on; that is the question for the next variant. Then
 `video core shut down after the fatal error` (TrustZone accepted the
 shutdown) or `firmware shutdown (PAS) failed ...; keeping the video core
-powered` (it did not: the core stays on until reboot). `modprobe -r
-qcom_iris; modprobe -d /run/rog5-modules qcom_iris` rebinds the driver for
-another attempt in the same boot; a fresh boot is the cleaner test.
+powered` (it did not: the core stays on until reboot). Do not reload the
+module to retry: a reload reset the phone in the k116 trials (E2, wrapper
+b). From k117 the module is pinned while firmware runs (`modprobe -r` says
+"in use"); `echo 1 > /sys/bus/platform/devices/aa00000.video-codec/firmware_unload`
+shuts an idle core down first. Load-time options belong in
+`/etc/modprobe.d/` before the boot; a fresh boot is the test.
 
 ## k116 trials
 
@@ -522,7 +533,9 @@ off until reboot (the module stays pinned).
 
 ### Boot E2: VP9 (wrapper b)
 
-Load-time switch: the module is loaded by `rog5-video.service` at boot, so
+*Superseded: the reload below reset the phone (k116 E2, wrapper b); E2
+was redone with the option in `/etc/modprobe.d` at boot (wrapper c). See
+[k117 trials](#k117-trials).* Load-time switch: the module is loaded by `rog5-video.service` at boot, so
 reload it before the firmware is installed:
 `modprobe -r qcom_iris && modprobe -d /run/rog5-modules qcom_iris experimental_vp9=1`
 (expect `VP9 EXPERIMENTAL`), then the firmware, an H.264 decode as a
@@ -535,6 +548,9 @@ decode after `echo 1 > /sys/module/qcom_iris/parameters/ubwc_config`
 needs a firmware reload: rebind the module first.
 
 ### Later: encoder (wrapper d, dedicated boot)
+
+*Superseded by the staged encoder boot of [k117](#k117-trials) (no module
+reload; `scripts/device/rog5-video-encoder-trial`).*
 
 Not before E1 has passed, on a fresh boot with no decode before it (B and
 D both hung at encoder start, D 140 ms after the encode marker, right
@@ -571,6 +587,110 @@ The last `mark:` line before the hang names the step (marked: core init
 steps, runtime suspend/resume, power off, and every command before and
 after its doorbell: session init, each property, SET_BUFFERS, LOAD, START,
 the first six ETB/FTB of a session).
+
+## k117 trials
+
+Kernel k117 = k116 + patches 0169-0171, DTB d15 unchanged. Wrappers and
+hashes: [bundles.md](../bundles.md) and the table below once built.
+
+What changed:
+
+- 0169, safety (GPT-6.1-Sol audit 16): the video nodes were registered
+  before their driver data was set, and runtime PM after them; udev's
+  `v4l_id` opens a new node at once and `iris_open()` dereferenced a NULL
+  core. This can oops at boot and is the leading candidate for the k116
+  reload reset (not proven: nothing was logged). Now the data, DMA mask and
+  runtime PM come first and the nodes last. While authenticated firmware
+  runs the module is pinned (`modprobe -r` refused) until TrustZone
+  confirms its shutdown; the new `firmware_unload` attribute shuts an idle
+  core down. Runtime suspend is refused while a fatal error is latched but
+  not yet contained. Clock/bandwidth scaling holds a runtime PM reference
+  across both updates; decoder QBUF fails on a failed vote.
+- 0170, VP9 (SM8350 only): the VP9 firmware rejected every reference
+  buffer (`vDec_FillThisBuffer: Buffer validation failed`, all stream-0 FTBs
+  of 0x302000 bytes). Stream 0 for the DPBs is right (split mode, as
+  stock). The leading hypothesis (credible, not established; the firmware's
+  criterion is not visible) is their size: stock sizes a DPB with
+  VENUS_BUFFER_SIZE(NV12_UBWC), which up to 1920x1920 / 8160 MBs reserves
+  two interlaced fields, 0x312000 at 1920x1088. DPBs now use the stock size;
+  luma alignment 512 (the packetizer now sends the caller's constraints);
+  input buffers +25 % for VP9/HEVC. The stock buffer counts (OUTPUT = DPB
+  count, OUTPUT2 = the client's CAPTURE minimum and allocation) are in but
+  off (`stock_buf_counts=0`), so that a VP9 result can be attributed.
+  H.264/HEVC get the same DPB sizes, so F1 re-checks them.
+- 0171, bring-up knobs (all off by default, writable at run time):
+  `marker_delay_ms` (quiet after each marker so the line leaves the
+  phone), `enc_stop_before` (encoder sessions refuse the first command of
+  that HFI type: one boot can walk the start up step by step; a stop before
+  START releases what LOAD_RESOURCES took) and `dpb_pad_kib` (extra KiB per
+  DPB, if VP9 still rejects them; change it only between sessions).
+- `install-rog5-video-firmware --check` reports the copy the kernel loads
+  first (the `firmware_class.path` directory included) and exits 1 unless
+  it is the pinned image; a persistent install refuses a differing copy
+  earlier in that path.
+
+Never reload `qcom_iris` in these trials; options go into
+`/etc/modprobe.d/rog5-video-trial.conf` before the boot and are removed
+afterwards.
+
+### F1: regression and reload (wrapper a, no options)
+
+1. E1 again with the k117 wrapper: H.264, HEVC, H.264 300/300 identical,
+   v4l2-compliance 48/48, power off `handshakes done: 0`. New: the counts
+   line (`markers=1`): `mark: counts: DPB n, CAPTURE min m actual k`.
+2. Reload safety, after the decodes: `modprobe -r -d /run/rog5-modules
+   qcom_iris` must fail with "in use" (firmware running). Then
+   `echo 1 > /sys/bus/platform/devices/aa00000.video-codec/firmware_unload`
+   (expect `mark: firmware unload`, power off done), then
+   `modprobe -r -d /run/rog5-modules qcom_iris` and
+   `modprobe -d /run/rog5-modules qcom_iris markers=1` with `ssh ... dmesg -w`
+   running; expect `mark: probe done` and one more H.264 decode identical. A reset here means the
+   cause was not (only) the probe race: the `dmesg -w` capture is the
+   evidence.
+
+### F2: VP9 (wrapper b)
+
+`options qcom_iris experimental_vp9=1 markers=1` in `/etc/modprobe.d`
+before the boot. H.264 control decode, then the 300-frame 1080p VP9 clip
+(`decode_check` from the VP9 deep dive, or `ffmpeg -c:v vp9_v4l2m2m ...
+-f framemd5` against software). Watch for `Buffer validation failed` and
+`session error`; the trace shows the DPB FTBs as `0000002c 00211005 <session>
+00000000 00000000 00312000` (stream 0, offset 0, alloc 0x312000). If they are still rejected,
+retry in the same boot, one change at a time and between sessions:
+`echo 1 > /sys/module/qcom_iris/parameters/stock_buf_counts`, then
+`echo 1024 > .../dpb_pad_kib`, then 4096 (the trace and `mark: counts:`
+show what went out). Also 720p and 4K clips.
+
+### F3: encoder, staged (wrapper c, dedicated fresh boot; d spare)
+
+`options qcom_iris experimental_encoder=1` in `/etc/modprobe.d` before the
+boot; firmware installed; no decode before. Host: `socat -u UDP-RECV:6666 -
+| tee enc-netconsole.log` and `ssh root@PHONE 'dmesg -w' > enc-kmsg.log`.
+Phone:
+`ssh root@PHONE sh -s -- --netconsole <ncm-if> --unbind-uart <scripts/device/rog5-video-encoder-trial`.
+It sets ignore_loglevel and console loglevel 8, markers=1 with
+`marker_delay_ms=50`, pads the log past 160 KiB for the ramoops console,
+and encodes 2 s of 1280x720 NV12 with `enc_stop_before` at SET_BUFFERS
+(0x11002), LOAD_RESOURCES (0x211001), START (0x211002), first ETB
+(0x211004; deferred raw input goes out before capture buffers), first FTB
+(0x211005), then no stop (expects 60 frames, `done: PASS`). A stage counts
+only if the driver logged its stop and ffmpeg ended on its own; the script
+stops at the first one that does not. Progress in
+`/var/tmp/rog5-enc-trial/progress`. If the phone resets, the last
+`rog5-enc: stage ...` line and the last `mark:` line name the step. After
+the reset it runs the installed default (k116 today): copy
+`~/.local/state/rog5-encoder-trial/rog5_ramdump-k116.ko` over, `insmod` it,
+save `/sys/kernel/debug/rog5_ramdump` (the raw ramoops region; the
+wrapper's `postmortem snapshot bytes=N` line gives the dead boot's console
+length), and fetch `/var/tmp/rog5-enc-trial/` if it was synced.
+
+What k117 does not change for the encoder: stock puts the encoder's
+INTERNAL_PERSIST buffer in the secure non-pixel pool (msm_smem.c:376,
+stream 0x2104, VMID 0xb) even for a non-secure session. Linux owns only
+stream 0x2100 here (the secure context banks stay with the hypervisor), so
+it cannot do that; if the hang is at LOAD_RESOURCES or START right after
+the PERSIST SET_BUFFERS, that is the first suspect, and the encoder may need
+the hypervisor-owned bank. The 0166 packet sizing fix is in since k116.
 
 ### Deferred from the deep dives (not in k116)
 

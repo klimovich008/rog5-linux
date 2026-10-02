@@ -1,0 +1,204 @@
+From e3bfbd3e2682bc92224ef418c85e0e4bdf772e76 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 14:13:51 +0200
+Subject: [PATCH 2/3] media: iris: ROG5: SM8350 decoder buffers as the stock
+ driver sizes them
+
+k116 trial E2 (VP9 with SECURE_SESSION=0): the "CP mode" errors were
+gone, LOAD/START and the first ETB went through, but the firmware
+rejected every internal reference buffer: "vDec_FillThisBuffer: Buffer
+validation failed for pPacketbuffer=0xc7c00000!" for each stream-0 FTB
+(alloc_len 0x302000), session error 0x1003. The client CAPTURE buffers
+on stream 1 were not rejected; split mode itself is as stock.
+
+The stock driver sizes a DPB with VENUS_BUFFER_SIZE(COLOR_FMT_NV12_UBWC)
+(msm_media_info.h; msm_comm_update_dpb_bufreqs()), which, up to 1920x1920
+and 8160 macroblocks, reserves two interlaced fields: 0x312000 for
+1920x1088 where iris's progressive QC08C layout gives 0x302000. The
+H.264/HEVC firmware accepted the smaller buffers, the VP9 firmware
+validates them. For the SM8350 OEM platform data only:
+
+- DPB size = max(iris QC08C size, stock VENUS_BUFFER_SIZE NV12_UBWC);
+  also what BUFFER_SIZE_ACTUAL tells the firmware for OUTPUT.
+- Buffer counts as stock (msm_vdec.c:1092), behind the run-time switch
+  stock_buf_counts (off by default, so that a VP9 result can be
+  attributed to the size or to the counts): OUTPUT (the DPBs) gets the
+  DPB count that is actually queued, OUTPUT2 (the client's CAPTURE
+  buffers) its minimum and the allocated count; iris sends OUTPUT 32/32
+  and the DPB count for OUTPUT2 (deep dives: VP9 and robustness).
+- Luma plane alignment 512 in the OUTPUT2 constraints, as stock; the
+  packetizer now serializes the caller's constraints instead of
+  hard-coding them (same values otherwise).
+- Compressed input buffers 25 % larger for VP9 and HEVC, as stock on
+  Iris2 (msm_vidc_buffer_calculations.c:929).
+
+Other platforms are unchanged. Whether the size alone satisfies the VP9
+firmware is for the next trial; the rejection criterion is not visible.
+
+ROG5: patch 0170, kernel k117. Not in upstream.
+---
+ .../media/platform/qcom/iris/iris_buffer.c    | 41 ++++++++++++
+ .../qcom/iris/iris_hfi_gen1_command.c         | 62 +++++++++++++++----
+ 2 files changed, 90 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_buffer.c b/drivers/media/platform/qcom/iris/iris_buffer.c
+index aa7bd8f..b8b28b8 100644
+--- a/drivers/media/platform/qcom/iris/iris_buffer.c
++++ b/drivers/media/platform/qcom/iris/iris_buffer.c
+@@ -264,6 +264,35 @@ static u32 iris_yuv_buffer_size_qc08c(struct iris_inst *inst)
+ 	return ALIGN(y_meta_plane + y_plane + uv_meta_plane + uv_plane, PIXELS_4K);
+ }
+ 
++/*
++ * ROG5, SM8350 OEM firmware: the reference (DPB) size as the stock driver
++ * computes it, VENUS_BUFFER_SIZE(COLOR_FMT_NV12_UBWC) (msm_media_info.h).
++ * Up to 1920x1920 and 8160 macroblocks it is sized for two interlaced
++ * fields: for 1920x1088 that is 0x312000 bytes where the progressive
++ * layout above gives 0x302000. The VP9 firmware rejected every 0x302000
++ * DPB ("vDec_FillThisBuffer: Buffer validation failed", k116 trial E2).
++ */
++static u32 iris_ubwc_nv12_size_stock(u32 width, u32 height)
++{
++	u32 y_stride = ALIGN(width, 128), uv_stride = ALIGN(width, 128);
++	u32 y_meta_stride = ALIGN(DIV_ROUND_UP(width, 32), 64);
++	u32 uv_meta_stride = ALIGN(DIV_ROUND_UP((width + 1) >> 1, 16), 64);
++	u32 h = height, fields = 1;
++	u32 y, uv, y_meta, uv_meta;
++
++	if (width <= 1920 && height <= 1920 && (width * height) / 256 <= (1920 * 1088) / 256) {
++		h = (height + 1) >> 1;
++		fields = 2;
++	}
++
++	y = ALIGN(y_stride * ALIGN(h, 32), PIXELS_4K);
++	uv = ALIGN(uv_stride * ALIGN((h + 1) >> 1, 32), PIXELS_4K);
++	y_meta = ALIGN(y_meta_stride * ALIGN(DIV_ROUND_UP(h, 8), 16), PIXELS_4K);
++	uv_meta = ALIGN(uv_meta_stride * ALIGN(DIV_ROUND_UP((h + 1) >> 1, 8), 16), PIXELS_4K);
++
++	return (y + uv + y_meta + uv_meta) * fields;
++}
++
+ /*
+  * QC10C:
+  * UBWC-compressed format for P010.
+@@ -412,6 +441,14 @@ static u32 iris_dec_bitstream_buffer_size(struct iris_inst *inst)
+ 	 */
+ 	frame_size = base_res_mbs * (16 * 16) * 3 / 2 / div_factor;
+ 
++	/*
++	 * ROG5, SM8350 OEM firmware: stock adds 25 % (the 10-bit allowance)
++	 * for VP9 and HEVC on Iris2 (msm_vidc_buffer_calculations.c:929).
++	 */
++	if (inst->core->iris_platform_data->oem &&
++	    (inst->codec == V4L2_PIX_FMT_VP9 || inst->codec == V4L2_PIX_FMT_HEVC))
++		frame_size += frame_size >> 2;
++
+ 	return ALIGN(frame_size, PIXELS_4K);
+ }
+ 
+@@ -463,6 +500,10 @@ int iris_get_buffer_size(struct iris_inst *inst,
+ 		case BUF_DPB:
+ 			if (iris_fmt_is_10bit(inst->fmt_dst->fmt.pix_mp.pixelformat))
+ 				return iris_yuv_buffer_size_qc10c(inst);
++			else if (inst->core->iris_platform_data->oem)
++				return max(iris_yuv_buffer_size_qc08c(inst),
++					   iris_ubwc_nv12_size_stock(inst->fmt_dst->fmt.pix_mp.width,
++								     inst->fmt_dst->fmt.pix_mp.height));
+ 			else
+ 				return iris_yuv_buffer_size_qc08c(inst);
+ 		default:
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index a447d5e..637dd7d 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -785,19 +785,17 @@ iris_hfi_gen1_packet_session_set_property(struct hfi_session_set_property_pkt *p
+ 	}
+ 	case HFI_PROPERTY_PARAM_UNCOMPRESSED_PLANE_ACTUAL_CONSTRAINTS_INFO: {
+ 		struct hfi_uncompressed_plane_actual_constraints_info *info = prop_data;
++		struct hfi_uncompressed_plane_actual_constraints_info *in = pdata;
+ 
+-		info->buffer_type = HFI_BUFFER_OUTPUT2;
+-		info->num_planes = 2;
+-		info->plane_format[0].stride_multiples = 128;
+-		info->plane_format[0].max_stride = 8192;
+-		info->plane_format[0].min_plane_buffer_height_multiple = 32;
+-		info->plane_format[0].buffer_alignment = 256;
+-		if (info->num_planes > 1) {
+-			info->plane_format[1].stride_multiples = 128;
+-			info->plane_format[1].max_stride = 8192;
+-			info->plane_format[1].min_plane_buffer_height_multiple = 16;
+-			info->plane_format[1].buffer_alignment = 256;
+-		}
++		/*
++		 * ROG5: send the caller's constraints (the only caller,
++		 * iris_hfi_gen1_set_format_constraints(), filled the same
++		 * values this used to hard-code, except the SM8350 luma
++		 * alignment).
++		 */
++		*info = *in;
++		if (info->num_planes > 2)
++			return -EINVAL;
+ 
+ 		packet->shdr.hdr.size += sizeof(*info);
+ 		break;
+@@ -1170,7 +1168,9 @@ static int iris_hfi_gen1_set_format_constraints(struct iris_inst *inst, u32 plan
+ 	pconstraint.plane_format[0].stride_multiples = 128;
+ 	pconstraint.plane_format[0].max_stride = 8192;
+ 	pconstraint.plane_format[0].min_plane_buffer_height_multiple = 32;
+-	pconstraint.plane_format[0].buffer_alignment = 256;
++	/* ROG5: stock (msm_vdec.c:501) aligns the luma plane to 512 */
++	pconstraint.plane_format[0].buffer_alignment =
++		inst->core->iris_platform_data->oem ? 512 : 256;
+ 
+ 	pconstraint.plane_format[1].stride_multiples = 128;
+ 	pconstraint.plane_format[1].max_stride = 8192;
+@@ -1180,6 +1180,14 @@ static int iris_hfi_gen1_set_format_constraints(struct iris_inst *inst, u32 plan
+ 	return hfi_gen1_set_property(inst, ptype, &pconstraint, sizeof(pconstraint));
+ }
+ 
++/*
++ * ROG5, SM8350: off by default so that a VP9 result can be attributed to the
++ * DPB size (0170) or to the counts; takes effect at the next stream start.
++ */
++static bool stock_buf_counts;
++module_param(stock_buf_counts, bool, 0644);
++MODULE_PARM_DESC(stock_buf_counts, "SM8350 decoder: buffer counts as stock (OUTPUT = DPBs, OUTPUT2 = CAPTURE)");
++
+ static int iris_hfi_gen1_set_num_bufs(struct iris_inst *inst, u32 plane)
+ {
+ 	u32 ptype = HFI_PROPERTY_PARAM_BUFFER_COUNT_ACTUAL;
+@@ -1194,6 +1202,34 @@ static int iris_hfi_gen1_set_num_bufs(struct iris_inst *inst, u32 plane)
+ 	if (ret)
+ 		return ret;
+ 
++	if (inst->domain == DECODER && inst->core->iris_platform_data->oem &&
++	    READ_ONCE(stock_buf_counts) && iris_split_mode_enabled(inst)) {
++		struct vb2_queue *dst_q = v4l2_m2m_get_dst_vq(inst->m2m_ctx);
++		u32 min = inst->buffers[BUF_OUTPUT].min_count;
++
++		/*
++		 * ROG5, SM8350 OEM firmware, as stock (msm_vdec.c:1092): the
++		 * firmware's OUTPUT port carries the DPBs (their count, which
++		 * is what gets queued), OUTPUT2 the client's CAPTURE buffers
++		 * (its minimum, and what is allocated). iris sent OUTPUT 32/32
++		 * and the DPB count for OUTPUT2.
++		 */
++		buf_count.type = HFI_BUFFER_OUTPUT;
++		buf_count.count_actual = iris_vpu_buf_count(inst, BUF_DPB);
++		buf_count.count_min_host = buf_count.count_actual;
++		ret = hfi_gen1_set_property(inst, ptype, &buf_count, sizeof(buf_count));
++		if (ret)
++			return ret;
++
++		buf_count.type = HFI_BUFFER_OUTPUT2;
++		buf_count.count_min_host = min;
++		buf_count.count_actual = max_t(u32, min, vb2_get_num_buffers(dst_q));
++		iris_mark(inst->core, "counts: DPB %u, CAPTURE min %u actual %u",
++			  iris_vpu_buf_count(inst, BUF_DPB), min, buf_count.count_actual);
++
++		return hfi_gen1_set_property(inst, ptype, &buf_count, sizeof(buf_count));
++	}
++
+ 	if (inst->domain == DECODER) {
+ 		if (iris_split_mode_enabled(inst)) {
+ 			buf_count.type = HFI_BUFFER_OUTPUT;

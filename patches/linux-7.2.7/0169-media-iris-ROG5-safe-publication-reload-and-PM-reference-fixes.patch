@@ -1,0 +1,452 @@
+From 956d4a2ec74b53b365403c98b93fbd405a295aeb Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 14:12:32 +0200
+Subject: [PATCH 1/3] media: iris: ROG5: safe publication, reload and PM
+ reference fixes
+
+From the k116 RAM trials (module reload reset the phone) and the
+GPT-6.1-Sol audit 16 of the video driver:
+
+- The video nodes were registered before video_set_drvdata(), and
+  driver data, DMA mask and runtime PM were set up after them. udev's
+  v4l_id opens a new node at once; iris_open() then dereferenced a NULL
+  core. That is a concrete candidate for the reset on re-probe. Set the
+  node data before registering it and publish the nodes last.
+- While authenticated firmware runs, the module is pinned (from
+  iris_fw_load() until the PAS shutdown and the power off after it have
+  completed without a hold; a held core stays pinned, and a teardown that
+  ends held now leaves the core in IRIS_CORE_ERROR instead of DEINIT):
+  `modprobe -r qcom_iris` is refused instead of releasing power domains,
+  votes and mappings under a running firmware. New write-only device
+  attribute firmware_unload shuts an idle core down (refused while an
+  instance exists or an open is in progress); a later open loads the
+  firmware again.
+- Runtime suspend is refused while the core is still powered after a
+  fatal error the containment work has not handled yet (it returned
+  success and dropped the MX/MMCX supplier references).
+- iris_scale_power() dropped its runtime PM reference before updating
+  clocks and bandwidth; it now holds it across both updates. Decoder
+  QBUF no longer queues work after a failed vote.
+- Markers at probe end and remove.
+
+ROG5: patch 0169, kernel k117. Not in upstream.
+---
+ drivers/media/platform/qcom/iris/iris_core.c  | 61 +++++++++++++
+ drivers/media/platform/qcom/iris/iris_core.h  |  5 ++
+ .../media/platform/qcom/iris/iris_firmware.c  | 25 +++++-
+ drivers/media/platform/qcom/iris/iris_power.c | 24 ++---
+ drivers/media/platform/qcom/iris/iris_probe.c | 88 ++++++++++++++-----
+ drivers/media/platform/qcom/iris/iris_vdec.c  |  5 +-
+ drivers/media/platform/qcom/iris/iris_vidc.c  | 14 +++
+ 7 files changed, 189 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index c36af99..3f618b2 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -97,6 +97,20 @@ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool
+ 	}
+ }
+ 
++/*
++ * ROG5: drop the module pin taken in iris_fw_load() once the firmware is
++ * shut down and the core powered off without a hold. Called with
++ * core->lock held from a context that keeps the module alive (an open
++ * file, the sysfs attribute, the containment work that removal cancels).
++ */
++static void iris_core_unpin(struct iris_core *core)
++{
++	if (core->fw_pinned && !core->fw_held) {
++		core->fw_pinned = false;
++		module_put(THIS_MODULE);
++	}
++}
++
+ /* called with core->lock held and the core not in IRIS_CORE_DEINIT */
+ static void iris_core_teardown(struct iris_core *core, bool powered)
+ {
+@@ -120,9 +134,15 @@ static void iris_core_teardown(struct iris_core *core, bool powered)
+ 
+ 	if (powered)
+ 		iris_vpu_power_off(core);
++	/* ROG5: power off kept the hardware (iris_core_hold_locked()) */
++	if (core->fw_held) {
++		core->state = IRIS_CORE_ERROR;
++		return;
++	}
+ 
+ 	iris_hfi_queues_deinit(core);
+ 	core->state = IRIS_CORE_DEINIT;
++	iris_core_unpin(core);
+ }
+ 
+ /*
+@@ -290,6 +310,42 @@ void iris_core_deinit(struct iris_core *core)
+ 	__iris_core_deinit(core, true, 0, 0);
+ }
+ 
++/*
++ * ROG5: shut an idle core down (firmware_unload attribute), so that the
++ * module pin of iris_fw_load() is dropped and qcom_iris can be removed.
++ * Refused while any instance exists or an open is in progress; a later
++ * open loads the firmware again.
++ */
++int iris_core_unload_idle(struct iris_core *core)
++{
++	int ret, pm;
++
++	pm = pm_runtime_resume_and_get(core->dev);
++	disable_irq(core->irq);
++
++	mutex_lock(&core->lock);
++	if (!list_empty(&core->instances) || atomic_read(&core->openers)) {
++		ret = -EBUSY;
++	} else if (core->fw_held || core->fatal) {
++		ret = -EIO;
++	} else {
++		ret = 0;
++		if (core->state != IRIS_CORE_DEINIT) {
++			iris_mark(core, "firmware unload");
++			iris_core_teardown(core, core->powered);
++			if (core->state != IRIS_CORE_DEINIT || core->fw_held)
++				ret = -EIO;
++		}
++	}
++	mutex_unlock(&core->lock);
++
++	enable_irq(core->irq);
++	if (pm >= 0)
++		pm_runtime_put_sync(core->dev);
++
++	return ret;
++}
++
+ /*
+  * The firmware was loaded and the core powered, but it did not complete the
+  * system init of this attempt (no answer, or an error answer): tear the core
+@@ -417,6 +473,11 @@ error_power_off:
+ 	}
+ 	iris_vpu_power_off(core);
+ 	enable_irq(core->irq);
++	if (core->fw_held) {
++		core->state = IRIS_CORE_ERROR;
++		goto exit;
++	}
++	iris_core_unpin(core);
+ error_queue_deinit:
+ 	iris_hfi_queues_deinit(core);
+ error:
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index 7be6325..5d11f2e 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -179,6 +179,10 @@ struct iris_core {
+ 	bool					fw_held;
+ 	bool					powered;
+ 	bool					removing;
++	/* ROG5: the module is pinned while authenticated firmware runs */
++	bool					fw_pinned;
++	/* ROG5: iris_open() calls in progress (see iris_core_unload_idle()) */
++	atomic_t				openers;
+ 	bool					enc_enabled;
+ 	u32					dec_fmts_size;
+ 	u32					mark_budget;
+@@ -192,6 +196,7 @@ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool
+ void iris_core_fatal(struct iris_core *core, const char *reason);
+ void iris_core_hold_locked(struct iris_core *core, const char *reason);
+ void iris_core_mark_held(struct iris_core *core);
++int iris_core_unload_idle(struct iris_core *core);
+ void iris_core_contain_fatal(struct iris_core *core);
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_firmware.c b/drivers/media/platform/qcom/iris/iris_firmware.c
+index 760b8b7..9565c08 100644
+--- a/drivers/media/platform/qcom/iris/iris_firmware.c
++++ b/drivers/media/platform/qcom/iris/iris_firmware.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/firmware.h>
++#include <linux/module.h>
+ #include <linux/firmware/qcom/qcom_scm.h>
+ #include <linux/of_address.h>
+ #include <linux/of_reserved_mem.h>
+@@ -94,6 +95,19 @@ int iris_fw_load(struct iris_core *core)
+ 	}
+ 	dev_info(core->dev, "%s authenticated and out of reset (PAS %d)\n", fwpath, IRIS_PAS_ID);
+ 
++	/*
++	 * ROG5: the firmware now runs and uses this driver's memory. Pin the
++	 * module until TrustZone confirms its shutdown: `modprobe -r` then
++	 * fails ("in use") instead of tearing down power domains, votes and
++	 * mappings under it. The firmware_unload device attribute shuts an
++	 * idle core down first. Called from iris_open(), whose file holds a
++	 * module reference, so __module_get() is safe.
++	 */
++	if (!core->fw_pinned) {
++		__module_get(THIS_MODULE);
++		core->fw_pinned = true;
++	}
++
+ 	for (i = 0; i < core->iris_platform_data->tz_cp_config_data_size; i++) {
+ 		cp_config = &core->iris_platform_data->tz_cp_config_data[i];
+ 		ret = qcom_scm_mem_protect_video_var(cp_config->cp_start,
+@@ -107,7 +121,7 @@ int iris_fw_load(struct iris_core *core)
+ 			 * stop it, keep power and memory (iris_core_init()'s
+ 			 * unwind honours fw_held) like iris_core_teardown().
+ 			 */
+-			if (qcom_scm_pas_shutdown(IRIS_PAS_ID)) {
++			if (iris_fw_unload(core)) {
+ 				dev_err(core->dev,
+ 					"firmware shutdown (PAS) failed; keeping the video core powered and its memory mapped\n");
+ 				core->fatal = true;
+@@ -122,7 +136,14 @@ int iris_fw_load(struct iris_core *core)
+ 
+ int iris_fw_unload(struct iris_core *core)
+ {
+-	return qcom_scm_pas_shutdown(IRIS_PAS_ID);
++	int ret;
++
++	ret = qcom_scm_pas_shutdown(IRIS_PAS_ID);
++	/*
++	 * ROG5: the module pin of iris_fw_load() stays until the power off
++	 * after this has completed without a hold (iris_core_unpin()).
++	 */
++	return ret;
+ }
+ 
+ int iris_set_hw_state(struct iris_core *core, bool resume)
+diff --git a/drivers/media/platform/qcom/iris/iris_power.c b/drivers/media/platform/qcom/iris/iris_power.c
+index 91aa21d..5b85b25 100644
+--- a/drivers/media/platform/qcom/iris/iris_power.c
++++ b/drivers/media/platform/qcom/iris/iris_power.c
+@@ -124,17 +124,21 @@ int iris_scale_power(struct iris_inst *inst)
+ 	struct iris_core *core = inst->core;
+ 	int ret;
+ 
+-	if (pm_runtime_suspended(core->dev)) {
+-		ret = pm_runtime_resume_and_get(core->dev);
+-		if (ret < 0)
+-			return ret;
+-
+-		pm_runtime_put_autosuspend(core->dev);
+-	}
++	/*
++	 * ROG5: hold the device active across both updates; dropping the
++	 * reference before them let an autosuspend run in between, or the
++	 * votes be restored on a core that was already powered off.
++	 */
++	ret = pm_runtime_resume_and_get(core->dev);
++	if (ret < 0)
++		return ret;
+ 
+ 	ret = iris_scale_clocks(inst);
+-	if (ret)
+-		return ret;
++	if (!ret)
++		ret = iris_vote_interconnects(inst);
++
++	pm_runtime_mark_last_busy(core->dev);
++	pm_runtime_put_autosuspend(core->dev);
+ 
+-	return iris_vote_interconnects(inst);
++	return ret;
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index b48e7ea..2d32cff 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -192,12 +192,15 @@ static int iris_register_video_device(struct iris_core *core, enum domain_type t
+ 		goto err_vdev_release;
+ 	}
+ 
++	/*
++	 * ROG5: the node can be opened (udev's v4l_id does at once) as soon
++	 * as it is registered, and iris_open() uses the driver data.
++	 */
++	video_set_drvdata(vdev, core);
+ 	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
+ 	if (ret)
+ 		goto err_vdev_release;
+ 
+-	video_set_drvdata(vdev, core);
+-
+ 	return 0;
+ 
+ err_vdev_release:
+@@ -213,6 +216,7 @@ static void iris_remove(struct platform_device *pdev)
+ 	core = platform_get_drvdata(pdev);
+ 	if (!core)
+ 		return;
++	iris_mark(core, "remove");
+ 
+ 	/* ROG5: no containment work may start or run after this */
+ 	mutex_lock(&core->lock);
+@@ -313,27 +317,17 @@ static int iris_probe(struct platform_device *pdev)
+ 
+ 	iris_session_init_caps(core);
+ 
+-	ret = v4l2_device_register(dev, &core->v4l2_dev);
+-	if (ret)
+-		return ret;
+-
+-	ret = iris_register_video_device(core, DECODER);
+-	if (ret)
+-		goto err_v4l2_unreg;
+-
+-	if (core->enc_enabled) {
+-		ret = iris_register_video_device(core, ENCODER);
+-		if (ret)
+-			goto err_vdev_unreg_dec;
+-	}
+-
++	/*
++	 * ROG5: everything an opener or a PM callback needs (driver data, DMA
++	 * mask, runtime PM) is set up before the nodes are published.
++	 */
+ 	platform_set_drvdata(pdev, core);
+ 
+ 	dma_mask = core->iris_platform_data->dma_mask;
+ 
+ 	ret = dma_set_mask_and_coherent(dev, dma_mask);
+ 	if (ret)
+-		goto err_vdev_unreg_enc;
++		return ret;
+ 
+ 	dma_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
+ 	dma_set_seg_boundary(&pdev->dev, DMA_BIT_MASK(32));
+@@ -342,12 +336,26 @@ static int iris_probe(struct platform_device *pdev)
+ 	pm_runtime_use_autosuspend(core->dev);
+ 	ret = devm_pm_runtime_enable(core->dev);
+ 	if (ret)
+-		goto err_vdev_unreg_enc;
++		return ret;
++
++	ret = v4l2_device_register(dev, &core->v4l2_dev);
++	if (ret)
++		return ret;
++
++	ret = iris_register_video_device(core, DECODER);
++	if (ret)
++		goto err_v4l2_unreg;
++
++	if (core->enc_enabled) {
++		ret = iris_register_video_device(core, ENCODER);
++		if (ret)
++			goto err_vdev_unreg_dec;
++	}
++
++	iris_mark(core, "probe done");
+ 
+ 	return 0;
+ 
+-err_vdev_unreg_enc:
+-	video_unregister_device(core->vdev_enc);
+ err_vdev_unreg_dec:
+ 	video_unregister_device(core->vdev_dec);
+ err_v4l2_unreg:
+@@ -379,6 +387,15 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 		ret = -EBUSY;
+ 		goto exit;
+ 	}
++	/*
++	 * Fatal error latched but not contained yet (the containment work
++	 * shuts the firmware down): the hardware is still on, so is the
++	 * device, until that work has run.
++	 */
++	if (core->powered && (core->fatal || core->state != IRIS_CORE_INIT)) {
++		ret = -EBUSY;
++		goto exit;
++	}
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
+@@ -414,6 +431,36 @@ exit:
+ 	return ret;
+ }
+ 
++/*
++ * ROG5: `echo 1 > firmware_unload` shuts an idle video core down (firmware
++ * PAS shutdown, power off), which releases the module pin taken while the
++ * firmware runs; `modprobe -r qcom_iris` is refused until then.
++ */
++static ssize_t firmware_unload_store(struct device *dev, struct device_attribute *attr,
++				     const char *buf, size_t count)
++{
++	struct iris_core *core = dev_get_drvdata(dev);
++	bool val;
++	int ret;
++
++	ret = kstrtobool(buf, &val);
++	if (ret)
++		return ret;
++	if (!val)
++		return count;
++
++	ret = iris_core_unload_idle(core);
++
++	return ret ? ret : count;
++}
++static DEVICE_ATTR_WO(firmware_unload);
++
++static struct attribute *iris_attrs[] = {
++	&dev_attr_firmware_unload.attr,
++	NULL
++};
++ATTRIBUTE_GROUPS(iris);
++
+ static const struct dev_pm_ops iris_pm_ops = {
+ 	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+ 				pm_runtime_force_resume)
+@@ -467,6 +514,7 @@ static struct platform_driver qcom_iris_driver = {
+ 		.pm = &iris_pm_ops,
+ 		/* ROG5: no unbind under a held core (iris_core_mark_held()) */
+ 		.suppress_bind_attrs = true,
++		.dev_groups = iris_groups,
+ 	},
+ };
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+index b838883..af45b0a 100644
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -464,7 +464,10 @@ int iris_vdec_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 		}
+ 	}
+ 
+-	iris_scale_power(inst);
++	/* ROG5: no work for the firmware on a failed clock/bandwidth vote */
++	ret = iris_scale_power(inst);
++	if (ret)
++		return ret;
+ 
+ 	return iris_queue_buffer(inst, buf);
+ }
+diff --git a/drivers/media/platform/qcom/iris/iris_vidc.c b/drivers/media/platform/qcom/iris/iris_vidc.c
+index c137ef6..313fffb 100644
+--- a/drivers/media/platform/qcom/iris/iris_vidc.c
++++ b/drivers/media/platform/qcom/iris/iris_vidc.c
+@@ -129,9 +129,23 @@ iris_m2m_queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_
+ 	return vb2_queue_init(dst_vq);
+ }
+ 
++static int __iris_open(struct file *filp, struct iris_core *core);
++
+ int iris_open(struct file *filp)
+ {
+ 	struct iris_core *core = video_drvdata(filp);
++	int ret;
++
++	/* ROG5: seen by iris_core_unload_idle() */
++	atomic_inc(&core->openers);
++	ret = __iris_open(filp, core);
++	atomic_dec(&core->openers);
++
++	return ret;
++}
++
++static int __iris_open(struct file *filp, struct iris_core *core)
++{
+ 	struct video_device *vdev;
+ 	struct iris_inst *inst;
+ 	u32 session_type;

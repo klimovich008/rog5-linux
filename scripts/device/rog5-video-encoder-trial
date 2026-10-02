@@ -1,0 +1,162 @@
+#!/bin/sh
+# Staged H.264 encoder bring-up on the phone (ROG5, kernel k117 or later),
+# for one dedicated RAM-trial boot. Runs as root:
+#   ssh root@PHONE sh -s [-- OPTIONS] <scripts/device/rog5-video-encoder-trial
+#
+# The encoder hung the whole SoC at session start in the k115 trials (boots
+# B and D), with nothing logged after the start. This script makes one boot
+# localise that step without relying on the journal:
+#
+#  1. Logs that survive a hard hang: every console line goes to the ramoops
+#     console (ignore_loglevel, console loglevel 8) and, with --netconsole,
+#     to a UDP listener on the host; the driver's markers (markers=1) are
+#     followed by marker_delay_ms of quiet so the line is out before the next
+#     hardware step. The log is padded past 160 KiB, because the boot wrapper
+#     overwrites the start of the ramoops console zone after a reset.
+#  2. A staged start: qcom_iris refuses, for encoder sessions only, the first
+#     command of the HFI type in enc_stop_before (-ECANCELED). The encode is
+#     run with the stop at SET_BUFFERS, LOAD_RESOURCES, START, the first ETB
+#     (the driver queues deferred raw input before capture buffers), the
+#     first FTB, then without a stop. A stage only counts as passed if the
+#     driver logged that stop and ffmpeg ended on its own; the script stops
+#     at the first stage that does not. The progress file and the last
+#     `mark:` line name the step a hang happened in.
+#
+# Preconditions (checked): the encoder node exists, i.e. qcom_iris was loaded
+# with experimental_encoder=1 at boot (/etc/modprobe.d, written before the
+# trial boot; never reload the module for this), the firmware is installed,
+# and no other video session is open. Run it on a fresh boot with no decode
+# before it.
+#
+# Options:
+#   --netconsole IF    also send the kernel log to UDP 6666 on 169.254.77.1
+#                      through interface IF (the USB NCM link); on the host:
+#                      socat -u UDP-RECV:6666 - | tee encoder-netconsole.log
+#   --unbind-uart      unbind the debug UART console first (each console line
+#                      otherwise costs ~10 ms at 115200 baud)
+#   --delay MS         marker_delay_ms (default 50)
+#   --stages LIST      HFI types to stop before, space separated
+#                      (default "0x11002 0x211001 0x211002 0x211004 0x211005 0";
+#                      0 = no stop, the full encode)
+#   --size WxH         raw input size (default 1280x720)
+#
+# Output: /var/tmp/rog5-enc-trial/{progress,stage-*.log,dmesg-*.txt,enc.h264}.
+# After a reset the phone comes up on the installed default kernel: read the
+# dead boot's console with the rog5_ramdump module built for that kernel (see
+# docs/hardware/video.md, "Encoder boot").
+set -eu
+
+netif=
+unbind_uart=0
+delay=50
+stages="0x11002 0x211001 0x211002 0x211004 0x211005 0"
+size=1280x720
+while [ $# -gt 0 ]; do
+	case $1 in
+	--netconsole) netif=${2:?}; shift 2 ;;
+	--unbind-uart) unbind_uart=1; shift ;;
+	--delay) delay=${2:?}; shift 2 ;;
+	--stages) stages=${2:?}; shift 2 ;;
+	--size) size=${2:?}; shift 2 ;;
+	*) echo "unknown option $1" >&2; exit 2 ;;
+	esac
+done
+
+[ "$(id -u)" = 0 ] || { echo 'run as root' >&2; exit 1; }
+param=/sys/module/qcom_iris/parameters
+[ -d "$param" ] || { echo 'qcom_iris is not loaded' >&2; exit 1; }
+[ -w "$param/enc_stop_before" ] || { echo 'qcom_iris has no enc_stop_before (needs k117 or later)' >&2; exit 1; }
+
+enc=
+for n in /sys/class/video4linux/video*; do
+	[ "$(cat "$n/name" 2>/dev/null)" = qcom-iris-encoder ] && enc=/dev/${n##*/}
+done
+[ -n "$enc" ] || {
+	echo 'no qcom-iris-encoder node: boot with "options qcom_iris experimental_encoder=1" in /etc/modprobe.d (do not reload the module)' >&2
+	exit 1
+}
+command -v ffmpeg >/dev/null || { echo 'ffmpeg missing' >&2; exit 1; }
+if command -v fuser >/dev/null && fuser /dev/video* >/dev/null 2>&1; then
+	echo 'a video node is open; close every video user first' >&2
+	exit 1
+fi
+
+out=/var/tmp/rog5-enc-trial
+mkdir -p "$out"
+progress=$out/progress
+log() {
+	printf '%s %s\n' "$(date +%T)" "$*" | tee -a "$progress"
+	printf 'rog5-enc: %s\n' "$*" >/dev/kmsg
+	sync
+}
+
+: >"$progress"
+log "start boot_id=$(cat /proc/sys/kernel/random/boot_id) kernel=$(uname -r) node=$enc"
+
+# 1. Logs that survive a hang.
+echo Y >/sys/module/printk/parameters/ignore_loglevel
+dmesg -n 8
+if [ "$unbind_uart" = 1 ]; then
+	for d in /sys/bus/platform/devices/*.serial; do
+		[ -d "$d/tty/ttyMSM0" ] || continue
+		echo "${d##*/}" >"$d/driver/unbind" && log "unbound debug UART ${d##*/}"
+	done
+fi
+if [ -n "$netif" ]; then
+	if [ ! -d /sys/kernel/config/netconsole ] && ! grep -q '^netconsole ' /proc/modules; then
+		modprobe -d /run/rog5-modules netconsole "netconsole=@/$netif,6666@169.254.77.1/"
+	fi
+	log "netconsole on $netif -> 169.254.77.1:6666"
+fi
+echo 1 >"$param/markers"
+echo "$delay" >"$param/marker_delay_ms"
+echo 0 >"$param/enc_stop_before"
+i=0
+while [ $i -lt 2200 ]; do
+	printf 'rog5-enc-pad %04d ................................................................................\n' $i >/dev/kmsg
+	i=$((i + 1))
+done
+log "padded the kernel log (2200 lines); markers=1 marker_delay_ms=$delay"
+
+# 2. Staged encode.
+fail=0
+for stop in $stages; do
+	echo "$stop" >"$param/enc_stop_before"
+	log "stage stop_before=$stop: encode $size NV12 -> H.264"
+	rc=0
+	timeout -s KILL 60 ffmpeg -hide_banner -nostdin -loglevel info \
+		-f lavfi -i "testsrc2=size=$size:rate=30:duration=2" \
+		-vf format=nv12 -pix_fmt nv12 -c:v h264_v4l2m2m -b:v 4M -an \
+		-y "$out/enc.h264" >"$out/stage-$stop.log" 2>&1 || rc=$?
+	sleep 6	# let the core power down between stages
+	dmesg >"$out/dmesg-$stop.txt"
+	log "stage stop_before=$stop: ffmpeg rc=$rc"
+	if grep -qE 'fatal firmware error|sys error|video core held|session error|stop/release failed|release after the cancelled START failed|no end acknowledgement|power off reported an error|not released|leaking' "$out/dmesg-$stop.txt"; then
+		log "stage stop_before=$stop: firmware error or unclean teardown; stopping"
+		fail=1
+		break
+	fi
+	if [ "$rc" = 137 ] || [ "$rc" = 124 ]; then
+		log "stage stop_before=$stop: ffmpeg timed out; stopping"
+		fail=1
+		break
+	fi
+	if [ "$stop" != 0 ]; then
+		if ! grep -q "mark: encoder stopped before command $stop" "$out/dmesg-$stop.txt"; then
+			log "stage stop_before=$stop: the driver never reached that command; stopping"
+			fail=1
+			break
+		fi
+	fi
+done
+echo 0 >"$param/enc_stop_before"
+
+result=FAIL
+if [ "$fail" = 0 ] && [ "$rc" = 0 ] && [ -s "$out/enc.h264" ] && command -v ffprobe >/dev/null; then
+	frames=$(ffprobe -v error -count_frames -select_streams v:0 \
+		-show_entries stream=nb_read_frames -of csv=p=0 "$out/enc.h264" || echo '?')
+	log "full encode: $frames frames in $out/enc.h264 (60 expected)"
+	[ "$frames" = 60 ] && result=PASS
+fi
+log "done: $result"
+[ "$result" = PASS ]
