@@ -1,0 +1,163 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] drm/msm: deferred framebuffer release: serialise against vblank off, wait on allocation failure
+
+Follow-up to 0184 (upstream v3 4/8 of "drm/msm: fix SMMU fault dumps"):
+
+1. msm_crtc_queue_fb_unpin() published the work on the per-crtc list,
+   dropped the lock and only then called drm_vblank_work_schedule(). A
+   commit that switches the crtc off runs msm_crtc_vblank_off() in
+   parallel with the previous commit's cleanup_planes (the next commit
+   only waits for hw_done), and it could take the work off the list and
+   free it in between: drm_vblank_work_schedule() and, on failure, the
+   kfree() then hit freed memory (sashiko review of v3 4/8, "[High]
+   Concurrent execution of msm_crtc_queue_fb_unpin() and
+   msm_crtc_vblank_off() causes a use-after-free"). A work queued after
+   the drain but before drm_crtc_vblank_off() was cancelled by it (WARN
+   "Cancelling pending vblank works!") and its framebuffer stayed pinned.
+   Publish and schedule under the lock, and mark the crtc as going off
+   (->off) for the drain and drm_crtc_vblank_off(): a framebuffer retired
+   meanwhile is released directly (the interface is already disabled),
+   and after drm_crtc_vblank_off() drm_vblank_work_schedule() refuses a
+   crtc in modeset, which releases directly too.
+2. When the work could not be allocated the framebuffer was released at
+   once, i.e. while the crtc may still fetch from it (the unsafe old
+   behaviour). Wait (at most 100 ms) for the crtc to pass a vblank first;
+   cleanup_fb runs in sleepable context (commit tail, async commit ioctl).
+
+Hardware: Phosh page flips, DPMS off/on and suspend with the panel on,
+DP hotplug while scanning out; dmesg must stay free of SMMU context
+faults and of "Cancelling pending vblank works".
+
+diff --git a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
+index bb95e64a5..f3dfa502e 100644
+--- a/drivers/gpu/drm/msm/msm_kms.c
++++ b/drivers/gpu/drm/msm/msm_kms.c
+@@ -215,8 +215,17 @@ void msm_crtc_vblank_off(struct drm_crtc *crtc)
+ 
+ 	/*
+ 	 * The crtc stops fetching here, and with it the vblanks the pending
+-	 * works are waiting for, so release the framebuffers directly.
++	 * works are waiting for, so release the framebuffers directly. A
++	 * commit which retires a framebuffer from this crtc concurrently
++	 * releases it directly as well: until drm_crtc_vblank_off() through
++	 * ->off, afterwards because drm_vblank_work_schedule() refuses to
++	 * schedule on a crtc in modeset. Nothing is left for
++	 * drm_crtc_vblank_off() to cancel behind our back.
+ 	 */
++	spin_lock(&pending->lock);
++	pending->off = true;
++	spin_unlock(&pending->lock);
++
+ 	for (;;) {
+ 		spin_lock(&pending->lock);
+ 		unpin = list_first_entry_or_null(&pending->fbs, typeof(*unpin),
+@@ -232,10 +241,39 @@ void msm_crtc_vblank_off(struct drm_crtc *crtc)
+ 		msm_kms_fb_unpin_release(unpin);
+ 	}
+ 
++	drm_crtc_vblank_off(crtc);
++
++	spin_lock(&pending->lock);
++	pending->off = false;
++	spin_unlock(&pending->lock);
++
++	return;
++
+ out:
+ 	drm_crtc_vblank_off(crtc);
+ }
+ 
++/*
++ * Fallback when the release cannot be deferred: wait (bounded) until the
++ * crtc has passed a vblank, so that it no longer fetches from the retired
++ * framebuffer. A crtc in modeset has no vblank to wait for and is not
++ * fetching either; drm_crtc_vblank_get() fails for it.
++ */
++static void msm_crtc_wait_one_vblank(struct drm_crtc *crtc)
++{
++	wait_queue_head_t *queue = drm_crtc_vblank_waitqueue(crtc);
++	u64 count;
++
++	if (drm_crtc_vblank_get(crtc))
++		return;
++
++	count = drm_crtc_vblank_count(crtc);
++	wait_event_timeout(*queue, drm_crtc_vblank_count(crtc) != count,
++			   msecs_to_jiffies(100));
++
++	drm_crtc_vblank_put(crtc);
++}
++
+ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+ {
+ 	struct msm_drm_private *priv = crtc->dev->dev_private;
+@@ -253,8 +291,10 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+ 	pending = &kms->fb_unpin[idx];
+ 
+ 	unpin = kzalloc_obj(*unpin);
+-	if (!unpin)
++	if (!unpin) {
++		msm_crtc_wait_one_vblank(crtc);
+ 		return false;
++	}
+ 
+ 	unpin->fb = fb;
+ 	unpin->pending = pending;
+@@ -262,23 +302,27 @@ bool msm_crtc_queue_fb_unpin(struct drm_crtc *crtc, struct drm_framebuffer *fb)
+ 
+ 	drm_vblank_work_init(&unpin->base, crtc, msm_kms_fb_unpin_work);
+ 
++	/*
++	 * Publish and schedule under the lock: msm_crtc_vblank_off() must
++	 * not take the work off the list and free it in between.
++	 */
+ 	spin_lock(&pending->lock);
+-	list_add_tail(&unpin->node, &pending->fbs);
+-	spin_unlock(&pending->lock);
+-
+-	if (drm_vblank_work_schedule(&unpin->base,
+-				     drm_crtc_vblank_count(crtc) + 1, true) != 1) {
+-		spin_lock(&pending->lock);
++	if (!pending->off) {
++		list_add_tail(&unpin->node, &pending->fbs);
++		if (drm_vblank_work_schedule(&unpin->base,
++					     drm_crtc_vblank_count(crtc) + 1,
++					     true) == 1) {
++			spin_unlock(&pending->lock);
++			return true;
++		}
+ 		list_del_init(&unpin->node);
+-		spin_unlock(&pending->lock);
+-
+-		drm_framebuffer_put(fb);
+-		kfree(unpin);
+-
+-		return false;
+ 	}
++	spin_unlock(&pending->lock);
++
++	drm_framebuffer_put(fb);
++	kfree(unpin);
+ 
+-	return true;
++	return false;
+ }
+ 
+ static int msm_kms_fault_handler(void *arg, unsigned long iova, int flags, void *data)
+diff --git a/drivers/gpu/drm/msm/msm_kms.h b/drivers/gpu/drm/msm/msm_kms.h
+index 4fcf22020..50f6a78ec 100644
+--- a/drivers/gpu/drm/msm/msm_kms.h
++++ b/drivers/gpu/drm/msm/msm_kms.h
+@@ -136,9 +136,11 @@ struct msm_drm_thread {
+ };
+ 
+ struct msm_kms_fb_unpin {
+-	/* protects the list of framebuffers waiting for a vblank: */
++	/* protects the list of framebuffers waiting for a vblank, and off: */
+ 	spinlock_t lock;
+ 	struct list_head fbs;
++	/* the crtc is being switched off: release retired framebuffers directly */
++	bool off;
+ };
+ 
+ struct msm_kms {

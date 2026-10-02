@@ -1,0 +1,31 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: serialise the notification enable request
+
+qcom_battmgr_request() reinitialises the shared ack completion and error
+field, so its callers hold battmgr->lock; qcom_battmgr_enable_worker() did
+not. After a PDR "up" it can run alongside a property request (0082
+schedules the charge-policy worker at the same time), and either request
+can then be completed by the other's answer: the policy acts on a stale
+capacity, or a reply is lost and the request times out.
+
+Take battmgr->lock around the request. Inherited upstream (linux-next
+2026-10-02 is unchanged). Found by the 2026-10-02 GPT-6.1-Sol audit.
+
+Hardware: restart the ADSP (or pmic_glink PDR) with a charge limit set;
+battery properties and the charge policy must keep working.
+
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index 58a80bfd2..e0901e59a 100644
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -2386,7 +2386,10 @@ static void qcom_battmgr_enable_worker(struct work_struct *work)
+ 	};
+ 	int ret;
+ 
++	/* ack and error are shared with the property requests */
++	mutex_lock(&battmgr->lock);
+ 	ret = qcom_battmgr_request(battmgr, &req, sizeof(req));
++	mutex_unlock(&battmgr->lock);
+ 	if (ret)
+ 		dev_err(battmgr->dev, "failed to request power notifications\n");
+ }

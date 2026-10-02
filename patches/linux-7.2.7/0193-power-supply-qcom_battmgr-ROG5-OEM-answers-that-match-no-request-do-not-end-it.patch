@@ -1,0 +1,96 @@
+From: Claude <noreply@anthropic.com>
+Subject: [PATCH] power: supply: qcom_battmgr: OEM answers that match no request do not end it
+
+The ASUS OEM channel (0082/0089) matched answers to the pending request by
+opcode only and completed the pending request with -EPROTO when another
+answer arrived. The real answer could then still follow and complete the
+next request with the same opcode; SET_BTM_OTG acks do not even say
+whether they acknowledge on or off. A malformed answer to the pending
+request returned -EMSGSIZE but left the channel usable although what the
+firmware did is unknown.
+
+- Clear oem_opcode when no request is pending (after the wait, and on
+  every early return), so a late or repeated answer matches nothing.
+- Log and ignore answers that do not match the pending request; a request
+  that gets no answer times out and poisons the channel as before.
+- Poison the channel on a malformed answer to the pending request (until
+  the service restarts, like a timeout).
+
+Not addressed (needs a firmware-side way to read the state back): the
+0089 boost rollback after a timed-out ON cannot be sent on the poisoned
+channel, and a failed OFF clears btm_otg_on. Found by the 2026-10-02
+GPT-6.1-Sol audit.
+
+Hardware: charge limit / bypass toggles and the bottom-port OTG boost on
+and off, cell voltages readable; no "unexpected OEM message" in dmesg.
+
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index e0901e59a..74f55993d 100644
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -435,7 +435,8 @@ struct qcom_battmgr {
+ 
+ /*
+  * Send one request to the ASUS OEM client and wait for its ack; called with
+- * @battmgr->lock held. The callback checks the ack against @oem_opcode.
++ * @battmgr->lock held. The callback checks the ack against @oem_opcode, which
++ * is 0 while no request is pending.
+  */
+ static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
+ 					    void *data, size_t len)
+@@ -457,14 +458,20 @@ static int qcom_battmgr_asus_request_locked(struct qcom_battmgr *battmgr,
+ 	battmgr->oem_error = 0;
+ 	WRITE_ONCE(battmgr->oem_opcode, le32_to_cpu(hdr->opcode));
+ 	if (!READ_ONCE(battmgr->oem_service_up) ||
+-	    READ_ONCE(battmgr->oem_service_generation) != generation)
++	    READ_ONCE(battmgr->oem_service_generation) != generation) {
++		WRITE_ONCE(battmgr->oem_opcode, 0);
+ 		return -EAGAIN;
++	}
+ 
+ 	ret = pmic_glink_send(battmgr->oem_client, data, len);
+-	if (ret < 0)
++	if (ret < 0) {
++		WRITE_ONCE(battmgr->oem_opcode, 0);
+ 		return ret;
++	}
+ 
+ 	left = wait_for_completion_timeout(&battmgr->oem_ack, HZ);
++	/* A late or repeated ack now matches no request. */
++	WRITE_ONCE(battmgr->oem_opcode, 0);
+ 	if (!left) {
+ 		WRITE_ONCE(battmgr->oem_request_poisoned, true);
+ 		return -ETIMEDOUT;
+@@ -2330,6 +2337,13 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ 		break;
+ 	}
+ 
++	/*
++	 * A message that is not the answer to the pending request (or comes
++	 * while none is pending) must not end that request: the real ack may
++	 * still follow and would then complete the next request with the same
++	 * opcode (SET_BTM_OTG acks do not even say on or off). Ignore it; a
++	 * request that gets no ack times out and poisons the channel.
++	 */
+ 	if (le32_to_cpu(hdr->owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
+ 	    le32_to_cpu(hdr->type) != PMIC_GLINK_REQ_RESP ||
+ 	    !expected || opcode != READ_ONCE(battmgr->oem_opcode)) {
+@@ -2337,11 +2351,16 @@ static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
+ 				     "unexpected OEM message: owner %u type %u opcode %#x len %zu (pending %#x)\n",
+ 				     le32_to_cpu(hdr->owner), le32_to_cpu(hdr->type),
+ 				     opcode, len, READ_ONCE(battmgr->oem_opcode));
+-		battmgr->oem_error = -EPROTO;
+-		goto out_complete;
++		return;
+ 	}
+ 
++	/*
++	 * A malformed answer to the pending request: what the firmware did is
++	 * unknown, so no later request may rely on the channel until the
++	 * service restarts.
++	 */
+ 	if (len != expected) {
++		WRITE_ONCE(battmgr->oem_request_poisoned, true);
+ 		battmgr->oem_error = -EMSGSIZE;
+ 		goto out_complete;
+ 	}

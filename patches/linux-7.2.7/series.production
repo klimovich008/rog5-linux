@@ -130,3 +130,17 @@
 0166-media-iris-ROG5-gen1-property-packets-sized-for-their-wire-structure.patch
 0167-media-iris-ROG5-SM8350-power-off-on-in-the-stock-Iris2-order.patch
 0168-media-iris-ROG5-resume-unwind-bandwidth-vote-and-flush-answer-robustness.patch
+0180-drm-msm-serialise-framebuffer-pin-state.patch
+0181-drm-msm-fix-framebuffer-pin-refcount-leak-on-prepare-failure.patch
+0182-drm-msm-unwind-msm_drm_kms_init-on-failure.patch
+0183-drm-msm-ROG5-KMS-init-unwind-follow-ups-snapshot-worker-workqueue-DPU-global-state.patch
+0184-drm-msm-release-scanout-framebuffers-only-after-a-vblank.patch
+0185-drm-msm-ROG5-deferred-framebuffer-release-vs-vblank-off-and-allocation-failure.patch
+0186-drm-msm-dpu-clear-the-DSC-blocks-left-by-a-previous-reservation.patch
+0187-misc-fastrpc-fix-double-free-in-fastrpc_map_attach-error-path.patch
+0188-misc-fastrpc-exported-DMA-buffers-hold-the-channel-not-the-user.patch
+0189-soc-qcom-pdr-stop-workers-and-QMI-callbacks-before-freeing-services.patch
+0190-power-supply-qcom_battmgr-serialise-the-notification-enable-request.patch
+0191-tty-serial-qcom-geni-ROG5-balance-the-forced-runtime-suspend-across-system-sleep.patch
+0192-usb-dwc3-qcom-legacy-ROG5-full-ddr-vote-while-an-untracked-device-may-be-attached.patch
+0193-power-supply-qcom_battmgr-ROG5-OEM-answers-that-match-no-request-do-not-end-it.patch
