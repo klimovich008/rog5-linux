@@ -17,6 +17,7 @@ Installed: default `main-k113-d13-261001a`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k122-d15-261002e` | main | k122 | d15 | built | unknown |  | k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress |  |
 | `main-k122-d15-261002d` | main | k122 | d15 | built | unknown |  | k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress |  |
 | `main-k117-d15-261002d` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper, spare (same content as main-k117-d15-261002a; one RAM boot per wrapper) |  |
 | `main-k117-d15-261002c` | main | k117 | d15 | built | unknown |  | k117 RAM trial wrapper F3 (staged encoder via /etc/modprobe.d experimental_encoder=1 and scripts/device/rog5-video-encoder-trial; same content as main-k117-d15-261002a) |  |

@@ -703,6 +703,22 @@
       "healthy": "unknown",
       "installed": null,
       "notes": null
+    },
+    {
+      "name": "main-k122-d15-261002e",
+      "role": "main",
+      "kernel": "k122",
+      "dtb": "d15",
+      "date": "2026-10-02",
+      "release": "7.2.7-rog5-k122",
+      "manifest_sha256": "253941f57a9ed635cc68e17cfc43f68d20045b27815ee6ce35b465d21a245e5a",
+      "package": "package-main-k122-d15-261002e",
+      "source_commit": "7b9bb3321f0d",
+      "changes": "k122 RAM trial: Iris wedge fix 0190 (SESSION_ABORT, contained teardown, HFI error log) on k120; Chromium/YouTube decoder stress",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
