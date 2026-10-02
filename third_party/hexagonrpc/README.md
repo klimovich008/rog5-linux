@@ -15,7 +15,22 @@ missing, rebuilds and writes the registry. hexagonrpcd serves read-only, so
 the write failed and sensor_process asserted (`sns_registry_sensor.c:154`,
 r89).
 
+`0002-hexagonrpcd-validate-output-buffer-counts-and-sizes.patch` is ours
+too (2026-10-02 audit; upstream at da7a374 has no fix). The listener checked
+a request's output-buffer count without the primary output buffer (and
+without the buffer of a type sequence), so a request with one output buffer
+for `apps_std_fread` or `remotectl_close` passed and `alloc_outbufs4()`
+wrote past its array. 0002 counts every buffer the allocator fills, refuses
+a request without its primary input buffer, an out-of-range inner type and
+an output buffer over 64 MiB, skips the extended method ID word in the
+allocator as the validator does, rejects empty strings before indexing
+`s - 1`, decodes empty input buffers, and makes the daemon exit nonzero
+when the listener ends (so systemd restarts it).
+`scripts/device/test-hexagonrpcd-listener.py` builds the daemon and runs
+malformed requests against the listener under AddressSanitizer.
+
 `scripts/device/install-rog5-sensors.sh` builds it on the phone with the
-root's gcc, installs `/usr/local/bin/hexagonrpcd` and stages the data.
-`rog5-sensors.service` runs it. The build is reproducible: sha256 5668f659…
-twice.
+root's gcc, installs `/usr/local/bin/hexagonrpcd` and stages the data
+(root-owned, world-readable). `rog5-sensors.service` runs it as a dynamic
+unprivileged user in a sandbox. The build was reproducible before 0002:
+sha256 5668f659… twice.
