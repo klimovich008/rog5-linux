@@ -2607,19 +2607,20 @@ prepare_platform_services() {
 	run=/run
 	[ -e "$kit" ] || [ -L "$kit" ] || return 0
 	[ -d "$kit" ] && [ ! -L "$kit" ] || return 1
-	for entry in boot-modules:444 audio-modules:444 sensor-modules:444 modules:755 rtc-time:755 audio-route:755 \
+	for entry in boot-modules:444 audio-modules:444 sensor-modules:444 video-modules:444 modules:755 rtc-time:755 audio-route:755 \
 		rog5-platform-modules.service:644 rog5-rtc-time.service:644 \
 		rog5-rtc-time-save.service:644 rog5-rtc-time-save.path:644 \
-		rog5-audio.service:644 rog5-sensors.service:644 rog5-watchdog.conf:644; do
+		rog5-audio.service:644 rog5-sensors.service:644 rog5-video.service:644 rog5-watchdog.conf:644; do
 		file=$kit/${entry%%:*}
 		[ -f "$file" ] && [ ! -L "$file" ] &&
 			[ "$(stat -c '%u:%g:%a:%h' "$file")" = "0:0:${entry##*:}:1" ] ||
 			return 1
 	done
-	units="rog5-platform-modules.service rog5-rtc-time.service rog5-rtc-time-save.service rog5-rtc-time-save.path rog5-audio.service rog5-sensors.service"
+	units="rog5-platform-modules.service rog5-rtc-time.service rog5-rtc-time-save.service rog5-rtc-time-save.path rog5-audio.service rog5-sensors.service rog5-video.service"
 	for path in "$run/rog5-platform" "$run/systemd/system.conf.d/rog5-watchdog.conf" \
 		"$run/systemd/system/multi-user.target.wants/rog5-audio.service" \
 		"$run/systemd/system/multi-user.target.wants/rog5-sensors.service" \
+		"$run/systemd/system/multi-user.target.wants/rog5-video.service" \
 		"$run/systemd/system/sysinit.target.wants/rog5-platform-modules.service" \
 		"$run/systemd/system/sysinit.target.wants/rog5-rtc-time.service" \
 		"$run/systemd/system/multi-user.target.wants/rog5-rtc-time-save.path"; do
@@ -2629,7 +2630,7 @@ prepare_platform_services() {
 		[ ! -e "$run/systemd/system/$unit" ] && [ ! -L "$run/systemd/system/$unit" ] || return 1
 	done
 	mkdir -m 0700 "$run/rog5-platform" || return 1
-	cp -p "$kit/boot-modules" "$kit/audio-modules" "$kit/sensor-modules" "$kit/modules" "$kit/rtc-time" "$kit/audio-route" \
+	cp -p "$kit/boot-modules" "$kit/audio-modules" "$kit/sensor-modules" "$kit/video-modules" "$kit/modules" "$kit/rtc-time" "$kit/audio-route" \
 		"$run/rog5-platform/" || return 1
 	mkdir -p "$run/systemd/system/sysinit.target.wants" \
 		"$run/systemd/system/multi-user.target.wants" "$run/systemd/system.conf.d" || return 1
@@ -2652,6 +2653,8 @@ prepare_platform_services() {
 		"$run/systemd/system/multi-user.target.wants/rog5-audio.service" || return 1
 	ln -s ../rog5-sensors.service \
 		"$run/systemd/system/multi-user.target.wants/rog5-sensors.service" || return 1
+	ln -s ../rog5-video.service \
+		"$run/systemd/system/multi-user.target.wants/rog5-video.service" || return 1
 	ln -s ../rog5-rtc-time-save.path \
 		"$run/systemd/system/multi-user.target.wants/rog5-rtc-time-save.path"
 }

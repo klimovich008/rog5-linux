@@ -90,16 +90,37 @@ install_platform_kit() {
 		install -m 0444 "$repo/configs/production/boot-modules.list" "$kit/boot-modules" &&
 		install -m 0444 "$repo/configs/production/audio-modules.list" "$kit/audio-modules" &&
 		install -m 0444 "$repo/configs/production/sensor-modules.list" "$kit/sensor-modules" &&
+		install -m 0444 "$repo/configs/production/video-modules.list" "$kit/video-modules" &&
 		install -m 0755 "$repo/initramfs/production-platform-modules" "$kit/modules" &&
 		install -m 0755 "$repo/initramfs/production-rtc-time" "$kit/rtc-time" &&
 		install -m 0755 "$repo/initramfs/production-audio-route" "$kit/audio-route" &&
 		install -m 0644 "$repo/configs/systemd/rog5-watchdog.conf" "$kit/rog5-watchdog.conf" || return 1
 	for unit in rog5-platform-modules.service rog5-rtc-time.service \
-		rog5-rtc-time-save.service rog5-rtc-time-save.path rog5-audio.service rog5-sensors.service; do
+		rog5-rtc-time-save.service rog5-rtc-time-save.path rog5-audio.service rog5-sensors.service \
+		rog5-video.service; do
 		install -m 0644 "$repo/configs/systemd/$unit" "$kit/$unit" || return 1
 	done
 	# Every listed boot and audio module must exist in the production tree.
-	cat "$kit/boot-modules" "$kit/audio-modules" "$kit/sensor-modules" | sed -e 's/#.*//' -e '/^[[:space:]]*$/d' | while read -r name params; do
+	# The video list is all or nothing: a kernel built before the video
+	# modules (k113 and older, e.g. for a fallback bundle) gets an empty list,
+	# so rog5-video.service loads nothing; its DTB has no video node either.
+	video_missing=0 video_count=0
+	for name in $(sed -e 's/#.*//' "$kit/video-modules" | awk '{ print $1 }'); do
+		video_count=$((video_count + 1))
+		[ -n "$(find "$root/lib/modules/$expected_release" -name "$(printf '%s' "$name" | tr _- '??').ko*" | head -n 1)" ] ||
+			video_missing=$((video_missing + 1))
+	done
+	if [ "$video_missing" -gt 0 ]; then
+		[ "$video_missing" = "$video_count" ] || {
+			echo 'FAIL the production tree has only some of the video modules' >&2
+			return 1
+		}
+		chmod 0644 "$kit/video-modules" &&
+			printf '# empty: kernel %s has no video modules\n' "$expected_release" >"$kit/video-modules" &&
+			chmod 0444 "$kit/video-modules" || return 1
+		echo "NOTE video-modules is empty: $expected_release has no video modules" >&2
+	fi
+	cat "$kit/boot-modules" "$kit/audio-modules" "$kit/sensor-modules" "$kit/video-modules" | sed -e 's/#.*//' -e '/^[[:space:]]*$/d' | while read -r name params; do
 		# modprobe treats - and _ alike; match the file either way.
 		[ -n "$(find "$root/lib/modules/$expected_release" -name "$(printf '%s' "$name" | tr _- '??').ko*" | head -n 1)" ] || {
 			echo "FAIL boot module $name is not in the production tree" >&2

@@ -1,0 +1,147 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Hardware video decode/encode: the SM8350 Iris v2 video core (4 VPP pipes,
+ * HFI gen1, same block as SM8250) and its video clock controller.
+ *
+ * The two nodes are the upstream ones (Dmitry Baryshkov, "arm64: dts: qcom:
+ * sm8350: add Iris device", in v7.3; binding qcom,sm8250-venus.yaml since
+ * v7.2), with the board's firmware path. Every value matches the stock ASUS
+ * 5.4 runtime FDT (stockcap-c1: qcom,vidc@aa00000 and qcom,venus@aab0000) and
+ * the lahaina sources (lahaina-vidc.dtsi, videocc-lahaina.c), except that
+ * upstream adds the MVS0C reset and one end-to-end video-mem path where stock
+ * votes DDR and LLCC separately:
+ *   reg 0xaa00000/1 MiB, SPI 174, GCC_VIDEO_AXI0_CLK + VIDEO_CC_MVS0C_CLK +
+ *   VIDEO_CC_MVS0_CLK, MVS0C/MVS0 GDSCs, GCC_VIDEO_AXI0_CLK_ARES, the
+ *   non-secure stream 0x2100/0x400, PAS id 9 into pil_video_mem (0x85700000,
+ *   5 MiB), core clock 240/338/366/444 MHz (mvs0 RCG 720/1014/1098/1332 MHz
+ *   divided by 3: MMCX low_svs/svs/svs_l1/nom, video PLL0 MX svs/svs/svs_l1/
+ *   svs_l1), cpu-cfg and video-mem paths.
+ * The secure streams 0x2101/0x2103/0x2104 stay with the hypervisor (context
+ * banks 8-10, reserved by patch 0064); Linux only owns 0x2100.
+ *
+ * IOVAs below 0x25800000 (600 MiB) belong to the content-protection ranges the
+ * driver hands TrustZone (stock: venus_ns pool 0x25800000-0xdfffffff, secure
+ * non-pixel 0x01000000-0x25800000); DMA there from the non-secure stream
+ * faults and can reboot the SoC. iris-iova keeps the IOMMU allocator above it
+ * (Vikash Garodia, "arm64: dts: qcom: sm8350: Reserve low IOVA range for
+ * Iris", 2026-08-07, proposed for stable; binding: patch 0155). The firmware
+ * carve-out must stay the first memory-region (iris_firmware.c uses index 0).
+ * Upstream puts iris-iova under /reserved-memory; here it is a child of the
+ * root: the slot-B loader's bundle verifier (rog5-bundle-verify, signed into
+ * boot_b) refuses any /reserved-memory child without reg. Linux only follows
+ * the memory-region phandle to its iommu-addresses
+ * (of_iommu_get_resv_regions(), translated with the iris node's parent
+ * cells), fw_devlink does not parse memory-region, and a root child without
+ * compatible creates no device.
+ *
+ * Firmware: vpu20_4v from the phone's own vendor_a (the name the stock
+ * runtime FDT gives, vidc,firmware-name), signed for this OEM with the same
+ * root as the ADSP image TrustZone accepts; installed by
+ * scripts/device/install-rog5-video-firmware. Without it the device probes
+ * and every open fails at request_firmware (nothing powered).
+ *
+ * Needs CONFIG_SM_VIDEOCC_8350 and CONFIG_VIDEO_QCOM_IRIS (rog5-video.fragment,
+ * kernel k114), patch 0154 (a firmware that never answers leaves the core
+ * powered off) and patch 0155 (binding for the second memory-region).
+ * Composed on top of d13 by scripts/device/compose-video-dtb.sh.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/qcom,gcc-sm8350.h>
+#include <dt-bindings/clock/qcom,rpmh.h>
+#include <dt-bindings/clock/qcom,sm8350-videocc.h>
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,sm8350.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/power/qcom,rpmhpd.h>
+#include <dt-bindings/reset/qcom,sm8350-videocc.h>
+
+&{/soc@0} {
+	iris: video-codec@aa00000 {
+		compatible = "qcom,sm8350-iris", "qcom,sm8250-venus";
+		reg = <0x0 0x0aa00000 0x0 0x100000>;
+		interrupts = <GIC_SPI 174 IRQ_TYPE_LEVEL_HIGH>;
+
+		clocks = <&gcc GCC_VIDEO_AXI0_CLK>,
+			 <&videocc VIDEO_CC_MVS0C_CLK>,
+			 <&videocc VIDEO_CC_MVS0_CLK>;
+		clock-names = "iface",
+			      "core",
+			      "vcodec0_core";
+		power-domains = <&videocc MVS0C_GDSC>,
+				<&videocc MVS0_GDSC>,
+				<&rpmhpd RPMHPD_MX>,
+				<&rpmhpd RPMHPD_MMCX>;
+		power-domain-names = "venus",
+				     "vcodec0",
+				     "mx",
+				     "mmcx";
+
+		resets = <&gcc GCC_VIDEO_AXI0_CLK_ARES>,
+			 <&videocc VIDEO_CC_MVS0C_CLK_ARES>;
+		reset-names = "bus", "core";
+
+		interconnects = <&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+				 &config_noc SLAVE_VENUS_CFG QCOM_ICC_TAG_ACTIVE_ONLY>,
+				<&mmss_noc MASTER_VIDEO_P0 QCOM_ICC_TAG_ALWAYS
+				 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+		interconnect-names = "cpu-cfg",
+				     "video-mem";
+
+		operating-points-v2 = <&iris_opp_table>;
+		iommus = <&apps_smmu 0x2100 0x400>;
+		memory-region = <&pil_video_mem>, <&iris_iova>;
+		firmware-name = "qcom/sm8350/vpu20_4v.mbn";
+
+		status = "okay";
+
+		iris_opp_table: opp-table {
+			compatible = "operating-points-v2";
+
+			/* required-opps: MX, MMCX */
+			opp-240000000 {
+				opp-hz = /bits/ 64 <240000000>;
+				required-opps = <&rpmhpd_opp_svs>,
+						<&rpmhpd_opp_low_svs>;
+			};
+
+			opp-338000000 {
+				opp-hz = /bits/ 64 <338000000>;
+				required-opps = <&rpmhpd_opp_svs>,
+						<&rpmhpd_opp_svs>;
+			};
+
+			opp-366000000 {
+				opp-hz = /bits/ 64 <366000000>;
+				required-opps = <&rpmhpd_opp_svs_l1>,
+						<&rpmhpd_opp_svs_l1>;
+			};
+
+			opp-444000000 {
+				opp-hz = /bits/ 64 <444000000>;
+				required-opps = <&rpmhpd_opp_svs_l1>,
+						<&rpmhpd_opp_nom>;
+			};
+		};
+	};
+
+	videocc: clock-controller@abf0000 {
+		compatible = "qcom,sm8350-videocc";
+		reg = <0x0 0x0abf0000 0x0 0x10000>;
+		clocks = <&rpmhcc RPMH_CXO_CLK>,
+			 <&rpmhcc RPMH_CXO_CLK_A>,
+			 <&sleep_clk>;
+		power-domains = <&rpmhpd RPMHPD_MMCX>;
+		required-opps = <&rpmhpd_opp_low_svs>;
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+		#power-domain-cells = <1>;
+	};
+};
+
+&{/} {
+	iris_iova: iris-iova {
+		iommu-addresses = <&iris 0x0 0x0 0x0 0x25800000>;
+	};
+};

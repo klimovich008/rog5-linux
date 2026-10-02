@@ -12,7 +12,7 @@ Status as of 2026-10-01 (main-k113-d13-261001a) (source: `docs/status/components
 | Default | `main-k113-d13-261001a` | k113 (series to 0153; uname 7.2.7-rog5-k113; SWIOTLB 4 MiB) | d13 (`1d690d39`, d10 + memslim stockcma,ionpool,pil) | 2026-10-01 18:30 |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
-Components: 39 ready, 10 partial, 8 needs a test, 17 missing.
+Components: 39 ready, 11 partial, 8 needs a test, 16 missing.
 
 Partial:
 
@@ -25,6 +25,7 @@ Partial:
 - Power / Idle background wakeups: desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending
 - Performance / Performance mode: rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet
 - Sensors & hardware / RGB logo LED
+- Sensors & hardware / Hardware video decode/encode: k115 RAM trials 2026-10-02: with a real EOS buffer H.264 and HEVC 1080p decode 300/300 bit-exact, GStreamer OK, 5 min idle OK (runtime PM auto); dummy EOS address crashed the firmware; VP9 session error (no SECURE_SESSION=0); H.264 encode hard-hung the SoC at session start (boots B and D; B was first misread as an idle hang with pinned runtime PM). k116 (0163-0168: SM8350 OEM platform data with SECURE_SESSION=0, real EOS default, stock Iris2 power off/on order with real OPP release, encoder/VP9 behind load-time switches, gen1 property packet sizing, compliance and robustness fixes, encoder bring-up markers) built as RAM wrappers main-k116-d15-261002a/b/c (+d for a later encoder boot), not installed; plan in docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime
 - Apps / Steam (native arm64): title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip for DXVK 3 built and passed s8test on the A660 (packages/mesa-fex), install pending; Dota 2 retest pending
 
 Needs a test:
@@ -56,7 +57,6 @@ Missing:
 - Sensors & hardware / Cameras
 - Sensors & hardware / Fingerprint
 - Sensors & hardware / AirTriggers
-- Sensors & hardware / Hardware video decode/encode: no SM8350 video-codec node or Iris/Venus support upstream (videocc-sm8350 exists; video PIL 0x85700000 kept); CPU decode 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime; encode 1080p30: x264 veryfast 57 fps, x265 ultrafast 31 fps (2026-10-01)
 
 <!-- END GENERATED -->
 

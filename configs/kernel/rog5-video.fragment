@@ -1,0 +1,19 @@
+# ROG5 hardware video decode/encode (kernel k114 trial). The Iris v2 video
+# core of SM8350 runs under the upstream iris driver through the
+# "qcom,sm8350-iris", "qcom,sm8250-venus" compatible (upstream binding since
+# v7.2, DT node in v7.3); patch 0154 makes a firmware that does not come up
+# leave the core powered off. The node and its clock controller come from the
+# video DTB overlay (dts/qcom/sm8350-asus-rog-phone5-video.dtso, DTB d14), the
+# firmware from the phone's own vendor partition
+# (scripts/device/install-rog5-video-firmware). See docs/hardware/video.md.
+#
+# arm64 defconfig already builds the iris and venus drivers as modules; with
+# iris enabled venus no longer matches the SM8250-class compatible.
+CONFIG_SM_VIDEOCC_8350=m
+CONFIG_VIDEO_QCOM_IRIS=m
+
+# Encoder bring-up (k116): the iris "markers" parameter prints a line before
+# and after each risky step; netconsole, loaded by hand during such a trial,
+# sends them to another machine before a hard hang (the RAM-trial console
+# zone does not survive the reset through the ASUS wrapper).
+CONFIG_NETCONSOLE=m

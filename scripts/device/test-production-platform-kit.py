@@ -22,10 +22,11 @@ INIT = REPO/'initramfs/persistent-root-init'
 LIST = REPO/'configs/production/boot-modules.list'
 AUDIO_LIST = REPO/'configs/production/audio-modules.list'
 SENSOR_LIST = REPO/'configs/production/sensor-modules.list'
+VIDEO_LIST = REPO/'configs/production/video-modules.list'
 AUDIO = ['apr', 'q6core', 'q6afe_dai', 'q6afe_clocks', 'q6asm_dai', 'q6routing', 'pinctrl_sc7280_lpass_lpi', 'snd_soc_lpass_va_macro',
          'snd_soc_cs35l45_i2c', 'snd_soc_sm8250']
 UNITS = ('rog5-platform-modules.service', 'rog5-rtc-time.service', 'rog5-rtc-time-save.service',
-         'rog5-rtc-time-save.path', 'rog5-audio.service', 'rog5-sensors.service')
+         'rog5-rtc-time-save.path', 'rog5-audio.service', 'rog5-sensors.service', 'rog5-video.service')
 NOW = 1790200000  # 2026-09-23
 RAW = 1234567
 
@@ -120,6 +121,14 @@ class BootModules(Base):
         tree = self.dir/'tree'
         self.assertEqual(self.calls(), [f'modprobe -d {tree} {m}' for m in ('fastrpc', 'socinfo')])
         self.assertIn('sensor-modules loaded fastrpc socinfo', kmsg)
+
+    def test_video_list_loads(self):
+        shutil.copy(VIDEO_LIST, self.kit/'video-modules')
+        code, kmsg = self.load('video-modules')
+        self.assertEqual(code, 0, kmsg)
+        tree = self.dir/'tree'
+        self.assertEqual(self.calls(), [f'modprobe -d {tree} {m}' for m in ('videocc_sm8350', 'qcom_iris')])
+        self.assertIn('video-modules loaded videocc_sm8350 qcom_iris', kmsg)
 
     def test_unknown_list_is_refused(self):
         code, kmsg = self.load('../boot-modules')
@@ -221,7 +230,7 @@ def prepare_function(kit, run):
 
 @unittest.skipUnless(unshare_ok(), 'user namespaces are unavailable')
 class Publish(Base):
-    FILES = (('boot-modules', 0o444, LIST), ('audio-modules', 0o444, AUDIO_LIST), ('sensor-modules', 0o444, SENSOR_LIST), ('modules', 0o755, MODULES), ('rtc-time', 0o755, RTC),
+    FILES = (('boot-modules', 0o444, LIST), ('audio-modules', 0o444, AUDIO_LIST), ('sensor-modules', 0o444, SENSOR_LIST), ('video-modules', 0o444, VIDEO_LIST), ('modules', 0o755, MODULES), ('rtc-time', 0o755, RTC),
              ('audio-route', 0o755, REPO/'initramfs/production-audio-route'),
              ('rog5-watchdog.conf', 0o644, REPO/'configs/systemd/rog5-watchdog.conf')) + tuple(
                  (unit, 0o644, REPO/'configs/systemd'/unit) for unit in UNITS)
@@ -251,7 +260,7 @@ class Publish(Base):
     def test_kit_is_published(self):
         self.assertEqual(self.prepare(), 0)
         target = self.run/'rog5-platform'
-        self.assertEqual(sorted(p.name for p in target.iterdir()), ['audio-modules', 'audio-route', 'boot-modules', 'modules', 'rtc-time', 'sensor-modules'])
+        self.assertEqual(sorted(p.name for p in target.iterdir()), ['audio-modules', 'audio-route', 'boot-modules', 'modules', 'rtc-time', 'sensor-modules', 'video-modules'])
         self.assertEqual(oct(target.stat().st_mode & 0o777), '0o700')
         system = self.run/'systemd/system'
         for unit in UNITS:
@@ -263,6 +272,7 @@ class Publish(Base):
                          '../rog5-rtc-time-save.path')
         self.assertEqual(os.readlink(system/'multi-user.target.wants/rog5-audio.service'), '../rog5-audio.service')
         self.assertEqual(os.readlink(system/'multi-user.target.wants/rog5-sensors.service'), '../rog5-sensors.service')
+        self.assertEqual(os.readlink(system/'multi-user.target.wants/rog5-video.service'), '../rog5-video.service')
         self.assertIn('RuntimeWatchdogSec=2min', (self.run/'systemd/system.conf.d/rog5-watchdog.conf').read_text())
 
     def test_absent_kit_is_a_no_op(self):

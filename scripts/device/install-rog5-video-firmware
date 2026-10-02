@@ -1,0 +1,129 @@
+#!/bin/sh
+# Install the video core (Iris v2) firmware from the phone's own vendor
+# partition. Runs on the phone as root:
+#   ssh root@PHONE sh -s <scripts/device/install-rog5-video-firmware               (persistent)
+#   ssh root@PHONE sh -s -- --runtime <scripts/device/install-rog5-video-firmware  (this boot only)
+#   ssh root@PHONE sh -s -- --check <scripts/device/install-rog5-video-firmware
+#   ssh root@PHONE sh -s -- --uninstall <scripts/device/install-rog5-video-firmware
+#
+# Reads, never writes, vendor_a: a read-only loop on the super partition at the
+# same fixed extent as install-rog5-speaker-firmware and install-rog5-sensors.sh,
+# mounted ro,noload. The blob never enters the repository.
+#
+# vendor_a firmware/vpu20_4v.mbn is the image the stock DT names
+# (vidc,firmware-name = "vpu20_4v": SM8350 has 4 VPP pipes). It is signed for
+# this OEM with the same root certificate as the ADSP image TrustZone accepts
+# here; vpu20_1v/2v in the same directory are generic QTI-signed images for
+# other SoCs (the root TrustZone rejected for the dsp-partition CDSP/SLPI).
+# Pinned below by SHA-256 (WW33 vendor_a, checked 2026-10-01).
+#
+# Installs qcom/sm8350/vpu20_4v.mbn, the DT firmware-name of the video DTB
+# (d15, dts/qcom/sm8350-asus-rog-phone5-video.dtso):
+#   default     /lib/firmware/qcom/sm8350/vpu20_4v.mbn (the overlay root; every
+#               boot then loads the firmware when udev first opens /dev/video*)
+#   --runtime   the same name under the kernel's firmware_class.path directory
+#               (/run/rog5-charge-firmware, tmpfs): gone at the next boot, for a
+#               first supervised trial (a wedge then cannot repeat at boot)
+#   --check     prints the installed copies and whether they match the pin
+#   --uninstall removes both copies (and the directories if empty)
+# The driver only requests the firmware on an open; to retry after installing
+# into a running system: v4l2-ctl --list-devices (or reopen any /dev/video*).
+set -eu
+name=qcom/sm8350/vpu20_4v.mbn
+persistent=/lib/firmware/$name
+sha=16d8258ce5920eefbfdfc23028b2f1aab2a2ed30544baf16669bff0ce162e69d
+size=2022804
+# super: LP metadata slot 0, partition vendor_a = one linear extent.
+vendor_offset=$((11894784 * 512))
+vendor_size=$((2346168 * 512))
+
+[ "$(id -u)" = 0 ] || { echo 'run as root' >&2; exit 1; }
+
+runtime_dir() {
+	dir=$(cat /sys/module/firmware_class/parameters/path 2>/dev/null || true)
+	case $dir in /run/?*) [ -d "$dir" ] && [ ! -L "$dir" ] && printf '%s\n' "$dir" ;; *) return 1 ;; esac
+}
+
+mode=persistent
+case ${1:-} in
+'') ;;
+--runtime) mode=runtime ;;
+--check) mode=check ;;
+--uninstall) mode=uninstall ;;
+*) echo 'usage: install-rog5-video-firmware [--runtime|--check|--uninstall]' >&2; exit 2 ;;
+esac
+[ $# -le 1 ] || { echo 'usage: install-rog5-video-firmware [--runtime|--check|--uninstall]' >&2; exit 2; }
+
+if [ "$mode" = check ] || [ "$mode" = uninstall ]; then
+	targets=$persistent
+	if rdir=$(runtime_dir); then targets="$targets $rdir/$name"; fi
+	for f in $targets; do
+		if [ ! -e "$f" ]; then
+			echo "absent  $f"
+		elif [ "$mode" = uninstall ]; then
+			rm -f "$f"
+			rmdir "${f%/*}" "${f%/*/*}" 2>/dev/null || true
+			echo "removed $f"
+		elif [ "$(sha256sum "$f" | cut -d ' ' -f 1)" = "$sha" ]; then
+			echo "ok      $f"
+		else
+			echo "WRONG   $f (not the pinned vpu20_4v.mbn)"
+		fi
+	done
+	exit 0
+fi
+
+if [ "$mode" = runtime ]; then
+	rdir=$(runtime_dir) || { echo 'no firmware_class.path directory under /run' >&2; exit 1; }
+	target=$rdir/$name
+else
+	target=$persistent
+	# A copy earlier in the search path would be loaded instead.
+	for f in /lib/firmware/updates/$name /lib/firmware/updates/$(uname -r)/$name /lib/firmware/$(uname -r)/$name; do
+		[ ! -e "$f" ] || { echo "refusing: $f exists and would be loaded instead of $target" >&2; exit 1; }
+	done
+fi
+
+partition() {
+	for block in /sys/class/block/*; do
+		grep -qx "PARTNAME=$1" "$block/uevent" 2>/dev/null && { echo "/dev/${block##*/}"; return 0; }
+	done
+	return 1
+}
+
+work=$(mktemp -d /run/rog5-video-fw.XXXXXX)
+loop=
+cleanup() {
+	cd /
+	mountpoint -q "$work/vendor" 2>/dev/null && umount "$work/vendor"
+	[ -n "$loop" ] && losetup -d "$loop" 2>/dev/null
+	rm -rf "$work"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+super=$(partition super) || { echo 'no super partition' >&2; exit 1; }
+mkdir -p "$work/vendor"
+loop=$(losetup -r -f --show -o "$vendor_offset" --sizelimit "$vendor_size" "$super")
+[ "$(blkid -o value -s LABEL "$loop")" = vendor ] || { echo 'vendor_a extent does not hold the vendor ext4' >&2; exit 1; }
+mount -o ro,noload "$loop" "$work/vendor"
+cp "$work/vendor/firmware/vpu20_4v.mbn" "$work/vpu20_4v.mbn"
+umount "$work/vendor"
+losetup -d "$loop"
+loop=
+
+[ "$(stat -c %s "$work/vpu20_4v.mbn")" = "$size" ] &&
+	[ "$(sha256sum "$work/vpu20_4v.mbn" | cut -d ' ' -f 1)" = "$sha" ] ||
+	{ echo 'vendor_a vpu20_4v.mbn is not the pinned WW33 image; nothing installed' >&2; exit 1; }
+
+install -d -m 0755 "${target%/*}"
+install -m 0644 "$work/vpu20_4v.mbn" "${target%/*}/.vpu20_4v.mbn.new"
+mv -f "${target%/*}/.vpu20_4v.mbn.new" "$target"
+sync
+echo "installed $target ($mode)"
+if [ -e /sys/bus/platform/drivers/qcom-iris/aa00000.video-codec ]; then
+	echo 'qcom-iris is bound: the next open of /dev/video* loads it (v4l2-ctl --list-devices)'
+else
+	echo 'qcom-iris is not bound yet (needs the video DTB d15 and rog5-video.service)'
+fi

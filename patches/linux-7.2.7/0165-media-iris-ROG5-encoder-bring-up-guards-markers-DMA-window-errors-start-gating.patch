@@ -1,0 +1,542 @@
+From ff0e4867797eedd1d6054c624b7f55598730adae Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 2 Oct 2026 02:28:40 +0200
+Subject: [PATCH 3/6] media: iris: ROG5: encoder bring-up guards: markers, DMA
+ window, errors, start gating
+
+The k115 trial's H.264 encode hung the ROG Phone 5 at session start with
+nothing in the surviving log: the in-memory trace dies with the SoC. For
+the next, dedicated encoder trial (the encoder stays unregistered unless
+experimental_encoder=1, patch 0163):
+
+- markers (module parameter, default off): a warning-level line before
+  and after runtime suspend/resume, each core init step, every command
+  sent (property id and first payload words), and the first six buffer
+  packets after each SESSION_INIT. Printed synchronously to the consoles,
+  so netconsole (built as a module for this) gets them off the phone
+  before a hang.
+- The HFI trace keeps 16 words per packet (an encoder ETB's extradata
+  fields).
+- Every firmware-visible buffer (input, output, internal, EOS, HFI queues,
+  SFR) must lie in the non-secure IOVA window [cp_size, dma_mask + 1),
+  i.e. [0x25800000, 0xe0000000) here, end included; anything else is
+  refused before it is sent.
+- ETB/FTB packets are zero-initialised (extradata_buffer, data).
+- Property setters: a failed command, a dead firmware or a failed
+  allocation (-EIO, -ETIMEDOUT, -ENOMEM) now fails the stream-on; -EINVAL
+  stays "not applicable" (setters use it, e.g. bitrate before streaming).
+  A failed clock/bandwidth vote fails the stream-on and encoder queueing.
+- Experimental SM8350 encoder only: LOAD_RESOURCES/START wait until both
+  ports streamed on (the CAPTURE port's properties, frame rate included,
+  used to arrive after START when the raw port streamed on first), the
+  work route (4 pipes) is set explicitly before LOAD as stock does, and no
+  buffer reaches the firmware before the instance is STREAMING. A
+  CAPTURE-only stream-off (STOP/RELEASE) followed by a CAPTURE stream-on
+  while the raw port still streams loads and starts the session again.
+
+ROG5: patch 0165, kernel k116. Not in upstream.
+---
+ .../media/platform/qcom/iris/iris_common.c    |  9 ++-
+ drivers/media/platform/qcom/iris/iris_core.c  | 13 +++-
+ drivers/media/platform/qcom/iris/iris_core.h  | 19 ++++-
+ drivers/media/platform/qcom/iris/iris_ctrls.c | 19 ++++-
+ .../qcom/iris/iris_hfi_gen1_command.c         | 73 +++++++++++++++++--
+ .../media/platform/qcom/iris/iris_hfi_queue.c | 29 ++++++++
+ .../media/platform/qcom/iris/iris_instance.h  |  3 +
+ drivers/media/platform/qcom/iris/iris_probe.c |  4 +
+ drivers/media/platform/qcom/iris/iris_state.c |  6 ++
+ drivers/media/platform/qcom/iris/iris_utils.c | 28 +++++++
+ drivers/media/platform/qcom/iris/iris_utils.h |  2 +
+ drivers/media/platform/qcom/iris/iris_venc.c  | 14 +++-
+ 12 files changed, 204 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/media/platform/qcom/iris/iris_common.c b/drivers/media/platform/qcom/iris/iris_common.c
+index 2583656..2636760 100644
+--- a/drivers/media/platform/qcom/iris/iris_common.c
++++ b/drivers/media/platform/qcom/iris/iris_common.c
+@@ -52,7 +52,10 @@ int iris_process_streamon_input(struct iris_inst *inst)
+ 	enum iris_inst_sub_state set_sub_state = 0;
+ 	int ret;
+ 
+-	iris_scale_power(inst);
++	/* ROG5: a failed clock or bandwidth vote fails the stream-on */
++	ret = iris_scale_power(inst);
++	if (ret)
++		return ret;
+ 
+ 	ret = hfi_ops->session_start(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+ 	if (ret)
+@@ -95,7 +98,9 @@ int iris_process_streamon_output(struct iris_inst *inst)
+ 	bool drain_active, drc_active, first_ipsc;
+ 	int ret = 0;
+ 
+-	iris_scale_power(inst);
++	ret = iris_scale_power(inst);	/* ROG5: see streamon input */
++	if (ret)
++		return ret;
+ 
+ 	first_ipsc = inst->sub_state & IRIS_INST_SUB_FIRST_IPSC;
+ 
+diff --git a/drivers/media/platform/qcom/iris/iris_core.c b/drivers/media/platform/qcom/iris/iris_core.c
+index ac44601..370c4e2 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.c
++++ b/drivers/media/platform/qcom/iris/iris_core.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/ctype.h>
++#include <linux/module.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/timekeeping.h>
+ 
+@@ -13,6 +14,10 @@
+ #include "iris_state.h"
+ #include "iris_vpu_common.h"
+ 
++bool iris_markers;
++module_param_named(markers, iris_markers, bool, 0644);
++MODULE_PARM_DESC(markers, "print a line before/after each risky step (for netconsole)");
++
+ /* ROG5: called with core->lock held; @pkt starts with the HFI size word */
+ void iris_core_trace(struct iris_core *core, u32 dir, const void *pkt)
+ {
+@@ -78,10 +83,10 @@ void iris_core_dump_diag_locked(struct iris_core *core, const char *reason, bool
+ 		if (!e->dir)
+ 			continue;
+ 		dev_err(core->dev,
+-			"hfi %c -%llu us: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
++			"hfi %c -%llu us: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
+ 			e->dir, div_u64(now - e->ns, NSEC_PER_USEC), e->w[0], e->w[1],
+ 			e->w[2], e->w[3], e->w[4], e->w[5], e->w[6], e->w[7], e->w[8],
+-			e->w[9], e->w[10], e->w[11], e->w[12], e->w[13]);
++			e->w[9], e->w[10], e->w[11], e->w[12], e->w[13], e->w[14], e->w[15]);
+ 	}
+ 
+ 	for (i = 0; i < IRIS_FW_LOG_LINES; i++) {
+@@ -321,17 +326,21 @@ int iris_core_init(struct iris_core *core)
+ 	/* ROG5: before power on enables the IRQ (the thread uses the ops) */
+ 	core->iris_firmware_data->init_hfi_ops(core);
+ 
++	iris_mark(core, "core init %u: power on", attempt);
+ 	ret = iris_vpu_power_on(core);
+ 	if (ret)
+ 		goto error_queue_deinit;
+ 
++	iris_mark(core, "core init %u: firmware load", attempt);
+ 	ret = iris_fw_load(core);
+ 	if (ret)
+ 		goto error_power_off;
+ 
++	iris_mark(core, "core init %u: firmware boot", attempt);
+ 	ret = iris_vpu_boot_firmware(core);
+ 	if (ret)
+ 		goto error_unload_fw;
++	iris_mark(core, "core init %u: firmware booted", attempt);
+ 
+ 	ret = iris_vpu_switch_to_hwmode(core);
+ 	if (ret)
+diff --git a/drivers/media/platform/qcom/iris/iris_core.h b/drivers/media/platform/qcom/iris/iris_core.h
+index d3bf6f1..cdaeecc 100644
+--- a/drivers/media/platform/qcom/iris/iris_core.h
++++ b/drivers/media/platform/qcom/iris/iris_core.h
+@@ -27,10 +27,25 @@ struct icc_info {
+ 
+ /* ROG5: bounded HFI packet trace and firmware log, dumped on fatal errors */
+ #define IRIS_TRACE_ENTRIES		64
+-#define IRIS_TRACE_WORDS		14
++#define IRIS_TRACE_WORDS		16
+ #define IRIS_FW_LOG_LINES		16
+ #define IRIS_FW_LOG_LEN			160
+ 
++/*
++ * ROG5: markers (module parameter "markers"): one warning-level line before
++ * and after each step that can stop the SoC (runtime PM, core init, every
++ * command except routine buffer traffic, the first buffers of a session).
++ * Printed synchronously to the consoles, so netconsole (CONFIG_NETCONSOLE,
++ * loaded by hand) delivers them to another machine before a hard hang;
++ * the in-memory trace dies with the SoC.
++ */
++extern bool iris_markers;
++#define iris_mark(core, fmt, ...)						\
++	do {								\
++		if (READ_ONCE(iris_markers))				\
++			dev_warn((core)->dev, "mark: " fmt "\n", ##__VA_ARGS__); \
++	} while (0)
++
+ struct iris_trace_entry {
+ 	u64	ns;
+ 	u32	dir;		/* 't' sent, 'r' received */
+@@ -106,6 +121,7 @@ struct qcom_ubwc_cfg_data;
+  * @removing: iris_remove() started: no new containment work (ROG5)
+  * @enc_enabled: the encoder node is registered (ROG5)
+  * @dec_fmts_size: number of advertised decoder (OUTPUT) formats (ROG5)
++ * @mark_budget: buffer packets still marked after the last SESSION_INIT (ROG5)
+  */
+ 
+ struct iris_core {
+@@ -165,6 +181,7 @@ struct iris_core {
+ 	bool					removing;
+ 	bool					enc_enabled;
+ 	u32					dec_fmts_size;
++	u32					mark_budget;
+ };
+ 
+ int iris_core_init(struct iris_core *core);
+diff --git a/drivers/media/platform/qcom/iris/iris_ctrls.c b/drivers/media/platform/qcom/iris/iris_ctrls.c
+index 391e1fc..344e802 100644
+--- a/drivers/media/platform/qcom/iris/iris_ctrls.c
++++ b/drivers/media/platform/qcom/iris/iris_ctrls.c
+@@ -1493,8 +1493,23 @@ int iris_set_properties(struct iris_inst *inst, u32 plane)
+ 		if (!iris_valid_cap_id(cap->cap_id))
+ 			continue;
+ 
+-		if (cap->cap_id && cap->set)
+-			cap->set(inst, i);
++		if (cap->cap_id && cap->set) {
++			ret = cap->set(inst, i);
++			/*
++			 * ROG5: -EINVAL is how setters say "not applicable now"
++			 * (e.g. bitrate before streaming); anything else (failed
++			 * or refused command, full queue, failed resume, dead
++			 * firmware, allocation) fails the stream-on.
++			 */
++			if (ret && ret != -EINVAL) {
++				dev_err(inst->core->dev, "session %#x: property %u failed: %d\n",
++					inst->session_id, cap->cap_id, ret);
++				return ret;
++			}
++			if (ret)
++				dev_dbg(inst->core->dev, "session %#x: property %u not set: %d\n",
++					inst->session_id, cap->cap_id, ret);
++		}
+ 	}
+ 
+ 	return 0;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 0311abf..b703492 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/module.h>
++#include <media/v4l2-mem2mem.h>
+ 
+ #include "iris_hfi_gen1.h"
+ #include "iris_hfi_gen1_defines.h"
+@@ -60,6 +61,8 @@ static int iris_hfi_gen1_get_eos_buffer(struct iris_inst *inst, u32 *daddr)
+ 						  GFP_KERNEL, 0);
+ 	if (!inst->eos_vaddr)
+ 		return -ENOMEM;
++	if (!iris_dma_range_ok(core, inst->eos_daddr, SZ_4K, "EOS buffer"))
++		return -EINVAL;
+ 	*daddr = lower_32_bits(inst->eos_daddr);
+ 
+ 	return 0;
+@@ -334,11 +337,41 @@ static int iris_hfi_gen1_session_start(struct iris_inst *inst, u32 plane)
+ 	struct hfi_session_pkt packet;
+ 	int ret;
+ 
+-	if (!V4L2_TYPE_IS_OUTPUT(plane))
+-		return 0;
++	/*
++	 * ROG5, experimental SM8350 encoder only: like stock, configure both
++	 * ports before LOAD_RESOURCES/START (the CAPTURE port's properties,
++	 * frame rate included, used to arrive after START when the raw port
++	 * streamed on first), and set the work route (4 pipes) explicitly.
++	 */
++	if (iris_enc_start_gated(inst)) {
++		struct vb2_queue *dst_q = v4l2_m2m_get_dst_vq(inst->m2m_ctx);
++		struct vb2_queue *src_q = v4l2_m2m_get_src_vq(inst->m2m_ctx);
++		u32 route = inst->core->iris_platform_data->num_vpp_pipe;
++
++		if (V4L2_TYPE_IS_OUTPUT(plane) && !vb2_start_streaming_called(dst_q)) {
++			inst->enc_start_deferred = true;
++			return 0;
++		}
++		/*
++		 * CAPTURE: start once the raw port streams, also when CAPTURE
++		 * alone was stopped (STOP/RELEASE) and is restarted.
++		 */
++		if (!V4L2_TYPE_IS_OUTPUT(plane) && !vb2_start_streaming_called(src_q))
++			return 0;
++		inst->enc_start_deferred = false;
++		if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
++			return 0;
++		ret = hfi_gen1_set_property(inst, HFI_PROPERTY_PARAM_WORK_ROUTE,
++					    &route, sizeof(route));
++		if (ret)
++			return ret;
++	} else {
++		if (!V4L2_TYPE_IS_OUTPUT(plane))
++			return 0;
+ 
+-	if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
+-		return 0;
++		if (inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES)
++			return 0;
++	}
+ 
+ 	iris_hfi_gen1_expect(inst, HFI_MSG_SESSION_LOAD_RESOURCES);
+ 	iris_hfi_gen1_packet_session_cmd(inst, &packet, HFI_CMD_SESSION_LOAD_RESOURCES);
+@@ -431,12 +464,23 @@ static int iris_hfi_gen1_session_stop(struct iris_inst *inst, u32 plane)
+ 			 */
+ 		}
+ 	} else {
++		/*
++		 * ROG5, experimental SM8350 encoder: a deferred start is
++		 * cancelled by any stream-off, and a session the firmware never
++		 * loaded/started gets no STOP/RELEASE.
++		 */
++		if (iris_enc_start_gated(inst)) {
++			inst->enc_start_deferred = false;
++			if (!(inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES))
++				goto return_buffers;
++		}
+ 		if (inst->state == IRIS_INST_STREAMING ||
+ 		    inst->state == IRIS_INST_INPUT_STREAMING ||
+ 		    inst->state == IRIS_INST_ERROR) {
+ 			ret = iris_hfi_gen1_stop_release(inst);
+ 		}
+ 
++return_buffers:
+ 		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+ 					 VB2_BUF_STATE_ERROR);
+ 		iris_helper_buffers_done(inst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+@@ -457,8 +501,12 @@ static int iris_hfi_gen1_session_continue(struct iris_inst *inst, u32 plane)
+ 
+ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+ {
+-	struct hfi_session_empty_buffer_compressed_pkt com_ip_pkt;
+-	struct hfi_session_empty_buffer_uncompressed_pkt uncom_ip_pkt;
++	/* ROG5: no field left unset (extradata_buffer, data, ...) */
++	struct hfi_session_empty_buffer_compressed_pkt com_ip_pkt = {};
++	struct hfi_session_empty_buffer_uncompressed_pkt uncom_ip_pkt = {};
++
++	if (!iris_dma_range_ok(inst->core, buf->device_addr, buf->buffer_size, "input buffer"))
++		return -EINVAL;
+ 
+ 	if (inst->domain == DECODER) {
+ 		com_ip_pkt.shdr.hdr.size = sizeof(struct hfi_session_empty_buffer_compressed_pkt);
+@@ -499,7 +547,10 @@ static int iris_hfi_gen1_queue_input_buffer(struct iris_inst *inst, struct iris_
+ 
+ static int iris_hfi_gen1_queue_output_buffer(struct iris_inst *inst, struct iris_buffer *buf)
+ {
+-	struct hfi_session_fill_buffer_pkt op_pkt;
++	struct hfi_session_fill_buffer_pkt op_pkt = {};
++
++	if (!iris_dma_range_ok(inst->core, buf->device_addr, buf->buffer_size, "output buffer"))
++		return -EINVAL;
+ 
+ 	op_pkt.shdr.hdr.size = sizeof(struct hfi_session_fill_buffer_pkt);
+ 	op_pkt.shdr.hdr.pkt_type = HFI_CMD_SESSION_FILL_BUFFER;
+@@ -527,6 +578,9 @@ static int iris_hfi_gen1_queue_internal_buffer(struct iris_inst *inst, struct ir
+ 	u32 packet_size;
+ 	int ret;
+ 
++	if (!iris_dma_range_ok(inst->core, buf->device_addr, buf->buffer_size, "internal buffer"))
++		return -EINVAL;
++
+ 	packet_size = struct_size(int_pkt, buffer_info, 1);
+ 	int_pkt = kzalloc(packet_size, GFP_KERNEL);
+ 	if (!int_pkt)
+@@ -664,6 +718,11 @@ static int iris_hfi_gen1_session_drain(struct iris_inst *inst, u32 plane)
+ 	if (inst->domain == ENCODER) {
+ 		struct hfi_session_empty_buffer_uncompressed_pkt ip_pkt = {0};
+ 
++		/* ROG5: no EOS before the experimental encoder's session started */
++		if (iris_enc_start_gated(inst) &&
++		    !(inst->sub_state & IRIS_INST_SUB_LOAD_RESOURCES))
++			return -EBUSY;
++
+ 		ip_pkt.shdr.hdr.size = sizeof(struct hfi_session_empty_buffer_uncompressed_pkt);
+ 		ip_pkt.shdr.hdr.pkt_type = HFI_CMD_SESSION_EMPTY_BUFFER;
+ 		ip_pkt.shdr.session_id = inst->session_id;
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_queue.c b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+index 40ad3cb..4d716ca 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_queue.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_queue.c
+@@ -127,8 +127,25 @@ int iris_hfi_queue_cmd_write_locked(struct iris_core *core, void *pkt, u32 pkt_s
+ 	}
+ 
+ 	if (!iris_hfi_queue_write(q_info, pkt, pkt_size)) {
++		u32 *w = pkt;
++		bool mark = true;
++
+ 		iris_core_trace(core, 't', pkt);
++		/* ROG5: markers; buffer traffic only at the start of a session */
++		if (w[1] == 0x10007)		/* SYS_SESSION_INIT */
++			core->mark_budget = 6;
++		if (w[1] == 0x211004 || w[1] == 0x211005) {	/* ETB, FTB */
++			mark = core->mark_budget > 0;
++			if (mark)
++				core->mark_budget--;
++		}
++		if (mark)
++			iris_mark(core, "tx %#x size %u w2 %#x w3 %#x w4 %#x", w[1], w[0],
++				  pkt_size > 8 ? w[2] : 0, pkt_size > 12 ? w[3] : 0,
++				  pkt_size > 16 ? w[4] : 0);
+ 		iris_vpu_raise_interrupt(core);
++		if (mark)
++			iris_mark(core, "tx %#x raised", w[1]);
+ 	} else {
+ 		dev_err(core->dev, "queue full\n");
+ 		return -ENODATA;
+@@ -317,6 +334,18 @@ int iris_hfi_queues_init(struct iris_core *core)
+ 		return -ENOMEM;
+ 	}
+ 
++	/* ROG5: the queues and the SFR must lie in the non-secure IOVA window */
++	if (!iris_dma_range_ok(core, core->iface_q_table_daddr, queue_size, "HFI queues") ||
++	    !iris_dma_range_ok(core, core->sfr_daddr, SFR_SIZE, "SFR")) {
++		dma_free_attrs(core->dev, SFR_SIZE, core->sfr_vaddr,
++			       core->sfr_daddr, DMA_ATTR_WRITE_COMBINE);
++		dma_free_attrs(core->dev, queue_size, core->iface_q_table_vaddr,
++			       core->iface_q_table_daddr, DMA_ATTR_WRITE_COMBINE);
++		core->sfr_vaddr = NULL;
++		core->iface_q_table_vaddr = NULL;
++		return -EINVAL;
++	}
++
+ 	iris_hfi_queue_init(core, IFACEQ_CMDQ_ID, &core->command_queue);
+ 	iris_hfi_queue_init(core, IFACEQ_MSGQ_ID, &core->message_queue);
+ 	iris_hfi_queue_init(core, IFACEQ_DBGQ_ID, &core->debug_queue);
+diff --git a/drivers/media/platform/qcom/iris/iris_instance.h b/drivers/media/platform/qcom/iris/iris_instance.h
+index de9098b..382715f 100644
+--- a/drivers/media/platform/qcom/iris/iris_instance.h
++++ b/drivers/media/platform/qcom/iris/iris_instance.h
+@@ -92,6 +92,8 @@ enum iris_fmt_type_cap {
+  * @end_sent: SESSION_END was sent; close only waits for its answer (ROG5)
+  * @eos_vaddr: real EOS buffer for the decoder drain (eos_buffer parameter, ROG5)
+  * @eos_daddr: its device address
++ * @enc_start_deferred: experimental SM8350 encoder: LOAD/START waits for the
++ *			CAPTURE port (ROG5)
+  */
+ 
+ struct iris_inst {
+@@ -147,6 +149,7 @@ struct iris_inst {
+ 	bool				end_sent;
+ 	void				*eos_vaddr;
+ 	dma_addr_t			eos_daddr;
++	bool				enc_start_deferred;
+ };
+ 
+ #endif
+diff --git a/drivers/media/platform/qcom/iris/iris_probe.c b/drivers/media/platform/qcom/iris/iris_probe.c
+index ce818e5..f5910a6 100644
+--- a/drivers/media/platform/qcom/iris/iris_probe.c
++++ b/drivers/media/platform/qcom/iris/iris_probe.c
+@@ -376,7 +376,9 @@ static int __maybe_unused iris_pm_suspend(struct device *dev)
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
++	iris_mark(core, "runtime suspend");
+ 	ret = iris_hfi_pm_suspend(core);
++	iris_mark(core, "runtime suspend done: %d", ret);
+ 
+ exit:
+ 	mutex_unlock(&core->lock);
+@@ -395,7 +397,9 @@ static int __maybe_unused iris_pm_resume(struct device *dev)
+ 	if (core->state != IRIS_CORE_INIT || core->fatal)
+ 		goto exit;
+ 
++	iris_mark(core, "runtime resume");
+ 	ret = iris_hfi_pm_resume(core);
++	iris_mark(core, "runtime resume done: %d", ret);
+ 	pm_runtime_mark_last_busy(core->dev);
+ 
+ exit:
+diff --git a/drivers/media/platform/qcom/iris/iris_state.c b/drivers/media/platform/qcom/iris/iris_state.c
+index 5552725..adf4958 100644
+--- a/drivers/media/platform/qcom/iris/iris_state.c
++++ b/drivers/media/platform/qcom/iris/iris_state.c
+@@ -119,6 +119,12 @@ static bool iris_inst_allow_sub_state(struct iris_inst *inst, enum iris_inst_sub
+ 		if (sub_state & (IRIS_INST_SUB_FIRST_IPSC | IRIS_INST_SUB_DRC |
+ 			IRIS_INST_SUB_DRAIN | IRIS_INST_SUB_INPUT_PAUSE))
+ 			return true;
++		/*
++		 * ROG5: the experimental SM8350 encoder starts the session from
++		 * the CAPTURE stream-on when the raw port streamed on first.
++		 */
++		if ((sub_state & IRIS_INST_SUB_LOAD_RESOURCES) && iris_enc_start_gated(inst))
++			return true;
+ 		return false;
+ 	case IRIS_INST_OUTPUT_STREAMING:
+ 		if (sub_state & (IRIS_INST_SUB_DRC_LAST |
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.c b/drivers/media/platform/qcom/iris/iris_utils.c
+index e6c1500..4e8bc7f 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.c
++++ b/drivers/media/platform/qcom/iris/iris_utils.c
+@@ -52,6 +52,34 @@ void iris_fill_colorspace(struct v4l2_pix_format_mplane *pixmp)
+ 							  V4L2_COLORSPACE_SMPTE170M;
+ }
+ 
++/*
++ * ROG5: every buffer the firmware sees must lie in the non-secure IOVA window
++ * [cp_size, dma_mask + 1): below cp_size are the content-protection ranges
++ * handed to TrustZone (DMA there faults and can reboot the SoC), above the
++ * mask the firmware cannot address.
++ */
++/* ROG5: the experimental SM8350 encoder starts only with both ports streaming */
++bool iris_enc_start_gated(struct iris_inst *inst)
++{
++	const struct iris_oem_quirks *oem = inst->core->iris_platform_data->oem;
++
++	return inst->domain == ENCODER && oem && oem->encoder_experimental;
++}
++
++bool iris_dma_range_ok(struct iris_core *core, u64 daddr, u64 size, const char *what)
++{
++	const struct iris_platform_data *pd = core->iris_platform_data;
++	u64 lo = pd->tz_cp_config_data_size ? pd->tz_cp_config_data[0].cp_size : 0;
++	u64 hi = pd->dma_mask + 1;
++
++	if (size && daddr >= lo && size <= hi && daddr <= hi - size)
++		return true;
++
++	dev_err_ratelimited(core->dev, "%s at %#llx + %#llx is outside [%#llx, %#llx); not sent\n",
++			    what, daddr, size, lo, hi);
++	return false;
++}
++
+ bool iris_fmt_is_8bit(u32 pixelformat)
+ {
+ 	return pixelformat == V4L2_PIX_FMT_NV12 ||
+diff --git a/drivers/media/platform/qcom/iris/iris_utils.h b/drivers/media/platform/qcom/iris/iris_utils.h
+index 15000c5..389678b 100644
+--- a/drivers/media/platform/qcom/iris/iris_utils.h
++++ b/drivers/media/platform/qcom/iris/iris_utils.h
+@@ -47,6 +47,8 @@ int iris_get_mbpf(struct iris_inst *inst);
+ bool iris_split_mode_enabled(struct iris_inst *inst);
+ bool iris_fmt_is_8bit(u32 pixelformat);
+ void iris_fill_colorspace(struct v4l2_pix_format_mplane *pixmp);
++bool iris_dma_range_ok(struct iris_core *core, u64 daddr, u64 size, const char *what);
++bool iris_enc_start_gated(struct iris_inst *inst);
+ bool iris_fmt_is_10bit(u32 pixelformat);
+ struct iris_inst *iris_get_instance(struct iris_core *core, u32 session_id);
+ void iris_put_instance(struct iris_inst *inst);
+diff --git a/drivers/media/platform/qcom/iris/iris_venc.c b/drivers/media/platform/qcom/iris/iris_venc.c
+index ba6b58d..8295e96 100644
+--- a/drivers/media/platform/qcom/iris/iris_venc.c
++++ b/drivers/media/platform/qcom/iris/iris_venc.c
+@@ -552,7 +552,19 @@ int iris_venc_qbuf(struct iris_inst *inst, struct vb2_v4l2_buffer *vbuf)
+ 		return 0;
+ 	}
+ 
+-	iris_scale_power(inst);
++	/*
++	 * ROG5 (experimental SM8350 encoder): no buffer reaches the firmware
++	 * before both ports streamed on and the session started; the
++	 * deferred ones are queued when the instance reaches STREAMING.
++	 */
++	if (iris_enc_start_gated(inst) && inst->state != IRIS_INST_STREAMING) {
++		buf->attr |= BUF_ATTR_DEFERRED;
++		return 0;
++	}
++
++	ret = iris_scale_power(inst);
++	if (ret)
++		return ret;
+ 
+ 	return iris_queue_buffer(inst, buf);
+ }

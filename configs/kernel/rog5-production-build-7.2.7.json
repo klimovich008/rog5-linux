@@ -9,7 +9,8 @@
     "configs/kernel/rog5-wifi.fragment",
     "configs/kernel/rog5-thermal-pmic-critical.fragment",
     "configs/kernel/rog5-production.fragment",
-    "configs/kernel/rog5-swiotlb-slim.fragment"
+    "configs/kernel/rog5-swiotlb-slim.fragment",
+    "configs/kernel/rog5-video.fragment"
   ],
   "required": {
     "CONFIG_ARM64": "y",
@@ -55,7 +56,9 @@
     "CONFIG_REGULATOR_USERSPACE_CONSUMER": "y",
     "CONFIG_RTC_DRV_PM8XXX": "m",
     "CONFIG_PSTORE_RAM": "y",
-    "CONFIG_RTC_HCTOSYS": "n"
+    "CONFIG_RTC_HCTOSYS": "n",
+    "CONFIG_SM_VIDEOCC_8350": "m",
+    "CONFIG_VIDEO_QCOM_IRIS": "m"
   },
   "forbidden": [
     "CONFIG_COMPILE_TEST",
