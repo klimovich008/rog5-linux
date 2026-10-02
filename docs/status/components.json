@@ -22,7 +22,7 @@
           "name": "Signed boot chain",
           "status": "ready",
           "weight": 3,
-          "note": "slot-B wrapper, try-once selector, signed fallback safe-k111-d10 (rehearsed 2026-10-01; safe-r8 rehearsed 2026-09-30, kept on p24); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx"
+          "note": "slot-B wrapper, try-once selector, signed fallback safe-k111-d10 (rehearsed 2026-10-01; safe-r8 rehearsed 2026-09-30, kept on p24); installer never unlinks on p24 and proves the ro remount (cc090781); bundles built by rog5-make-bundle.py, names main|safe-kNNN-dN-YYMMDDx; 2026-10-02 offline audit hardening (571d9273) covers crash residue, emergency reset and display/lock health; not installed or phone-qualified"
         },
         {
           "name": "Kernel updates",
@@ -34,7 +34,7 @@
           "name": "Unattended package updates",
           "status": "untested",
           "weight": 2,
-          "note": "reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback"
+          "note": "reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback; 2026-10-02 failed-transaction recovery, owned pacman lock, last-good durability and phone health gate tested offline (571d9273), not deployed"
         },
         {
           "name": "Boot splash",

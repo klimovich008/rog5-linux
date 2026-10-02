@@ -30,7 +30,7 @@ Partial:
 
 Needs a test:
 
-- Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback
+- Boot & updates / Unattended package updates: reboots only when idle (no remote client, no sound, 01-06 window); snapshots exclude user data (~6 GB); v2 restore passed fault injection and is in both bundles (safe-r8), not yet a real rollback; 2026-10-02 failed-transaction recovery, owned pacman lock, last-good durability and phone health gate tested offline (571d9273), not deployed
 - Boot & updates / Boot splash: r187 keeps the bootloader logo until phoc (0107/0108); needs a visual check
 - Display & shell / Phosh: hotplug crash fixes installed (phosh 0.57.0-1.3, phoc 0.57.0-1.2), no crash since 2026-09-30 00:00; plug/unplug stress test pending
 - Connectivity / Hotspot
