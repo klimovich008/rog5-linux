@@ -1,6 +1,22 @@
 # Eden (Nintendo Switch emulator) for the ROG5
 
-**In use: stable v0.2.1 aarch64 PGO AppImage** (`/opt/eden` -> `/opt/eden-v0.2.1`), pinned to
+**In use (2026-10-03 05:00): a native build of v0.2.1 from this PKGBUILD**
+(`eden-dbg 0.2.1-3.1`: gcc -O2 -g1, not stripped, no LTO, Qt WebEngine off),
+started as `eden` from the system menu entry, with **v-sync = Mailbox**
+(`use_vsync=1` in `~/.config/eden/qt-config.ini`).
+
+Why: the upstream AppImages (stable v0.2.1 and nightly d16735f5b6, PGO and
+standard) crash BotW at boot on this phone in every configuration, also on
+Wayland (SIGTRAP/SIGSEGV after NS GetApplicationDesiredLanguage; emulated
+scheduler asserts). The native build against the system glibc/libstdc++/Boost
+never crashed (5 runs). Its remaining problem was a stall with FIFO v-sync on
+Phosh: the GPU thread waited forever in Turnip's Wayland WSI
+(`wl_display_dispatch_queue`). With Mailbox v-sync BotW ran 95 s, game running,
+438 pipelines, no asserts. The AppImage crash therefore comes with its bundled
+runtime (sharun loader/glibc/Boost), which NCE's TLS/signal handling meets.
+Analyses by GPT-6.1-Sol and GPT-6-Astra: `~/.local/state/rog5-eden-src/report-*.md`.
+
+Earlier (superseded): stable v0.2.1 aarch64 PGO AppImage** (`/opt/eden` -> `/opt/eden-v0.2.1`), pinned to
 CPUs 4-7. The nightly below crashes BotW at boot on this phone even pinned (3 more
 SIGTRAPs 04:08-04:10); stable v0.2.1 pinned ran BotW 60 s with 361 pipelines and no
 asserts. Both are upstream PGO AppImages, not this PKGBUILD.
