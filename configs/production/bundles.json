@@ -777,10 +777,10 @@
       "package": "package-main-k123-d15-261002b",
       "source_commit": "8e584ea275a4",
       "changes": "k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off)",
-      "status": "installed-main",
+      "status": "retired",
       "healthy": "yes",
       "installed": "2026-10-03 00:12",
-      "notes": "Installed as default over main-k116-d15-261002e (fallback safe-k111-d10-261001a); first boot committed healthy. Same content as main-k123-d15-261002a (RAM-trial PASS)."
+      "notes": "Default 2026-10-03 00:12-02:50; replaced by main-k125-d15-261003b (VP9)."
     },
     {
       "name": "main-k124-d15-261003a",
@@ -825,10 +825,10 @@
       "package": "package-main-k125-d15-261003b",
       "source_commit": "564af95a60d1",
       "changes": "k125 default candidate: k123 + 0212/0213 (VP9 hardware decode) + Wi-Fi battery-temperature retry; same content as main-k125-d15-261003a (RAM-trial PASS)",
-      "status": "built",
-      "healthy": "unknown",
-      "installed": null,
-      "notes": null
+      "status": "installed-main",
+      "healthy": "yes",
+      "installed": "2026-10-03 02:50",
+      "notes": "Installed as default over main-k123-d15-261002b (fallback safe-k111-d10-261001a) with /etc/modprobe.d/rog5-iris-vp9.conf; first boot committed, Wi-Fi up, VP9 ffmpeg 300/300 bit-exact."
     }
   ]
 }
