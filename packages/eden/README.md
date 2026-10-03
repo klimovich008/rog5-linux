@@ -67,3 +67,12 @@ only for the first thread. `0001-nce-refresh-host-thread-id.patch` refreshes the
 every `Initialize` (called before each RunThread) and keeps one sigaltstack per host
 thread. -O2 builds happened not to trigger it in our runs; -O3/LTO builds and the
 upstream AppImages (clang -O3+LTO+PGO) did, every time.
+
+Round 2 (07:30): with 0001 alone the brk #1000 was gone, but the game then aborted
+(svcBreak 0xE401) and NCE's fault fallback called the null previous SIGSEGV handler
+(PC 0). The underlying fault: `KernelCore::CurrentPhysicalCoreIndex`,
+`GetCurrentHostThreadID`, `Get/SetCurrentEmuThread` read `Impl::tls_data`
+(`thread_local`); inlined by LTO into scheduler/CPU-manager code, the thread-local
+address of the previous host thread is reused after `Fiber::YieldTo` resumes on
+another host thread. `0002-kernel-tls-accessors-out-of-line.patch` marks them
+`[[gnu::noinline]]`. Testing pkgrel 3.5 (-O3 LTO + 0001 + 0002).

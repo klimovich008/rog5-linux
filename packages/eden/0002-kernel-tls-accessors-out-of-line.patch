@@ -1,0 +1,69 @@
+--- a/src/core/hle/kernel/kernel.h
++++ b/src/core/hle/kernel/kernel.h
+@@ -39,6 +39,18 @@
+ class ServiceManager;
+ }
+ 
++// ROG5: these read Impl's thread_local state. Guest fibers resume on other host
++// threads, and once inlined (LTO/-O3) the compiler keeps the thread-local address
++// of the previous host thread across Fiber::YieldTo, so a host thread acts as the
++// wrong emulated core (scheduler GetDisableDispatchCount asserts, dynarmic
++// !is_executing, NCE SIGUSR2 to a stale thread). Keep them out of line so every
++// call computes the address on the thread that is running.
++#if defined(__GNUC__)
++#define ROG5_TLS_ACCESSOR [[gnu::noinline]]
++#else
++#define ROG5_TLS_ACCESSOR
++#endif
++
+ namespace Kernel {
+ 
+ class KClientPort;
+@@ -155,16 +167,16 @@
+     const Kernel::PhysicalCore& PhysicalCore(std::size_t id) const;
+ 
+     /// Gets the current physical core index for the running host thread.
+-    std::size_t CurrentPhysicalCoreIndex() const;
++    ROG5_TLS_ACCESSOR std::size_t CurrentPhysicalCoreIndex() const;
+ 
+     /// Gets the sole instance of the Scheduler at the current running core.
+     Kernel::KScheduler* CurrentScheduler();
+ 
+     /// Gets the an instance of the current physical CPU core.
+-    Kernel::PhysicalCore& CurrentPhysicalCore();
++    ROG5_TLS_ACCESSOR Kernel::PhysicalCore& CurrentPhysicalCore();
+ 
+     /// Gets the an instance of the current physical CPU core.
+-    const Kernel::PhysicalCore& CurrentPhysicalCore() const;
++    ROG5_TLS_ACCESSOR const Kernel::PhysicalCore& CurrentPhysicalCore() const;
+ 
+     /// Gets the an instance of the hardware timer.
+     Kernel::KHardwareTimer& HardwareTimer();
+@@ -196,13 +208,13 @@
+     void RunServer(std::unique_ptr<Service::ServerManager>&& server_manager);
+ 
+     /// Gets the current host_thread/guest_thread pointer.
+-    KThread* GetCurrentEmuThread() const;
++    ROG5_TLS_ACCESSOR KThread* GetCurrentEmuThread() const;
+ 
+     /// Sets the current guest_thread pointer.
+-    void SetCurrentEmuThread(KThread* thread);
++    ROG5_TLS_ACCESSOR void SetCurrentEmuThread(KThread* thread);
+ 
+     /// Gets the current host_thread handle.
+-    u32 GetCurrentHostThreadID() const;
++    ROG5_TLS_ACCESSOR u32 GetCurrentHostThreadID() const;
+ 
+     /// Register the current thread as a CPU Core Thread.
+     void RegisterCoreThread(std::size_t core_id);
+@@ -275,8 +287,8 @@
+     bool IsShuttingDown() const;
+ 
+     /// Workaround for single-core mode when preempting threads while idle.
+-    bool IsPhantomModeForSingleCore() const;
+-    void SetIsPhantomModeForSingleCore(bool value);
++    ROG5_TLS_ACCESSOR bool IsPhantomModeForSingleCore() const;
++    ROG5_TLS_ACCESSOR void SetIsPhantomModeForSingleCore(bool value);
+ 
+     Core::System& System();
+     const Core::System& System() const;
