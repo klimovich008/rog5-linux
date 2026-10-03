@@ -1,6 +1,11 @@
 # Eden (Nintendo Switch emulator) for the ROG5
 
-**Installed: the upstream nightly aarch64 PGO AppImage, not this PKGBUILD.**
+**In use: stable v0.2.1 aarch64 PGO AppImage** (`/opt/eden` -> `/opt/eden-v0.2.1`), pinned to
+CPUs 4-7. The nightly below crashes BotW at boot on this phone even pinned (3 more
+SIGTRAPs 04:08-04:10); stable v0.2.1 pinned ran BotW 60 s with 361 pipelines and no
+asserts. Both are upstream PGO AppImages, not this PKGBUILD.
+
+Nightly (kept in `/opt/eden-nightly-d16735f5b6`):
 Nightly Oct 02 2026 (commit d16735f5b6, `Eden-Linux-d16735f5b6-aarch64-clang-pgo.AppImage`,
 SHA-1 79ee68a2f0704f4c133963d206de42dd93493b54 matching its zsync file,
 SHA-256 dcb3f072860ebda93262712bb971e24c09964d3e666aa060307d0a27f6a81007).
