@@ -19,6 +19,24 @@ shrine, walking; Mesa overlay frame log; first minute excluded; 30 fps game cap)
 Without the two fixes every -O3/LTO build (ours and the upstream clang PGO AppImages)
 crashed BotW at boot. Screenshots at 80 s show the "Wake up, Link." intro.
 
+
+## Performance (2026-10-03, same unattended 5-minute BotW route)
+
+Profile (unpinned): GPU at its 840 MHz maximum 99% of the time but only 75% busy
+(median 80%); busiest CPU threads `GPU` (Eden's Maxwell emulation) 68%,
+`CPUCore_2` 59%, `VulkanWorker` 53% of a core. Native ASTC (28/28 formats), LLCC
+GPU slices and max-DDR GPU votes were already in place.
+
+| Run | avg | median | 1% low | <25 fps | end temp |
+|---|---|---|---|---|---|
+| unpinned (3.5) | 26.2 | 28.5 | 20.0 | 41% | 73 C |
+| whole process on CPU 4-7 | 30.0 | 30.0 | 29.8 | 0% | 87 C |
+| CPUCore_0..3 pinned to CPU 4..7 | 30.0 | 30.0 | 29.7 | 0% | 84 C |
+
+The emulated-CPU threads landing on the A55 cores starved the GPU. `eden-launcher`
+is installed as `/usr/local/bin/eden` (a separate file; `/usr/bin/eden` is the
+package binary) and pins `CPUCore_0..3` to CPUs 4..7 every 3 s while Eden runs.
+
 History:
 
 **In use (2026-10-03 05:00): a native build of v0.2.1 from this PKGBUILD**
