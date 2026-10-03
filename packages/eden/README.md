@@ -15,6 +15,14 @@ code that compiler flags do not touch, `-mcpu=cortex-x1` gains a few percent
 at most on the rest, and the upstream PGO build is 10-30 % faster than a
 standard build, which a local build cannot match without a profiling run.
 
+Launch pinned to the big cores: the menu entry runs `taskset -c 4-7 /opt/eden/AppRun %f`
+and `/usr/local/bin/eden` does the same. Unpinned, BotW traps at boot (fatal
+emulated-scheduler asserts `GetDisableDispatchCount`, also `dynarmic !is_executing`)
+in every mode tried (NCE and Dynarmic, PGO and standard, bundled and system
+Turnip, with and without DLC; single-core hangs at the same point). Pinned to
+CPUs 4-7 (Cortex-A78 x3, X1) it gets past that point with no asserts.
+Stable v0.2.1 is unpacked in `/opt/eden-v0.2.1` as a fallback.
+
 Notes:
 - The AppImage bundles its own Mesa 26.2.3 (Turnip without our 8-bit storage
   patch, which Eden does not need) and forces X11/Xwayland
