@@ -115,3 +115,15 @@ Round 2 (07:30): with 0001 alone the brk #1000 was gone, but the game then abort
 address of the previous host thread is reused after `Fiber::YieldTo` resumes on
 another host thread. `0002-kernel-tls-accessors-out-of-line.patch` marks them
 `[[gnu::noinline]]`. Testing pkgrel 3.5 (-O3 LTO + 0001 + 0002).
+
+GPU settings (unpinned, vs 26.2 avg): Turnip `TU_DEBUG=sysmem` 29.6 (pixel-identical,
+now in the launcher), GPU accuracy Normal 29.1, reactive flushing off 28.7,
+`TU_DEBUG=gmem` 18.5. Pinned + sysmem: locked 30.0 (1% low 29.8), GPU 85% busy,
+end temperature 60 C instead of 84 C pinned alone.
+
+60 fps mod: UltraCam for BotW 1.6.0 (NX Optimizer repo, `src/PatchInfo/Breath Of The
+Wild/UltraCam`, MaxFramerate 60, 1600x900, QualityImprovements Off): 32.6-33.1 fps avg,
+1% low 22.4, GPU 98% busy; even with GPU min_freq = 840 MHz the clock sat mostly at
+676-738 MHz (something below devfreq, likely the GMU, limits it: kernel follow-up).
+Mod kept in `~/.local/share/eden/load-disabled/01007EF00011E000/UltraCam`; move it to
+`load/` to re-enable.

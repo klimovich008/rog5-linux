@@ -4,7 +4,8 @@
 # Unpinned, these threads often run on the A55 cores and BotW drops to ~26 fps;
 # pinned it holds its 30 fps cap (2026-10-03 benchmark, packages/eden/README.md).
 # Shader compilers, audio and other threads stay free to use every core.
-/usr/bin/eden "$@" &
+# Turnip: force sysmem rendering (pixel-identical; +3.4 fps unpinned in BotW, gmem is far worse)
+TU_DEBUG=${TU_DEBUG:-sysmem} /usr/bin/eden "$@" &
 pid=$!
 # Games create CPUCore_0..3 when they start (again after a stop/restart): re-pin every 3 s.
 while kill -0 $pid 2>/dev/null; do
