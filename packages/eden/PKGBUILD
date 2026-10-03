@@ -1,26 +1,28 @@
 # Maintainer: gfrank227 [at] gmail [dot] com
 # Maintainer: HurricanePooits <hurricanepootis@protonmail.com>
 # Contributor: rcf <ryan.farley@gmx.com>
-# ROG5: AUR eden 0.2.1-3 (aur.archlinux.org/packages/eden) built natively on
-# the phone (aarch64). Only change: cubeb is not in the Arch Linux ARM
-# repositories, so it is dropped from depends and Eden's CMake bundles it.
+# ROG5: AUR eden 0.2.1-3 (aur.archlinux.org/packages/eden) built natively on the
+# phone (aarch64), 2026-10-03. Changes: cubeb dropped from depends (not in Arch
+# Linux ARM; CMake bundles it), Qt WebEngine off, -O3 with the SM8350 ISA and
+# Cortex-X1 tuning, no libstdc++ assertions, ENABLE_LTO. The upstream AppImages
+# crash BotW on this phone (bundled runtime); this native build does not.
 pkgname=eden
 pkgver=0.2.1
-pkgrel=3.1
+pkgrel=3.2
 pkgdesc="Nintendo Switch emulator forked from yuzu."
 arch=('x86_64' 'aarch64')
 url=https://eden-emulator.github.io/
 license=('GPL-3.0-or-later')
 depends=('enet' 'fmt' 'opus' 'lz4' 'zlib' 'zstd' 'libusb' 'openssl' 'glibc'
-	 'qt6-webengine' 'brotli' 'hicolor-icon-theme' 'qt6-base' 'sdl2'
+	 'brotli' 'hicolor-icon-theme' 'qt6-base' 'sdl2'
 	 'ffmpeg' 'boost-libs' 'quazip-qt6' 'qt6-charts'
 	 'qt6-multimedia' 'libgcc' 'libstdc++')
 makedepends=('cmake' 'catch2' 'boost' 'wireless_tools' 'vulkan-headers' 'vulkan-utility-libraries'
 	     'nlohmann-json' 'ninja' 'gamemode' 'renderdoc'
 	     'qt6-tools' 'nasm' 'opencl-headers')
 optdepends=('gamemode: Gamemoded support')
-conflicts=('eden-bin' 'eden-git' 'eden-preview-bin' 'eden-beta')
-options=('!debug')
+conflicts=('eden-dbg' 'eden-bin' 'eden-git' 'eden-preview-bin' 'eden-beta')
+options=('!debug' '!lto')
 source=("eden-v${pkgver}.tar.gz::https://git.eden-emu.dev/eden-emu/eden/archive/v${pkgver}.tar.gz"
 		"60e1032771.patch"
 		"7c0e993b5b.patch")
@@ -36,7 +38,12 @@ prepare() {
 
 build() {
 	cd "$srcdir"
-	cmake -B build -S $pkgname -GNinja \
+	local opt="-march=armv8.2-a+crypto+crc+lse+rcpc+fp16+dotprod -mtune=cortex-x1"
+	export CFLAGS="${CFLAGS/-march=armv8-a/$opt}" CXXFLAGS="${CXXFLAGS/-march=armv8-a/$opt}"
+	export CFLAGS="${CFLAGS/-O2/-O3}" CXXFLAGS="${CXXFLAGS/-O2/-O3}"
+	export CXXFLAGS="${CXXFLAGS/-Wp,-D_GLIBCXX_ASSERTIONS/}"   # upstream builds have no libstdc++ assertions
+	echo "ROG5 CXXFLAGS: $CXXFLAGS"
+	cmake -B build -S eden -GNinja \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_BUILD_TYPE=None \
 		-DUSE_DISCORD_PRESENCE=ON \
@@ -47,7 +54,9 @@ build() {
 		-DYUZU_USE_BUNDLED_QT=OFF \
 		-DENABLE_QT_TRANSLATION=ON \
 		-DYUZU_USE_QT_MULTIMEDIA=ON \
-		-DYUZU_USE_QT_WEB_ENGINE=ON \
+		-DYUZU_USE_QT_WEB_ENGINE=OFF \
+		-DENABLE_LTO=ON \
+		-DYUZU_BUILD_PRESET=custom \
 		-Dhttplib_FORCE_BUNDLED=ON \
 		-DTITLE_BAR_FORMAT_RUNNING="eden | ${pkgver} {}" \
 		-DTITLE_BAR_FORMAT_IDLE="eden ${pkgver} {}" \
@@ -60,12 +69,12 @@ build() {
 package() {
 	cd "$srcdir"
 	DESTDIR="$pkgdir/" cmake --install build
-	install -Dm644 "$srcdir/$pkgname/dist/72-yuzu-input.rules" "$pkgdir/usr/lib/udev/rules.d/72-eden-input.rules"
+	install -Dm644 "$srcdir/eden/dist/72-yuzu-input.rules" "$pkgdir/usr/lib/udev/rules.d/72-eden-input.rules"
 	sed -i 's/KERNEL==/ACTION!="remove", KERNEL==/' "$pkgdir/usr/lib/udev/rules.d/72-eden-input.rules" # systemd 258 fix
-	cd "$srcdir/$pkgname/LICENSES"
+	cd "$srcdir/eden/LICENSES"
 	for file in *.txt;
 	do
-		install -Dm644 $file "$pkgdir/usr/share/licenses/$pkgname/$file"
+		install -Dm644 $file "$pkgdir/usr/share/licenses/eden/$file"
 	done
 }
 
