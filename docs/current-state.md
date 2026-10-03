@@ -5,11 +5,11 @@ phone shell and GNOME as the desktop mode on an external display. Linux
 7.2.7 with the `patches/linux-7.2.7` series; cellular is out of scope.
 
 <!-- BEGIN GENERATED: scripts/host/render-current-state.py from docs/status/components.json -->
-Status as of 2026-10-02 (main-k116-d15-261002e) (source: `docs/status/components.json`).
+Status as of 2026-10-04 (main-k125-d15-261003b) (source: `docs/status/components.json`).
 
 | | Bundle | Kernel build | DTB | Installed |
 |---|---|---|---|---|
-| Default | `main-k116-d15-261002e` | k116 (series to 0168: + Iris video 0154-0168; uname 7.2.7-rog5-k116) | d15 (`16cbb384`, d13 + iris/videocc nodes) | 2026-10-02 14:02; hardware H.264/HEVC decode, firmware installed persistently |
+| Default | `main-k125-d15-261003b` | k125 (series to 0213: + video wedge fix 0210/0211, audit fixes 0180-0195, HDMI 0200-0203, VP9 0212/0213; uname 7.2.7-rog5-k125) | d15 (`16cbb384`, d13 + iris/videocc nodes) | 2026-10-03 02:50; H.264/HEVC hardware decode on, VP9 opt-in (/etc/modprobe.d/rog5-iris-vp9.conf) |
 | Fallback | `safe-k111-d10-261001a` | k111 (series to 0148) | d10 (`dda8b280`, d9 + l11off) | 2026-10-01 13:52; fallback rehearsal PASS 15:42 (safe-r8 kept on p24) |
 
 Components: 39 ready, 11 partial, 8 needs a test, 16 missing.
@@ -25,7 +25,7 @@ Partial:
 - Power / Idle background wakeups: desktop-mode switcher event-driven (~0.1 % CPU); sleep policy polls every 5 s; k111: USB DDR vote follows attached devices (0148) and PM8350C L11 off (d10) — A/B with rog5-idle-power-sample pending
 - Performance / Performance mode: rog5-perf-mode auto, perf_on_power=always on the phone (performance trips on any external power); no toggle in Phosh yet
 - Sensors & hardware / RGB logo LED
-- Sensors & hardware / Hardware video decode/encode: k116 remains the installed default. k117 F1: H.264/HEVC 300/300 bit-exact, compliance 48/48, clean power off and 5 min idle PASS, but removal hard-hangs after mark: remove. F2r: VP9 stock-sized stream-0 DPBs still rejected (0x1003); stock counts do not help; third error contained. Encoder F3 unrun (k115 hung at start). Host-only k120 (0172-0178, d15): detailed callback/devres/genpd/IOMMU markers, opt-in remove_quiesce and VP9 shared extradata, never-powered probe control, encoder tooling/tests; G1/G2/G3 plan in docs/hardware/video.md. No k120 phone qualification. Host wedge patch 0190 uses ABORT for failed gen1 sessions and contains teardown timeouts. k122 Chromium close stalls after an output-only flush; host patch 0191 uses ALL for ordinary CAPTURE streamoff and keeps OUTPUT for DRC. Series apply and ARM64 Iris W=1 objects PASS; fresh-boot qualification pending (test-results/2026-10-02-video-iris-flush-0191-host.md). CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime
+- Sensors & hardware / Hardware video decode/encode: k125 is the installed default. H.264/HEVC hardware decode on; the Chromium close wedge is fixed (0210 abort/containment, 0211 FLUSH_ALL on close): vstress and YouTube stress pass with no Iris errors. VP9 works (0212/0213, ffmpeg 300/300 bit-exact, YouTube 150 s) but stays off by default (~1 s stall per resolution switch). Encoder hangs and stays hidden. Details: docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime
 - Apps / Steam (native arm64): title-bar drag and resize via an LD_PRELOAD shim (c75efe81); x86 games through FEX (Half-Life ran); BioShock runs on x86 Proton 9 (DXVK 2.5.1) under FEX; patched x86_64+i686 FEX Turnip (packages/mesa-fex, 26.2.0-rog5.1) installed in the FEX guest root 2026-10-01: DXVK 3.1.1 under Proton Experimental finds Turnip Adreno 660 for 32-bit BioShock (no 8-bit storage skip), s8test x86_64/i686 PASS again 2026-10-03; Dota 2 retest pending
 
 Needs a test:

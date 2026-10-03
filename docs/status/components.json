@@ -1,11 +1,11 @@
 {
-  "as_of": "2026-10-02 (main-k116-d15-261002e)",
+  "as_of": "2026-10-04 (main-k125-d15-261003b)",
   "bundles": {
     "default": {
-      "bundle": "main-k116-d15-261002e",
-      "kernel": "k116 (series to 0168: + Iris video 0154-0168; uname 7.2.7-rog5-k116)",
+      "bundle": "main-k125-d15-261003b",
+      "kernel": "k125 (series to 0213: + video wedge fix 0210/0211, audit fixes 0180-0195, HDMI 0200-0203, VP9 0212/0213; uname 7.2.7-rog5-k125)",
       "dtb": "d15 (`16cbb384`, d13 + iris/videocc nodes)",
-      "installed": "2026-10-02 14:02; hardware H.264/HEVC decode, firmware installed persistently"
+      "installed": "2026-10-03 02:50; H.264/HEVC hardware decode on, VP9 opt-in (/etc/modprobe.d/rog5-iris-vp9.conf)"
     },
     "fallback": {
       "bundle": "safe-k111-d10-261001a",
@@ -435,7 +435,7 @@
           "name": "Hardware video decode/encode",
           "status": "partial",
           "weight": 1,
-          "note": "k116 remains the installed default. k117 F1: H.264/HEVC 300/300 bit-exact, compliance 48/48, clean power off and 5 min idle PASS, but removal hard-hangs after mark: remove. F2r: VP9 stock-sized stream-0 DPBs still rejected (0x1003); stock counts do not help; third error contained. Encoder F3 unrun (k115 hung at start). Host-only k120 (0172-0178, d15): detailed callback/devres/genpd/IOMMU markers, opt-in remove_quiesce and VP9 shared extradata, never-powered probe control, encoder tooling/tests; G1/G2/G3 plan in docs/hardware/video.md. No k120 phone qualification. Host wedge patch 0190 uses ABORT for failed gen1 sessions and contains teardown timeouts. k122 Chromium close stalls after an output-only flush; host patch 0191 uses ALL for ordinary CAPTURE streamoff and keeps OUTPUT for DRC. Series apply and ARM64 Iris W=1 objects PASS; fresh-boot qualification pending (test-results/2026-10-02-video-iris-flush-0191-host.md). CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
+          "note": "k125 is the installed default. H.264/HEVC hardware decode on; the Chromium close wedge is fixed (0210 abort/containment, 0211 FLUSH_ALL on close): vstress and YouTube stress pass with no Iris errors. VP9 works (0212/0213, ffmpeg 300/300 bit-exact, YouTube 150 s) but stays off by default (~1 s stall per resolution switch). Encoder hangs and stays hidden. Details: docs/hardware/video.md. CPU baseline 1080p: H.264 9.8x, HEVC 7.6x, VP9 8.4x realtime"
         }
       ]
     },

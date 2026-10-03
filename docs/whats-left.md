@@ -17,6 +17,19 @@ partial, blue needs a test, red missing); it is generated from
 
 ![status map](images/status-map.svg)
 
+## Parked branches (2026-10-04)
+
+The work below is not in the main line. Merge a branch only after its test passes on the phone.
+
+- `agent/boot-splash-261002`: phoc shows the boot artwork in its first frame (phoc 0.57.0-1.3).
+  It is not installed; the phone runs phoc 0.57.0-1.2. It still needs a visual check.
+- `agent/usb-bottom-charging-20261001`: USB bottom port stage C (opt-in charging through the bottom port).
+  It is not qualified.
+- `agent/gpu-perf-exp`: an experiment, EXPERIMENT 0107 (LLCC GPU write-allocate),
+  plus the `gpu_ab.py` A/B benchmark. It has not been benchmarked.
+
+The September GPU/OLED experiment branches have been superseded.
+
 ## Fixed since 2026-09-29
 
 - **Monitor**: no more blue screen at the first enable (0130-0135), and GNOME
