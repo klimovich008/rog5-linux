@@ -1,14 +1,12 @@
 # Maintainer: gfrank227 [at] gmail [dot] com
 # Maintainer: HurricanePooits <hurricanepootis@protonmail.com>
 # Contributor: rcf <ryan.farley@gmx.com>
-# ROG5: AUR eden 0.2.1-3 (aur.archlinux.org/packages/eden) built natively on the
-# phone (aarch64), 2026-10-03. Changes: cubeb dropped from depends (not in Arch
-# Linux ARM; CMake bundles it), Qt WebEngine off, -O3 with the SM8350 ISA and
-# Cortex-X1 tuning, no libstdc++ assertions, ENABLE_LTO. The upstream AppImages
-# crash BotW on this phone (bundled runtime); this native build does not.
+# ROG5: AUR eden 0.2.1-3 (aur.archlinux.org/packages/eden) built natively on
+# the phone (aarch64). Only change: cubeb is not in the Arch Linux ARM
+# repositories, so it is dropped from depends and Eden's CMake bundles it.
 pkgname=eden
 pkgver=0.2.1
-pkgrel=3.2
+pkgrel=3.5
 pkgdesc="Nintendo Switch emulator forked from yuzu."
 arch=('x86_64' 'aarch64')
 url=https://eden-emulator.github.io/
@@ -22,25 +20,31 @@ makedepends=('cmake' 'catch2' 'boost' 'wireless_tools' 'vulkan-headers' 'vulkan-
 	     'qt6-tools' 'nasm' 'opencl-headers')
 optdepends=('gamemode: Gamemoded support')
 conflicts=('eden-dbg' 'eden-bin' 'eden-git' 'eden-preview-bin' 'eden-beta')
-options=('!debug' '!lto')
+options=('!debug' '!strip' '!lto')
 source=("eden-v${pkgver}.tar.gz::https://git.eden-emu.dev/eden-emu/eden/archive/v${pkgver}.tar.gz"
 		"60e1032771.patch"
-		"7c0e993b5b.patch")
+		"7c0e993b5b.patch"
+		"0001-nce-refresh-host-thread-id.patch"
+		"0002-kernel-tls-accessors-out-of-line.patch")
 sha256sums=('a43ea2886b75204438f691a4ddfad99e88b508e30431978dd13fba1c22440d19'
             '2d73f9f8473644385efd73507f828f172cfe2e3e829e962584bb1d0429e25e3f'
-            'e078d47ee07f93432c155ab03f5589ad1166466a2a0f5ab9832c0f3c2cb7a573')
+            'e078d47ee07f93432c155ab03f5589ad1166466a2a0f5ab9832c0f3c2cb7a573'
+            '58cd00a2fe23f68cedee1a2a33dfe0045c70acae2de416a3ccab9b88a753d256'
+            '84cc7e71fbe3ac5992f6c26e2609d2e9fa5ab2ca4960bec580d3547e42ee33b1')
 
 prepare() {
 	cd $srcdir/eden
 	patch -p1 < "$srcdir/60e1032771.patch"
 	patch -p1 < "$srcdir/7c0e993b5b.patch"
+	patch -p1 < "$srcdir/0001-nce-refresh-host-thread-id.patch"
+	patch -p1 < "$srcdir/0002-kernel-tls-accessors-out-of-line.patch"
 }
 
 build() {
 	cd "$srcdir"
 	local opt="-march=armv8.2-a+crypto+crc+lse+rcpc+fp16+dotprod -mtune=cortex-x1"
 	export CFLAGS="${CFLAGS/-march=armv8-a/$opt}" CXXFLAGS="${CXXFLAGS/-march=armv8-a/$opt}"
-	export CFLAGS="${CFLAGS/-O2/-O3}" CXXFLAGS="${CXXFLAGS/-O2/-O3}"
+	export CFLAGS="${CFLAGS/-O2/-O3} -g1" CXXFLAGS="${CXXFLAGS/-O2/-O3} -g1"
 	export CXXFLAGS="${CXXFLAGS/-Wp,-D_GLIBCXX_ASSERTIONS/}"   # upstream builds have no libstdc++ assertions
 	echo "ROG5 CXXFLAGS: $CXXFLAGS"
 	cmake -B build -S eden -GNinja \

@@ -1,5 +1,26 @@
 # Eden (Nintendo Switch emulator) for the ROG5
 
+**In use since 2026-10-03 07:50: `eden 0.2.1-3.5`, built natively on the phone from
+this PKGBUILD** (-O3, `armv8.2-a+crypto+crc+lse+rcpc+fp16+dotprod`, `-mtune=cortex-x1`,
+LTO, `-g1` kept for crash reports, no libstdc++ assertions, Qt WebEngine off) with two
+Eden fixes: `0001-nce-refresh-host-thread-id.patch` and
+`0002-kernel-tls-accessors-out-of-line.patch`. Settings: v-sync Mailbox
+(`use_vsync=1`; FIFO stalls on Phosh). Packages kept in `/var/cache/rog5-eden/pkgs`
+(also the working -O2 debug build `eden-dbg 0.2.1-3.1` as fallback).
+
+BotW 1.6.0, unattended 5-minute run (virtual keyboard: title, New Game, intro,
+shrine, walking; Mesa overlay frame log; first minute excluded; 30 fps game cap):
+
+| Build | avg fps | median | 1% low | time <25 fps | time <20 fps | temp |
+|---|---|---|---|---|---|---|
+| -O2 debug (eden-dbg 3.1) | 24.6 | 23.2 | 17.4 | 58% | 9% | 47->78 C |
+| -O3+LTO+tuning+fixes (3.5) | 26.2 | 28.5 | 20.0 | 41% | 3% | 48->73 C |
+
+Without the two fixes every -O3/LTO build (ours and the upstream clang PGO AppImages)
+crashed BotW at boot. Screenshots at 80 s show the "Wake up, Link." intro.
+
+History:
+
 **In use (2026-10-03 05:00): a native build of v0.2.1 from this PKGBUILD**
 (`eden-dbg 0.2.1-3.1`: gcc -O2 -g1, not stripped, no LTO, Qt WebEngine off),
 started as `eden` from the system menu entry, with **v-sync = Mailbox**
