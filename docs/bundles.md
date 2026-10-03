@@ -17,6 +17,7 @@ Installed: default `main-k123-d15-261002b`, fallback `safe-k111-d10-261001a`.
 
 | Bundle | Role | Kernel | DTB | Status | Healthy | Installed | Key changes | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `main-k125-d15-261003a` | main | k125 | d15 | built | unknown |  | k125: k124 + 0213 OEM VP9 scratch release before restart + Wi-Fi battery-temperature retry |  |
 | `main-k124-d15-261003a` | main | k124 | d15 | ram-trial-pass | yes |  | k124 RAM trial: k123 + 0212 VP9 stock-sized display buffers and per-buffer extradata (VP9 G3 trial) | 2026-10-03 01:43 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1): ffmpeg vp9_v4l2m2m 1080p 300/300 frames bit-exact with libvpx (0212 fixed BAD_POINTER). Chromium YouTube VP9: ~22 s decode, then firmware Err_Fatal vpx_decoder.c:1132 at a resolution change after a second SCRATCH RELEASE_BUFFERS; contained (engine off). VP9 stays off by default. Wi-Fi radio failed at boot on a battery-temperature read race (retry fixed it). |
 | `main-k123-d15-261002b` | main | k123 | d15 | installed-main | yes | 2026-10-03 00:12 | k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off) | Installed as default over main-k116-d15-261002e (fallback safe-k111-d10-261001a); first boot committed healthy. Same content as main-k123-d15-261002a (RAM-trial PASS). |
 | `main-k123-d15-261002a` | main | k123 | d15 | ram-trial-pass | yes |  | k123 RAM trial: combined video (0210 abort/containment, 0211 FLUSH_ALL on close), kernel audit fixes 0180-0195 (no 0194), HDMI 0200-0203 (trial switches off) | 2026-10-02 23:25: vstress local (90 ABR switches+seeks, 40 open/close rounds up to 2 concurrent) and YouTube embed (18 load/seek/switch steps, H.264, Iris busy 145/150 s) with no Iris errors; engine suspended after; ffmpeg h264_v4l2m2m OK after; battery/Wi-Fi/BT/sensors/speaker protection/display/USB OK; s2idle 1/1 (3 s, USB wake). Same tests wedged k116. |
@@ -61,6 +62,7 @@ Installed: default `main-k123-d15-261002b`, fallback `safe-k111-d10-261001a`.
 
 | Kernel | Build directory | uname -r | Series | Date | Changes |
 |---|---|---|---|---|---|
+| k125 | `rog5-kernel-7.2.7-build-r125` | `7.2.7-rog5-k125` | 164 patches, 0001-0213 | 2026-10-03 |  |
 | k124 | `rog5-kernel-7.2.7-build-r124` | `7.2.7-rog5-k124` | 163 patches, 0001-0212 | 2026-10-02 |  |
 | k123 | `rog5-kernel-7.2.7-build-r123` | `7.2.7-rog5-k123` | 162 patches, 0001-0211 | 2026-10-02 |  |
 | k122 | `rog5-kernel-7.2.7-build-r122` | `7.2.7-rog5-k122` | 142 patches, 0001-0190 | 2026-10-02 |  |

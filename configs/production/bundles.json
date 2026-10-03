@@ -161,6 +161,16 @@
       "source_commit": "4dc726533da3",
       "source_dirty": false,
       "changes": ""
+    },
+    "k125": {
+      "build": "rog5-kernel-7.2.7-build-r125",
+      "release": "7.2.7-rog5-k125",
+      "date": "2026-10-03",
+      "series": "164 patches, 0001-0213",
+      "image_sha256": "37a72a553a37ba7f0fef4953c9e48019000ff431dba10b8967b1bbdb7151eeff",
+      "source_commit": "0a6c102788c4",
+      "source_dirty": false,
+      "changes": ""
     }
   },
   "bundles": [
@@ -787,6 +797,22 @@
       "healthy": "yes",
       "installed": null,
       "notes": "2026-10-03 01:43 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1): ffmpeg vp9_v4l2m2m 1080p 300/300 frames bit-exact with libvpx (0212 fixed BAD_POINTER). Chromium YouTube VP9: ~22 s decode, then firmware Err_Fatal vpx_decoder.c:1132 at a resolution change after a second SCRATCH RELEASE_BUFFERS; contained (engine off). VP9 stays off by default. Wi-Fi radio failed at boot on a battery-temperature read race (retry fixed it)."
+    },
+    {
+      "name": "main-k125-d15-261003a",
+      "role": "main",
+      "kernel": "k125",
+      "dtb": "d15",
+      "date": "2026-10-03",
+      "release": "7.2.7-rog5-k125",
+      "manifest_sha256": "b7d2ae3b987c619e65ff6e27dc38b5e01949bed9bfcb6c1c61846c24b6f60db0",
+      "package": "package-main-k125-d15-261003a",
+      "source_commit": "0a6c102788c4",
+      "changes": "k125: k124 + 0213 OEM VP9 scratch release before restart + Wi-Fi battery-temperature retry",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
