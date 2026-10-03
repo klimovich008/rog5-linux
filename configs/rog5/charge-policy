@@ -11,9 +11,11 @@ start=70
 end=80
 
 # Bypass (no charging, the adapter carries the load) while on external power
-# and rog5-perf-mode is "performance", or while the battery is at or above
+# and GNOME desktop mode runs (bypass_desktop), or rog5-perf-mode is
+# "performance" (bypass_perf), or while the battery is at or above
 # bypass_temp C (until it cools to bypass_temp_clear; 0 disables).
-bypass_perf=1
+bypass_desktop=1
+bypass_perf=0
 bypass_temp=40
 bypass_temp_clear=37
 # Never bypass below this capacity.

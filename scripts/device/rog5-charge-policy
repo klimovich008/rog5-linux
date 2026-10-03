@@ -21,6 +21,8 @@
 #   bypass_perf=1   inhibit-charge while rog5-perf-mode is in performance
 #                   (skin trips raised: gaming/desktop load), so charging
 #                   adds no heat
+#   bypass_desktop=0  inhibit-charge while GNOME desktop mode runs
+#                   (rog5-gnome.service active: monitor/hub on the adapter)
 #   bypass_temp=40 bypass_temp_clear=37  inhibit-charge while the battery is
 #                   at or above bypass_temp C, until it cools to _clear (0 off)
 #   bypass_min=30   never inhibit below this capacity: charge first
@@ -67,6 +69,7 @@ conf=${ROG5_CHG_CONF:-/etc/rog5/charge-policy}
 state=${ROG5_CHG_STATE:-/run/rog5-charge-policy}
 poll_s=${ROG5_CHG_POLL:-30}
 kmsg=${ROG5_CHG_KMSG:-/dev/kmsg}
+desktop_cmd=${ROG5_CHG_DESKTOP_CMD:-systemctl is-active --quiet rog5-gnome.service}
 
 log() { printf 'rog5-charge-policy: %s\n' "$*" >>"$kmsg" 2>/dev/null || true; }
 now() { cut -d. -f1 /proc/uptime; }
@@ -79,7 +82,7 @@ norm() { echo "$1" | sed 's/^0*\([0-9]\)/\1/'; }
 # Settings: defaults, then the config file (only known keys, at most six
 # digits for the numbers; anything else is ignored with a warning).
 load_conf() {
-	mode=limit start=70 end=80 bypass_perf=1 bypass_temp=40 bypass_temp_clear=37
+	mode=limit start=70 end=80 bypass_perf=1 bypass_desktop=0 bypass_temp=40 bypass_temp_clear=37
 	bypass_min=30 discharge_ma=200 discharge_s=120 backoff_s=900 drain=0 full_hours=12
 	[ -r "$conf" ] || return 0
 	while IFS='=' read -r k v; do
@@ -87,7 +90,7 @@ load_conf() {
 		case $k in
 		'' | '#'*) continue ;;
 		mode) case $v in limit | full | bypass | off) mode=$v ;; *) log "WARN unknown mode '$v', using off"; mode=off ;; esac ;;
-		start | end | bypass_perf | bypass_temp | bypass_temp_clear | bypass_min | discharge_ma | discharge_s | backoff_s | drain | full_hours)
+		start | end | bypass_perf | bypass_desktop | bypass_temp | bypass_temp_clear | bypass_min | discharge_ma | discharge_s | backoff_s | drain | full_hours)
 			if num "$v" && [ ${#v} -le 6 ]; then v=$(norm "$v"); eval "$k=\$v"; else log "WARN ignoring $k='$v'"; fi ;;
 		*) log "WARN unknown setting '$k'" ;;
 		esac
@@ -204,13 +207,15 @@ decide() {
 	fi
 	perf=0
 	[ "$bypass_perf" != 1 ] || ! perf_mode || perf=1
+	desktop=0
+	[ "$bypass_desktop" != 1 ] || ! $desktop_cmd 2>/dev/null || desktop=1
 
 	# Drain after a full charge (opt-in): run from the battery down to end,
 	# never to or below the floor. Performance mode or heat hand over to
 	# bypass. The capacity check alone decides, the flag only adds the
 	# hysteresis (a stale flag can't drain further).
 	floor=$end; [ "$floor" -ge 50 ] || floor=50
-	if [ "$eff" = limit ] && [ "$drain" = 1 ] && [ "$perf" = 0 ] && [ "$hot" = 0 ] &&
+	if [ "$eff" = limit ] && [ "$drain" = 1 ] && [ "$perf" = 0 ] && [ "$desktop" = 0 ] && [ "$hot" = 0 ] &&
 		[ "$cap" -gt "$floor" ] && { flag draining || [ "$cap" -ge $((end + 3)) ]; }; then
 		flag draining || { set_flag draining; log "draining from $cap % to $floor %"; }
 		want_beh=force-discharge reason=drain
@@ -225,6 +230,7 @@ decide() {
 	# bypass: with perf_on_power=always that bypass would otherwise hold the
 	# battery where it is for the whole override. Heat still bypasses.
 	[ -z "$why" ] && [ "$perf" = 1 ] && [ "$eff" != full ] && why=performance
+	[ -z "$why" ] && [ "$desktop" = 1 ] && [ "$eff" != full ] && why=desktop
 	[ -z "$why" ] && [ "$hot" = 1 ] && why=battery-hot
 	[ -n "$why" ] || { clear_flag low; reason=${eff}; return 0; }
 

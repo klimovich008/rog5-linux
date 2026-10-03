@@ -21,7 +21,8 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 b=$t/bat u=$t/usb
 export ROG5_CHG_BAT=$b ROG5_CHG_USB=$u ROG5_CHG_PARTNER=$t/port0-partner ROG5_CHG_ZONES=$t/zones \
-	ROG5_CHG_CONF=$t/charge-policy ROG5_CHG_STATE=$t/state ROG5_CHG_KMSG=$t/log
+	ROG5_CHG_CONF=$t/charge-policy ROG5_CHG_STATE=$t/state ROG5_CHG_KMSG=$t/log \
+	ROG5_CHG_DESKTOP_CMD="test -e $t/desktop"
 mkdir -p $b $u $t/zones/thermal_zone36
 echo 0 >$b/charge_control_start_threshold; echo 100 >$b/charge_control_end_threshold
 echo '[auto] inhibit-charge force-discharge' >$b/charge_behaviour
@@ -91,6 +92,16 @@ check 'inhibit-charge 70 80 performance' 'inhibit-charge 70 80' 'small discharge
 [ ! -e $t/state/low ] || { echo 'FAIL low timer not reset'; exit 1; }
 perf off; bat 90 300 0; rm $t/charge-policy
 check 'auto 70 80 limit' 'auto 70 80' 'performance off'
+
+# Desktop-mode bypass (bypass_desktop=1, bypass_perf=0): bypass only while GNOME
+# desktop mode runs; performance mode alone no longer bypasses.
+printf 'bypass_desktop=1\nbypass_perf=0\n' >$t/charge-policy; perf on
+check 'auto 70 80 limit' 'auto 70 80' 'performance alone, bypass_perf=0'
+: >$t/desktop
+check 'inhibit-charge 70 80 desktop' 'inhibit-charge 70 80' 'desktop mode bypass'
+rm $t/desktop; perf off
+check 'auto 70 80 limit' 'auto 70 80' 'desktop mode ended'
+rm $t/charge-policy
 
 # Battery temperature bypass with hysteresis.
 bat 90 400 0
