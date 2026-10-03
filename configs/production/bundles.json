@@ -809,10 +809,10 @@
       "package": "package-main-k125-d15-261003a",
       "source_commit": "0a6c102788c4",
       "changes": "k125: k124 + 0213 OEM VP9 scratch release before restart + Wi-Fi battery-temperature retry",
-      "status": "built",
-      "healthy": "unknown",
+      "status": "ram-trial-pass",
+      "healthy": "yes",
       "installed": null,
-      "notes": null
+      "notes": "2026-10-03 02:23 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1): ffmpeg 1080p 300/300 bit-exact; Chromium local VP9 stress (90 rendition switches + seeks, 40 open/close rounds) and YouTube VP9 150 s (360p-1080p, 18 load/seek/switch steps) with no Iris errors, engine suspended after, ffmpeg OK after. Rendition switches are slow: 1017 presented frames vs 3921 with software VP9 on the same page (~1 s per switch). Wi-Fi up at boot with the battery-temperature retry."
     }
   ]
 }
