@@ -249,9 +249,11 @@ Measured 2026-10-02 on k116 (H.264/HEVC decoder exposed):
   The installer ships `/etc/chromium-flags.conf` and `/etc/mpv/mpv.conf`
   (`hwdec=v4l2m2m-copy`); GStreamer apps (Showtime, WebKitGTK) already pick
   `v4l2h264dec`/`v4l2h265dec` by rank. Firefox is not configured yet.
-- VP9 and AV1 streams still decode in software (VP9 is not exposed until it
-  passes its trial; an extension such as enhanced-h264ify makes YouTube pick
-  H.264). AV1 has no
+- VP9 decodes in hardware since k125 (0212 stock-sized display buffers and
+  per-buffer extradata, 0213 scratch release on restart), enabled by
+  `/etc/modprobe.d/rog5-iris-vp9.conf` (`experimental_vp9=1 vp9_dpb_extra=1`):
+  ffmpeg bit-exact, Chromium VP9 stress and YouTube VP9 clean; a resolution
+  change stalls about 1 s. AV1 has no
   hardware decoder on SM8350; dav1d in software handles 1080p30 at 6.4x,
   1440p60 at 2.7x and 4K30 at 2.5x real time.
 

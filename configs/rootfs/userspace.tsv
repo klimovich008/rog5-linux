@@ -120,6 +120,7 @@ file	configs/udev/81-rog5-ssc-accel.rules	/etc/udev/rules.d/81-rog5-ssc-accel.ru
 file	configs/udev/72-rog5-v4l2-names.rules	/etc/udev/rules.d/72-rog5-v4l2-names.rules	0644
 conf	configs/chromium/chromium-flags.conf	/etc/chromium-flags.conf	0644
 conf	configs/mpv/mpv.conf	/etc/mpv/mpv.conf	0644
+conf	configs/modprobe/rog5-iris-vp9.conf	/etc/modprobe.d/rog5-iris-vp9.conf	0644
 file	configs/drirc/drirc	/etc/drirc	0644
 
 # Network, firewall, hotspot, SSH, health endpoint

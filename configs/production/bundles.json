@@ -813,6 +813,22 @@
       "healthy": "yes",
       "installed": null,
       "notes": "2026-10-03 02:23 VP9 trial (experimental_vp9=1 vp9_dpb_extra=1): ffmpeg 1080p 300/300 bit-exact; Chromium local VP9 stress (90 rendition switches + seeks, 40 open/close rounds) and YouTube VP9 150 s (360p-1080p, 18 load/seek/switch steps) with no Iris errors, engine suspended after, ffmpeg OK after. Rendition switches are slow: 1017 presented frames vs 3921 with software VP9 on the same page (~1 s per switch). Wi-Fi up at boot with the battery-temperature retry."
+    },
+    {
+      "name": "main-k125-d15-261003b",
+      "role": "main",
+      "kernel": "k125",
+      "dtb": "d15",
+      "date": "2026-10-03",
+      "release": "7.2.7-rog5-k125",
+      "manifest_sha256": "793e42787691f5719136a64036b44d441f4f052be21042c3b910c80631c5a4be",
+      "package": "package-main-k125-d15-261003b",
+      "source_commit": "564af95a60d1",
+      "changes": "k125 default candidate: k123 + 0212/0213 (VP9 hardware decode) + Wi-Fi battery-temperature retry; same content as main-k125-d15-261003a (RAM-trial PASS)",
+      "status": "built",
+      "healthy": "unknown",
+      "installed": null,
+      "notes": null
     }
   ]
 }
