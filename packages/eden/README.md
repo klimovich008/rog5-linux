@@ -54,3 +54,16 @@ Notes:
 
 The PKGBUILD here (AUR eden 0.2.1-3, cubeb dropped from depends because Arch
 Linux ARM lacks it) remains for a source build if ever needed.
+
+## Crash root cause (2026-10-03 06:40) and patch
+
+A -O3+LTO build with symbols (`-g1`) trapped in `Core::ArmNce::ReturnToRunCodeByExceptionLevelChange`
+at `brk #1000`, right after `svc #0` with x8=130 (`tkill`) and x1=12 (SIGUSR2), called from
+`ArmNce::RunThread` (arm_nce.cpp:231) on `CPUCore_2`. NCE enters guest code by sending
+SIGUSR2 to `m_thread_id`, which `ArmNce::Initialize` caches only on the first call; when
+that core's guest work later runs on another host thread, the signal goes to the old
+thread, tkill returns and execution reaches the brk. The signal stack is likewise set up
+only for the first thread. `0001-nce-refresh-host-thread-id.patch` refreshes the id on
+every `Initialize` (called before each RunThread) and keeps one sigaltstack per host
+thread. -O2 builds happened not to trigger it in our runs; -O3/LTO builds and the
+upstream AppImages (clang -O3+LTO+PGO) did, every time.

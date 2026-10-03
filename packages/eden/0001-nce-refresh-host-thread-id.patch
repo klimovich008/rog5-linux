@@ -1,0 +1,30 @@
+--- a/src/core/arm/nce/arm_nce.cpp
++++ b/src/core/arm/nce/arm_nce.cpp
+@@ -277,16 +277,20 @@
+ ArmNce::~ArmNce() = default;
+ 
+ void ArmNce::Initialize() {
+-    if (m_thread_id == -1) {
+-        m_thread_id = gettid();
+-    }
++    // ROG5: Initialize runs before every RunThread, and this core's guest work can
++    // resume on another host thread than last time. Enter and interrupt the thread
++    // that actually runs it: with a stale id, tkill(SIGUSR2) in
++    // ReturnToRunCodeByExceptionLevelChange signals the old thread, returns, and
++    // execution reaches brk #1000 (BotW boot, -O3/LTO builds, SM8350 Linux).
++    m_thread_id = gettid();
+ 
+-    // Configure signal stack.
+-    if (!m_stack) {
+-        m_stack = std::make_unique<u8[]>(StackSize);
++    // Configure signal stack, once per host thread (sigaltstack is per thread).
++    thread_local std::unique_ptr<u8[]> t_stack;
++    if (!t_stack) {
++        t_stack = std::make_unique<u8[]>(StackSize);
+ 
+         stack_t ss{};
+-        ss.ss_sp = m_stack.get();
++        ss.ss_sp = t_stack.get();
+         ss.ss_size = StackSize;
+         sigaltstack(&ss, nullptr);
+     }
