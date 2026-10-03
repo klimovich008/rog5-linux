@@ -62,6 +62,7 @@ Missing:
 
 ## Where to look
 
+- Latest VP9 DRC diagnosis: [stale SCRATCH registration and patch 0213](../test-results/2026-10-03-video-iris-vp9-drc-scratch.md); series apply and ARM64 Iris W=1 objects PASS; no live qualification.
 - Latest VP9 analysis: [k123 BAD_POINTER comparison](../test-results/2026-10-03-video-iris-vp9-bad-pointer-analysis.md). The rejected pointers are OUTPUT2 CAPTURE buffers; the exact stock plain-NV12 layout differs from Iris's NV12_128-style allocation. No kernel fix is qualified.
 - [What's left](whats-left.md): the short list, the status map and the tests
   that need the user's hands. [User irritations](user-irritations.md) has

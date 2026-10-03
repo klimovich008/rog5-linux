@@ -1,0 +1,41 @@
+From: ROG5 native Linux project
+Subject: [PATCH] media: iris: release OEM VP9 scratch registrations before restart
+
+STOP/RELEASE_RESOURCES leaves the input scratch buffers registered and
+marked QUEUED. A second OUTPUT STREAMON skips destroying them but creates
+and registers another set. On SM8350 VP9 the new SCRATCH address supersedes
+the old one; the next source change releases the old address and asserts
+in vpxDec_SessionReleaseBuffers, vpx_decoder.c:1132.
+
+Use the existing release/wait/allocate/queue path on OEM VP9 input streamon,
+just as on source change. Stock msm_comm_set_scratch_buffers unregisters
+old scratch buffers before registering replacements, including on restart.
+Leave persist buffers, DPBs and other codecs unchanged.
+
+---
+diff --git a/drivers/media/platform/qcom/iris/iris_vdec.c b/drivers/media/platform/qcom/iris/iris_vdec.c
+--- a/drivers/media/platform/qcom/iris/iris_vdec.c
++++ b/drivers/media/platform/qcom/iris/iris_vdec.c
+@@ -373,6 +373,14 @@
+ 	if (ret)
+ 		return ret;
+ 
++	/* OEM VP9 keeps one firmware registration per scratch type across STOP. */
++	if (inst->core->iris_platform_data->oem && inst->codec == V4L2_PIX_FMT_VP9) {
++		ret = iris_alloc_and_queue_input_int_bufs(inst);
++		if (ret)
++			return ret;
++		goto start;
++	}
++
+ 	iris_get_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+ 
+ 	ret = iris_destroy_dequeued_internal_buffers(inst, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+@@ -387,6 +395,7 @@
+ 	if (ret)
+ 		return ret;
+ 
++start:
+ 	inst->frame_counter = 0;
+ 
+ 	return iris_process_streamon_input(inst);
